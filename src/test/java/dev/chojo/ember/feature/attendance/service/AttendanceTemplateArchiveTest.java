@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
+import dev.chojo.ember.feature.attendance.repository.AttendanceTimeRuleRepository;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -81,7 +82,8 @@ class AttendanceTemplateArchiveTest extends RepositoryTestBase {
                 eventDateCancellationRepo,
                 new AttendanceAudienceService(attendanceRepo),
                 memberEligibility,
-                new AttendanceTemplateGuards(attendanceRepo));
+                new AttendanceTemplateGuards(attendanceRepo),
+                new AttendanceTimeRuleRepository());
         reportService = new AttendanceReportService(
                 attendanceRepo,
                 stationMemberRepo,
@@ -89,7 +91,9 @@ class AttendanceTemplateArchiveTest extends RepositoryTestBase {
                 stationRepo,
                 memberGroupRepo,
                 new Api(),
-                newStationLogoService());
+                newStationLogoService(),
+                new AttendanceTimeRuleRepository(),
+                restrictionService);
         eventCrud = newEventServices(new DomainEventBus(Set.of())).crud();
         eventTemplates = new EventTemplateService(
                 new EventTemplateRepository(),

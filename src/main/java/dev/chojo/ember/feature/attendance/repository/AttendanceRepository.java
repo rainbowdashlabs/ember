@@ -49,7 +49,7 @@ public class AttendanceRepository {
     private static final String ATTENDANCE_SESSION_COLUMNS =
             "id, template_id, start_time, end_time, created_at, event_id, title, unlocked_until, locked_at, counted_minutes";
     private static final String ATTENDANCE_ENTRY_COLUMNS =
-            "id, session_id, member_id, status, check_in, check_out, source";
+            "id, session_id, member_id, status, check_in, check_out, source, skip_extra_time";
     private static final String ATTENDANCE_REPORT_PRESET_COLUMNS =
             "id, station_id, name, user_types, group_ids, period, rounding";
     private static final String MEMBER_ABSENCE_COLUMNS =
@@ -768,6 +768,21 @@ public class AttendanceRepository {
                         .bind("status", status)
                         .bind("source", source))
                 .insert();
+    }
+
+    /**
+     * Records whether the person on this row did the preparation and follow-up their sheet's rules
+     * would credit them with.
+     *
+     * @param id   the entry ID
+     * @param skip true where they did not
+     * @return {@code true} if the entry was updated
+     */
+    public boolean setSkipExtraTime(int id, boolean skip) {
+        return query("UPDATE attendance_entry SET skip_extra_time = :skip WHERE id = :id;")
+                .single(call().bind("skip", skip).bind("id", id))
+                .update()
+                .changed();
     }
 
     /**

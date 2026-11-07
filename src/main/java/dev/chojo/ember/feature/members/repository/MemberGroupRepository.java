@@ -37,6 +37,7 @@ public class MemberGroupRepository {
     private static final String STATION_MEMBER_COLUMNS = StationMember.COLUMNS;
     /** Every restricted thing whose lists name the group, one row per thing, as its table and id. */
     private static final String CONTENT_LIMITED_TO_GROUP = Arrays.stream(RestrictionType.values())
+            .filter(RestrictionType::guardsVisibility)
             .map(type -> "SELECT '%s' AS kind, %s AS id FROM %s WHERE group_id = :group_id AND %s IS NOT NULL"
                     .formatted(type.entityTable(), type.fkColumn(), type.table(), type.fkColumn()))
             .collect(Collectors.joining(" UNION "));

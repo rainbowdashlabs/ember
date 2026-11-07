@@ -10,6 +10,7 @@ import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
+import dev.chojo.ember.feature.attendance.repository.AttendanceTimeRuleRepository;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -59,7 +60,8 @@ class AttendanceAnswersTest extends RepositoryTestBase {
                 eventDateCancellationRepo,
                 new AttendanceAudienceService(attendanceRepo),
                 memberEligibility,
-                new AttendanceTemplateGuards(attendanceRepo));
+                new AttendanceTemplateGuards(attendanceRepo),
+                new AttendanceTimeRuleRepository());
         station = stationRepo.create("AttendanceAnswersStation");
         memberId = member("attendance-answers@test.com", "Alma");
         groupMemberId = member("attendance-answers-group@test.com", "Berta");

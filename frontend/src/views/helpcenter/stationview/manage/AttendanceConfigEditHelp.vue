@@ -18,8 +18,27 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import UserTypesEditor from '@/views/stationview/manage/attendanceconfigedit/UserTypesEditor.vue'
+import TimeRulesEditor from '@/components/attendance/timerules/TimeRulesEditor.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
+import MutedText from '@/components/typography/MutedText.vue'
+import {draftOf} from '@/components/attendance/timerules/timeRuleDraft'
+import type {MemberGroup} from '@/api/generated/schema'
 
 const {t} = useI18n()
+
+/** The group the sample rule names, as the picker offers it. */
+const supervisors: MemberGroup = {id: 1, stationId: '', name: t('helpCenter.sample.groups.supervisors'), position: 0, color: null, groupSetId: null, userTypes: []}
+
+/** One rule crediting the supervisors with half an hour before and a quarter after. */
+const sampleRules = [draftOf({
+  id: 1,
+  position: 0,
+  label: t('helpCenter.sample.groups.supervisors'),
+  preparationMinutes: 30,
+  followUpMinutes: 15,
+  audience: {userTypes: [], groupIds: [supervisors.id], tagIds: [], memberIds: [], mode: 'OR'},
+  intact: true,
+})]
 
 /** Three fields of a sheet as their cards show them, each with its type and the width it is drawn at. */
 const sampleFields = [
@@ -135,6 +154,18 @@ const sampleFields = [
 
     <HelpSection :title="t('helpCenter.attendanceConfigEdit.widthTitle')">
       <p>{{ t('helpCenter.attendanceConfigEdit.widthText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.attendanceConfigEdit.timeRulesTitle')">
+      <p>{{ t('helpCenter.attendanceConfigEdit.timeRulesText') }}</p>
+      <NeutralContainer class="space-y-4">
+        <SectionHeader>{{ t('attendanceTimeRules.title') }}</SectionHeader>
+        <MutedText tag="p" size="sm">{{ t('attendanceTimeRules.templateHint') }}</MutedText>
+        <TimeRulesEditor :model-value="sampleRules" :groups="[supervisors]" :tags="[]" :members="[]"/>
+        <SaveButton disabled :action="() => undefined">{{ t('attendanceTimeRules.save') }}</SaveButton>
+      </NeutralContainer>
+      <p>{{ t('helpCenter.attendanceConfigEdit.timeRulesSaveText') }}</p>
+      <p>{{ t('helpCenter.attendanceConfigEdit.timeRulesMatchText') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.attendanceConfigEdit.tip') }}</HelpTip>

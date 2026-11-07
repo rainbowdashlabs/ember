@@ -2,7 +2,11 @@
 
 ## v26.24.0
 
-A member's equipment is handed out and taken back on the member's own page, which opens with the tabs each reader may see. Tabs on the main pages can be linked by their address. Missing equipment stands among the pieces a member holds and is handed out from a searchable window. The German interface uses one name for equipment movements throughout.
+Attendance can credit time spent before and after an appointment. A template names who prepares or tidies up and how many minutes that is worth. The attendance report counts those minutes in each person's hours. A member's equipment is handed out and taken back on the member's own page, which opens with the tabs each reader may see. Tabs on the main pages can be linked by their address. Missing equipment stands among the pieces a member holds and is handed out from a searchable window. The German interface uses one name for equipment movements throughout.
+
+### New Features
+
+- **Preparation and follow-up time counts in attendance.** An attendance template can credit chosen people with minutes before and after an appointment, such as a youth leader who sets up the room. Each sheet copies these rules and can correct them or leave one person out, and the report, its printouts and the spreadsheet count the minutes in each person's hours.
 
 ### Improvements
 

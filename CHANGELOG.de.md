@@ -2,7 +2,11 @@
 
 ## v26.24.0
 
-Die Ausrüstung eines Mitglieds wird auf seiner eigenen Seite aus- und zurückgegeben. Die Seite öffnet mit den Tabs, die jemand sehen darf. Tabs auf den Hauptseiten lassen sich über die Adresse verlinken. Fehlende Ausstattung steht bei der vorhandenen und wird über ein Fenster mit Suche ausgegeben. Bewegungen heißen überall Vorgänge.
+Die Anwesenheit kann Zeit vor und nach einem Termin gutschreiben. Eine Vorlage legt fest, wer vorbereitet oder aufräumt, etwa Jugendwarte oder Ausbilder, und wie viele Minuten das wert ist. Der Anwesenheitsbericht zählt diese Minuten zu den Stunden jeder Person. Die Ausrüstung eines Mitglieds wird auf seiner eigenen Seite aus- und zurückgegeben. Die Seite öffnet mit den Tabs, die jemand sehen darf. Tabs auf den Hauptseiten lassen sich über die Adresse verlinken. Fehlende Ausstattung steht bei der vorhandenen und wird über ein Fenster mit Suche ausgegeben. Bewegungen heißen überall Vorgänge.
+
+### Neue Funktionen
+
+- **Vor- und Nachbereitung zählen in der Anwesenheit.** Eine Anwesenheitsvorlage kann ausgewählten Personen nach Mitgliedstyp, Gruppe, Tag oder Name Minuten vor und nach einem Termin gutschreiben, etwa einem Jugendwart, der den Raum herrichtet. Jede Liste übernimmt diese Regeln und kann sie ändern oder eine Person ausnehmen, und Bericht, Ausdrucke und CSV-Export rechnen die Minuten zu den Stunden jeder Person.
 
 ### Verbesserungen
 
