@@ -25,8 +25,23 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MemberAttendanceRow from './sessionhelp/MemberAttendanceRow.vue'
+import TimeRulesSummary from '@/components/attendance/timerules/TimeRulesSummary.vue'
+import BareButton from '@/components/button/BareButton.vue'
+import AppIcon from '@/components/display/AppIcon.vue'
+import type {TimeRule} from '@/api/generated/schema'
 
 const {t} = useI18n()
+
+/** The rule a sheet took over from its template, as somebody who may not change it reads it. */
+const sampleRules: TimeRule[] = [{
+  id: 1,
+  position: 0,
+  label: t('helpCenter.sample.groups.supervisors'),
+  preparationMinutes: 30,
+  followUpMinutes: 15,
+  audience: {userTypes: [], groupIds: [1], tagIds: [], memberIds: [], mode: 'OR'},
+  intact: true,
+}]
 </script>
 
 <template>
@@ -60,6 +75,18 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.attendanceSession.countedHoursTitle')">
       <p>{{ t('helpCenter.attendanceSession.countedHoursText') }}</p>
       <p>{{ t('helpCenter.attendanceSession.countedHoursShareText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.attendanceSession.timeRulesTitle')">
+      <p>{{ t('helpCenter.attendanceSession.timeRulesText') }}</p>
+      <NeutralContainer class="space-y-3">
+        <BareButton class="flex items-center gap-2 text-sm font-medium" disabled>
+          <AppIcon :icon="['fas', 'chevron-down']"/>
+          <span>{{ t('attendanceTimeRules.sheetTitle', {count: 1}) }}</span>
+        </BareButton>
+        <TimeRulesSummary :rules="sampleRules"/>
+      </NeutralContainer>
+      <p>{{ t('helpCenter.attendanceSession.timeRulesPersonText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.attendanceSession.howTo')">

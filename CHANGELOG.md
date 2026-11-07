@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.24.0
+
+Attendance can credit time spent before and after an appointment. A template names who prepares or tidies up and how many minutes that is worth. The attendance report counts those minutes in each person's hours.
+
+### New Features
+
+- **Preparation and follow-up time counts in attendance.** An attendance template can credit chosen people with minutes before and after an appointment, such as a youth leader who sets up the room. Each sheet copies these rules and can correct them or leave one person out, and the report, its printouts and the spreadsheet count the minutes in each person's hours.
+
 ## v26.23.5
 
 Repeating appointments keep their time of day after the clocks change.

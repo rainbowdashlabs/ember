@@ -25,8 +25,14 @@ export interface TimeRuleDraft {
 /** The most minutes a rule credits before or after an appointment: one day. */
 export const MAX_RULE_MINUTES = 1440
 
+/**
+ * A key for one row of the editor.
+ *
+ * <p>Drawn rather than counted, because a counter at module level is shared by every request the server
+ * renders, and `crypto.randomUUID` is missing on a station served over plain HTTP.
+ */
 function keyOf(): string {
-    return crypto.randomUUID()
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
 }
 
 /** A rule as read from a template or a sheet, ready to be edited. */
