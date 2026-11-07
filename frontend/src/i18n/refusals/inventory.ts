@@ -27,9 +27,9 @@ const SIZE_NEEDS_A_NAME = 'Eine Größe braucht einen Namen, es wurde nichts ges
 const REQUIREMENT_NOT_HERE = 'Diese Anforderung gibt es nicht mehr'
 const NO_CODE_GIVEN = 'Nenne den Code, nach dem gesucht werden soll'
 const LOSS_NOT_YOURS_TO_REPORT = 'Nur wer diesen Gegenstand hat, kann ihn als vermisst melden'
-const NO_FLOW_FOR_THIS_MOVEMENT = 'Für eine solche Bewegung ist kein Ablauf hinterlegt'
-const MOVEMENT_PURPOSE_MISSING = 'Sag, wofür die Bewegung ist'
-const MOVEMENT_DOCUMENT_NOT_HERE = 'Die Datei zu dieser Bewegung gibt es nicht mehr'
+const NO_FLOW_FOR_THIS_MOVEMENT = 'Für einen solchen Vorgang ist kein Ablauf hinterlegt'
+const MOVEMENT_PURPOSE_MISSING = 'Sag, wofür der Vorgang ist'
+const MOVEMENT_DOCUMENT_NOT_HERE = 'Die Datei zu diesem Vorgang gibt es nicht mehr'
 const CONTAINER_NOT_HERE = 'Diesen Behälter gibt es nicht mehr'
 const CONTAINER_NOT_SAVED = 'Der Behälter konnte nicht gespeichert werden, es wurde nichts geändert. '
     + 'Er braucht einen Namen ohne Schrägstrich, einen Platz, der hier und nicht in ihm selbst liegt, '
@@ -41,8 +41,8 @@ const CHECK_WITHOUT_ITEMS = 'Die Prüfung kam ohne Gegenstände an, es wurde nic
 const PROCUREMENT_NOT_HERE = 'Diese Beschaffung gibt es nicht mehr'
 const BORROWED_GEAR_LOST_AT_PARTNER = 'Diese Ausrüstung gehört einer Partnerwache. Sag es ihr in der Leihanfrage, '
     + 'mit der sie gekommen ist'
-const MOVEMENT_NOT_HERE = 'Diese Bewegung gibt es nicht mehr'
-const MOVEMENT_FLOW_GONE = 'Den Ablauf, dem diese Bewegung gefolgt ist, gibt es nicht mehr, es wurde nichts geändert'
+const MOVEMENT_NOT_HERE = 'Diesen Vorgang gibt es nicht mehr'
+const MOVEMENT_FLOW_GONE = 'Den Ablauf, dem dieser Vorgang gefolgt ist, gibt es nicht mehr, es wurde nichts geändert'
 const ART_NAME_TAKEN = 'In diesem Inventar gibt es schon eine Art mit diesem Namen, es wurde nichts gespeichert'
 const SELF_CHECK_NOT_HERE = 'Diese Selbstauskunft gibt es nicht mehr'
 const SELF_CHECK_ANSWER_ALREADY_SETTLED = 'Jemand hat diese Antwort bereits erledigt'
@@ -103,7 +103,7 @@ export default {
     'I-045': NO_FLOW_FOR_THIS_MOVEMENT,
     'I-046': NO_FLOW_FOR_THIS_MOVEMENT,
     'I-047': MOVEMENT_PURPOSE_MISSING,
-    'I-048': 'Dafür kann eine Bewegung nicht da sein',
+    'I-048': 'Dafür kann ein Vorgang nicht da sein',
     'I-049': 'Hier wurde eine Zahl erwartet, und das ist keine',
     'I-050': 'Ein Ablauf muss sagen, wofür er da ist, es wurde nichts gespeichert',
     'I-051': FLOW_NOT_HERE,
@@ -111,7 +111,7 @@ export default {
     'I-053': FLOW_NOT_HERE,
     'I-054': FLOW_STEP_NOT_HERE,
     'I-055': FLOW_STEP_NOT_HERE,
-    'I-056': 'Sag, um wessen Ausrüstung es geht und wofür die Bewegung ist, es wurde nichts gespeichert',
+    'I-056': 'Sag, um wessen Ausrüstung es geht und wofür der Vorgang ist, es wurde nichts gespeichert',
     'I-057': 'Nenne die Schritte in der Reihenfolge, in der sie durchlaufen werden, es wurde nichts gespeichert',
     'I-058': 'Ein Schritt muss sagen, wer ihn bestätigt, worum es geht und wo der Gegenstand danach liegt, '
         + 'es wurde nichts gespeichert',
@@ -133,7 +133,7 @@ export default {
     'I-074': 'Kein Behälter hier trägt diesen Code',
     'I-075': MOVEMENT_PURPOSE_MISSING,
     'I-076': 'Für dieses Mitglied bist du nicht zuständig',
-    'I-077': 'Diese Bewegung gehört zu keinem Inventar, ein neuer Gegenstand hat dort keinen Platz '
+    'I-077': 'Dieser Vorgang gehört zu keinem Inventar, ein neuer Gegenstand hat dort keinen Platz '
         + 'und es wurde nichts gespeichert',
     'I-078': 'Der Eigentümer sagt, was er schickt: wähle den angekommenen Gegenstand aus, statt einen neuen anzulegen',
     'I-079': ITEM_NEEDS_A_NAME,
@@ -142,9 +142,9 @@ export default {
     'I-082': MOVEMENT_DOCUMENT_NOT_HERE,
     'I-083': MOVEMENT_DOCUMENT_NOT_HERE,
     'I-084': NOTHING_TO_EXPORT,
-    'I-085': 'Eine Bewegung kann einen Gegenstand beim Eigentümer, auf einer Wache, bei einem Mitglied '
+    'I-085': 'Ein Vorgang kann einen Gegenstand beim Eigentümer, auf einer Wache, bei einem Mitglied '
         + 'oder auf dem Postweg ablegen',
-    'I-086': 'Diese Bewegung gibt es nicht mehr',
+    'I-086': 'Diesen Vorgang gibt es nicht mehr',
     'I-087': NOT_HERE_OR_NOT_YOURS,
     'I-088': INVENTORY_NOT_HERE,
     'I-089': FIELD_NOT_HERE,
@@ -177,49 +177,49 @@ export default {
     'I-113': CHANGE_SAVED_BUT_NOT_READ_BACK,
     'I-114': 'Inventare bieten diesen Feldtyp nicht an, es wurde nichts gespeichert',
     'I-275': FLOW_NOT_HERE,
-    'I-115': 'Dieser Ablauf hat keine Schritte, die Bewegung wurde nicht begonnen',
-    'I-116': 'Eine Korrektur der Bewegung braucht eine Begründung, es wurde nichts geändert',
+    'I-115': 'Dieser Ablauf hat keine Schritte, der Vorgang wurde nicht begonnen',
+    'I-116': 'Eine Korrektur des Vorgangs braucht eine Begründung, es wurde nichts geändert',
     'I-117': MOVEMENT_NOT_HERE,
     'I-118': MOVEMENT_FLOW_GONE,
-    'I-119': 'Diesen Gegenstand gibt es nicht mehr, es wurde keine Bewegung begonnen',
-    'I-120': 'Dieser Gegenstand ist schon in einer anderen Bewegung. Schließ sie ab oder brich sie zuerst ab',
-    'I-121': 'Dieser Gegenstand ist schon einer anderen Bewegung versprochen. Schließ sie ab oder brich sie zuerst ab',
+    'I-119': 'Diesen Gegenstand gibt es nicht mehr, es wurde kein Vorgang begonnen',
+    'I-120': 'Dieser Gegenstand ist schon in einem anderen Vorgang. Schließ ihn ab oder brich ihn zuerst ab',
+    'I-121': 'Dieser Gegenstand ist schon einem anderen Vorgang versprochen. Schließ ihn ab oder brich ihn zuerst ab',
     'I-122': 'Dieses Inventar enthält verschiedene Dinge, es gibt also nichts, gegen das ein Gegenstand getauscht werden könnte',
     'I-123': 'Wer einen Schritt erzwingt, muss in einer Notiz sagen, warum, es wurde nichts geändert',
-    'I-124': 'Die Bewegung steht nicht mehr auf diesem Schritt, es wurde nichts geändert',
+    'I-124': 'Der Vorgang steht nicht mehr auf diesem Schritt, es wurde nichts geändert',
     'I-125': FLOW_STEP_NOT_HERE,
     'I-126': 'Dieser Schritt gehört der Wache selbst, bestätige ihn also, statt ihn zu erzwingen',
     'I-127': 'Dieser Schritt nennt den Gegenstand, der ankommt, wähle ihn also zuerst aus',
-    'I-128': 'Diese Bewegung liegt nicht mehr bei dir, sie wurde nicht abgebrochen',
+    'I-128': 'Dieser Vorgang liegt nicht mehr bei dir, er wurde nicht abgebrochen',
     'I-129': MOVEMENT_NOT_HERE,
-    'I-130': 'Diese Bewegung ist schon abgeschlossen oder abgebrochen, es wurde nichts geändert',
+    'I-130': 'Dieser Vorgang ist schon abgeschlossen oder abgebrochen, es wurde nichts geändert',
     'I-131': MOVEMENT_FLOW_GONE,
     'I-132': 'Dieser Schritt ist für jemand anderen, es wurde nichts geändert',
-    'I-133': 'Der Ablauf, zu dem diese Bewegung gehört, hat keine Schritte, es wurde nichts geändert',
-    'I-134': 'Der Ablauf, zu dem diese Bewegung gehört, sagt nicht von selbst, wo sie stehen würde, wähle also den Schritt aus',
-    'I-135': 'Der Ablauf, zu dem diese Bewegung gehört, hat an dieser Stelle keinen Schritt, es wurde nichts geändert',
+    'I-133': 'Der Ablauf, zu dem dieser Vorgang gehört, hat keine Schritte, es wurde nichts geändert',
+    'I-134': 'Der Ablauf, zu dem dieser Vorgang gehört, sagt nicht von selbst, wo er stehen würde, wähle also den Schritt aus',
+    'I-135': 'Der Ablauf, zu dem dieser Vorgang gehört, hat an dieser Stelle keinen Schritt, es wurde nichts geändert',
     'I-136': MOVEMENT_NOT_HERE,
-    'I-137': 'Diese Bewegung ist abgeschlossen, der Ablauf darunter entscheidet nichts mehr',
+    'I-137': 'Dieser Vorgang ist abgeschlossen, der Ablauf darunter entscheidet nichts mehr',
     'I-138': FLOW_NOT_HERE,
     'I-139': 'Dieser Ablauf gehört dem Verband über der Wache, die Wache kann ihn nicht neu schreiben',
     'I-140': 'An diesen Ablauf ist nichts gebunden, es gibt also keine Vorlage, aus der er neu geschrieben werden könnte',
     'I-141': 'Keine Vorlage deckt ab, woran dieser Ablauf gebunden ist, es gibt also keine, aus der er neu geschrieben werden könnte',
-    'I-142': 'Einige Bewegungen haben im neuen Ablauf keinen Platz, sag also, wo sie landen',
+    'I-142': 'Einige Vorgänge haben im neuen Ablauf keinen Platz, sag also, wo sie landen',
     'I-143': 'Jede Landung muss den Schritt nennen, auf dem sie landet, es wurde nichts geändert',
-    'I-144': 'Auf diesem Schritt steht keine Bewegung, er braucht also keine Landung, es wurde nichts geändert',
+    'I-144': 'Auf diesem Schritt steht kein Vorgang, er braucht also keine Landung, es wurde nichts geändert',
     'I-145': 'Die Vorlage hat an dieser Stelle keinen Schritt zum Landen, es wurde nichts geändert',
-    'I-146': 'Ein Schritt hat zwei Landungen bekommen, seine Bewegungen können aber nur auf einer stehen, es wurde nichts geändert',
+    'I-146': 'Ein Schritt hat zwei Landungen bekommen, seine Vorgänge können aber nur auf einer stehen, es wurde nichts geändert',
     'I-147': NO_FLOW_FOR_THIS_MOVEMENT,
     'I-148': FLOW_STEP_NOT_HERE,
     'I-149': FLOW_STEP_NOT_HERE,
     'I-150': FLOW_NOT_HERE,
     'I-151': FLOW_NOT_HERE,
     'I-152': 'Dieser Ablauf gehört jemand anderem, er wurde nicht gebunden',
-    'I-153': 'Dieser Ablauf ist für eine andere Art von Bewegung, er wurde nicht gebunden',
-    'I-154': 'Dieser Gegenstand ist einer Bewegung versprochen. Gib ihn dort aus oder brich sie ab',
+    'I-153': 'Dieser Ablauf ist für eine andere Art von Vorgang, er wurde nicht gebunden',
+    'I-154': 'Dieser Gegenstand ist einem Vorgang versprochen. Gib ihn dort aus oder brich den Vorgang ab',
     'I-155': 'Dieser Gegenstand kann von dort, wo er gerade ist, nicht ausgegeben werden, es wurde nichts geändert',
     'I-156': BORROWED_GEAR_LOST_AT_PARTNER,
-    'I-157': 'Dieser Schritt gibt den Gegenstand an ein Mitglied, die Bewegung nennt aber keines, es wurde nichts geändert',
+    'I-157': 'Dieser Schritt gibt den Gegenstand an ein Mitglied, der Vorgang nennt aber keines, es wurde nichts geändert',
     'I-158': ITEM_NOT_HERE,
     'I-159': 'Dieser Gegenstand ist nicht als vermisst eingetragen, es gibt also nichts zu melden',
     'I-160': 'Dieser Gegenstand gehört der Wache selbst, es gibt also niemanden, dem er gemeldet werden könnte',
@@ -343,6 +343,6 @@ export default {
     'I-279': 'Den Eigentümer eines einzelnen Stücks kannst du nur in einem gemischten Inventar ändern',
     'I-280': 'Den Eigentümer kannst du nur ändern, solange das Stück im Lager der Wache liegt',
     'I-281': 'Dieses Stück ist von einer Partnerwache geliehen, sein Eigentümer bleibt',
-    'I-282': 'Auf diesem Stück läuft noch eine Bewegung, sein Eigentümer bleibt, wie er ist',
+    'I-282': 'Auf diesem Stück läuft noch ein Vorgang, sein Eigentümer bleibt, wie er ist',
     'I-283': 'Gib an, ob das Stück der Wache oder dem Träger gehört',
 }

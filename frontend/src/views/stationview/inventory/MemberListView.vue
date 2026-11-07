@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
+import {memberGearLocation, useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -188,7 +188,8 @@ const {
 const showExportFormat = ref(false)
 
 function goToMember(memberId: number) {
-  router.push({ name: routes.member, params: { memberId } })
+  const target = memberGearLocation(routes, memberId)
+  if (target) router.push(target)
 }
 </script>
 

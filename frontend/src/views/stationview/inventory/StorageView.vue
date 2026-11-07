@@ -171,9 +171,7 @@ async function onCreated() {
       </div>
     </NeutralContainer>
 
-    <div v-if="loading" class="flex justify-center py-12">
-      <Spinner size="lg" />
-    </div>
+    <Spinner v-if="loading" size="lg"/>
     <template v-else>
       <SectionHeader>{{ t('inventory.storage.treeTitle') }}</SectionHeader>
       <NeutralContainer class="mb-6">

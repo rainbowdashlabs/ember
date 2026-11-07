@@ -143,7 +143,7 @@ function onTabChange(tab: string) {
       :subtitle="t('pages.members-changes.subtitle')"
   >
     <div class="space-y-6">
-      <TabBar :tabs="tabs" :model-value="activeTab" @update:model-value="onTabChange"/>
+      <TabBar :tabs="tabs" linked :model-value="activeTab" @update:model-value="onTabChange"/>
 
       <FailureAlert :failure="failure ?? acknowledgeFailure"/>
 

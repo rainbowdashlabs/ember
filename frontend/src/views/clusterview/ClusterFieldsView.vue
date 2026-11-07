@@ -79,7 +79,7 @@ const activeStationGroup = computed({
       <p class="text-sm text-(--text-muted)">{{ t('clusterFields.hint') }}</p>
 
       <TabBar v-if="!loading && availableStationGroups.length > 0"
-              v-model="activeStationGroup" :tabs="stationGroupTabs"/>
+              v-model="activeStationGroup" :tabs="stationGroupTabs" linked/>
 
       <FieldsWorkspace v-if="!loading" :config="config" :roles="CLUSTER_FIELD_ROLES"/>
 

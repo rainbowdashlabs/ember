@@ -55,7 +55,7 @@ class MovementExportFileNameTest {
         String name = nameOf(
                 MovementPurpose.ISSUE, MovementPurpose.RETURN, MovementPurpose.EXCHANGE, MovementPurpose.REQUEST);
 
-        assertTrue(name.startsWith("Bewegungen - "), name);
+        assertTrue(name.startsWith("Vorgänge - "), name);
     }
 
     @Test

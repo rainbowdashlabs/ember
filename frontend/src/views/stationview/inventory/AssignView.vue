@@ -259,9 +259,7 @@ async function onUnknownScanCreated(item: InventoryItem) {
     <FailureAlert :failure="failure ?? assignFailure" class="mb-3"/>
     <Alert v-if="flashMessage" :variant="flashKind" class="mb-3">{{ flashMessage }}</Alert>
 
-    <div v-if="loading" class="flex justify-center py-12">
-      <Spinner size="lg" />
-    </div>
+    <Spinner v-if="loading" size="lg"/>
     <template v-else>
       <NeutralContainer class="mb-4">
         <SubHeader class="mb-2">{{ t('inventory.assign.selectMember') }}</SubHeader>

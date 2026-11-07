@@ -2511,23 +2511,23 @@ volumes:
         },
         inventoryFlows: {
             title: 'Abläufe',
-            subtitle: 'Welche Schritte eine Bewegung von Ausrüstung geht, und wer sie bestätigt.',
+            subtitle: 'Welche Schritte ein Vorgang von Ausrüstung geht, und wer sie bestätigt.',
             whatIs: 'Was ein Ablauf ist',
             whatIsText: 'Ein Ablauf ist die Kette von Schritten, die ein Vorgang geht. Jeder Schritt sagt, wer ihn bestätigt, um welches Teil es geht und wo das Teil danach liegt.',
             shapeText: 'Jede Kette beginnt mit einer Anforderung und endet damit, dass die Stelle, bei der das Teil landet, den Erhalt bestätigt. Kürzer als zwei Schritte geht es deshalb nicht, und eine Kette, die unterwegs endet oder nicht sagt, welches Teil angekommen ist, wird beim Speichern abgelehnt.',
             whichApplies: 'Welcher Ablauf gilt',
             groupedText: 'Die Ketten stehen nach Zweck gruppiert untereinander. Zugeklappt sagt jede Karte nur, aus wie vielen Schritten die Kette besteht; der Pfeil klappt die Zeichnung und die Schritte auf.',
-            whichAppliesText: 'Drei Dinge entscheiden das: wofür die Bewegung läuft, wem das Teil gehört, und ob am anderen Ende das Lager der Wache oder ein Mitglied steht. Für jede dieser Kombinationen gibt es genau eine Kette, und welche Kombination eine Kette bedient, steht oben auf ihrer Karte.',
+            whichAppliesText: 'Drei Dinge entscheiden das: wofür der Vorgang läuft, wem das Teil gehört, und ob am anderen Ende das Lager der Wache oder ein Mitglied steht. Für jede dieser Kombinationen gibt es genau eine Kette, und welche Kombination eine Kette bedient, steht oben auf ihrer Karte.',
             ownerText: 'Gehört das Teil dem Träger und führt der Träger sein Lager hier, gelten seine Ketten. Führt er es nicht hier, geht die Wache seine Schritte an seiner Stelle, und im Verlauf steht, dass sie behauptet und nicht bestätigt wurden.',
             editing: 'Schritte ändern',
-            editingText: 'Ein Schritt lässt sich umbenennen und in allen Angaben ändern, solange gerade keine Bewegung auf dieser Kette unterwegs ist. Ein Schritt, der nicht mehr gebraucht wird, wird stillgelegt statt gelöscht, damit abgeschlossene Vorgänge weiter so lesbar bleiben, wie sie gegangen wurden.',
+            editingText: 'Ein Schritt lässt sich umbenennen und in allen Angaben ändern, solange gerade kein Vorgang auf dieser Kette unterwegs ist. Ein Schritt, der nicht mehr gebraucht wird, wird stillgelegt statt gelöscht, damit abgeschlossene Vorgänge weiter so lesbar bleiben, wie sie gegangen wurden.',
             orderText: 'Die Reihenfolge lässt sich mit den Pfeilen ändern. Ein vergessener Schritt muss also nicht ans Ende, sondern kann dorthin, wo er hingehört.',
             receiptTitle: 'Erhalt ohne Bestätigung des Mitglieds',
-            receiptText: 'Hat eine Kette einen Schritt, in dem das Mitglied den Erhalt eines Teils bestätigt, zeigt ihre Karte dafür einen Schalter. Ist er an, wartet die Kette nicht auf das Mitglied: der Schritt wird in seinem Namen bestätigt, sobald eine Bewegung ihn erreicht, und im Verlauf steht „automatisch bestätigt". Das Mitglied bekommt keine Bitte um Bestätigung. Andere Ketten fragen weiter nach.',
-            receiptWaitingText: 'Bewegungen, die beim Einschalten schon auf diesen Schritt warten, bleiben stehen und werden wie bisher bestätigt oder erzwungen.',
+            receiptText: 'Hat eine Kette einen Schritt, in dem das Mitglied den Erhalt eines Teils bestätigt, zeigt ihre Karte dafür einen Schalter. Ist er an, wartet die Kette nicht auf das Mitglied: der Schritt wird in seinem Namen bestätigt, sobald ein Vorgang ihn erreicht, und im Verlauf steht „automatisch bestätigt". Das Mitglied bekommt keine Bitte um Bestätigung. Andere Ketten fragen weiter nach.',
+            receiptWaitingText: 'Vorgänge, die beim Einschalten schon auf diesen Schritt warten, bleiben stehen und werden wie bisher bestätigt oder erzwungen.',
             restoreTitle: 'Eine Kette zurücksetzen',
             restoreText: 'Zu jeder Kombination gehört eine vorbereitete Kette. Der Pfeil auf der Karte setzt die Kette darauf zurück, nachdem du die Rückfrage bestätigt hast: die Schritte werden ersetzt, die Kombination bleibt.',
-            restoreMovingText: 'Sind auf der Kette noch Bewegungen unterwegs, nennt die Rückfrage jede einzeln: den Schritt, auf dem sie jetzt steht, und den Schritt der neuen Kette, auf dem sie weitergeht. Wo sich der nicht sicher zuordnen ließ, ist die Bewegung markiert und du wählst den Schritt selbst. Zurückgesetzt wird erst, wenn für jede Bewegung einer feststeht.',
+            restoreMovingText: 'Sind auf der Kette noch Vorgänge unterwegs, nennt die Rückfrage jeden einzeln: den Schritt, auf dem er jetzt steht, und den Schritt der neuen Kette, auf dem er weitergeht. Wo sich der nicht sicher zuordnen ließ, ist der Vorgang markiert und du wählst den Schritt selbst. Zurückgesetzt wird erst, wenn für jeden Vorgang einer feststeht.',
             restoreOwnerText: 'Eine Kette, die der Träger vorgibt, lässt sich hier nicht zurücksetzen: sie gehört ihm und nicht der Wache. Eine Kette, die die Wache selbst geschrieben hat, steht für keine Kombination und hat deshalb auch keine Vorgabe, auf die sie zurückgehen könnte.',
             problemsTitle: 'Wenn eine Kette nicht stimmt',
             problemsText: 'Was einer Kette fehlt, steht an der Kette selbst, und eine abgelehnte Änderung wird an derselben Stelle erklärt. Gespeichert wird immer nur die eine Kette, an der du gerade arbeitest; die übrigen bleiben so, wie du sie aufgeklappt hast.',
@@ -2731,7 +2731,7 @@ volumes:
             fromStockTitle: 'Aus dem Lager ausgeben',
             fromStockText: 'Liegt ein passendes Stück (gleiches Inventar, gleiche Größe) bereits frei im Lager der Wache, '
                 + 'zeigt die Beschaffung an, wie viele es sind. Mit „Aus dem Lager ausgeben" wählst du eines davon aus: '
-                + 'Ember startet die Ausgabe an das Mitglied als Bewegung und markiert die Beschaffung als erledigt, '
+                + 'Ember startet die Ausgabe an das Mitglied als Vorgang und markiert die Beschaffung als erledigt, '
                 + 'ohne ein neues Teil zu erfassen.',
             tip: 'Beschaffungen können auch direkt aus Tausch-Anfragen oder der Inventarprüfung erstellt werden.',
         },
@@ -4895,10 +4895,10 @@ volumes:
             tip: 'Änderungen durch den Verband landen im selben Änderungsverlauf wie die der Wache, damit ein Profil eine Geschichte erzählt und nicht zwei.',
         },
         clusterMovementDetail: {
-            title: 'Eine Bewegung des Verbands',
+            title: 'Ein Vorgang des Verbands',
             subtitle: 'Wo ein Stück gerade steht und wer am Zug ist.',
             whatTitle: 'Was hier steht',
-            whatText: 'Eine Bewegung ist der Weg, den ein Stück nimmt, in einzelnen Schritten. Diese Seite'
+            whatText: 'Ein Vorgang ist der Weg, den ein Stück nimmt, in einzelnen Schritten. Diese Seite'
                 + ' zeigt alle Schritte, welche schon bestätigt sind und welcher gerade offen ist.',
             stepsTitle: 'Wer bestätigt was',
             stepsText: 'Jede Seite bestätigt nur ihre eigenen Schritte. Ein Schritt, der auf die Wache'
@@ -5031,7 +5031,7 @@ volumes:
                 + ' wenn es um Material geht. Diese Einstellung gehört zu den Modulen und ist deshalb an'
                 + ' das entsprechende Recht gebunden.',
             flowsTitle: 'Abläufe',
-            flowsText: 'Ein Ablauf beschreibt, welche Schritte eine Bewegung geht und wer welchen Schritt'
+            flowsText: 'Ein Ablauf beschreibt, welche Schritte ein Vorgang geht und wer welchen Schritt'
                 + ' bestätigt. Wer das Material des Verbands führt, legt sie an.',
             lossTitle: 'Verlustmeldungen',
             lossText: 'Meldet eine Wache euch ein verlorenes Teil, fragt sie damit Ersatz an. Hier legt ihr fest,'
@@ -5366,15 +5366,20 @@ volumes:
             absencesTitle: 'Abwesenheiten',
             absencesText: 'Im Abwesenheiten-Tab siehst du die eingetragenen Abwesenheiten des Mitglieds.',
             inventoryExampleTitle: 'So sieht der Inventar-Tab aus',
+            inventoryExampleText: 'Die Gegenstände stehen nach Inventar geordnet. An jedem Gegenstand kannst du einen Tausch starten, ihn einem anderen Mitglied geben oder die Zuweisung aufheben.',
+            returnEverythingText: 'Wer das Inventar verwaltet, sieht darüber „Alles zurückfordern". Damit wird für jeden Gegenstand des Mitglieds eine Rückgabe gestartet, zum Beispiel wenn es die Wehr verlässt.',
+            movementsText: 'Unter der Liste stehen die Vorgänge des Mitglieds: Ausgaben, Rückgaben und Tausche, die noch laufen.',
             fieldsTitle: 'Profilfelder',
             fieldsText: 'Alle ausgefüllten Profilfelder des Mitglieds werden hier angezeigt.',
             managersTitle: 'Verwalter',
             managersText: 'Bei regulären Mitgliedern siehst du die zugewiesenen Erziehungsberechtigten. Du kannst bestehende Verwalter zuweisen oder neue erstellen. Bei jemandem, der selbst Mitglieder betreut, heißt der Tab „Verwaltete Mitglieder" und listet diese Mitglieder auf; ein Klick öffnet deren Seite.',
             inventoryTitle: 'Inventar',
-            inventoryText: 'Alle Ausrüstungsgegenstände, die dem Mitglied zugewiesen sind. Dieser Bereich ist nur sichtbar, wenn das Inventar-Modul aktiviert ist.',
+            inventoryText: 'Alles zur Ausrüstung des Mitglieds an einer Stelle: was fehlt, was es hat und welche Vorgänge gerade laufen. Der Tab ist sichtbar, wenn das Inventar-Modul an ist und du das Inventar sehen darfst. Wer nur das Inventar sehen darf, bekommt die Seite mit diesem einen Tab. Über die Adresse mit #inventory am Ende öffnet sich die Seite direkt hier, so führen auch alle Namen im Inventar hierher.',
+            scanTitle: 'Gegenstände per Scan ausgeben',
+            scanText: 'Scanne den Code eines Gegenstands oder tippe ihn ein, und er wird dem Mitglied zugewiesen. Mit „Ausgabe planen" wird er nur vorgemerkt und erst später übergeben. Ist der Code noch unbekannt, kannst du den Gegenstand gleich anlegen und ausgeben.',
             missingTitle: 'Fehlende Ausstattung',
-            missingText: 'Über der Liste steht, was für das Mitglied vorgesehen, aber noch nicht zugewiesen ist. Das sind dieselben Vorgaben, mit denen auch die Überprüfung arbeitet: was die Rolle und die Gruppen des Mitglieds verlangen.',
-            missingHandOutText: 'Zu jedem fehlenden Eintrag lässt sich direkt ein freier Gegenstand aus dem Lager auswählen und zuweisen, oder ein neuer anlegen und im selben Schritt zuweisen. Hat das Inventar Größen, wird die Größe vorher abgefragt. Danach verschwindet der Eintrag aus der Liste, sobald die Vorgabe erfüllt ist.',
+            missingText: 'Was für das Mitglied vorgesehen, aber noch nicht zugewiesen ist, steht als Karte „Fehlt“ direkt bei den anderen Gegenständen seines Inventars. Neben dem Namen des Inventars steht, wie viele es hat, wie viele es haben soll und wie viele fehlen. Das sind dieselben Vorgaben, mit denen auch die Überprüfung arbeitet: was die Rolle und die Gruppen des Mitglieds verlangen.',
+            missingHandOutText: '„Zuweisen“ auf einer fehlenden Karte öffnet ein Fenster für genau dieses Inventar. Hat es Größen, wählst du zuerst die Größe, dann stehen die passenden Gegenstände aus dem Lager oben in der Suche. Liegt nichts Passendes im Lager, legst du mit „Neu anlegen und zuweisen“ einen neuen Gegenstand an. Sobald die Vorgabe erfüllt ist, verschwindet die Karte.',
             changesTitle: 'Änderungsverlauf',
             changesText: 'Zeigt alle Profiländerungen dieses Mitglieds. Du kannst Änderungen bestätigen und optional einen Kommentar hinterlassen.',
             formerTitle: 'Als ehemalig markieren',
@@ -5805,30 +5810,23 @@ volumes:
             resultText: 'Nach Abschluss landet die Prüfung im Verlauf des Behälters und die als verloren markierten Items werden im Inventar als verloren geführt.',
             tip: 'Eine offen gelassene Zeile wird beim Abschluss als „fehlend" gewertet.',
         },
-        inventoryMember: {
-            title: 'Mitglieder-Inventar',
-            subtitle: 'Zugewiesene Ausrüstung eines einzelnen Mitglieds.',
-            whatShown: 'Was zeigt diese Seite?',
-            whatShownText: 'Hier siehst du alle Ausrüstungsgegenstände, die einem bestimmten Mitglied zugewiesen sind - gruppiert nach Inventar.',
-            tip: 'Du gelangst hierher über die Mitglieder-Inventar-Übersicht oder die Mitglieder-Detailseite.',
-        },
         movementDetail: {
-            title: 'Ablauf einer Bewegung',
+            title: 'Ablauf eines Vorgangs',
             subtitle: 'Wie Ausrüstung zwischen Mitglied, Wache und Träger wandert',
             whatIs: 'Worum geht es hier?',
-            whatIsText: 'Eine Bewegung ist ein Weg, den ein Ausrüstungsteil zwischen zwei Parteien nimmt: eine Ausgabe, eine Rückgabe oder ein Tausch. Diese Seite zeigt die ganze Kette auf einen Blick.',
+            whatIsText: 'Ein Vorgang ist ein Weg, den ein Ausrüstungsteil zwischen zwei Parteien nimmt: eine Ausgabe, eine Rückgabe oder ein Tausch. Diese Seite zeigt die ganze Kette auf einen Blick.',
             steps: 'Die Schritte',
             stepsText: 'Jeder Schritt sagt, wer ihn bestätigt, um welches Teil es geht und wo das Teil danach ist. Erledigte Schritte tragen den Namen dessen, der sie bestätigt hat, und den Zeitpunkt. Beim aktuellen Schritt steht der Knopf, sofern du an der Reihe bist, sonst der Hinweis, auf wen gewartet wird.',
             acks: 'Bestätigt, vermerkt, erzwungen',
             acksText: 'Bestätigt heißt: die Partei, der der Schritt gehört, hat selbst bestätigt. Von der Wache vermerkt heißt: die Wache hat für einen Träger eingetragen, der Ember nicht nutzt und deshalb nicht antworten kann. Erzwungen heißt: jemand hat einen Schritt über eine Partei hinweg eingetragen, die hätte antworten können. Das steht dauerhaft im Verlauf.',
             endings: 'Ablehnen und Abbrechen',
-            endingsText: 'Wer an der Reihe ist, kann mit einer Begründung ablehnen. Die Bewegung endet dann, und das abgehende Teil geht dorthin zurück, wo es vorher war. Abbrechen geht, solange die Bewegung noch auf der eigenen Seite steht.',
+            endingsText: 'Wer an der Reihe ist, kann mit einer Begründung ablehnen. Der Vorgang endet dann, und das abgehende Teil geht dorthin zurück, wo es vorher war. Abbrechen geht, solange der Vorgang noch auf der eigenen Seite steht.',
             rechain: 'Ablauf wechseln',
-            rechainText: 'Manchmal ist eine Bewegung auf einem Ablauf gestartet, der nicht zu dem Teil gehört. Dann stehen dort Schritte, die für die Ausrüstung von jemand anderem geschrieben wurden, und über den Knopf neben der Überschrift des Ablaufs stellst du die Bewegung auf den richtigen Ablauf um. Dabei legst du fest, auf welchem Schritt sie danach steht. Das geht nur bei offenen Bewegungen und nur mit dem Recht zur Inventarverwaltung.',
+            rechainText: 'Manchmal ist ein Vorgang auf einem Ablauf gestartet, der nicht zu dem Teil gehört. Dann stehen dort Schritte, die für die Ausrüstung von jemand anderem geschrieben wurden, und über den Knopf neben der Überschrift des Ablaufs stellst du den Vorgang auf den richtigen Ablauf um. Dabei legst du fest, auf welchem Schritt er danach steht. Das geht nur bei offenen Vorgängen und nur mit dem Recht zur Inventarverwaltung.',
             lossReport: 'Verlustmeldungen',
             lossReportText: 'Meldet eine Wache ein verlorenes Teil, steht oben, was beide Seiten dazu geschrieben haben: die Notiz der Wache und die des Mitglieds vom Melden, jeweils mit dem Namen dahinter. Ein Beleg, den der Verband verlangt hat, hängt daneben und wird von hier heruntergeladen.',
-            lossReportEndingsText: 'Ein Verlust hat keinen Rückweg: Es läuft nur die Hälfte mit dem Ersatz. Lehnt der Verband ab, bleibt das Teil vermisst, und die Begründung steht bei der Bewegung.',
-            tip: 'Die Bezeichnungen der Schritte kommen aus dem Ablauf, den deine Wache unter Inventar eingerichtet hat. Eine abgeschlossene Bewegung behält die Worte, unter denen sie gelaufen ist, auch wenn der Ablauf später umbenannt wird.',
+            lossReportEndingsText: 'Ein Verlust hat keinen Rückweg: Es läuft nur die Hälfte mit dem Ersatz. Lehnt der Verband ab, bleibt das Teil vermisst, und die Begründung steht beim Vorgang.',
+            tip: 'Die Bezeichnungen der Schritte kommen aus dem Ablauf, den deine Wache unter Inventar eingerichtet hat. Ein abgeschlossener Vorgang behält die Worte, unter denen er gelaufen ist, auch wenn der Ablauf später umbenannt wird.',
         },
         itemDetail: {
             ownerTitle: 'Eigentümer ändern',
@@ -6805,7 +6803,7 @@ volumes:
             whatIsText: 'Wenn eure Ausrüstung längst in den Spinden hängt, ist der Weg über einzelne Gegenstände '
                 + 'zäh: anlegen, Größe wählen, Nummer tippen, Fenster schließen, zuweisen. Hier geht es andersherum, '
                 + 'von der Mitgliederliste zu den Stücken: eine Zeile je Mitglied, einmal ausfüllen, einmal speichern.',
-            notAMovementText: 'Die Aufnahme trägt nur ein, was ohnehin da ist. Sie startet keine Bewegung und keinen '
+            notAMovementText: 'Die Aufnahme trägt nur ein, was ohnehin da ist. Sie startet keinen Vorgang und keinen '
                 + 'Ablauf, denn übergeben wurde nichts.',
             whoTitle: 'Schritt 1: Wer kommt in die Liste',
             whoText: 'Alle Mitglieder, ein Mitgliedstyp oder eine Gruppe. Das ist nur der Anfang: einzelne Zeilen '

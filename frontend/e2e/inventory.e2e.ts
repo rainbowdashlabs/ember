@@ -275,6 +275,28 @@ test.describe('Inventory', () => {
         await expect(page.getByText(/zugewiesen/).first()).toBeVisible()
     })
 
+    /**
+     * A member's gear is opened by its address and handed out on the spot.
+     *
+     * <p>The address names the inventory tab, so the page opens there rather than on the profile, and
+     * the scanner on that tab hands the piece over without a modal in between: typed and confirmed
+     * with Enter, the way a hand scanner sends it.
+     */
+    test('a member page opened at its inventory hands out a scanned piece', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const {code} = await pieceOfItsOwn(page, headers)
+        const {memberId} = await ownMember(page, 'Scan')
+
+        await page.goto(`/station/members/detail/${memberId}#Inventory`)
+
+        await expect(page.getByRole('tab', {name: 'Inventar'})).toHaveAttribute('aria-selected', 'true')
+        const scanner = page.getByPlaceholder('Code eingeben oder scannen…')
+        await scanner.fill(code)
+        await scanner.press('Enter')
+
+        await expect(page.getByTestId('inventory-item-card').filter({hasText: code})).toBeVisible()
+    })
+
     /** The one member a screen asks about by their UUID, and the answer for anybody else. */
     test('a member is answered for by their own identifier, and a stranger is not', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)

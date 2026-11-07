@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {computed, type ComponentPublicInstance} from 'vue'
 import BareButton from '@/components/button/BareButton.vue'
+import {useLinkedTab} from './useLinkedTab'
 
 /**
  * One entry of a tab list: the value it selects and what it says.
@@ -24,7 +25,14 @@ const modelValue = defineModel<string>({required: true})
 
 const props = defineProps<{
   tabs: Tab[]
+  /**
+   * Whether the address hash names the selected tab, so the tab can be linked to. Only the page's own
+   * tab list sets it: a page has one hash, and tabs inside a widget have no business in the address.
+   */
+  linked?: boolean
 }>()
+
+const linkedTab = props.linked ? useLinkedTab(modelValue, () => props.tabs) : null
 
 const tabElements: HTMLButtonElement[] = []
 
@@ -60,6 +68,7 @@ function activate(index: number) {
   const tab = props.tabs[index]
   if (!tab) return
   modelValue.value = tab.key
+  linkedTab?.picked(tab.key)
   tabElements[index]?.focus()
 }
 

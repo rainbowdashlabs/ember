@@ -112,7 +112,7 @@ async function upload(file: File) {
           @duplicate="duplicate"
           @archive="setArchived"
       />
-      <TabBar v-model="tab" :tabs="tabs"/>
+      <TabBar v-model="tab" :tabs="tabs" linked/>
       <template v-if="tab === 'general'">
         <GeneralPanel v-model="draft" :document-tags="editor.documentTags.value" :placeholders="editor.placeholders.value"/>
         <IssuerPanel v-model="draft" :members="editor.members.value" :chooses-issuer="screens.hasMembers"/>

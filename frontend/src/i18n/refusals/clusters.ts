@@ -132,7 +132,7 @@ export default {
     'CU-092': 'Die eigene Wache des Verbunds gibt es nicht mehr',
     'CU-093': 'Diese Gruppe von Wachen gehört nicht zu diesem Verbund',
     'CU-094': CLUSTER_NOT_HERE,
-    'CU-095': 'Für diese Art von Bewegung gibt es schon einen Ablauf, der zuerst archiviert werden muss, es wurde nichts gespeichert',
+    'CU-095': 'Für diese Art von Vorgang gibt es schon einen Ablauf, der zuerst archiviert werden muss, es wurde nichts gespeichert',
     'CU-096': FLOW_NOT_HERE,
     'CU-097': FLOW_STEP_NOT_HERE,
     'CU-098': CLUSTER_NOT_HERE,

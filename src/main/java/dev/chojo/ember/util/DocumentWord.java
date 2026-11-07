@@ -22,7 +22,7 @@ public enum DocumentWord {
     REGISTRATIONS("Anmeldungen", "Registrations"),
     MEMBERS("Mitglieder", "Members"),
     CLUSTER_MEMBERS("Verbandsmitglieder", "Association Members"),
-    MOVEMENTS("Bewegungen", "Movements"),
+    MOVEMENTS("Vorgänge", "Movements"),
     MEMBER_INVENTORY("Mitglieder Inventar", "Member Inventory"),
     CHECKLIST("Checkliste", "Checklist"),
     QUESTIONS("Fragen", "Questions"),
