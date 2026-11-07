@@ -26,7 +26,7 @@ import type {
   UserTag,
 } from '@/api/generated/schema'
 
-defineProps<{
+const props = defineProps<{
   member: MemberWithName
   memberId: number
   currentMemberId: number
@@ -53,8 +53,9 @@ defineProps<{
   getManagerFieldValue: (mgrId: number, fieldId: number) => unknown
   memberInventory: MyInventoryItem[]
   memberRequirements: MemberRequirements
-  showInventoryManagement: boolean
-  canManageInventory: boolean
+  canAssignInventory: boolean
+  canExchangeInventory: boolean
+  canReturnEverything: boolean
 }>()
 
 defineEmits<{
@@ -65,22 +66,23 @@ defineEmits<{
   'create-manager': [data: { firstName: string; lastName: string; email: string }]
   'link-managed': [id: number]
   'remove-managed': [id: number]
-  'assign-item': []
   'hand-out': [itemId: number]
+  'plan-hand-out': [itemId: number, inventoryId: number]
   'hand-out-new': [inventoryId: number, sizeId: number | null]
   'request-exchange': [item: MyInventoryItem]
   unassign: [item: MyInventoryItem]
   reassign: [item: MyInventoryItem]
+  'inventory-changed': []
 }>()
 
-const activeTab = ref('profile')
+const activeTab = ref(props.tabs[0]?.key ?? '')
 </script>
 
 <template>
   <SubHeader>{{ memberDisplayName(member) }}</SubHeader>
   <p v-if="member.email" class="text-sm text-(--text-muted)">{{ member.email }}</p>
 
-  <TabBar v-model="activeTab" :tabs="tabs" />
+  <TabBar v-model="activeTab" :tabs="tabs" linked />
 
   <ProfileTab
     v-if="activeTab === 'profile'"
@@ -116,16 +118,20 @@ const activeTab = ref('profile')
 
   <InventoryTab
     v-if="activeTab === 'inventory'"
+    :member-id="memberId"
+    :member-name="memberDisplayName(member)"
     :member-inventory="memberInventory"
     :member-requirements="memberRequirements"
-    :show-inventory-management="showInventoryManagement"
-    :can-manage-inventory="canManageInventory" :can-edit="canEdit"
-    @assign-item="$emit('assign-item')"
+    :can-assign="canAssignInventory"
+    :can-manage-inventory="canExchangeInventory"
+    :can-return-everything="canReturnEverything"
     @request-exchange="$emit('request-exchange', $event)"
     @unassign="$emit('unassign', $event)"
     @reassign="$emit('reassign', $event)"
     @hand-out="$emit('hand-out', $event)"
+    @plan-hand-out="(itemId, inventoryId) => $emit('plan-hand-out', itemId, inventoryId)"
     @hand-out-new="(inventoryId, sizeId) => $emit('hand-out-new', inventoryId, sizeId)"
+    @changed="$emit('inventory-changed')"
   />
 
   <DocumentsTab

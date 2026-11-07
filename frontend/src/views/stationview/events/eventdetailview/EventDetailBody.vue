@@ -320,7 +320,7 @@ const {failure: restoreFailure, run: restoreDate} = useAsyncAction(async () => {
       <InfoBadge v-for="days in reminders" :key="days">{{ days }} {{ t('eventEdit.daysBefore') }}</InfoBadge>
     </div>
 
-    <TabBar v-model="activeTab" :tabs="tabs"/>
+    <TabBar v-model="activeTab" :tabs="tabs" linked/>
 
     <EventInfoTab
         v-if="activeTab === 'info'"

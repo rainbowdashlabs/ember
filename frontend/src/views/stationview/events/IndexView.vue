@@ -157,7 +157,7 @@ async function catchUp() {
       <Spinner v-if="loading" size="lg"/>
       <FailureAlert :failure="failure"/>
 
-      <TabBar v-model="tab" :tabs="tabs"/>
+      <TabBar v-model="tab" :tabs="tabs" linked/>
 
       <EventFilterBar
           v-model:search="searchInput"

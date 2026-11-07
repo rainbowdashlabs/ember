@@ -13,7 +13,7 @@ import RowLink from '@/components/navigation/RowLink.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import type { InventoryItem, MemberWithName } from '@/api/generated/schema'
 import type { DataTableApi } from '@/composables/useDataTable'
-import { useInventoryRoutes } from '@/composables/useInventoryRoutes'
+import { memberGearLocation, useInventoryRoutes } from '@/composables/useInventoryRoutes'
 import MemberInventoryItems from './MemberInventoryItems.vue'
 import { inventoryIdOfColumn, NAME_KEY } from './inventoryMemberColumns'
 import type { ItemLabelParts } from './itemLabel'
@@ -41,8 +41,8 @@ const routes = useInventoryRoutes()
 
 /** Where the member's name leads, or nowhere while the list is being ticked for an export. */
 function memberPage(member: MemberWithName) {
-  if (props.exportMode || !routes.member) return null
-  return { name: routes.member, params: { memberId: member.id } }
+  if (props.exportMode) return null
+  return memberGearLocation(routes, member.id)
 }
 
 /** The inventory columns that show, each with the inventory it stands for. */

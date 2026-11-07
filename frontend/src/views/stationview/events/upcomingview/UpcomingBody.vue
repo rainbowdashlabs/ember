@@ -115,7 +115,7 @@ const emptyMessage = computed(() => props.isPast ? t('eventsUpcoming.noPast') : 
   />
 
   <template v-if="viewMode === 'list'">
-    <TabBar v-model="tab" :tabs="tabs"/>
+    <TabBar v-model="tab" :tabs="tabs" linked/>
 
     <TodayEventsSection
         v-if="!isPast"

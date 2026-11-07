@@ -89,7 +89,7 @@ export async function correctMovement(id: number, data: CorrectMovementRequest):
 /** The sheet for the shelf: a row per member, a column per inventory, the sizes in the cells. */
 export async function exportPdf(movementIds: number[], extraFieldIds: number[]): Promise<DocumentFile> {
     const res = await client.post('/movements/export', {movementIds, extraFieldIds}, {responseType: 'blob'})
-    return documentFrom(res, 'Bewegungen.pdf')
+    return documentFrom(res, 'Vorgänge.pdf')
 }
 
 /** Asks a member for every piece they hold, one chain per piece. */

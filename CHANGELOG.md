@@ -1,5 +1,21 @@
 # Changelog
 
+## v26.24.0
+
+A member's equipment is handed out and taken back on the member's own page, which opens with the tabs each reader may see. Tabs on the main pages can be linked by their address. Missing equipment stands among the pieces a member holds and is handed out from a searchable window. The German interface uses one name for equipment movements throughout.
+
+### Improvements
+
+- **Tabs can be linked.** The address names the open tab on member, appointment, test, template and form evaluation pages, so a link or a bookmark opens the same tab, such as `/station/members/detail/12#inventory`.
+- **Member pages open with the tabs a reader may see.** Each tab of a member's page appears for those allowed to see its content, and the page opens as long as one is left. Someone who may see the inventory but not member profiles opens a member's page with its Inventory tab.
+- **Pages show their loading indicator in the middle.** While a page or a section loads, its spinning wheel stands centred on a line of its own instead of in the top left corner.
+
+### Changes
+
+- **A member's equipment lives on the member's page.** The separate member inventory page is gone, and every member name in the inventory leads to the Inventory tab of the member's page. That tab gains scanning to hand out, "Ask for everything back" and the member's movements, and its buttons follow the inventory permissions instead of the right to edit members.
+- **Missing equipment stands among the held pieces.** On a member's Inventory tab, each missing piece shows as a card in its inventory's group instead of in a list above. Handing it out opens a window that searches the free pieces of that inventory, the chosen size first, or creates a new one.
+- **Equipment movements have one name in German.** The German interface, notifications, refusal messages, export file names and help center call a movement by the same word everywhere, the one the sidebar already used.
+
 ## v26.23.5
 
 Repeating appointments keep their time of day after the clocks change.

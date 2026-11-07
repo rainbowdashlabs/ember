@@ -73,7 +73,7 @@ const generatingDocuments = computed({
       :title="t('pages.members-list.title')"
       :subtitle="t('pages.members-list.subtitle')"
   >
-    <MemberListPanel :config="config" @resend-setup="openResendSetup" @generate-documents="(ids) => documentMembers = ids"/>
+    <MemberListPanel :config="config" linked-tabs @resend-setup="openResendSetup" @generate-documents="(ids) => documentMembers = ids"/>
     <BulkGenerateModal v-if="documentMembers" v-model="generatingDocuments" :member-ids="documentMembers"/>
 
     <Modal v-if="resendTarget" model-value @update:model-value="(v) => { if (!v) resendTarget = null }">

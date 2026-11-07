@@ -1,5 +1,21 @@
 # Änderungsprotokoll
 
+## v26.24.0
+
+Die Ausrüstung eines Mitglieds wird auf seiner eigenen Seite aus- und zurückgegeben. Die Seite öffnet mit den Tabs, die jemand sehen darf. Tabs auf den Hauptseiten lassen sich über die Adresse verlinken. Fehlende Ausstattung steht bei der vorhandenen und wird über ein Fenster mit Suche ausgegeben. Bewegungen heißen überall Vorgänge.
+
+### Verbesserungen
+
+- **Tabs lassen sich verlinken.** Die Adresse nennt den offenen Tab auf den Seiten von Mitgliedern, Terminen, Tests, Vorlagen und Formularauswertungen. Ein Link oder ein Lesezeichen öffnet so denselben Tab, etwa `/station/members/detail/12#inventory`.
+- **Mitgliederseiten öffnen mit den Tabs, die jemand sehen darf.** Jeder Tab auf der Seite eines Mitglieds erscheint für alle, die seinen Inhalt sehen dürfen, und die Seite öffnet, solange einer übrig bleibt. Wer das Inventar sehen darf, aber keine Mitgliederprofile, bekommt die Seite mit dem Tab Inventar.
+- **Seiten zeigen ihre Ladeanzeige in der Mitte.** Während eine Seite oder ein Abschnitt lädt, steht das drehende Rad mittig in einer eigenen Zeile statt oben links in der Ecke.
+
+### Änderungen
+
+- **Die Ausrüstung eines Mitglieds steht auf seiner Seite.** Die eigene Seite für das Inventar eines Mitglieds entfällt, und jeder Mitgliedsname im Inventar führt zum Tab Inventar auf der Seite des Mitglieds. Dort gibt es jetzt auch die Ausgabe per Scan, „Alles zurückfordern“ und die Vorgänge des Mitglieds, und die Knöpfe richten sich nach den Inventarrechten statt nach dem Recht, Mitglieder zu bearbeiten.
+- **Fehlende Ausstattung steht bei der vorhandenen.** Im Tab Inventar eines Mitglieds erscheint jedes fehlende Teil als Karte bei seinem Inventar statt in einer eigenen Liste darüber. Beim Ausgeben öffnet sich ein Fenster, das die freien Teile dieses Inventars durchsucht, die gewählte Größe zuerst, oder ein neues anlegt.
+- **Bewegungen heißen überall Vorgänge.** Oberfläche, Benachrichtigungen, Fehlermeldungen, Dateinamen von Exporten und das Hilfe-Center nennen sie wie die Seitenleiste, aus „Meine Bewegungen“ wird „Meine Vorgänge“.
+
 ## v26.23.5
 
 Wiederkehrende Termine behalten ihre Uhrzeit, wenn die Uhren umgestellt werden.

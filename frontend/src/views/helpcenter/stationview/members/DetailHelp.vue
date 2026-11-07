@@ -15,15 +15,20 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
-import IconButton from '@/components/button/IconButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import MemberLinkBadge from '@/components/accountlink/MemberLinkBadge.vue'
+import InventorySection from '@/views/stationview/members/detailview/InventorySection.vue'
+import ScanHandOutPanel from '@/views/stationview/members/detailview/inventorytab/ScanHandOutPanel.vue'
+import type {HandOutMode} from '@/components/inventory/HandOutChoice.vue'
 import {LinkStatus} from '@/api/generated/schema'
 import {ref} from 'vue'
+import {items, requirements} from './detailhelp/inventoryFixtures'
 
 const {t} = useI18n()
 
 const activeTab = ref('profile')
+const scanValue = ref('')
+const handOutMode = ref<HandOutMode>('NOW')
 const tabs = [
   {key: 'profile', label: t('memberDetail.tabProfile')},
   {key: 'permissions', label: t('memberDetail.tabPermissions')},
@@ -132,30 +137,22 @@ const tabs = [
       <p>{{ t('helpCenter.membersDetail.missingHandOutText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.membersDetail.scanTitle')">
+      <p>{{ t('helpCenter.membersDetail.scanText') }}</p>
+      <ScanHandOutPanel
+          v-model:hand-out-mode="handOutMode"
+          v-model:scan-value="scanValue"
+          :scan-busy="false"
+          :scan-failure="null"
+          scan-success=""
+      />
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.membersDetail.inventoryExampleTitle')">
-      <NeutralContainer class="space-y-3">
-        <div class="flex items-center justify-between">
-          <SubHeader>{{ t('memberDetail.inventory') }}</SubHeader>
-          <PrimaryButton :icon="['fas', 'plus']" disabled>
-            {{ t('memberDetail.assignItem') }}
-          </PrimaryButton>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          <NeutralContainer>
-            <div class="flex items-start justify-between gap-2">
-              <div>
-                <div class="font-medium text-sm">{{ t('helpCenter.sample.equipment.helmet') }} <span class="font-normal text-(--text-muted)">M</span></div>
-                <div class="text-xs text-(--text-muted)">{{ t('helpCenter.sample.equipment.helmets') }}</div>
-              </div>
-              <div class="flex items-center gap-1">
-                <IconButton :icon="['fas', 'rotate']" label="Tausch" disabled/>
-                <IconButton :icon="['fas', 'arrow-right-arrow-left']" label="Umzuweisen" disabled/>
-                <IconButton :icon="['fas', 'xmark']" label="Aufheben" disabled/>
-              </div>
-            </div>
-          </NeutralContainer>
-        </div>
-      </NeutralContainer>
+      <p>{{ t('helpCenter.membersDetail.inventoryExampleText') }}</p>
+      <InventorySection :member-inventory="items" :requirements="requirements" can-assign can-manage-inventory/>
+      <p>{{ t('helpCenter.membersDetail.returnEverythingText') }}</p>
+      <p>{{ t('helpCenter.membersDetail.movementsText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.membersDetail.changesTitle')">

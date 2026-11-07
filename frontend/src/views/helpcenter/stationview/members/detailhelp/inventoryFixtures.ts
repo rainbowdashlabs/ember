@@ -3,12 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {ItemCustody, ItemOwner, type MyInventoryItem} from '@/api/generated/schema'
-import type {MemberLike} from '@/components/input/select/memberOption'
-import type {InventoryGroup} from '@/views/stationview/inventory/memberinventoryview/MemberInventoryGroups.vue'
-
-/** The member whose gear the page shows. */
-export const member: MemberLike = {id: 1, name: 'Max Mustermann'}
+import {InventoryType, ItemCustody, ItemOwner, type MyInventoryItem, type RequiredInventoryItem} from '@/api/generated/schema'
 
 /** A piece the member holds with nothing about it out of the ordinary. */
 function piece(fields: Pick<MyInventoryItem, 'id' | 'inventoryId' | 'inventoryName' | 'name'> & Partial<MyInventoryItem>): MyInventoryItem {
@@ -30,9 +25,10 @@ const jacket = piece({
 })
 
 /** Two helmets, one of them lost, and a jacket that is already being exchanged. */
-export const groups: InventoryGroup[] = [
-    {inventoryId: 1, inventoryName: 'Helme', items: [helmet, lostHelmet]},
-    {inventoryId: 2, inventoryName: 'Jacken', items: [jacket]},
-]
-
 export const items: MyInventoryItem[] = [helmet, lostHelmet, jacket]
+
+/** Two jackets are required and one is held, so the jacket block shows one gap. */
+export const requirements: RequiredInventoryItem[] = [{
+    inventoryId: 2, inventoryName: 'Jacken', inventoryType: InventoryType.INTERNAL, requiredQuantity: 2, assignedQuantity: 1,
+    inExchangeQuantity: 0, hasSizes: false, homogeneous: true, sizes: [],
+}]
