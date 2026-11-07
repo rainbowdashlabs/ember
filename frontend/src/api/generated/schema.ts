@@ -8925,6 +8925,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/attendance/sessions/{sessionId}/extra-time": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List who on an attendance sheet its rules credit with preparation and follow-up */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sessionId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ExtraTimeCredit"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/attendance/sessions/{sessionId}/fields": {
         parameters: {
             query?: never;
@@ -65844,6 +65891,17 @@ export interface components {
         };
         /** @enum {string} */
         ExternalLinkImageDisplay: "BANNER" | "ICON";
+        ExtraTimeCredit: {
+            /** Format: int32 */
+            entryId: number;
+            /** Format: int32 */
+            followUpMinutes: number;
+            /** Format: int32 */
+            memberId: number;
+            /** Format: int32 */
+            preparationMinutes: number;
+            skipped: boolean;
+        };
         ExtraTimeRequest: {
             skip?: boolean | null;
         };
@@ -74953,6 +75011,7 @@ export type ExportColumnRequest = components['schemas']['ExportColumnRequest'];
 export type ExportMovementsRequest = components['schemas']['ExportMovementsRequest'];
 export type ExternalLinkCardConfig = components['schemas']['ExternalLinkCardConfig'];
 export type ExternalLinkImageDisplay = components['schemas']['ExternalLinkImageDisplay'];
+export type ExtraTimeCredit = components['schemas']['ExtraTimeCredit'];
 export type ExtraTimeRequest = components['schemas']['ExtraTimeRequest'];
 export type FactorInfo = components['schemas']['FactorInfo'];
 export type FailedInviteResponse = components['schemas']['FailedInviteResponse'];

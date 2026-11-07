@@ -12,6 +12,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.AttendanceRefusal;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplate;
+import dev.chojo.ember.feature.attendance.entity.ExtraTimeCredit;
 import dev.chojo.ember.feature.attendance.entity.TimeRule;
 import dev.chojo.ember.feature.attendance.entity.TimeRuleInput;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
@@ -66,6 +67,10 @@ public class AttendanceTimeRuleRoutes implements Routes {
                 prefix + "/attendance/sessions/{sessionId}/time-rules",
                 this::replaceSessionRules,
                 StationPermission.ATTENDANCE_EDIT);
+        routes.get(
+                prefix + "/attendance/sessions/{sessionId}/extra-time",
+                this::listSessionCredits,
+                StationPermission.ATTENDANCE_READ);
         routes.put(
                 prefix + "/attendance/entries/{id}/extra-time", this::setExtraTime, StationPermission.ATTENDANCE_EDIT);
     }
@@ -139,6 +144,22 @@ public class AttendanceTimeRuleRoutes implements Routes {
         var request = ctx.bodyAsClass(SetTimeRulesRequest.class);
         List<TimeRuleInput> rules = request.rules() == null ? List.of() : request.rules();
         ctx.json(timeRuleService.replaceSessionRules(template.stationId(), sessionId, rules));
+    }
+
+    @OpenApi(
+            path = "/api/v1/attendance/sessions/{sessionId}/extra-time",
+            methods = HttpMethod.GET,
+            summary = "List who on an attendance sheet its rules credit with preparation and follow-up",
+            tags = {"Attendance"},
+            pathParams = @OpenApiParam(name = "sessionId", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ExtraTimeCredit[].class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void listSessionCredits(Context ctx) {
+        int sessionId = pathInt(ctx, "sessionId");
+        requireOwnSheet(ctx, sessionId);
+        ctx.json(timeRuleService.sessionCredits(sessionId));
     }
 
     @OpenApi(

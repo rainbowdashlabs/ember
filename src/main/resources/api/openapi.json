@@ -6366,6 +6366,46 @@
         } ]
       }
     },
+    "/api/v1/attendance/sessions/{sessionId}/extra-time" : {
+      "get" : {
+        "summary" : "List who on an attendance sheet its rules credit with preparation and follow-up",
+        "tags" : [ "Attendance" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ExtraTimeCredit"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "sessionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/attendance/sessions/{sessionId}/fields" : {
       "get" : {
         "summary" : "Get session field values",
@@ -57641,6 +57681,31 @@
       "ExternalLinkImageDisplay" : {
         "type" : "string",
         "enum" : [ "BANNER", "ICON" ]
+      },
+      "ExtraTimeCredit" : {
+        "type" : "object",
+        "properties" : {
+          "entryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "preparationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "followUpMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "skipped" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "entryId", "memberId", "preparationMinutes", "followUpMinutes", "skipped" ]
       },
       "ExtraTimeRequest" : {
         "type" : "object",

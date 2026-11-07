@@ -6,17 +6,25 @@
 package dev.chojo.ember.feature.attendance.service;
 
 import dev.chojo.ember.api.refusal.AttendanceRefusal;
+import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
+import dev.chojo.ember.feature.attendance.entity.ExtraTime;
+import dev.chojo.ember.feature.attendance.entity.ExtraTimeCredit;
 import dev.chojo.ember.feature.attendance.entity.TimeRule;
 import dev.chojo.ember.feature.attendance.entity.TimeRuleInput;
+import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceTimeRuleRepository;
 import dev.chojo.ember.feature.members.service.PrivateTags;
+import dev.chojo.ember.feature.restriction.RestrictionMember;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 
@@ -39,13 +47,21 @@ public class AttendanceTimeRuleService {
     private final AttendanceTimeRuleRepository repository;
     private final PrivateTags privateTags;
     private final AttendanceService attendanceService;
+    private final AttendanceRepository attendanceRepository;
+    private final RestrictionService restrictionService;
 
     @Inject
     public AttendanceTimeRuleService(
-            AttendanceTimeRuleRepository repository, PrivateTags privateTags, AttendanceService attendanceService) {
+            AttendanceTimeRuleRepository repository,
+            PrivateTags privateTags,
+            AttendanceService attendanceService,
+            AttendanceRepository attendanceRepository,
+            RestrictionService restrictionService) {
         this.repository = repository;
         this.privateTags = privateTags;
         this.attendanceService = attendanceService;
+        this.attendanceRepository = attendanceRepository;
+        this.restrictionService = restrictionService;
     }
 
     /**
@@ -100,6 +116,36 @@ public class AttendanceTimeRuleService {
         repository.replaceSessionRules(sessionId, rules);
         log.info("Replaced the time rules of attendance session {} with {} rule(s)", sessionId, rules.size());
         return repository.findSessionRules(sessionId);
+    }
+
+    /**
+     * Who on a sheet its rules credit with preparation or follow-up, and how much, matched the way the
+     * report matches them. Everybody on the sheet is listed, whatever their status; the report counts
+     * the minutes only for somebody present who was not marked as not having done the work.
+     *
+     * @param sessionId the sheet
+     * @return one line per person the rules credit, in the sheet's order; nobody where it has no rules
+     */
+    public List<ExtraTimeCredit> sessionCredits(int sessionId) {
+        List<TimeRule> rules = repository.findSessionRules(sessionId);
+        if (rules.isEmpty()) return List.of();
+        List<AttendanceEntry> entries = attendanceRepository.findEntries(sessionId);
+        Map<Integer, RestrictionMember> members = restrictionService.membersOf(
+                entries.stream().map(AttendanceEntry::memberId).toList());
+        var credits = new ArrayList<ExtraTimeCredit>();
+        for (AttendanceEntry entry : entries) {
+            RestrictionMember member = members.get(entry.memberId());
+            if (member == null) continue;
+            ExtraTime extra = ExtraTime.of(rules, member);
+            if (extra.totalMinutes() == 0) continue;
+            credits.add(new ExtraTimeCredit(
+                    entry.id(),
+                    entry.memberId(),
+                    extra.preparationMinutes(),
+                    extra.followUpMinutes(),
+                    entry.skipExtraTime()));
+        }
+        return credits;
     }
 
     private void requireWritable(int stationId, List<TimeRuleInput> rules) {

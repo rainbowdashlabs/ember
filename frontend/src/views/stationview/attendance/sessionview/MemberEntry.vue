@@ -12,6 +12,7 @@ import MemberEntryStatusIcon from './memberentry/MemberEntryStatusIcon.vue'
 import MemberEntryActions from './memberentry/MemberEntryActions.vue'
 import MemberEntryStatusButtons from './memberentry/MemberEntryStatusButtons.vue'
 import MemberEntryReadonlyTimes from './memberentry/MemberEntryReadonlyTimes.vue'
+import ExtraTimeNote from './memberentry/ExtraTimeNote.vue'
 import MemberCheckNotes from './MemberCheckNotes.vue'
 import {actionCount, hasAnything, hasBirthday} from './memberNotes'
 import type {AttendanceStatus} from '@/api/attendance'
@@ -109,6 +110,7 @@ const notesLabel = computed(() => {
         {{ hadJoined ? t('attendanceSession.noEntry') : t('attendanceSession.beforeJoining') }}
       </span>
     </div>
+    <ExtraTimeNote v-if="entry?.status === 'PRESENT'" :entry-id="entry.id"/>
     <BareButton
         v-if="anyNotes"
         :aria-expanded="showingNotes"

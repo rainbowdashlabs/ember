@@ -79,7 +79,9 @@ class AttendanceTimeRuleRouteTest extends RepositoryTestBase {
                 new AttendanceTemplateGuards(attendanceRepo),
                 new AttendanceTimeRuleRepository());
         harness = RouteHarness.serving(new AttendanceTimeRuleRoutes(
-                        attendanceService, new AttendanceTimeRuleService(timeRules, privateTags, attendanceService)))
+                        attendanceService,
+                        new AttendanceTimeRuleService(
+                                timeRules, privateTags, attendanceService, attendanceRepo, restrictionService)))
                 .withStations(stationRepo);
         station = stationRepo.create("TimeRuleRouteStation");
         otherStation = stationRepo.create("TimeRuleRouteOther");
@@ -408,6 +410,50 @@ class AttendanceTimeRuleRouteTest extends RepositoryTestBase {
                 sheetRulesOf(sessionId),
                 body(json),
                 harness.as(sessionAt(station, StationPermission.ATTENDANCE_EDIT))));
+    }
+
+    @Test
+    void aSheetSaysWhomItsRulesCredit() {
+        memberGroupRepo.addMember(leaders.id(), member.id());
+        configure(rules(rule("Jugendwart", 30, 15, groupAudience(leaders.id()))));
+        int sessionId = newSheet();
+        int entryId = presentEntry(sessionId);
+        setExtraTime(entryId, true, station);
+
+        var answer = harness.request(client -> client.get(
+                RouteHarness.PREFIX + "/attendance/sessions/" + sessionId + "/extra-time",
+                harness.as(sessionAt(station, StationPermission.ATTENDANCE_READ))));
+        memberGroupRepo.removeMember(leaders.id(), member.id());
+
+        assertEquals(200, answer.code());
+        var credit = json(answer).get(0);
+        assertEquals(entryId, credit.get("entryId").asInt());
+        assertEquals(30, credit.get("preparationMinutes").asInt());
+        assertEquals(15, credit.get("followUpMinutes").asInt());
+        assertTrue(credit.get("skipped").asBoolean(), "the minutes are shown even while switched off");
+    }
+
+    @Test
+    void anotherStationCannotReadWhomASheetCredits() {
+        int sessionId = newSheet();
+
+        var answer = harness.request(client -> client.get(
+                RouteHarness.PREFIX + "/attendance/sessions/" + sessionId + "/extra-time",
+                harness.as(sessionAt(otherStation, StationPermission.ATTENDANCE_READ))));
+
+        assertEquals(AttendanceRefusal.ATTENDANCE_SHEET_NOT_HERE, refusalOf(answer));
+    }
+
+    @Test
+    void aSheetWithoutRulesCreditsNobody() {
+        int sessionId = newSheet();
+        presentEntry(sessionId);
+
+        var answer = harness.request(client -> client.get(
+                RouteHarness.PREFIX + "/attendance/sessions/" + sessionId + "/extra-time",
+                harness.as(sessionAt(station, StationPermission.ATTENDANCE_READ))));
+
+        assertEquals(0, json(answer).size());
     }
 
     private int newSheet() {
