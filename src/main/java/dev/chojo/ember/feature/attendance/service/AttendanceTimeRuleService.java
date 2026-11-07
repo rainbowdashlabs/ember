@@ -38,11 +38,14 @@ public class AttendanceTimeRuleService {
 
     private final AttendanceTimeRuleRepository repository;
     private final PrivateTags privateTags;
+    private final AttendanceService attendanceService;
 
     @Inject
-    public AttendanceTimeRuleService(AttendanceTimeRuleRepository repository, PrivateTags privateTags) {
+    public AttendanceTimeRuleService(
+            AttendanceTimeRuleRepository repository, PrivateTags privateTags, AttendanceService attendanceService) {
         this.repository = repository;
         this.privateTags = privateTags;
+        this.attendanceService = attendanceService;
     }
 
     /**
@@ -69,6 +72,34 @@ public class AttendanceTimeRuleService {
         repository.replaceTemplateRules(templateId, rules);
         log.info("Replaced the time rules of attendance template {} with {} rule(s)", templateId, rules.size());
         return repository.findTemplateRules(templateId);
+    }
+
+    /**
+     * The rules of a sheet, in their order: what it copied from its template, corrected since.
+     *
+     * @param sessionId the sheet
+     * @return its rules, empty where it has none
+     */
+    public List<TimeRule> sessionRules(int sessionId) {
+        return repository.findSessionRules(sessionId);
+    }
+
+    /**
+     * Replaces every rule of a sheet, which is how one evening is corrected without touching its
+     * template. Refused once the sheet is closed, like every other write to it.
+     *
+     * @param stationId the station the sheet belongs to
+     * @param sessionId the sheet
+     * @param rules     the rules it carries from now on, in their order
+     * @return the sheet's rules as stored
+     * @throws io.javalin.http.HttpResponseException where the sheet is closed or a rule is refused
+     */
+    public List<TimeRule> replaceSessionRules(int stationId, int sessionId, List<TimeRuleInput> rules) {
+        attendanceService.requireSessionOpen(sessionId);
+        requireWritable(stationId, rules);
+        repository.replaceSessionRules(sessionId, rules);
+        log.info("Replaced the time rules of attendance session {} with {} rule(s)", sessionId, rules.size());
+        return repository.findSessionRules(sessionId);
     }
 
     private void requireWritable(int stationId, List<TimeRuleInput> rules) {

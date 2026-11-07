@@ -5649,6 +5649,52 @@
         }
       }
     },
+    "/api/v1/attendance/entries/{id}/extra-time" : {
+      "put" : {
+        "summary" : "Set whether a person on a sheet did the preparation and follow-up its rules credit",
+        "tags" : [ "Attendance" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AttendanceEntry"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExtraTimeRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/attendance/entries/{id}/reset-times" : {
       "post" : {
         "summary" : "Reset check-in and check-out times for an entry",
@@ -6417,6 +6463,93 @@
         } ]
       }
     },
+    "/api/v1/attendance/sessions/{sessionId}/time-rules" : {
+      "get" : {
+        "summary" : "List the preparation and follow-up rules of an attendance sheet",
+        "tags" : [ "Attendance" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TimeRule"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "sessionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Replace the preparation and follow-up rules of an attendance sheet",
+        "tags" : [ "Attendance" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TimeRule"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "sessionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetTimeRulesRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/attendance/templates" : {
       "post" : {
         "summary" : "Create an attendance template",
@@ -6893,6 +7026,16 @@
                 }
               }
             }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -6918,6 +7061,16 @@
                   "items" : {
                     "$ref" : "#/components/schemas/TimeRule"
                   }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
                 }
               }
             }
@@ -57488,6 +57641,14 @@
       "ExternalLinkImageDisplay" : {
         "type" : "string",
         "enum" : [ "BANNER", "ICON" ]
+      },
+      "ExtraTimeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "skip" : {
+            "type" : [ "boolean", "null" ]
+          }
+        }
       },
       "FactorInfo" : {
         "type" : "object",

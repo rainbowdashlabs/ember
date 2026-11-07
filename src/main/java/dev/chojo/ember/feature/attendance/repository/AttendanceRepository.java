@@ -771,6 +771,21 @@ public class AttendanceRepository {
     }
 
     /**
+     * Records whether the person on this row did the preparation and follow-up their sheet's rules
+     * would credit them with.
+     *
+     * @param id   the entry ID
+     * @param skip true where they did not
+     * @return {@code true} if the entry was updated
+     */
+    public boolean setSkipExtraTime(int id, boolean skip) {
+        return query("UPDATE attendance_entry SET skip_extra_time = :skip WHERE id = :id;")
+                .single(call().bind("skip", skip).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
      * Records the check-in time for an attendance entry.
      *
      * @param id      the entry ID

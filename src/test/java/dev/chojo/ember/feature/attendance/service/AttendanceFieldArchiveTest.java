@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
+import dev.chojo.ember.feature.attendance.repository.AttendanceTimeRuleRepository;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
@@ -77,7 +78,8 @@ class AttendanceFieldArchiveTest extends RepositoryTestBase {
                 eventDateCancellationRepo,
                 new AttendanceAudienceService(attendanceRepo),
                 memberEligibility,
-                new AttendanceTemplateGuards(attendanceRepo));
+                new AttendanceTemplateGuards(attendanceRepo),
+                new AttendanceTimeRuleRepository());
         var events = newEventServices(new DomainEventBus(Set.of()));
         eventCrud = events.crud();
         fieldDefaults = events.fieldDefault();

@@ -91,4 +91,5 @@ export default {
     'AT-060': 'Eine Regel für Vor- und Nachbereitung muss jemanden nennen, es wurde nichts gespeichert',
     'AT-061': 'Vor- und Nachbereitung liegen jeweils zwischen 0 und 1440 Minuten, es wurde nichts gespeichert',
     'AT-062': 'Eine Regel nennt eine Gruppe, einen Tag oder ein Mitglied, das nicht zu dieser Wache gehört, es wurde nichts gespeichert',
+    'AT-063': 'Gib an, ob diese Person die Vor- und Nachbereitung gemacht hat, es wurde nichts gespeichert',
 }

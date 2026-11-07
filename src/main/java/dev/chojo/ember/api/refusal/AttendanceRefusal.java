@@ -263,7 +263,13 @@ public enum AttendanceRefusal implements Refusal {
     ATTENDANCE_TIME_RULE_NAMES_UNKNOWN(
             62,
             HttpStatus.BAD_REQUEST,
-            "A rule names a group, tag or member that is not part of this station, so nothing was saved");
+            "A rule names a group, tag or member that is not part of this station, so nothing was saved"),
+
+    /** A change to whether somebody did the preparation and follow-up that does not say which. */
+    ATTENDANCE_EXTRA_TIME_NOT_GIVEN(
+            63,
+            HttpStatus.BAD_REQUEST,
+            "Say whether this person did the preparation and follow-up, so nothing was saved");
 
     private final Definition definition;
 

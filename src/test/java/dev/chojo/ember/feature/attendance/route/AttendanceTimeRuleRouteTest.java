@@ -12,6 +12,7 @@ import dev.chojo.ember.api.refusal.AttendanceRefusal;
 import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.conf.file.elements.Attendance;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.repository.AttendanceTimeRuleRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceAudienceService;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
@@ -30,6 +31,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.EnumSet;
 import java.util.Set;
 
@@ -73,9 +76,10 @@ class AttendanceTimeRuleRouteTest extends RepositoryTestBase {
                 eventDateCancellationRepo,
                 new AttendanceAudienceService(attendanceRepo),
                 memberEligibility,
-                new AttendanceTemplateGuards(attendanceRepo));
+                new AttendanceTemplateGuards(attendanceRepo),
+                new AttendanceTimeRuleRepository());
         harness = RouteHarness.serving(new AttendanceTimeRuleRoutes(
-                        attendanceService, new AttendanceTimeRuleService(timeRules, privateTags)))
+                        attendanceService, new AttendanceTimeRuleService(timeRules, privateTags, attendanceService)))
                 .withStations(stationRepo);
         station = stationRepo.create("TimeRuleRouteStation");
         otherStation = stationRepo.create("TimeRuleRouteOther");
@@ -255,6 +259,179 @@ class AttendanceTimeRuleRouteTest extends RepositoryTestBase {
 
         assertEquals(200, cleared.code());
         assertTrue(timeRules.findTemplateRules(templateId).isEmpty());
+    }
+
+    @Test
+    void aNewSheetCopiesTheRulesAndKeepsThemWhenTheTemplateChanges() {
+        configure(rules(rule("Jugendwart", 30, 15, groupAudience(leaders.id()))));
+        int sessionId = newSheet();
+
+        configure("{\"rules\":[]}");
+
+        var read = harness.request(client ->
+                client.get(sheetRulesOf(sessionId), harness.as(sessionAt(station, StationPermission.ATTENDANCE_READ))));
+        assertEquals(200, read.code());
+        assertEquals(1, json(read).size());
+        assertEquals(30, json(read).get(0).get("preparationMinutes").asInt());
+    }
+
+    @Test
+    void oneEveningIsCorrectedOnItsOwnSheet() {
+        configure(rules(rule("Jugendwart", 30, 15, groupAudience(leaders.id()))));
+        int sessionId = newSheet();
+
+        var corrected = harness.request(client -> client.put(
+                sheetRulesOf(sessionId),
+                body(rules(rule("Jugendwart", 10, 0, groupAudience(leaders.id())))),
+                harness.as(sessionAt(station, StationPermission.ATTENDANCE_EDIT))));
+
+        assertEquals(200, corrected.code());
+        assertEquals(10, timeRules.findSessionRules(sessionId).getFirst().preparationMinutes());
+        assertEquals(30, timeRules.findTemplateRules(templateId).getFirst().preparationMinutes());
+    }
+
+    @Test
+    void readingASheetIsNotCorrectingIt() {
+        int sessionId = newSheet();
+
+        var answer = harness.request(client -> client.put(
+                sheetRulesOf(sessionId),
+                body(rules(rule("Jugendwart", 10, 0, groupAudience(leaders.id())))),
+                harness.as(sessionAt(station, StationPermission.ATTENDANCE_READ))));
+
+        assertEquals(403, answer.code());
+        assertTrue(timeRules.findSessionRules(sessionId).isEmpty());
+    }
+
+    @Test
+    void anotherStationsSheetIsNotThere() {
+        int sessionId = newSheet();
+
+        var read = harness.request(client -> client.get(
+                sheetRulesOf(sessionId), harness.as(sessionAt(otherStation, StationPermission.ATTENDANCE_READ))));
+        var write = harness.request(client -> client.put(
+                sheetRulesOf(sessionId),
+                body(rules(rule("Fremd", 10, 0, groupAudience(leaders.id())))),
+                harness.as(sessionAt(otherStation, StationPermission.ATTENDANCE_EDIT))));
+
+        assertEquals(AttendanceRefusal.ATTENDANCE_SHEET_NOT_HERE, refusalOf(read));
+        assertEquals(AttendanceRefusal.ATTENDANCE_SHEET_NOT_HERE, refusalOf(write));
+        assertTrue(timeRules.findSessionRules(sessionId).isEmpty());
+    }
+
+    @Test
+    void aClosedSheetTakesNoCorrection() {
+        int sessionId = newSheet();
+        int entryId = presentEntry(sessionId);
+        attendanceRepo.lockSession(sessionId, Instant.now());
+
+        var rulesAnswer = harness.request(client -> client.put(
+                sheetRulesOf(sessionId),
+                body(rules(rule("Spaet", 10, 0, groupAudience(leaders.id())))),
+                harness.as(sessionAt(station, StationPermission.ATTENDANCE_EDIT))));
+        var switchAnswer = setExtraTime(entryId, true, station);
+
+        assertEquals(AttendanceRefusal.ATTENDANCE_SHEET_CLOSED, refusalOf(rulesAnswer));
+        assertEquals(AttendanceRefusal.ATTENDANCE_SHEET_CLOSED, refusalOf(switchAnswer));
+        assertTrue(timeRules.findSessionRules(sessionId).isEmpty());
+        assertFalse(attendanceRepo.findEntryById(entryId).orElseThrow().skipExtraTime());
+    }
+
+    @Test
+    void aPersonWhoDidNotPrepareIsMarkedAndUnmarked() {
+        int entryId = presentEntry(newSheet());
+
+        var marked = setExtraTime(entryId, true, station);
+        assertEquals(200, marked.code());
+        assertTrue(json(marked).get("skipExtraTime").asBoolean());
+        assertTrue(attendanceRepo.findEntryById(entryId).orElseThrow().skipExtraTime());
+
+        var unmarked = setExtraTime(entryId, false, station);
+        assertFalse(json(unmarked).get("skipExtraTime").asBoolean());
+    }
+
+    @Test
+    void anotherStationCannotMarkSomebody() {
+        int entryId = presentEntry(newSheet());
+
+        var answer = setExtraTime(entryId, true, otherStation);
+        var missing = setExtraTime(999_999, true, station);
+
+        assertEquals(AttendanceRefusal.ATTENDANCE_SHEET_NOT_HERE, refusalOf(answer));
+        assertEquals(AttendanceRefusal.ATTENDANCE_ENTRY_NOT_HERE, refusalOf(missing));
+        assertFalse(attendanceRepo.findEntryById(entryId).orElseThrow().skipExtraTime());
+    }
+
+    @Test
+    void aSheetsRulesAreCheckedLikeATemplates() {
+        int sessionId = newSheet();
+        MemberGroup theirs = memberGroupRepo.create(otherStation.id(), "Fremde Wache");
+
+        var nobody = correctSheet(sessionId, rules(rule("Alle", 10, 0, audience("[]", "[]", "[]", "AND"))));
+        var foreign = correctSheet(sessionId, rules(rule("Fremd", 10, 0, groupAudience(theirs.id()))));
+
+        assertEquals(AttendanceRefusal.ATTENDANCE_TIME_RULE_NAMES_NOBODY, refusalOf(nobody));
+        assertEquals(AttendanceRefusal.ATTENDANCE_TIME_RULE_NAMES_UNKNOWN, refusalOf(foreign));
+        assertTrue(timeRules.findSessionRules(sessionId).isEmpty());
+    }
+
+    @Test
+    void somebodyNotPresentCanBeMarkedAndKeepsItWhenTheyArrive() {
+        int sessionId = newSheet();
+        attendanceRepo.createEntry(
+                sessionId, member.id(), AttendanceEntry.AttendanceStatus.ABSENT, AttendanceEntry.EntrySource.EXPECTED);
+        int entryId =
+                attendanceRepo.findEntry(sessionId, member.id()).orElseThrow().id();
+
+        assertEquals(200, setExtraTime(entryId, true, station).code());
+        attendanceService.updateEntryStatus(entryId, AttendanceEntry.AttendanceStatus.PRESENT);
+
+        assertTrue(attendanceRepo.findEntryById(entryId).orElseThrow().skipExtraTime());
+    }
+
+    @Test
+    void aSwitchThatDoesNotSayWhichIsRefused() {
+        int entryId = presentEntry(newSheet());
+        setExtraTime(entryId, true, station);
+
+        var answer = harness.request(client -> client.put(
+                RouteHarness.PREFIX + "/attendance/entries/" + entryId + "/extra-time",
+                body("{}"),
+                harness.as(sessionAt(station, StationPermission.ATTENDANCE_EDIT))));
+
+        assertEquals(AttendanceRefusal.ATTENDANCE_EXTRA_TIME_NOT_GIVEN, refusalOf(answer));
+        assertTrue(attendanceRepo.findEntryById(entryId).orElseThrow().skipExtraTime());
+    }
+
+    private Response correctSheet(int sessionId, String json) {
+        return harness.request(client -> client.put(
+                sheetRulesOf(sessionId),
+                body(json),
+                harness.as(sessionAt(station, StationPermission.ATTENDANCE_EDIT))));
+    }
+
+    private int newSheet() {
+        Instant start = Instant.now().truncatedTo(ChronoUnit.MINUTES);
+        return attendanceService
+                .createSession(templateId, start, start.plus(2, ChronoUnit.HOURS), null, "Dienst", null, null, null)
+                .id();
+    }
+
+    private static int presentEntry(int sessionId) {
+        attendanceRepo.createEntry(
+                sessionId, member.id(), AttendanceEntry.AttendanceStatus.PRESENT, AttendanceEntry.EntrySource.EXTRA);
+        return attendanceRepo.findEntry(sessionId, member.id()).orElseThrow().id();
+    }
+
+    private Response setExtraTime(int entryId, boolean skip, Station as) {
+        return harness.request(client -> client.put(
+                RouteHarness.PREFIX + "/attendance/entries/" + entryId + "/extra-time",
+                body("{\"skip\":" + skip + "}"),
+                harness.as(sessionAt(as, StationPermission.ATTENDANCE_EDIT))));
+    }
+
+    private static String sheetRulesOf(int sessionId) {
+        return RouteHarness.PREFIX + "/attendance/sessions/" + sessionId + "/time-rules";
     }
 
     private Response configure(String json) {
