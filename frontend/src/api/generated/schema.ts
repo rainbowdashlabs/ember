@@ -68817,8 +68817,12 @@ export interface components {
         };
         MemberSummary: {
             /** Format: int32 */
+            followUpMinutes: number;
+            /** Format: int32 */
             memberId: number;
             name: string;
+            /** Format: int32 */
+            preparationMinutes: number;
             /** Format: int32 */
             presentCount: number;
             /** Format: int32 */
@@ -72180,10 +72184,14 @@ export interface components {
         SessionMemberEntry: {
             checkIn: components["schemas"]["LocalDateTime"] | null;
             checkOut: components["schemas"]["LocalDateTime"] | null;
+            /** Format: int32 */
+            followUpMinutes: number;
             hours: number;
             /** Format: int32 */
             memberId: number;
             name: string;
+            /** Format: int32 */
+            preparationMinutes: number;
             status: components["schemas"]["AttendanceStatus"];
         };
         SessionRequest: {

@@ -66164,9 +66164,17 @@
           "presentCount" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "preparationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "followUpMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "memberId", "name", "totalHours", "sessionCount", "presentCount" ]
+        "required" : [ "memberId", "name", "totalHours", "sessionCount", "presentCount", "preparationMinutes", "followUpMinutes" ]
       },
       "MemberTable" : {
         "type" : "object",
@@ -76232,9 +76240,17 @@
           },
           "hours" : {
             "type" : "number"
+          },
+          "preparationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "followUpMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "memberId", "name", "status", "checkIn", "checkOut", "hours" ]
+        "required" : [ "memberId", "name", "status", "checkIn", "checkOut", "hours", "preparationMinutes", "followUpMinutes" ]
       },
       "SessionRequest" : {
         "type" : "object",
