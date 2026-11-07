@@ -1,4 +1,4 @@
-FROM node:24-alpine AS build
+FROM node:26-alpine AS build
 
 WORKDIR /build
 
@@ -7,7 +7,7 @@ RUN npm ci
 COPY frontend/ .
 RUN NODE_OPTIONS='--max-old-space-size=8192' npx nuxi build
 
-FROM node:24-alpine
+FROM node:26-alpine
 
 WORKDIR /app
 COPY --from=build /build/.output ./
