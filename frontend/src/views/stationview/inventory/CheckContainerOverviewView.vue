@@ -79,9 +79,7 @@ function startCheck(c: InventoryContainer) {
 
     <FailureAlert :failure="failure" class="mb-4"/>
 
-    <div v-if="loading" class="flex justify-center py-12">
-      <Spinner size="lg" />
-    </div>
+    <Spinner v-if="loading" size="lg"/>
     <template v-else>
       <NeutralContainer>
         <EmptyState v-if="roots.length === 0" :message="t('inventory.checkContainer.noContainers')" />

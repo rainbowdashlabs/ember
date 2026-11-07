@@ -19,6 +19,8 @@ import type {RosterMember} from './useMemberData'
  */
 const props = defineProps<{
   config: MemberListConfig
+  /** Whether the address names the open tab. Only where the list is the page, not a part of one. */
+  linkedTabs?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -34,7 +36,7 @@ const c = props.config
   <FailureAlert :failure="c.failure.value ?? c.filterFailure.value"/>
 
   <div v-if="!c.loading.value" class="space-y-4">
-    <TabBar v-model="c.activeTab.value" :tabs="c.tabs.value"/>
+    <TabBar v-model="c.activeTab.value" :tabs="c.tabs.value" :linked="linkedTabs"/>
     <MemberFilterBar :config="config" @generate-documents="(ids) => emit('generateDocuments', ids)"/>
     <MemberTable :config="config" @resend-setup="(member) => emit('resendSetup', member)"/>
   </div>

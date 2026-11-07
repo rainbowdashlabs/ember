@@ -161,7 +161,7 @@ test.describe('Losing a piece of the association gear', () => {
         await managerPage.getByTestId('report-loss-note').fill(managerNote)
         await expect(managerPage.getByTestId('report-loss-send'), 'the form accepts the send').toBeEnabled()
         await managerPage.getByTestId('report-loss-send').click()
-        await expect(managerPage.getByText('Die Bewegung wurde angestoßen'), 'the send landed')
+        await expect(managerPage.getByText('Der Vorgang wurde angestoßen'), 'the send landed')
             .toBeVisible({timeout: 15000})
 
         const gearManager = await clusterAccountWith(request, 'CLUSTER_INVENTORY_MANAGER')

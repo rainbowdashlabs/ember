@@ -4,8 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {afterEach, describe, expect, it} from 'vitest'
-import {defineComponent, h, ref} from 'vue'
-import {mount, type VueWrapper} from '@vue/test-utils'
+import {defineComponent, h, nextTick, ref} from 'vue'
+import {flushPromises, mount, type VueWrapper} from '@vue/test-utils'
+import {createMemoryHistory, createRouter} from 'vue-router'
 import TabBar from './TabBar.vue'
 
 const TABS = [
@@ -108,5 +109,97 @@ describe('TabBar', () => {
         await tab(0).trigger('keydown', {key: 'ArrowDown'})
 
         expect(selected.value).toBe('general')
+    })
+
+    describe('linked to the address', () => {
+        async function mountLinked(address: string, offered = ref(TABS), initial = 'general') {
+            const router = createRouter({
+                history: createMemoryHistory(),
+                routes: [{path: '/:rest(.*)*', component: {template: '<div/>'}}],
+            })
+            await router.push(address)
+            await router.isReady()
+            const selected = ref(initial)
+            wrapper = mount(defineComponent({
+                setup: () => () => h(TabBar, {
+                    tabs: offered.value,
+                    linked: true,
+                    modelValue: selected.value,
+                    'onUpdate:modelValue': (key: string) => {
+                        selected.value = key
+                    },
+                }),
+            }), {attachTo: document.body, global: {plugins: [router]}})
+            await nextTick()
+            return {router, selected}
+        }
+
+        it('opens on the tab the hash names, whatever its case', async () => {
+            const {selected} = await mountLinked('/page#Members')
+
+            expect(selected.value).toBe('members')
+        })
+
+        it('keeps the view\'s own choice when the hash names no tab', async () => {
+            const {selected} = await mountLinked('/page#nothing', ref(TABS), 'history')
+
+            expect(selected.value).toBe('history')
+        })
+
+        it('opens a tab the hash names once it arrives', async () => {
+            const offered = ref(TABS.slice(0, 2))
+            const {selected} = await mountLinked('/page#history', offered)
+            expect(selected.value).toBe('general')
+
+            offered.value = TABS
+            await nextTick()
+            await nextTick()
+
+            expect(selected.value).toBe('history')
+        })
+
+        it('follows the hash when it changes', async () => {
+            const {router, selected} = await mountLinked('/page')
+
+            await router.push('/page#history')
+            await nextTick()
+
+            expect(selected.value).toBe('history')
+        })
+
+        it('writes the picked tab into the hash, keeping path and query, without a new history entry', async () => {
+            const {router} = await mountLinked('/page?x=1')
+            const before = window.history.length
+
+            await tab(1).trigger('click')
+            await flushPromises()
+
+            expect(router.currentRoute.value.fullPath).toBe('/page?x=1#members')
+            expect(window.history.length).toBe(before)
+        })
+    })
+
+    it('leaves the address alone when not linked', async () => {
+        const router = createRouter({
+            history: createMemoryHistory(),
+            routes: [{path: '/:rest(.*)*', component: {template: '<div/>'}}],
+        })
+        await router.push('/page#history')
+        await router.isReady()
+        const selected = ref('general')
+        wrapper = mount(defineComponent({
+            setup: () => () => h(TabBar, {
+                tabs: TABS,
+                modelValue: selected.value,
+                'onUpdate:modelValue': (key: string) => {
+                    selected.value = key
+                },
+            }),
+        }), {attachTo: document.body, global: {plugins: [router]}})
+        await tab(1).trigger('click')
+        await flushPromises()
+
+        expect(selected.value).toBe('members')
+        expect(router.currentRoute.value.fullPath).toBe('/page#history')
     })
 })

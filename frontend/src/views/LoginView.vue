@@ -242,9 +242,7 @@ const error = computed(() => loginError.value || demoError.value || passkeyError
         <PageHeader class="text-2xl font-bold">{{ t('login.title') }}</PageHeader>
       </div>
 
-      <div v-if="demoLoading" class="flex justify-center">
-        <Spinner size="lg"/>
-      </div>
+      <Spinner v-if="demoLoading" size="lg"/>
 
       <FailureAlert v-if="unreachable" :failure="unreachable"/>
 

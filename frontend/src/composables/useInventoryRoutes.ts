@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {inject, provide, type InjectionKey} from 'vue'
+import type {RouteLocationRaw} from 'vue-router'
 
 /**
  * The pages the inventory screens are mounted on.
@@ -39,7 +40,11 @@ export interface InventoryRoutes {
      */
     selfCheck?: string
     selfCheckReview?: string
-    /** Absent at an association: it dispatches gear to a station, not to a person. */
+    /**
+     * The page of a member, whose inventory tab is where their gear is handed out and taken back. Absent
+     * at an association: it dispatches gear to a station, not to a person. Links go through
+     * {@link memberGearLocation}, which opens the page on that tab.
+     */
     member?: string
     /** Absent at a station: sending gear out of the store is the owner's act, not the holder's. */
     dispatch?: string
@@ -107,7 +112,7 @@ export const STATION_INVENTORY_ROUTES: InventoryRoutes = {
     checkResult: 'inventory-check-result',
     selfCheck: 'inventory-self-check',
     selfCheckReview: 'inventory-self-check-review',
-    member: 'inventory-member',
+    member: 'members-detail',
     memberGroups: 'members-groups',
     movements: 'inventory-movements',
     flows: 'inventory-flows',
@@ -127,6 +132,14 @@ const INVENTORY_ROUTES: InjectionKey<InventoryRoutes> = Symbol('inventoryRoutes'
 /** Mounts the inventory screens below this one on another set of pages. Called by the page, not the view. */
 export function provideInventoryRoutes(routes: InventoryRoutes): void {
     provide(INVENTORY_ROUTES, routes)
+}
+
+/**
+ * Where a member's gear is shown: their page, opened on its inventory tab. Nothing where the owner keeps
+ * no gear on people.
+ */
+export function memberGearLocation(routes: InventoryRoutes, memberId: number): RouteLocationRaw | null {
+    return routes.member ? {name: routes.member, params: {id: memberId}, hash: '#inventory'} : null
 }
 
 /** Where a click in the inventory screens should land, which is a station's pages unless told otherwise. */

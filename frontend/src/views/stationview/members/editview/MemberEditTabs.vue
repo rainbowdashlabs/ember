@@ -39,7 +39,7 @@ const tabs = computed(() => [
 </script>
 
 <template>
-  <TabBar v-model="activeTab" :tabs="tabs"/>
+  <TabBar v-model="activeTab" :tabs="tabs" linked/>
 
   <ProfileTab
       v-if="activeTab === 'profile'"

@@ -11,21 +11,16 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromMember, userTypesOf} from '@/components/input/select/memberOption'
-import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
-import HandOutChoice from '@/components/inventory/HandOutChoice.vue'
-import type {HandOutMode} from '@/components/inventory/HandOutChoice.vue'
 import MovementWizard from '@/views/stationview/inventory/movementwizard/MovementWizard.vue'
 import type {WizardPrefill} from '@/views/stationview/inventory/movementwizard/useMovementWizard'
 import {
   MovementPurpose,
-  type InventoryItem,
   type MemberWithName,
   type MyInventoryItem,
 } from '@/api/generated/schema'
@@ -46,9 +41,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   markFormer: []
   deleteMember: []
-  assignItem: [itemId: number]
-  /** The piece is promised to the member rather than handed over now. */
-  planHandOut: [itemId: number, inventoryId: number]
   reassignItem: [itemId: number, targetMemberId: number]
   /** A movement was started for this member, so whatever is listed about them is out of date. */
   exchangeStarted: []
@@ -58,11 +50,6 @@ const showFormerModal = ref(false)
 
 const showDeleteModal = ref(false)
 const showDeleteConfirm = ref(false)
-
-const showAssignModal = ref(false)
-const pickedItemId = ref<number | null>(null)
-const assignScanError = ref('')
-const handOutMode = ref<HandOutMode>('NOW')
 
 const showReassignModal = ref(false)
 const reassignItemRef = ref<MyInventoryItem | null>(null)
@@ -79,28 +66,6 @@ const reassignUserTypes = computed(() => userTypesOf(reassignTargets.value))
 function openFormerModal() { showFormerModal.value = true }
 
 function openDeleteModal() { showDeleteModal.value = true }
-
-function openAssignModal() {
-  showAssignModal.value = true
-  pickedItemId.value = null
-  assignScanError.value = ''
-}
-
-function onItemPicked(item: InventoryItem) {
-  if (item.assignedTo === props.memberId) {
-    assignScanError.value = t('memberDetail.scanAlreadyHere', { name: item.name ?? item.internalId ?? `#${item.id}` })
-    pickedItemId.value = null
-    return
-  }
-  if (item.assignedTo != null) {
-    assignScanError.value = t('memberDetail.scanAlreadyAssigned', { name: item.name ?? item.internalId ?? `#${item.id}` })
-    pickedItemId.value = null
-    return
-  }
-  if (handOutMode.value === 'PLANNED') emit('planHandOut', item.id, item.inventoryId)
-  else emit('assignItem', item.id)
-  showAssignModal.value = false
-}
 
 function openReassignModal(item: MyInventoryItem) {
   reassignItemRef.value = item
@@ -135,7 +100,6 @@ function openExchangeModal(item: MyInventoryItem) {
 defineExpose({
   openFormerModal,
   openDeleteModal,
-  openAssignModal,
   openReassignModal,
   openExchangeModal,
 })
@@ -187,23 +151,6 @@ defineExpose({
           {{ deletingMember ? t('common.loading') : t('memberDetail.deleteConfirmFinal') }}
         </ErrorButton>
       </ButtonRow>
-    </div>
-  </Modal>
-
-  <Modal v-model="showAssignModal">
-    <div class="space-y-4">
-      <SubHeader>{{ t('memberDetail.assignItem') }}</SubHeader>
-      <Alert v-if="assignScanError" variant="error">{{ assignScanError }}</Alert>
-      <HandOutChoice v-model="handOutMode"/>
-      <ItemSearchPicker
-          v-model="pickedItemId"
-          :exclude-assigned="true"
-          :exclude-lost="true"
-          @pick="onItemPicked"
-      />
-      <div class="flex justify-end">
-        <SecondaryButton @click="showAssignModal = false">{{ t('common.cancel') }}</SecondaryButton>
-      </div>
     </div>
   </Modal>
 

@@ -5,7 +5,8 @@
  */
 <script lang="ts" setup>
 import MemberName from '@/components/avatar/MemberName.vue'
-import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
+import {computed} from 'vue'
+import {memberGearLocation, useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import type {PersonIdentity} from '@/util/personIdentity'
 
 /**
@@ -28,12 +29,13 @@ const props = defineProps<{
 }>()
 
 const routes = useInventoryRoutes()
+const target = computed(() => props.memberId ? memberGearLocation(routes, props.memberId) : null)
 </script>
 
 <template>
   <router-link
-      v-if="props.memberId && routes.member"
-      :to="{name: routes.member, params: {memberId: props.memberId}}"
+      v-if="target"
+      :to="target"
       class="inline-block font-medium hover:underline"
       @click.stop
   >

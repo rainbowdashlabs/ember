@@ -24,7 +24,5 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex items-center justify-center py-16">
-    <Spinner size="lg"/>
-  </div>
+  <Spinner size="lg"/>
 </template>

@@ -143,9 +143,7 @@ watch(containerId, load)
       :title="pageTitle"
       :subtitle="t('pages.inventory-container-detail.subtitle')"
   >
-    <div v-if="loading" class="flex justify-center py-12">
-      <Spinner size="lg" />
-    </div>
+    <Spinner v-if="loading" size="lg"/>
     <template v-else-if="detail">
       <ContainerHeader
           :detail="detail"
