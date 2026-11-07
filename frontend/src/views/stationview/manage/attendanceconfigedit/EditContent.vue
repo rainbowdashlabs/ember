@@ -13,11 +13,14 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import GroupsEditor from './GroupsEditor.vue'
 import UserTypesEditor from './UserTypesEditor.vue'
 import FieldsList from './FieldsList.vue'
+import TimeRulesCard from './TimeRulesCard.vue'
 import type {MemberGroup, StationUserType, TemplateGroupEntry} from '@/api/generated/schema'
 import type {AttendanceFieldDraft} from './attendanceFieldDraft'
 
 const props = defineProps<{
   isEdit: boolean
+  /** The template being edited, null while it is being created. */
+  templateId: number | null
   name: string
   templateGroups: TemplateGroupEntry[]
   templateUserTypes: StationUserType[]
@@ -81,5 +84,6 @@ const {t} = useI18n()
         :save-fields="props.saveFields"
         @delete="(index: number) => emit('delete-field', index)"
     />
+    <TimeRulesCard v-if="props.isEdit && props.templateId !== null" :template-id="props.templateId"/>
   </div>
 </template>

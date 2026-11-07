@@ -29,7 +29,7 @@ class AttendanceEntryShownTimesTest {
     private static final Instant OWN_DEPARTURE = Instant.parse("2026-09-02T19:15:00Z");
 
     private static AttendanceEntry entry(AttendanceStatus status, Instant checkIn, Instant checkOut) {
-        return new AttendanceEntry(1, 1, 1, status, checkIn, checkOut, EntrySource.EXPECTED);
+        return new AttendanceEntry(1, 1, 1, status, checkIn, checkOut, EntrySource.EXPECTED, false);
     }
 
     @Test

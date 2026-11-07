@@ -16,6 +16,7 @@ import type {
     components,
     CreateEntryRequest,
     CreatePresetRequest,
+    ExtraTimeCredit,
     MemberNotes,
     ReportData,
     SessionDetail,
@@ -24,12 +25,14 @@ import type {
     SetSessionFieldsRequest,
     SetTemplateGroupsRequest,
     SetTemplateUserTypesRequest,
+    SetTimeRulesRequest,
     StationUserType,
     StatusResponse,
     TemplateDetail,
     TemplateFieldRequest,
     TemplateGroupEntry,
     TemplateRequest,
+    TimeRule,
     TimestampRequest,
     TimestampResponse,
 } from './generated/schema'
@@ -161,6 +164,42 @@ export async function resetTimes(entryId: number): Promise<void> {
 
 export async function updateEntryStatus(entryId: number, status: AttendanceStatus): Promise<StatusResponse> {
     const res = await client.put<StatusResponse>(`/attendance/entries/${entryId}/status`, {status})
+    return res.data
+}
+
+/** The preparation and follow-up rules a template hands to every sheet made from it. */
+export async function listTemplateTimeRules(templateId: number): Promise<TimeRule[]> {
+    const res = await client.get<TimeRule[]>(`/attendance/templates/${templateId}/time-rules`)
+    return res.data
+}
+
+/** Replaces every preparation and follow-up rule of a template; sheets made before keep theirs. */
+export async function setTemplateTimeRules(templateId: number, data: SetTimeRulesRequest): Promise<TimeRule[]> {
+    const res = await client.put<TimeRule[]>(`/attendance/templates/${templateId}/time-rules`, data)
+    return res.data
+}
+
+/** The preparation and follow-up rules one sheet carries, copied from its template and corrected since. */
+export async function listSessionTimeRules(sessionId: number): Promise<TimeRule[]> {
+    const res = await client.get<TimeRule[]>(`/attendance/sessions/${sessionId}/time-rules`)
+    return res.data
+}
+
+/** Replaces every preparation and follow-up rule of one sheet, leaving its template alone. */
+export async function setSessionTimeRules(sessionId: number, data: SetTimeRulesRequest): Promise<TimeRule[]> {
+    const res = await client.put<TimeRule[]>(`/attendance/sessions/${sessionId}/time-rules`, data)
+    return res.data
+}
+
+/** Who on a sheet its rules credit with preparation and follow-up, and how much. */
+export async function listExtraTime(sessionId: number): Promise<ExtraTimeCredit[]> {
+    const res = await client.get<ExtraTimeCredit[]>(`/attendance/sessions/${sessionId}/extra-time`)
+    return res.data
+}
+
+/** Records whether a person did the preparation and follow-up their sheet's rules credit them with. */
+export async function setExtraTimeSkipped(entryId: number, skip: boolean): Promise<AttendanceEntry> {
+    const res = await client.put<AttendanceEntry>(`/attendance/entries/${entryId}/extra-time`, {skip})
     return res.data
 }
 

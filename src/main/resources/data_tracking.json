@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:aec6ea0d3987ddbdcad7ef9960408aeab55e261ab29d1e5b98d652053f8034b0",
-  "generatedAt": "2026-11-04T13:10:16Z",
+  "schemaHash": "sha256:b648ec84875ebc73d0e7438e2811b3e2db81a1e9f998f51b1348b0137baf5ff5",
+  "generatedAt": "2026-11-07T16:36:40Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -1552,7 +1552,7 @@
     "attendance_entry": {
       "feature": "attendance",
       "scope": "STATION",
-      "tableHash": "sha256:cefa5699dd248c92c503a605cb489f8f9380e0bd1f18376cbc00dea316c5ff6e",
+      "tableHash": "sha256:702884af753ba1d3922071864d430c85aa0d198ffa2bc8ae36a6cc400c208613",
       "columns": [
         {
           "name": "id",
@@ -1602,6 +1602,13 @@
           "nullable": false,
           "verified": true,
           "description": "How the entry was created: EXPECTED, MANUAL, REGISTRATION."
+        },
+        {
+          "name": "skip_extra_time",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether this person did not do the preparation and follow-up their sheet's time rules would credit them with this time. Set on the sheet; the report then counts their presence alone."
         }
       ],
       "foreignKeys": [
@@ -1945,6 +1952,176 @@
       },
       "description": "Field values for a specific attendance session (e.g. who was the instructor)."
     },
+    "attendance_session_time_rule": {
+      "feature": "attendance",
+      "scope": "STATION",
+      "tableHash": "sha256:279872cd441751dd795a6d440967a101c076df27ffaf802c753e7d528a419cce",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "session_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The sheet the rule belongs to. Deleting the sheet deletes its rules."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Where the rule stands in the sheet's list, starting at 0."
+        },
+        {
+          "name": "label",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the rule is for, such as a role name, shown beside the minutes. NULL where nobody named it."
+        },
+        {
+          "name": "preparation_minutes",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Minutes of preparation a present person the rule names is credited with."
+        },
+        {
+          "name": "follow_up_minutes",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Minutes of follow-up a present person the rule names is credited with."
+        },
+        {
+          "name": "restriction_mode",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "How the kinds named in attendance_session_time_rule_restriction combine: AND needs a match of every kind named, OR one of any. A rule naming nobody applies to nobody."
+        },
+        {
+          "name": "named_kinds",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "How many user types, groups and tags the rule named when it was written. A deleted group or tag removes its row from attendance_session_time_rule_restriction; a rule with fewer such rows than this credits nobody, so a deletion never widens it to people it did not name."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "session_id",
+          "refTable": "attendance_session",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "description": "Preparation and follow-up time a sheet grants to the people it names, copied from its template when the sheet was made and corrected on the sheet since. What the report counts."
+    },
+    "attendance_session_time_rule_restriction": {
+      "feature": "attendance",
+      "scope": "STATION",
+      "tableHash": "sha256:d886dd13b866d73533418b8f675ff9e50903968ff28cb20cc6cddf31d9ecb931",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "rule_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the rule."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required group membership."
+        },
+        {
+          "name": "tag_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required tag."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Specific member (always OR-connected, bypasses AND/OR mode)."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "rule_id",
+          "refTable": "attendance_session_time_rule",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "tag_id",
+          "refTable": "user_tag",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "description": "Whom a sheet time rule names. Shaped like event_restriction."
+    },
     "attendance_template": {
       "feature": "attendance",
       "scope": "STATION",
@@ -2135,6 +2312,176 @@
         "reason": "Attendance template/session config, not per-member"
       },
       "description": "Groups whose members are expected to attend sessions using this template."
+    },
+    "attendance_template_time_rule": {
+      "feature": "attendance",
+      "scope": "STATION",
+      "tableHash": "sha256:61fba3447f2335543ad3c1dbe2449c396b4341c441e608908def66dd34251822",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The template the rule belongs to. Deleting the template deletes its rules."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Where the rule stands in the template's list, starting at 0."
+        },
+        {
+          "name": "label",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the rule is for, such as a role name, shown beside the minutes. NULL where nobody named it."
+        },
+        {
+          "name": "preparation_minutes",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Minutes of preparation a present person the rule names is credited with."
+        },
+        {
+          "name": "follow_up_minutes",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Minutes of follow-up a present person the rule names is credited with."
+        },
+        {
+          "name": "restriction_mode",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "How the kinds named in attendance_template_time_rule_restriction combine: AND needs a match of every kind named, OR one of any. A rule naming nobody applies to nobody."
+        },
+        {
+          "name": "named_kinds",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "How many user types, groups and tags the rule named when it was written. A deleted group or tag removes its row from attendance_template_time_rule_restriction; a rule with fewer such rows than this credits nobody, so a deletion never widens it to people it did not name."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "template_id",
+          "refTable": "attendance_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "description": "Preparation and follow-up time a template grants to the people it names. Copied onto every sheet made from the template; a sheet never reads these rows again."
+    },
+    "attendance_template_time_rule_restriction": {
+      "feature": "attendance",
+      "scope": "STATION",
+      "tableHash": "sha256:33e705306953c758059526efe2f63765f7c42c7f159a394caf5eb1aa8b7236b7",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "rule_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the rule."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required group membership."
+        },
+        {
+          "name": "tag_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required tag."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Specific member (always OR-connected, bypasses AND/OR mode)."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "rule_id",
+          "refTable": "attendance_template_time_rule",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "tag_id",
+          "refTable": "user_tag",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "description": "Whom a template time rule names. Shaped like event_restriction."
     },
     "attendance_template_user_type": {
       "feature": "attendance",

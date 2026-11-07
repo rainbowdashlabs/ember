@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.24.0
+
+Die Anwesenheit kann Zeit vor und nach einem Termin gutschreiben. Eine Vorlage legt fest, wer vorbereitet oder aufräumt, etwa Jugendwarte oder Ausbilder, und wie viele Minuten das wert ist. Der Anwesenheitsbericht zählt diese Minuten zu den Stunden jeder Person.
+
+### Neue Funktionen
+
+- **Vor- und Nachbereitung zählen in der Anwesenheit.** Eine Anwesenheitsvorlage kann ausgewählten Personen nach Mitgliedstyp, Gruppe, Tag oder Name Minuten vor und nach einem Termin gutschreiben, etwa einem Jugendwart, der den Raum herrichtet. Jede Liste übernimmt diese Regeln und kann sie ändern oder eine Person ausnehmen, und Bericht, Ausdrucke und CSV-Export rechnen die Minuten zu den Stunden jeder Person.
+
 ## v26.23.5
 
 Wiederkehrende Termine behalten ihre Uhrzeit, wenn die Uhren umgestellt werden.

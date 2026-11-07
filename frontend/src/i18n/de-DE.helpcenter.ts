@@ -2977,6 +2977,13 @@ volumes:
                 + 'zählt: Ein Zeltlager von Freitagabend bis Sonntagnachmittag sind keine 46 Arbeitsstunden. Im Feld '
                 + '„Gewertete Stunden" legst du fest, was eine volle Anwesenheit auf diesem Bogen wert ist. Der '
                 + 'Zeitraum bleibt unverändert, nur die Summe im Bericht ändert sich.',
+            timeRulesTitle: 'Vor- und Nachbereitung',
+            timeRulesText: 'Unter den Zeiten steht zugeklappt, welche Regeln für Vor- und Nachbereitung dieser Bogen aus '
+                + 'seiner Vorlage übernommen hat. Klappst du sie auf, siehst du die Regeln. Darfst du den Bogen bearbeiten und '
+                + 'ist er nicht abgeschlossen, kannst du sie dort für diesen einen Termin ändern, ohne die Vorlage oder andere Bögen zu berühren.',
+            timeRulesPersonText: 'Bei jeder anwesenden Person, für die eine Regel gilt, stehen ihre Minuten unter dem Namen. '
+                + 'Wer den Bogen bearbeiten darf, sieht dort den Schalter „Nicht gemacht“: Hat die Person an diesem Abend nicht '
+                + 'vorbereitet oder aufgeräumt, zählt dann nur ihre Anwesenheit, und „Doch gemacht“ nimmt das zurück.',
             countedHoursShareText: 'Wer nur einen Teil der Zeit da war, bekommt seinen Anteil: Bei vier Stunden, die '
                 + 'als drei gewertet werden, erhält eine halbe Anwesenheit anderthalb Stunden. Bleibt das Feld leer, '
                 + 'entscheiden wie bisher Beginn und Ende.',
@@ -3005,6 +3012,11 @@ volumes:
                 + 'seiner Tabelle folgen dieser Zahl statt der Uhrzeit. Läuft ein Bogen über mehrere Tage, stehen '
                 + 'beide Daten am Bogen und jede Kommen- und Gehen-Zeit trägt ihren Tag. Ein Bogen zählt in dem '
                 + 'Monat, in dem er beginnt, auch wenn er in den nächsten hineinläuft.',
+            extraTimeTitle: 'Vor- und Nachbereitung',
+            extraTimeText: 'Minuten für Vor- und Nachbereitung kommen zur Anwesenheit dazu, bevor gerundet wird, auch bei '
+                + 'Bögen mit gewerteten Stunden. In der Vorschau und im PDF steht neben dem Namen, wie viele Minuten es waren. '
+                + 'Lädst du den Bericht als CSV-Datei herunter, eine Tabelle für Excel, bekommt jede Person zwei eigene Spalten '
+                + 'mit ihren Minuten.',
             previewTitle: 'Vorschau & PDF',
             previewText: 'Klicke auf Vorschau, um den Bericht anzuzeigen. Mit PDF exportieren erstellst du eine druckfertige Version.',
             previewSave: 'Du kannst häufig genutzte Filtereinstellungen als Vorlage speichern und später wiederverwenden.',
@@ -5551,6 +5563,17 @@ volumes:
             autoAttendTitle: 'Automatische Anwesenheit',
             autoAttendText: 'Felder mit der Option „Automatisch zur Anwesenheit hinzufügen" markieren Mitglieder automatisch als anwesend, wenn sie in der Sitzung erscheinen.',
             widthTitle: 'Breite und Vorschau',
+            timeRulesTitle: 'Vor- und Nachbereitung',
+            timeRulesText: 'Manche bereiten einen Termin vor oder räumen danach auf, etwa Jugendwarte oder Ausbilder. '
+                + 'Unter „Vor- und Nachbereitung“ legst du fest, wem dafür wie viele Minuten gutgeschrieben werden. Jede Regel '
+                + 'nennt die Personen mit der gleichen Auswahl wie überall sonst: Mitgliedstypen, Gruppen, Tags oder einzelne '
+                + 'Mitglieder, verknüpft mit „und“ oder „oder“.',
+            timeRulesSaveText: 'Die Karte erscheint, sobald die Vorlage angelegt ist. Die Regeln speicherst du mit „Regeln '
+                + 'speichern“ in der Karte, unabhängig vom Speichern der Vorlage oben.',
+            timeRulesMatchText: 'Passen mehrere Regeln auf eine Person, zählt jeweils die größte Vorbereitung und die größte '
+                + 'Nachbereitung, nicht die Summe. Jede neue Anwesenheitsliste übernimmt die Regeln, bereits angelegte Listen '
+                + 'behalten ihre. Wird eine Gruppe oder ein Tag einer Regel gelöscht, gilt die Regel für niemanden mehr, bis du '
+                + 'neu festlegst, für wen sie gilt.',
             widthText: 'Mit „Breite“ in der Karte eines Feldes legst du fest, ob es eine ganze, eine halbe oder eine drittel '
                 + 'Zeile einnimmt. Schmale Felder stehen nebeneinander, solange eine Zeile sie fasst. Die Vorschau unter der '
                 + 'Liste zeigt, wie die Sitzung dadurch aussieht; dort lässt sich ein Feld auch an der rechten Kante breiter '

@@ -8085,6 +8085,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/attendance/entries/{id}/extra-time": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set whether a person on a sheet did the preparation and follow-up its rules credit */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ExtraTimeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AttendanceEntry"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/attendance/entries/{id}/reset-times": {
         parameters: {
             query?: never;
@@ -8874,6 +8925,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/attendance/sessions/{sessionId}/extra-time": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List who on an attendance sheet its rules credit with preparation and follow-up */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sessionId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ExtraTimeCredit"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/attendance/sessions/{sessionId}/fields": {
         parameters: {
             query?: never;
@@ -8970,6 +9068,88 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attendance/sessions/{sessionId}/time-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the preparation and follow-up rules of an attendance sheet */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sessionId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TimeRule"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Replace the preparation and follow-up rules of an attendance sheet */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sessionId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SetTimeRulesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TimeRule"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -9404,6 +9584,88 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attendance/templates/{templateId}/time-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the preparation and follow-up rules of an attendance template */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TimeRule"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Replace the preparation and follow-up rules of an attendance template */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SetTimeRulesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TimeRule"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -62743,6 +63005,7 @@ export interface components {
             memberId: number;
             /** Format: int32 */
             sessionId: number;
+            skipExtraTime: boolean;
             source: components["schemas"]["EntrySource"];
             status: components["schemas"]["AttendanceStatus"];
         };
@@ -65628,6 +65891,20 @@ export interface components {
         };
         /** @enum {string} */
         ExternalLinkImageDisplay: "BANNER" | "ICON";
+        ExtraTimeCredit: {
+            /** Format: int32 */
+            entryId: number;
+            /** Format: int32 */
+            followUpMinutes: number;
+            /** Format: int32 */
+            memberId: number;
+            /** Format: int32 */
+            preparationMinutes: number;
+            skipped: boolean;
+        };
+        ExtraTimeRequest: {
+            skip?: boolean | null;
+        };
         FactorInfo: {
             createdAt: components["schemas"]["Instant"];
             /** Format: int32 */
@@ -68598,8 +68875,12 @@ export interface components {
         };
         MemberSummary: {
             /** Format: int32 */
+            followUpMinutes: number;
+            /** Format: int32 */
             memberId: number;
             name: string;
+            /** Format: int32 */
+            preparationMinutes: number;
             /** Format: int32 */
             presentCount: number;
             /** Format: int32 */
@@ -71429,7 +71710,7 @@ export interface components {
             userTypes?: components["schemas"]["StationUserType"][] | null;
         };
         /** @enum {string} */
-        RestrictionType: "EVENT" | "EVENT_VIEW" | "EVENT_TEMPLATE" | "EVENT_TEMPLATE_VIEW" | "QUIZ_TEST" | "FORM" | "NEWS" | "KB_FOLDER" | "KB_FILE" | "DOCUMENT_TEMPLATE" | "DOCUMENT_TEMPLATE_STATION_USE";
+        RestrictionType: "EVENT" | "EVENT_VIEW" | "EVENT_TEMPLATE" | "EVENT_TEMPLATE_VIEW" | "QUIZ_TEST" | "FORM" | "NEWS" | "KB_FOLDER" | "KB_FILE" | "DOCUMENT_TEMPLATE" | "DOCUMENT_TEMPLATE_STATION_USE" | "ATTENDANCE_TEMPLATE_TIME_RULE" | "ATTENDANCE_SESSION_TIME_RULE";
         ResultFieldCondition: {
             /** Format: int32 */
             fieldId?: number;
@@ -71961,10 +72242,14 @@ export interface components {
         SessionMemberEntry: {
             checkIn: components["schemas"]["LocalDateTime"] | null;
             checkOut: components["schemas"]["LocalDateTime"] | null;
+            /** Format: int32 */
+            followUpMinutes: number;
             hours: number;
             /** Format: int32 */
             memberId: number;
             name: string;
+            /** Format: int32 */
+            preparationMinutes: number;
             status: components["schemas"]["AttendanceStatus"];
         };
         SessionRequest: {
@@ -72076,6 +72361,9 @@ export interface components {
         };
         SetTemplateUserTypesRequest: {
             userTypes?: components["schemas"]["StationUserType"][];
+        };
+        SetTimeRulesRequest: {
+            rules?: components["schemas"]["TimeRuleInput"][];
         };
         SettingsRequest: {
             darkMode?: string;
@@ -73456,6 +73744,27 @@ export interface components {
             /** Format: int64 */
             total: number;
         };
+        TimeRule: {
+            audience: components["schemas"]["RestrictionAudience"];
+            /** Format: int32 */
+            followUpMinutes: number;
+            /** Format: int32 */
+            id: number;
+            intact: boolean;
+            label: string | null;
+            /** Format: int32 */
+            position: number;
+            /** Format: int32 */
+            preparationMinutes: number;
+        };
+        TimeRuleInput: {
+            audience?: components["schemas"]["RestrictionAudience"];
+            /** Format: int32 */
+            followUpMinutes?: number;
+            label?: string | null;
+            /** Format: int32 */
+            preparationMinutes?: number;
+        };
         TimestampCheck: {
             authority: components["schemas"]["CertificateFacts"] | null;
             indication: components["schemas"]["ValidationIndication"];
@@ -74702,6 +75011,8 @@ export type ExportColumnRequest = components['schemas']['ExportColumnRequest'];
 export type ExportMovementsRequest = components['schemas']['ExportMovementsRequest'];
 export type ExternalLinkCardConfig = components['schemas']['ExternalLinkCardConfig'];
 export type ExternalLinkImageDisplay = components['schemas']['ExternalLinkImageDisplay'];
+export type ExtraTimeCredit = components['schemas']['ExtraTimeCredit'];
+export type ExtraTimeRequest = components['schemas']['ExtraTimeRequest'];
 export type FactorInfo = components['schemas']['FactorInfo'];
 export type FailedInviteResponse = components['schemas']['FailedInviteResponse'];
 export type FeaturedEventConfig = components['schemas']['FeaturedEventConfig'];
@@ -75592,6 +75903,7 @@ export type SetSessionFieldsRequest = components['schemas']['SetSessionFieldsReq
 export type SetShareRequest = components['schemas']['SetShareRequest'];
 export type SetTemplateGroupsRequest = components['schemas']['SetTemplateGroupsRequest'];
 export type SetTemplateUserTypesRequest = components['schemas']['SetTemplateUserTypesRequest'];
+export type SetTimeRulesRequest = components['schemas']['SetTimeRulesRequest'];
 export type SettingsRequest = components['schemas']['SettingsRequest'];
 export type SettingsResponse = components['schemas']['SettingsResponse'];
 export type SetupStatus = components['schemas']['SetupStatus'];
@@ -75776,6 +76088,8 @@ export type TicketSummary = components['schemas']['TicketSummary'];
 export type TidyResult = components['schemas']['TidyResult'];
 export type TierRequest = components['schemas']['TierRequest'];
 export type TierResponse = components['schemas']['TierResponse'];
+export type TimeRule = components['schemas']['TimeRule'];
+export type TimeRuleInput = components['schemas']['TimeRuleInput'];
 export type TimestampCheck = components['schemas']['TimestampCheck'];
 export type TimestampRequest = components['schemas']['TimestampRequest'];
 export type TimestampResponse = components['schemas']['TimestampResponse'];
@@ -76939,6 +77253,8 @@ export const RestrictionMode = {
 } as const;
 
 export const RestrictionType = {
+    ATTENDANCE_SESSION_TIME_RULE: "ATTENDANCE_SESSION_TIME_RULE",
+    ATTENDANCE_TEMPLATE_TIME_RULE: "ATTENDANCE_TEMPLATE_TIME_RULE",
     DOCUMENT_TEMPLATE: "DOCUMENT_TEMPLATE",
     DOCUMENT_TEMPLATE_STATION_USE: "DOCUMENT_TEMPLATE_STATION_USE",
     EVENT: "EVENT",

@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.attendance.service;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.attendance.repository.AttendanceTimeRuleRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -41,7 +42,9 @@ class AttendanceReportPresetTest extends RepositoryTestBase {
                 stationRepo,
                 memberGroupRepo,
                 new Api(),
-                newStationLogoService());
+                newStationLogoService(),
+                new AttendanceTimeRuleRepository(),
+                restrictionService);
         station = stationRepo.create("Preset Station");
         firstGroupId = memberGroupRepo.create(station.id(), "First").id();
         secondGroupId = memberGroupRepo.create(station.id(), "Second").id();

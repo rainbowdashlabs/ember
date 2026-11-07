@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
+import dev.chojo.ember.feature.attendance.repository.AttendanceTimeRuleRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -51,7 +52,9 @@ class AttendanceReportServiceTest extends RepositoryTestBase {
                 stationRepo,
                 memberGroupRepo,
                 new Api(),
-                newStationLogoService());
+                newStationLogoService(),
+                new AttendanceTimeRuleRepository(),
+                restrictionService);
         station = stationRepo.create("Report Station");
         account = accountRepo.create("report-hours@test.com", "Report", "Reader");
         member = stationMemberRepo.create(station.id(), account.id());
