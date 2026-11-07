@@ -18,7 +18,7 @@ function member(id: number, name: string, userType: StationUserType, formerAt: s
 }
 
 function entry(memberId: number): AttendanceEntry {
-    return {id: memberId, sessionId: 1, memberId, status: 'UNCONFIRMED', source: 'EXPECTED', checkIn: null, checkOut: null}
+    return {id: memberId, sessionId: 1, memberId, status: 'UNCONFIRMED', source: 'EXPECTED', checkIn: null, checkOut: null, skipExtraTime: false}
 }
 
 const YOUTH: MemberGroup = {id: 1, stationId: 's', name: 'Jugend', position: 0, color: null, groupSetId: null, userTypes: []}

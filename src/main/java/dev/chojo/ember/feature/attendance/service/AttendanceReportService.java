@@ -13,12 +13,17 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceReportPreset;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
+import dev.chojo.ember.feature.attendance.entity.ExtraTime;
+import dev.chojo.ember.feature.attendance.entity.TimeRule;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
+import dev.chojo.ember.feature.attendance.repository.AttendanceTimeRuleRepository;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.restriction.RestrictionMember;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
@@ -72,6 +77,8 @@ public class AttendanceReportService {
     private final MemberGroupRepository memberGroupRepository;
     private final Api apiConfig;
     private final StationLogoService logoService;
+    private final AttendanceTimeRuleRepository timeRuleRepository;
+    private final RestrictionService restrictionService;
 
     @Inject
     public AttendanceReportService(
@@ -81,7 +88,9 @@ public class AttendanceReportService {
             StationRepository stationRepository,
             MemberGroupRepository memberGroupRepository,
             Api apiConfig,
-            StationLogoService logoService) {
+            StationLogoService logoService,
+            AttendanceTimeRuleRepository timeRuleRepository,
+            RestrictionService restrictionService) {
         this.attendanceRepository = attendanceRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
@@ -89,6 +98,8 @@ public class AttendanceReportService {
         this.memberGroupRepository = memberGroupRepository;
         this.apiConfig = apiConfig;
         this.logoService = logoService;
+        this.timeRuleRepository = timeRuleRepository;
+        this.restrictionService = restrictionService;
     }
 
     /**
@@ -178,15 +189,24 @@ public class AttendanceReportService {
         String filterLabel = String.join(", ", filterLabels);
         var memberIds = Set.copyOf(rawIdSet);
         var sessions = attendanceRepository.findSessionsByStationInRange(stationId, from, to);
+        var rulesBySession = timeRuleRepository.findSessionRules(
+                sessions.stream().map(AttendanceSession::id).toList());
+        var restrictionMembers = rulesBySession.isEmpty()
+                ? Map.<Integer, RestrictionMember>of()
+                : restrictionService.membersOf(memberIds);
 
         var memberNames = new LinkedHashMap<Integer, String>();
         var memberTotalHours = new LinkedHashMap<Integer, Double>();
+        var memberPreparation = new LinkedHashMap<Integer, Integer>();
+        var memberFollowUp = new LinkedHashMap<Integer, Integer>();
         var memberSessionCount = new LinkedHashMap<Integer, Integer>();
         var memberPresentCount = new LinkedHashMap<Integer, Integer>();
 
         var monthlyHours = new LinkedHashMap<YearMonth, Map<Integer, Double>>();
         var monthlySessions = new LinkedHashMap<YearMonth, Map<Integer, Integer>>();
         var monthlyPresent = new LinkedHashMap<YearMonth, Map<Integer, Integer>>();
+        var monthlyPreparation = new LinkedHashMap<YearMonth, Map<Integer, Integer>>();
+        var monthlyFollowUp = new LinkedHashMap<YearMonth, Map<Integer, Integer>>();
         var monthlySessionData = new LinkedHashMap<YearMonth, List<SessionData>>();
 
         var sessionDataList = new ArrayList<SessionData>();
@@ -210,12 +230,16 @@ public class AttendanceReportService {
                     ? YearMonth.from(session.startTime().atZone(zone))
                     : null;
 
+            var rules = rulesBySession.getOrDefault(session.id(), List.of());
             var entryDataList = new ArrayList<SessionMemberEntry>();
             for (var entry : presentEntriesInFilter) {
                 String name = resolveMemberName(entry.memberId(), memberNames);
                 Instant checkIn = entry.shownCheckIn(session.startTime());
                 Instant checkOut = entry.shownCheckOut(session.endTime());
-                double hours = computeHours(entry, checkIn, checkOut, rounding, session);
+                ExtraTime extra = checkIn == null || checkOut == null
+                        ? ExtraTime.NONE
+                        : extraTimeOf(entry, rules, restrictionMembers);
+                double hours = computeHours(entry, checkIn, checkOut, rounding, session, extra);
 
                 entryDataList.add(new SessionMemberEntry(
                         entry.memberId(),
@@ -223,9 +247,13 @@ public class AttendanceReportService {
                         entry.status(),
                         checkIn != null ? LocalDateTime.ofInstant(checkIn, zone) : null,
                         checkOut != null ? LocalDateTime.ofInstant(checkOut, zone) : null,
-                        hours));
+                        hours,
+                        extra.preparationMinutes(),
+                        extra.followUpMinutes()));
 
                 memberTotalHours.merge(entry.memberId(), hours, Double::sum);
+                memberPreparation.merge(entry.memberId(), extra.preparationMinutes(), Integer::sum);
+                memberFollowUp.merge(entry.memberId(), extra.followUpMinutes(), Integer::sum);
                 memberSessionCount.merge(entry.memberId(), 1, Integer::sum);
                 if (entry.status() == AttendanceEntry.AttendanceStatus.PRESENT) {
                     memberPresentCount.merge(entry.memberId(), 1, Integer::sum);
@@ -238,6 +266,12 @@ public class AttendanceReportService {
                     monthlySessions
                             .computeIfAbsent(ym, _ -> new LinkedHashMap<>())
                             .merge(entry.memberId(), 1, Integer::sum);
+                    monthlyPreparation
+                            .computeIfAbsent(ym, _ -> new LinkedHashMap<>())
+                            .merge(entry.memberId(), extra.preparationMinutes(), Integer::sum);
+                    monthlyFollowUp
+                            .computeIfAbsent(ym, _ -> new LinkedHashMap<>())
+                            .merge(entry.memberId(), extra.followUpMinutes(), Integer::sum);
                     if (entry.status() == AttendanceEntry.AttendanceStatus.PRESENT) {
                         monthlyPresent
                                 .computeIfAbsent(ym, _ -> new LinkedHashMap<>())
@@ -278,7 +312,9 @@ public class AttendanceReportService {
                     resolveMemberName(memberId, memberNames),
                     hours,
                     attended,
-                    memberPresentCount.getOrDefault(memberId, 0)));
+                    memberPresentCount.getOrDefault(memberId, 0),
+                    memberPreparation.getOrDefault(memberId, 0),
+                    memberFollowUp.getOrDefault(memberId, 0)));
         }
         memberSummaries.sort((a, b) -> a.name().compareToIgnoreCase(b.name()));
 
@@ -288,12 +324,20 @@ public class AttendanceReportService {
             var hoursMap = monthlyHours.get(ym);
             var sessMap = monthlySessions.getOrDefault(ym, Map.of());
             var presMap = monthlyPresent.getOrDefault(ym, Map.of());
+            var prepMap = monthlyPreparation.getOrDefault(ym, Map.of());
+            var followMap = monthlyFollowUp.getOrDefault(ym, Map.of());
             for (int memberId : memberIds) {
                 double h = hoursMap.getOrDefault(memberId, 0.0);
                 if (h == 0 && sessMap.getOrDefault(memberId, 0) == 0) continue;
                 String name = resolveMemberName(memberId, memberNames);
                 monthMembers.add(new MemberSummary(
-                        memberId, name, h, sessMap.getOrDefault(memberId, 0), presMap.getOrDefault(memberId, 0)));
+                        memberId,
+                        name,
+                        h,
+                        sessMap.getOrDefault(memberId, 0),
+                        presMap.getOrDefault(memberId, 0),
+                        prepMap.getOrDefault(memberId, 0),
+                        followMap.getOrDefault(memberId, 0)));
             }
             monthMembers.sort((a, b) -> a.name().compareToIgnoreCase(b.name()));
             var monthSessions = monthlySessionData.getOrDefault(ym, List.of());
@@ -321,6 +365,8 @@ public class AttendanceReportService {
             String period) {
         var report = buildReport(stationId, userTypes, groupIds, from, to, rounding);
         ZoneId zone = resolveTimezone(stationId);
+        var station = stationRepository.findById(stationId).orElse(null);
+        String language = StationFormat.languageOf(station);
 
         var data = new LinkedHashMap<String, Object>();
         data.put("from", DATE_FMT.format(from.atZone(zone)));
@@ -339,14 +385,17 @@ public class AttendanceReportService {
                             m.put(
                                     "sessions",
                                     ms.sessions().stream()
-                                            .map(this::sessionToMap)
+                                            .map(session -> sessionToMap(session, language))
                                             .toList());
                             return m;
                         })
                         .toList());
-        data.put("sessions", report.sessions().stream().map(this::sessionToMap).toList());
+        data.put(
+                "sessions",
+                report.sessions().stream()
+                        .map(session -> sessionToMap(session, language))
+                        .toList());
 
-        var station = stationRepository.findById(stationId).orElse(null);
         data.put("stationName", station != null ? station.name() : "");
         data.put("generatedBy", generatedBy != null ? generatedBy : "");
         data.put("generatedAt", DATE_FMT.format(Instant.now().atZone(zone)));
@@ -356,10 +405,9 @@ public class AttendanceReportService {
 
         try {
             var logo = logoService.original(stationId);
-            String locale = StationFormat.languageOf(station);
-            String templateName = locale + "/"
+            String templateName = language + "/"
                     + ("year".equals(period) ? "attendance-report-year.typ" : "attendance-report-period.typ");
-            String filename = reportFileName(period, from, zone, locale, report.filterLabel());
+            String filename = reportFileName(period, from, zone, language, report.filterLabel());
             return Optional.of(new ExportedDocument(renderPdf(data, templateName, logo.orElse(null)), filename));
         } catch (Exception e) {
             log.error("Failed to export attendance report PDF", e);
@@ -372,7 +420,9 @@ public class AttendanceReportService {
      *
      * <p>The rows are the ones the preview shows and the printout prints, so the three cannot
      * disagree: a member left out of one is left out of all of them. The per-session detail below the
-     * summary is deliberately not here, because what this is for is the total against a name.
+     * summary is deliberately not here, because what this is for is the total against a name. The
+     * preparation and follow-up counted into that total stand beside it in minutes, so a reader can
+     * tell the time spent at appointments from the time spent around them.
      */
     public Optional<ExportedDocument> exportReportCsv(
             int stationId,
@@ -388,14 +438,21 @@ public class AttendanceReportService {
         String locale = StationFormat.languageOf(station);
         ZoneId zone = resolveTimezone(stationId);
 
+        boolean english = "en".equals(locale);
         var headers = List.of(
                 DocumentWord.MEMBERS.in(locale),
-                "en".equals(locale) ? "Sessions" : "Termine",
-                "en".equals(locale) ? "Hours" : "Stunden");
+                english ? "Sessions" : "Termine",
+                english ? "Hours" : "Stunden",
+                english ? "Preparation (min)" : "Vorbereitung (Min.)",
+                english ? "Follow-up (min)" : "Nachbereitung (Min.)");
         var hoursFormat = hoursFormatFor(locale);
         var rows = report.members().stream()
                 .map(member -> List.of(
-                        member.name(), String.valueOf(member.sessionCount()), hoursFormat.format(member.totalHours())))
+                        member.name(),
+                        String.valueOf(member.sessionCount()),
+                        hoursFormat.format(member.totalHours()),
+                        String.valueOf(member.preparationMinutes()),
+                        String.valueOf(member.followUpMinutes())))
                 .toList();
 
         String filename =
@@ -437,17 +494,20 @@ public class AttendanceReportService {
      *
      * <p>How long the presence is worth is the sheet's to say: a sheet with a number of its own
      * counts a whole presence as that number and a part of one as its share, and a sheet without
-     * counts the clock. The rounding comes afterwards either way, so the printed number is the one
-     * that was added up.
+     * counts the clock. Preparation and follow-up come on top in full, also on a sheet with a number
+     * of its own, since that number says what the appointment is worth and not the work around it.
+     * The rounding comes last, over the whole duty, so the printed number is the one that was added
+     * up.
      */
     private double computeHours(
             AttendanceEntry entry,
             @Nullable Instant checkIn,
             @Nullable Instant checkOut,
             String rounding,
-            AttendanceSession session) {
+            AttendanceSession session,
+            ExtraTime extra) {
         if (entry.status() != AttendanceEntry.AttendanceStatus.PRESENT || checkIn == null || checkOut == null) return 0;
-        double hours = session.countedHours(checkIn, checkOut);
+        double hours = session.countedHours(checkIn, checkOut) + extra.totalMinutes() / 60.0;
         return switch (rounding) {
             case "ceil" -> Math.ceil(hours);
             case "round" -> Math.round(hours * 2) / 2.0;
@@ -463,7 +523,7 @@ public class AttendanceReportService {
      * be two different moments at once. A sheet counted by hand says that too, so that a reader
      * adding the column up can see why it does not follow the times printed beside it.
      */
-    private Map<String, Object> sessionToMap(SessionData s) {
+    private Map<String, Object> sessionToMap(SessionData s, String language) {
         boolean spansDays = s.endDate() != null && !s.endDate().equals(s.date());
         var m = new LinkedHashMap<String, Object>();
         m.put("title", s.title());
@@ -484,10 +544,31 @@ public class AttendanceReportService {
                             em.put("checkIn", momentInSheet(e.checkIn(), spansDays));
                             em.put("checkOut", momentInSheet(e.checkOut(), spansDays));
                             em.put("hours", String.format("%.1f", e.hours()));
+                            em.put("extra", extraTimeText(e.preparationMinutes(), e.followUpMinutes(), language));
                             return em;
                         })
                         .toList());
         return m;
+    }
+
+    /**
+     * The preparation and follow-up counted for one person, as the line beside their name reads it,
+     * empty where there was none. Only the parts that count are named.
+     */
+    static String extraTimeText(int preparationMinutes, int followUpMinutes, String language) {
+        boolean english = "en".equals(language);
+        var parts = new ArrayList<String>();
+        if (preparationMinutes > 0) {
+            parts.add(
+                    english
+                            ? "+" + preparationMinutes + " min preparation"
+                            : "+" + preparationMinutes + " Min. Vorbereitung");
+        }
+        if (followUpMinutes > 0) {
+            parts.add(
+                    english ? "+" + followUpMinutes + " min follow-up" : "+" + followUpMinutes + " Min. Nachbereitung");
+        }
+        return String.join(", ", parts);
     }
 
     /**
@@ -508,6 +589,17 @@ public class AttendanceReportService {
         map.put("sessionCount", m.sessionCount());
         map.put("presentCount", m.presentCount());
         return map;
+    }
+
+    /**
+     * The preparation and follow-up one present person is credited with on one sheet: nothing where
+     * the sheet says they did not do it, otherwise what the sheet's rules give them.
+     */
+    private static ExtraTime extraTimeOf(
+            AttendanceEntry entry, List<TimeRule> rules, Map<Integer, RestrictionMember> members) {
+        if (entry.skipExtraTime() || rules.isEmpty()) return ExtraTime.NONE;
+        RestrictionMember member = members.get(entry.memberId());
+        return member == null ? ExtraTime.NONE : ExtraTime.of(rules, member);
     }
 
     private String resolveMemberName(int memberId, Map<Integer, String> cache) {
@@ -551,8 +643,19 @@ public class AttendanceReportService {
 
     /**
      * Summary of a member's attendance across all sessions in the report period.
+     *
+     * @param totalHours         the hours counted, preparation and follow-up included
+     * @param preparationMinutes the preparation counted into them
+     * @param followUpMinutes    the follow-up counted into them
      */
-    public record MemberSummary(int memberId, String name, double totalHours, int sessionCount, int presentCount) {}
+    public record MemberSummary(
+            int memberId,
+            String name,
+            double totalHours,
+            int sessionCount,
+            int presentCount,
+            int preparationMinutes,
+            int followUpMinutes) {}
 
     /**
      * Data for a single attendance session including per-member entries.
@@ -577,7 +680,12 @@ public class AttendanceReportService {
      * A member's attendance entry within a specific session.
      *
      * <p>The two moments carry their day, because a sheet that runs over a weekend cannot say when
-     * somebody arrived with a time alone.
+     * somebody arrived with a time alone. Preparation and follow-up are not in the moments: they are
+     * counted into the hours and named beside them, so the times still say when somebody was there.
+     *
+     * @param hours              the hours counted, preparation and follow-up included
+     * @param preparationMinutes the preparation counted into them
+     * @param followUpMinutes    the follow-up counted into them
      */
     public record SessionMemberEntry(
             int memberId,
@@ -585,7 +693,9 @@ public class AttendanceReportService {
             AttendanceEntry.AttendanceStatus status,
             @Nullable LocalDateTime checkIn,
             @Nullable LocalDateTime checkOut,
-            double hours) {}
+            double hours,
+            int preparationMinutes,
+            int followUpMinutes) {}
 
     /**
      * Monthly breakdown with per-member summaries and session details.

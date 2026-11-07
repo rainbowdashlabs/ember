@@ -112,7 +112,7 @@
         [*Name*], [*From*], [*To*], [*Hrs.*],
       ),
       ..for entry in session.entries {
-        (entry.name, entry.checkIn, entry.checkOut, entry.hours)
+        ([#entry.name#if entry.extra != "" [ #text(size: 7pt, fill: luma(100))[(#entry.extra)]]], entry.checkIn, entry.checkOut, entry.hours)
       }
     )
   ]

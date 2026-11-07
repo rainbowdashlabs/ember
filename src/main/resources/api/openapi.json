@@ -5649,6 +5649,52 @@
         }
       }
     },
+    "/api/v1/attendance/entries/{id}/extra-time" : {
+      "put" : {
+        "summary" : "Set whether a person on a sheet did the preparation and follow-up its rules credit",
+        "tags" : [ "Attendance" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AttendanceEntry"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExtraTimeRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/attendance/entries/{id}/reset-times" : {
       "post" : {
         "summary" : "Reset check-in and check-out times for an entry",
@@ -6320,6 +6366,46 @@
         } ]
       }
     },
+    "/api/v1/attendance/sessions/{sessionId}/extra-time" : {
+      "get" : {
+        "summary" : "List who on an attendance sheet its rules credit with preparation and follow-up",
+        "tags" : [ "Attendance" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ExtraTimeCredit"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "sessionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/attendance/sessions/{sessionId}/fields" : {
       "get" : {
         "summary" : "Get session field values",
@@ -6415,6 +6501,93 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/attendance/sessions/{sessionId}/time-rules" : {
+      "get" : {
+        "summary" : "List the preparation and follow-up rules of an attendance sheet",
+        "tags" : [ "Attendance" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TimeRule"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "sessionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Replace the preparation and follow-up rules of an attendance sheet",
+        "tags" : [ "Attendance" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TimeRule"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "sessionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetTimeRulesRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/attendance/templates" : {
@@ -6874,6 +7047,93 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/attendance/templates/{templateId}/time-rules" : {
+      "get" : {
+        "summary" : "List the preparation and follow-up rules of an attendance template",
+        "tags" : [ "Attendance" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TimeRule"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "templateId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Replace the preparation and follow-up rules of an attendance template",
+        "tags" : [ "Attendance" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TimeRule"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "templateId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetTimeRulesRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/attendance/templates/{templateId}/user-types" : {
@@ -48985,9 +49245,12 @@
           },
           "source" : {
             "$ref" : "#/components/schemas/EntrySource"
+          },
+          "skipExtraTime" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "id", "sessionId", "memberId", "status", "checkIn", "checkOut", "source" ]
+        "required" : [ "id", "sessionId", "memberId", "status", "checkIn", "checkOut", "source", "skipExtraTime" ]
       },
       "AttendanceFieldConfig" : {
         "type" : "object",
@@ -57418,6 +57681,39 @@
       "ExternalLinkImageDisplay" : {
         "type" : "string",
         "enum" : [ "BANNER", "ICON" ]
+      },
+      "ExtraTimeCredit" : {
+        "type" : "object",
+        "properties" : {
+          "entryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "preparationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "followUpMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "skipped" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "entryId", "memberId", "preparationMinutes", "followUpMinutes", "skipped" ]
+      },
+      "ExtraTimeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "skip" : {
+            "type" : [ "boolean", "null" ]
+          }
+        }
       },
       "FactorInfo" : {
         "type" : "object",
@@ -65933,9 +66229,17 @@
           "presentCount" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "preparationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "followUpMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "memberId", "name", "totalHours", "sessionCount", "presentCount" ]
+        "required" : [ "memberId", "name", "totalHours", "sessionCount", "presentCount", "preparationMinutes", "followUpMinutes" ]
       },
       "MemberTable" : {
         "type" : "object",
@@ -74329,7 +74633,7 @@
       },
       "RestrictionType" : {
         "type" : "string",
-        "enum" : [ "EVENT", "EVENT_VIEW", "EVENT_TEMPLATE", "EVENT_TEMPLATE_VIEW", "QUIZ_TEST", "FORM", "NEWS", "KB_FOLDER", "KB_FILE", "DOCUMENT_TEMPLATE", "DOCUMENT_TEMPLATE_STATION_USE" ]
+        "enum" : [ "EVENT", "EVENT_VIEW", "EVENT_TEMPLATE", "EVENT_TEMPLATE_VIEW", "QUIZ_TEST", "FORM", "NEWS", "KB_FOLDER", "KB_FILE", "DOCUMENT_TEMPLATE", "DOCUMENT_TEMPLATE_STATION_USE", "ATTENDANCE_TEMPLATE_TIME_RULE", "ATTENDANCE_SESSION_TIME_RULE" ]
       },
       "ResultFieldCondition" : {
         "type" : "object",
@@ -76001,9 +76305,17 @@
           },
           "hours" : {
             "type" : "number"
+          },
+          "preparationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "followUpMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "memberId", "name", "status", "checkIn", "checkOut", "hours" ]
+        "required" : [ "memberId", "name", "status", "checkIn", "checkOut", "hours", "preparationMinutes", "followUpMinutes" ]
       },
       "SessionRequest" : {
         "type" : "object",
@@ -76353,6 +76665,17 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/StationUserType"
+            }
+          }
+        }
+      },
+      "SetTimeRulesRequest" : {
+        "type" : "object",
+        "properties" : {
+          "rules" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TimeRuleInput"
             }
           }
         }
@@ -80136,6 +80459,56 @@
           }
         },
         "required" : [ "id", "name", "total", "kb", "board", "images", "pages", "perFile", "perImage" ]
+      },
+      "TimeRule" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "position" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "label" : {
+            "type" : [ "string", "null" ]
+          },
+          "preparationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "followUpMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "audience" : {
+            "$ref" : "#/components/schemas/RestrictionAudience"
+          },
+          "intact" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "position", "label", "preparationMinutes", "followUpMinutes", "audience", "intact" ]
+      },
+      "TimeRuleInput" : {
+        "type" : "object",
+        "properties" : {
+          "label" : {
+            "type" : [ "string", "null" ]
+          },
+          "preparationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "followUpMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "audience" : {
+            "$ref" : "#/components/schemas/RestrictionAudience"
+          }
+        }
       },
       "TimestampCheck" : {
         "type" : "object",

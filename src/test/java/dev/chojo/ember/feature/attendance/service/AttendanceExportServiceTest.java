@@ -160,7 +160,8 @@ class AttendanceExportServiceTest extends RepositoryTestBase {
                 AttendanceEntry.AttendanceStatus.PRESENT,
                 null,
                 null,
-                AttendanceEntry.EntrySource.EXPECTED);
+                AttendanceEntry.EntrySource.EXPECTED,
+                false);
     }
 
     private static AttendanceTemplateField fieldOf(int id, String name, FieldType type) {

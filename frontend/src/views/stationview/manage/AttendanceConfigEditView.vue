@@ -192,6 +192,7 @@ function goBack() {
           v-model:name="name"
           v-model:fields="fields"
           :is-edit="isEdit"
+          :template-id="templateId"
           :template-groups="templateGroups"
           :template-user-types="templateUserTypes"
           :available-groups="availableGroups"
