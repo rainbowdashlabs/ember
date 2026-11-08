@@ -89,6 +89,26 @@ public enum RestrictionType {
             "id",
             "restriction_mode",
             StationPermission.ATTENDANCE_EDIT,
+            false),
+    /** The managing party of a procedure: who sees its public steps, ticks the steps marked for them and is told. */
+    PROCEDURE(
+            "procedure_restriction",
+            "procedure_id",
+            "procedure",
+            "id",
+            "restriction_mode",
+            StationPermission.PROCEDURE_EDIT),
+    /**
+     * The managing party a procedure template hands to every procedure started from it. It guards
+     * nothing itself: the procedure gets a copy, which is what decides.
+     */
+    PROCEDURE_TEMPLATE(
+            "procedure_template_restriction",
+            "template_id",
+            "procedure_template",
+            "id",
+            "restriction_mode",
+            StationPermission.PROCEDURE_MANAGER,
             false);
 
     private final String table;

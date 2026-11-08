@@ -209,7 +209,7 @@ public class ProcedureRepository {
                     %s
                 FROM
                     procedure p
-                        JOIN procedure_assignee pa
+                        JOIN procedure_restriction pa
                         ON pa.procedure_id = p.id
                 WHERE p.station_id = :station_id
                   AND pa.member_id = :member_id
@@ -322,7 +322,11 @@ public class ProcedureRepository {
     }
 
     public List<Integer> findAssigneeIds(int procedureId) {
-        return query("SELECT member_id FROM procedure_assignee WHERE procedure_id = :procedure_id;")
+        return query("""
+                SELECT member_id
+                FROM procedure_restriction
+                WHERE procedure_id = :procedure_id
+                  AND member_id IS NOT NULL;""")
                 .single(call().bind("procedure_id", procedureId))
                 .map(row -> row.getInt("member_id"))
                 .all();
@@ -332,16 +336,18 @@ public class ProcedureRepository {
         query("""
                 INSERT
                 INTO
-                    procedure_assignee(procedure_id, member_id)
-                VALUES
-                    (:procedure_id, :member_id)
-                ON CONFLICT DO NOTHING;""")
+                    procedure_restriction(procedure_id, member_id)
+                SELECT :procedure_id, :member_id
+                WHERE NOT EXISTS (SELECT 1
+                                  FROM procedure_restriction
+                                  WHERE procedure_id = :procedure_id
+                                    AND member_id = :member_id);""")
                 .single(call().bind("procedure_id", procedureId).bind("member_id", memberId))
                 .insert();
     }
 
     public boolean removeAssignee(int procedureId, int memberId) {
-        return query("DELETE FROM procedure_assignee WHERE procedure_id = :procedure_id AND member_id = :member_id;")
+        return query("DELETE FROM procedure_restriction WHERE procedure_id = :procedure_id AND member_id = :member_id;")
                 .single(call().bind("procedure_id", procedureId).bind("member_id", memberId))
                 .delete()
                 .changed();
@@ -504,7 +510,7 @@ public class ProcedureRepository {
                     count(DISTINCT p.id)
                 FROM
                     procedure p
-                        JOIN procedure_assignee pa
+                        JOIN procedure_restriction pa
                         ON pa.procedure_id = p.id
                         JOIN procedure_item pi
                         ON pi.procedure_id = p.id
