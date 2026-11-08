@@ -48,7 +48,7 @@ public class ProcedureRepository {
             "id, template_id, title, description, public, user_assigned, position, kind, document_template_id";
     private static final String PROCEDURE_COLUMNS = """
             id, station_id, template_id, name, description, public, status, assigned_by, due_at, \
-            created_at, resolved_at, event_id, event_date""";
+            created_at, resolved_at, event_id, event_date, about_member_id""";
     private static final String PROCEDURE_ITEM_COLUMNS =
             "id, procedure_id, title, description, note, public, user_assigned, position, checked, checked_at, checked_by,"
                     + " kind, document_template_id, generation_id";
@@ -295,15 +295,16 @@ public class ProcedureRepository {
             int assignedBy,
             @Nullable Instant dueAt,
             @Nullable Integer eventId,
-            @Nullable LocalDate eventDate) {
+            @Nullable LocalDate eventDate,
+            @Nullable Integer aboutMemberId) {
         return insertReturning(
                 """
                 INSERT INTO
                     procedure(station_id, template_id, name, description, public, assigned_by, due_at,
-                              event_id, event_date)
+                              event_id, event_date, about_member_id)
                 VALUES
                     (:station_id, :template_id, :name, :description, :public, :assigned_by, :due_at,
-                     :event_id, :event_date)
+                     :event_id, :event_date, :about_member_id)
                 RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("template_id", templateId)
@@ -313,7 +314,8 @@ public class ProcedureRepository {
                         .bind("assigned_by", assignedBy)
                         .bind("due_at", dueAt, INSTANT_TIMESTAMP)
                         .bind("event_id", eventId)
-                        .bind("event_date", eventDate),
+                        .bind("event_date", eventDate)
+                        .bind("about_member_id", aboutMemberId),
                 Procedure.map(),
                 PROCEDURE_COLUMNS);
     }
@@ -485,6 +487,57 @@ public class ProcedureRepository {
                         .bind("document_template_id", kind.documentTemplateId())
                         .bind("asks_to_sign", kind.kind() == ProcedureStepKind.DOCUMENT)
                         .bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Sets the member a procedure is about.
+     *
+     * @param procedureId   the procedure
+     * @param aboutMemberId the member
+     * @return whether the procedure was there
+     */
+    public boolean setAbout(int procedureId, int aboutMemberId) {
+        return query("UPDATE procedure SET about_member_id = :about_member_id WHERE id = :id;")
+                .single(call().bind("about_member_id", aboutMemberId).bind("id", procedureId))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Links a document step to the document it generated, unless another one was linked first.
+     *
+     * @param itemId       the step
+     * @param generationId the generation log entry of its document
+     * @return whether the step had no document yet and now has this one
+     */
+    public boolean linkGeneration(int itemId, int generationId) {
+        return query("""
+                UPDATE procedure_item
+                SET generation_id = :generation_id
+                WHERE id = :id
+                  AND kind = 'DOCUMENT'
+                  AND generation_id IS NULL;""")
+                .single(call().bind("generation_id", generationId).bind("id", itemId))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Lets go of the document a step generated, so it asks for a new one.
+     *
+     * @param itemId       the step
+     * @param generationId the document it is expected to hold
+     * @return whether the step held that document
+     */
+    public boolean unlinkGeneration(int itemId, int generationId) {
+        return query("""
+                UPDATE procedure_item
+                SET generation_id = NULL
+                WHERE id = :id
+                  AND generation_id = :generation_id;""")
+                .single(call().bind("generation_id", generationId).bind("id", itemId))
                 .update()
                 .changed();
     }

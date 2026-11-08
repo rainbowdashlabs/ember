@@ -20,6 +20,7 @@ vi.mock('@/api', async (original) => {
             getProcedure: vi.fn(),
             updateProcedure: vi.fn(async () => undefined),
             setParty: vi.fn(async () => undefined),
+            setAbout: vi.fn(async () => undefined),
             setProcedureDependencies: vi.fn(async () => undefined),
             editItem: vi.fn(async () => undefined),
             addItem: vi.fn(),
@@ -50,7 +51,7 @@ function detail(items: ProcedureItem[]): ProcedureDetail {
         procedure: {
             id: 3, stationId: '00000000-0000-4000-a000-000000000001', templateId: null, name: 'Aufnahme',
             description: null, isPublic: true, status: 'OPEN', dueAt: null, assignedBy: 1,
-            createdAt: '2026-11-01T10:00:00Z', resolvedAt: null, eventId: null, eventDate: null,
+            createdAt: '2026-11-01T10:00:00Z', resolvedAt: null, eventId: null, eventDate: null, aboutMemberId: 5,
         },
         items,
         dependencies: [],
@@ -78,6 +79,7 @@ async function openForEditing(items: ProcedureItem[]) {
 describe('useProcedureForm', () => {
     beforeEach(() => {
         vi.mocked(procedures.editItem).mockClear()
+        vi.mocked(procedures.setAbout).mockClear()
         generatesDocuments = true
     })
 
@@ -90,6 +92,29 @@ describe('useProcedureForm', () => {
         const sent = vi.mocked(procedures.editItem).mock.calls[0]?.[2]
         expect(sent).not.toHaveProperty('kind')
         expect(sent).not.toHaveProperty('documentTemplateId')
+    })
+
+    it('makes the procedure about another member only where the reader changed it', async () => {
+        const form = await openForEditing([SIGN])
+        expect(form.about.value).toBe('5')
+
+        await form.submit()
+        expect(procedures.setAbout).not.toHaveBeenCalled()
+
+        form.about.value = '6'
+        await form.submit()
+        expect(procedures.setAbout).toHaveBeenCalledWith(3, 6, false)
+        expect(form.aboutFixed.value).toBe(true)
+    })
+
+    it('holds back document steps on a procedure about nobody', async () => {
+        const form = await openForEditing([SIGN])
+        form.about.value = ''
+        expect(form.documentsNeedAbout.value).toBe(false)
+
+        form.addItem('Noch eins')
+        form.updateItem(1, {...form.items.value[1]!, document: {id: 7, name: 'Aufnahmeantrag'}})
+        expect(form.documentsNeedAbout.value).toBe(true)
     })
 
     it('sends a document step switched off as one ticked by hand', async () => {

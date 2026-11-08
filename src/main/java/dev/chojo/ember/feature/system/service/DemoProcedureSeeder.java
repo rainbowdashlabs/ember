@@ -196,6 +196,7 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
                 admin.id(),
                 Instant.now().minus(3, ChronoUnit.DAYS),
                 null,
+                null,
                 null);
         addToParty(overdueProc.id(), betreuer.get(0).id());
         if (betreuer.size() > 1) {
@@ -218,6 +219,7 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
                 admin.id(),
                 Instant.now().plus(30, ChronoUnit.DAYS),
                 null,
+                null,
                 null);
         addToParty(privateProc.id(), admin.id());
         repo.createItem(privateProc.id(), "Mitgliederzahlen zusammenstellen", null, false, false, 0);
@@ -235,8 +237,8 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
             boolean isPublic,
             int assignedBy,
             @Nullable Instant dueAt) {
-        var procedure =
-                repo.createProcedure(stationId, templateId, name, description, isPublic, assignedBy, dueAt, null, null);
+        var procedure = repo.createProcedure(
+                stationId, templateId, name, description, isPublic, assignedBy, dueAt, null, null, null);
 
         var templateItems = repo.findTemplateItems(templateId);
         var templateDeps = repo.findTemplateItemDependencies(templateId);

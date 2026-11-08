@@ -47,6 +47,13 @@ public class ProcedureDocumentTemplates implements DocumentStepTemplates {
     }
 
     @Override
+    public boolean meantFor(int stationId, int templateId, int memberId) {
+        return usableAt(stationId, templateId)
+                .map(template -> templates.fitFor(stationId, memberId).meantFor(template, memberId))
+                .orElse(false);
+    }
+
+    @Override
     public List<StepDocument> named(int stationId, Collection<Integer> templateIds) {
         return templateIds.stream()
                 .distinct()

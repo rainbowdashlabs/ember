@@ -21,6 +21,7 @@ import ItemsSection from '@/views/stationview/procedure/procedurecreateview/Item
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useProcedureForm} from '@/composables/useProcedureForm'
+import {fromCompletion} from '@/components/input/select/memberOption'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -36,8 +37,9 @@ const presetTemplateId = computed(() => (route.query.template ? Number(route.que
 
 const form = useProcedureForm(editId, presetTemplateId)
 const {
-  name, savedName, description, dueAt, isPublic,
+  name, savedName, description, dueAt, isPublic, about,
   templates, selectedTemplateId, members, groups, tags, party, items, documentsNotYours, documentsGone,
+  documentsNeedAbout,
   isEditMode, loading, failure,
 } = form
 
@@ -52,6 +54,8 @@ const pageTitle = computed(() => isEditMode.value
 const pageSubtitle = computed(() => isEditMode.value
     ? t('pages.procedure-edit.subtitle')
     : t('pages.procedure-create.subtitle'))
+
+const aboutChoices = computed(() => members.value.map(fromCompletion))
 
 const {running: saving, failure: saveFailure, run: runSubmit} = useAsyncAction(
     async () => router.push({name: 'procedure-detail', params: {id: await form.submit()}}),
@@ -90,6 +94,9 @@ watch(loaded, (v) => {
             v-model:description="description"
             v-model:due-at="dueAt"
             v-model:is-public="isPublic"
+            v-model:about="about"
+            :members="aboutChoices"
+            :about-fixed="form.aboutFixed.value"
         />
 
         <PartySection v-model="party" :members="members" :groups="groups" :tags="tags"/>
@@ -108,9 +115,12 @@ watch(loaded, (v) => {
         <Alert v-if="documentsGone" variant="info" data-testid="procedure-documents-gone">
           {{ t('procedures.stepDocumentsGone') }}
         </Alert>
+        <Alert v-if="documentsNeedAbout" variant="info" data-testid="procedure-documents-need-about">
+          {{ t('procedures.stepDocumentsNeedAbout') }}
+        </Alert>
         <ButtonRow pair align="end">
           <SecondaryButton @click="router.back()">{{ t('common.cancel') }}</SecondaryButton>
-          <PrimaryButton :disabled="!name.trim() || saving || documentsNotYours || documentsGone" @click="handleSubmit">
+          <PrimaryButton :disabled="!name.trim() || saving || documentsNotYours || documentsGone || documentsNeedAbout" @click="handleSubmit">
             {{ isEditMode ? t('common.save') : t('procedures.createProcedure') }}
           </PrimaryButton>
         </ButtonRow>

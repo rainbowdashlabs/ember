@@ -135,6 +135,17 @@ export async function setParty(id: number, party: RestrictionSelection): Promise
     return res.data
 }
 
+/**
+ * Makes a procedure about another member, whose documents its steps then ask to sign.
+ *
+ * @param ask whether to ask for the unlocked document steps right away; false for a caller that sets the
+ *            dependencies right after, which asks then
+ */
+export async function setAbout(id: number, memberId: number, ask = true): Promise<Procedure> {
+    const res = await client.put<Procedure>(`/procedures/${id}/about`, {memberId, ask})
+    return res.data
+}
+
 export const addItem = procedureItems.create
 export const editItem = procedureItems.update
 export const deleteItem = procedureItems.remove

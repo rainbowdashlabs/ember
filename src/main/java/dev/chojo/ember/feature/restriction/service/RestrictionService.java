@@ -267,6 +267,17 @@ public class RestrictionService {
     }
 
     /**
+     * Whether somebody is a current member of a station, as restrictions see members.
+     *
+     * @param stationId the station
+     * @param memberId  the member
+     * @return whether they belong to the station and have not left it
+     */
+    public boolean currentMemberAt(int stationId, int memberId) {
+        return restrictionRepository.isCurrentMember(stationId, memberId);
+    }
+
+    /**
      * The current members of a station an audience takes in, with no manager bypass.
      *
      * @param stationId the station

@@ -182,7 +182,16 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     void createProcedure() {
         Instant dueAt = Instant.now().plus(7, ChronoUnit.DAYS);
         Procedure p = procedureRepo.createProcedure(
-                station.id(), templateId, "Drill Instance", "Run the drill", true, member.id(), dueAt, null, null);
+                station.id(),
+                templateId,
+                "Drill Instance",
+                "Run the drill",
+                true,
+                member.id(),
+                dueAt,
+                null,
+                null,
+                null);
         assertNotNull(p);
         assertEquals("Drill Instance", p.name());
         assertEquals(ProcedureStatus.OPEN, p.status());
@@ -222,7 +231,7 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
                 null);
 
         Procedure p = procedureRepo.createProcedure(
-                station.id(), null, "Vorbereitung", null, true, member.id(), null, event.id(), date);
+                station.id(), null, "Vorbereitung", null, true, member.id(), null, event.id(), date, null);
 
         assertEquals(event.id(), p.eventId());
         assertEquals(date, p.eventDate());
@@ -243,7 +252,7 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     @Order(21)
     void createAdHocProcedure() {
         Procedure p = procedureRepo.createProcedure(
-                station.id(), null, "Ad Hoc Task", "No template", false, member.id(), null, null, null);
+                station.id(), null, "Ad Hoc Task", "No template", false, member.id(), null, null, null, null);
         assertNotNull(p);
         assertNull(p.templateId());
         assertNull(p.dueAt());

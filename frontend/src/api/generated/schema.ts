@@ -45308,6 +45308,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/procedures/{rid}/about": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AboutRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Procedure"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/procedures/{rid}/dependencies": {
         parameters: {
             query?: never;
@@ -63071,6 +63110,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AboutRequest: {
+            ask?: boolean | null;
+            /** Format: int32 */
+            memberId?: number | null;
+        };
         AbsenceRequest: {
             absentFrom?: components["schemas"]["LocalDate"];
             absentUntil?: components["schemas"]["LocalDate"];
@@ -65260,6 +65304,8 @@ export interface components {
             userTypes?: components["schemas"]["StationUserType"][];
         };
         CreateProcedureRequest: {
+            /** Format: int32 */
+            aboutMemberId?: number | null;
             description?: string | null;
             dueAt?: components["schemas"]["Instant"] | null;
             eventDate?: components["schemas"]["LocalDate"] | null;
@@ -70826,6 +70872,8 @@ export interface components {
         };
         Procedure: {
             /** Format: int32 */
+            aboutMemberId: number | null;
+            /** Format: int32 */
             assignedBy: number;
             createdAt: components["schemas"]["Instant"];
             description: string | null;
@@ -75240,6 +75288,7 @@ export interface components {
     headers: never;
     pathItems: never;
 }
+export type AboutRequest = components['schemas']['AboutRequest'];
 export type AbsenceRequest = components['schemas']['AbsenceRequest'];
 export type AbsenceResponse = components['schemas']['AbsenceResponse'];
 export type AbsentMemberResponse = components['schemas']['AbsentMemberResponse'];

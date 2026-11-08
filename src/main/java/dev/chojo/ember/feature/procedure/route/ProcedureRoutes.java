@@ -91,6 +91,7 @@ public class ProcedureRoutes implements Routes {
         routes.post(prefix + "/procedures/{rid}/reopen", this::reopenProcedure, StationPermission.PROCEDURE_EDIT);
 
         routes.put(prefix + "/procedures/{rid}/party", this::setParty, StationPermission.PROCEDURE_EDIT);
+        routes.put(prefix + "/procedures/{rid}/about", this::setAbout, StationPermission.PROCEDURE_EDIT);
 
         routes.post(prefix + "/procedures/{rid}/items", this::addItem, StationPermission.PROCEDURE_EDIT);
         routes.put(prefix + "/procedures/{rid}/items/{iid}", this::editItem, StationPermission.PROCEDURE_EDIT);
@@ -252,7 +253,8 @@ public class ProcedureRoutes implements Routes {
         int rid = pathInt(ctx, "rid");
         requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         var deps = dependencyPairs(ctx.bodyAsClass(DependencyRequest.class));
-        procedureService.setItemDependencies(rid, deps);
+        procedureService.setItemDependencies(
+                rid, deps, StationSession.from(ctx).member().id());
         ctx.status(204);
     }
 
@@ -370,7 +372,8 @@ public class ProcedureRoutes implements Routes {
                 req.dueAt(),
                 req.party(),
                 req.eventDate() != null ? req.eventId() : null,
-                req.eventId() != null ? req.eventDate() : null);
+                req.eventId() != null ? req.eventDate() : null,
+                req.aboutMemberId());
         ctx.json(procedure);
     }
 
@@ -398,7 +401,7 @@ public class ProcedureRoutes implements Routes {
     private void deleteProcedure(Context ctx) {
         int rid = pathInt(ctx, "rid");
         requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
-        procedureService.deleteProcedure(rid);
+        procedureService.deleteProcedure(rid, StationSession.from(ctx).member().id());
         ctx.status(204);
     }
 
@@ -435,6 +438,28 @@ public class ProcedureRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/procedures/{rid}/about",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AboutRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Procedure.class)))
+    private void setAbout(Context ctx) {
+        var session = StationSession.from(ctx);
+        int rid = pathInt(ctx, "rid");
+        var procedure = requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
+        var req = ctx.bodyAsClass(AboutRequest.class);
+        if (req == null || req.memberId() == null) throw ProcedureRefusal.PROCEDURE_ABOUT_MISSING.raise();
+        procedureService.setAbout(
+                procedure,
+                req.memberId(),
+                session.member().id(),
+                session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER),
+                !Boolean.FALSE.equals(req.ask()));
+        ctx.json(procedureService
+                .findProcedureById(rid)
+                .orElseThrow(ProcedureRefusal.PROCEDURE_NOT_HERE_AFTER_CHANGE::raise));
+    }
+
+    @OpenApi(
             path = "/api/v1/procedures/{rid}/party",
             methods = HttpMethod.PUT,
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RestrictionAudience.class)),
@@ -460,6 +485,7 @@ public class ProcedureRoutes implements Routes {
         var req = ctx.bodyAsClass(ProcedureItemRequest.class);
         if (req.title() == null || req.title().isBlank()) throw ProcedureRefusal.PROCEDURE_STEP_NEEDS_A_TITLE.raise();
         var kind = kindOf(ctx, procedure.stationId(), StepKindChoice.CHECK, req).orElse(StepKindChoice.CHECK);
+        procedureService.requireDocumentFits(procedure.stationId(), procedure.aboutMemberId(), req.title(), kind);
         var item = procedureService.createItem(
                 rid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position(), kind);
         ctx.json(item);
@@ -474,8 +500,17 @@ public class ProcedureRoutes implements Routes {
         var step = requireProcedureStep(ctx);
         int iid = step.id();
         var req = ctx.bodyAsClass(ProcedureItemRequest.class);
-        var change = kindOf(ctx, StationSession.from(ctx).stationId(), StepKindChoice.of(step), req);
-        change.ifPresent(kind -> procedureService.setStepKind(step, kind));
+        var stationId = StationSession.from(ctx).stationId();
+        var change = kindOf(ctx, stationId, StepKindChoice.of(step), req);
+        if (change.isPresent()) {
+            var about = procedureService
+                    .findProcedureById(step.procedureId())
+                    .map(Procedure::aboutMemberId)
+                    .orElse(null);
+            procedureService.requireDocumentFits(
+                    stationId, about, Objects.requireNonNullElse(req.title(), step.title()), change.get());
+            procedureService.setStepKind(step, change.get());
+        }
         if (!procedureService.updateItem(
                 iid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position())) {
             throw ProcedureRefusal.PROCEDURE_STEP_NOT_HERE_TO_CHANGE.raise();
@@ -488,8 +523,10 @@ public class ProcedureRoutes implements Routes {
             methods = HttpMethod.DELETE,
             responses = @OpenApiResponse(status = "204"))
     private void deleteItem(Context ctx) {
-        int iid = requireProcedureStep(ctx).id();
-        if (!procedureService.deleteItem(iid)) throw ProcedureRefusal.PROCEDURE_STEP_NOT_HERE_TO_DELETE.raise();
+        var step = requireProcedureStep(ctx);
+        if (!procedureService.deleteItem(step, StationSession.from(ctx).member().id())) {
+            throw ProcedureRefusal.PROCEDURE_STEP_NOT_HERE_TO_DELETE.raise();
+        }
         ctx.status(204);
     }
 
@@ -644,8 +681,10 @@ public class ProcedureRoutes implements Routes {
      * @param dueAt       when it is due, or {@code null} for no date
      * @param party       the managing party, or {@code null} for the template's, or none without one
      * @param eventId     the appointment the procedure is being prepared for, or {@code null}
-     * @param eventDate   the one occurrence of that appointment. Both are recorded only when both are
-     *                    given: an appointment without a date names every occurrence it has ever had
+     * @param eventDate     the one occurrence of that appointment. Both are recorded only when both are
+     *                      given: an appointment without a date names every occurrence it has ever had
+     * @param aboutMemberId the member the procedure is about, whose documents its steps ask to sign, or
+     *                      {@code null} for nobody in particular
      */
     public record CreateProcedureRequest(
             @Nullable Integer templateId,
@@ -655,7 +694,16 @@ public class ProcedureRoutes implements Routes {
             @Nullable Instant dueAt,
             @Nullable RestrictionAudience party,
             @Nullable Integer eventId,
-            @Nullable LocalDate eventDate) {}
+            @Nullable LocalDate eventDate,
+            @Nullable Integer aboutMemberId) {}
+
+    /**
+     * @param memberId the member a procedure is to be about
+     * @param ask      whether to ask for the document steps that are unlocked right away; {@code false}
+     *                 for a caller that sets the dependencies right after, which asks then
+     */
+    public record AboutRequest(
+            @Nullable Integer memberId, @Nullable Boolean ask) {}
 
     /**
      * @param description what the procedure is about, or {@code null} for nothing

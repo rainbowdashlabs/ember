@@ -246,6 +246,49 @@ public class SignatureRequestService {
     }
 
     /**
+     * Asks for the signatures of a document a step of a procedure generated for the member it is about.
+     * The member the procedure asks on behalf of is named as the one who asked; the caller has made sure
+     * they are a current member who generates documents for members.
+     *
+     * @param generationId the generation log entry of the document
+     * @param askedBy      on whose behalf the procedure asks
+     * @return the request
+     */
+    public SignatureRequest requestForProcedure(int generationId, int askedBy) {
+        var generation =
+                generations.findById(generationId).orElseThrow(DocumentRefusal.SIGNING_GENERATION_NOT_FOUND::raise);
+        var created = onceForTheDocument(() -> {
+            var plan = planOf(generation, memberOf(generation), filedDocument(generation));
+            return create(generation, plan, askedBy, null);
+        });
+        notices.asked(created, requests.fieldsOf(created.id()));
+        return created;
+    }
+
+    /**
+     * Withdraws every signature the live request of a generated document still waits for, as a procedure
+     * does when it no longer needs the document. What was already signed stays.
+     *
+     * @param generationId the generation log entry of the document
+     * @param by           who withdraws
+     * @return whether a request was open to withdraw
+     */
+    public boolean withdrawForProcedure(int generationId, int by) {
+        var live = requests.findLiveFor(generationId).filter(SignatureRequest::open);
+        if (live.isEmpty()) return false;
+        var request = live.get();
+        boolean withdrawn = Transactions.call(() -> {
+            var held = requests.lockRequest(request.id()).orElse(null);
+            if (held == null || !held.open()) return false;
+            requests.withdrawOpen(request.id(), by, names.official(by));
+            requests.closeIfSettled(request.id());
+            return true;
+        });
+        if (withdrawn) notices.settled(withdrawnFieldsOf(request.id()));
+        return withdrawn;
+    }
+
+    /**
      * The member a generated document of the station is about, for a reader allowed to change it, before
      * anybody is asked: so a witness can be checked against the person before the request exists.
      *

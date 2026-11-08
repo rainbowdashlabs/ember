@@ -131,6 +131,19 @@ public enum ProcedureRefusal implements Refusal {
             HttpStatus.FORBIDDEN,
             "Only those who generate documents for members can make a step ask to sign one, so nothing was saved"),
 
+    /** A procedure made about somebody who is not a member of its station. */
+    PROCEDURE_ABOUT_NOT_OF_STATION(
+            37, HttpStatus.BAD_REQUEST, "That person is not a member here, so the procedure is not about them"),
+
+    /** A document step on a procedure that is about nobody, whose document would be about nobody either. */
+    PROCEDURE_STEP_DOCUMENT_NEEDS_ABOUT(
+            38,
+            HttpStatus.BAD_REQUEST,
+            "Choose whom the procedure is about before a step asks to sign a document, so nothing was saved"),
+
+    /** A procedure made about somebody without naming them. */
+    PROCEDURE_ABOUT_MISSING(39, HttpStatus.BAD_REQUEST, "Choose whom the procedure is about, so nothing was changed"),
+
     /** A note on a step written by somebody who does not run the procedure. */
     PROCEDURE_STEP_NOTE_NOT_YOURS(
             29, HttpStatus.FORBIDDEN, "Only whoever runs the procedure can write a note on a step"),

@@ -390,6 +390,30 @@ public class DocumentGenerationService {
     }
 
     /**
+     * Generates a document a step of a procedure asks to sign, for the member the procedure is about, and
+     * files it with them, never hidden from them. It is issued by the template's issuer and generated on
+     * behalf of a member who generates documents for members; data the profile lacks prints as lines to
+     * fill in, as for a manager.
+     *
+     * @param stationId   the procedure's station
+     * @param templateId  the template, which has to ask the member or a guardian to sign
+     * @param memberId    the member the procedure is about
+     * @param generatedBy on whose behalf the procedure generates it
+     * @return the filed document
+     */
+    public GeneratedDocumentResponse generateForProcedure(
+            int stationId, int templateId, int memberId, int generatedBy) {
+        var template = templates.requireInUse(stationId, templateId);
+        templates.requireMeantFor(template, stationId, memberId);
+        if (!generator.sourceOf(template).asksMemberSideToSign(MemberView.EVERYBODY)) {
+            throw DocumentRefusal.SIGNING_NO_FIELDS.raise();
+        }
+        var context = GenerationContext.by(generatedBy, issuers.ofTemplate(template, stationId));
+        var prepared = generator.prepare(template, memberId, context);
+        return file(template, memberId, generatedBy, GenerationOrigin.PROCEDURE, prepared);
+    }
+
+    /**
      * Draws a document and files it, with its entry in the generation log, at the station of the member it
      * is about, whoever keeps the template.
      *

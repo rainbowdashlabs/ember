@@ -93,6 +93,7 @@ import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.page.entity.PageVisibility;
 import dev.chojo.ember.feature.page.service.PageService;
+import dev.chojo.ember.feature.procedure.service.DocumentStepSigning;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.procedure.service.SuitableDocuments;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
@@ -380,7 +381,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 memberIdentityFactory,
                 memberNameResolver,
                 boardAttachmentSvc);
-        var procedureService = new ProcedureService(procedureRepo, noOpBus, restrictionService, SuitableDocuments.NONE);
+        var procedureService = new ProcedureService(
+                procedureRepo, noOpBus, restrictionService, SuitableDocuments.NONE, mock(DocumentStepSigning.class));
 
         var memberSeeder = new DemoMemberSeeder(
                 accountRepo,

@@ -35535,6 +35535,31 @@
         }
       }
     },
+    "/api/v1/procedures/{rid}/about" : {
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Procedure"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AboutRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/procedures/{rid}/dependencies" : {
       "put" : {
         "responses" : {
@@ -48180,6 +48205,18 @@
   },
   "components" : {
     "schemas" : {
+      "AboutRequest" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "ask" : {
+            "type" : [ "boolean", "null" ]
+          }
+        }
+      },
       "AbsenceRequest" : {
         "type" : "object",
         "properties" : {
@@ -54586,6 +54623,10 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "aboutMemberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         }
       },
@@ -70734,9 +70775,13 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "aboutMemberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "stationId", "templateId", "name", "description", "isPublic", "status", "assignedBy", "dueAt", "createdAt", "resolvedAt", "eventId", "eventDate" ]
+        "required" : [ "id", "stationId", "templateId", "name", "description", "isPublic", "status", "assignedBy", "dueAt", "createdAt", "resolvedAt", "eventId", "eventDate", "aboutMemberId" ]
       },
       "ProcedureDetail" : {
         "type" : "object",

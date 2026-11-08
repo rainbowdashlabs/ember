@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.procedure.service;
 
+import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.ProcedureRefusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ProcedureAssigned;
@@ -31,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -48,17 +51,23 @@ public class ProcedureService {
     private final DomainEventBus eventBus;
     private final RestrictionService restrictions;
     private final DocumentStepTemplates documentSteps;
+    private final DocumentStepSigning signing;
+    /** Held while the document steps of a procedure are asked for, so a step never generates twice at once. */
+    private final Object[] asking = new Object[64];
 
     @Inject
     public ProcedureService(
             ProcedureRepository repository,
             DomainEventBus eventBus,
             RestrictionService restrictions,
-            DocumentStepTemplates documentSteps) {
+            DocumentStepTemplates documentSteps,
+            DocumentStepSigning signing) {
         this.repository = repository;
         this.eventBus = eventBus;
         this.restrictions = restrictions;
         this.documentSteps = documentSteps;
+        this.signing = signing;
+        Arrays.setAll(asking, index -> new Object());
     }
 
     public List<ProcedureTemplate> findTemplatesByStation(int stationId, boolean includeArchived) {
@@ -295,10 +304,15 @@ public class ProcedureService {
      * the one asked for, else the template's, else none. The members the party names one by one are
      * told it was handed to them.
      *
-     * @param eventId   the appointment this was prepared for, or {@code null} for a procedure that
-     *                  stands on its own
-     * @param eventDate the one occurrence of that appointment, {@code null} exactly when the
-     *                  appointment is
+     * <p>A document step of the template is checked against the member the procedure is about before
+     * anything is written, and those that are unlocked right away are generated and asked for once it
+     * stands.
+     *
+     * @param eventId       the appointment this was prepared for, or {@code null} for a procedure that
+     *                      stands on its own
+     * @param eventDate     the one occurrence of that appointment, {@code null} exactly when the
+     *                      appointment is
+     * @param aboutMemberId the member the procedure is about, or {@code null} for nobody in particular
      */
     public Procedure createProcedure(
             int stationId,
@@ -310,12 +324,28 @@ public class ProcedureService {
             @Nullable Instant dueAt,
             @Nullable RestrictionAudience party,
             @Nullable Integer eventId,
-            @Nullable LocalDate eventDate) {
+            @Nullable LocalDate eventDate,
+            @Nullable Integer aboutMemberId) {
         var given = ofStation(
                 stationId,
                 party != null ? party : templateId != null ? templatePartyOf(templateId) : RestrictionAudience.empty());
+        if (aboutMemberId != null) requireAboutOf(stationId, aboutMemberId);
+        if (templateId != null) {
+            for (var step : repository.findTemplateItems(templateId)) {
+                requireDocumentFits(stationId, aboutMemberId, step.title(), StepKindChoice.of(step));
+            }
+        }
         var procedure = repository.createProcedure(
-                stationId, templateId, name, description, isPublic, assignedBy, dueAt, eventId, eventDate);
+                stationId,
+                templateId,
+                name,
+                description,
+                isPublic,
+                assignedBy,
+                dueAt,
+                eventId,
+                eventDate,
+                aboutMemberId);
 
         if (templateId != null) {
             snapshotTemplate(procedure.id(), templateId);
@@ -333,6 +363,7 @@ public class ProcedureService {
                 stationId,
                 templateId,
                 given.namesNobody());
+        askUnlocked(procedure.id(), assignedBy);
         return procedure;
     }
 
@@ -380,17 +411,197 @@ public class ProcedureService {
         eventBus.publish(new ProcedureReopened(
                 procedure.get().stationId(), id, procedure.get().name(), party, reopenedByMemberId));
         log.info("Reopened procedure {} by member {}", id, reopenedByMemberId);
+        askUnlocked(id, reopenedByMemberId);
         return true;
     }
 
-    public boolean deleteProcedure(int id) {
-        boolean deleted = repository.deleteProcedure(id);
+    /**
+     * Deletes a procedure. The signatures its document steps still wait for are withdrawn first; the
+     * documents themselves, and what was signed, stay with the member they are about.
+     *
+     * @param id the procedure
+     * @param by who deletes it
+     * @return whether it was there
+     */
+    public boolean deleteProcedure(int id, int by) {
+        boolean deleted;
+        synchronized (lockOf(id)) {
+            for (var step : repository.findItems(id)) {
+                if (step.generationId() != null && !step.checked()) signing.withdraw(step.generationId(), by);
+            }
+            deleted = repository.deleteProcedure(id);
+        }
         if (deleted) {
             log.info("Deleted procedure {}", id);
         } else {
             log.warn("Delete for procedure {} affected zero rows", id);
         }
         return deleted;
+    }
+
+    /**
+     * Makes a procedure about another member. Every document step that will ask anew, one not ticked
+     * yet, is checked against them first. The signatures those steps' documents still wait for are
+     * withdrawn, since they are about the member before, and, where asked to, the steps that are unlocked
+     * are generated anew about the new member. What was signed stays with the member it is about.
+     *
+     * <p>A caller that settles the procedure itself right after, as the form does by setting the
+     * dependencies last, leaves the asking to that, so nothing is asked for under steps it is about to
+     * change.
+     *
+     * @param procedure          the procedure
+     * @param aboutMemberId      the member it is to be about
+     * @param by                 who changes it
+     * @param generatesDocuments whether they may generate documents for members, which retargeting
+     *                           document steps needs
+     * @param ask                whether to ask for the unlocked steps right away
+     */
+    public void setAbout(Procedure procedure, int aboutMemberId, int by, boolean generatesDocuments, boolean ask) {
+        if (Objects.equals(procedure.aboutMemberId(), aboutMemberId)) return;
+        synchronized (lockOf(procedure.id())) {
+            requireAboutOf(procedure.stationId(), aboutMemberId);
+            var anew = repository.findItems(procedure.id()).stream()
+                    .filter(step -> step.kind() == ProcedureStepKind.DOCUMENT && !step.checked())
+                    .toList();
+            if (!anew.isEmpty() && !generatesDocuments) {
+                throw ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NOT_YOURS.raise();
+            }
+            for (var step : anew) {
+                requireDocumentFits(procedure.stationId(), aboutMemberId, step.title(), StepKindChoice.of(step));
+            }
+            if (!repository.setAbout(procedure.id(), aboutMemberId)) {
+                throw ProcedureRefusal.PROCEDURE_NOT_HERE_TO_CHANGE.raise();
+            }
+            for (var step : anew) {
+                var generationId = step.generationId();
+                if (generationId == null) continue;
+                signing.withdraw(generationId, by);
+                repository.unlinkGeneration(step.id(), generationId);
+            }
+            log.info("Procedure {} is now about member {}", procedure.id(), aboutMemberId);
+            if (ask) askUnlocked(procedure.id(), by);
+        }
+    }
+
+    /**
+     * Refuses a document step a procedure cannot ask for: one on a procedure about nobody, or one whose
+     * document template is not meant for the member it is about, naming the step and the template.
+     *
+     * @param stationId     the procedure's station
+     * @param aboutMemberId the member the procedure is about, or null for nobody in particular
+     * @param title         the step's title
+     * @param kind          what the step asks for
+     */
+    public void requireDocumentFits(int stationId, @Nullable Integer aboutMemberId, String title, StepKindChoice kind) {
+        var templateId = kind.documentTemplateId();
+        if (kind.kind() != ProcedureStepKind.DOCUMENT || templateId == null) return;
+        if (aboutMemberId == null) throw ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NEEDS_ABOUT.raise();
+        if (documentSteps.meantFor(stationId, templateId, aboutMemberId)) return;
+        var template = documentSteps.named(stationId, List.of(templateId)).stream()
+                .map(DocumentStepTemplates.StepDocument::name)
+                .findFirst()
+                .orElse("");
+        throw DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_MEMBER.raise(RefusalDetail.text(title + ": " + template));
+    }
+
+    private void requireAboutOf(int stationId, int memberId) {
+        if (!restrictions.currentMemberAt(stationId, memberId)) {
+            throw ProcedureRefusal.PROCEDURE_ABOUT_NOT_OF_STATION.raise();
+        }
+    }
+
+    private Object lockOf(int procedureId) {
+        return asking[Math.floorMod(procedureId, asking.length)];
+    }
+
+    /**
+     * Generates the document of every document step that is unlocked and has none yet, and asks for its
+     * signatures: a step whose dependencies are all ticked, on an open procedure about a member.
+     *
+     * <p>It is generated and asked for on behalf of whoever made the procedure change, where they may
+     * generate documents for members, else of whoever set the procedure up, where they still may; with
+     * neither nothing is generated. A step that cannot be generated is left without a document and
+     * logged, so it is tried again the next time the procedure changes; a document that was filed but
+     * whose signatures could not be asked for stays linked, so it is not filed a second time. Nothing
+     * that triggered it is refused for either.
+     *
+     * @param procedureId the procedure
+     * @param actor       who made the procedure change, or null where nobody in particular did
+     */
+    public void askUnlocked(int procedureId, @Nullable Integer actor) {
+        synchronized (lockOf(procedureId)) {
+            var procedure = repository.findProcedureById(procedureId).orElse(null);
+            if (procedure == null || procedure.status() != ProcedureStatus.OPEN || procedure.aboutMemberId() == null)
+                return;
+            var unlocked = unlockedWithoutDocument(procedureId);
+            if (unlocked.isEmpty()) return;
+            var asker = askerOf(procedure, actor);
+            if (asker == null) {
+                log.warn(
+                        "Document steps of procedure {} not generated: nobody who may generate documents asks",
+                        procedureId);
+                return;
+            }
+            for (var step : unlocked) ask(procedure, step, procedure.aboutMemberId(), asker);
+        }
+    }
+
+    private List<ProcedureItem> unlockedWithoutDocument(int procedureId) {
+        var steps = repository.findItems(procedureId);
+        var ticked = steps.stream()
+                .filter(ProcedureItem::checked)
+                .map(ProcedureItem::id)
+                .collect(Collectors.toSet());
+        var waiting = repository.findItemDependencies(procedureId).stream()
+                .filter(pair -> !ticked.contains(pair[1]))
+                .map(pair -> pair[0])
+                .collect(Collectors.toSet());
+        return steps.stream()
+                .filter(step -> step.kind() == ProcedureStepKind.DOCUMENT
+                        && step.documentTemplateId() != null
+                        && step.generationId() == null
+                        && !step.checked()
+                        && !waiting.contains(step.id()))
+                .toList();
+    }
+
+    private @Nullable Integer askerOf(Procedure procedure, @Nullable Integer actor) {
+        if (actor != null && signing.mayAsk(procedure.stationId(), actor)) return actor;
+        if (signing.mayAsk(procedure.stationId(), procedure.assignedBy())) return procedure.assignedBy();
+        return null;
+    }
+
+    private void ask(Procedure procedure, ProcedureItem step, int aboutMemberId, int asker) {
+        int templateId = Objects.requireNonNull(step.documentTemplateId());
+        int generationId;
+        try {
+            generationId = signing.generate(procedure.stationId(), templateId, aboutMemberId, asker);
+        } catch (RuntimeException failed) {
+            log.warn("Document step {} of procedure {} not generated", step.id(), procedure.id(), failed);
+            return;
+        }
+        if (!repository.linkGeneration(step.id(), generationId)) {
+            log.warn("Document step {} of procedure {} changed while it was generated", step.id(), procedure.id());
+            return;
+        }
+        try {
+            signing.request(generationId, asker);
+        } catch (RuntimeException failed) {
+            log.warn(
+                    "Document step {} of procedure {} generated {}, but its signatures were not asked for",
+                    step.id(),
+                    procedure.id(),
+                    generationId,
+                    failed);
+            return;
+        }
+        log.info(
+                "Document step {} of procedure {} generated {} about member {} for member {}",
+                step.id(),
+                procedure.id(),
+                generationId,
+                aboutMemberId,
+                asker);
     }
 
     /**
@@ -563,8 +774,22 @@ public class ProcedureService {
         return updated;
     }
 
-    public boolean deleteItem(int id) {
-        boolean deleted = repository.deleteItem(id);
+    /**
+     * Deletes a step of a procedure. The signatures its document still waits for are withdrawn first; the
+     * document, and what was signed, stay with the member it is about.
+     *
+     * @param step the step
+     * @param by   who deletes it
+     * @return whether it was there
+     */
+    public boolean deleteItem(ProcedureItem step, int by) {
+        int id = step.id();
+        boolean deleted;
+        synchronized (lockOf(step.procedureId())) {
+            var current = repository.findItemById(id).orElse(step);
+            if (current.generationId() != null && !current.checked()) signing.withdraw(current.generationId(), by);
+            deleted = repository.deleteItem(id);
+        }
         if (deleted) {
             log.info("Deleted procedure item {}", id);
         } else {
@@ -598,7 +823,6 @@ public class ProcedureService {
             log.warn("Check for procedure item {} affected zero rows", itemId);
             return false;
         }
-
         var procedure = repository.findProcedureById(item.get().procedureId());
         if (procedure.isPresent()) {
             var party = item.get().isPublic() ? toldOf(procedure.get()) : List.<Integer>of();
@@ -612,6 +836,7 @@ public class ProcedureService {
                     checkedByMemberId));
         }
         log.info("Checked procedure item {} by member {}", itemId, checkedByMemberId);
+        askUnlocked(item.get().procedureId(), checkedByMemberId);
         return true;
     }
 
@@ -640,20 +865,23 @@ public class ProcedureService {
     }
 
     /**
-     * Replaces the dependencies between the steps of one procedure.
+     * Replaces the dependencies between the steps of one procedure, then asks for the document steps
+     * that are unlocked under them.
      *
      * @param procedureId  the procedure
      * @param dependencies pairs of step ids: the step first, the step it waits for second
+     * @param by           who sets them
      * @throws RefusalResponse {@link ProcedureRefusal#PROCEDURE_STEP_NOT_IN_PROCEDURE} when a pair names a step of
      *                         another procedure
      */
-    public void setItemDependencies(int procedureId, List<int[]> dependencies) {
+    public void setItemDependencies(int procedureId, List<int[]> dependencies, int by) {
         var held = repository.findItems(procedureId).stream()
                 .map(ProcedureItem::id)
                 .collect(Collectors.toSet());
         if (!namesOnly(held, dependencies)) throw ProcedureRefusal.PROCEDURE_STEP_NOT_IN_PROCEDURE.raise();
         repository.setItemDependencies(procedureId, dependencies);
         log.info("Procedure {} now carries {} item dependency(s)", procedureId, dependencies.size());
+        askUnlocked(procedureId, by);
     }
 
     private static boolean namesOnly(Set<Integer> held, List<int[]> dependencies) {

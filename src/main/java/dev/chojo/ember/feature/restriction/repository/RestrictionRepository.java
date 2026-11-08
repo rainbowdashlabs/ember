@@ -142,6 +142,24 @@ public class RestrictionRepository {
     }
 
     /**
+     * Whether somebody is a current member of a station.
+     *
+     * @param stationId the station
+     * @param memberId  the member
+     * @return whether they belong to the station and have not left it
+     */
+    public boolean isCurrentMember(int stationId, int memberId) {
+        return query("""
+                SELECT EXISTS(
+                    SELECT 1 FROM station_member
+                    WHERE id = :member_id AND station_id = :station_id AND former = FALSE) AS current;""")
+                .single(call().bind("member_id", memberId).bind("station_id", stationId))
+                .map(row -> row.getBoolean("current"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
      * What a restriction can name of several members, former ones included, in one read.
      *
      * @param memberIds the members

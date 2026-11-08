@@ -13,6 +13,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import TemplateSelectorSection from '@/views/stationview/procedure/procedurecreateview/TemplateSelectorSection.vue'
 import BasicInfoSection from '@/views/stationview/procedure/procedurecreateview/BasicInfoSection.vue'
+import {fromCompletion} from '@/components/input/select/memberOption'
 import PartySection from '@/views/stationview/procedure/procedurecreateview/PartySection.vue'
 import ItemsSection from '@/views/stationview/procedure/procedurecreateview/ItemsSection.vue'
 import type {RestrictionSelection} from '@/api/types'
@@ -86,7 +87,8 @@ const ITEMS: EditableItem[] = [
         <TemplateSelectorSection :templates="TEMPLATES" :selected-template-id="1"/>
         <BasicInfoSection name="Aufnahme Lena Hoffmann"
                           description="Alle Schritte bis zum ersten Übungsabend."
-                          due-at="2026-06-12" :is-public="true"/>
+                          due-at="2026-06-12" :is-public="true" about="2"
+                          :members="MEMBERS.map(fromCompletion)"/>
         <PartySection :model-value="PARTY" :members="MEMBERS" :groups="GROUPS" :tags="[]"/>
         <ItemsSection :items="ITEMS"/>
         <ButtonRow pair align="end">

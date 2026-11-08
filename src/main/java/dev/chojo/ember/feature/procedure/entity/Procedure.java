@@ -18,8 +18,10 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * A list of steps a station works through, optionally prepared for one date of one appointment.
  *
  * @param eventId   the appointment this was prepared for, or {@code null} when it stands on its own
- * @param eventDate the single occurrence of that appointment, {@code null} exactly when the
- *                  appointment is
+ * @param eventDate     the single occurrence of that appointment, {@code null} exactly when the
+ *                      appointment is
+ * @param aboutMemberId the member the procedure is about, whose documents its steps ask to sign;
+ *                      {@code null} for a procedure about nobody in particular
  */
 public record Procedure(
         int id,
@@ -34,7 +36,8 @@ public record Procedure(
         Instant createdAt,
         @Nullable Instant resolvedAt,
         @Nullable Integer eventId,
-        @Nullable LocalDate eventDate) {
+        @Nullable LocalDate eventDate,
+        @Nullable Integer aboutMemberId) {
 
     @MappingProvider("")
     public static RowMapping<Procedure> map() {
@@ -51,6 +54,7 @@ public record Procedure(
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.get("resolved_at", INSTANT_TIMESTAMP),
                 row.getObject("event_id", Integer.class),
-                row.getObject("event_date", LocalDate.class));
+                row.getObject("event_date", LocalDate.class),
+                row.getObject("about_member_id", Integer.class));
     }
 }

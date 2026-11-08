@@ -72,6 +72,12 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
    */
   const dueAt = ref('')
   const isPublic = ref(true)
+  /** The member the procedure is about, as the picker holds it: the id, or empty for nobody in particular. */
+  const about = ref('')
+  /** Whom the procedure was loaded about, so saving changes it only where the reader did. */
+  const savedAbout = ref('')
+  /** Whether the procedure is about somebody already, who can be changed but not taken away. */
+  const aboutFixed = computed(() => savedAbout.value !== '')
 
   const templates = ref<ProcedureTemplate[]>([])
   const selectedTemplateId = ref<number | null>(null)
@@ -189,6 +195,8 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       description.value = detail.procedure.description ?? ''
       dueAt.value = instantToDate(detail.procedure.dueAt)
       isPublic.value = detail.procedure.isPublic
+      about.value = detail.procedure.aboutMemberId == null ? '' : String(detail.procedure.aboutMemberId)
+      savedAbout.value = about.value
       party.value = toRestriction(detail.party)
       existingItemIds.value = new Set(detail.items.map(i => i.id))
       items.value = toEditableItems(detail.items, detail.dependencies, detail.documents, true)
@@ -252,6 +260,9 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
   const documentsNotYours = computed(() => !hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)
     && items.value.some(item => item.document != null && sendsKind(item)))
 
+  /** Whether the form asks to sign documents on a procedure about nobody, which the server would refuse. */
+  const documentsNeedAbout = computed(() => !about.value && items.value.some(item => item.document != null && sendsKind(item)))
+
   /** Whether the form starts document steps whose document is gone, which the server would refuse. */
   const documentsGone = computed(() => items.value.some(item => item.document?.name === '' && sendsKind(item)))
 
@@ -314,6 +325,10 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
         dueAt: dateToInstant(dueAt.value),
         isPublic: isPublic.value,
       })
+      if (about.value && about.value !== savedAbout.value) {
+        await procedures.setAbout(pid, Number(about.value), false)
+        savedAbout.value = about.value
+      }
       await procedures.setParty(pid, party.value)
       await procedures.setProcedureDependencies(pid, buildDependencies(await syncItems(pid)))
       return pid
@@ -325,14 +340,14 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       dueAt: dateToInstant(dueAt.value) ?? undefined,
       isPublic: isPublic.value,
       party: party.value,
+      aboutMemberId: about.value ? Number(about.value) : null,
     })
     const tempToReal = new Map<number, number>()
     for (const [i, item] of items.value.entries()) {
       const createdItem = await procedures.addItem(created.id, itemPayload(item, i))
       tempToReal.set(item.tempId, createdItem.id)
     }
-    const deps = buildDependencies(tempToReal)
-    if (deps.length) await procedures.setProcedureDependencies(created.id, deps)
+    await procedures.setProcedureDependencies(created.id, buildDependencies(tempToReal))
     return created.id
   }
 
@@ -342,6 +357,8 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     description,
     dueAt,
     isPublic,
+    about,
+    aboutFixed,
     templates,
     selectedTemplateId,
     templateDetail,
@@ -352,6 +369,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     items,
     documentsNotYours,
     documentsGone,
+    documentsNeedAbout,
     isEditMode,
     loading,
     failure,

@@ -51,6 +51,9 @@ export default {
     'R-034': 'Wähle das Dokument, das der Schritt unterschreiben lässt, es wurde nichts gespeichert',
     'R-035': 'Dieser Schritt hat sein Dokument schon erstellt, was er verlangt, bleibt deshalb so',
     'R-036': 'Nur wer Dokumente für Mitglieder erstellen darf, kann einen Schritt ein Dokument unterschreiben lassen, es wurde nichts gespeichert',
+    'R-037': 'Diese Person ist hier kein Mitglied, der Ablauf ist deshalb nicht über sie',
+    'R-038': 'Wähle zuerst, um wen es im Ablauf geht, bevor ein Schritt ein Dokument unterschreiben lässt, es wurde nichts gespeichert',
+    'R-039': 'Wähle, um wen es im Ablauf geht, es wurde nichts geändert',
 
     'R-001': PROCEDURE_NOT_YOURS,
     'R-002': PROCEDURE_NOT_YOURS,

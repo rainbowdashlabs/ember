@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
 import dev.chojo.ember.feature.procedure.entity.StepKindChoice;
 import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
+import dev.chojo.ember.feature.procedure.service.DocumentStepSigning;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.procedure.service.SuitableDocuments;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
@@ -59,6 +60,7 @@ class ProcedureRoutesTest {
     private static final int TEMPLATE = 5;
     private static final int OWN_TEMPLATE_STEP = 50;
     private static final int FOREIGN_TEMPLATE_STEP = 60;
+    private static final int SUITABLE_DOCUMENT = 8;
     private static final String STEP_BODY =
             "{\"title\": \"Packen\", \"isPublic\": true, \"userAssigned\": true, \"position\": 0}";
 
@@ -81,8 +83,12 @@ class ProcedureRoutesTest {
         when(restrictions.includes(RestrictionType.PROCEDURE, PROCEDURE, TestSessions.MEMBER_ID))
                 .thenReturn(true);
         when(restrictions.audienceOf(any(), anyInt())).thenReturn(RestrictionAudience.empty());
-        var service =
-                new ProcedureService(repository, mock(DomainEventBus.class), restrictions, SuitableDocuments.NONE);
+        var service = new ProcedureService(
+                repository,
+                mock(DomainEventBus.class),
+                restrictions,
+                new SuitableDocuments(template -> template == SUITABLE_DOCUMENT),
+                mock(DocumentStepSigning.class));
         harness = RouteHarness.serving(new ProcedureRoutes(service, mock(MemberIdentityFactory.class)));
     }
 
@@ -311,6 +317,54 @@ class ProcedureRoutesTest {
         verify(repository, never()).snapshotTemplateItem(anyInt(), any());
     }
 
+    /** A procedure is made about a member only with somebody named, and only on the station's own procedure. */
+    @Test
+    void aProcedureIsMadeAboutSomebodyNamed() {
+        harness.run((server, client) -> {
+            var editor = harness.as(TestSessions.member(STATION, StationPermission.PROCEDURE_EDIT));
+
+            assertEquals(
+                    ProcedureRefusal.PROCEDURE_ABOUT_MISSING,
+                    refusalOf(client.put(PREFIX + "/procedures/" + PROCEDURE + "/about", body("{}"), editor)));
+            assertEquals(
+                    404,
+                    client.put(PREFIX + "/procedures/" + OTHER_PROCEDURE + "/about", body("{\"memberId\": 5}"), editor)
+                            .code());
+        });
+
+        verify(repository, never()).setAbout(anyInt(), anyInt());
+    }
+
+    /** A procedure is made about a current member of the station, who its document steps are then about. */
+    @Test
+    void aProcedureIsMadeAboutAMember() {
+        when(restrictions.currentMemberAt(STATION, 5)).thenReturn(true);
+        when(repository.setAbout(PROCEDURE, 5)).thenReturn(true);
+
+        var answer = harness.request(client -> client.put(
+                PREFIX + "/procedures/" + PROCEDURE + "/about",
+                body("{\"memberId\": 5, \"ask\": false}"),
+                harness.as(TestSessions.member(STATION, StationPermission.PROCEDURE_EDIT))));
+
+        assertEquals(200, answer.code());
+        verify(repository).setAbout(PROCEDURE, 5);
+    }
+
+    /** A step asks to sign a document only on a procedure about somebody. */
+    @Test
+    void aDocumentStepNeedsSomebodyToBeAbout() {
+        var answer = harness.request(client -> client.post(
+                PREFIX + "/procedures/" + PROCEDURE + "/items",
+                body("{\"title\": \"Antrag\", \"isPublic\": true, \"userAssigned\": true, \"position\": 0,"
+                        + " \"kind\": \"DOCUMENT\", \"documentTemplateId\": " + SUITABLE_DOCUMENT + "}"),
+                harness.as(TestSessions.member(
+                        STATION, StationPermission.PROCEDURE_EDIT, StationPermission.DOCUMENT_EDIT_MEMBER))));
+
+        assertEquals(ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NEEDS_ABOUT, refusalOf(answer));
+        verify(repository, never())
+                .createItem(anyInt(), anyString(), any(), anyBoolean(), anyBoolean(), anyInt(), any());
+    }
+
     /** The party of the station's own procedure is set; another station's procedure is not found. */
     @Test
     void aPartyIsSetOnlyOnTheStationsOwnProcedure() {
@@ -401,6 +455,7 @@ class ProcedureRoutesTest {
                 Instant.EPOCH,
                 null,
                 null,
+                null,
                 null);
     }
 
@@ -416,6 +471,7 @@ class ProcedureRoutesTest {
                 TestSessions.MEMBER_ID,
                 null,
                 Instant.EPOCH,
+                null,
                 null,
                 null,
                 null);

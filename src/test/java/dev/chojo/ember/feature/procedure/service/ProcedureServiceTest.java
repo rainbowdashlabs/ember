@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.procedure.service;
 
+import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.ProcedureRefusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ProcedureAssigned;
@@ -24,6 +26,7 @@ import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -42,6 +45,7 @@ class ProcedureServiceTest {
     private ProcedureRepository repository;
     private DomainEventBus eventBus;
     private RestrictionService restrictions;
+    private DocumentStepSigning signing;
     private ProcedureService service;
 
     private static final int STATION_ID = 1;
@@ -52,6 +56,9 @@ class ProcedureServiceTest {
     private static final int ITEM_ID = 300;
     private static final int EVENT_ID = 400;
     private static final int SUITABLE_DOCUMENT = 500;
+    private static final int ABOUT_ID = 30;
+    private static final int OTHER_ABOUT_ID = 31;
+    private static final int GENERATION_ID = 900;
 
     @BeforeEach
     void setup() {
@@ -60,8 +67,13 @@ class ProcedureServiceTest {
         restrictions = mock(RestrictionService.class);
         when(restrictions.audienceOf(any(), anyInt())).thenReturn(RestrictionAudience.empty());
         when(restrictions.ofStation(anyInt(), any())).thenReturn(true);
+        signing = mock(DocumentStepSigning.class);
         service = new ProcedureService(
-                repository, eventBus, restrictions, new SuitableDocuments(template -> template == SUITABLE_DOCUMENT));
+                repository,
+                eventBus,
+                restrictions,
+                new SuitableDocuments(template -> template == SUITABLE_DOCUMENT),
+                signing);
     }
 
     private static RestrictionAudience named(Integer... memberIds) {
@@ -295,11 +307,11 @@ class ProcedureServiceTest {
     @Test
     void createProcedureWithoutTemplate() {
         var proc = procedure(PROCEDURE_ID, null);
-        when(repository.createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, null, null))
+        when(repository.createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, null, null, null))
                 .thenReturn(proc);
 
         var result = service.createProcedure(
-                STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, named(MEMBER_ID_2), null, null);
+                STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, named(MEMBER_ID_2), null, null, null);
 
         assertEquals(proc, result);
         verify(restrictions).setAudience(RestrictionType.PROCEDURE, PROCEDURE_ID, named(MEMBER_ID_2));
@@ -310,10 +322,10 @@ class ProcedureServiceTest {
     @Test
     void createProcedureNoAssignees() {
         var proc = procedure(PROCEDURE_ID, null);
-        when(repository.createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, null, null))
+        when(repository.createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, null, null, null))
                 .thenReturn(proc);
 
-        service.createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, null, null, null);
+        service.createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, null, null, null, null);
 
         verify(eventBus, never()).publish(any());
     }
@@ -326,13 +338,14 @@ class ProcedureServiceTest {
     void createProcedureForOccurrenceRecordsIt() {
         var date = LocalDate.of(2026, 3, 17);
         var proc = procedure(PROCEDURE_ID, null);
-        when(repository.createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, EVENT_ID, date))
+        when(repository.createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, EVENT_ID, date, null))
                 .thenReturn(proc);
 
         service.createProcedure(
-                STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, named(MEMBER_ID_2), EVENT_ID, date);
+                STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, named(MEMBER_ID_2), EVENT_ID, date, null);
 
-        verify(repository).createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, EVENT_ID, date);
+        verify(repository)
+                .createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, EVENT_ID, date, null);
     }
 
     @Test
@@ -347,7 +360,8 @@ class ProcedureServiceTest {
     @Test
     void createProcedureWithTemplateSnapshots() {
         var proc = procedure(PROCEDURE_ID, TEMPLATE_ID);
-        when(repository.createProcedure(STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, null, null))
+        when(repository.createProcedure(
+                        STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, null, null, null))
                 .thenReturn(proc);
 
         var ti1 = new ProcedureTemplateItem(10, TEMPLATE_ID, "S1", "D1", true, true, 1);
@@ -361,7 +375,7 @@ class ProcedureServiceTest {
         when(repository.snapshotTemplateItem(PROCEDURE_ID, ti2)).thenReturn(pi2);
 
         var result = service.createProcedure(
-                STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, named(MEMBER_ID), null, null);
+                STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, named(MEMBER_ID), null, null, null);
 
         assertEquals(proc, result);
         verify(repository).snapshotTemplateItem(PROCEDURE_ID, ti1);
@@ -373,7 +387,8 @@ class ProcedureServiceTest {
     @Test
     void createProcedureSnapshotSkipsUnmappedDependencies() {
         var proc = procedure(PROCEDURE_ID, TEMPLATE_ID);
-        when(repository.createProcedure(STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, null, null))
+        when(repository.createProcedure(
+                        STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, null, null, null))
                 .thenReturn(proc);
 
         var ti1 = new ProcedureTemplateItem(10, TEMPLATE_ID, "S1", "D1", true, true, 1);
@@ -385,7 +400,7 @@ class ProcedureServiceTest {
         var pi1 = procedureItem(501, false);
         when(repository.snapshotTemplateItem(PROCEDURE_ID, ti1)).thenReturn(pi1);
 
-        service.createProcedure(STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, null, null, null);
+        service.createProcedure(STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, null, null, null, null);
 
         verify(repository, never()).addItemDependency(anyInt(), anyInt());
     }
@@ -451,21 +466,22 @@ class ProcedureServiceTest {
     @Test
     void deleteProcedure() {
         when(repository.deleteProcedure(PROCEDURE_ID)).thenReturn(true);
-        assertTrue(service.deleteProcedure(PROCEDURE_ID));
+        assertTrue(service.deleteProcedure(PROCEDURE_ID, MEMBER_ID));
     }
 
     /** A procedure started from a template without a party of its own takes the template's. */
     @Test
     void createProcedureTakesTheTemplatesParty() {
         var proc = procedure(PROCEDURE_ID, TEMPLATE_ID);
-        when(repository.createProcedure(STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, null, null))
+        when(repository.createProcedure(
+                        STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, null, null, null))
                 .thenReturn(proc);
         when(repository.findTemplateItems(TEMPLATE_ID)).thenReturn(List.of());
         when(repository.findTemplateItemDependencies(TEMPLATE_ID)).thenReturn(List.of());
         when(restrictions.audienceOf(RestrictionType.PROCEDURE_TEMPLATE, TEMPLATE_ID))
                 .thenReturn(named(MEMBER_ID_2));
 
-        service.createProcedure(STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, null, null, null);
+        service.createProcedure(STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, null, null, null, null);
 
         verify(restrictions).setAudience(RestrictionType.PROCEDURE, PROCEDURE_ID, named(MEMBER_ID_2));
         verify(eventBus).publish(any(ProcedureAssigned.class));
@@ -535,7 +551,8 @@ class ProcedureServiceTest {
     @Test
     void deleteItem() {
         when(repository.deleteItem(ITEM_ID)).thenReturn(true);
-        assertTrue(service.deleteItem(ITEM_ID));
+        assertTrue(service.deleteItem(procedureItem(ITEM_ID, false), MEMBER_ID));
+        verify(signing, never()).withdraw(anyInt(), anyInt());
     }
 
     @Test
@@ -638,7 +655,7 @@ class ProcedureServiceTest {
                         new ProcedureItem(1, PROCEDURE_ID, "A", null, null, true, true, 0, false, null, null),
                         new ProcedureItem(2, PROCEDURE_ID, "B", null, null, true, true, 1, false, null, null)));
         var deps = List.of(new int[] {2, 1});
-        service.setItemDependencies(PROCEDURE_ID, deps);
+        service.setItemDependencies(PROCEDURE_ID, deps, MEMBER_ID);
         verify(repository).setItemDependencies(PROCEDURE_ID, deps);
     }
 
@@ -662,6 +679,329 @@ class ProcedureServiceTest {
         assertEquals(3, service.countOpenByStation(STATION_ID));
     }
 
+    /** A document step with nothing to wait for is generated about the member, linked and asked for. */
+    @Test
+    void anUnlockedDocumentStepIsAskedFor() {
+        unlockedStep();
+        when(signing.mayAsk(STATION_ID, MEMBER_ID_2)).thenReturn(true);
+        when(signing.generate(STATION_ID, SUITABLE_DOCUMENT, ABOUT_ID, MEMBER_ID_2))
+                .thenReturn(GENERATION_ID);
+        when(repository.linkGeneration(ITEM_ID, GENERATION_ID)).thenReturn(true);
+
+        service.askUnlocked(PROCEDURE_ID, MEMBER_ID_2);
+
+        verify(repository).linkGeneration(ITEM_ID, GENERATION_ID);
+        verify(signing).request(GENERATION_ID, MEMBER_ID_2);
+    }
+
+    /**
+     * Whoever changed the procedure asks where they generate documents, else whoever set it up where they
+     * still do, else nobody and nothing is generated.
+     */
+    @Test
+    void onlySomebodyWhoGeneratesDocumentsAsks() {
+        unlockedStep();
+        when(signing.mayAsk(STATION_ID, MEMBER_ID)).thenReturn(true);
+        when(signing.generate(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(GENERATION_ID);
+        when(repository.linkGeneration(ITEM_ID, GENERATION_ID)).thenReturn(true);
+
+        service.askUnlocked(PROCEDURE_ID, MEMBER_ID_2);
+        verify(signing).generate(STATION_ID, SUITABLE_DOCUMENT, ABOUT_ID, MEMBER_ID);
+
+        when(signing.mayAsk(STATION_ID, MEMBER_ID)).thenReturn(false);
+        service.askUnlocked(PROCEDURE_ID, MEMBER_ID_2);
+        verify(signing, times(1)).generate(anyInt(), anyInt(), anyInt(), anyInt());
+    }
+
+    /** A step waiting for an unticked one, one already generated and one ticked are left alone. */
+    @Test
+    void onlyUnlockedStepsWithoutADocumentAreAskedFor() {
+        when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(about(ABOUT_ID)));
+        var first = new ProcedureItem(1, PROCEDURE_ID, "Packen", null, null, true, true, 0, false, null, null);
+        when(repository.findItems(PROCEDURE_ID))
+                .thenReturn(List.of(
+                        first,
+                        documentStep(2, SUITABLE_DOCUMENT, null, false),
+                        documentStep(3, SUITABLE_DOCUMENT, 77, false),
+                        documentStep(4, SUITABLE_DOCUMENT, null, true)));
+        when(repository.findItemDependencies(PROCEDURE_ID)).thenReturn(List.<int[]>of(new int[] {2, 1}));
+        when(signing.mayAsk(anyInt(), anyInt())).thenReturn(true);
+
+        service.askUnlocked(PROCEDURE_ID, MEMBER_ID);
+
+        verify(signing, never()).generate(anyInt(), anyInt(), anyInt(), anyInt());
+    }
+
+    /** A procedure about nobody, or one resolved, generates nothing. */
+    @Test
+    void aProcedureAboutNobodyOrResolvedAsksForNothing() {
+        when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(procedure(PROCEDURE_ID, null)));
+        service.askUnlocked(PROCEDURE_ID, MEMBER_ID);
+
+        var resolved = about(ABOUT_ID);
+        when(repository.findProcedureById(PROCEDURE_ID))
+                .thenReturn(Optional.of(new Procedure(
+                        resolved.id(),
+                        resolved.stationId(),
+                        null,
+                        resolved.name(),
+                        null,
+                        true,
+                        ProcedureStatus.RESOLVED,
+                        MEMBER_ID,
+                        null,
+                        Instant.now(),
+                        Instant.now(),
+                        null,
+                        null,
+                        ABOUT_ID)));
+        service.askUnlocked(PROCEDURE_ID, MEMBER_ID);
+
+        verify(repository, never()).findItems(anyInt());
+        verify(signing, never()).generate(anyInt(), anyInt(), anyInt(), anyInt());
+    }
+
+    /** A step that cannot be generated, for whatever reason, stays without a document; nothing fails. */
+    @Test
+    void aDocumentThatCannotBeMadeIsLeftForLater() {
+        unlockedStep();
+        when(signing.mayAsk(anyInt(), anyInt())).thenReturn(true);
+        when(signing.generate(anyInt(), anyInt(), anyInt(), anyInt()))
+                .thenThrow(DocumentRefusal.DOCUMENT_TEMPLATE_ARCHIVED.raise())
+                .thenThrow(new IllegalStateException("storage away"));
+
+        assertDoesNotThrow(() -> service.askUnlocked(PROCEDURE_ID, MEMBER_ID));
+        assertDoesNotThrow(() -> service.askUnlocked(PROCEDURE_ID, MEMBER_ID));
+        verify(repository, never()).linkGeneration(anyInt(), anyInt());
+    }
+
+    /** A document whose signatures cannot be asked for stays linked, so it is not filed again. */
+    @Test
+    void aDocumentNotAskedForStaysWithItsStep() {
+        unlockedStep();
+        when(signing.mayAsk(anyInt(), anyInt())).thenReturn(true);
+        when(signing.generate(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(GENERATION_ID);
+        when(repository.linkGeneration(ITEM_ID, GENERATION_ID)).thenReturn(true);
+        doThrow(DocumentRefusal.SIGNING_MEMBER_GONE.raise()).when(signing).request(GENERATION_ID, MEMBER_ID);
+
+        assertDoesNotThrow(() -> service.askUnlocked(PROCEDURE_ID, MEMBER_ID));
+        verify(repository).linkGeneration(ITEM_ID, GENERATION_ID);
+    }
+
+    /** A step another call linked first keeps its document; the second is not asked for. */
+    @Test
+    void aSecondDocumentForTheSameStepIsNotAskedFor() {
+        unlockedStep();
+        when(signing.mayAsk(anyInt(), anyInt())).thenReturn(true);
+        when(signing.generate(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(GENERATION_ID);
+        when(repository.linkGeneration(ITEM_ID, GENERATION_ID)).thenReturn(false);
+
+        service.askUnlocked(PROCEDURE_ID, MEMBER_ID);
+
+        verify(signing, never()).request(anyInt(), anyInt());
+    }
+
+    /** Ticking the step a document step waits for asks for that document, after the tick is told. */
+    @Test
+    void tickingTheLastDependencyAsksForTheDocument() {
+        var first = new ProcedureItem(1, PROCEDURE_ID, "Packen", null, null, true, true, 0, false, null, null);
+        var ticked =
+                new ProcedureItem(1, PROCEDURE_ID, "Packen", null, null, true, true, 0, true, Instant.now(), MEMBER_ID);
+        when(repository.findItemById(1)).thenReturn(Optional.of(first));
+        when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(about(ABOUT_ID)));
+        when(repository.findItems(PROCEDURE_ID))
+                .thenReturn(List.of(first, documentStep(2, SUITABLE_DOCUMENT, null, false)))
+                .thenReturn(List.of(ticked, documentStep(2, SUITABLE_DOCUMENT, null, false)));
+        when(repository.findItemDependencies(PROCEDURE_ID)).thenReturn(List.<int[]>of(new int[] {2, 1}));
+        when(repository.checkItem(1, MEMBER_ID)).thenReturn(true);
+        when(signing.mayAsk(STATION_ID, MEMBER_ID)).thenReturn(true);
+        when(signing.generate(STATION_ID, SUITABLE_DOCUMENT, ABOUT_ID, MEMBER_ID))
+                .thenReturn(GENERATION_ID);
+        when(repository.linkGeneration(2, GENERATION_ID)).thenReturn(true);
+
+        assertTrue(service.checkItem(1, MEMBER_ID));
+
+        var order = inOrder(eventBus, signing);
+        order.verify(eventBus).publish(any(ProcedureItemChecked.class));
+        order.verify(signing).generate(STATION_ID, SUITABLE_DOCUMENT, ABOUT_ID, MEMBER_ID);
+    }
+
+    /**
+     * Another member withdraws the open document of a step and is asked anew about them; a step whose
+     * document was signed keeps it, and its template is not asked about again.
+     */
+    @Test
+    void anotherMemberGetsTheirOwnDocument() {
+        when(restrictions.currentMemberAt(STATION_ID, OTHER_ABOUT_ID)).thenReturn(true);
+        when(repository.findItems(PROCEDURE_ID))
+                .thenReturn(List.of(documentStep(1, SUITABLE_DOCUMENT, 70, false), documentStep(2, 7, 71, true)));
+        when(repository.setAbout(PROCEDURE_ID, OTHER_ABOUT_ID)).thenReturn(true);
+
+        service.setAbout(about(ABOUT_ID), OTHER_ABOUT_ID, MEMBER_ID_2, true, false);
+
+        verify(signing).withdraw(70, MEMBER_ID_2);
+        verify(repository).unlinkGeneration(1, 70);
+        verify(signing, never()).withdraw(eq(71), anyInt());
+        verify(signing, never()).generate(anyInt(), anyInt(), anyInt(), anyInt());
+    }
+
+    /** A step already signed never asks again, so its template does not hold back another member. */
+    @Test
+    void aSignedStepDoesNotHoldBackAnotherMember() {
+        when(restrictions.currentMemberAt(STATION_ID, OTHER_ABOUT_ID)).thenReturn(true);
+        when(repository.findItems(PROCEDURE_ID)).thenReturn(List.of(documentStep(2, 7, 71, true)));
+        when(repository.setAbout(PROCEDURE_ID, OTHER_ABOUT_ID)).thenReturn(true);
+
+        assertDoesNotThrow(() -> picky().setAbout(about(ABOUT_ID), OTHER_ABOUT_ID, MEMBER_ID, false, false));
+        verify(repository).setAbout(PROCEDURE_ID, OTHER_ABOUT_ID);
+    }
+
+    /** Pointing document steps at another member takes the right to generate documents for members. */
+    @Test
+    void onlySomebodyWhoGeneratesDocumentsRetargetsThem() {
+        when(restrictions.currentMemberAt(STATION_ID, OTHER_ABOUT_ID)).thenReturn(true);
+        when(repository.findItems(PROCEDURE_ID)).thenReturn(List.of(documentStep(1, SUITABLE_DOCUMENT, 70, false)));
+
+        assertEquals(
+                ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NOT_YOURS,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.setAbout(about(ABOUT_ID), OTHER_ABOUT_ID, MEMBER_ID, false, true))
+                        .refusal());
+        verify(repository, never()).setAbout(anyInt(), anyInt());
+    }
+
+    /** A procedure is about a current member of its own station only. */
+    @Test
+    void aProcedureIsAboutACurrentMemberOfItsStation() {
+        when(restrictions.currentMemberAt(STATION_ID, OTHER_ABOUT_ID)).thenReturn(false);
+
+        assertEquals(
+                ProcedureRefusal.PROCEDURE_ABOUT_NOT_OF_STATION,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.setAbout(about(ABOUT_ID), OTHER_ABOUT_ID, MEMBER_ID, true, true))
+                        .refusal());
+        verify(repository, never()).setAbout(anyInt(), anyInt());
+    }
+
+    /** A document step needs somebody to be about, and a template meant for them, named in the refusal. */
+    @Test
+    void aDocumentStepFitsTheMemberItIsAbout() {
+        var kind = StepKindChoice.document(SUITABLE_DOCUMENT);
+        assertEquals(
+                ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NEEDS_ABOUT,
+                assertThrows(RefusalResponse.class, () -> service.requireDocumentFits(STATION_ID, null, "Antrag", kind))
+                        .refusal());
+        assertDoesNotThrow(() -> service.requireDocumentFits(STATION_ID, null, "Packen", StepKindChoice.CHECK));
+
+        var refused = assertThrows(
+                RefusalResponse.class, () -> picky().requireDocumentFits(STATION_ID, ABOUT_ID, "Antrag", kind));
+        assertEquals(DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_MEMBER, refused.refusal());
+        assertEquals(RefusalDetail.text("Antrag: Dokument " + SUITABLE_DOCUMENT), refused.detail());
+    }
+
+    /** A template asking to sign starts no procedure about nobody, and nothing is written. */
+    @Test
+    void aTemplateAskingToSignNeedsSomebodyToBeAbout() {
+        when(repository.findTemplateItems(TEMPLATE_ID))
+                .thenReturn(List.of(new ProcedureTemplateItem(
+                        1, TEMPLATE_ID, "Antrag", null, true, true, 0, ProcedureStepKind.DOCUMENT, SUITABLE_DOCUMENT)));
+
+        assertEquals(
+                ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NEEDS_ABOUT,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.createProcedure(
+                                        STATION_ID,
+                                        TEMPLATE_ID,
+                                        "Aufnahme",
+                                        null,
+                                        true,
+                                        MEMBER_ID,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        null))
+                        .refusal());
+        verify(repository, never())
+                .createProcedure(
+                        anyInt(), any(), anyString(), any(), anyBoolean(), anyInt(), any(), any(), any(), any());
+    }
+
+    /** Deleting a procedure withdraws what its document steps still wait for, and keeps what was signed. */
+    @Test
+    void deletingAProcedureWithdrawsItsOpenDocuments() {
+        when(repository.findItems(PROCEDURE_ID))
+                .thenReturn(List.of(
+                        documentStep(1, SUITABLE_DOCUMENT, 70, false), documentStep(2, SUITABLE_DOCUMENT, 71, true)));
+        when(repository.deleteProcedure(PROCEDURE_ID)).thenReturn(true);
+
+        assertTrue(service.deleteProcedure(PROCEDURE_ID, MEMBER_ID));
+
+        verify(signing).withdraw(70, MEMBER_ID);
+        verify(signing, never()).withdraw(eq(71), anyInt());
+    }
+
+    /** Deleting a document step withdraws what its document still waits for. */
+    @Test
+    void deletingADocumentStepWithdrawsItsOpenDocument() {
+        when(repository.deleteItem(1)).thenReturn(true);
+        assertTrue(service.deleteItem(documentStep(1, SUITABLE_DOCUMENT, 70, false), MEMBER_ID));
+        verify(signing).withdraw(70, MEMBER_ID);
+    }
+
+    /** The service with every template refused for every member, so only a step not asked anew passes. */
+    private ProcedureService picky() {
+        return new ProcedureService(
+                repository, eventBus, restrictions, new SuitableDocuments(template -> true, false), signing);
+    }
+
+    private void unlockedStep() {
+        when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(about(ABOUT_ID)));
+        when(repository.findItems(PROCEDURE_ID))
+                .thenReturn(List.of(documentStep(ITEM_ID, SUITABLE_DOCUMENT, null, false)));
+        when(repository.findItemDependencies(PROCEDURE_ID)).thenReturn(List.of());
+    }
+
+    private Procedure about(int aboutMemberId) {
+        return new Procedure(
+                PROCEDURE_ID,
+                STATION_ID,
+                null,
+                "Aufnahme",
+                null,
+                true,
+                ProcedureStatus.OPEN,
+                MEMBER_ID,
+                null,
+                Instant.now(),
+                null,
+                null,
+                null,
+                aboutMemberId);
+    }
+
+    private static ProcedureItem documentStep(
+            int id, int documentTemplateId, @Nullable Integer generationId, boolean checked) {
+        return new ProcedureItem(
+                id,
+                PROCEDURE_ID,
+                "Antrag",
+                null,
+                null,
+                true,
+                true,
+                0,
+                checked,
+                checked ? Instant.now() : null,
+                checked ? MEMBER_ID : null,
+                ProcedureStepKind.DOCUMENT,
+                documentTemplateId,
+                generationId);
+    }
+
     private Procedure procedure(int id, Integer templateId) {
         return new Procedure(
                 id,
@@ -674,6 +1014,7 @@ class ProcedureServiceTest {
                 MEMBER_ID,
                 null,
                 Instant.now(),
+                null,
                 null,
                 null,
                 null);
