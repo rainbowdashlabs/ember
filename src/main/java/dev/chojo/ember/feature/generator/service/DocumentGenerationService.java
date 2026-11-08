@@ -164,7 +164,7 @@ public class DocumentGenerationService {
     public TemplateQuery.TemplatePage usable(Owner.Station owner, TemplateQuery query, @Nullable Integer memberId) {
         var listed = templates.list(owner, false);
         if (memberId == null) return query.pageOf(listed);
-        var fit = templates.fitAt(owner.stationId());
+        var fit = templates.fitFor(owner.stationId(), memberId);
         return query.pageOf(listed.stream()
                 .filter(template -> fit.meantFor(template.id(), template.ofAssociation(), memberId))
                 .toList());
@@ -350,7 +350,7 @@ public class DocumentGenerationService {
      * @return the templates by name
      */
     public List<DocumentTemplate> askingMemberSignatures(Owner.Station station, int memberId) {
-        var fit = templates.fitAt(station.stationId());
+        var fit = templates.fitFor(station.stationId(), memberId);
         return templates.inUse(station).stream()
                 .filter(template -> fit.meantFor(template, memberId))
                 .filter(template -> generator.sourceOf(template).asksMemberSideToSign(MemberView.EVERYBODY))

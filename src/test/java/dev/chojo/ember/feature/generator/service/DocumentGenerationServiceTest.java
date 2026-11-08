@@ -973,6 +973,29 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         assertTrue(memberDocumentRepo.findById(filed.documentId()).isPresent());
     }
 
+    /**
+     * A member who left still gets the documents of a template meant for everybody, such as a leaving
+     * certificate, and is still refused one the template's audience leaves out.
+     */
+    @Test
+    void aFormerMemberStillGetsWhatTheirTemplateIsMeantFor() {
+        var left = member("gen-left@test.com", "Lia", "Gegangen");
+        stationMemberRepo.setFormer(left.id(), true);
+        int forEverybody = templateOf("Austrittsbescheinigung", row(text("{{member.fullName}}")));
+        var filer = as(manager, StationPermission.DOCUMENT_EDIT_MEMBER);
+
+        var filed = generation.generate(filer, forEverybody, left.id(), null);
+
+        assertTrue(memberDocumentRepo.findById(filed.documentId()).isPresent());
+        assertTrue(templates.fitFor(owner.stationId(), left.id()).meantFor(forEverybody, false, left.id()));
+        var abroad = stationMemberRepo.create(
+                stationRepo.create("Fremde Austritts Wache").id(),
+                accountRepo.create("gen-abroad@test.com", "Ali", "Fremd").id());
+        assertFalse(
+                templates.fitFor(owner.stationId(), abroad.id()).meantFor(forEverybody, false, abroad.id()),
+                "somebody of another station is meant for nothing here");
+    }
+
     private static List<Integer> idsOf(TemplateQuery.TemplatePage page) {
         return page.items().stream()
                 .map(DocumentTemplateService.DocumentTemplateSummary::id)

@@ -242,13 +242,15 @@ public class RestrictionService {
     }
 
     /**
-     * The current members of a station as restrictions see them.
+     * Members of a station as restrictions see them, former ones included: every member, or only those of
+     * the given members who belong to the station.
      *
      * @param stationId the station
-     * @return one per current member
+     * @param memberIds the members asked about, or null for every member of the station
+     * @return one per member of the station found
      */
-    public List<RestrictionMember> stationMembers(int stationId) {
-        return restrictionRepository.findStationMembers(stationId);
+    public List<RestrictionMember> membersAt(int stationId, @Nullable Collection<Integer> memberIds) {
+        return restrictionRepository.findAtStation(stationId, memberIds);
     }
 
     /**

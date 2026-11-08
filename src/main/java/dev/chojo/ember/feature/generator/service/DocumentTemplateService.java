@@ -210,12 +210,31 @@ public class DocumentTemplateService {
      * station, in the audience the station chose for it; a station that chose nothing takes in everybody.
      * An audience naming nobody takes in every member.
      *
+     * <p>Former members count as well: a document such as a leaving certificate is still generated for
+     * somebody who left, by the same audience.
+     *
      * @param stationId the station the documents would be filed at
-     * @return the answer for the station, reading each audience once
+     * @return the answer for every member of the station, reading each audience once
      */
     public TemplateFit fitAt(int stationId) {
+        return fitOf(stationId, null);
+    }
+
+    /**
+     * Which templates are meant for one member of a station, reading only that member, as a single document
+     * or a template picker for one member asks.
+     *
+     * @param stationId the station the documents would be filed at
+     * @param memberId  the member
+     * @return the answer for the member, nothing being meant for somebody not of the station
+     */
+    public TemplateFit fitFor(int stationId, int memberId) {
+        return fitOf(stationId, List.of(memberId));
+    }
+
+    private TemplateFit fitOf(int stationId, @Nullable List<Integer> memberIds) {
         var members = new HashMap<Integer, RestrictionMember>();
-        restrictions.stationMembers(stationId).forEach(member -> members.put(member.memberId(), member));
+        restrictions.membersAt(stationId, memberIds).forEach(member -> members.put(member.memberId(), member));
         return new TemplateFit(
                 members, (templateId, ofAssociation) -> audienceAt(templateId, ofAssociation, stationId));
     }
@@ -228,7 +247,7 @@ public class DocumentTemplateService {
      * @param memberId  the member
      */
     public void requireMeantFor(DocumentTemplate template, int stationId, int memberId) {
-        if (!fitAt(stationId).meantFor(template, memberId)) {
+        if (!fitFor(stationId, memberId).meantFor(template, memberId)) {
             throw DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_MEMBER.raise();
         }
     }

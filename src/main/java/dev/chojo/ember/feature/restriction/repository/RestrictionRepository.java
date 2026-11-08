@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSql;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.sql.SQLException;
 import java.util.Collection;
@@ -156,6 +157,42 @@ public class RestrictionRepository {
                 FROM station_member sm
                 WHERE sm.id = ANY(:member_ids);""", OPEN_TAG_IDS)
                 .single(call().bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
+                .map(RestrictionRepository::identityOf)
+                .all();
+    }
+
+    /**
+     * What a restriction can name of members of a station, former ones included, in one read: every member
+     * of the station, or only those of the given members who belong to it.
+     *
+     * @param stationId the station
+     * @param memberIds the members asked about, or null for every member of the station
+     * @return one identity per member of the station found
+     */
+    public List<RestrictionMember> findAtStation(int stationId, @Nullable Collection<Integer> memberIds) {
+        if (memberIds == null) {
+            return query("""
+                    SELECT sm.id,
+                           sm.user_type,
+                           ARRAY(SELECT mge.group_id FROM member_group_entry mge WHERE mge.member_id = sm.id) AS group_ids,
+                           %s AS tag_ids
+                    FROM station_member sm
+                    WHERE sm.station_id = :station_id;""", OPEN_TAG_IDS)
+                    .single(call().bind("station_id", stationId))
+                    .map(RestrictionRepository::identityOf)
+                    .all();
+        }
+        if (memberIds.isEmpty()) return List.of();
+        return query("""
+                SELECT sm.id,
+                       sm.user_type,
+                       ARRAY(SELECT mge.group_id FROM member_group_entry mge WHERE mge.member_id = sm.id) AS group_ids,
+                       %s AS tag_ids
+                FROM station_member sm
+                WHERE sm.station_id = :station_id
+                  AND sm.id = ANY(:member_ids);""", OPEN_TAG_IDS)
+                .single(call().bind("station_id", stationId)
+                        .bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
                 .map(RestrictionRepository::identityOf)
                 .all();
     }

@@ -408,7 +408,7 @@ public class AppointmentDocumentService {
      * @return the templates, none where the appointment asks for nothing to sign
      */
     public List<DocumentTemplate> signableFor(StationEvent event, int memberId) {
-        var fit = templates.fitAt(event.stationId());
+        var fit = templates.fitFor(event.stationId(), memberId);
         return inUse(event.id()).stream()
                 .flatMap(required -> templates.find(required.templateId()).stream())
                 .filter(template -> fit.meantFor(template, memberId))

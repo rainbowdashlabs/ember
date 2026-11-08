@@ -13,11 +13,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Which templates are meant for which current members of one station, as their audiences say.
+ * Which templates are meant for which members of one station, as their audiences say.
  *
- * <p>The station's members are read once, and each template's audience the first time it is asked about,
- * so a list of templates or of participants asks the database a fixed number of times rather than once per
- * template and member. A member who is not a current member of the station is meant for nothing.
+ * <p>The station's members, or the one member asked about, are read once, and each template's audience the
+ * first time it is asked about, so a list of templates or of participants asks the database a fixed number
+ * of times rather than once per template and member. Former members of the station count; somebody not of
+ * the station is meant for nothing.
  */
 public final class TemplateFit {
     /** Reads the audience of a template at the station. */
@@ -41,7 +42,7 @@ public final class TemplateFit {
      * @param templateId    the template
      * @param ofAssociation whether the template is the association's rather than the station's own
      * @param memberId      the member
-     * @return whether the member is a current member of the station the template's audience takes in
+     * @return whether the member is of the station and the template's audience takes them in
      */
     public boolean meantFor(int templateId, boolean ofAssociation, int memberId) {
         var member = members.get(memberId);
@@ -56,7 +57,7 @@ public final class TemplateFit {
      *
      * @param template the template
      * @param memberId the member
-     * @return whether the member is a current member of the station the template's audience takes in
+     * @return whether the member is of the station and the template's audience takes them in
      */
     public boolean meantFor(DocumentTemplate template, int memberId) {
         return meantFor(template.id(), template.ofAssociation(), memberId);
