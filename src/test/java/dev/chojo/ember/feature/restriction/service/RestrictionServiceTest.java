@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionType;
@@ -511,5 +512,32 @@ class RestrictionServiceTest extends RepositoryTestBase {
         Query.query("UPDATE news SET restriction_mode = :mode WHERE id = :id;")
                 .single(Call.call().bind("mode", mode.name()).bind("id", newsId))
                 .update();
+    }
+
+    /**
+     * An audience is of the station only where every group, tag and member it names is, counted once
+     * however often it is named; a member of another station, or an id that names nothing, makes it not.
+     */
+    @Test
+    void anAudienceIsOfTheStationOnlyWhereEverythingItNamesIs() {
+        var own = new RestrictionAudience(
+                List.of(),
+                List.of(group.id(), group.id()),
+                List.of(tag.id()),
+                List.of(groupMember.id(), groupMember.id()),
+                RestrictionMode.AND);
+        assertTrue(restrictionService.ofStation(station.id(), own));
+
+        var elsewhere = stationRepo.create("RestrictionServiceElsewhere");
+        var stranger = stationMemberRepo.create(
+                elsewhere.id(),
+                accountRepo.create("restriction-elsewhere@test.com", "E", "W").id());
+        var foreignMember =
+                new RestrictionAudience(List.of(), List.of(), List.of(), List.of(stranger.id()), RestrictionMode.AND);
+        assertFalse(restrictionService.ofStation(station.id(), foreignMember));
+        assertFalse(restrictionService.ofStation(
+                station.id(),
+                new RestrictionAudience(List.of(), List.of(999_999), List.of(), List.of(), RestrictionMode.AND)));
+        stationRepo.delete(elsewhere.id());
     }
 }

@@ -28,6 +28,11 @@ export interface EditableItem {
     dependsOn: number[]
 }
 
+/** Whether a party names anybody: a template with an empty one leaves the party picked so far alone. */
+function namesSomebody(party: RestrictionSelection): boolean {
+  return party.userTypes.length + party.groupIds.length + party.tagIds.length + party.memberIds.length > 0
+}
+
 /**
  * The editable form behind creating and editing a procedure, including its checklist items and
  * the dependencies between them.
@@ -40,11 +45,6 @@ export interface EditableItem {
  * @param editId           the procedure being edited, or {@code null} when creating a new one
  * @param presetTemplateId a template to start a new procedure from, or {@code null} for a blank one
  */
-/** Whether a party names anybody: a template with an empty one leaves the party picked so far alone. */
-function namesSomebody(party: RestrictionSelection): boolean {
-  return party.userTypes.length + party.groupIds.length + party.tagIds.length + party.memberIds.length > 0
-}
-
 export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: Ref<number | null>) {
   const { t } = useI18n()
 

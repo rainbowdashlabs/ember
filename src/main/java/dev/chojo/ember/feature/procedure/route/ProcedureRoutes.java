@@ -131,6 +131,7 @@ public class ProcedureRoutes implements Routes {
         var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(ProcedureTemplateRequest.class);
         if (req.name() == null || req.name().isBlank()) throw ProcedureRefusal.PROCEDURE_TEMPLATE_NEEDS_A_NAME.raise();
+        if (req.party() != null) procedureService.requirePartyOf(session.stationId(), req.party());
         var template = procedureService.createTemplate(
                 session.stationId(),
                 req.name(),

@@ -210,7 +210,9 @@ public class ProcedureService {
             @Nullable RestrictionAudience party,
             @Nullable Integer eventId,
             @Nullable LocalDate eventDate) {
-        if (party != null) ofStation(stationId, party);
+        var given = ofStation(
+                stationId,
+                party != null ? party : templateId != null ? templatePartyOf(templateId) : RestrictionAudience.empty());
         var procedure = repository.createProcedure(
                 stationId, templateId, name, description, isPublic, assignedBy, dueAt, eventId, eventDate);
 
@@ -218,9 +220,6 @@ public class ProcedureService {
             snapshotTemplate(procedure.id(), templateId);
         }
 
-        var given = ofStation(
-                stationId,
-                party != null ? party : templateId != null ? templatePartyOf(templateId) : RestrictionAudience.empty());
         restrictions.setAudience(RestrictionType.PROCEDURE, procedure.id(), given);
         var named = given.toSelection().memberIds();
         if (!named.isEmpty()) {
@@ -380,6 +379,16 @@ public class ProcedureService {
                 party.mode());
         if (!restrictions.ofStation(stationId, distinct)) throw ProcedureRefusal.PROCEDURE_PARTY_NOT_OF_STATION.raise();
         return distinct;
+    }
+
+    /**
+     * Refuses a party naming a group, tag or member that is not of the station, before anything is written.
+     *
+     * @param stationId the station
+     * @param party     the party
+     */
+    public void requirePartyOf(int stationId, RestrictionAudience party) {
+        ofStation(stationId, party);
     }
 
     /**
