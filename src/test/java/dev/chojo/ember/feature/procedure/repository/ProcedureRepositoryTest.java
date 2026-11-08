@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.procedure.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.service.GeneratorTestBase;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
@@ -33,6 +34,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.letter;
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.row;
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.signature;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -540,11 +543,56 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
         procedureRepo.deleteItem(step.id());
     }
 
+    /**
+     * A document step is found by the document it made, ticked by its signatures but only once, and moved
+     * on to a corrected document.
+     */
+    @Test
+    @Order(73)
+    void aDocumentStepFollowsItsDocument() {
+        var wiring = GeneratorTestBase.wire(station);
+        int document = wiring.templates()
+                .create(
+                        wiring.owner(),
+                        letter("Einverständnis")
+                                .body(List.of(row(signature(SignatureRole.PARTICIPANT, "Unterschrift"))))
+                                .build(),
+                        member.id())
+                .id();
+        int first = wiring.generation()
+                .generateForProcedure(station.id(), document, member2.id(), member.id())
+                .generationId();
+        int corrected = wiring.generation()
+                .generateForProcedure(station.id(), document, member2.id(), member.id())
+                .generationId();
+        var step = procedureRepo.createItem(
+                adHocProcedureId, "Einverständnis", null, true, true, 9, StepKindChoice.document(document));
+        assertTrue(procedureRepo.linkGeneration(step.id(), first));
+        assertFalse(procedureRepo.linkGeneration(step.id(), corrected), "a step makes one document");
+
+        assertEquals(
+                step.id(),
+                procedureRepo.findItemByGeneration(first).orElseThrow().id());
+        assertTrue(procedureRepo.checkBySignatures(step.id(), member2.id()));
+        assertFalse(procedureRepo.checkBySignatures(step.id(), member2.id()), "ticked once");
+        assertEquals(
+                member2.id(),
+                procedureRepo.findItemById(step.id()).orElseThrow().checkedBy());
+
+        assertTrue(procedureRepo.relinkGeneration(first, corrected));
+        assertTrue(procedureRepo.findItemByGeneration(first).isEmpty());
+        assertEquals(
+                step.id(),
+                procedureRepo.findItemByGeneration(corrected).orElseThrow().id());
+        procedureRepo.deleteItem(step.id());
+    }
+
     @Test
     @Order(80)
     void resolveProcedure() {
-        assertTrue(procedureRepo.resolveProcedure(procedureId));
+        assertTrue(procedureRepo.resolveProcedure(procedureId, member.id()));
         var p = procedureRepo.findProcedureById(procedureId).orElseThrow();
+        assertEquals(member.id(), p.resolvedBy());
         assertEquals(ProcedureStatus.RESOLVED, p.status());
         assertNotNull(p.resolvedAt());
     }
@@ -552,7 +600,7 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(81)
     void resolveAlreadyResolved() {
-        assertFalse(procedureRepo.resolveProcedure(procedureId));
+        assertFalse(procedureRepo.resolveProcedure(procedureId, member.id()));
     }
 
     @Test
@@ -560,6 +608,7 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     void reopenProcedure() {
         assertTrue(procedureRepo.reopenProcedure(procedureId));
         var p = procedureRepo.findProcedureById(procedureId).orElseThrow();
+        assertNull(p.resolvedBy());
         assertEquals(ProcedureStatus.OPEN, p.status());
         assertNull(p.resolvedAt());
     }

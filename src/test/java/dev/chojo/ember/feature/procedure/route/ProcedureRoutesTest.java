@@ -365,6 +365,28 @@ class ProcedureRoutesTest {
                 .createItem(anyInt(), anyString(), any(), anyBoolean(), anyBoolean(), anyInt(), any());
     }
 
+    /** A document step is settled by its signatures, never ticked or unticked by hand, even by an editor. */
+    @Test
+    void aDocumentStepIsNotTickedByHand() {
+        when(repository.findItemById(OWN_STEP)).thenReturn(Optional.of(documentStep(OWN_STEP, 7, 900)));
+
+        harness.run((server, client) -> {
+            var editor =
+                    harness.as(TestSessions.member(STATION, StationPermission.USER, StationPermission.PROCEDURE_EDIT));
+            String step = PREFIX + "/procedures/" + PROCEDURE + "/items/" + OWN_STEP;
+
+            assertEquals(
+                    ProcedureRefusal.PROCEDURE_STEP_SETTLED_BY_SIGNATURES,
+                    refusalOf(client.patch(step, body("{\"checked\": true}"), editor)));
+            assertEquals(
+                    ProcedureRefusal.PROCEDURE_STEP_SETTLED_BY_SIGNATURES,
+                    refusalOf(client.patch(step, body("{\"checked\": false}"), editor)));
+        });
+
+        verify(repository, never()).checkItem(anyInt(), anyInt());
+        verify(repository, never()).uncheckItem(anyInt());
+    }
+
     /** The party of the station's own procedure is set; another station's procedure is not found. */
     @Test
     void aPartyIsSetOnlyOnTheStationsOwnProcedure() {
@@ -456,6 +478,7 @@ class ProcedureRoutesTest {
                 null,
                 null,
                 null,
+                null,
                 null);
     }
 
@@ -471,6 +494,7 @@ class ProcedureRoutesTest {
                 TestSessions.MEMBER_ID,
                 null,
                 Instant.EPOCH,
+                null,
                 null,
                 null,
                 null,

@@ -195,6 +195,7 @@ public class SignatureRequestService {
         });
         log.info("Signing request {} superseded by {} at station {}", old.uid(), created.uid(), session.stationId());
         notices.settled(withdrawnFieldsOf(old.id()));
+        notices.replaced(old, created);
         notices.asked(created, requests.fieldsOf(created.id()));
         return created;
     }
@@ -219,7 +220,13 @@ public class SignatureRequestService {
             requests.closeIfSettled(request.id());
         });
         notices.settled(withdrawnFieldsOf(request.id()));
-        return requests.findById(request.id()).orElse(request);
+        var now = requests.findById(request.id()).orElse(request);
+        try {
+            notices.closed(now, requests.fieldsOf(request.id()), by);
+        } catch (RuntimeException e) {
+            log.warn("Could not carry the closing of signing request {} over", now.uid(), e);
+        }
+        return now;
     }
 
     /**

@@ -219,6 +219,12 @@ COMMENT ON COLUMN ember_schema.procedure.about_member_id IS
 COMMENT ON COLUMN ember_schema.procedure.restriction_mode IS
     'AND or OR, how the parts of procedure_restriction combine.';
 
+ALTER TABLE ember_schema.procedure
+    ADD COLUMN IF NOT EXISTS resolved_by INT NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL;
+
+COMMENT ON COLUMN ember_schema.procedure.resolved_by IS
+    'The member who resolved the procedure, told when a signature one of its document steps rests on is withdrawn afterwards. NULL while it is open, for procedures resolved before it was recorded, and once that member was deleted.';
+
 CREATE TABLE IF NOT EXISTS ember_schema.procedure_restriction
 (
     id           SERIAL PRIMARY KEY,

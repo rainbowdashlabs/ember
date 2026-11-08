@@ -546,6 +546,9 @@ public class ProcedureRoutes implements Routes {
         if (note != null && !hasEdit) throw ProcedureRefusal.PROCEDURE_STEP_NOTE_NOT_YOURS.raise();
 
         if (req.checked() != null) {
+            if (item.kind() == ProcedureStepKind.DOCUMENT) {
+                throw ProcedureRefusal.PROCEDURE_STEP_SETTLED_BY_SIGNATURES.raise();
+            }
             if (req.checked()) {
                 if (!hasEdit) {
                     var procedure = procedureService

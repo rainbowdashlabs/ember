@@ -149,7 +149,9 @@ async function refreshSilently() {
   }
 }
 
+/** Whether the reader ticks or unticks a step by hand; a document step is settled by its signatures. */
 function canCheckItem(item: ProcedureItem): boolean {
+  if (item.kind === 'DOCUMENT') return false
   if (item.checked) return canEdit.value
   if (!isDependencyMet(item)) return false
   if (!item.userAssigned && !canEdit.value) return false

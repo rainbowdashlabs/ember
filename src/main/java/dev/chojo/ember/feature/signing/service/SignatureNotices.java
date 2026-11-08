@@ -6,6 +6,10 @@
 package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.SigningAgreementWithdrawn;
+import dev.chojo.ember.event.events.SigningRequestClosed;
+import dev.chojo.ember.event.events.SigningRequestReplaced;
 import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.mail.entity.SignatureInvitation;
@@ -24,6 +28,8 @@ import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.signing.entity.FieldRole;
+import dev.chojo.ember.feature.signing.entity.FieldState;
+import dev.chojo.ember.feature.signing.entity.RequestState;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.entity.SignatureWithdrawal;
@@ -38,11 +44,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Tells people about signatures: that a document waits for theirs, that it still does, and that it was given.
@@ -86,6 +94,10 @@ public class SignatureNotices {
     private final StationRepository stations;
     private final StationMemberRepository members;
     private final DocumentRepository documents;
+    private final DomainEventBus eventBus;
+    /** The states of a field that let the request stand as agreed. */
+    private static final Set<FieldState> AGREED =
+            EnumSet.of(FieldState.SIGNED, FieldState.PAPER_CONFIRMED, FieldState.WAIVED);
 
     @Inject
     public SignatureNotices(
@@ -95,7 +107,8 @@ public class SignatureNotices {
             MailRecipientService mailRecipients,
             StationRepository stations,
             StationMemberRepository members,
-            DocumentRepository documents) {
+            DocumentRepository documents,
+            DomainEventBus eventBus) {
         this.notifier = notifier;
         this.text = text;
         this.email = email;
@@ -103,6 +116,7 @@ public class SignatureNotices {
         this.stations = stations;
         this.members = members;
         this.documents = documents;
+        this.eventBus = eventBus;
     }
 
     /**
@@ -165,6 +179,8 @@ public class SignatureNotices {
      * @param eventId    the appointment that asked for the document, or null where none did
      */
     public void withdrawn(SignatureRequest request, SignatureWithdrawal withdrawal, @Nullable Integer eventId) {
+        eventBus.publish(new SigningAgreementWithdrawn(
+                request.stationId(), request.id(), request.generationId(), withdrawal.withdrawnBy()));
         try {
             var params = new NotificationParams.SignatureWithdrawn(
                     titleOf(request), withdrawal.withdrawnByName(), request.memberName());
@@ -188,6 +204,35 @@ public class SignatureNotices {
         } catch (RuntimeException e) {
             log.warn("Could not tell that the agreement of signing request {} was withdrawn", request.uid(), e);
         }
+    }
+
+    /**
+     * Tells whatever rests on a request that it no longer waits for anybody. It stands as agreed where
+     * at least one field was signed, confirmed on paper or waived; fields withdrawn beside them do not
+     * change that, the same way a request counts as complete where anything was signed. One whose every
+     * field was withdrawn does not stand as agreed.
+     *
+     * @param request   the request, as it stands now that it closed
+     * @param fields    its fields, as they stand
+     * @param settledBy the member who settled the last field or withdrew the rest
+     */
+    public void closed(SignatureRequest request, List<RequestedSignature> fields, int settledBy) {
+        if (request.open() || request.state() == RequestState.SUPERSEDED) return;
+        boolean agreed = fields.stream().noneMatch(field -> field.state() == FieldState.OPEN)
+                && fields.stream().anyMatch(field -> AGREED.contains(field.state()));
+        eventBus.publish(
+                new SigningRequestClosed(request.stationId(), request.id(), request.generationId(), agreed, settledBy));
+    }
+
+    /**
+     * Tells whatever rests on a request that it was replaced by one for a corrected document.
+     *
+     * @param replaced the request replaced
+     * @param created  the request for the corrected document
+     */
+    public void replaced(SignatureRequest replaced, SignatureRequest created) {
+        eventBus.publish(
+                new SigningRequestReplaced(replaced.stationId(), replaced.generationId(), created.generationId()));
     }
 
     /**

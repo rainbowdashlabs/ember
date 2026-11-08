@@ -11,6 +11,7 @@ import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ProcedureAssigned;
+import dev.chojo.ember.event.events.ProcedureDocumentWithdrawn;
 import dev.chojo.ember.event.events.ProcedureItemChecked;
 import dev.chojo.ember.event.events.ProcedureReopened;
 import dev.chojo.ember.event.events.ProcedureResolved;
@@ -415,7 +416,7 @@ class ProcedureServiceTest {
     void resolveProcedureSuccess() {
         var proc = procedure(PROCEDURE_ID, null);
         when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(proc));
-        when(repository.resolveProcedure(PROCEDURE_ID)).thenReturn(true);
+        when(repository.resolveProcedure(PROCEDURE_ID, MEMBER_ID)).thenReturn(true);
 
         assertTrue(service.resolveProcedure(PROCEDURE_ID, MEMBER_ID));
         verify(eventBus).publish(any(ProcedureResolved.class));
@@ -432,7 +433,7 @@ class ProcedureServiceTest {
     void resolveProcedureAlreadyResolved() {
         var proc = procedure(PROCEDURE_ID, null);
         when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(proc));
-        when(repository.resolveProcedure(PROCEDURE_ID)).thenReturn(false);
+        when(repository.resolveProcedure(PROCEDURE_ID, MEMBER_ID)).thenReturn(false);
         assertFalse(service.resolveProcedure(PROCEDURE_ID, MEMBER_ID));
         verify(eventBus, never()).publish(any());
     }
@@ -754,7 +755,8 @@ class ProcedureServiceTest {
                         Instant.now(),
                         null,
                         null,
-                        ABOUT_ID)));
+                        ABOUT_ID,
+                        null)));
         service.askUnlocked(PROCEDURE_ID, MEMBER_ID);
 
         verify(repository, never()).findItems(anyInt());
@@ -952,6 +954,90 @@ class ProcedureServiceTest {
         verify(signing).withdraw(70, MEMBER_ID);
     }
 
+    /** A document that stands as agreed ticks its step, tells the party and asks for what that unlocks. */
+    @Test
+    void anAgreedDocumentTicksItsStep() {
+        var step = documentStep(ITEM_ID, SUITABLE_DOCUMENT, GENERATION_ID, false);
+        when(repository.findItemByGeneration(GENERATION_ID)).thenReturn(Optional.of(step));
+        when(repository.checkBySignatures(ITEM_ID, MEMBER_ID_2)).thenReturn(true);
+        when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(about(ABOUT_ID)));
+        when(repository.findItems(PROCEDURE_ID)).thenReturn(List.of());
+        when(repository.findItemDependencies(PROCEDURE_ID)).thenReturn(List.of());
+
+        service.documentClosed(GENERATION_ID, true, MEMBER_ID_2);
+
+        var checked = ArgumentCaptor.forClass(ProcedureItemChecked.class);
+        verify(eventBus).publish(checked.capture());
+        assertEquals(ITEM_ID, checked.getValue().itemId());
+        assertEquals(MEMBER_ID_2, checked.getValue().checkedByMemberId());
+        verify(repository).findItemDependencies(PROCEDURE_ID);
+    }
+
+    /** A document withdrawn without agreement, or one no step made, ticks nothing. */
+    @Test
+    void aDocumentNotAgreedTicksNothing() {
+        service.documentClosed(GENERATION_ID, false, MEMBER_ID);
+        when(repository.findItemByGeneration(GENERATION_ID)).thenReturn(Optional.empty());
+        service.documentClosed(GENERATION_ID, true, MEMBER_ID);
+
+        verify(repository, never()).checkBySignatures(anyInt(), anyInt());
+        verify(eventBus, never()).publish(any());
+    }
+
+    /** A withdrawn agreement opens its step again and tells whoever resolved the procedure. */
+    @Test
+    void aWithdrawnAgreementOpensTheStepAndTellsWhoResolved() {
+        var step = documentStep(ITEM_ID, SUITABLE_DOCUMENT, GENERATION_ID, true);
+        when(repository.findItemByGeneration(GENERATION_ID)).thenReturn(Optional.of(step));
+        when(repository.uncheckItem(ITEM_ID)).thenReturn(true);
+        var resolved = new Procedure(
+                PROCEDURE_ID,
+                STATION_ID,
+                null,
+                "Aufnahme",
+                null,
+                true,
+                ProcedureStatus.RESOLVED,
+                MEMBER_ID,
+                null,
+                Instant.now(),
+                Instant.now(),
+                null,
+                null,
+                ABOUT_ID,
+                MEMBER_ID_2);
+        when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(resolved));
+
+        service.agreementWithdrawn(GENERATION_ID, ABOUT_ID);
+
+        var told = ArgumentCaptor.forClass(ProcedureDocumentWithdrawn.class);
+        verify(eventBus).publish(told.capture());
+        assertEquals(List.of(MEMBER_ID_2), told.getValue().toldMemberIds());
+        assertEquals(ABOUT_ID, told.getValue().withdrawnBy());
+        verify(repository, never()).reopenProcedure(anyInt());
+    }
+
+    /** On an open procedure the step opens again and nobody extra is told. */
+    @Test
+    void aWithdrawnAgreementOnAnOpenProcedureTellsNobodyExtra() {
+        var step = documentStep(ITEM_ID, SUITABLE_DOCUMENT, GENERATION_ID, true);
+        when(repository.findItemByGeneration(GENERATION_ID)).thenReturn(Optional.of(step));
+        when(repository.uncheckItem(ITEM_ID)).thenReturn(true);
+        when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(about(ABOUT_ID)));
+
+        service.agreementWithdrawn(GENERATION_ID, ABOUT_ID);
+
+        verify(repository).uncheckItem(ITEM_ID);
+        verify(eventBus, never()).publish(any());
+    }
+
+    /** A corrected document takes the place of the one its step held. */
+    @Test
+    void aCorrectedDocumentTakesThePlaceOfTheOld() {
+        service.documentReplaced(GENERATION_ID, GENERATION_ID + 1);
+        verify(repository).relinkGeneration(GENERATION_ID, GENERATION_ID + 1);
+    }
+
     /** The service with every template refused for every member, so only a step not asked anew passes. */
     private ProcedureService picky() {
         return new ProcedureService(
@@ -980,7 +1066,8 @@ class ProcedureServiceTest {
                 null,
                 null,
                 null,
-                aboutMemberId);
+                aboutMemberId,
+                null);
     }
 
     private static ProcedureItem documentStep(
@@ -1014,6 +1101,7 @@ class ProcedureServiceTest {
                 MEMBER_ID,
                 null,
                 Instant.now(),
+                null,
                 null,
                 null,
                 null,

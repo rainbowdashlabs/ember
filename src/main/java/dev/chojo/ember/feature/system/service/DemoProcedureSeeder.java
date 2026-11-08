@@ -165,7 +165,7 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
                             ? anfaenger.getFirst().id()
                             : betreuer.getFirst().id());
         }
-        repo.resolveProcedure(completedProc.id());
+        repo.resolveProcedure(completedProc.id(), betreuer.getFirst().id());
 
         var inProgressProc = createFromTemplate(
                 stationId,

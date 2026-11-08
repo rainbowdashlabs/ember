@@ -22,6 +22,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  *                      appointment is
  * @param aboutMemberId the member the procedure is about, whose documents its steps ask to sign;
  *                      {@code null} for a procedure about nobody in particular
+ * @param resolvedBy    the member who resolved it, or {@code null} while it is open or where that is
+ *                      not known
  */
 public record Procedure(
         int id,
@@ -37,7 +39,8 @@ public record Procedure(
         @Nullable Instant resolvedAt,
         @Nullable Integer eventId,
         @Nullable LocalDate eventDate,
-        @Nullable Integer aboutMemberId) {
+        @Nullable Integer aboutMemberId,
+        @Nullable Integer resolvedBy) {
 
     @MappingProvider("")
     public static RowMapping<Procedure> map() {
@@ -55,6 +58,7 @@ public record Procedure(
                 row.get("resolved_at", INSTANT_TIMESTAMP),
                 row.getObject("event_id", Integer.class),
                 row.getObject("event_date", LocalDate.class),
-                row.getObject("about_member_id", Integer.class));
+                row.getObject("about_member_id", Integer.class),
+                row.getObject("resolved_by", Integer.class));
     }
 }

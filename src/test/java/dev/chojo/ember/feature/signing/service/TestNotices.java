@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.signing.service;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
@@ -24,6 +25,8 @@ import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
+
+import java.util.Set;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -79,6 +82,29 @@ public final class TestNotices {
             StationMemberRepository members,
             AccountRepository accounts,
             DocumentRepository documents) {
+        return notices(notifier, queue, stations, members, accounts, documents, new DomainEventBus(Set.of()));
+    }
+
+    /**
+     * The notices of signing, writing real notifications and queueing real mail, telling the given bus.
+     *
+     * @param notifier the notifier to write with
+     * @param queue    the email queue
+     * @param stations the stations
+     * @param members  the members
+     * @param accounts the accounts
+     * @param documents the member documents
+     * @param eventBus  where what rests on a request learns of it
+     * @return the notices
+     */
+    public static SignatureNotices notices(
+            Notifier notifier,
+            EmailQueueRepository queue,
+            StationRepository stations,
+            StationMemberRepository members,
+            AccountRepository accounts,
+            DocumentRepository documents,
+            DomainEventBus eventBus) {
         return new SignatureNotices(
                 notifier,
                 new NotificationText(),
@@ -86,7 +112,8 @@ public final class TestNotices {
                 new MailRecipientService(accounts, members),
                 stations,
                 members,
-                documents);
+                documents,
+                eventBus);
     }
 
     /**

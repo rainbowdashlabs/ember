@@ -51,7 +51,7 @@ function detail(items: ProcedureItem[]): ProcedureDetail {
         procedure: {
             id: 3, stationId: '00000000-0000-4000-a000-000000000001', templateId: null, name: 'Aufnahme',
             description: null, isPublic: true, status: 'OPEN', dueAt: null, assignedBy: 1,
-            createdAt: '2026-11-01T10:00:00Z', resolvedAt: null, eventId: null, eventDate: null, aboutMemberId: 5,
+            createdAt: '2026-11-01T10:00:00Z', resolvedAt: null, eventId: null, eventDate: null, aboutMemberId: 5, resolvedBy: null,
         },
         items,
         dependencies: [],

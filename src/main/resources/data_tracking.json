@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:770c7e3804fa6a5df231a2d29f04bad708c5add9c6fc03655cd640f104292c5d",
-  "generatedAt": "2026-11-08T20:15:44Z",
+  "schemaHash": "sha256:e3e67d1804de0a4703f960c1a721a6190dd7a1e3edcb383eea82b511f3c1d789",
+  "generatedAt": "2026-11-08T22:31:45Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -22568,7 +22568,7 @@
     "procedure": {
       "feature": "procedure",
       "scope": "STATION",
-      "tableHash": "sha256:b2195fcc696bcb74e50334cf8efbd9e1892bcba5553883694fee2b959e9aef0d",
+      "tableHash": "sha256:5a5ae57cd836ebbf1ec9e5b36627acc65e74094b962a494aa434a2b0eca31214",
       "columns": [
         {
           "name": "id",
@@ -22663,6 +22663,13 @@
           "nullable": false,
           "verified": true,
           "description": "AND or OR, how the parts of procedure_restriction combine."
+        },
+        {
+          "name": "resolved_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member who resolved the procedure, told when a signature one of its document steps rests on is withdrawn afterwards. NULL while it is open, for procedures resolved before it was recorded, and once that member was deleted."
         }
       ],
       "foreignKeys": [
@@ -22681,6 +22688,12 @@
         {
           "column": "event_id",
           "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "resolved_by",
+          "refTable": "station_member",
           "refColumn": "id",
           "onDelete": "SET NULL"
         },

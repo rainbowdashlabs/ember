@@ -53,6 +53,15 @@ public class ProcedureFeedDetails implements FeedDetailsContributor {
                 details.putIfPresent(details.label("by"), checkedByName);
                 addProgress(details);
             }
+            case NotificationParams.ProcedureDocumentWithdrawnParams(
+                    String procedureName,
+                    String itemTitle,
+                    String withdrawnByName) -> {
+                details.putIfPresent(details.label("procedure", "Procedure"), procedureName);
+                details.putIfPresent(details.label("item"), itemTitle);
+                details.putIfPresent(details.label("by"), withdrawnByName);
+                addProgress(details);
+            }
             default -> {}
         }
     }
@@ -62,6 +71,7 @@ public class ProcedureFeedDetails implements FeedDetailsContributor {
         return switch (params) {
             case NotificationParams.ProcedureAssigned p -> p.assignedByName();
             case NotificationParams.ProcedureItemCheckedParams p -> p.checkedByName();
+            case NotificationParams.ProcedureDocumentWithdrawnParams p -> p.withdrawnByName();
             default -> null;
         };
     }

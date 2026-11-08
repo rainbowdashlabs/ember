@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.procedure.handler;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.event.events.ProcedureAssigned;
+import dev.chojo.ember.event.events.ProcedureDocumentWithdrawn;
 import dev.chojo.ember.event.events.ProcedureItemChecked;
 import dev.chojo.ember.event.events.ProcedureReopened;
 import dev.chojo.ember.event.events.ProcedureResolved;
@@ -14,11 +15,13 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.Optional;
@@ -168,5 +171,28 @@ class ProcedureEventHandlerTest {
                         eq(NotificationType.PROCEDURE_ITEM_CHECKED),
                         any(NotificationData.class),
                         eq(Delivery.ONCE_WHILE_UNREAD));
+    }
+
+    /** Whoever resolved the procedure hears that a signature one of its steps rested on was withdrawn. */
+    @Test
+    void documentWithdrawnHandlerTellsWhoResolved() {
+        var handler = new ProcedureDocumentWithdrawnHandler(notificationService, memberRepository);
+        when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(member(MEMBER_ID)));
+        assertEquals(ProcedureDocumentWithdrawn.class, handler.eventType());
+
+        handler.handle(new ProcedureDocumentWithdrawn(
+                STATION_ID, PROCEDURE_ID, "Aufnahme", 7, "Antrag", List.of(MEMBER_ID_2), MEMBER_ID));
+
+        var data = ArgumentCaptor.forClass(NotificationData.class);
+        verify(notificationService)
+                .notify(
+                        eq(StationAudience.members(List.of(MEMBER_ID_2)).except(MEMBER_ID)),
+                        eq(NotificationType.PROCEDURE_DOCUMENT_WITHDRAWN),
+                        data.capture(),
+                        eq(Delivery.EVERY_TIME));
+        assertEquals(
+                new NotificationParams.ProcedureDocumentWithdrawnParams(
+                        "Aufnahme", "Antrag", member(MEMBER_ID).displayName()),
+                data.getValue().params());
     }
 }

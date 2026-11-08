@@ -48,7 +48,7 @@ public class ProcedureRepository {
             "id, template_id, title, description, public, user_assigned, position, kind, document_template_id";
     private static final String PROCEDURE_COLUMNS = """
             id, station_id, template_id, name, description, public, status, assigned_by, due_at, \
-            created_at, resolved_at, event_id, event_date, about_member_id""";
+            created_at, resolved_at, event_id, event_date, about_member_id, resolved_by""";
     private static final String PROCEDURE_ITEM_COLUMNS =
             "id, procedure_id, title, description, note, public, user_assigned, position, checked, checked_at, checked_by,"
                     + " kind, document_template_id, generation_id";
@@ -364,21 +364,33 @@ public class ProcedureRepository {
                 .changed();
     }
 
-    public boolean resolveProcedure(int id) {
+    /**
+     * Resolves an open procedure, recording who did.
+     *
+     * @param id         the procedure
+     * @param resolvedBy who resolves it
+     * @return whether it was open
+     */
+    public boolean resolveProcedure(int id, int resolvedBy) {
         return query("""
                 UPDATE procedure
                 SET
                     status      = 'RESOLVED',
-                    resolved_at = now()
+                    resolved_at = now(),
+                    resolved_by = :resolved_by
                 WHERE id = :id
-                  AND status = 'OPEN';""").single(call().bind("id", id)).update().changed();
+                  AND status = 'OPEN';""")
+                .single(call().bind("id", id).bind("resolved_by", resolvedBy))
+                .update()
+                .changed();
     }
 
     public boolean reopenProcedure(int id) {
-        return query("UPDATE procedure SET status = 'OPEN', resolved_at = NULL WHERE id = :id AND status = 'RESOLVED';")
-                .single(call().bind("id", id))
-                .update()
-                .changed();
+        return query("""
+                UPDATE procedure
+                SET status = 'OPEN', resolved_at = NULL, resolved_by = NULL
+                WHERE id = :id
+                  AND status = 'RESOLVED';""").single(call().bind("id", id)).update().changed();
     }
 
     public boolean deleteProcedure(int id) {
@@ -551,6 +563,55 @@ public class ProcedureRepository {
                 UPDATE procedure_item SET checked = TRUE, checked_at = now(), checked_by = :checked_by
                 WHERE id = :id AND checked = FALSE;""")
                 .single(call().bind("checked_by", checkedBy).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * The step that generated a document, if a step did.
+     *
+     * @param generationId the generation log entry of the document
+     * @return the step
+     */
+    public Optional<ProcedureItem> findItemByGeneration(int generationId) {
+        return query("SELECT %s FROM procedure_item WHERE generation_id = :generation_id;", PROCEDURE_ITEM_COLUMNS)
+                .single(call().bind("generation_id", generationId))
+                .map(ProcedureItem.map())
+                .first();
+    }
+
+    /**
+     * Ticks a document step because its document stands as agreed, by whoever settled it last.
+     *
+     * @param id        the step
+     * @param settledBy who settled the document
+     * @return whether it was not ticked yet
+     */
+    public boolean checkBySignatures(int id, int settledBy) {
+        return query("""
+                UPDATE procedure_item
+                SET checked = TRUE, checked_at = now(), checked_by = :checked_by
+                WHERE id = :id
+                  AND kind = 'DOCUMENT'
+                  AND checked = FALSE;""")
+                .single(call().bind("id", id).bind("checked_by", settledBy))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Moves a document step from one document to its corrected version.
+     *
+     * @param replacedGenerationId the document it held
+     * @param generationId         the corrected document
+     * @return whether a step held the replaced document
+     */
+    public boolean relinkGeneration(int replacedGenerationId, int generationId) {
+        return query("""
+                UPDATE procedure_item
+                SET generation_id = :generation_id
+                WHERE generation_id = :replaced;""")
+                .single(call().bind("generation_id", generationId).bind("replaced", replacedGenerationId))
                 .update()
                 .changed();
     }

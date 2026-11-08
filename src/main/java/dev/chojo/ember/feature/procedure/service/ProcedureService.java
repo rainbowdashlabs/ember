@@ -11,6 +11,7 @@ import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ProcedureAssigned;
+import dev.chojo.ember.event.events.ProcedureDocumentWithdrawn;
 import dev.chojo.ember.event.events.ProcedureItemChecked;
 import dev.chojo.ember.event.events.ProcedureReopened;
 import dev.chojo.ember.event.events.ProcedureResolved;
@@ -384,7 +385,7 @@ public class ProcedureService {
             log.warn("Resolve for procedure {} skipped: not found", id);
             return false;
         }
-        if (!repository.resolveProcedure(id)) {
+        if (!repository.resolveProcedure(id, resolvedByMemberId)) {
             log.warn("Resolve for procedure {} affected zero rows", id);
             return false;
         }
@@ -602,6 +603,67 @@ public class ProcedureService {
                 generationId,
                 aboutMemberId,
                 asker);
+    }
+
+    /**
+     * Ticks the document step whose document no longer waits for anybody, where it stands as agreed, and
+     * asks for the document steps that unlocks. One closed without agreement, every field withdrawn,
+     * leaves the step open. The signatures settle the step whether or not a step it depends on was
+     * opened again meanwhile.
+     *
+     * @param generationId the generation log entry of the document
+     * @param agreed       whether it stands as agreed
+     * @param settledBy    the member who settled it last
+     */
+    public void documentClosed(int generationId, boolean agreed, int settledBy) {
+        if (!agreed) return;
+        var step = repository.findItemByGeneration(generationId).orElse(null);
+        if (step == null || !repository.checkBySignatures(step.id(), settledBy)) return;
+        var procedure = repository.findProcedureById(step.procedureId()).orElse(null);
+        if (procedure == null) return;
+        log.info("Document step {} of procedure {} settled by its signatures", step.id(), procedure.id());
+        var party = step.isPublic() ? toldOf(procedure) : List.<Integer>of();
+        eventBus.publish(new ProcedureItemChecked(
+                procedure.stationId(), procedure.id(), procedure.name(), step.id(), step.title(), party, settledBy));
+        askUnlocked(procedure.id(), null);
+    }
+
+    /**
+     * Opens the document step again whose agreement was withdrawn. The steps that depend on it lock again
+     * while they are not ticked; a ticked one stays ticked. On a resolved procedure whoever resolved it is
+     * told, and the procedure stays resolved until somebody reopens it.
+     *
+     * @param generationId the generation log entry of the document
+     * @param withdrawnBy  the member who withdrew it
+     */
+    public void agreementWithdrawn(int generationId, int withdrawnBy) {
+        var step = repository.findItemByGeneration(generationId).orElse(null);
+        if (step == null || !repository.uncheckItem(step.id())) return;
+        var procedure = repository.findProcedureById(step.procedureId()).orElse(null);
+        if (procedure == null) return;
+        log.info("Document step {} of procedure {} open again: its agreement was withdrawn", step.id(), procedure.id());
+        var resolvedBy = procedure.resolvedBy();
+        if (procedure.status() != ProcedureStatus.RESOLVED || resolvedBy == null) return;
+        eventBus.publish(new ProcedureDocumentWithdrawn(
+                procedure.stationId(),
+                procedure.id(),
+                procedure.name(),
+                step.id(),
+                step.title(),
+                List.of(resolvedBy),
+                withdrawnBy));
+    }
+
+    /**
+     * Moves the document step that held a document on to its corrected version.
+     *
+     * @param replacedGenerationId the document replaced
+     * @param generationId         the corrected document
+     */
+    public void documentReplaced(int replacedGenerationId, int generationId) {
+        if (repository.relinkGeneration(replacedGenerationId, generationId)) {
+            log.info("Document {} of a procedure step corrected as {}", replacedGenerationId, generationId);
+        }
     }
 
     /**

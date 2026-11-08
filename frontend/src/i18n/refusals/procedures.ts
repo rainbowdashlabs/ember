@@ -54,6 +54,7 @@ export default {
     'R-037': 'Diese Person ist hier kein Mitglied, der Ablauf ist deshalb nicht über sie',
     'R-038': 'Wähle zuerst, um wen es im Ablauf geht, bevor ein Schritt ein Dokument unterschreiben lässt, es wurde nichts gespeichert',
     'R-039': 'Wähle, um wen es im Ablauf geht, es wurde nichts geändert',
+    'R-040': 'Dieser Schritt ist erledigt, sobald sein Dokument unterschrieben, auf Papier bestätigt oder erlassen ist, er wird deshalb nicht von Hand abgehakt',
 
     'R-001': PROCEDURE_NOT_YOURS,
     'R-002': PROCEDURE_NOT_YOURS,

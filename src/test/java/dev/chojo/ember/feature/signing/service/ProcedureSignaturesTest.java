@@ -5,9 +5,16 @@
  */
 package dev.chojo.ember.feature.signing.service;
 
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.event.DomainEvent;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.DomainEventHandler;
+import dev.chojo.ember.event.events.SigningAgreementWithdrawn;
+import dev.chojo.ember.event.events.SigningRequestClosed;
+import dev.chojo.ember.event.events.SigningRequestReplaced;
 import dev.chojo.ember.feature.content.route.BlockRowRequest;
 import dev.chojo.ember.feature.documents.service.DocumentAccessService;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
@@ -15,6 +22,7 @@ import dev.chojo.ember.feature.generator.service.GeneratorTestBase;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.signing.entity.RequestState;
+import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
 import org.junit.jupiter.api.AfterAll;
@@ -22,6 +30,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.letter;
@@ -32,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 /**
  * The documents steps of procedures ask to sign: generated for the member a procedure is about, filed with
@@ -42,7 +54,14 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
     private static final SignatureRequestRepository requestRepo = new SignatureRequestRepository();
 
     private static Wiring wiring;
+    private static final List<DomainEvent> EVENTS = new CopyOnWriteArrayList<>();
+
     private static ProcedureSignatures signatures;
+    private static SignatureFieldService fields;
+    private static SignatureRequestService requests;
+    private static SignatureWithdrawals withdrawals;
+    private static StationMember guardian;
+    private static StationMember child;
     private static StationMember manager;
     private static StationMember member;
     private static int loginPermission;
@@ -62,8 +81,17 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
                 memberDocumentRepo,
                 guardianPolicy);
         var notices = TestNotices.notices(
-                newNotifier(), emailQueueRepo, stationRepo, stationMemberRepo, accountRepo, memberDocumentRepo);
-        var requests = new SignatureRequestService(
+                newNotifier(),
+                emailQueueRepo,
+                stationRepo,
+                stationMemberRepo,
+                accountRepo,
+                memberDocumentRepo,
+                new DomainEventBus(Set.of(
+                        new Recording<>(SigningRequestClosed.class),
+                        new Recording<>(SigningAgreementWithdrawn.class),
+                        new Recording<>(SigningRequestReplaced.class))));
+        requests = new SignatureRequestService(
                 requestRepo,
                 new SigningEvidenceRepository(),
                 wiring.log(),
@@ -76,8 +104,32 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
                 guards,
                 notices,
                 new TemplateDocumentStatements(wiring.generator()));
+        fields = new SignatureFieldService(
+                requestRepo,
+                new SigningEvidenceRepository(),
+                requests,
+                guards,
+                guardianPolicy,
+                memberNameResolver,
+                notices,
+                completed -> {},
+                new WitnessReach(stationMemberRepo, restrictionService));
         signatures =
                 new ProcedureSignatures(wiring.generation(), requests, stationMemberRepo, memberPermissionResolver);
+        withdrawals = new SignatureWithdrawals(
+                requestRepo,
+                requests,
+                new WithdrawalRights(guardianPolicy),
+                memberNameResolver,
+                mock(SigningStateSealer.class),
+                notices,
+                eventRepo,
+                eventRegistrationRepo,
+                mock(AppointmentSignatures.class),
+                mock(PartnerSignatures.class));
+        guardian = member("Gabi", "Gerber");
+        child = member("Kim", "Gerber");
+        stationMemberRepo.addManager(guardian.id(), child.id(), manager.id());
     }
 
     @AfterAll
@@ -113,6 +165,102 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
 
         assertFalse(requestRepo.findById(request.id()).orElseThrow().open(), "nothing is waited for any more");
         signatures.withdraw(generationId, manager.id());
+    }
+
+    /** Waiving every field of a step's document closes it as agreed, which is what ticks the step. */
+    @Test
+    void waivingEveryFieldClosesTheDocumentAsAgreed() {
+        int consent = template("Erlaubnis", row(signature(SignatureRole.PARTICIPANT, "Unterschrift")));
+        int generationId = signatures.generate(wiring.station().id(), consent, member.id(), manager.id());
+        signatures.request(generationId, manager.id());
+        var request = requestRepo.findLiveFor(generationId).orElseThrow();
+        var managing =
+                stationSession(manager, StationPermission.DOCUMENT_EDIT_MEMBER, StationPermission.DOCUMENT_READ_MEMBER);
+
+        for (var field : requestRepo.fieldsOf(request.id())) {
+            fields.waive(managing, request.uid(), field.fieldName());
+        }
+
+        var closed = closedFor(generationId);
+        assertEquals(1, closed.size());
+        assertTrue(closed.getFirst().agreed());
+        assertEquals(manager.id(), closed.getFirst().settledBy());
+    }
+
+    /** A field waived beside one withdrawn still lets the document stand as agreed. */
+    @Test
+    void aWaivedFieldBesideAWithdrawnOneStandsAsAgreed() {
+        int consent = template(
+                "Eltern und Kind",
+                row(signature(SignatureRole.PARTICIPANT, "Kind")),
+                row(signature(SignatureRole.GUARDIAN_1, "Eltern")));
+        int generationId = signatures.generate(wiring.station().id(), consent, child.id(), manager.id());
+        signatures.request(generationId, manager.id());
+        var request = requestRepo.findLiveFor(generationId).orElseThrow();
+        var both = requestRepo.fieldsOf(request.id());
+        assertEquals(2, both.size());
+
+        fields.waive(managing(), request.uid(), both.get(0).fieldName());
+        fields.withdraw(managing(), request.uid(), both.get(1).fieldName());
+
+        var closed = closedFor(generationId);
+        assertEquals(1, closed.size());
+        assertTrue(closed.getFirst().agreed());
+    }
+
+    /** A request a manager withdraws whole, nothing signed on it, closes without agreement, and says so. */
+    @Test
+    void aRequestWithdrawnWholeIsNotAgreed() {
+        int consent = template("Zurückgezogen", row(signature(SignatureRole.PARTICIPANT, "Unterschrift")));
+        int generationId = signatures.generate(wiring.station().id(), consent, member.id(), manager.id());
+        signatures.request(generationId, manager.id());
+        var request = requestRepo.findLiveFor(generationId).orElseThrow();
+
+        requests.withdraw(managing(), request.uid());
+
+        var closed = closedFor(generationId);
+        assertEquals(1, closed.size());
+        assertFalse(closed.getFirst().agreed());
+        assertEquals(manager.id(), closed.getFirst().settledBy());
+    }
+
+    /** An agreement confirmed on paper and withdrawn by the guardian afterwards says which document it was. */
+    @Test
+    void aWithdrawnAgreementNamesItsDocument() {
+        int consent = template("Widerruf", row(signature(SignatureRole.PARTICIPANT, "Unterschrift")));
+        int generationId = signatures.generate(wiring.station().id(), consent, child.id(), manager.id());
+        signatures.request(generationId, manager.id());
+        var request = requestRepo.findLiveFor(generationId).orElseThrow();
+        fields.confirmOnPaper(
+                managing(),
+                request.uid(),
+                requestRepo.fieldsOf(request.id()).getFirst().fieldName());
+
+        withdrawals.requireOwnedThenWithdraw(
+                stationSession(guardian), request.uid(), null, new SigningCircumstances(null, null));
+
+        var withdrawn = EVENTS.stream()
+                .filter(SigningAgreementWithdrawn.class::isInstance)
+                .map(SigningAgreementWithdrawn.class::cast)
+                .filter(event -> Objects.equals(event.generationId(), generationId))
+                .toList();
+        assertEquals(1, withdrawn.size());
+        assertEquals(guardian.id(), withdrawn.getFirst().withdrawnBy());
+    }
+
+    /** A corrected document replaces the one asked for, naming both. */
+    @Test
+    void aCorrectedDocumentNamesTheOneItReplaces() {
+        int consent = template("Korrektur", row(signature(SignatureRole.PARTICIPANT, "Unterschrift")));
+        int first = signatures.generate(wiring.station().id(), consent, member.id(), manager.id());
+        signatures.request(first, manager.id());
+        int corrected = signatures.generate(wiring.station().id(), consent, member.id(), manager.id());
+
+        requests.rectify(
+                managing(), requestRepo.findLiveFor(first).orElseThrow().uid(), corrected);
+
+        assertTrue(EVENTS.contains(new SigningRequestReplaced(wiring.station().id(), first, corrected)));
+        assertTrue(closedFor(first).isEmpty(), "a replaced request does not close as agreed or not");
     }
 
     /** A template nobody of the member's side signs is not a step's document. */
@@ -162,5 +310,34 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
         return wiring.templates()
                 .create(wiring.owner(), letter(name).body(List.of(rows)).build(), manager.id())
                 .id();
+    }
+
+    private static List<SigningRequestClosed> closedFor(int generationId) {
+        return EVENTS.stream()
+                .filter(SigningRequestClosed.class::isInstance)
+                .map(SigningRequestClosed.class::cast)
+                .filter(event -> Objects.equals(event.generationId(), generationId))
+                .toList();
+    }
+
+    private static StationSession managing() {
+        return stationSession(manager, StationPermission.DOCUMENT_EDIT_MEMBER, StationPermission.DOCUMENT_READ_MEMBER);
+    }
+
+    /**
+     * Keeps every event of one type it is told of.
+     *
+     * @param type the type
+     */
+    private record Recording<T extends DomainEvent>(Class<T> type) implements DomainEventHandler<T> {
+        @Override
+        public Class<T> eventType() {
+            return type;
+        }
+
+        @Override
+        public void handle(T event) {
+            EVENTS.add(event);
+        }
     }
 }

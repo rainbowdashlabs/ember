@@ -144,6 +144,12 @@ public enum ProcedureRefusal implements Refusal {
     /** A procedure made about somebody without naming them. */
     PROCEDURE_ABOUT_MISSING(39, HttpStatus.BAD_REQUEST, "Choose whom the procedure is about, so nothing was changed"),
 
+    /** A tick by hand on a step that its document's signatures settle. */
+    PROCEDURE_STEP_SETTLED_BY_SIGNATURES(
+            40,
+            HttpStatus.CONFLICT,
+            "This step is done once its document is signed, confirmed on paper or waived, so it is not ticked by hand"),
+
     /** A note on a step written by somebody who does not run the procedure. */
     PROCEDURE_STEP_NOTE_NOT_YOURS(
             29, HttpStatus.FORBIDDEN, "Only whoever runs the procedure can write a note on a step"),

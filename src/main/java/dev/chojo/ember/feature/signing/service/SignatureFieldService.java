@@ -106,14 +106,18 @@ public class SignatureFieldService {
         return recordAll(session, List.of(new SignedAct(signed, null))).getFirst();
     }
 
-    /** Tells {@link AgreementOutcomes} of a request that completed, logging rather than throwing. */
-    private void tellIfCompleted(int requestId) {
-        var now = requests.findById(requestId).orElse(null);
-        if (now == null || now.state() != RequestState.COMPLETE) return;
+    /**
+     * Tells whatever rests on a request that closed, and {@link AgreementOutcomes} of one that completed,
+     * logging rather than throwing.
+     */
+    private void tellIfClosed(int requestId, int settledBy) {
         try {
-            outcomes.completed(now);
+            var now = requests.findById(requestId).orElse(null);
+            if (now == null || now.open()) return;
+            notices.closed(now, requests.fieldsOf(requestId), settledBy);
+            if (now.state() == RequestState.COMPLETE) outcomes.completed(now);
         } catch (RuntimeException e) {
-            log.warn("Could not carry the completion of signing request {} over", now.uid(), e);
+            log.warn("Could not carry the closing of signing request {} over", requestId, e);
         }
     }
 
@@ -147,7 +151,10 @@ public class SignatureFieldService {
         }
         notices.settled(recorded.stream().map(each -> each.stored().fieldId()).toList());
         recorded.forEach(each -> notices.signed(each.request(), each.stored()));
-        recorded.stream().map(each -> each.request().id()).distinct().forEach(this::tellIfCompleted);
+        recorded.stream()
+                .map(each -> each.request().id())
+                .distinct()
+                .forEach(requestId -> tellIfClosed(requestId, session.member().id()));
         return recorded.stream().map(Recorded::stored).toList();
     }
 
@@ -244,7 +251,7 @@ public class SignatureFieldService {
                     .orElse(field);
         });
         notices.settled(List.of(settled.id()));
-        tellIfCompleted(request.id());
+        tellIfClosed(request.id(), me);
         return settled;
     }
 
