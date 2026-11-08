@@ -1239,7 +1239,7 @@ volumes:
             reachText: 'Die Wache kann eingrenzen, von wem gesammelt werden darf, zum Beispiel nur von Probemitgliedern oder von einer Gruppe. '
                 + 'Das stellt ein, wer Mitglieder verwaltet: in den Berechtigungen direkt unter „Unterschriften vor Ort sammeln“. Die Auswahl gilt für alle, die die Berechtigung haben. Ohne Auswahl geht es bei allen Mitgliedern und Probemitgliedern.',
             steps: 'Die Schritte',
-            stepPerson: '1. Person wählen - Such die Person, die unterschreiben soll.',
+            stepPerson: '1. Person wählen - „Offen“ zeigt, bei wem gerade eine Unterschrift wartet, mit der Zahl und den Dokumenten. Unter „Alle“ stehen alle, von denen du sammeln darfst. Die Liste lässt sich durchsuchen, sortieren und nach Mitgliedstyp oder Gruppe filtern.',
             stepDocument: '2. Dokument wählen - Du siehst die offenen Unterschriften dieser Person. Oder du erstellst ein neues Dokument aus einer Vorlage, das gleich unterschrieben wird. Darf jede erziehungsberechtigte Person unterschreiben, wählst du, wer gerade da ist.',
             stepHandOver: '3. Gerät übergeben - Gib das Gerät der Person. Sie liest das Dokument, setzt den Haken, trägt ein, was das Dokument fragt, und zeichnet ihre Unterschrift. Ihr Name steht unter dem Feld.',
             stepTakeBack: '4. Zurücknehmen und bestätigen - Die Person gibt dir das Gerät zurück. Du bestätigst mit deinem Passkey, deinem Code oder deinem Passwort, dass sie vor dir unterschrieben hat.',

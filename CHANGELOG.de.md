@@ -7,7 +7,7 @@ Die Anwesenheit kann Zeit vor und nach einem Termin gutschreiben. Eine Vorlage l
 ### Neue Funktionen
 
 - **Vor- und Nachbereitung zählen in der Anwesenheit.** Eine Anwesenheitsvorlage kann ausgewählten Personen nach Mitgliedstyp, Gruppe, Tag oder Name Minuten vor und nach einem Termin gutschreiben, etwa einem Jugendwart, der den Raum herrichtet. Jede Liste übernimmt diese Regeln und kann sie ändern oder eine Person ausnehmen, und Bericht, Ausdrucke und CSV-Export rechnen die Minuten zu den Stunden jeder Person.
-- **Unterschriften vor Ort sammeln.** Wer die neue Berechtigung „Unterschriften vor Ort sammeln“ hat, wählt ein Mitglied oder Probemitglied, öffnet eines seiner Dokumente oder erstellt eines aus einer Vorlage und gibt das Gerät zum Lesen, Zustimmen und Unterschreiben weiter. Bestätigt wird mit dem eigenen Konto, und Signaturnachweis und Prüfseite nennen die Zeugin oder den Zeugen neben der Person, die unterschrieben hat.
+- **Unterschriften vor Ort sammeln.** Wer die neue Berechtigung „Unterschriften vor Ort sammeln“ hat, wählt ein Mitglied oder Probemitglied aus einer Liste, die zeigt, bei wem noch Unterschriften offen sind, öffnet eines seiner Dokumente oder erstellt eines aus einer Vorlage und gibt das Gerät zum Lesen, Zustimmen und Unterschreiben weiter. Bestätigt wird mit dem eigenen Konto, und Signaturnachweis und Prüfseite nennen die Zeugin oder den Zeugen neben der Person, die unterschrieben hat.
 - **Eingrenzen, von wem gesammelt wird.** Direkt unter der Berechtigung lässt sich festlegen, von welchen Mitgliedern und Probemitgliedern vor Ort gesammelt werden darf, etwa nur von Probemitgliedern oder von einer Gruppe. Ohne Auswahl gilt das für alle.
 
 ### Verbesserungen

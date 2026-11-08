@@ -7,7 +7,7 @@ Attendance can credit time spent before and after an appointment. A template nam
 ### New Features
 
 - **Preparation and follow-up time counts in attendance.** An attendance template can credit chosen people with minutes before and after an appointment, such as a youth leader who sets up the room. Each sheet copies these rules and can correct them or leave one person out, and the report, its printouts and the spreadsheet count the minutes in each person's hours.
-- **Signatures collected in person.** A member with the new permission "Collect signatures in person" picks a member or trial user, opens one of their documents or makes one from a template on the spot, and hands the device over to read, agree and draw. The witness confirms with their own account, and the signature record and the verification page name the witness beside the person who signed.
+- **Signatures collected in person.** A member with the new permission "Collect signatures in person" picks a member or trial user from a list that shows whose signatures are still open, opens one of their documents or makes one from a template on the spot, and hands the device over to read, agree and draw. The witness confirms with their own account, and the signature record and the verification page name the witness beside the person who signed.
 - **Whom witnesses reach can be narrowed.** Right under the permission, a station can limit its witnesses to some of its members and trial users, for example to trial users or one group. Without a choice they reach all of them.
 
 ### Improvements
