@@ -59,6 +59,11 @@
     ([Acting], [as guardian of #a.memberName])
   } else if a.capacity == "MEMBER_THROUGH_ACCOUNT" {
     ([Acting], [personally, through the account of #a.accountHolderName])
+  } else if a.capacity == "WITNESSED" {
+    (
+      [Acting], [personally, signed in front of the witness #a.accountHolderName],
+      [Witnessed by], [#a.accountHolderName, who confirmed with their own account that #a.signerName signed in front of them],
+    )
   } else {
     ([Acting], [personally, through their own account])
   }

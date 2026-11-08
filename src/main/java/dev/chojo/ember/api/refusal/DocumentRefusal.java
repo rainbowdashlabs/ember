@@ -779,7 +779,24 @@ public enum DocumentRefusal implements Refusal {
             324, HttpStatus.BAD_REQUEST, "The preview of a form takes at most 8 font files"),
 
     /** A replacement for a font of a Word form asked for in a light weight its family does not ship. */
-    DOCUMENT_FORM_IMPORT_FONT_WEIGHT_UNAVAILABLE(325, HttpStatus.BAD_REQUEST, "The font chosen has no light weight");
+    DOCUMENT_FORM_IMPORT_FONT_WEIGHT_UNAVAILABLE(325, HttpStatus.BAD_REQUEST, "The font chosen has no light weight"),
+
+    /** A witness collecting their own signature, or a field they would sign themselves. */
+    SIGNING_WITNESS_SELF(
+            326, HttpStatus.FORBIDDEN, "Nobody witnesses their own signature or a field they would sign themselves"),
+
+    /** A signature collected in person from somebody the witness does not reach. */
+    SIGNING_WITNESS_OUT_OF_REACH(
+            327, HttpStatus.FORBIDDEN, "Signatures of this person are not collected in person by you"),
+
+    /** A field collected in person that is never signed in front of a witness, such as the issuer's. */
+    SIGNING_WITNESS_FIELD_NOT_OFFERED(328, HttpStatus.FORBIDDEN, "This field is not signed in front of a witness"),
+
+    /** A person picked to sign in front of a witness whom the field does not name. */
+    SIGNING_WITNESS_SIGNER_NOT_NAMED(329, HttpStatus.BAD_REQUEST, "This field does not ask this person to sign"),
+
+    /** A document generated for a member the template is not meant for, as its audience says. */
+    DOCUMENT_TEMPLATE_NOT_FOR_MEMBER(330, HttpStatus.FORBIDDEN, "This template is not meant for this member");
 
     private final Definition definition;
 

@@ -146,6 +146,10 @@ function highlightSnippet(result: (typeof searchResults.value)[number]): string 
                    to="/helpcenter/station/signing" @navigate="close">
         {{ t('helpCenter.signing.title') }}
       </SidebarLink>
+      <SidebarLink :icon="['fas', 'signature']" name="help-station-signing-witness"
+                   to="/helpcenter/station/signing/witness" @navigate="close">
+        {{ t('helpCenter.witnessSigning.title') }}
+      </SidebarLink>
     </SidebarGroup>
 
     <SidebarGroup :icon="['fas', 'newspaper']" :label="t('sidebar.news')"

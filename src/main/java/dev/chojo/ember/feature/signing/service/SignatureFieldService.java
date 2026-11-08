@@ -10,6 +10,7 @@ import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.signing.entity.CompletedSigning;
+import dev.chojo.ember.feature.signing.entity.FieldRole;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.GuardianLink;
 import dev.chojo.ember.feature.signing.entity.RequestState;
@@ -46,6 +47,11 @@ import java.util.UUID;
  * for any guardian by any of them, the issuer's by the issuer. Where somebody acts as or through a guardian,
  * the guardian link as it stands is copied into the evidence, since it is the evidence of guardianship.
  *
+ * <p>A field signed in front of a witness is checked against the witness instead ({@link WitnessReach}):
+ * they hold the permission to collect signatures in person, reach the member the document is about, would
+ * not sign the field themselves, and the person who signed is one the field names. A guardian who signed
+ * in front of the witness has their own guardian link copied into the evidence.
+ *
  * <p>Once a field is settled, the unread requests and reminders for it are taken back, and a signature is
  * told to whoever asked for it ({@link SignatureNotices}). A field a manager settles is sealed into the
  * document by {@link SigningStateSweeper}. A request completed by the field it settled is handed on to
@@ -63,6 +69,7 @@ public class SignatureFieldService {
     private final MemberNameResolver names;
     private final SignatureNotices notices;
     private final AgreementOutcomes outcomes;
+    private final WitnessReach witnesses;
 
     @Inject
     public SignatureFieldService(
@@ -73,7 +80,8 @@ public class SignatureFieldService {
             GuardianPolicy guardianPolicy,
             MemberNameResolver names,
             SignatureNotices notices,
-            AgreementOutcomes outcomes) {
+            AgreementOutcomes outcomes,
+            WitnessReach witnesses) {
         this.requests = requests;
         this.evidence = evidence;
         this.requestService = requestService;
@@ -82,6 +90,7 @@ public class SignatureFieldService {
         this.names = names;
         this.notices = notices;
         this.outcomes = outcomes;
+        this.witnesses = witnesses;
     }
 
     /**
@@ -256,6 +265,7 @@ public class SignatureFieldService {
      */
     private @Nullable GuardianLink linkFor(
             StationSession session, SignatureRequest request, RequestedSignature field, Signer signer) {
+        if (signer.witnessed()) return witnessedLink(session, field, signer);
         int me = session.member().id();
         Integer member = request.memberId();
         Integer signerId = field.signerId();
@@ -287,13 +297,35 @@ public class SignatureFieldService {
         throw DocumentRefusal.SIGNING_FIELD_NOT_YOURS.raise();
     }
 
+    /**
+     * Refuses an act signed in front of a witness who may not collect it, or by a person the field does not
+     * name.
+     *
+     * @return the guardian link of a guardian who signed in front of the witness, or null for the member
+     */
+    private @Nullable GuardianLink witnessedLink(StationSession session, RequestedSignature field, Signer signer) {
+        witnesses.requireWitness(session);
+        var member = witnesses.requireCollectable(session, field);
+        Integer signerId = signer.memberId();
+        if (signerId == null) throw DocumentRefusal.SIGNING_WITNESS_SIGNER_NOT_NAMED.raise();
+        witnesses.requireSigner(session, field, signerId);
+        if (field.role() == FieldRole.PARTICIPANT) return null;
+        return linkOf(signerId, member.id());
+    }
+
     /** The link of the signer as guardian of the member, refusing a signer who is not their guardian now. */
     private GuardianLink guardianLink(StationSession session, int memberId) {
         int me = session.member().id();
         if (memberId == me || !guardianPolicy.mayActFor(session.user(), memberId)) {
             throw DocumentRefusal.SIGNING_FIELD_NOT_YOURS.raise();
         }
-        var stored = requests.guardianLink(me, memberId).orElseThrow(DocumentRefusal.SIGNING_FIELD_NOT_YOURS::raise);
+        return linkOf(me, memberId);
+    }
+
+    /** The guardian link between two members as it stands, refused where there is none. */
+    private GuardianLink linkOf(int guardianId, int memberId) {
+        var stored =
+                requests.guardianLink(guardianId, memberId).orElseThrow(DocumentRefusal.SIGNING_FIELD_NOT_YOURS::raise);
         Integer linkedBy = stored.linkedBy();
         String linkedByName = linkedBy == null || !names.parts(linkedBy).known() ? null : names.official(linkedBy);
         return new GuardianLink(stored.position(), stored.linkedAt(), linkedByName);

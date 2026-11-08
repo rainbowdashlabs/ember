@@ -78,6 +78,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Executors;
@@ -175,7 +176,8 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 guardianPolicy,
                 memberNameResolver,
                 mock(SignatureNotices.class),
-                completed -> {});
+                completed -> {},
+                new WitnessReach(stationMemberRepo, restrictionService));
         copies = TestNotices.copies(emailQueueRepo, stationRepo, stationMemberRepo, accountRepo);
         stationKeys = new StationSigningKeys(keyRepo, new SigningCertificates(), wrap, stationRepo, BASE_URL);
         loginPermission = stationMemberRepo
@@ -525,6 +527,36 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 .body()
                 .contains(
                         TestNotices.BASE_URL + "/station/members/detail/" + first.id() + "?station=" + station.uid()));
+    }
+
+    /** The copy of an act signed in front of a witness goes to the person who signed, never to the witness. */
+    @Test
+    void theCopyOfAWitnessedActGoesToThePersonWhoSigned() throws IOException {
+        var person = member("Pia", "Vorort");
+        var witness = member("Wanda", "Zeugin");
+        var request = ask(person, "participant");
+        var field = requestRepo.fieldsOf(request.id()).getFirst();
+        var act = new SigningAct(
+                request.uid(),
+                Signer.witnessed(Objects.requireNonNull(witness.accountId()), person.id()),
+                memberNameResolver.official(witness.id()),
+                memberNameResolver.official(person.id()),
+                "participant",
+                field.statement(),
+                HexFormat.of().parseHex(request.contentSha256()),
+                List.of(),
+                new byte[32],
+                Instant.now().truncatedTo(ChronoUnit.MILLIS),
+                null,
+                null);
+        fields.record(
+                stationSession(witness, StationPermission.LOGIN, StationPermission.DOCUMENT_SIGN_OTHERS),
+                new CompletedSigning(SignatureLevel.SIMPLE, new SigningEvidence.PasswordUnbound(act)));
+
+        sealer(SealedPdfs.noTimestamps()).sealLatest(request.id());
+
+        assertTrue(copyTo(person).body().contains("Pia Vorort"));
+        assertEquals(0, copiesTo(witness), "the witness gets no copy of somebody else's signature");
     }
 
     @Test

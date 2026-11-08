@@ -214,9 +214,20 @@ public enum StationPermission implements RouteRole {
     DOCUMENT_TEMPLATE_EDIT,
 
     /**
+     * Allows collecting signatures in person, as a witness: the holder picks a person of the station and a
+     * document for them, hands their own device over, and confirms with their own account that this person
+     * signed in front of them.
+     *
+     * <p>It implies no other permission. The holder reads the documents of other people only while they
+     * collect a signature on them, and never sees the rest of anybody's paperwork. No kind of member holds
+     * it by default; a station grants it on purpose.
+     */
+    DOCUMENT_SIGN_OTHERS,
+
+    /**
      * Allows everything the document store has to offer.
      */
-    DOCUMENT_MANAGER(DOCUMENT_EDIT_MEMBER, DOCUMENT_TEMPLATE_EDIT),
+    DOCUMENT_MANAGER(DOCUMENT_EDIT_MEMBER, DOCUMENT_TEMPLATE_EDIT, DOCUMENT_SIGN_OTHERS),
 
     /**
      * Allows reading all member data.

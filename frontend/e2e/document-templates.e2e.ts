@@ -81,7 +81,7 @@ async function setUpCertificate(page: Page, name: string) {
     ])
     await expect(body.locator('.placeholder-chip')).toHaveCount(2)
 
-    await page.getByRole('tab', {name: 'Selbst erstellen'}).click()
+    await page.getByRole('tab', {name: 'Für wen'}).click()
     await page.getByTestId('template-self-service').getByRole('switch').click()
     await expect(page.getByTestId('template-cooldown')).toHaveValue('30')
 

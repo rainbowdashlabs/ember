@@ -79,8 +79,6 @@ const SETTLE_MS = 400
 
 const {t} = useI18n()
 
-const NOT_FOR_APPOINTMENTS = {forAppointments: false}
-
 const chosen = ref<DocumentTemplateSummary | null>(null)
 const issuerCandidates = ref<MemberOption[]>([])
 const templateId = computed(() => chosen.value?.id ?? null)
@@ -89,6 +87,11 @@ const preview = ref<PreviewResponse | null>(null)
 const templateIssuer = ref<PreviewIssuer | null>(null)
 const issuer = ref<IssuerChoice | null>(null)
 const memberId = computed(() => props.memberId ?? (chosenMember.value ? Number(chosenMember.value) : null))
+
+/** The picker leaves out templates for appointments, and those not meant for the member once one is known. */
+const pickerQuery = computed(() => memberId.value === null
+    ? {forAppointments: false}
+    : {forAppointments: false, memberId: memberId.value})
 
 const loader = useAsyncLoader(async () => {
   const completions = await stationMembers.listCompletions().catch(() => [])
@@ -160,7 +163,7 @@ watchDebounced([issuer, answers], () => {
     <div v-else class="space-y-4" data-testid="generate-document-modal">
       <SubHeader>{{ t('documentTemplates.generateTitle') }}</SubHeader>
       <FailureAlert :failure="loader.failure.value ?? suggesting.failure.value ?? drawing.failure.value ?? filing.failure.value"/>
-      <TemplateChoice v-model="chosen" :fixed="NOT_FOR_APPOINTMENTS"/>
+      <TemplateChoice v-model="chosen" :fixed="pickerQuery"/>
       <LabelledField v-if="props.memberId === null" :label="t('documentTemplates.generateMember')">
         <MemberSelectInput v-model="chosenMember" :members="props.members" data-testid="generate-member"/>
       </LabelledField>

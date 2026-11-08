@@ -210,8 +210,10 @@ public class AppointmentDocumentService {
         var offers = event.requiresRegistration() ? Set.<Offer>of() : offers(event, own);
         return new AppointmentDocuments(
                 required,
-                participantsOf(own, required, copies.asParticipantsSee(), offers, Map.of()),
-                overview ? participantsOf(everyone, required, copies, Set.of(), withdrawals(event, date)) : null);
+                participantsOf(event, own, required, copies.asParticipantsSee(), offers, Map.of()),
+                overview
+                        ? participantsOf(event, everyone, required, copies, Set.of(), withdrawals(event, date))
+                        : null);
     }
 
     /** When each participant whose registration is flagged withdrew a signed agreement, by participant. */
@@ -240,6 +242,15 @@ public class AppointmentDocumentService {
     /** The generated copies, the scans handed in and the signatures asked for, for the participants asked about. */
     private record Copies(
             List<RequirementGeneration> generated, List<PaperSubmission> scans, List<RequirementSignature> signed) {
+
+        /** Whether a participant holds a copy, a scan or a signature of a document. */
+        boolean holds(int templateId, int memberId) {
+            return generated.stream().anyMatch(copy -> copy.templateId() == templateId && copy.memberId() == memberId)
+                    || scans.stream().anyMatch(scan -> scan.templateId() == templateId && scan.memberId() == memberId)
+                    || signed.stream()
+                            .anyMatch(signature ->
+                                    signature.templateId() == templateId && signature.memberId() == memberId);
+        }
 
         /** The copies as participants and guardians see them, the issuer's field as the station's to sign. */
         Copies asParticipantsSee() {
@@ -305,17 +316,46 @@ public class AppointmentDocumentService {
     }
 
     private List<ParticipantDocuments> participantsOf(
+            StationEvent event,
             Collection<Integer> memberIds,
             List<RequiredTemplate> required,
             Copies copies,
             Set<Offer> offers,
             Map<Integer, Instant> withdrawn) {
+        var fit = templates.fitAt(event.stationId());
+        var associations = new HashMap<Integer, Boolean>();
+        required.forEach(template -> associations.put(
+                template.templateId(),
+                templates
+                        .find(template.templateId())
+                        .map(DocumentTemplate::ofAssociation)
+                        .orElse(false)));
         return memberIds.stream()
                 .map(memberId -> new ParticipantDocuments(
                         memberId,
                         names.identified(memberId),
-                        statuses(required, copies, memberId, offers),
+                        statuses(shownFor(fit, required, associations, copies, memberId), copies, memberId, offers),
                         withdrawn.get(memberId)))
+                .toList();
+    }
+
+    /**
+     * The documents of an appointment shown for one participant: those meant for them, as each template's
+     * audience says, and any they already hold a copy, a scan or a signature of, which stays in sight even
+     * where the template is no longer meant for them.
+     */
+    private static List<RequiredTemplate> shownFor(
+            TemplateFit fit,
+            List<RequiredTemplate> required,
+            Map<Integer, Boolean> associations,
+            Copies copies,
+            int memberId) {
+        return required.stream()
+                .filter(template -> fit.meantFor(
+                                template.templateId(),
+                                associations.getOrDefault(template.templateId(), false),
+                                memberId)
+                        || copies.holds(template.templateId(), memberId))
                 .toList();
     }
 
@@ -333,6 +373,7 @@ public class AppointmentDocumentService {
             StationSession session, StationEvent event, LocalDate date, int templateId, int memberId) {
         requireMayHandIn(session, event, date, memberId, false);
         var template = requireAsked(session.stationId(), event.id(), templateId);
+        templates.requireMeantFor(template, session.stationId(), memberId);
         return generateFor(event, date, template, memberId, session.member().id());
     }
 
@@ -359,15 +400,18 @@ public class AppointmentDocumentService {
 
     /**
      * The documents an appointment asks for whose copy for the member asks the member or a guardian to
-     * sign, in the appointment's order. A document only the issuer signs is not among them.
+     * sign, in the appointment's order. A document only the issuer signs is not among them, and neither is
+     * one whose template is not meant for the member.
      *
      * @param event    the appointment
      * @param memberId the participant
      * @return the templates, none where the appointment asks for nothing to sign
      */
     public List<DocumentTemplate> signableFor(StationEvent event, int memberId) {
+        var fit = templates.fitFor(event.stationId(), memberId);
         return inUse(event.id()).stream()
                 .flatMap(required -> templates.find(required.templateId()).stream())
+                .filter(template -> fit.meantFor(template, memberId))
                 .filter(template -> generator.asksMemberSideToSign(template, memberId))
                 .toList();
     }

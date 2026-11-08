@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.signing.route;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.auth.BreachCheckWorker;
@@ -34,6 +35,7 @@ import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
+import dev.chojo.ember.feature.generator.service.DocumentGenerationService;
 import dev.chojo.ember.feature.generator.service.pdf.FillInFields;
 import dev.chojo.ember.feature.generator.service.pdf.PdfFiles;
 import dev.chojo.ember.feature.generator.service.pdf.SignatureFields;
@@ -45,8 +47,10 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.passkey.service.PasskeyService;
 import dev.chojo.ember.feature.passkey.service.TestAuthenticator;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.signing.entity.ActPictureSource;
+import dev.chojo.ember.feature.signing.entity.FieldRole;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.RequestState;
 import dev.chojo.ember.feature.signing.entity.SignatureImageSource;
@@ -80,6 +84,9 @@ import dev.chojo.ember.feature.signing.service.SigningStateSealer;
 import dev.chojo.ember.feature.signing.service.TestKeyStamps;
 import dev.chojo.ember.feature.signing.service.TestSealing;
 import dev.chojo.ember.feature.signing.service.TestSignatures;
+import dev.chojo.ember.feature.signing.service.WitnessReach;
+import dev.chojo.ember.feature.signing.service.WitnessReachSettings;
+import dev.chojo.ember.feature.signing.service.WitnessedSigningService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -163,7 +170,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * A member's signing acts over HTTP, through the real services, the database and real credentials: a
+ * A member's signing acts over HTTP, and those of people who sign in front of a witness, through the real
+ * services, the database and real credentials: a
  * passkey or security key answer binds the act and is kept as it came, a code or password confirms it
  * unbound, the proofs signing never takes are refused, a start is spent once and only by the account that
  * made it, a field is signed only by those it asks for, a guardian signs for a child and lends the child
@@ -195,6 +203,7 @@ class SigningRoutesTest extends RepositoryTestBase {
     private static final SignatureRequestRepository requestRepo = new SignatureRequestRepository();
     private static final SigningEvidenceRepository evidenceRepo = new SigningEvidenceRepository();
     private static final PasswordHasher hasher = new PasswordHasher();
+    private static final DocumentGenerationService witnessGeneration = mock(DocumentGenerationService.class);
 
     private static StorageService storage;
     private static DocumentService documents;
@@ -242,7 +251,8 @@ class SigningRoutesTest extends RepositoryTestBase {
                 guardianPolicy,
                 memberNameResolver,
                 mock(SignatureNotices.class),
-                completed -> {});
+                completed -> {},
+                new WitnessReach(stationMemberRepo, restrictionService));
 
         var settings = new WebAuthnSettings();
         RelyingParties parties = relyingParties(settings);
@@ -314,8 +324,18 @@ class SigningRoutesTest extends RepositoryTestBase {
 
     private static RouteHarness serving(SigningActService signingActs) {
         var limiter = new AuthRateLimiter(Clock.systemUTC());
+        var witnessed = new WitnessedSigningService(
+                new WitnessReach(stationMemberRepo, restrictionService),
+                requestRepo,
+                requests,
+                signingActs,
+                witnessGeneration,
+                memberNameResolver);
         return RouteHarness.serving(
-                        new SigningRoutes(signingActs, requests, limiter), new SigningBatchRoutes(signingActs, limiter))
+                        new SigningRoutes(signingActs, requests, limiter),
+                        new SigningBatchRoutes(signingActs, limiter),
+                        new WitnessedSigningRoutes(witnessed, limiter),
+                        new WitnessReachRoutes(new WitnessReachSettings(restrictionService)))
                 .withStations(stationRepo);
     }
 
@@ -549,6 +569,367 @@ class SigningRoutesTest extends RepositoryTestBase {
                 PREFIX + "/signing/batch/complete",
                 body(object.toString()),
                 harness.as(signedIn(signer, StationPermission.LOGIN)));
+    }
+
+    /**
+     * A trial user without a login signs their own field in front of a witness: the witness finds them
+     * among the people they reach, sees the field among what they may collect, reads the document, starts
+     * the act for the trial user and confirms it with their own password. The evidence names the trial user
+     * as the signer and the witness as the account that confirmed it, and the sealed version names the
+     * witness.
+     */
+    @Test
+    void aTrialUserSignsTheirFieldInFrontOfAWitness() throws IOException {
+        var witness = witness("Wanda", "Zeugin");
+        var trial = member("Tim", "Probe", false);
+        stationMemberRepo.setUserType(trial.id(), StationUserType.TRIAL);
+        var request = ask(trial, SignatureRole.PARTICIPANT);
+        int field = fieldOf(request);
+
+        harness.run((server, client) -> {
+            JsonNode people = accepted(client.get(PREFIX + "/signing/witness/people", asWitness(witness)));
+            assertTrue(memberIds(people).contains(trial.id()));
+            assertFalse(memberIds(people).contains(witness.id()), "a witness never picks themselves");
+            JsonNode offers = accepted(client.get(offersPath(trial), asWitness(witness)));
+            assertEquals(field, offers.path("fields").get(0).path("fieldId").asInt());
+            JsonNode read = accepted(client.get(witnessPath(field), asWitness(witness)));
+            assertEquals(List.of(trial.id()), memberIds(read.path("signers")));
+            assertEquals(
+                    200,
+                    fetchBytes(server.port(), witnessPath(field) + "/document", asWitness(witness))
+                            .statusCode());
+
+            JsonNode started = accepted(startWitnessed(client, witness, field, trial.id()));
+            assertEquals(
+                    "WITNESSED", started.path("fields").get(0).path("capacity").asString());
+            assertEquals(List.of("PASSWORD"), texts(started.path("acceptedProofs")));
+            JsonNode completed = accepted(completeWitnessed(client, witness, started, trial.id()));
+            assertEquals("SIGNED", completed.path("fields").get(0).path("state").asString());
+        });
+
+        var stored = onlyEvidence(request);
+        var act = stored.evidence().act();
+        assertEquals(SignerCapacity.WITNESSED, act.signer().capacity());
+        assertEquals(witness.accountId(), act.signer().accountId());
+        assertEquals(trial.id(), act.signer().memberId());
+        assertEquals(witness.id(), stored.accountMemberId());
+        assertNull(stored.guardianLink());
+        byte[] sealed = documents.read(filedDocument(request)).orElseThrow();
+        var file = SigningEvidenceFiles.read(
+                SigningStateAssembler.evidenceOf(sealed).orElseThrow());
+        assertEquals(SigningEvidenceFile.FORMAT, file.format());
+        var recorded = Objects.requireNonNull(file.fields().getFirst().act());
+        assertEquals(act.accountHolderName(), recorded.witnessName());
+        assertEquals(act.memberName(), recorded.signerName());
+    }
+
+    /**
+     * A guardian without a login of their own who is present signs their numbered field in front of a
+     * witness, and their guardian link is copied into the evidence.
+     */
+    @Test
+    void aGuardianWhoIsPresentSignsTheirFieldInFrontOfAWitness() throws IOException {
+        var witness = witness("Walter", "Zeuge");
+        var guardian = member("Greta", "Anwesend", false);
+        var child = member("Kai", "Anwesend", false);
+        stationMemberRepo.addManager(guardian.id(), child.id(), manager.id());
+        var request = ask(child, SignatureRole.GUARDIAN_1);
+        int field = fieldOf(request);
+
+        harness.run((server, client) -> {
+            JsonNode read = accepted(client.get(witnessPath(field), asWitness(witness)));
+            assertEquals(List.of(guardian.id()), memberIds(read.path("signers")));
+            assertRefused(
+                    DocumentRefusal.SIGNING_WITNESS_SIGNER_NOT_NAMED,
+                    startWitnessed(client, witness, field, child.id()));
+            JsonNode started = accepted(startWitnessed(client, witness, field, guardian.id()));
+            accepted(completeWitnessed(client, witness, started, guardian.id()));
+        });
+
+        var stored = onlyEvidence(request);
+        assertEquals(guardian.id(), stored.evidence().act().signer().memberId());
+        assertNotNull(stored.guardianLink());
+    }
+
+    /**
+     * Nobody witnesses their own field or a field any guardian may sign of a member in their care, nobody
+     * collects from people out of reach or on an issuer's field, nobody without the permission collects at
+     * all, and a witnessed start and a start of one's own signatures never pass for each other.
+     */
+    @Test
+    void aWitnessIsRefusedWhatTheyMayNotCollect() throws IOException {
+        var witness = witness("Wilma", "Grenze");
+        var ownRequest = ask(witness, SignatureRole.PARTICIPANT);
+        var ward = member("Wim", "Grenze", false);
+        stationMemberRepo.addManager(witness.id(), ward.id(), manager.id());
+        var wardRequest = ask(ward, SignatureRole.ANY_GUARDIAN);
+        var team = member("Theo", "Team", true);
+        stationMemberRepo.setUserType(team.id(), StationUserType.TEAM);
+        var teamRequest = ask(team, SignatureRole.PARTICIPANT);
+        var other = member("Olga", "Andere", false);
+        var issuerRequest = ask(other, SignatureRole.ISSUER);
+        var otherRequest = ask(other, SignatureRole.PARTICIPANT);
+
+        harness.run((server, client) -> {
+            assertRefused(DocumentRefusal.SIGNING_WITNESS_SELF, client.get(offersPath(witness), asWitness(witness)));
+            assertRefused(
+                    DocumentRefusal.SIGNING_WITNESS_SELF,
+                    client.get(witnessPath(fieldOf(ownRequest)), asWitness(witness)));
+            assertRefused(
+                    DocumentRefusal.SIGNING_WITNESS_SELF,
+                    client.get(witnessPath(fieldOf(wardRequest)), asWitness(witness)));
+            assertRefused(
+                    DocumentRefusal.SIGNING_WITNESS_OUT_OF_REACH,
+                    client.get(witnessPath(fieldOf(teamRequest)), asWitness(witness)));
+            assertRefused(
+                    DocumentRefusal.SIGNING_WITNESS_FIELD_NOT_OFFERED,
+                    client.get(witnessPath(fieldOf(issuerRequest)), asWitness(witness)));
+            assertEquals(
+                    403,
+                    client.get(witnessPath(fieldOf(otherRequest)), harness.as(signedIn(team, StationPermission.LOGIN)))
+                            .code());
+
+            JsonNode witnessedStart = accepted(startWitnessed(client, witness, fieldOf(otherRequest), other.id()));
+            assertRefused(
+                    DocumentRefusal.SIGNING_START_UNKNOWN,
+                    completeBatch(client, witness, witnessedStart, "PASSWORD", null, PASSWORD, List.of(other.id())));
+            JsonNode ownStart = start(client, witness, fieldOf(ownRequest), null);
+            assertRefused(DocumentRefusal.SIGNING_START_UNKNOWN, completeWitnessed(client, witness, ownStart, null));
+        });
+
+        assertEquals(FieldState.OPEN, fieldState(otherRequest));
+        assertEquals(FieldState.OPEN, fieldState(ownRequest));
+    }
+
+    /**
+     * A document generated on the spot for the person in front of the witness is asked to be signed at once,
+     * named as asked by the witness, and its field is offered to the witness to collect.
+     */
+    @Test
+    void aDocumentGeneratedOnTheSpotIsOfferedToTheWitness() throws IOException {
+        var witness = witness("Wiebke", "Vorort");
+        var person = member("Pia", "Vorort", false);
+        var generation = generated(person, "participant");
+        when(witnessGeneration.generateForWitness(any(), anyInt(), anyInt()))
+                .thenReturn(new DocumentGenerationService.GeneratedDocumentResponse(
+                        Objects.requireNonNull(generation.documentId()),
+                        generation.id(),
+                        "Einverstaendnis",
+                        List.of()));
+
+        harness.run((server, client) -> {
+            JsonNode fields = accepted(client.post(
+                    PREFIX + "/signing/witness/people/" + person.id() + "/templates/" + template,
+                    body("{}"),
+                    asWitness(witness)));
+            assertEquals(1, fields.size());
+            assertEquals("PARTICIPANT", fields.get(0).path("role").asString());
+            assertEquals(List.of(person.id()), memberIds(fields.get(0).path("signers")));
+        });
+
+        var request = requestRepo.findLiveFor(generation.id()).orElseThrow();
+        assertEquals(witness.id(), request.createdBy());
+    }
+
+    /**
+     * Without an audience a witness reaches every member and trial user; once the station sets one next to
+     * the permission, only those it names, and somebody outside it is refused as out of reach. The audience
+     * is read by whoever reads members and set only by whoever manages them.
+     */
+    @Test
+    void theStationsAudienceNarrowsWhomAWitnessReaches() throws IOException {
+        var witness = witness("Wibke", "Reichweite");
+        var trial = member("Tara", "Reichweite", false);
+        stationMemberRepo.setUserType(trial.id(), StationUserType.TRIAL);
+        var plain = member("Paul", "Reichweite", false);
+        var plainRequest = ask(plain, SignatureRole.PARTICIPANT);
+        var settings = new WitnessReachSettings(restrictionService);
+        var trialsOnly = new RestrictionAudience(
+                List.of(StationUserType.TRIAL), List.of(), List.of(), List.of(), RestrictionMode.AND);
+        try {
+            harness.run((server, client) -> {
+                var everybody = memberIds(accepted(client.get(PREFIX + "/signing/witness/people", asWitness(witness))));
+                assertTrue(everybody.containsAll(List.of(trial.id(), plain.id())), "no audience narrows nothing");
+            });
+
+            settings.setAudience(stationSession(manager, StationPermission.MEMBER_MANAGER), trialsOnly);
+
+            harness.run((server, client) -> {
+                var reached = memberIds(accepted(client.get(PREFIX + "/signing/witness/people", asWitness(witness))));
+                assertTrue(reached.contains(trial.id()), "a trial user is in the audience");
+                assertFalse(reached.contains(plain.id()), "a member is outside it");
+                accepted(client.get(offersPath(trial), asWitness(witness)));
+                assertRefused(
+                        DocumentRefusal.SIGNING_WITNESS_OUT_OF_REACH,
+                        client.get(offersPath(plain), asWitness(witness)));
+                assertRefused(
+                        DocumentRefusal.SIGNING_WITNESS_OUT_OF_REACH,
+                        client.get(witnessPath(fieldOf(plainRequest)), asWitness(witness)));
+                JsonNode audience = accepted(client.get(
+                        PREFIX + "/signing/witness/reach",
+                        harness.as(signedIn(manager, StationPermission.MEMBER_READ))));
+                assertEquals(List.of("TRIAL"), texts(audience.path("userTypes")));
+                assertEquals(
+                        403,
+                        client.put(
+                                        PREFIX + "/signing/witness/reach",
+                                        body("{\"userTypes\":[],\"mode\":\"AND\"}"),
+                                        harness.as(signedIn(witness, StationPermission.MEMBER_READ)))
+                                .code());
+            });
+        } finally {
+            settings.setAudience(
+                    stationSession(manager, StationPermission.MEMBER_MANAGER), RestrictionAudience.empty());
+        }
+        assertTrue(settings.audience(stationSession(manager)).namesNobody());
+    }
+
+    private static StationMember witness(String first, String last) {
+        var witness = member(first, last, true);
+        accountRepo.createCredential(Objects.requireNonNull(witness.accountId()), hasher.hash(PASSWORD));
+        return witness;
+    }
+
+    private Consumer<Request.Builder> asWitness(StationMember witness) {
+        return harness.as(signedIn(witness, StationPermission.LOGIN, StationPermission.DOCUMENT_SIGN_OTHERS));
+    }
+
+    private Response startWitnessed(HttpClient client, StationMember witness, int fieldId, int signerId) {
+        return client.post(
+                witnessPath(fieldId) + "/start", body("{\"signerId\":" + signerId + "}"), asWitness(witness));
+    }
+
+    /** Completes a witnessed act with the witness's password and the picture the signer drew, if any. */
+    private Response completeWitnessed(
+            HttpClient client, StationMember witness, JsonNode started, @Nullable Integer signerId) {
+        ObjectNode object = JsonNodeFactory.instance.objectNode();
+        object.put("startToken", started.path("startToken").asString());
+        object.put("proof", "PASSWORD");
+        object.put("secret", PASSWORD);
+        var pictures = object.putArray("pictures");
+        if (signerId != null) {
+            pictures.addObject()
+                    .put("memberId", signerId)
+                    .put("signatureImage", Base64.getEncoder().encodeToString(TestSignatures.drawn()))
+                    .put("signatureSource", "DRAWN");
+        }
+        return client.post(PREFIX + "/signing/witness/complete", body(object.toString()), asWitness(witness));
+    }
+
+    private static String witnessPath(int fieldId) {
+        return PREFIX + "/signing/witness/fields/" + fieldId;
+    }
+
+    private static String offersPath(StationMember person) {
+        return PREFIX + "/signing/witness/people/" + person.id() + "/offers";
+    }
+
+    /**
+     * The witness's list says what waits on each person: the fields of their documents the witness may
+     * collect, counted, with the document they are on, and the same number the person's offers show. The
+     * issuer's field waits on nobody there, a field any guardian may sign of a member in the witness's own
+     * care is not theirs to collect, a person with nothing open lists none, and a field signed in front of
+     * the witness leaves the list.
+     */
+    @Test
+    void thePeopleListSaysWhatWaitsOnEachPerson() throws IOException {
+        var witness = witness("Willa", "Liste");
+        var waiting = member("Wilma", "Wartet", false);
+        var idle = member("Ida", "Nichts", false);
+        var ward = member("Wanja", "Schutz", false);
+        stationMemberRepo.addManager(witness.id(), ward.id(), manager.id());
+        ask(ward, SignatureRole.PARTICIPANT, SignatureRole.ANY_GUARDIAN);
+        var request = ask(waiting, SignatureRole.PARTICIPANT, SignatureRole.ISSUER);
+
+        harness.run((server, client) -> {
+            JsonNode people = accepted(client.get(PREFIX + "/signing/witness/people", asWitness(witness)));
+            JsonNode listed = personIn(people, waiting.id());
+            assertEquals(1, listed.path("openFields").asInt(), "the issuer's field is not the person's to sign");
+            assertEquals(1, listed.path("openDocuments").size());
+            assertEquals(
+                    waiting.uid().toString(),
+                    listed.path("identity").path("memberUid").asString());
+            assertFalse(listed.path("identity").path("name").asString().isBlank(), "the list shows a name");
+            assertEquals(0, personIn(people, idle.id()).path("openFields").asInt());
+            assertEquals(
+                    1, personIn(people, ward.id()).path("openFields").asInt(), "the guardian's field is not theirs");
+            for (var person : List.of(waiting, idle, ward)) {
+                JsonNode offers = accepted(client.get(offersPath(person), asWitness(witness)));
+                assertEquals(
+                        offers.path("fields").size(),
+                        personIn(people, person.id()).path("openFields").asInt(),
+                        "the list counts what the offers show");
+            }
+
+            int field = requestRepo.fieldsOf(request.id()).stream()
+                    .filter(each -> each.role() == FieldRole.PARTICIPANT)
+                    .findFirst()
+                    .orElseThrow()
+                    .id();
+            JsonNode started = accepted(startWitnessed(client, witness, field, waiting.id()));
+            accepted(completeWitnessed(client, witness, started, waiting.id()));
+
+            JsonNode after = accepted(client.get(PREFIX + "/signing/witness/people", asWitness(witness)));
+            assertEquals(0, personIn(after, waiting.id()).path("openFields").asInt());
+        });
+    }
+
+    /**
+     * A document just generated for a member is asked for in person: the witness gets the fields they may
+     * collect on it, and the request stands. A witness who may not change the document is refused before
+     * anything is asked, and so is one who does not reach the person.
+     */
+    @Test
+    void aGeneratedDocumentIsAskedForInPerson() throws IOException {
+        var witness = witness("Wera", "Gleich");
+        var person = member("Paul", "Gleich", false);
+        var generation = generated(person, "participant");
+        var team = member("Tara", "Team", true);
+        stationMemberRepo.setUserType(team.id(), StationUserType.TEAM);
+        var teamGeneration = generated(team, "participant");
+        String path = PREFIX + "/signing/witness/generations/" + generation.id();
+        var editing = harness.as(signedIn(
+                witness,
+                StationPermission.LOGIN,
+                StationPermission.DOCUMENT_SIGN_OTHERS,
+                StationPermission.DOCUMENT_EDIT_MEMBER));
+
+        harness.run((server, client) -> {
+            assertRefused(
+                    DocumentRefusal.DOCUMENT_NOT_YOURS_TO_CHANGE, client.post(path, body("{}"), asWitness(witness)));
+            assertTrue(requestRepo.findLiveFor(generation.id()).isEmpty(), "nothing was asked");
+            assertRefused(
+                    DocumentRefusal.SIGNING_WITNESS_OUT_OF_REACH,
+                    client.post(PREFIX + "/signing/witness/generations/" + teamGeneration.id(), body("{}"), editing));
+            assertTrue(requestRepo.findLiveFor(teamGeneration.id()).isEmpty(), "nothing was asked of the team");
+
+            JsonNode fields = accepted(client.post(path, body("{}"), editing));
+            assertEquals(1, fields.size());
+            assertEquals(List.of(person.id()), memberIds(fields.get(0).path("signers")));
+            assertTrue(requestRepo.findLiveFor(generation.id()).isPresent(), "the request stands");
+
+            var child = member("Kira", "Gleich", false);
+            stationMemberRepo.addManager(witness.id(), child.id(), manager.id());
+            var forGuardians =
+                    generated(child, SignatureRole.ANY_GUARDIAN.fieldNames(1).toArray(String[]::new));
+            JsonNode nothing = accepted(
+                    client.post(PREFIX + "/signing/witness/generations/" + forGuardians.id(), body("{}"), editing));
+            assertEquals(0, nothing.size(), "a witness does not collect their own signature as a guardian");
+            assertTrue(requestRepo.findLiveFor(forGuardians.id()).isPresent(), "the request stands and was told");
+        });
+    }
+
+    private static JsonNode personIn(JsonNode people, int memberId) {
+        for (JsonNode person : people) {
+            if (person.path("memberId").asInt() == memberId) return person;
+        }
+        throw new AssertionError("member " + memberId + " is not on the list");
+    }
+
+    private static List<Integer> memberIds(JsonNode people) {
+        var ids = new ArrayList<Integer>();
+        people.forEach(person -> ids.add(person.path("memberId").asInt()));
+        return ids;
     }
 
     @Test
@@ -1187,24 +1568,22 @@ class SigningRoutesTest extends RepositoryTestBase {
         assertEquals(FieldState.OPEN, fieldState(request));
     }
 
+    /** A development instance takes its fixed code for a signature, as it does for signing in. */
     @Test
-    void theDevelopmentCodeNeverConfirmsASignature() throws IOException {
+    void theDevelopmentCodeConfirmsASignatureOnADevelopmentInstance() throws IOException {
         var signer = member("Dev", "Kode", true);
         enrolAuthenticatorApp(signer.accountId());
         var request = ask(signer, SignatureRole.PARTICIPANT);
 
-        harness.run((server, client) -> assertRefused(
-                DocumentRefusal.SIGNING_CODE_WRONG,
-                complete(
-                        client,
-                        signer,
-                        fieldOf(request),
-                        start(client, signer, fieldOf(request), null),
-                        "TOTP",
-                        null,
-                        DEVELOPMENT_CODE)));
-        assertEquals(FieldState.OPEN, fieldState(request));
-        assertTrue(requestRepo.fieldsOf(request.id()).stream().noneMatch(field -> field.state() == FieldState.SIGNED));
+        harness.run((server, client) -> json(complete(
+                client,
+                signer,
+                fieldOf(request),
+                start(client, signer, fieldOf(request), null),
+                "TOTP",
+                null,
+                DEVELOPMENT_CODE)));
+        assertEquals(FieldState.SIGNED, fieldState(request));
     }
 
     @Test

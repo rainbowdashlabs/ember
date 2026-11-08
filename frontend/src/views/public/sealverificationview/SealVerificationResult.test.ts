@@ -195,7 +195,7 @@ describe('SealVerificationResult', () => {
         expect(view.get('[data-testid="seal-document-timestamps"]').text()).toContain('Zeitstempel auf der ganzen Datei')
     })
 
-    it('lists the signatures the file records, those confirmed together and the issuer\'s', () => {
+    it('lists the signatures the file records, those confirmed together, those witnessed and the issuer\'s', () => {
         const view = show(createSealVerification({
             signatures: [createSealCheck()],
             evidence: {
@@ -203,9 +203,12 @@ describe('SealVerificationResult', () => {
                 contentSha256: 'ab'.repeat(32),
                 fields: [
                     {fieldName: 'guardian1', role: 'GUARDIAN', state: 'SIGNED', signerName: 'Jana Beispiel',
-                        signedAt: '2026-10-08T12:30:00Z', proof: 'PASSKEY', bound: true, together: true},
+                        signedAt: '2026-10-08T12:30:00Z', proof: 'PASSKEY', bound: true, together: true, witnessName: null},
                     {fieldName: 'guardian2', role: 'GUARDIAN', state: 'OPEN', signerName: null, signedAt: null,
-                        proof: null, bound: false, together: false},
+                        proof: null, bound: false, together: false, witnessName: null},
+                    {fieldName: 'participant', role: 'PARTICIPANT', state: 'SIGNED', signerName: 'Tim Probe',
+                        signedAt: '2026-10-08T12:40:00Z', proof: 'PASSWORD', bound: false, together: false,
+                        witnessName: 'Wanda Zeugin'},
                 ],
                 issued: {issuerName: 'Erika Wehr', consentedAt: '2026-09-01T08:00:00Z',
                     signedAt: '2026-10-08T10:00:00Z', pictureSha256: 'cd'.repeat(32)},
@@ -217,6 +220,8 @@ describe('SealVerificationResult', () => {
         expect(fields[0]).toContain('einem Passkey')
         expect(fields[0]).toContain('in einem Schritt bestätigt')
         expect(fields[1]).toContain('offen')
+        expect(fields[2]).toContain('Tim Probe')
+        expect(fields[2]).toContain('vor Zeugin oder Zeuge Wanda Zeugin')
         expect(view.get('[data-testid="seal-evidence-issued"]').text()).toContain('Erika Wehr')
     })
 })

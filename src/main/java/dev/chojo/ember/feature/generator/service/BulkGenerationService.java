@@ -187,7 +187,8 @@ public class BulkGenerationService {
     public record GenerationJobResponse(GenerationJobSummary job, List<JobMemberResult> members) {}
 
     /**
-     * Draws the document of the first member of a selection and lists what every member lacks.
+     * Draws the document of the first member of a selection the template is meant for and lists what every
+     * member lacks, a member it is not meant for as refused, as the run would.
      *
      * @param session    the manager
      * @param templateId the template, already checked to be the station's
@@ -203,11 +204,13 @@ public class BulkGenerationService {
                 GenerationContext.by(session.member().id(), issuers.forManager(template, session.stationId(), issuer));
         var source = generator.sourceOf(template);
         var batch = generator.batch(memberIds);
+        var fit = templates.fitAt(session.stationId());
         var gaps = new ArrayList<MemberGaps>();
         Integer firstId = null;
         DocumentGeneratorService.Prepared first = null;
         for (int memberId : memberIds) {
             try {
+                if (!fit.meantFor(template, memberId)) throw DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_MEMBER.raise();
                 var prepared = batch.prepare(source, memberId, context);
                 if (first == null) {
                     firstId = memberId;

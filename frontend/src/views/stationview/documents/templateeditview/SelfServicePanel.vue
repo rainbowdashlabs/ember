@@ -15,12 +15,13 @@ import type {MemberGroup, MemberWithName, UserTag} from '@/api/generated/schema'
 import type {TemplateDraft} from './templateDraft'
 
 /**
- * Whether members generate the document for themselves, and guardians for each child: for whom, and
- * how many days must pass before the same member can generate it again. Self service is refused while
- * the profile lacks data the letter needs, and its documents are never hidden from the member.
+ * For whom the template is meant, and whether members generate it for themselves, and guardians for each
+ * child, and how many days must pass before the same member can generate it again. Self service is
+ * refused while the profile lacks data the letter needs, and its documents are never hidden from the member.
  *
- * <p>An association only offers a template for it and sets the wait; each of its stations switches it
- * on and chooses for whom, so the audience is not chosen here.
+ * <p>For whom applies to every document of the template, whoever generates it: the station's managers, a
+ * run, a witness, an appointment or the member. An association only offers a template for self service
+ * and sets the wait; each of its stations chooses for whom, so the audience is not chosen here.
  */
 const draft = defineModel<TemplateDraft>({required: true})
 
@@ -36,20 +37,25 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <NeutralContainer class="space-y-4">
-    <SubHeader>{{ t('documentTemplates.selfServiceTitle') }}</SubHeader>
-    <ToggleSetting v-model="draft.selfService"
-                   :label="t(choosesAudience ? 'documentTemplates.selfService' : 'documentTemplates.selfServiceOffered')"
-                   :hint="t(choosesAudience ? 'documentTemplates.selfServiceHint' : 'documentTemplates.selfServiceOfferedHint')"
-                   data-testid="template-self-service"/>
-    <template v-if="draft.selfService">
-      <LabelledField :label="t('documentTemplates.cooldown')" :help="t('documentTemplates.cooldownHelp')">
-        <NumberInput :model-value="draft.cooldownDays" data-testid="template-cooldown"
-                     @update:model-value="days => draft.cooldownDays = days ?? 0"/>
+  <div class="space-y-6">
+    <NeutralContainer v-if="choosesAudience" class="space-y-4">
+      <LabelledField :label="t('documentTemplates.audience')" :help="t('documentTemplates.audienceHelp')">
+        <RestrictionPicker v-model="draft.audience" :groups="groups" :tags="tags" :members="members" show-members
+                           data-testid="template-audience"/>
       </LabelledField>
-      <LabelledField v-if="choosesAudience" :label="t('documentTemplates.audience')" :help="t('documentTemplates.audienceHelp')">
-        <RestrictionPicker v-model="draft.audience" :groups="groups" :tags="tags" :members="members" show-members/>
-      </LabelledField>
-    </template>
-  </NeutralContainer>
+    </NeutralContainer>
+    <NeutralContainer class="space-y-4">
+      <SubHeader>{{ t('documentTemplates.selfServiceTitle') }}</SubHeader>
+      <ToggleSetting v-model="draft.selfService"
+                     :label="t(choosesAudience ? 'documentTemplates.selfService' : 'documentTemplates.selfServiceOffered')"
+                     :hint="t(choosesAudience ? 'documentTemplates.selfServiceHint' : 'documentTemplates.selfServiceOfferedHint')"
+                     data-testid="template-self-service"/>
+      <template v-if="draft.selfService">
+        <LabelledField :label="t('documentTemplates.cooldown')" :help="t('documentTemplates.cooldownHelp')">
+          <NumberInput :model-value="draft.cooldownDays" data-testid="template-cooldown"
+                       @update:model-value="days => draft.cooldownDays = days ?? 0"/>
+        </LabelledField>
+      </template>
+    </NeutralContainer>
+  </div>
 </template>

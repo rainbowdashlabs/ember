@@ -1,0 +1,294 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.feature.signing.service;
+
+import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.StationSession;
+import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
+import dev.chojo.ember.feature.generator.entity.FillInField;
+import dev.chojo.ember.feature.generator.service.DocumentGenerationService;
+import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.signing.entity.BatchAttempt;
+import dev.chojo.ember.feature.signing.entity.BatchChoice;
+import dev.chojo.ember.feature.signing.entity.DocumentToSign;
+import dev.chojo.ember.feature.signing.entity.FieldState;
+import dev.chojo.ember.feature.signing.entity.OpenSignature;
+import dev.chojo.ember.feature.signing.entity.PendingSignature;
+import dev.chojo.ember.feature.signing.entity.SignatureAsk;
+import dev.chojo.ember.feature.signing.entity.Signer;
+import dev.chojo.ember.feature.signing.entity.SignerEntryDraft;
+import dev.chojo.ember.feature.signing.entity.SigningAnswer;
+import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
+import dev.chojo.ember.feature.signing.entity.SigningOutcome;
+import dev.chojo.ember.feature.signing.entity.SigningPictures;
+import dev.chojo.ember.feature.signing.entity.WitnessCandidate;
+import dev.chojo.ember.feature.signing.entity.WitnessPerson;
+import dev.chojo.ember.feature.signing.entity.WitnessedField;
+import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
+
+/**
+ * Signatures collected in person: a witness picks a person of the station and a document for them, hands
+ * their device over, the person reads, agrees and draws their signature, and the witness confirms with their
+ * own step-up that this person signed in front of them.
+ *
+ * <p>The document is an open field of one of the person's documents, or one generated on the spot from a
+ * template that asks the member or a guardian to sign, filed with the person alone. Whom the witness
+ * reaches and which fields they collect is {@link WitnessReach}'s to say; every step here asks it again, so
+ * the witness reads a document only while they may collect a signature on it.
+ *
+ * <p>The act itself is the one every signature goes through ({@link SigningActService}), with the capacity
+ * {@link dev.chojo.ember.feature.signing.entity.SignerCapacity#WITNESSED}: the challenge binds the content,
+ * the statement, what was typed, the person who signed and the witness's account; the witness's proof
+ * confirms it; the evidence names both. A start made here is completed only here, and a start of the
+ * witness's own signatures never here.
+ */
+@Singleton
+public class WitnessedSigningService {
+    private final WitnessReach reach;
+    private final SignatureRequestRepository requests;
+    private final SignatureRequestService requestService;
+    private final SigningActService acts;
+    private final DocumentGenerationService generation;
+    private final MemberNameResolver names;
+
+    @Inject
+    public WitnessedSigningService(
+            WitnessReach reach,
+            SignatureRequestRepository requests,
+            SignatureRequestService requestService,
+            SigningActService acts,
+            DocumentGenerationService generation,
+            MemberNameResolver names) {
+        this.reach = reach;
+        this.requests = requests;
+        this.requestService = requestService;
+        this.acts = acts;
+        this.generation = generation;
+        this.names = names;
+    }
+
+    /**
+     * The people the witness may collect signatures from, each with the fields that wait on them.
+     *
+     * <p>The open fields are read for the whole station at once and counted by the same rule as
+     * {@link #offers}, so a person listed with something open finds it when picked.
+     *
+     * @param session the witness
+     * @return the members and trial users they reach, by name
+     */
+    public List<WitnessCandidate> people(StationSession session) {
+        reach.requireWitness(session);
+        var reachable = reach.reachable(session);
+        var offered = reach.offering(session);
+        var open = requests.openAtStation(session.stationId());
+        var groups = reach.groupsOf(reachable.stream().map(StationMember::id).toList());
+        return reachable.stream()
+                .map(member -> {
+                    var fields = open.getOrDefault(member.id(), List.of()).stream()
+                            .filter(pending -> offered.test(pending.field()))
+                            .toList();
+                    var documents = fields.stream()
+                            .map(PendingSignature::documentTitle)
+                            .filter(Objects::nonNull)
+                            .distinct()
+                            .toList();
+                    return new WitnessCandidate(
+                            member.id(),
+                            names.enrichDisplay(new MemberIdentity(session.stationUid(), member.uid())),
+                            names.official(member.id()),
+                            member.userType(),
+                            groups.getOrDefault(member.id(), List.of()),
+                            fields.size(),
+                            documents);
+                })
+                .sorted(Comparator.comparing(WitnessCandidate::name, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
+    /**
+     * A person of the witness's station the witness reaches, refused otherwise.
+     *
+     * @param session  the witness
+     * @param memberId the person
+     * @return the person
+     */
+    public StationMember requireOwnedPerson(StationSession session, int memberId) {
+        reach.requireWitness(session);
+        return reach.requireReachable(session, memberId);
+    }
+
+    /**
+     * What a witness may collect from a person: the open fields of the person's documents that the
+     * person's side signs, and the templates a document can be generated from on the spot.
+     *
+     * @param session the witness
+     * @param person  the person, as {@link #requireOwnedPerson} answered it
+     * @return the open fields and the templates
+     */
+    public Offers offers(StationSession session, StationMember person) {
+        var fields = requests.openAbout(session.stationId(), person.id()).stream()
+                .filter(pending -> reach.offers(session, pending.field()))
+                .map(pending -> witnessed(session, pending))
+                .toList();
+        return new Offers(fields, generation.askingMemberSignatures(session.owner(), person.id()));
+    }
+
+    /**
+     * What a witness may collect from a person.
+     *
+     * @param fields    the open fields of the person's documents, each with the people it names
+     * @param templates the templates a document can be generated from for them
+     */
+    public record Offers(List<WitnessedField> fields, List<DocumentTemplate> templates) {}
+
+    /**
+     * Generates a document from a template for the person and asks for its signatures, without telling
+     * anybody, so they can be signed in front of the witness right away.
+     *
+     * @param session    the witness
+     * @param person     the person, as {@link #requireOwnedPerson} answered it
+     * @param templateId the template
+     * @return the fields the witness may collect on the new document
+     */
+    public List<WitnessedField> generate(StationSession session, StationMember person, int templateId) {
+        var generated = generation.generateForWitness(session, templateId, person.id());
+        var asked = requestService.requestForWitness(session.member().id(), generated.generationId());
+        return collectable(session, asked);
+    }
+
+    /**
+     * Asks for the signatures of a document the reader just generated for a person, to collect them in
+     * front of the reader right away, without telling anybody. The reader has to be allowed to change the
+     * document and to collect signatures from the person, both checked before anything is asked. Where the
+     * document holds nothing the witness may collect, such as a field any guardian signs of the witness's
+     * own child, everybody it asks is told as with an ordinary request, so nobody waits unasked.
+     *
+     * @param session      the witness
+     * @param generationId the generation log entry of the document
+     * @return the fields the witness may collect on the document, none where everybody was told instead
+     */
+    public List<WitnessedField> requireOwnedThenAskInPerson(StationSession session, int generationId) {
+        reach.requireWitness(session);
+        var person = requestService.requireOwnedMember(session, generationId);
+        reach.requireReachable(session, person.id());
+        var asked = requestService.requireOwnedThenRequestInPerson(session, generationId);
+        var fields = collectable(session, asked);
+        var request = asked.request();
+        if (fields.isEmpty() && request != null) requestService.announce(request);
+        return fields;
+    }
+
+    private List<WitnessedField> collectable(StationSession session, SignatureAsk asked) {
+        var request = asked.request();
+        if (request == null) throw DocumentRefusal.SIGNING_NO_FIELDS.raise();
+        return requests.fieldsOf(request.id()).stream()
+                .filter(field -> field.state() == FieldState.OPEN && reach.offers(session, field))
+                .flatMap(field -> requests.findField(session.stationId(), field.id()).stream())
+                .map(pending -> witnessed(session, pending))
+                .toList();
+    }
+
+    /**
+     * An open field the witness may collect, with the people it names.
+     *
+     * <p>A field the witness may not collect is refused the same way whether it is open or not, so nobody
+     * learns how the fields of people out of reach stand.
+     *
+     * @param session the witness
+     * @param fieldId the field
+     * @return the field
+     */
+    public WitnessedField requireOwnedField(StationSession session, int fieldId) {
+        reach.requireWitness(session);
+        var pending = requests.findField(session.stationId(), fieldId)
+                .orElseThrow(DocumentRefusal.SIGNING_FIELD_NOT_FOUND::raise);
+        reach.requireCollectable(session, pending.field());
+        boolean open = pending.field().state() == FieldState.OPEN
+                && requestService.requestAt(session, pending.requestUid()).open();
+        if (!open) throw DocumentRefusal.SIGNING_FIELD_NOT_OPEN.raise();
+        return witnessed(session, pending);
+    }
+
+    private WitnessedField witnessed(StationSession session, PendingSignature pending) {
+        return new WitnessedField(
+                pending,
+                reach.signersOf(session, pending.field()).stream()
+                        .map(this::person)
+                        .toList());
+    }
+
+    private WitnessPerson person(StationMember member) {
+        return new WitnessPerson(member.id(), names.official(member.id()), member.userType());
+    }
+
+    /**
+     * The document of a field the witness may collect, exactly as its request froze it.
+     *
+     * @param session the witness
+     * @param field   the field, as {@link #requireOwnedField} answered it
+     * @return the document's file name and bytes
+     */
+    public DocumentToSign document(StationSession session, WitnessedField field) {
+        return acts.frozenDocument(session, field.pending());
+    }
+
+    /**
+     * The fields the signer of a field the witness may collect fills in when they sign it.
+     *
+     * @param session the witness
+     * @param field   the field, as {@link #requireOwnedField} answered it
+     * @return the fields to fill in, in the order the document lists them
+     */
+    public List<FillInField> fillIns(StationSession session, WitnessedField field) {
+        return acts.fillInsOf(session, field.pending());
+    }
+
+    /**
+     * Starts the act of a person signing a field in front of the witness.
+     *
+     * @param session  the witness
+     * @param field    the field, as {@link #requireOwnedField} answered it
+     * @param signerId the person in front of them, one of those the field names
+     * @param entries  what the person typed into fields of their own, or null for none
+     * @return the started act
+     */
+    public BatchAttempt start(
+            StationSession session, WitnessedField field, int signerId, @Nullable List<SignerEntryDraft> entries) {
+        reach.requireSigner(session, field.pending().field(), signerId);
+        var open = new OpenSignature(field.pending(), Signer.witnessed(session.accountId(), signerId));
+        int fieldId = field.pending().field().id();
+        return acts.start(session, List.of(open), List.of(new BatchChoice(fieldId, entries)));
+    }
+
+    /**
+     * Completes an act signed in front of the witness with the witness's confirmation.
+     *
+     * @param session       the witness, who started it
+     * @param startToken    the token the start was handed out under
+     * @param answer        the witness's confirmation
+     * @param pictures      the picture the person drew
+     * @param circumstances where the confirmation came from
+     * @return where the field and its request now stand
+     */
+    public List<SigningOutcome> complete(
+            StationSession session,
+            String startToken,
+            SigningAnswer answer,
+            SigningPictures pictures,
+            SigningCircumstances circumstances) {
+        reach.requireWitness(session);
+        return acts.completeWitnessed(session, startToken, answer, pictures, circumstances);
+    }
+}

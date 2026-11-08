@@ -199,7 +199,8 @@ public final class SigningEvidenceFiles {
                 stored.guardianLink(),
                 evidence instanceof SigningEvidence.WebAuthnBound bound ? webAuthn(bound) : null,
                 picture == null ? null : new SigningEvidenceFile.Picture(picture.sha256(), picture.source()),
-                batchOf(act.batch()));
+                batchOf(act.batch()),
+                act.signer().witnessed() ? act.accountHolderName() : null);
     }
 
     private static SigningEvidenceFile.WebAuthn webAuthn(SigningEvidence.WebAuthnBound bound) {

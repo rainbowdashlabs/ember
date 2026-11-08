@@ -6,6 +6,7 @@
 import {computed, ref} from 'vue'
 import {StepUpProof} from '@/api/generated/schema'
 import type {
+    BatchCompleteRequest,
     BatchCompleteResponse,
     BatchFieldChoice,
     BatchPicture,
@@ -60,7 +61,7 @@ export function picturesOf(pictures: SigningPictures): BatchPicture[] {
 }
 
 /**
- * One signing act over every chosen field, from the start to the outcome.
+ * One signing act over every chosen field of the reader, from the start to the outcome.
  *
  * <p>A start binds the chosen fields and what was typed for them, and is kept on the server for a few
  * minutes, spent by the first confirmation whether it passes or not. So the start that told the screen
@@ -71,17 +72,41 @@ export function picturesOf(pictures: SigningPictures): BatchPicture[] {
  * @param choices the chosen fields with what was typed for each, read at each start
  */
 export function useBatchSigning(choices: () => BatchFieldChoice[]) {
+    return useSigningAct({
+        start: () => startBatchSigning(choices()),
+        boundTo: () => JSON.stringify(choices()),
+        complete: completeBatchSigning,
+    })
+}
+
+/** Where an act starts and completes, and what a start is bound to. */
+export interface SigningActEnds {
+    /** Starts the act on the server. */
+    start: () => Promise<BatchStartResponse>
+    /** What the next start would bind, so a start made for anything else is not reused. */
+    boundTo: () => string
+    /** Completes a started act with its confirmation. */
+    complete: (confirmation: BatchCompleteRequest) => Promise<BatchCompleteResponse>
+}
+
+/**
+ * One signing act from the start to the outcome, wherever it starts and completes: the reader's own fields
+ * in one go, or a field signed in front of a witness. A start is reused as {@link useBatchSigning} says.
+ *
+ * @param ends where the act starts and completes
+ */
+export function useSigningAct(ends: SigningActEnds) {
     const offer = ref<BatchStartResponse | null>(null)
     const offeredFor = ref('')
     const spent = ref(false)
     const outcome = ref<BatchCompleteResponse | null>(null)
 
-    /** Starts the act on the chosen fields, which tells which proofs are taken. */
+    /** Starts the act, which tells which proofs are taken. */
     async function prepare(): Promise<BatchStartResponse> {
-        const fields = choices()
-        const started = await startBatchSigning(fields)
+        const boundTo = ends.boundTo()
+        const started = await ends.start()
         offer.value = started
-        offeredFor.value = JSON.stringify(fields)
+        offeredFor.value = boundTo
         spent.value = false
         return started
     }
@@ -89,7 +114,7 @@ export function useBatchSigning(choices: () => BatchFieldChoice[]) {
     async function usableStart(): Promise<BatchStartResponse> {
         const current = offer.value
         const fresh = current && Date.parse(current.expiresAt) - Date.now() > EXPIRY_MARGIN_MS
-        if (current && fresh && !spent.value && offeredFor.value === JSON.stringify(choices())) return current
+        if (current && fresh && !spent.value && offeredFor.value === ends.boundTo()) return current
         return prepare()
     }
 
@@ -100,7 +125,7 @@ export function useBatchSigning(choices: () => BatchFieldChoice[]) {
         pictures: SigningPictures,
     ) {
         spent.value = true
-        outcome.value = await completeBatchSigning({
+        outcome.value = await ends.complete({
             startToken: start.startToken,
             proof,
             ...answer,
@@ -134,11 +159,20 @@ export function useBatchSigning(choices: () => BatchFieldChoice[]) {
         await complete(start, proof, {secret}, pictures)
     }
 
+    /** Forgets the start and the outcome, for a next act on the same screen. */
+    function reset() {
+        offer.value = null
+        offeredFor.value = ''
+        spent.value = false
+        outcome.value = null
+    }
+
     return {
         offer: computed(() => offer.value),
         outcome: computed(() => outcome.value),
         prepare,
         confirmWithAuthenticator,
         confirmWithSecret,
+        reset,
     }
 }

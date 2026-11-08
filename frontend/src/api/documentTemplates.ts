@@ -46,6 +46,8 @@ export interface TemplateListQuery {
     kind?: DocumentTemplateSummary['kind']
     /** Only templates for appointments when true, only the others when false. */
     forAppointments?: boolean
+    /** Only templates meant for this member, where the list is for generating a document for one. */
+    memberId?: number
     sort?: TemplateSort
     /** Counted from 0. */
     page?: number
@@ -232,7 +234,7 @@ export async function templateUse(templateId: number): Promise<TemplateUseRespon
     return res.data
 }
 
-/** Sets whether and for whom the station offers a template of its association for self service. */
+/** Sets for whom a template of its association is meant at the station and whether it is offered for self service. */
 export async function setTemplateUse(templateId: number, request: TemplateUseRequest): Promise<TemplateUseResponse> {
     const res = await client.put<TemplateUseResponse>(`/document-templates/${templateId}/use`, request)
     return res.data

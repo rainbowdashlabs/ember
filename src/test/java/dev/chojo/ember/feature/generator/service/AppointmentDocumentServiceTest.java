@@ -22,6 +22,8 @@ import dev.chojo.ember.feature.generator.service.DocumentTemplateService.Documen
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import org.junit.jupiter.api.BeforeAll;
@@ -324,6 +326,38 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
                 appointments.documentsToBring(as(guardian), open, DAY, true).participants();
         assertNotNull(overview);
         assertTrue(overview.stream().anyMatch(participant -> participant.memberId() == max.id()));
+    }
+
+    /**
+     * A document the appointment asks for reaches only the participants its template is meant for: the
+     * others are not listed with it, cannot generate it, and are not asked to sign it.
+     */
+    @Test
+    void aDocumentReachesOnlyTheParticipantsItIsMeantFor() {
+        var onlyLena = new RestrictionAudience(List.of(), List.of(), List.of(), List.of(lena.id()), RestrictionMode.OR);
+        var request = letter("Nur Lena", "{{member.fullName}}")
+                .forAppointments(true)
+                .hidden(true)
+                .audience(onlyLena)
+                .build();
+        int form =
+                wiring.templates().create(wiring.owner(), request, manager.id()).id();
+        requirements.setForEvent(wiring.owner(), camp.id(), List.of(form));
+        requirements.setForEvent(wiring.owner(), marathon.id(), List.of(form));
+
+        var forMax = appointments.documentsToBring(as(max), camp, DAY, false).own();
+        assertEquals(
+                List.of(max.id()),
+                forMax.stream().map(ParticipantDocuments::memberId).toList());
+        assertTrue(forMax.getFirst().documents().isEmpty(), "max is not listed with a document not meant for him");
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_MEMBER,
+                () -> appointments.generate(as(max), camp, DAY, form, max.id()));
+        assertTrue(appointments.signableFor(camp, max.id()).isEmpty());
+
+        var forLena =
+                appointments.documentsToBring(as(lena), marathon, DAY, false).own();
+        assertEquals(1, forLena.getFirst().documents().size());
     }
 
     /** Whoever manages the registrations sees where every participant stands, not only their own. */

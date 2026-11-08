@@ -129,7 +129,7 @@ public class SigningBatchRoutes implements Routes {
     }
 
     /** The pictures as sent, one per person, refusing two for one person. */
-    private static SigningPictures picturesOf(@Nullable List<BatchPicture> sent) {
+    static SigningPictures picturesOf(@Nullable List<BatchPicture> sent) {
         SigningPicture accountHolder = null;
         var members = new HashMap<Integer, SigningPicture>();
         for (var picture : Objects.requireNonNullElse(sent, List.<BatchPicture>of())) {

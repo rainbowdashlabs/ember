@@ -246,6 +246,63 @@ public class SignatureRequestService {
     }
 
     /**
+     * The member a generated document of the station is about, for a reader allowed to change it, before
+     * anybody is asked: so a witness can be checked against the person before the request exists.
+     *
+     * @param session      who asks, who has to be allowed to change the document
+     * @param generationId the generation log entry of the document
+     * @return the member
+     */
+    public StationMember requireOwnedMember(StationSession session, int generationId) {
+        return plannedMember(session, generationAt(session, generationId));
+    }
+
+    /**
+     * Tells everybody a request asks, for a request that was made quietly to be signed in person and turned
+     * out to hold nothing the person in front of the witness signs.
+     *
+     * @param request the request
+     */
+    public void announce(SignatureRequest request) {
+        notices.asked(request, requests.fieldsOf(request.id()));
+    }
+
+    /**
+     * Asks for the signatures of a document generated for a member, to have them signed in front of the
+     * reader right away. Nobody is told, as with {@link #requestForWitness}: the person is there, and a
+     * field they leave open waits among their open signatures as any other.
+     *
+     * @param session      the witness, who has to be allowed to change the document
+     * @param generationId the generation log entry of the document
+     * @return the request with its fields
+     */
+    public SignatureAsk requireOwnedThenRequestInPerson(StationSession session, int generationId) {
+        var generation = generationAt(session, generationId);
+        var created = onceForTheDocument(() -> create(session, generation, null));
+        return SignatureAsk.asked(created, requests.fieldsOf(created.id()));
+    }
+
+    /**
+     * Asks for the signatures of a document a witness generated on the spot for the person in front of
+     * them, who signs it right away. Nobody is told: the person is there, and a field they leave open waits
+     * among their open signatures as any other. The witness asked, so the request names them; the caller has
+     * made sure they may collect signatures from the person.
+     *
+     * @param witnessId    the witness
+     * @param generationId the generation log entry of the document
+     * @return the request with its fields
+     */
+    public SignatureAsk requestForWitness(int witnessId, int generationId) {
+        var generation =
+                generations.findById(generationId).orElseThrow(DocumentRefusal.SIGNING_GENERATION_NOT_FOUND::raise);
+        var created = onceForTheDocument(() -> {
+            var plan = planOf(generation, memberOf(generation), filedDocument(generation));
+            return create(generation, plan, witnessId, null);
+        });
+        return SignatureAsk.asked(created, requests.fieldsOf(created.id()));
+    }
+
+    /**
      * Withdraws every signature still open on a participant's copies for one date of an appointment, once
      * they no longer take part. What was already signed stays, and their reminders stop with the fields.
      *
@@ -495,10 +552,14 @@ public class SignatureRequestService {
             int documentId, int memberId, String memberName, String sha256, List<RequestedSignature.Draft> fields) {}
 
     private Plan plan(StationSession session, DocumentGeneration generation) {
+        var member = plannedMember(session, generation);
+        return planOf(generation, member, filedDocument(generation));
+    }
+
+    private StationMember plannedMember(StationSession session, DocumentGeneration generation) {
         var member = memberOf(generation);
-        var document = filedDocument(generation);
-        guards.requireMayManage(session, document.id());
-        return planOf(generation, member, document);
+        guards.requireMayManage(session, filedDocument(generation).id());
+        return member;
     }
 
     private Document filedDocument(DocumentGeneration generation) {

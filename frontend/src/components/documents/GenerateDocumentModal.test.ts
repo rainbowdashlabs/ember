@@ -101,8 +101,14 @@ describe('GenerateDocumentModal', () => {
         expect(dialog.emitted('update:modelValue')).toEqual([[false]])
     })
 
-    it('asks the picker to leave out the templates for appointments', async () => {
+    it('asks the picker for the templates meant for the member, leaving out those for appointments', async () => {
         const dialog = await mountDialog({memberId: 4})
+
+        expect(dialog.findComponent(TemplateChoice).props('fixed')).toEqual({forAppointments: false, memberId: 4})
+    })
+
+    it('asks the picker for every template until a member is chosen', async () => {
+        const dialog = await mountDialog({members: []})
 
         expect(dialog.findComponent(TemplateChoice).props('fixed')).toEqual({forAppointments: false})
     })

@@ -35,6 +35,7 @@ import dev.chojo.ember.feature.generator.repository.TemplateQuestionRepository;
 import dev.chojo.ember.feature.generator.repository.TemplateStationUseRepository;
 import dev.chojo.ember.feature.generator.service.store.OwnerStores;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.RestrictionMember;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.owner.Owner;
@@ -47,6 +48,8 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -65,8 +68,8 @@ import java.util.stream.Stream;
  *
  * <p>Only the owner writes a template. A station uses the templates of its association in use next to
  * its own and lists them, marked as the association's, but a change to one is refused with words of its
- * own. Whether the station's members generate one of them through self service, the station decides
- * ({@link TemplateStationUseService}); an association only offers a template for it and sets no audience.
+ * own. For whom of its members one of them is meant, and whether they generate it through self service,
+ * the station decides ({@link TemplateStationUseService}); an association sets no audience.
  */
 @Singleton
 public class DocumentTemplateService {
@@ -139,6 +142,22 @@ public class DocumentTemplateService {
         return Stream.concat(own, association).toList();
     }
 
+    /**
+     * The templates a station generates from: its own in use and those of its association in use, as
+     * {@link #list} names them, by name.
+     *
+     * @param station the station
+     * @return the templates
+     */
+    public List<DocumentTemplate> inUse(Owner.Station station) {
+        return Stream.concat(
+                        templates.findByOwner(station, false).stream(),
+                        templates.findOfAssociationOf(station.stationId()).stream())
+                .filter(template -> !template.archived())
+                .sorted(Comparator.comparing(DocumentTemplate::name, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
     private static boolean offeredAt(@Nullable TemplateStationUse use) {
         return use != null && use.selfService();
     }
@@ -181,6 +200,64 @@ public class DocumentTemplateService {
                 .filter(template ->
                         template.owner().equals(new Owner.Station(stationId)) || keptForStation(template, stationId))
                 .orElseThrow(DocumentRefusal.DOCUMENT_TEMPLATE_NOT_HERE::raise);
+    }
+
+    /**
+     * Which templates are meant for which current members of a station: the members its documents may be
+     * generated for, by a manager, a bulk run, a witness, an appointment or the member themselves.
+     *
+     * <p>A station's own template says it in its audience. A template of the association says it per
+     * station, in the audience the station chose for it; a station that chose nothing takes in everybody.
+     * An audience naming nobody takes in every member.
+     *
+     * <p>Former members count as well: a document such as a leaving certificate is still generated for
+     * somebody who left, by the same audience.
+     *
+     * @param stationId the station the documents would be filed at
+     * @return the answer for every member of the station, reading each audience once
+     */
+    public TemplateFit fitAt(int stationId) {
+        return fitOf(stationId, null);
+    }
+
+    /**
+     * Which templates are meant for one member of a station, reading only that member, as a single document
+     * or a template picker for one member asks.
+     *
+     * @param stationId the station the documents would be filed at
+     * @param memberId  the member
+     * @return the answer for the member, nothing being meant for somebody not of the station
+     */
+    public TemplateFit fitFor(int stationId, int memberId) {
+        return fitOf(stationId, List.of(memberId));
+    }
+
+    private TemplateFit fitOf(int stationId, @Nullable List<Integer> memberIds) {
+        var members = new HashMap<Integer, RestrictionMember>();
+        restrictions.membersAt(stationId, memberIds).forEach(member -> members.put(member.memberId(), member));
+        return new TemplateFit(
+                members, (templateId, ofAssociation) -> audienceAt(templateId, ofAssociation, stationId));
+    }
+
+    /**
+     * Refuses a template for a member it is not meant for.
+     *
+     * @param template  the template
+     * @param stationId the station the document would be filed at
+     * @param memberId  the member
+     */
+    public void requireMeantFor(DocumentTemplate template, int stationId, int memberId) {
+        if (!fitFor(stationId, memberId).meantFor(template, memberId)) {
+            throw DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_MEMBER.raise();
+        }
+    }
+
+    private RestrictionAudience audienceAt(int templateId, boolean ofAssociation, int stationId) {
+        if (!ofAssociation) return find(templateId).map(this::audienceOf).orElseGet(RestrictionAudience::empty);
+        return uses.find(templateId, stationId)
+                .map(use -> RestrictionAudience.of(restrictions.findRestrictionSet(
+                        RestrictionType.DOCUMENT_TEMPLATE_STATION_USE, use.id(), use.restrictionMode())))
+                .orElseGet(RestrictionAudience::empty);
     }
 
     /**
@@ -276,12 +353,12 @@ public class DocumentTemplateService {
     }
 
     /**
-     * Writes a new template with its content and its self service audience, as it stands, for a caller
+     * Writes a new template with its content and its audience, as it stands, for a caller
      * that has checked it and holds the transaction.
      *
      * @param owner    the station or the association that keeps it
      * @param draft    the template
-     * @param audience who may generate it through self service, everybody where null
+     * @param audience for whom it is meant, everybody where null
      * @param authorId the account that creates it
      * @return the template as written
      */
@@ -362,8 +439,8 @@ public class DocumentTemplateService {
     }
 
     /**
-     * Refuses a self service audience on a template of an association, which offers a template and leaves
-     * the audience to each station.
+     * Refuses an audience on a template of an association, which leaves for whom it is meant to each
+     * station.
      */
     private static void requireAudienceAllowed(Owner owner, DocumentTemplateRequest request) {
         var audience = request.audience();
@@ -485,8 +562,8 @@ public class DocumentTemplateService {
      * @param selfService     whether members may generate it for themselves; for an association's
      *                        template, whether it is offered to its stations for that
      * @param cooldownDays    the days between two self service documents for one member
-     * @param audience        who may generate it through self service, always everybody for a template of
-     *                        an association
+     * @param audience        for whom it is meant, whoever generates it, always everybody for a template
+     *                        of an association
      * @param language        the language its documents are written in
      * @param issuerId        the member of the station who issues its documents, or null where it names
      *                        nobody, for a template of an association, and once that member was deleted

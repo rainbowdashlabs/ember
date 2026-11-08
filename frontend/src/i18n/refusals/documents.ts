@@ -218,4 +218,9 @@ export default {
     'D-323': 'Eine ersetzte Schrift wird mit 50 bis 150 Prozent ihrer Größe gezeichnet',
     'D-324': 'Die Vorschau eines Formulars nimmt höchstens 8 Schriftdateien',
     'D-325': 'Die gewählte Schrift hat keinen leichten Schnitt',
+    'D-326': 'Niemand bezeugt die eigene Unterschrift oder ein Feld, das er selbst unterschreiben würde',
+    'D-327': 'Von dieser Person sammelst du keine Unterschriften vor Ort',
+    'D-328': 'Dieses Feld wird nicht vor einer Zeugin oder einem Zeugen unterschrieben',
+    'D-329': 'Dieses Feld fragt diese Person nicht nach einer Unterschrift',
+    'D-330': 'Diese Vorlage ist nicht für dieses Mitglied gedacht',
 }

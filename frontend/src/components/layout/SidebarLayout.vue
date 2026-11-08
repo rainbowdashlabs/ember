@@ -43,14 +43,16 @@ onMounted(() => { interactive.value = true })
 
 <template>
   <div :data-testid="interactive ? 'app-shell' : undefined" class="flex min-h-screen">
-    <AppSidebar :open="sidebarOpen" :station-logo-url="stationLogoUrl" :station-name="stationName"
-                :collapsible="collapsible" :switcher="switcher"
-                @close="sidebarOpen = false">
-      <slot :close="() => sidebarOpen = false" name="sidebar"/>
-    </AppSidebar>
+    <div data-shell-chrome class="contents">
+      <AppSidebar :open="sidebarOpen" :station-logo-url="stationLogoUrl" :station-name="stationName"
+                  :collapsible="collapsible" :switcher="switcher"
+                  @close="sidebarOpen = false">
+        <slot :close="() => sidebarOpen = false" name="sidebar"/>
+      </AppSidebar>
+    </div>
 
     <div class="flex flex-1 flex-col min-w-0">
-      <AppHeader :subtitle="subtitle" :title="title" @toggle-sidebar="sidebarOpen = !sidebarOpen">
+      <AppHeader data-shell-chrome :subtitle="subtitle" :title="title" @toggle-sidebar="sidebarOpen = !sidebarOpen">
         <slot name="header"/>
       </AppHeader>
 
@@ -58,12 +60,12 @@ onMounted(() => { interactive.value = true })
         <slot/>
       </main>
 
-      <AppFooter>
+      <AppFooter data-shell-chrome>
         <slot name="footer"/>
       </AppFooter>
     </div>
 
-    <FloatingDock v-if="$slots.dock">
+    <FloatingDock v-if="$slots.dock" data-shell-chrome>
       <slot name="dock"/>
     </FloatingDock>
   </div>
