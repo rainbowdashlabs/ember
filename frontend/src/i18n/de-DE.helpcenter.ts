@@ -1240,7 +1240,7 @@ volumes:
                 + 'Das stellt ein, wer Mitglieder verwaltet: in den Berechtigungen direkt unter „Unterschriften vor Ort sammeln“. Die Auswahl gilt für alle, die die Berechtigung haben. Ohne Auswahl geht es bei allen Mitgliedern und Probemitgliedern.',
             steps: 'Die Schritte',
             stepPerson: '1. Person wählen - „Offen“ zeigt, bei wem gerade eine Unterschrift wartet, mit der Zahl und den Dokumenten. Unter „Alle“ stehen alle, von denen du sammeln darfst. Die Liste lässt sich durchsuchen, sortieren und nach Mitgliedstyp oder Gruppe filtern.',
-            stepDocument: '2. Dokument wählen - Du siehst die offenen Unterschriften dieser Person. Oder du erstellst ein neues Dokument aus einer Vorlage, das gleich unterschrieben wird. Darf jede erziehungsberechtigte Person unterschreiben, wählst du, wer gerade da ist.',
+            stepDocument: '2. Dokument wählen - Du siehst die offenen Unterschriften dieser Person. Oder du erstellst ein neues Dokument aus einer Vorlage, das gleich unterschrieben wird. Angeboten werden nur Vorlagen, die für diese Person gedacht sind. Darf jede erziehungsberechtigte Person unterschreiben, wählst du, wer gerade da ist.',
             stepHandOver: '3. Gerät übergeben - Gib das Gerät der Person. Sie liest das Dokument, setzt den Haken, trägt ein, was das Dokument fragt, und zeichnet ihre Unterschrift. Ihr Name steht unter dem Feld.',
             stepTakeBack: '4. Zurücknehmen und bestätigen - Die Person gibt dir das Gerät zurück. Du bestätigst mit deinem Passkey, deinem Code oder deinem Passwort, dass sie vor dir unterschrieben hat.',
             handedOver: 'Solange die Person das Gerät hat, sieht sie nur das Dokument. Menü, Suche und deine eigenen Daten sind gesperrt, bis du das Gerät zurück hast. Möchte die Person nicht unterschreiben, gibt sie das Gerät einfach zurück.',
@@ -1249,7 +1249,9 @@ volumes:
             evidence: 'Was steht im Nachweis?',
             evidenceText: 'Der Signaturnachweis nennt die Person als die, die unterschrieben hat, und dich als Zeugin oder Zeuge mit deiner Bestätigung. Auch die Prüfseite für Dokumente zeigt das so an.',
             fromTile: 'Vom Dokument aus',
-            fromTileText: 'Bei einem Dokument mit offener Unterschrift steht unter dem Feld „Vor Ort unterschreiben lassen“. Damit kommst du direkt zum Übergeben.',
+            fromTileText: 'Bei einem Dokument mit offener Unterschrift steht unter dem Feld „Vor Ort unterschreiben lassen“. Damit kommst du direkt zum Übergeben. '
+                + 'Auch direkt nach dem Erstellen eines Dokuments auf der Seite eines Mitglieds bietet der Schritt „Unterschriften anfordern“ '
+                + '„Vor Ort unterschreiben lassen“ an: Dann wird niemand benachrichtigt, und es geht gleich mit dem ersten Feld weiter.',
             tip: 'Halte das Gerät erst zurück, wenn die Person fertig ist. Deine Bestätigung bleibt fünf Minuten gültig.',
         },
         newsList: {
@@ -2038,12 +2040,13 @@ volumes:
             subtitle: 'Wie die Wache eine Vorlage ihres Verbands verwendet',
             whatIs: 'Was die Wache hier festlegt',
             whatIsText: 'Die Vorlage gehört dem Verband und wird dort geschrieben. Die Verwaltung der Wache erstellt '
-                + 'sie für Mitglieder auf deren Seite. Hier legt die Wache fest, ob ihre Mitglieder sie selbst '
-                + 'erstellen und wer ihre Dokumente an der Wache ausstellt.',
-            selfServiceTitle: 'Selbst erstellen lassen',
-            selfServiceText: 'Mit dem Schalter erscheint die Vorlage bei den Mitgliedern unter Selbst erstellen. Ohne Auswahl bei „Für '
-                + 'wen" gilt sie für alle Mitglieder, sonst nur für die gewählten Gruppen, Mitgliedsarten, Tags oder '
-                + 'Personen. Die Wartezeit legt der Verband fest.',
+                + 'sie für Mitglieder auf deren Seite. Hier legt die Wache fest, für wen die Vorlage gilt, ob ihre '
+                + 'Mitglieder sie selbst erstellen und wer ihre Dokumente an der Wache ausstellt.',
+            selfServiceTitle: 'Für wen und selbst erstellen lassen',
+            selfServiceText: '„Für wen“ legt fest, für welche Mitglieder die Vorlage überhaupt erstellt wird: von der '
+                + 'Verwaltung, in Serien, vor Ort, bei Terminen und von den Mitgliedern selbst. Ohne Auswahl gilt sie für '
+                + 'alle, sonst nur für die gewählten Gruppen, Mitgliedsarten, Tags oder Personen. Mit dem Schalter '
+                + 'erscheint sie bei diesen Mitgliedern unter Selbst erstellen. Die Wartezeit legt der Verband fest.',
             offeredText: 'Bietet der Verband die Vorlage nicht zum Selbst-Erstellen an, bleibt die Einstellung ohne '
                 + 'Wirkung, bis er es tut.',
             issuerTitle: 'Ausstellende Person',
@@ -2248,9 +2251,12 @@ volumes:
             pronounsNameText: 'Pronomen-Platzhalter gibt es als er/sie, ihn/sie, ihm/ihr und sein/ihr, jeweils auch '
                 + 'für den Satzanfang. Sein/ihr gibt es zusätzlich mit Endung, etwa seine/ihre oder seinen/ihren. '
                 + 'Steht der Vorname, wird beim Besitz „Lenas" geschrieben, ohne Endung.',
-            selfServiceTitle: 'Selbst erstellen',
-            selfServiceText: 'Gib die Vorlage frei, damit Mitglieder sie unter Dokumente → Selbst erstellen finden. Lege fest, für '
-                + 'wen das gilt und wie viele Tage bis zum nächsten Mal vergehen müssen.',
+            selfServiceTitle: 'Für wen',
+            selfServiceText: '„Für wen“ legt fest, für welche Mitglieder die Vorlage erstellt wird, ganz gleich von wem: '
+                + 'von der Verwaltung, in Serien, vor Ort, bei Terminen und von den Mitgliedern selbst. So erscheint eine '
+                + 'Fotoerlaubnis für Jugendliche gar nicht erst bei Erziehungsberechtigten. Ohne Auswahl gilt sie für alle. '
+                + 'Darunter gibst du die Vorlage frei, damit diese Mitglieder sie unter Dokumente → Selbst erstellen '
+                + 'finden, und legst fest, wie viele Tage bis zum nächsten Mal vergehen müssen.',
             previewTitle: 'Vorschau',
             previewText: 'Die Vorschau zeigt den Brief so, wie er gedruckt wird. Ohne Mitglied stehen die Namen der '
                 + 'Platzhalter darin, mit einem Mitglied seine Daten. Fehlende Angaben werden genannt. Abgelegt '
