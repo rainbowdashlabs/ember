@@ -975,7 +975,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
 
     /**
      * A member who left still gets the documents of a template meant for everybody, such as a leaving
-     * certificate, and is still refused one the template's audience leaves out.
+     * certificate, while somebody of another station gets none.
      */
     @Test
     void aFormerMemberStillGetsWhatTheirTemplateIsMeantFor() {

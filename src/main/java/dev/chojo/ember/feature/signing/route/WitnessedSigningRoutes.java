@@ -155,7 +155,7 @@ public class WitnessedSigningRoutes implements Routes {
             })
     private void askInPerson(Context ctx) {
         var session = StationSession.from(ctx);
-        ctx.json(witnessed.askInPerson(session, pathInt(ctx, "generationId")).stream()
+        ctx.json(witnessed.requireOwnedThenAskInPerson(session, pathInt(ctx, "generationId")).stream()
                 .map(WitnessFieldResponse::of)
                 .toList());
     }

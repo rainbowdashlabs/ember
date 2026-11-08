@@ -179,7 +179,7 @@ public class WitnessedSigningService {
      * @param generationId the generation log entry of the document
      * @return the fields the witness may collect on the document, none where everybody was told instead
      */
-    public List<WitnessedField> askInPerson(StationSession session, int generationId) {
+    public List<WitnessedField> requireOwnedThenAskInPerson(StationSession session, int generationId) {
         reach.requireWitness(session);
         var person = requestService.requireOwnedMember(session, generationId);
         reach.requireReachable(session, person.id());
