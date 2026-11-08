@@ -248,9 +248,9 @@ public class StationMemberRoutes implements Routes {
     }
 
     /**
-     * The active members for autocomplete. Narrowed to those an entity's restriction takes in only for a
-     * reader who manages that kind of entity, so nobody learns who runs or may open something they may
-     * not manage.
+     * The active members for autocomplete, narrowed to those an entity's restriction takes in, such as the
+     * readers of a news entry a comment mentions somebody in. A procedure's party is itself not public, so
+     * it narrows the list only for a reader who manages procedures.
      */
     @OpenApi(
             path = "/api/v1/station-members/completions",
@@ -272,7 +272,7 @@ public class StationMemberRoutes implements Routes {
             try {
                 var rType = RestrictionType.valueOf(rtParam);
                 int entityId = Integer.parseInt(entityIdParam);
-                var allowedIds = session.hasPermission(rType.managerPermission())
+                var allowedIds = !privateAudience(rType) || session.hasPermission(rType.managerPermission())
                         ? restrictionService.findMembersPassingRestriction(rType, entityId, session.stationId())
                         : Optional.<Set<Integer>>empty();
                 if (allowedIds.isPresent()) {
@@ -285,6 +285,11 @@ public class StationMemberRoutes implements Routes {
         }
 
         ctx.json(memberIdentityFactory.enrichCompletions(completions));
+    }
+
+    /** Whether who an entity's restriction takes in is itself kept from those who do not manage it. */
+    private static boolean privateAudience(RestrictionType type) {
+        return type == RestrictionType.PROCEDURE || type == RestrictionType.PROCEDURE_TEMPLATE;
     }
 
     @OpenApi(

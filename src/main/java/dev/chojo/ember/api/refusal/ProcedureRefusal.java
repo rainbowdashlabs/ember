@@ -97,6 +97,19 @@ public enum ProcedureRefusal implements Refusal {
     /** A step named under a procedure template it does not belong to. */
     PROCEDURE_TEMPLATE_STEP_NOT_IN_TEMPLATE(28, HttpStatus.NOT_FOUND, Sentences.PROCEDURE_STEP_NOT_HERE_ON_WRITE),
 
+    /** A managing party naming a group, tag or member that is not of the procedure's station. */
+    PROCEDURE_PARTY_NOT_OF_STATION(
+            30,
+            HttpStatus.BAD_REQUEST,
+            "The managing party names a group, tag or member of another station, so nothing was saved"),
+
+    /** A managing party set without saying who it is. */
+    PROCEDURE_PARTY_MISSING(31, HttpStatus.BAD_REQUEST, "Say who runs the procedure, so nothing was saved"),
+
+    /** A procedure started from a template that is not one of the station's own. */
+    PROCEDURE_TEMPLATE_NOT_HERE_TO_START(
+            32, HttpStatus.NOT_FOUND, "That procedure template is not here, so no procedure was started"),
+
     /** A note on a step written by somebody who does not run the procedure. */
     PROCEDURE_STEP_NOTE_NOT_YOURS(
             29, HttpStatus.FORBIDDEN, "Only whoever runs the procedure can write a note on a step"),

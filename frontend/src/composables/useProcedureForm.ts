@@ -40,6 +40,11 @@ export interface EditableItem {
  * @param editId           the procedure being edited, or {@code null} when creating a new one
  * @param presetTemplateId a template to start a new procedure from, or {@code null} for a blank one
  */
+/** Whether a party names anybody: a template with an empty one leaves the party picked so far alone. */
+function namesSomebody(party: RestrictionSelection): boolean {
+  return party.userTypes.length + party.groupIds.length + party.tagIds.length + party.memberIds.length > 0
+}
+
 export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: Ref<number | null>) {
   const { t } = useI18n()
 
@@ -122,7 +127,8 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       name.value = detail.template.name
       description.value = detail.template.description ?? ''
       items.value = toEditableItems(detail.items, detail.dependencies, false)
-      if (!isEditMode.value) party.value = toRestriction(detail.party)
+      const templateParty = toRestriction(detail.party)
+      if (!isEditMode.value && namesSomebody(templateParty)) party.value = templateParty
     } catch (e) {
       failure.value = {...describeFailure(e, t), message: t('procedures.templateNotLoaded')}
     }
@@ -135,6 +141,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       items.value = []
       name.value = ''
       description.value = ''
+      party.value = emptyRestriction()
       return
     }
     selectedTemplateId.value = Number(idStr)

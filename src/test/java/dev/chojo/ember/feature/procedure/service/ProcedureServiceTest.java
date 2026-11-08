@@ -53,6 +53,7 @@ class ProcedureServiceTest {
         eventBus = mock(DomainEventBus.class);
         restrictions = mock(RestrictionService.class);
         when(restrictions.audienceOf(any(), anyInt())).thenReturn(RestrictionAudience.empty());
+        when(restrictions.ofStation(anyInt(), any())).thenReturn(true);
         service = new ProcedureService(repository, eventBus, restrictions);
     }
 
@@ -383,7 +384,7 @@ class ProcedureServiceTest {
 
         verify(restrictions).setAudience(RestrictionType.PROCEDURE, PROCEDURE_ID, named(MEMBER_ID, MEMBER_ID_2));
         verify(eventBus).publish(captor.capture());
-        assertEquals(List.of(MEMBER_ID_2), captor.getValue().assigneeMemberIds());
+        assertEquals(List.of(MEMBER_ID_2), captor.getValue().partyMemberIds());
     }
 
     @Test

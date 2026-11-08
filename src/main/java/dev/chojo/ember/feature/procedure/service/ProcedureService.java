@@ -210,6 +210,7 @@ public class ProcedureService {
             @Nullable RestrictionAudience party,
             @Nullable Integer eventId,
             @Nullable LocalDate eventDate) {
+        if (party != null) ofStation(stationId, party);
         var procedure = repository.createProcedure(
                 stationId, templateId, name, description, isPublic, assignedBy, dueAt, eventId, eventDate);
 
@@ -217,8 +218,9 @@ public class ProcedureService {
             snapshotTemplate(procedure.id(), templateId);
         }
 
-        var given =
-                party != null ? party : templateId != null ? templatePartyOf(templateId) : RestrictionAudience.empty();
+        var given = ofStation(
+                stationId,
+                party != null ? party : templateId != null ? templatePartyOf(templateId) : RestrictionAudience.empty());
         restrictions.setAudience(RestrictionType.PROCEDURE, procedure.id(), given);
         var named = given.toSelection().memberIds();
         if (!named.isEmpty()) {
@@ -256,7 +258,7 @@ public class ProcedureService {
             return false;
         }
 
-        var party = partyMembers(procedure.get().stationId(), id);
+        var party = toldOf(procedure.get());
         eventBus.publish(new ProcedureResolved(
                 procedure.get().stationId(), id, procedure.get().name(), party, resolvedByMemberId));
         log.info("Resolved procedure {} by member {}", id, resolvedByMemberId);
@@ -274,7 +276,7 @@ public class ProcedureService {
             return false;
         }
 
-        var party = partyMembers(procedure.get().stationId(), id);
+        var party = toldOf(procedure.get());
         eventBus.publish(new ProcedureReopened(
                 procedure.get().stationId(), id, procedure.get().name(), party, reopenedByMemberId));
         log.info("Reopened procedure {} by member {}", id, reopenedByMemberId);
@@ -343,9 +345,10 @@ public class ProcedureService {
             log.warn("Party of procedure {} not changed: not found", procedureId);
             return;
         }
+        var checked = ofStation(procedure.get().stationId(), party);
         var before = Set.copyOf(partyOf(procedureId).toSelection().memberIds());
-        restrictions.setAudience(RestrictionType.PROCEDURE, procedureId, party);
-        var newlyNamed = party.toSelection().memberIds().stream()
+        restrictions.setAudience(RestrictionType.PROCEDURE, procedureId, checked);
+        var newlyNamed = checked.toSelection().memberIds().stream()
                 .filter(memberId -> !before.contains(memberId))
                 .toList();
         if (!newlyNamed.isEmpty()) {
@@ -353,6 +356,30 @@ public class ProcedureService {
                     procedure.get().stationId(), procedureId, procedure.get().name(), newlyNamed, assignedByMemberId));
         }
         log.info("Changed the party of procedure {}, {} member(s) newly named", procedureId, newlyNamed.size());
+    }
+
+    /**
+     * Who of the party is told about a procedure: its members, but only where the procedure is public,
+     * since a member of the party who does not edit procedures may not open one that is not.
+     */
+    private List<Integer> toldOf(Procedure procedure) {
+        return procedure.isPublic() ? partyMembers(procedure.stationId(), procedure.id()) : List.of();
+    }
+
+    /**
+     * A party as it is stored: each part once, refused where it names a group, tag or member of another
+     * station.
+     */
+    private RestrictionAudience ofStation(int stationId, RestrictionAudience party) {
+        var selection = party.toSelection();
+        var distinct = new RestrictionAudience(
+                selection.userTypes().stream().distinct().toList(),
+                selection.groupIds().stream().distinct().toList(),
+                selection.tagIds().stream().distinct().toList(),
+                selection.memberIds().stream().distinct().toList(),
+                party.mode());
+        if (!restrictions.ofStation(stationId, distinct)) throw ProcedureRefusal.PROCEDURE_PARTY_NOT_OF_STATION.raise();
+        return distinct;
     }
 
     /**
@@ -372,7 +399,12 @@ public class ProcedureService {
      * @param party      the party; one naming nobody hands none
      */
     public void setTemplateParty(int templateId, RestrictionAudience party) {
-        restrictions.setAudience(RestrictionType.PROCEDURE_TEMPLATE, templateId, party);
+        var template = repository.findTemplateById(templateId);
+        if (template.isEmpty()) return;
+        restrictions.setAudience(
+                RestrictionType.PROCEDURE_TEMPLATE,
+                templateId,
+                ofStation(template.get().stationId(), party));
         log.info("Changed the default party of procedure template {}", templateId);
     }
 
@@ -452,8 +484,7 @@ public class ProcedureService {
 
         var procedure = repository.findProcedureById(item.get().procedureId());
         if (procedure.isPresent()) {
-            var party =
-                    partyMembers(procedure.get().stationId(), procedure.get().id());
+            var party = item.get().isPublic() ? toldOf(procedure.get()) : List.<Integer>of();
             eventBus.publish(new ProcedureItemChecked(
                     procedure.get().stationId(),
                     procedure.get().id(),

@@ -504,12 +504,13 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     }
 
     /**
-     * The member belongs to the open procedure's party; its first item is restored to public and
-     * user-assigned first, since earlier tests edit it.
+     * The member belongs to the open procedure's party; the procedure and its first item are made public
+     * and the item user-assigned first, since earlier tests edit them, and only public procedures count.
      */
     @Test
     @Order(91)
     void countOpenRunByWithAvailableItems() {
+        procedureRepo.updateProcedure(procedureId, "Renamed Drill", "New desc", true, null);
         procedureRepo.updateItem(itemId1, "Check exits", "Desc", true, true, 1);
         int count = procedureRepo.countOpenRunByWithAvailableItems(station.id(), member.id());
         assertTrue(count >= 1);

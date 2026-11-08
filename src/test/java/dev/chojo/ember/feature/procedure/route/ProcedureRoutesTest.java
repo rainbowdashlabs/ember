@@ -57,6 +57,7 @@ class ProcedureRoutesTest {
             "{\"title\": \"Packen\", \"isPublic\": true, \"userAssigned\": true, \"position\": 0}";
 
     private ProcedureRepository repository;
+    private RestrictionService restrictions;
     private RouteHarness harness;
 
     @BeforeEach
@@ -68,7 +69,8 @@ class ProcedureRoutesTest {
         when(repository.findItems(PROCEDURE)).thenReturn(List.of(step(OWN_STEP, PROCEDURE)));
         when(repository.findTemplateById(TEMPLATE)).thenReturn(Optional.of(template()));
         when(repository.findTemplateItems(TEMPLATE)).thenReturn(List.of(templateStep()));
-        var restrictions = mock(RestrictionService.class);
+        restrictions = mock(RestrictionService.class);
+        when(restrictions.ofStation(anyInt(), any())).thenReturn(true);
         when(restrictions.hasRestrictions(RestrictionType.PROCEDURE, PROCEDURE)).thenReturn(true);
         when(restrictions.includes(RestrictionType.PROCEDURE, PROCEDURE, TestSessions.MEMBER_ID))
                 .thenReturn(true);
@@ -194,6 +196,99 @@ class ProcedureRoutesTest {
                 harness.as(TestSessions.member(STATION, StationPermission.PROCEDURE_MANAGER))));
 
         assertEquals(204, answer.code());
+    }
+
+    /** The party of the station's own procedure is set; another station's procedure is not found. */
+    @Test
+    void aPartyIsSetOnlyOnTheStationsOwnProcedure() {
+        when(repository.findProcedureById(OTHER_PROCEDURE))
+                .thenReturn(Optional.of(procedureAt(OTHER_PROCEDURE, 99, true)));
+        harness.run((server, client) -> {
+            var editor =
+                    harness.as(TestSessions.member(STATION, StationPermission.USER, StationPermission.PROCEDURE_EDIT));
+            String party =
+                    "{\"userTypes\": [], \"groupIds\": [], \"tagIds\": [], \"memberIds\": [], \"mode\": \"AND\"}";
+
+            assertEquals(
+                    404,
+                    client.put(PREFIX + "/procedures/" + OTHER_PROCEDURE + "/party", body(party), editor)
+                            .code());
+            assertEquals(
+                    200,
+                    client.put(PREFIX + "/procedures/" + PROCEDURE + "/party", body(party), editor)
+                            .code());
+
+            when(restrictions.ofStation(anyInt(), any())).thenReturn(false);
+            assertEquals(
+                    ProcedureRefusal.PROCEDURE_PARTY_NOT_OF_STATION,
+                    refusalOf(client.put(PREFIX + "/procedures/" + PROCEDURE + "/party", body(party), editor)));
+        });
+    }
+
+    /** A member the party does not take in neither opens the procedure nor ticks its steps. */
+    @Test
+    void aMemberOutsideThePartyNeitherOpensNorTicksIt() {
+        when(restrictions.includes(RestrictionType.PROCEDURE, PROCEDURE, TestSessions.MEMBER_ID))
+                .thenReturn(false);
+        harness.run((server, client) -> {
+            var member = harness.as(TestSessions.member(STATION, StationPermission.USER));
+
+            assertEquals(
+                    ProcedureRefusal.PROCEDURE_NOT_YOURS,
+                    refusalOf(client.get(PREFIX + "/procedures/" + PROCEDURE, member)));
+            assertEquals(
+                    ProcedureRefusal.PROCEDURE_NOT_HANDED_TO_YOU,
+                    refusalOf(client.patch(
+                            PREFIX + "/procedures/" + PROCEDURE + "/items/" + OWN_STEP,
+                            body("{\"checked\": true}"),
+                            member)));
+        });
+        verify(repository, never()).checkItem(anyInt(), anyInt());
+    }
+
+    /** A procedure without a party is run by nobody but those who edit procedures. */
+    @Test
+    void aProcedureWithoutAPartyIsTickedByNobodyButEditors() {
+        when(restrictions.hasRestrictions(RestrictionType.PROCEDURE, PROCEDURE)).thenReturn(false);
+
+        var answer = harness.request(client -> client.patch(
+                PREFIX + "/procedures/" + PROCEDURE + "/items/" + OWN_STEP,
+                body("{\"checked\": true}"),
+                harness.as(TestSessions.member(STATION, StationPermission.USER))));
+
+        assertEquals(ProcedureRefusal.PROCEDURE_NOT_HANDED_TO_YOU, refusalOf(answer));
+        verify(repository, never()).checkItem(anyInt(), anyInt());
+    }
+
+    /** The party does not tick a step of a procedure that is not public, which it may not open either. */
+    @Test
+    void thePartyDoesNotTickAProcedureThatIsNotPublic() {
+        when(repository.findProcedureById(PROCEDURE)).thenReturn(Optional.of(procedureAt(PROCEDURE, STATION, false)));
+
+        var answer = harness.request(client -> client.patch(
+                PREFIX + "/procedures/" + PROCEDURE + "/items/" + OWN_STEP,
+                body("{\"checked\": true}"),
+                harness.as(TestSessions.member(STATION, StationPermission.USER))));
+
+        assertEquals(ProcedureRefusal.PROCEDURE_NOT_PUBLIC, refusalOf(answer));
+        verify(repository, never()).checkItem(anyInt(), anyInt());
+    }
+
+    private static Procedure procedureAt(int id, int stationId, boolean isPublic) {
+        return new Procedure(
+                id,
+                stationId,
+                null,
+                "Zeltlager",
+                null,
+                isPublic,
+                ProcedureStatus.OPEN,
+                TestSessions.MEMBER_ID,
+                null,
+                Instant.EPOCH,
+                null,
+                null,
+                null);
     }
 
     private static Procedure procedure() {

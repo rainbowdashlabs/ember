@@ -47,7 +47,7 @@ public class ProcedureItemCheckedHandler implements DomainEventHandler<Procedure
                         event.procedureName(), event.itemTitle(), checkedByName),
                 new NotificationData.NotificationLink("procedure-detail", Map.of("id", event.procedureId())));
         notifier.notify(
-                StationAudience.members(event.assigneeMemberIds()).except(event.checkedByMemberId()),
+                StationAudience.members(event.partyMemberIds()).except(event.checkedByMemberId()),
                 NotificationType.PROCEDURE_ITEM_CHECKED,
                 data,
                 Delivery.ONCE_WHILE_UNREAD);

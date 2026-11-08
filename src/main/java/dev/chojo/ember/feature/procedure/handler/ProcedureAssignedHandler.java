@@ -46,7 +46,7 @@ public class ProcedureAssignedHandler implements DomainEventHandler<ProcedureAss
                 new NotificationParams.ProcedureAssigned(event.procedureName(), assignedByName),
                 new NotificationData.NotificationLink("procedure-detail", Map.of("id", event.procedureId())));
         notifier.notify(
-                StationAudience.members(event.assigneeMemberIds()).except(event.assignedByMemberId()),
+                StationAudience.members(event.partyMemberIds()).except(event.assignedByMemberId()),
                 NotificationType.PROCEDURE_ASSIGNED,
                 data,
                 Delivery.ONCE_WHILE_UNREAD);

@@ -43,6 +43,9 @@ export default {
     'R-027': PROCEDURE_STEP_NOT_HERE_ON_WRITE,
     'R-028': PROCEDURE_STEP_NOT_HERE_ON_WRITE,
     'R-029': 'Nur wer den Vorgang führt, kann eine Notiz an einen Schritt schreiben',
+    'R-030': 'Wer den Ablauf betreut, nennt eine Gruppe, einen Tag oder ein Mitglied einer anderen Wache, es wurde nichts gespeichert',
+    'R-031': 'Gib an, wer den Ablauf betreut, es wurde nichts gespeichert',
+    'R-032': 'Diese Ablauf-Vorlage gibt es hier nicht, es wurde kein Ablauf angelegt',
 
     'R-001': PROCEDURE_NOT_YOURS,
     'R-002': PROCEDURE_NOT_YOURS,

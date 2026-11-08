@@ -322,6 +322,12 @@ public class ProcedureRoutes implements Routes {
         var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(CreateProcedureRequest.class);
         if (req.name() == null || req.name().isBlank()) throw ProcedureRefusal.PROCEDURE_NEEDS_A_NAME.raise();
+        if (req.templateId() != null) {
+            procedureService
+                    .findTemplateById(req.templateId())
+                    .filter(template -> template.stationId() == session.stationId())
+                    .orElseThrow(ProcedureRefusal.PROCEDURE_TEMPLATE_NOT_HERE_TO_START::raise);
+        }
         var procedure = procedureService.createProcedure(
                 session.stationId(),
                 req.templateId(),
@@ -406,6 +412,7 @@ public class ProcedureRoutes implements Routes {
         int rid = pathInt(ctx, "rid");
         requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         var party = ctx.bodyAsClass(RestrictionAudience.class);
+        if (party == null) throw ProcedureRefusal.PROCEDURE_PARTY_MISSING.raise();
         procedureService.setParty(rid, party, session.member().id());
         ctx.json(procedureService.partyOf(rid));
     }
@@ -467,7 +474,11 @@ public class ProcedureRoutes implements Routes {
         if (req.checked() != null) {
             if (req.checked()) {
                 if (!hasEdit) {
-                    if (!item.userAssigned()) {
+                    var procedure = procedureService
+                            .findProcedureById(rid)
+                            .orElseThrow(ProcedureRefusal.PROCEDURE_STEP_NOT_IN_PROCEDURE::raise);
+                    if (!procedure.isPublic()) throw ProcedureRefusal.PROCEDURE_NOT_PUBLIC.raise();
+                    if (!item.isPublic() || !item.userAssigned()) {
                         throw ProcedureRefusal.PROCEDURE_STEP_NOT_YOURS_TO_TICK.raise();
                     }
                     if (!procedureService.runBy(rid, session.member().id())) {

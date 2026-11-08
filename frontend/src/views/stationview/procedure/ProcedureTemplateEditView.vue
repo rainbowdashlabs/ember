@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -67,6 +67,9 @@ const depSelectedId = ref<number | null>(null)
 
 /** The managing party every procedure started from the template begins with, and what it can name. */
 const party = ref<RestrictionSelection>(emptyRestriction())
+/** Whether the party was changed since it was last saved, so a reload after another change keeps it. */
+const partyEdited = ref(false)
+watch(party, () => { partyEdited.value = true }, {deep: true})
 const audience = ref<AudienceLists>({groups: [], tags: []})
 const members = ref<MemberCompletion[]>([])
 
@@ -77,7 +80,11 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
     stationMembers.listCompletions().catch(() => []),
   ])
   detail.value = loaded
-  party.value = toRestriction(loaded.party)
+  if (!partyEdited.value) {
+    party.value = toRestriction(loaded.party)
+    await nextTick()
+    partyEdited.value = false
+  }
   audience.value = lists
   members.value = completions
 }, {autoLoad: false})
@@ -92,6 +99,7 @@ async function saveParty() {
       description: template.description ?? undefined,
       party: party.value,
     })
+    partyEdited.value = false
   })
 }
 

@@ -144,6 +144,19 @@ public class RestrictionService {
     }
 
     /**
+     * Whether every group, tag and member an audience names belongs to the station.
+     *
+     * @param stationId the station
+     * @param audience  the audience
+     * @return whether nothing in it is of another station
+     */
+    public boolean ofStation(int stationId, RestrictionAudience audience) {
+        var selection = audience.toSelection();
+        return restrictionRepository.allOfStation(
+                stationId, selection.groupIds(), selection.tagIds(), selection.memberIds());
+    }
+
+    /**
      * Whether an entity carries any restriction at all.
      */
     public boolean hasRestrictions(RestrictionType type, int entityId) {

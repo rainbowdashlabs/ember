@@ -491,7 +491,8 @@ public class ProcedureRepository {
     }
 
     /**
-     * How many open procedures the member's party runs that hold a step the member may tick now.
+     * How many open public procedures the member's party runs that hold a step the member may tick now.
+     * The party is asked once per procedure that has such a step, not once per step.
      *
      * @param stationId the station
      * @param memberId  the member
@@ -501,27 +502,33 @@ public class ProcedureRepository {
         return count(
                 """
                 SELECT
-                    count(DISTINCT p.id)
+                    count(*)
                 FROM
                     procedure p
-                        JOIN procedure_item pi
-                        ON pi.procedure_id = p.id
                 WHERE p.station_id = :station_id
-                  AND %s
                   AND p.status = 'OPEN'
-                  AND NOT pi.checked
-                  AND pi.public
-                  AND pi.user_assigned
-                  AND NOT exists (
+                  AND p.public
+                  AND exists (
                     SELECT
                         1
                     FROM
-                        procedure_item_dependency d
-                            JOIN procedure_item dep
-                            ON dep.id = d.depends_on_item_id
-                    WHERE d.item_id = pi.id
-                      AND NOT dep.checked
-                                 );""".formatted(PARTY_ADMITS),
+                        procedure_item pi
+                    WHERE pi.procedure_id = p.id
+                      AND NOT pi.checked
+                      AND pi.public
+                      AND pi.user_assigned
+                      AND NOT exists (
+                        SELECT
+                            1
+                        FROM
+                            procedure_item_dependency d
+                                JOIN procedure_item dep
+                                ON dep.id = d.depends_on_item_id
+                        WHERE d.item_id = pi.id
+                          AND NOT dep.checked
+                                     )
+                             )
+                  AND %s;""".formatted(PARTY_ADMITS),
                 call().bind("station_id", stationId).bind("member_id", memberId));
     }
 
