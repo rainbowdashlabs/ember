@@ -1,7 +1,7 @@
 {
   "version": 1,
   "schemaHash": "sha256:2a06eafc03078a7f6562b6182f545157ab90e2e44a9c1240a817221099b90fa5",
-  "generatedAt": "2026-11-07T20:33:33Z",
+  "generatedAt": "2026-11-08T18:18:32Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -8536,7 +8536,7 @@
         "status": "IGNORED",
         "reason": "Template structure data, not per-member"
       },
-      "description": "Who may generate a self service template of a station for themselves. Empty means every member. A template of an association has none; each station sets its own audience in document_template_station_use_restriction. Shaped like event_restriction."
+      "description": "For whom of a station a template of the station is meant: the members its documents are generated for, by managers, runs, witnesses, appointments and self service. Empty means every member. A template of an association has none; each station sets its own audience in document_template_station_use_restriction. Shaped like event_restriction."
     },
     "document_template_station_use": {
       "tableHash": "sha256:270694aa1eab9b293ad832d652d74ebc90db20579c7b7c102bc9830c97be197d",
@@ -8727,7 +8727,7 @@
         "status": "IGNORED",
         "reason": "Template structure data, not per-member"
       },
-      "description": "Who of a station may generate a template of its association through self service. Empty means every member. Shaped like event_restriction."
+      "description": "For whom of a station a template of its association is meant: the members its documents are generated for there, by managers, runs, witnesses, appointments and self service. Empty means every member. Shaped like event_restriction."
     },
     "email_daily_count": {
       "feature": "mail",

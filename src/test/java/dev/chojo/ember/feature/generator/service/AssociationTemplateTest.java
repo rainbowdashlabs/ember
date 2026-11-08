@@ -436,6 +436,30 @@ class AssociationTemplateTest extends RepositoryTestBase {
                 .contains(issuerMissing));
     }
 
+    /**
+     * A template of the association is meant for everybody at a station that chose nothing for it, and for
+     * whom the station chose once it did, whether its members generate it themselves or not. A member of
+     * another station is never one it is meant for here.
+     */
+    @Test
+    void aStationSaysForWhomATemplateOfItsAssociationIsMeant() {
+        int templateId = associationLetter("Verbandsfoto", "{{member.fullName}}");
+        var filer = as(manager, StationPermission.DOCUMENT_EDIT_MEMBER);
+
+        assertTrue(templates.fitAt(north.id()).meantFor(templateId, true, lena.id()));
+        assertFalse(templates.fitAt(north.id()).meantFor(templateId, true, ben.id()), "another station's member");
+        assertNotNull(generation.generate(filer, templateId, lena.id(), null));
+
+        var guardiansOnly = new RestrictionAudience(
+                List.of(StationUserType.GUARDIAN), List.of(), List.of(), List.of(), RestrictionMode.AND);
+        stationUses.setUse(north.id(), templateId, new TemplateUseRequest(false, guardiansOnly, null, null));
+
+        assertFalse(templates.fitAt(north.id()).meantFor(templateId, true, lena.id()));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_MEMBER,
+                () -> generation.generate(filer, templateId, lena.id(), null));
+    }
+
     private static boolean offeredTo(StationMember member, int templateId) {
         return selfService.offers(as(member), member.id()).stream().anyMatch(offer -> offer.templateId() == templateId);
     }

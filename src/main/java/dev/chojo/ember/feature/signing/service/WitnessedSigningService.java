@@ -171,18 +171,23 @@ public class WitnessedSigningService {
     /**
      * Asks for the signatures of a document the reader just generated for a person, to collect them in
      * front of the reader right away, without telling anybody. The reader has to be allowed to change the
-     * document and to collect signatures from the person, both checked before anything is asked.
+     * document and to collect signatures from the person, both checked before anything is asked. Where the
+     * document holds nothing the witness may collect, such as a field any guardian signs of the witness's
+     * own child, everybody it asks is told as with an ordinary request, so nobody waits unasked.
      *
      * @param session      the witness
      * @param generationId the generation log entry of the document
-     * @return the fields the witness may collect on the document
+     * @return the fields the witness may collect on the document, none where everybody was told instead
      */
     public List<WitnessedField> askInPerson(StationSession session, int generationId) {
         reach.requireWitness(session);
         var person = requestService.requireOwnedMember(session, generationId);
         reach.requireReachable(session, person.id());
         var asked = requestService.requireOwnedThenRequestInPerson(session, generationId);
-        return collectable(session, asked);
+        var fields = collectable(session, asked);
+        var request = asked.request();
+        if (fields.isEmpty() && request != null) requestService.announce(request);
+        return fields;
     }
 
     private List<WitnessedField> collectable(StationSession session, SignatureAsk asked) {

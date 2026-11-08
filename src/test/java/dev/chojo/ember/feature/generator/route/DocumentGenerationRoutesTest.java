@@ -149,6 +149,16 @@ class DocumentGenerationRoutesTest {
                             null);
 
             assertEquals(
+                    200,
+                    client.get(PREFIX + "/document-generation/templates?memberId=11", filer)
+                            .code());
+            verify(generation)
+                    .usable(
+                            OWNER,
+                            new TemplateQuery(null, null, null, TemplateSort.LAST_USED, 0, TemplateQuery.DEFAULT_SIZE),
+                            11);
+
+            assertEquals(
                     400,
                     client.get(PREFIX + "/document-generation/templates?sort=SIDEWAYS", filer)
                             .code());

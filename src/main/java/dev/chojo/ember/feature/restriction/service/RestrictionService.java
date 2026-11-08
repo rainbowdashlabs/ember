@@ -242,6 +242,16 @@ public class RestrictionService {
     }
 
     /**
+     * The current members of a station as restrictions see them.
+     *
+     * @param stationId the station
+     * @return one per current member
+     */
+    public List<RestrictionMember> stationMembers(int stationId) {
+        return restrictionRepository.findStationMembers(stationId);
+    }
+
+    /**
      * The current members of a station an audience takes in, with no manager bypass.
      *
      * @param stationId the station

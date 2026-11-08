@@ -11453,6 +11453,7 @@ export default {
             asked: 'Unterschriften angefordert.',
             request: 'Unterschriften anfordern',
             inPerson: 'Vor Ort unterschreiben lassen',
+            inPersonNothing: 'Hier ist nichts vor dir zu unterschreiben. Alle Unterzeichnenden wurden stattdessen benachrichtigt.',
             skip: 'Nicht jetzt',
             anyGuardian: 'eine der erziehungsberechtigten Personen',
             nobody: 'niemand eingetragen, das Feld bleibt offen',

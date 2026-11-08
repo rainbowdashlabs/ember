@@ -328,7 +328,6 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
         assertTrue(overview.stream().anyMatch(participant -> participant.memberId() == max.id()));
     }
 
-    /** Whoever manages the registrations sees where every participant stands, not only their own. */
     /**
      * A document the appointment asks for reaches only the participants its template is meant for: the
      * others are not listed with it, cannot generate it, and are not asked to sign it.
@@ -361,6 +360,7 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
         assertEquals(1, forLena.getFirst().documents().size());
     }
 
+    /** Whoever manages the registrations sees where every participant stands, not only their own. */
     @Test
     void anOrganiserSeesEveryParticipant() {
         int form = forAppointments("Überblick", "{{member.fullName}}");

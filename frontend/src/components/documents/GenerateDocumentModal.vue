@@ -79,7 +79,6 @@ const SETTLE_MS = 400
 
 const {t} = useI18n()
 
-
 const chosen = ref<DocumentTemplateSummary | null>(null)
 const issuerCandidates = ref<MemberOption[]>([])
 const templateId = computed(() => chosen.value?.id ?? null)

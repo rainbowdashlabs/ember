@@ -907,6 +907,15 @@ class SigningRoutesTest extends RepositoryTestBase {
             assertEquals(1, fields.size());
             assertEquals(List.of(person.id()), memberIds(fields.get(0).path("signers")));
             assertTrue(requestRepo.findLiveFor(generation.id()).isPresent(), "the request stands");
+
+            var child = member("Kira", "Gleich", false);
+            stationMemberRepo.addManager(witness.id(), child.id(), manager.id());
+            var forGuardians =
+                    generated(child, SignatureRole.ANY_GUARDIAN.fieldNames(1).toArray(String[]::new));
+            JsonNode nothing = accepted(
+                    client.post(PREFIX + "/signing/witness/generations/" + forGuardians.id(), body("{}"), editing));
+            assertEquals(0, nothing.size(), "a witness does not collect their own signature as a guardian");
+            assertTrue(requestRepo.findLiveFor(forGuardians.id()).isPresent(), "the request stands and was told");
         });
     }
 

@@ -79,6 +79,7 @@ const inPerson = useAsyncAction(async () => {
   const collectable = await askInPerson(props.generationId)
   const first = collectable[0]
   if (!first) {
+    showToast(t('signing.ask.inPersonNothing'), 'info')
     emit('done')
     return
   }
@@ -129,7 +130,7 @@ const keeping = computed(() => {
         {{ t('signing.ask.inPerson') }}
       </SecondaryButton>
       <PrimaryButton v-if="!request && fields.length > 0" :icon="['fas', 'file-signature']"
-                     :disabled="asking.running.value" data-testid="signature-ask-request" @click="asking.run()">
+                     :disabled="asking.running.value || inPerson.running.value" data-testid="signature-ask-request" @click="asking.run()">
         {{ t('signing.ask.request') }}
       </PrimaryButton>
     </ButtonRow>

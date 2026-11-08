@@ -40,7 +40,7 @@ import java.util.List;
  * @param forAppointments whether appointments may require it as a document to bring, which makes it legal
  * @param selfService     whether members may generate it for themselves and their children
  * @param cooldownDays    the days between two self service documents for one member
- * @param audience        who may generate it through self service
+ * @param audience        for whom it is meant, whoever generates its documents
  * @param language        the language the documents are written in, the station's where left out
  * @param issuerId        the member of the station who issues the documents, or null for nobody; a
  *                        template of an association names none

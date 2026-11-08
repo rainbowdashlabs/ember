@@ -164,10 +164,9 @@ public class DocumentGenerationService {
     public TemplateQuery.TemplatePage usable(Owner.Station owner, TemplateQuery query, @Nullable Integer memberId) {
         var listed = templates.list(owner, false);
         if (memberId == null) return query.pageOf(listed);
-        var member = templates.audienceMember(memberId);
+        var fit = templates.fitAt(owner.stationId());
         return query.pageOf(listed.stream()
-                .filter(template ->
-                        templates.meantFor(template.id(), template.ofAssociation(), owner.stationId(), member))
+                .filter(template -> fit.meantFor(template.id(), template.ofAssociation(), memberId))
                 .toList());
     }
 
@@ -351,23 +350,21 @@ public class DocumentGenerationService {
      * @return the templates by name
      */
     public List<DocumentTemplate> askingMemberSignatures(Owner.Station station, int memberId) {
-        var member = templates.audienceMember(memberId);
+        var fit = templates.fitAt(station.stationId());
         return templates.inUse(station).stream()
-                .filter(template ->
-                        templates.meantFor(template.id(), template.ofAssociation(), station.stationId(), member))
+                .filter(template -> fit.meantFor(template, memberId))
                 .filter(template -> generator.sourceOf(template).asksMemberSideToSign(MemberView.EVERYBODY))
                 .toList();
     }
 
     /**
-     * Refuses a template for a member it is not meant for, for a run that generates for many.
+     * Which templates are meant for which members of a station, for a run that generates for many.
      *
-     * @param template  the template
-     * @param stationId the station the document would be filed at
-     * @param memberId  the member
+     * @param stationId the station the documents would be filed at
+     * @return the answer for the station, reading each audience once
      */
-    public void requireMeantFor(DocumentTemplate template, int stationId, int memberId) {
-        templates.requireMeantFor(template, stationId, memberId);
+    public TemplateFit fitAt(int stationId) {
+        return templates.fitAt(stationId);
     }
 
     /**

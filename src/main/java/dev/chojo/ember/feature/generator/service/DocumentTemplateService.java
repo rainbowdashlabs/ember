@@ -49,6 +49,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -67,8 +68,8 @@ import java.util.stream.Stream;
  *
  * <p>Only the owner writes a template. A station uses the templates of its association in use next to
  * its own and lists them, marked as the association's, but a change to one is refused with words of its
- * own. Whether the station's members generate one of them through self service, the station decides
- * ({@link TemplateStationUseService}); an association only offers a template for it and sets no audience.
+ * own. For whom of its members one of them is meant, and whether they generate it through self service,
+ * the station decides ({@link TemplateStationUseService}); an association sets no audience.
  */
 @Singleton
 public class DocumentTemplateService {
@@ -202,39 +203,21 @@ public class DocumentTemplateService {
     }
 
     /**
-     * Whether a template is meant for a member read before, for a caller that asks about several templates
-     * for one member: the members its documents may be generated for, by a manager, a bulk run, a witness,
-     * an appointment or the member themselves.
+     * Which templates are meant for which current members of a station: the members its documents may be
+     * generated for, by a manager, a bulk run, a witness, an appointment or the member themselves.
      *
      * <p>A station's own template says it in its audience. A template of the association says it per
      * station, in the audience the station chose for it; a station that chose nothing takes in everybody.
      * An audience naming nobody takes in every member.
      *
-     * @param templateId    the template
-     * @param ofAssociation whether the template is the association's rather than the station's own
-     * @param stationId     the station the document would be filed at
-     * @param member        the member as restrictions see them, or null where there is no such member
-     * @return whether the template is meant for the member
+     * @param stationId the station the documents would be filed at
+     * @return the answer for the station, reading each audience once
      */
-    public boolean meantFor(int templateId, boolean ofAssociation, int stationId, @Nullable RestrictionMember member) {
-        if (member == null) return false;
-        if (!ofAssociation) return restrictions.includes(RestrictionType.DOCUMENT_TEMPLATE, templateId, member);
-        return uses.find(templateId, stationId)
-                .map(use -> restrictions.includes(RestrictionType.DOCUMENT_TEMPLATE_STATION_USE, use.id(), member))
-                .orElse(true);
-    }
-
-    /**
-     * Whether a template is meant for a member, as {@link #meantFor(int, boolean, int, RestrictionMember)}
-     * answers it.
-     *
-     * @param template  the template
-     * @param stationId the station the document would be filed at
-     * @param memberId  the member
-     * @return whether the template is meant for the member
-     */
-    public boolean meantFor(DocumentTemplate template, int stationId, int memberId) {
-        return meantFor(template.id(), template.ofAssociation(), stationId, audienceMember(memberId));
+    public TemplateFit fitAt(int stationId) {
+        var members = new HashMap<Integer, RestrictionMember>();
+        restrictions.stationMembers(stationId).forEach(member -> members.put(member.memberId(), member));
+        return new TemplateFit(
+                members, (templateId, ofAssociation) -> audienceAt(templateId, ofAssociation, stationId));
     }
 
     /**
@@ -245,17 +228,17 @@ public class DocumentTemplateService {
      * @param memberId  the member
      */
     public void requireMeantFor(DocumentTemplate template, int stationId, int memberId) {
-        if (!meantFor(template, stationId, memberId)) throw DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_MEMBER.raise();
+        if (!fitAt(stationId).meantFor(template, memberId)) {
+            throw DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_MEMBER.raise();
+        }
     }
 
-    /**
-     * A member as a template's audience sees them, for asking about several templates at once.
-     *
-     * @param memberId the member
-     * @return the member, or null where there is no such member
-     */
-    public @Nullable RestrictionMember audienceMember(int memberId) {
-        return restrictions.memberOf(memberId).orElse(null);
+    private RestrictionAudience audienceAt(int templateId, boolean ofAssociation, int stationId) {
+        if (!ofAssociation) return find(templateId).map(this::audienceOf).orElseGet(RestrictionAudience::empty);
+        return uses.find(templateId, stationId)
+                .map(use -> RestrictionAudience.of(restrictions.findRestrictionSet(
+                        RestrictionType.DOCUMENT_TEMPLATE_STATION_USE, use.id(), use.restrictionMode())))
+                .orElseGet(RestrictionAudience::empty);
     }
 
     /**
@@ -351,12 +334,12 @@ public class DocumentTemplateService {
     }
 
     /**
-     * Writes a new template with its content and its self service audience, as it stands, for a caller
+     * Writes a new template with its content and its audience, as it stands, for a caller
      * that has checked it and holds the transaction.
      *
      * @param owner    the station or the association that keeps it
      * @param draft    the template
-     * @param audience who may generate it through self service, everybody where null
+     * @param audience for whom it is meant, everybody where null
      * @param authorId the account that creates it
      * @return the template as written
      */
@@ -437,8 +420,8 @@ public class DocumentTemplateService {
     }
 
     /**
-     * Refuses a self service audience on a template of an association, which offers a template and leaves
-     * the audience to each station.
+     * Refuses an audience on a template of an association, which leaves for whom it is meant to each
+     * station.
      */
     private static void requireAudienceAllowed(Owner owner, DocumentTemplateRequest request) {
         var audience = request.audience();
@@ -560,8 +543,8 @@ public class DocumentTemplateService {
      * @param selfService     whether members may generate it for themselves; for an association's
      *                        template, whether it is offered to its stations for that
      * @param cooldownDays    the days between two self service documents for one member
-     * @param audience        who may generate it through self service, always everybody for a template of
-     *                        an association
+     * @param audience        for whom it is meant, whoever generates it, always everybody for a template
+     *                        of an association
      * @param language        the language its documents are written in
      * @param issuerId        the member of the station who issues its documents, or null where it names
      *                        nobody, for a template of an association, and once that member was deleted

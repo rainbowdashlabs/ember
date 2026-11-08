@@ -258,6 +258,16 @@ public class SignatureRequestService {
     }
 
     /**
+     * Tells everybody a request asks, for a request that was made quietly to be signed in person and turned
+     * out to hold nothing the person in front of the witness signs.
+     *
+     * @param request the request
+     */
+    public void announce(SignatureRequest request) {
+        notices.asked(request, requests.fieldsOf(request.id()));
+    }
+
+    /**
      * Asks for the signatures of a document generated for a member, to have them signed in front of the
      * reader right away. Nobody is told, as with {@link #requestForWitness}: the person is there, and a
      * field they leave open waits among their open signatures as any other.

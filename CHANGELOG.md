@@ -22,7 +22,7 @@ Attendance can credit time spent before and after an appointment. A template nam
 - **A member's equipment lives on the member's page.** The separate member inventory page is gone, and every member name in the inventory leads to the Inventory tab of the member's page. That tab gains scanning to hand out, "Ask for everything back" and the member's movements, and its buttons follow the inventory permissions instead of the right to edit members.
 - **Missing equipment stands among the held pieces.** On a member's Inventory tab, each missing piece shows as a card in its inventory's group instead of in a list above. Handing it out opens a window that searches the free pieces of that inventory, the chosen size first, or creates a new one.
 - **Equipment movements have one name in German.** The German interface, notifications, refusal messages, export file names and help center call a movement by the same word everywhere, the one the sidebar already used.
-- **Templates say for whom they are meant.** "For whom" moved out of self service and now applies wherever a document is made from the template: by managers, in runs, in person, for appointments and by members themselves. Only fitting templates are offered for a member, and a run lists the members a template is not meant for as not generated.
+- **Templates say for whom they are meant.** "For whom" no longer belongs to self service alone and applies wherever a document is made from the template: by managers, for several members at once, in person, for appointments and by members themselves. Only fitting templates are offered for a member, and documents made for several members list those a template is not meant for as not made.
 
 ## v26.23.5
 

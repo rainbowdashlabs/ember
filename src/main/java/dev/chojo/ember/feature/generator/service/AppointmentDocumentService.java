@@ -243,6 +243,15 @@ public class AppointmentDocumentService {
     private record Copies(
             List<RequirementGeneration> generated, List<PaperSubmission> scans, List<RequirementSignature> signed) {
 
+        /** Whether a participant holds a copy, a scan or a signature of a document. */
+        boolean holds(int templateId, int memberId) {
+            return generated.stream().anyMatch(copy -> copy.templateId() == templateId && copy.memberId() == memberId)
+                    || scans.stream().anyMatch(scan -> scan.templateId() == templateId && scan.memberId() == memberId)
+                    || signed.stream()
+                            .anyMatch(signature ->
+                                    signature.templateId() == templateId && signature.memberId() == memberId);
+        }
+
         /** The copies as participants and guardians see them, the issuer's field as the station's to sign. */
         Copies asParticipantsSee() {
             return new Copies(
@@ -313,6 +322,7 @@ public class AppointmentDocumentService {
             Copies copies,
             Set<Offer> offers,
             Map<Integer, Instant> withdrawn) {
+        var fit = templates.fitAt(event.stationId());
         var associations = new HashMap<Integer, Boolean>();
         required.forEach(template -> associations.put(
                 template.templateId(),
@@ -324,21 +334,28 @@ public class AppointmentDocumentService {
                 .map(memberId -> new ParticipantDocuments(
                         memberId,
                         names.identified(memberId),
-                        statuses(meantFor(event, required, associations, memberId), copies, memberId, offers),
+                        statuses(shownFor(fit, required, associations, copies, memberId), copies, memberId, offers),
                         withdrawn.get(memberId)))
                 .toList();
     }
 
-    /** The documents of an appointment meant for one participant, as each template's audience says. */
-    private List<RequiredTemplate> meantFor(
-            StationEvent event, List<RequiredTemplate> required, Map<Integer, Boolean> associations, int memberId) {
-        var member = templates.audienceMember(memberId);
+    /**
+     * The documents of an appointment shown for one participant: those meant for them, as each template's
+     * audience says, and any they already hold a copy, a scan or a signature of, which stays in sight even
+     * where the template is no longer meant for them.
+     */
+    private static List<RequiredTemplate> shownFor(
+            TemplateFit fit,
+            List<RequiredTemplate> required,
+            Map<Integer, Boolean> associations,
+            Copies copies,
+            int memberId) {
         return required.stream()
-                .filter(template -> templates.meantFor(
-                        template.templateId(),
-                        associations.getOrDefault(template.templateId(), false),
-                        event.stationId(),
-                        member))
+                .filter(template -> fit.meantFor(
+                                template.templateId(),
+                                associations.getOrDefault(template.templateId(), false),
+                                memberId)
+                        || copies.holds(template.templateId(), memberId))
                 .toList();
     }
 
@@ -391,9 +408,10 @@ public class AppointmentDocumentService {
      * @return the templates, none where the appointment asks for nothing to sign
      */
     public List<DocumentTemplate> signableFor(StationEvent event, int memberId) {
+        var fit = templates.fitAt(event.stationId());
         return inUse(event.id()).stream()
                 .flatMap(required -> templates.find(required.templateId()).stream())
-                .filter(template -> templates.meantFor(template, event.stationId(), memberId))
+                .filter(template -> fit.meantFor(template, memberId))
                 .filter(template -> generator.asksMemberSideToSign(template, memberId))
                 .toList();
     }
