@@ -94,7 +94,7 @@ async function click(view: View, testId: string) {
     await flushPromises()
 }
 
-/** The screens the person holds the device for are laid over the page, outside the view's own element. */
+/** A control on the screens the person holds the device for. */
 function handedOver(testId: string): DOMWrapper<Element> {
     const element = document.body.querySelector(`[data-testid="witness-handed-over-screen"] [data-testid="${testId}"]`)
     if (!element) throw new Error(`${testId} is not on the handed over screen`)
@@ -118,27 +118,20 @@ async function signAsThePerson(view: View) {
 }
 
 /**
- * Signing in front of a witness: the witness picks the person and a field, the page goes inert while the
- * person holds the device, the person agrees and draws, and the witness confirms with their own code; a
+ * Signing in front of a witness: the witness picks the person and a field, the sidebar and header go inert
+ * while the person holds the device, the person agrees and draws, and the witness confirms with their own code; a
  * field any guardian may sign asks who is there; a field opened from its tile starts at the hand over; a
  * document made from a template leads straight to its one field.
  */
 describe('WitnessView', () => {
-    let appRoot: HTMLElement
-    let ownRoot: HTMLElement | null = null
+    let chrome: HTMLElement
 
     beforeEach(() => {
         vi.clearAllMocks()
         route.query = {}
-        const existing = document.getElementById('__nuxt')
-        if (existing) {
-            appRoot = existing
-        } else {
-            ownRoot = document.createElement('div')
-            ownRoot.id = '__nuxt'
-            document.body.appendChild(ownRoot)
-            appRoot = ownRoot
-        }
+        chrome = document.createElement('nav')
+        chrome.setAttribute('data-shell-chrome', '')
+        document.body.appendChild(chrome)
         URL.createObjectURL = vi.fn(() => 'blob:witness-document')
         URL.revokeObjectURL = vi.fn()
         getWitnessPeople.mockResolvedValue([listed(GRETA, 0), listed(TIM, 1)])
@@ -150,8 +143,7 @@ describe('WitnessView', () => {
     })
 
     afterEach(() => {
-        ownRoot?.remove()
-        ownRoot = null
+        chrome.remove()
     })
 
     it('collects a trial user\'s signature and confirms it with the witness\'s code', async () => {
@@ -162,10 +154,10 @@ describe('WitnessView', () => {
         expect(getWitnessOffers).toHaveBeenCalledWith(5)
         await click(view, 'witness-field-9')
 
-        expect(appRoot.hasAttribute('inert')).toBe(true)
+        expect(chrome.hasAttribute('inert'), 'the sidebar and header stay but are inert').toBe(true)
         expect(handedOver('signing-progress').text()).toBe('Schritt 4 von 8')
         await signAsThePerson(view)
-        expect(appRoot.hasAttribute('inert')).toBe(false)
+        expect(chrome.hasAttribute('inert')).toBe(false)
 
         expect(view.get('[data-testid="witness-statement"]').text()).toBe('Ich bestätige, dass Tim Probe vor mir unterschrieben hat.')
         expect(startWitnessedSigning).toHaveBeenCalledWith(9, 5, [])
@@ -220,6 +212,27 @@ describe('WitnessView', () => {
 
         expect(view.find('[data-testid="witness-person-6"]').exists()).toBe(true)
         expect(view.find('[data-testid="witness-person-5"]').exists()).toBe(true)
+        view.unmount()
+    })
+
+    /** After the child signs, the guardian's field on the same document comes next, one press away. */
+    it('goes on with the guardian once the child has signed the same document', async () => {
+        const view = await open()
+        await click(view, 'witness-person-5')
+        await click(view, 'witness-field-9')
+        await signAsThePerson(view)
+        getWitnessOffers.mockResolvedValue({
+            fields: [field(10, {fieldName: 'anyGuardian', role: 'ANY_GUARDIAN', signers: [GRETA]})],
+            templates: [],
+        })
+        await view.get('[data-testid="signing-proof"] input').setValue('424242')
+        await view.get('[data-testid="signing-proof"] form').trigger('submit')
+        await flushPromises()
+
+        expect(view.get('[data-testid="witness-following"]').text()).toContain('Greta Probe')
+        await click(view, 'witness-continue')
+        expect(handedOver('signing-progress').text()).toContain('Schritt')
+        expect(view.text()).toContain('Greta Probe')
         view.unmount()
     })
 

@@ -7,25 +7,27 @@
 import {onMounted, onUnmounted} from 'vue'
 
 /**
- * The screens the person who signs holds the device for, laid over the whole application.
+ * The screens the person who signs holds the device for, in the page like every other screen.
  *
- * <p>While it is shown, everything else on the page is made inert: the sidebar, the header, the search and
- * every link of the witness's own are neither clickable nor reachable by keyboard or screen reader. Only
- * the steps of this signature are. It is given back once the witness has the device again.
+ * <p>The sidebar, the header, the footer and the dock stay in sight but are made inert while it is shown:
+ * neither clickable nor reachable by keyboard or screen reader, so the person reaches nothing of the
+ * witness's own, only the steps of this signature. They come back once the witness has the device again.
  */
 defineProps<{label: string}>()
 
-const APP_ROOT = '__nuxt'
+/** What the application shell marks as its own controls around the page. */
+const SHELL_CHROME = '[data-shell-chrome]'
 
-onMounted(() => document.getElementById(APP_ROOT)?.setAttribute('inert', ''))
-onUnmounted(() => document.getElementById(APP_ROOT)?.removeAttribute('inert'))
+function chrome(): Element[] {
+  return Array.from(document.querySelectorAll(SHELL_CHROME))
+}
+
+onMounted(() => chrome().forEach(element => element.setAttribute('inert', '')))
+onUnmounted(() => chrome().forEach(element => element.removeAttribute('inert')))
 </script>
 
 <template>
-  <Teleport to="body">
-    <div class="fixed inset-0 z-50 overflow-y-auto bg-(--bg) p-4 sm:p-8" role="dialog" aria-modal="true" :aria-label="label"
-         data-testid="witness-handed-over-screen">
-      <slot/>
-    </div>
-  </Teleport>
+  <section class="space-y-4" :aria-label="label" data-testid="witness-handed-over-screen">
+    <slot/>
+  </section>
 </template>

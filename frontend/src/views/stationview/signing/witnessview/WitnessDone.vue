@@ -14,11 +14,16 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 
 /**
  * The end of one signature collected in person: it is filed with the person, and their copy goes to them
- * or their guardians. Leads on to the same person or to the next one.
+ * or their guardians. Where the same document still waits on somebody, such as a guardian after the child,
+ * that comes first; otherwise it leads on to the same person or to the next one.
  */
-defineProps<{name: string}>()
+defineProps<{
+  name: string
+  /** Who signs the next open field of the same document, empty where nothing more waits on it. */
+  followingNames?: string[]
+}>()
 
-defineEmits<{samePerson: []; nextPerson: []}>()
+defineEmits<{samePerson: []; nextPerson: []; continueDocument: []}>()
 
 const {t} = useI18n()
 const headingId = useId()
@@ -30,10 +35,21 @@ onMounted(() => document.getElementById(headingId)?.focus())
   <SuccessContainer class="space-y-3 max-w-3xl" data-testid="witness-done">
     <SectionHeader :id="headingId" tabindex="-1" class="focus:outline-none">{{ t('signing.witness.done.heading', {name}) }}</SectionHeader>
     <p>{{ t('signing.witness.done.hint', {name}) }}</p>
+    <p v-if="followingNames?.length" data-testid="witness-following">
+      {{ t('signing.witness.done.following', {names: followingNames.join(t('signing.witness.done.or'))}) }}
+    </p>
     <ButtonRow>
-      <PrimaryButton type="button" data-testid="witness-next-person" @click="$emit('nextPerson')">
+      <PrimaryButton v-if="followingNames?.length" type="button" data-testid="witness-continue"
+                     @click="$emit('continueDocument')">
+        {{ t('signing.witness.done.continue', {names: followingNames.join(t('signing.witness.done.or'))}) }}
+      </PrimaryButton>
+      <PrimaryButton v-else type="button" data-testid="witness-next-person" @click="$emit('nextPerson')">
         {{ t('signing.witness.done.nextPerson') }}
       </PrimaryButton>
+      <SecondaryButton v-if="followingNames?.length" type="button" data-testid="witness-next-person"
+                       @click="$emit('nextPerson')">
+        {{ t('signing.witness.done.nextPerson') }}
+      </SecondaryButton>
       <SecondaryButton type="button" data-testid="witness-same-person" @click="$emit('samePerson')">
         {{ t('signing.witness.done.samePerson', {name}) }}
       </SecondaryButton>

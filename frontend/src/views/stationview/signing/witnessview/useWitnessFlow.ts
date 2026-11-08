@@ -37,6 +37,8 @@ export function useWitnessFlow() {
     const person = ref<WitnessPersonResponse | null>(null)
     const offers = ref<WitnessOffersResponse | null>(null)
     const field = ref<WitnessFieldResponse | null>(null)
+    /** The next open field on the document just signed, where one waits that the witness may collect. */
+    const following = ref<WitnessFieldResponse | null>(null)
     const signer = ref<WitnessPersonResponse | null>(null)
     const fillIns = ref<FillInResponse[]>([])
     const values = ref<FillInValues>({})
@@ -129,8 +131,35 @@ export function useWitnessFlow() {
         }
     }
 
+    /**
+     * Looks for what still waits on the document just signed, such as the guardian's field after the
+     * child's, so the witness can go straight on with it.
+     */
+    async function lookAhead() {
+        const current = person.value
+        const signed = field.value
+        following.value = null
+        if (!current || !signed) return
+        const fresh = await getWitnessOffers(current.memberId)
+        offers.value = fresh
+        following.value = fresh.fields.find(open =>
+            open.requestUid === signed.requestUid && open.fieldId !== signed.fieldId) ?? null
+    }
+
+    /** Goes on with the next open field of the document just signed. */
+    async function continueDocument() {
+        const next = following.value
+        if (!next) return
+        act.reset()
+        field.value = null
+        signer.value = null
+        following.value = null
+        await choose(next)
+    }
+
     /** Starts over with another person, once a signature is collected. */
     function nextPerson() {
+        following.value = null
         act.reset()
         person.value = null
         offers.value = null
@@ -143,6 +172,7 @@ export function useWitnessFlow() {
     async function samePerson() {
         const current = person.value
         if (!current) return nextPerson()
+        following.value = null
         act.reset()
         field.value = null
         signer.value = null
@@ -154,6 +184,7 @@ export function useWitnessFlow() {
         person,
         offers,
         field,
+        following,
         signer,
         fillIns,
         values,
@@ -166,6 +197,8 @@ export function useWitnessFlow() {
             step.value = next
         },
         pickPerson,
+        lookAhead,
+        continueDocument,
         openField,
         generate,
         choose,

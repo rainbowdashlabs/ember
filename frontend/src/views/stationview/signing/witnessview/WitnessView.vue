@@ -88,6 +88,7 @@ async function confirm(action: () => Promise<void>) {
   try {
     await action()
     announcement.value = t('signing.announce.signed')
+    await flow.lookAhead().catch(() => {})
   } catch (e) {
     confirmFailure.value = describeSigningFailure(e, t)
   } finally {
@@ -110,7 +111,9 @@ function withSecret(proof: TypedProof, secret: string) {
     <Spinner v-if="loading"/>
     <SigningUnavailable v-else-if="loadFailure" :failure="loadFailure"/>
     <WitnessDone v-else-if="flow.act.outcome.value" :name="signerName"
-                 @next-person="flow.nextPerson" @same-person="choosingRun(flow.samePerson)"/>
+                 :following-names="flow.following.value?.signers.map(person => person.name)"
+                 @next-person="flow.nextPerson" @same-person="choosingRun(flow.samePerson)"
+                 @continue-document="choosingRun(flow.continueDocument)"/>
     <WitnessPersonStep v-else-if="step === 'person'" :people="people" :group-names="groupNames" :position="position" :total="total"
                        @pick="person => choosingRun(() => flow.pickPerson(person))"/>
     <WitnessDocumentStep v-else-if="step === 'document' && flow.person.value && flow.offers.value"
