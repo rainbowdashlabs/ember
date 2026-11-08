@@ -15,7 +15,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TemplateSelectorSection from '@/views/stationview/procedure/procedurecreateview/TemplateSelectorSection.vue'
 import BasicInfoSection from '@/views/stationview/procedure/procedurecreateview/BasicInfoSection.vue'
-import AssigneesSection from '@/views/stationview/procedure/procedurecreateview/AssigneesSection.vue'
+import PartySection from '@/views/stationview/procedure/procedurecreateview/PartySection.vue'
 import ItemsSection from '@/views/stationview/procedure/procedurecreateview/ItemsSection.vue'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -36,7 +36,7 @@ const presetTemplateId = computed(() => (route.query.template ? Number(route.que
 const form = useProcedureForm(editId, presetTemplateId)
 const {
   name, savedName, description, dueAt, isPublic,
-  templates, selectedTemplateId, members, selectedAssigneeIds, items,
+  templates, selectedTemplateId, members, groups, tags, party, items,
   isEditMode, loading, failure,
 } = form
 
@@ -91,7 +91,7 @@ watch(loaded, (v) => {
             v-model:is-public="isPublic"
         />
 
-        <AssigneesSection v-model:assignee-ids="selectedAssigneeIds" :members="members"/>
+        <PartySection v-model="party" :members="members" :groups="groups" :tags="tags"/>
 
         <ItemsSection
             :items="items"

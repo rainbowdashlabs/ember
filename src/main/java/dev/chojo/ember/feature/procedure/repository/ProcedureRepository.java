@@ -10,6 +10,8 @@ import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
+import dev.chojo.ember.feature.restriction.RestrictionSql;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -30,6 +32,14 @@ import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 
 @Singleton
 public class ProcedureRepository {
+    /**
+     * Whether the managing party of procedure {@code p} takes in {@code :member_id}. Unlike other
+     * restrictions, a procedure with no party is run by nobody beyond those who edit procedures.
+     */
+    private static final String PARTY_ADMITS =
+            "(EXISTS (SELECT 1 FROM procedure_restriction r WHERE r.procedure_id = p.id)" + " AND "
+                    + RestrictionSql.admits(RestrictionType.PROCEDURE, "p.id", ":member_id") + ")";
+
     private static final String PROCEDURE_TEMPLATE_COLUMNS =
             "id, station_id, name, description, archived, created_by, created_at";
     private static final String PROCEDURE_TEMPLATE_ITEM_COLUMNS =
@@ -199,7 +209,17 @@ public class ProcedureRepository {
                 .all();
     }
 
-    public List<Procedure> findProceduresByAssignee(
+    /**
+     * The procedures whose managing party takes the member in. A procedure with no party is run by
+     * nobody beyond those who edit procedures, so it is never among them.
+     *
+     * @param stationId  the station
+     * @param memberId   the member
+     * @param status     the state asked for, or null for both
+     * @param publicOnly whether to leave out procedures that are not public
+     * @return the procedures, newest first
+     */
+    public List<Procedure> findProceduresRunBy(
             int stationId, int memberId, @Nullable ProcedureStatus status, boolean publicOnly) {
         var where = WhereBuilder.create()
                 .add("AND p.status = :status", "status", status)
@@ -209,12 +229,10 @@ public class ProcedureRepository {
                     %s
                 FROM
                     procedure p
-                        JOIN procedure_restriction pa
-                        ON pa.procedure_id = p.id
                 WHERE p.station_id = :station_id
-                  AND pa.member_id = :member_id
+                  AND %s
                   %s
-                ORDER BY p.created_at DESC;""", alias("p", PROCEDURE_COLUMNS), where.fragment())
+                ORDER BY p.created_at DESC;""", alias("p", PROCEDURE_COLUMNS), PARTY_ADMITS, where.fragment())
                 .single(where.apply(call().bind("station_id", stationId).bind("member_id", memberId)))
                 .map(Procedure.map())
                 .all();
@@ -319,36 +337,6 @@ public class ProcedureRepository {
 
     public boolean deleteProcedure(int id) {
         return deleteById("procedure", id);
-    }
-
-    public List<Integer> findAssigneeIds(int procedureId) {
-        return query("""
-                SELECT member_id
-                FROM procedure_restriction
-                WHERE procedure_id = :procedure_id
-                  AND member_id IS NOT NULL;""")
-                .single(call().bind("procedure_id", procedureId))
-                .map(row -> row.getInt("member_id"))
-                .all();
-    }
-
-    public void addAssignee(int procedureId, int memberId) {
-        query("""
-                INSERT
-                INTO
-                    procedure_restriction(procedure_id, member_id)
-                VALUES
-                    (:procedure_id, :member_id)
-                ON CONFLICT (member_id, procedure_id) WHERE member_id IS NOT NULL DO NOTHING;""")
-                .single(call().bind("procedure_id", procedureId).bind("member_id", memberId))
-                .insert();
-    }
-
-    public boolean removeAssignee(int procedureId, int memberId) {
-        return query("DELETE FROM procedure_restriction WHERE procedure_id = :procedure_id AND member_id = :member_id;")
-                .single(call().bind("procedure_id", procedureId).bind("member_id", memberId))
-                .delete()
-                .changed();
     }
 
     public List<ProcedureItem> findItems(int procedureId) {
@@ -502,18 +490,24 @@ public class ProcedureRepository {
                 PROCEDURE_ITEM_COLUMNS);
     }
 
-    public int countOpenByAssigneeWithAvailableItems(int stationId, int memberId) {
-        return count("""
+    /**
+     * How many open procedures the member's party runs that hold a step the member may tick now.
+     *
+     * @param stationId the station
+     * @param memberId  the member
+     * @return the count
+     */
+    public int countOpenRunByWithAvailableItems(int stationId, int memberId) {
+        return count(
+                """
                 SELECT
                     count(DISTINCT p.id)
                 FROM
                     procedure p
-                        JOIN procedure_restriction pa
-                        ON pa.procedure_id = p.id
                         JOIN procedure_item pi
                         ON pi.procedure_id = p.id
                 WHERE p.station_id = :station_id
-                  AND pa.member_id = :member_id
+                  AND %s
                   AND p.status = 'OPEN'
                   AND NOT pi.checked
                   AND pi.public
@@ -527,7 +521,8 @@ public class ProcedureRepository {
                             ON dep.id = d.depends_on_item_id
                     WHERE d.item_id = pi.id
                       AND NOT dep.checked
-                                 );""", call().bind("station_id", stationId).bind("member_id", memberId));
+                                 );""".formatted(PARTY_ADMITS),
+                call().bind("station_id", stationId).bind("member_id", memberId));
     }
 
     public int countOpenByStation(int stationId) {

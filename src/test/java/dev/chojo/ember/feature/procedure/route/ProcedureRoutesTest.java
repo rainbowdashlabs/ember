@@ -18,6 +18,9 @@ import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
 import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -63,10 +66,14 @@ class ProcedureRoutesTest {
         when(repository.findItemById(OWN_STEP)).thenReturn(Optional.of(step(OWN_STEP, PROCEDURE)));
         when(repository.findItemById(FOREIGN_STEP)).thenReturn(Optional.of(step(FOREIGN_STEP, OTHER_PROCEDURE)));
         when(repository.findItems(PROCEDURE)).thenReturn(List.of(step(OWN_STEP, PROCEDURE)));
-        when(repository.findAssigneeIds(PROCEDURE)).thenReturn(List.of(TestSessions.MEMBER_ID));
         when(repository.findTemplateById(TEMPLATE)).thenReturn(Optional.of(template()));
         when(repository.findTemplateItems(TEMPLATE)).thenReturn(List.of(templateStep()));
-        var service = new ProcedureService(repository, mock(DomainEventBus.class));
+        var restrictions = mock(RestrictionService.class);
+        when(restrictions.hasRestrictions(RestrictionType.PROCEDURE, PROCEDURE)).thenReturn(true);
+        when(restrictions.includes(RestrictionType.PROCEDURE, PROCEDURE, TestSessions.MEMBER_ID))
+                .thenReturn(true);
+        when(restrictions.audienceOf(any(), anyInt())).thenReturn(RestrictionAudience.empty());
+        var service = new ProcedureService(repository, mock(DomainEventBus.class), restrictions);
         harness = RouteHarness.serving(new ProcedureRoutes(service, mock(MemberIdentityFactory.class)));
     }
 

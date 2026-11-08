@@ -35535,55 +35535,6 @@
         }
       }
     },
-    "/api/v1/procedures/{rid}/assignees" : {
-      "post" : {
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "type" : "integer",
-                    "format" : "int32"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/AssigneeRequest"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/procedures/{rid}/assignees/{mid}" : {
-      "delete" : {
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "type" : "integer",
-                    "format" : "int32"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/procedures/{rid}/dependencies" : {
       "put" : {
         "responses" : {
@@ -35674,6 +35625,31 @@
         "responses" : {
           "204" : {
             "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/procedures/{rid}/party" : {
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestrictionAudience"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RestrictionAudience"
+              }
+            }
           }
         }
       }
@@ -49684,18 +49660,6 @@
           }
         }
       },
-      "AssigneeRequest" : {
-        "type" : "object",
-        "properties" : {
-          "memberIds" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int32"
-            }
-          }
-        }
-      },
       "AssignmentRequest" : {
         "type" : "object",
         "properties" : {
@@ -54605,12 +54569,12 @@
               "type" : "null"
             } ]
           },
-          "assigneeIds" : {
-            "type" : [ "array", "null" ],
-            "items" : {
-              "type" : "integer",
-              "format" : "int32"
-            }
+          "party" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionAudience"
+            }, {
+              "type" : "null"
+            } ]
           },
           "eventId" : {
             "type" : [ "integer", "null" ],
@@ -70796,21 +70760,17 @@
               }
             }
           },
-          "assigneeIds" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int32"
-            }
+          "party" : {
+            "$ref" : "#/components/schemas/RestrictionAudience"
           },
-          "assignees" : {
+          "named" : {
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/MemberIdentity"
             }
           }
         },
-        "required" : [ "procedure", "items", "dependencies", "assigneeIds", "assignees" ]
+        "required" : [ "procedure", "items", "dependencies", "party", "named" ]
       },
       "ProcedureItem" : {
         "type" : "object",
@@ -70935,9 +70895,12 @@
                 "format" : "int32"
               }
             }
+          },
+          "party" : {
+            "$ref" : "#/components/schemas/RestrictionAudience"
           }
         },
-        "required" : [ "template", "items", "dependencies" ]
+        "required" : [ "template", "items", "dependencies", "party" ]
       },
       "ProcedureTemplateItem" : {
         "type" : "object",
@@ -70977,6 +70940,13 @@
           },
           "description" : {
             "type" : [ "string", "null" ]
+          },
+          "party" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionAudience"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },

@@ -16,8 +16,13 @@ import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
 import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -31,6 +36,7 @@ class ProcedureServiceTest {
 
     private ProcedureRepository repository;
     private DomainEventBus eventBus;
+    private RestrictionService restrictions;
     private ProcedureService service;
 
     private static final int STATION_ID = 1;
@@ -45,7 +51,13 @@ class ProcedureServiceTest {
     void setup() {
         repository = mock(ProcedureRepository.class);
         eventBus = mock(DomainEventBus.class);
-        service = new ProcedureService(repository, eventBus);
+        restrictions = mock(RestrictionService.class);
+        when(restrictions.audienceOf(any(), anyInt())).thenReturn(RestrictionAudience.empty());
+        service = new ProcedureService(repository, eventBus, restrictions);
+    }
+
+    private static RestrictionAudience named(Integer... memberIds) {
+        return new RestrictionAudience(List.of(), List.of(), List.of(), List.of(memberIds), RestrictionMode.AND);
     }
 
     @Test
@@ -168,10 +180,10 @@ class ProcedureServiceTest {
     }
 
     @Test
-    void findProceduresByAssignee() {
-        when(repository.findProceduresByAssignee(STATION_ID, MEMBER_ID, ProcedureStatus.OPEN, false))
+    void findProceduresRunBy() {
+        when(repository.findProceduresRunBy(STATION_ID, MEMBER_ID, ProcedureStatus.OPEN, false))
                 .thenReturn(List.of());
-        assertEquals(List.of(), service.findProceduresByAssignee(STATION_ID, MEMBER_ID, ProcedureStatus.OPEN, false));
+        assertEquals(List.of(), service.findProceduresRunBy(STATION_ID, MEMBER_ID, ProcedureStatus.OPEN, false));
     }
 
     @Test
@@ -187,10 +199,10 @@ class ProcedureServiceTest {
                 .thenReturn(proc);
 
         var result = service.createProcedure(
-                STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, List.of(MEMBER_ID_2), null, null);
+                STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, named(MEMBER_ID_2), null, null);
 
         assertEquals(proc, result);
-        verify(repository).addAssignee(PROCEDURE_ID, MEMBER_ID_2);
+        verify(restrictions).setAudience(RestrictionType.PROCEDURE, PROCEDURE_ID, named(MEMBER_ID_2));
         verify(repository, never()).findTemplateItems(anyInt());
         verify(eventBus).publish(any(ProcedureAssigned.class));
     }
@@ -201,7 +213,7 @@ class ProcedureServiceTest {
         when(repository.createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, null, null))
                 .thenReturn(proc);
 
-        service.createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, List.of(), null, null);
+        service.createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, null, null, null);
 
         verify(eventBus, never()).publish(any());
     }
@@ -218,7 +230,7 @@ class ProcedureServiceTest {
                 .thenReturn(proc);
 
         service.createProcedure(
-                STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, List.of(MEMBER_ID_2), EVENT_ID, date);
+                STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, named(MEMBER_ID_2), EVENT_ID, date);
 
         verify(repository).createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, EVENT_ID, date);
     }
@@ -249,7 +261,7 @@ class ProcedureServiceTest {
         when(repository.snapshotTemplateItem(PROCEDURE_ID, ti2)).thenReturn(pi2);
 
         var result = service.createProcedure(
-                STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, List.of(MEMBER_ID), null, null);
+                STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, named(MEMBER_ID), null, null);
 
         assertEquals(proc, result);
         verify(repository).snapshotTemplateItem(PROCEDURE_ID, ti1);
@@ -273,7 +285,7 @@ class ProcedureServiceTest {
         var pi1 = procedureItem(501, false);
         when(repository.snapshotTemplateItem(PROCEDURE_ID, ti1)).thenReturn(pi1);
 
-        service.createProcedure(STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, List.of(), null, null);
+        service.createProcedure(STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, null, null, null);
 
         verify(repository, never()).addItemDependency(anyInt(), anyInt());
     }
@@ -289,7 +301,6 @@ class ProcedureServiceTest {
         var proc = procedure(PROCEDURE_ID, null);
         when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(proc));
         when(repository.resolveProcedure(PROCEDURE_ID)).thenReturn(true);
-        when(repository.findAssigneeIds(PROCEDURE_ID)).thenReturn(List.of(MEMBER_ID));
 
         assertTrue(service.resolveProcedure(PROCEDURE_ID, MEMBER_ID));
         verify(eventBus).publish(any(ProcedureResolved.class));
@@ -316,7 +327,6 @@ class ProcedureServiceTest {
         var proc = procedure(PROCEDURE_ID, null);
         when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(proc));
         when(repository.reopenProcedure(PROCEDURE_ID)).thenReturn(true);
-        when(repository.findAssigneeIds(PROCEDURE_ID)).thenReturn(List.of(MEMBER_ID));
 
         assertTrue(service.reopenProcedure(PROCEDURE_ID, MEMBER_ID));
         verify(eventBus).publish(any(ProcedureReopened.class));
@@ -344,48 +354,62 @@ class ProcedureServiceTest {
         assertTrue(service.deleteProcedure(PROCEDURE_ID));
     }
 
+    /** A procedure started from a template without a party of its own takes the template's. */
     @Test
-    void findAssigneeIds() {
-        when(repository.findAssigneeIds(PROCEDURE_ID)).thenReturn(List.of(MEMBER_ID));
-        assertEquals(List.of(MEMBER_ID), service.findAssigneeIds(PROCEDURE_ID));
-    }
+    void createProcedureTakesTheTemplatesParty() {
+        var proc = procedure(PROCEDURE_ID, TEMPLATE_ID);
+        when(repository.createProcedure(STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, null, null))
+                .thenReturn(proc);
+        when(repository.findTemplateItems(TEMPLATE_ID)).thenReturn(List.of());
+        when(repository.findTemplateItemDependencies(TEMPLATE_ID)).thenReturn(List.of());
+        when(restrictions.audienceOf(RestrictionType.PROCEDURE_TEMPLATE, TEMPLATE_ID))
+                .thenReturn(named(MEMBER_ID_2));
 
-    @Test
-    void addAssigneesDeduplication() {
-        var proc = procedure(PROCEDURE_ID, null);
-        when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(proc));
-        when(repository.findAssigneeIds(PROCEDURE_ID)).thenReturn(List.of(MEMBER_ID));
+        service.createProcedure(STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, null, null, null);
 
-        service.addAssignees(PROCEDURE_ID, List.of(MEMBER_ID, MEMBER_ID_2), MEMBER_ID);
-
-        verify(repository).addAssignee(PROCEDURE_ID, MEMBER_ID_2);
-        verify(repository, never()).addAssignee(PROCEDURE_ID, MEMBER_ID);
+        verify(restrictions).setAudience(RestrictionType.PROCEDURE, PROCEDURE_ID, named(MEMBER_ID_2));
         verify(eventBus).publish(any(ProcedureAssigned.class));
     }
 
+    /** Only the members named for the first time are told the procedure was handed to them. */
     @Test
-    void addAssigneesAllExisting() {
+    void setPartyTellsOnlyTheNewlyNamed() {
         var proc = procedure(PROCEDURE_ID, null);
         when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(proc));
-        when(repository.findAssigneeIds(PROCEDURE_ID)).thenReturn(List.of(MEMBER_ID));
+        when(restrictions.audienceOf(RestrictionType.PROCEDURE, PROCEDURE_ID)).thenReturn(named(MEMBER_ID));
+        var captor = ArgumentCaptor.forClass(ProcedureAssigned.class);
 
-        service.addAssignees(PROCEDURE_ID, List.of(MEMBER_ID), MEMBER_ID);
+        service.setParty(PROCEDURE_ID, named(MEMBER_ID, MEMBER_ID_2), MEMBER_ID);
+
+        verify(restrictions).setAudience(RestrictionType.PROCEDURE, PROCEDURE_ID, named(MEMBER_ID, MEMBER_ID_2));
+        verify(eventBus).publish(captor.capture());
+        assertEquals(List.of(MEMBER_ID_2), captor.getValue().assigneeMemberIds());
+    }
+
+    @Test
+    void setPartyTellsNobodyWhereNobodyIsNew() {
+        var proc = procedure(PROCEDURE_ID, null);
+        when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(proc));
+        when(restrictions.audienceOf(RestrictionType.PROCEDURE, PROCEDURE_ID)).thenReturn(named(MEMBER_ID));
+
+        service.setParty(PROCEDURE_ID, named(MEMBER_ID), MEMBER_ID);
 
         verify(eventBus, never()).publish(any());
     }
 
+    /** A procedure with no party is run by nobody beyond its editors, whatever the restriction check says. */
     @Test
-    void addAssigneesProcedureNotFound() {
-        when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.empty());
-        service.addAssignees(PROCEDURE_ID, List.of(MEMBER_ID), MEMBER_ID);
-        verify(repository, never()).addAssignee(anyInt(), anyInt());
-        verify(eventBus, never()).publish(any());
-    }
+    void anEmptyPartyRunsNothing() {
+        when(restrictions.hasRestrictions(RestrictionType.PROCEDURE, PROCEDURE_ID))
+                .thenReturn(false);
+        when(restrictions.includes(RestrictionType.PROCEDURE, PROCEDURE_ID, MEMBER_ID))
+                .thenReturn(true);
+        assertFalse(service.runBy(PROCEDURE_ID, MEMBER_ID));
+        assertEquals(List.of(), service.partyMembers(STATION_ID, PROCEDURE_ID));
 
-    @Test
-    void removeAssignee() {
-        when(repository.removeAssignee(PROCEDURE_ID, MEMBER_ID)).thenReturn(true);
-        assertTrue(service.removeAssignee(PROCEDURE_ID, MEMBER_ID));
+        when(restrictions.hasRestrictions(RestrictionType.PROCEDURE, PROCEDURE_ID))
+                .thenReturn(true);
+        assertTrue(service.runBy(PROCEDURE_ID, MEMBER_ID));
     }
 
     @Test
@@ -423,7 +447,6 @@ class ProcedureServiceTest {
 
         var proc = procedure(PROCEDURE_ID, null);
         when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(proc));
-        when(repository.findAssigneeIds(PROCEDURE_ID)).thenReturn(List.of(MEMBER_ID));
 
         assertTrue(service.checkItem(ITEM_ID, MEMBER_ID));
         verify(eventBus).publish(any(ProcedureItemChecked.class));
@@ -460,7 +483,6 @@ class ProcedureServiceTest {
 
         var proc = procedure(PROCEDURE_ID, null);
         when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(proc));
-        when(repository.findAssigneeIds(PROCEDURE_ID)).thenReturn(List.of(MEMBER_ID));
 
         assertTrue(service.checkItem(ITEM_ID, MEMBER_ID));
     }
@@ -528,10 +550,9 @@ class ProcedureServiceTest {
     }
 
     @Test
-    void countOpenByAssigneeWithAvailableItems() {
-        when(repository.countOpenByAssigneeWithAvailableItems(STATION_ID, MEMBER_ID))
-                .thenReturn(5);
-        assertEquals(5, service.countOpenByAssigneeWithAvailableItems(STATION_ID, MEMBER_ID));
+    void countOpenRunByWithAvailableItems() {
+        when(repository.countOpenRunByWithAvailableItems(STATION_ID, MEMBER_ID)).thenReturn(5);
+        assertEquals(5, service.countOpenRunByWithAvailableItems(STATION_ID, MEMBER_ID));
     }
 
     @Test

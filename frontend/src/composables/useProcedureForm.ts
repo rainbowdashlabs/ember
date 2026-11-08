@@ -6,7 +6,10 @@
 import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { procedures, stationMembers } from '@/api'
-import type { MemberCompletion, ProcedureItemRequest, ProcedureTemplate, ProcedureTemplateDetail } from '@/api/generated/schema'
+import type { MemberCompletion, MemberGroup, ProcedureItemRequest, ProcedureTemplate, ProcedureTemplateDetail, UserTag } from '@/api/generated/schema'
+import type { RestrictionSelection } from '@/api/types'
+import { audienceLists } from '@/components/documents/generation'
+import { emptyRestriction, toRestriction } from '@/components/input/restriction'
 import type { StepDependency } from '@/api/procedures'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure } from '@/util/failure'
@@ -61,7 +64,10 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
   const templateDetail = ref<ProcedureTemplateDetail | null>(null)
 
   const members = ref<MemberCompletion[]>([])
-  const selectedAssigneeIds = ref<number[]>([])
+  const groups = ref<MemberGroup[]>([])
+  const tags = ref<UserTag[]>([])
+  /** The managing party: who sees the public steps, ticks those marked for them and is told. */
+  const party = ref<RestrictionSelection>(emptyRestriction())
 
   const items = ref<EditableItem[]>([])
   const existingItemIds = ref<Set<number>>(new Set())
@@ -116,6 +122,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       name.value = detail.template.name
       description.value = detail.template.description ?? ''
       items.value = toEditableItems(detail.items, detail.dependencies, false)
+      if (!isEditMode.value) party.value = toRestriction(detail.party)
     } catch (e) {
       failure.value = {...describeFailure(e, t), message: t('procedures.templateNotLoaded')}
     }
@@ -135,12 +142,15 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
   }
 
   const {loading, failure, reload} = useAsyncLoader(async () => {
-    const [tpls, mbrs] = await Promise.all([
+    const [tpls, mbrs, lists] = await Promise.all([
       procedures.getTemplates(),
       stationMembers.listCompletions(),
+      audienceLists(),
     ])
     templates.value = tpls.filter(tpl => !tpl.archived)
     members.value = mbrs
+    groups.value = lists.groups
+    tags.value = lists.tags
 
     if (isEditMode.value) {
       const detail = await procedures.getProcedure(editId.value!)
@@ -149,7 +159,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       description.value = detail.procedure.description ?? ''
       dueAt.value = instantToDate(detail.procedure.dueAt)
       isPublic.value = detail.procedure.isPublic
-      selectedAssigneeIds.value = [...detail.assigneeIds]
+      party.value = toRestriction(detail.party)
       existingItemIds.value = new Set(detail.items.map(i => i.id))
       items.value = toEditableItems(detail.items, detail.dependencies, true)
       return
@@ -221,14 +231,6 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     return deps
   }
 
-  async function syncAssignees(pid: number) {
-    const current = (await procedures.getProcedure(pid)).assigneeIds
-    const toAdd = selectedAssigneeIds.value.filter(id => !current.includes(id))
-    const toRemove = current.filter(id => !selectedAssigneeIds.value.includes(id))
-    if (toAdd.length) await procedures.addAssignees(pid, toAdd)
-    for (const id of toRemove) await procedures.removeAssignee(pid, id)
-  }
-
   /**
    * Saves the steps and returns the real id of each new one by its temporary id. A row nobody wrote
    * a title into never became a step, so it is dropped rather than saved.
@@ -264,7 +266,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
         dueAt: dateToInstant(dueAt.value),
         isPublic: isPublic.value,
       })
-      await syncAssignees(pid)
+      await procedures.setParty(pid, party.value)
       await procedures.setProcedureDependencies(pid, buildDependencies(await syncItems(pid)))
       return pid
     }
@@ -274,7 +276,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       description: description.value || undefined,
       dueAt: dateToInstant(dueAt.value) ?? undefined,
       isPublic: isPublic.value,
-      assigneeIds: selectedAssigneeIds.value,
+      party: party.value,
     })
     const tempToReal = new Map<number, number>()
     for (const [i, item] of items.value.entries()) {
@@ -296,7 +298,9 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     selectedTemplateId,
     templateDetail,
     members,
-    selectedAssigneeIds,
+    groups,
+    tags,
+    party,
     items,
     isEditMode,
     loading,

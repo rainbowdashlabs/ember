@@ -176,8 +176,9 @@ function openExistingProcedure(procedure: Procedure) {
  *
  * <p>Two things are set that the ordinary create form leaves alone, and without either of them the
  * people on the list can look at it and do nothing else. The list itself is public, because a
- * private one is closed to an assignee who may not read every procedure of the station. Its steps
- * are marked as assigned to the user, because that is the mark a non-manager is allowed to tick.
+ * private one is closed to a member of its party who may not read every procedure of the station. The
+ * people coming make up its party, named one by one. Its steps are marked as assigned to the user,
+ * because that is the mark a non-manager is allowed to tick.
  */
 const {running: creatingProcedure, failure: procedureFailure, run: runCreateProcedure} = useAsyncAction(
     async (payload: {templateId: number; name: string; description: string; dueAt: string}) => {
@@ -187,7 +188,7 @@ const {running: creatingProcedure, failure: procedureFailure, run: runCreateProc
         description: payload.description || undefined,
         dueAt: dateToInstant(payload.dueAt) ?? undefined,
         isPublic: true,
-        assigneeIds: props.memberSet.memberIds,
+        party: {userTypes: [], groupIds: [], tagIds: [], memberIds: props.memberSet.memberIds, mode: 'AND'},
         eventId: props.event.id,
         eventDate: props.effectiveDate ?? undefined,
       })

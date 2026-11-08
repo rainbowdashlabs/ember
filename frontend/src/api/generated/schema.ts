@@ -45308,80 +45308,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/procedures/{rid}/assignees": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["AssigneeRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": number[];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/procedures/{rid}/assignees/{mid}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": number[];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/procedures/{rid}/dependencies": {
         parameters: {
             query?: never;
@@ -45533,6 +45459,45 @@ export interface paths {
                 };
             };
         };
+        trace?: never;
+    };
+    "/api/v1/procedures/{rid}/party": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RestrictionAudience"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RestrictionAudience"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/procedures/{rid}/reopen": {
@@ -63610,9 +63575,6 @@ export interface components {
             /** Format: uuid */
             uid: string;
         };
-        AssigneeRequest: {
-            memberIds?: number[];
-        };
         AssignItemRequest: {
             /** Format: int32 */
             newItemId?: number;
@@ -65298,7 +65260,6 @@ export interface components {
             userTypes?: components["schemas"]["StationUserType"][];
         };
         CreateProcedureRequest: {
-            assigneeIds?: number[] | null;
             description?: string | null;
             dueAt?: components["schemas"]["Instant"] | null;
             eventDate?: components["schemas"]["LocalDate"] | null;
@@ -65306,6 +65267,7 @@ export interface components {
             eventId?: number | null;
             isPublic?: boolean;
             name?: string;
+            party?: components["schemas"]["RestrictionAudience"] | null;
             /** Format: int32 */
             templateId?: number | null;
         };
@@ -70883,10 +70845,10 @@ export interface components {
             templateId: number | null;
         };
         ProcedureDetail: {
-            assigneeIds: number[];
-            assignees: components["schemas"]["MemberIdentity"][];
             dependencies: number[][];
             items: components["schemas"]["ProcedureItem"][];
+            named: components["schemas"]["MemberIdentity"][];
+            party: components["schemas"]["RestrictionAudience"];
             procedure: components["schemas"]["Procedure"];
         };
         ProcedureItem: {
@@ -70931,6 +70893,7 @@ export interface components {
         ProcedureTemplateDetail: {
             dependencies: number[][];
             items: components["schemas"]["ProcedureTemplateItem"][];
+            party: components["schemas"]["RestrictionAudience"];
             template: components["schemas"]["ProcedureTemplate"];
         };
         ProcedureTemplateItem: {
@@ -70948,6 +70911,7 @@ export interface components {
         ProcedureTemplateRequest: {
             description?: string | null;
             name?: string;
+            party?: components["schemas"]["RestrictionAudience"] | null;
         };
         ProcurementResponse: {
             fulfilledAt: components["schemas"]["Instant"] | null;
@@ -75323,7 +75287,6 @@ export type ArtRequest = components['schemas']['ArtRequest'];
 export type ArtStock = components['schemas']['ArtStock'];
 export type AskedFieldResponse = components['schemas']['AskedFieldResponse'];
 export type AskedRequestResponse = components['schemas']['AskedRequestResponse'];
-export type AssigneeRequest = components['schemas']['AssigneeRequest'];
 export type AssignItemRequest = components['schemas']['AssignItemRequest'];
 export type AssignItemsRequest = components['schemas']['AssignItemsRequest'];
 export type AssignmentRequest = components['schemas']['AssignmentRequest'];

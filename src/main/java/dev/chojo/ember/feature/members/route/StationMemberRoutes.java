@@ -48,6 +48,8 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.pathUuid;
@@ -245,6 +247,11 @@ public class StationMemberRoutes implements Routes {
         ctx.json(pickerService.search(session.stationId(), ctx.queryParam("q"), ctx.queryParam("uid"), limit));
     }
 
+    /**
+     * The active members for autocomplete. Narrowed to those an entity's restriction takes in only for a
+     * reader who manages that kind of entity, so nobody learns who runs or may open something they may
+     * not manage.
+     */
     @OpenApi(
             path = "/api/v1/station-members/completions",
             methods = HttpMethod.GET,
@@ -265,7 +272,9 @@ public class StationMemberRoutes implements Routes {
             try {
                 var rType = RestrictionType.valueOf(rtParam);
                 int entityId = Integer.parseInt(entityIdParam);
-                var allowedIds = restrictionService.findMembersPassingRestriction(rType, entityId, session.stationId());
+                var allowedIds = session.hasPermission(rType.managerPermission())
+                        ? restrictionService.findMembersPassingRestriction(rType, entityId, session.stationId())
+                        : Optional.<Set<Integer>>empty();
                 if (allowedIds.isPresent()) {
                     completions = completions.stream()
                             .filter(c -> allowedIds.get().contains(c.id()))

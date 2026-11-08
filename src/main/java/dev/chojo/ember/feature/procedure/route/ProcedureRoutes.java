@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -85,9 +86,7 @@ public class ProcedureRoutes implements Routes {
         routes.post(prefix + "/procedures/{rid}/resolve", this::resolveProcedure, StationPermission.PROCEDURE_EDIT);
         routes.post(prefix + "/procedures/{rid}/reopen", this::reopenProcedure, StationPermission.PROCEDURE_EDIT);
 
-        routes.post(prefix + "/procedures/{rid}/assignees", this::addAssignees, StationPermission.PROCEDURE_EDIT);
-        routes.delete(
-                prefix + "/procedures/{rid}/assignees/{mid}", this::removeAssignee, StationPermission.PROCEDURE_EDIT);
+        routes.put(prefix + "/procedures/{rid}/party", this::setParty, StationPermission.PROCEDURE_EDIT);
 
         routes.post(prefix + "/procedures/{rid}/items", this::addItem, StationPermission.PROCEDURE_EDIT);
         routes.put(prefix + "/procedures/{rid}/items/{iid}", this::editItem, StationPermission.PROCEDURE_EDIT);
@@ -120,7 +119,7 @@ public class ProcedureRoutes implements Routes {
                 requireOwnedOrNotFound(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
         var items = procedureService.findTemplateItems(tid);
         var deps = procedureService.findTemplateItemDependencies(tid);
-        ctx.json(new ProcedureTemplateDetail(template, items, deps));
+        ctx.json(new ProcedureTemplateDetail(template, items, deps, procedureService.templatePartyOf(tid)));
     }
 
     @OpenApi(
@@ -132,11 +131,13 @@ public class ProcedureRoutes implements Routes {
         var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(ProcedureTemplateRequest.class);
         if (req.name() == null || req.name().isBlank()) throw ProcedureRefusal.PROCEDURE_TEMPLATE_NEEDS_A_NAME.raise();
-        ctx.json(procedureService.createTemplate(
+        var template = procedureService.createTemplate(
                 session.stationId(),
                 req.name(),
                 req.description(),
-                session.member().id()));
+                session.member().id());
+        if (req.party() != null) procedureService.setTemplateParty(template.id(), req.party());
+        ctx.json(template);
     }
 
     @OpenApi(
@@ -150,9 +151,11 @@ public class ProcedureRoutes implements Routes {
         var req = ctx.bodyAsClass(ProcedureTemplateRequest.class);
         if (req.name() == null || req.name().isBlank())
             throw ProcedureRefusal.PROCEDURE_TEMPLATE_RENAME_NEEDS_A_NAME.raise();
-        procedureService.updateTemplate(tid, req.name(), req.description()).ifPresentOrElse(ctx::json, () -> {
-            throw ProcedureRefusal.PROCEDURE_TEMPLATE_NOT_HERE_TO_CHANGE.raise();
-        });
+        var updated = procedureService
+                .updateTemplate(tid, req.name(), req.description())
+                .orElseThrow(ProcedureRefusal.PROCEDURE_TEMPLATE_NOT_HERE_TO_CHANGE::raise);
+        if (req.party() != null) procedureService.setTemplateParty(tid, req.party());
+        ctx.json(updated);
     }
 
     @OpenApi(
@@ -252,7 +255,7 @@ public class ProcedureRoutes implements Routes {
         boolean canEdit = session.hasPermission(StationPermission.PROCEDURE_EDIT);
         if ("me".equals(assigneeParam) || !canEdit) {
             boolean publicOnly = !session.hasPermission(StationPermission.PROCEDURE_READ);
-            ctx.json(procedureService.findProceduresByAssignee(
+            ctx.json(procedureService.findProceduresRunBy(
                     session.stationId(), session.member().id(), status, publicOnly));
         } else {
             ctx.json(procedureService.findProceduresByStation(session.stationId(), status));
@@ -292,21 +295,22 @@ public class ProcedureRoutes implements Routes {
 
         if (!session.hasPermission(StationPermission.PROCEDURE_EDIT)) {
             if (!procedure.isPublic()) throw ProcedureRefusal.PROCEDURE_NOT_PUBLIC.raise();
-            var assignees = procedureService.findAssigneeIds(rid);
-            if (!assignees.contains(session.member().id())) throw ProcedureRefusal.PROCEDURE_NOT_YOURS.raise();
+            if (!procedureService.runBy(rid, session.member().id())) throw ProcedureRefusal.PROCEDURE_NOT_YOURS.raise();
         }
 
         var items = procedureService.findItems(rid);
         var deps = procedureService.findItemDependencies(rid);
-        var assigneeIds = procedureService.findAssigneeIds(rid);
-        var assignees =
-                assigneeIds.stream().map(memberIdentityFactory::fromMemberId).toList();
+        var party = procedureService.partyOf(rid);
+        var named = party.toSelection().memberIds().stream()
+                .map(memberIdentityFactory::fromMemberId)
+                .filter(Objects::nonNull)
+                .toList();
 
         if (!session.hasPermission(StationPermission.PROCEDURE_EDIT)) {
             items = items.stream().filter(ProcedureItem::isPublic).toList();
         }
 
-        ctx.json(new ProcedureDetail(procedure, items, deps, assigneeIds, assignees));
+        ctx.json(new ProcedureDetail(procedure, items, deps, party, named));
     }
 
     @OpenApi(
@@ -326,7 +330,7 @@ public class ProcedureRoutes implements Routes {
                 req.isPublic(),
                 session.member().id(),
                 req.dueAt(),
-                Objects.requireNonNullElse(req.assigneeIds(), List.of()),
+                req.party(),
                 req.eventDate() != null ? req.eventId() : null,
                 req.eventId() != null ? req.eventDate() : null);
         ctx.json(procedure);
@@ -393,30 +397,17 @@ public class ProcedureRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/procedures/{rid}/assignees",
-            methods = HttpMethod.POST,
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = AssigneeRequest.class)),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
-    private void addAssignees(Context ctx) {
+            path = "/api/v1/procedures/{rid}/party",
+            methods = HttpMethod.PUT,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = RestrictionAudience.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RestrictionAudience.class)))
+    private void setParty(Context ctx) {
         var session = StationSession.from(ctx);
         int rid = pathInt(ctx, "rid");
         requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
-        var req = ctx.bodyAsClass(AssigneeRequest.class);
-        if (req.memberIds() == null || req.memberIds().isEmpty()) throw ProcedureRefusal.PROCEDURE_NAMES_NOBODY.raise();
-        procedureService.addAssignees(rid, req.memberIds(), session.member().id());
-        ctx.json(procedureService.findAssigneeIds(rid));
-    }
-
-    @OpenApi(
-            path = "/api/v1/procedures/{rid}/assignees/{mid}",
-            methods = HttpMethod.DELETE,
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Integer[].class)))
-    private void removeAssignee(Context ctx) {
-        int rid = pathInt(ctx, "rid");
-        requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
-        int mid = pathInt(ctx, "mid");
-        procedureService.removeAssignee(rid, mid);
-        ctx.json(procedureService.findAssigneeIds(rid));
+        var party = ctx.bodyAsClass(RestrictionAudience.class);
+        procedureService.setParty(rid, party, session.member().id());
+        ctx.json(procedureService.partyOf(rid));
     }
 
     @OpenApi(
@@ -479,8 +470,7 @@ public class ProcedureRoutes implements Routes {
                     if (!item.userAssigned()) {
                         throw ProcedureRefusal.PROCEDURE_STEP_NOT_YOURS_TO_TICK.raise();
                     }
-                    var assignees = procedureService.findAssigneeIds(rid);
-                    if (!assignees.contains(session.member().id())) {
+                    if (!procedureService.runBy(rid, session.member().id())) {
                         throw ProcedureRefusal.PROCEDURE_NOT_HANDED_TO_YOU.raise();
                     }
                 }
@@ -532,17 +522,25 @@ public class ProcedureRoutes implements Routes {
      * A procedure template as it is created or renamed.
      *
      * @param description what the template is for, or {@code null} for nothing
+     * @param party       the managing party every procedure started from it begins with, or {@code null} to
+     *                    leave it as it is
      */
     public record ProcedureTemplateRequest(
-            String name, @Nullable String description) {}
+            String name,
+            @Nullable String description,
+            @Nullable RestrictionAudience party) {}
 
     /**
      * A template with its steps and the order they depend on each other in.
      *
      * @param dependencies pairs of step ids: the step first, the step it waits for second
+     * @param party        the managing party every procedure started from it begins with
      */
     public record ProcedureTemplateDetail(
-            ProcedureTemplate template, List<ProcedureTemplateItem> items, List<int[]> dependencies) {}
+            ProcedureTemplate template,
+            List<ProcedureTemplateItem> items,
+            List<int[]> dependencies,
+            RestrictionAudience party) {}
 
     /**
      * A step of a template or a procedure as it is added or changed.
@@ -565,7 +563,7 @@ public class ProcedureRoutes implements Routes {
      * @param templateId  the template whose steps the procedure starts with, or {@code null} for none
      * @param description what the procedure is about, or {@code null} for nothing
      * @param dueAt       when it is due, or {@code null} for no date
-     * @param assigneeIds the members it is handed to, or {@code null} for nobody yet
+     * @param party       the managing party, or {@code null} for the template's, or none without one
      * @param eventId     the appointment the procedure is being prepared for, or {@code null}
      * @param eventDate   the one occurrence of that appointment. Both are recorded only when both are
      *                    given: an appointment without a date names every occurrence it has ever had
@@ -576,7 +574,7 @@ public class ProcedureRoutes implements Routes {
             @Nullable String description,
             boolean isPublic,
             @Nullable Instant dueAt,
-            @Nullable List<Integer> assigneeIds,
+            @Nullable RestrictionAudience party,
             @Nullable Integer eventId,
             @Nullable LocalDate eventDate) {}
 
@@ -590,8 +588,6 @@ public class ProcedureRoutes implements Routes {
             boolean isPublic,
             @Nullable Instant dueAt) {}
 
-    public record AssigneeRequest(List<Integer> memberIds) {}
-
     /**
      * What a member changes on one step: its tick, its note, or both.
      *
@@ -601,10 +597,16 @@ public class ProcedureRoutes implements Routes {
     public record PatchItemRequest(
             @Nullable Boolean checked, @Nullable String note) {}
 
+    /**
+     * A procedure with its steps, the order they depend on each other in and its managing party.
+     *
+     * @param party the managing party; one naming nobody where only those who edit procedures run it
+     * @param named the members the party names one by one, as their names are shown
+     */
     public record ProcedureDetail(
             Procedure procedure,
             List<ProcedureItem> items,
             List<int[]> dependencies,
-            List<Integer> assigneeIds,
-            List<MemberIdentity> assignees) {}
+            RestrictionAudience party,
+            List<MemberIdentity> named) {}
 }

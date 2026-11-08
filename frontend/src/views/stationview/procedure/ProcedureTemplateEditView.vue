@@ -23,10 +23,14 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TemplateItemCard from '@/views/stationview/procedure/proceduretemplateeditview/TemplateItemCard.vue'
+import PartySection from '@/views/stationview/procedure/procedurecreateview/PartySection.vue'
+import { audienceLists, type AudienceLists } from '@/components/documents/generation'
+import { emptyRestriction, toRestriction } from '@/components/input/restriction'
+import type { RestrictionSelection } from '@/api/types'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
-import { procedures } from '@/api'
-import { StationPermission, type ProcedureTemplateDetail, type ProcedureTemplateItem } from '@/api/generated/schema'
+import { procedures, stationMembers } from '@/api'
+import { StationPermission, type MemberCompletion, type ProcedureTemplateDetail, type ProcedureTemplateItem } from '@/api/generated/schema'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -61,9 +65,35 @@ const showDepModal = ref(false)
 const depTargetItem = ref<ProcedureTemplateItem | null>(null)
 const depSelectedId = ref<number | null>(null)
 
+/** The managing party every procedure started from the template begins with, and what it can name. */
+const party = ref<RestrictionSelection>(emptyRestriction())
+const audience = ref<AudienceLists>({groups: [], tags: []})
+const members = ref<MemberCompletion[]>([])
+
 const {loading, failure, reload} = useAsyncLoader(async () => {
-  detail.value = await procedures.getTemplate(templateId.value)
+  const [loaded, lists, completions] = await Promise.all([
+    procedures.getTemplate(templateId.value),
+    audienceLists(),
+    stationMembers.listCompletions().catch(() => []),
+  ])
+  detail.value = loaded
+  party.value = toRestriction(loaded.party)
+  audience.value = lists
+  members.value = completions
 }, {autoLoad: false})
+
+/** Saves the template's party, keeping its name and description as they are. */
+async function saveParty() {
+  const template = detail.value?.template
+  if (!template) return
+  await writeThenReload(async () => {
+    await procedures.updateTemplate(templateId.value, {
+      name: template.name,
+      description: template.description ?? undefined,
+      party: party.value,
+    })
+  })
+}
 
 /**
  * Writes one change, then reads the template back.
@@ -212,6 +242,13 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
           <SecondaryButton @click="router.push({ name: 'procedure-template-list' })">
             <font-awesome-icon :icon="['fas', 'arrow-left']" class="mr-1" /> {{ t('common.back') }}
           </SecondaryButton>
+        </ButtonRow>
+      </div>
+
+      <div v-if="canManage" class="mb-4 space-y-2">
+        <PartySection v-model="party" :members="members" :groups="audience.groups" :tags="audience.tags"/>
+        <ButtonRow align="end">
+          <PrimaryButton data-testid="template-party-save" @click="saveParty">{{ t('common.save') }}</PrimaryButton>
         </ButtonRow>
       </div>
 

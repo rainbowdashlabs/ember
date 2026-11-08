@@ -11,6 +11,9 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -23,6 +26,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -282,52 +286,68 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
         assertFalse(procedureRepo.updateProcedure(99999, "No", "No", false, null));
     }
 
+    private static RestrictionAudience named(StationMember... members) {
+        return new RestrictionAudience(
+                List.of(),
+                List.of(),
+                List.of(),
+                Arrays.stream(members).map(StationMember::id).toList(),
+                RestrictionMode.AND);
+    }
+
+    private static List<Integer> runBy(StationMember member) {
+        return procedureRepo.findProceduresRunBy(station.id(), member.id(), null, false).stream()
+                .map(Procedure::id)
+                .toList();
+    }
+
+    /** A procedure with no party is run by nobody beyond those who edit procedures. */
     @Test
     @Order(30)
-    void addAndFindAssignees() {
-        procedureRepo.addAssignee(procedureId, member.id());
-        procedureRepo.addAssignee(procedureId, member2.id());
-        var ids = procedureRepo.findAssigneeIds(procedureId);
-        assertEquals(2, ids.size());
-        assertTrue(ids.contains(member.id()));
-        assertTrue(ids.contains(member2.id()));
+    void aProcedureWithoutAPartyIsRunByNobody() {
+        assertFalse(runBy(member).contains(procedureId));
     }
 
     @Test
     @Order(31)
-    void addAssigneeDuplicate() {
-        procedureRepo.addAssignee(procedureId, member.id());
-        assertEquals(2, procedureRepo.findAssigneeIds(procedureId).size());
+    void theMembersAPartyNamesRunIt() {
+        restrictionService.setAudience(RestrictionType.PROCEDURE, procedureId, named(member, member2));
+        assertTrue(runBy(member).contains(procedureId));
+        assertTrue(runBy(member2).contains(procedureId));
     }
 
+    /** A party naming a group takes in its members only, and a party narrowed again lets the others go. */
     @Test
     @Order(32)
-    void removeAssignee() {
-        assertTrue(procedureRepo.removeAssignee(procedureId, member2.id()));
-        assertEquals(1, procedureRepo.findAssigneeIds(procedureId).size());
-    }
+    void aPartyOfAGroupTakesInItsMembers() {
+        int group = memberGroupRepo.create(station.id(), "Ablauf Gruppe").id();
+        memberGroupRepo.addMember(group, member2.id());
+        restrictionService.setAudience(
+                RestrictionType.PROCEDURE,
+                procedureId,
+                new RestrictionAudience(List.of(), List.of(group), List.of(), List.of(), RestrictionMode.AND));
+        assertTrue(runBy(member2).contains(procedureId));
+        assertFalse(runBy(member).contains(procedureId));
 
-    @Test
-    @Order(33)
-    void removeAssigneeNotFound() {
-        assertFalse(procedureRepo.removeAssignee(procedureId, 99999));
+        restrictionService.setAudience(RestrictionType.PROCEDURE, procedureId, named(member));
+        assertTrue(runBy(member).contains(procedureId));
+        assertFalse(runBy(member2).contains(procedureId));
     }
 
     @Test
     @Order(34)
-    void findProceduresByAssigneeNoFilter() {
-        var list = procedureRepo.findProceduresByAssignee(station.id(), member.id(), null, false);
+    void findProceduresRunByNoFilter() {
+        var list = procedureRepo.findProceduresRunBy(station.id(), member.id(), null, false);
         assertEquals(1, list.size());
         assertEquals(procedureId, list.getFirst().id());
     }
 
     @Test
     @Order(35)
-    void findProceduresByAssigneeWithFilter() {
-        var open = procedureRepo.findProceduresByAssignee(station.id(), member.id(), ProcedureStatus.OPEN, false);
+    void findProceduresRunByWithFilter() {
+        var open = procedureRepo.findProceduresRunBy(station.id(), member.id(), ProcedureStatus.OPEN, false);
         assertEquals(1, open.size());
-        var resolved =
-                procedureRepo.findProceduresByAssignee(station.id(), member.id(), ProcedureStatus.RESOLVED, false);
+        var resolved = procedureRepo.findProceduresRunBy(station.id(), member.id(), ProcedureStatus.RESOLVED, false);
         assertTrue(resolved.isEmpty());
     }
 
@@ -484,21 +504,21 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     }
 
     /**
-     * The member is assigned to the open procedure; its first item is restored to public and
+     * The member belongs to the open procedure's party; its first item is restored to public and
      * user-assigned first, since earlier tests edit it.
      */
     @Test
     @Order(91)
-    void countOpenByAssigneeWithAvailableItems() {
+    void countOpenRunByWithAvailableItems() {
         procedureRepo.updateItem(itemId1, "Check exits", "Desc", true, true, 1);
-        int count = procedureRepo.countOpenByAssigneeWithAvailableItems(station.id(), member.id());
+        int count = procedureRepo.countOpenRunByWithAvailableItems(station.id(), member.id());
         assertTrue(count >= 1);
     }
 
     @Test
     @Order(92)
-    void countOpenByAssigneeNoAssignment() {
-        int count = procedureRepo.countOpenByAssigneeWithAvailableItems(station.id(), member2.id());
+    void countOpenRunByNoPartyMembership() {
+        int count = procedureRepo.countOpenRunByWithAvailableItems(station.id(), member2.id());
         assertEquals(0, count);
     }
 

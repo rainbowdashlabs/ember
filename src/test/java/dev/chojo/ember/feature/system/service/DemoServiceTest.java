@@ -379,7 +379,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 memberIdentityFactory,
                 memberNameResolver,
                 boardAttachmentSvc);
-        var procedureService = new ProcedureService(procedureRepo, noOpBus);
+        var procedureService = new ProcedureService(procedureRepo, noOpBus, restrictionService);
 
         var memberSeeder = new DemoMemberSeeder(
                 accountRepo,
@@ -492,7 +492,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 federationService,
                 memberIdentityFactory,
                 demoClock);
-        var procedureSeeder = new DemoProcedureSeeder(procedureRepo);
+        var procedureSeeder = new DemoProcedureSeeder(procedureRepo, restrictionService);
         var selfCheckSeeder = new DemoSelfCheckSeeder(selfCheckRepo, inventoryRepo, itemCustodyService, demoClock);
         var demoStorageConfig = new Storage();
         var demoBackend = localStorage();

@@ -22,8 +22,9 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
-import MemberName from '@/components/avatar/MemberName.vue'
 import ProcedureItemRow from './proceduredetailview/ProcedureItemRow.vue'
+import PartySummary from './proceduredetailview/PartySummary.vue'
+import {audienceLists, type AudienceLists} from '@/components/documents/generation'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {procedures} from '@/api'
@@ -131,8 +132,13 @@ const sortedItems = computed(() => {
   return result
 })
 
+/** The names of the groups and tags a party may name, for its chips. */
+const audience = ref<AudienceLists>({groups: [], tags: []})
+
 const {loading, failure, reload} = useAsyncLoader(async () => {
-  detail.value = await procedures.getProcedure(procedureId.value)
+  const [loaded, lists] = await Promise.all([procedures.getProcedure(procedureId.value), audienceLists()])
+  detail.value = loaded
+  audience.value = lists
 }, {autoLoad: false})
 
 async function refreshSilently() {
@@ -255,12 +261,7 @@ watch(loaded, (v) => {
         </ButtonRow>
       </div>
 
-      <NeutralContainer v-if="detail.assignees.length > 0" class="mb-4">
-        <SubHeader class="mb-2">{{ t('procedures.assignees') }}</SubHeader>
-        <div class="flex flex-wrap gap-2">
-          <MemberName v-for="assignee in detail.assignees" :key="assignee.memberUid" :identity="assignee" size="sm"/>
-        </div>
-      </NeutralContainer>
+      <PartySummary :party="detail.party" :named="detail.named" :groups="audience.groups" :tags="audience.tags"/>
 
       <NeutralContainer class="mb-4">
         <div class="flex items-center gap-3">

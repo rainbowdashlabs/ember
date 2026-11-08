@@ -4,9 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type { RestrictionSelection } from './types'
 import { createCrudResource, createScopedCrudResource, type NoContent } from './crud'
 import type {
-    AssigneeRequest,
     CreateProcedureRequest,
     DependencyEntry,
     DependencyRequest,
@@ -20,6 +20,7 @@ import type {
     ProcedureTemplateDetail,
     ProcedureTemplateItem,
     ProcedureTemplateRequest,
+    RestrictionAudience,
     UpdateProcedureRequest,
 } from './generated/schema'
 
@@ -128,16 +129,9 @@ export async function reopenProcedure(id: number): Promise<Procedure> {
     return res.data
 }
 
-/** Hands the procedure to more members. @returns the ids of everybody it is handed to now */
-export async function addAssignees(id: number, memberIds: number[]): Promise<number[]> {
-    const request: AssigneeRequest = { memberIds }
-    const res = await client.post<number[]>(`/procedures/${id}/assignees`, request)
-    return res.data
-}
-
-/** Takes the procedure away from one member. @returns the ids of everybody it is still handed to */
-export async function removeAssignee(id: number, memberId: number): Promise<number[]> {
-    const res = await client.delete<number[]>(`/procedures/${id}/assignees/${memberId}`)
+/** Gives the procedure another managing party. @returns the party as it now stands */
+export async function setParty(id: number, party: RestrictionSelection): Promise<RestrictionAudience> {
+    const res = await client.put<RestrictionAudience>(`/procedures/${id}/party`, party)
     return res.data
 }
 

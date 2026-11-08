@@ -10,6 +10,9 @@ import dev.chojo.ember.feature.procedure.entity.Procedure;
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
 import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -18,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
@@ -27,10 +31,12 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoProcedureSeeder.class);
 
     private final ProcedureRepository repo;
+    private final RestrictionService restrictions;
 
     @Inject
-    public DemoProcedureSeeder(ProcedureRepository repo) {
+    public DemoProcedureSeeder(ProcedureRepository repo, RestrictionService restrictions) {
         this.repo = repo;
+        this.restrictions = restrictions;
     }
 
     @Override
@@ -150,7 +156,7 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
                 true,
                 admin.id(),
                 null);
-        repo.addAssignee(completedProc.id(), anfaenger.getFirst().id());
+        addToParty(completedProc.id(), anfaenger.getFirst().id());
         var items1 = repo.findItems(completedProc.id());
         for (var item : items1) {
             repo.checkItem(
@@ -169,9 +175,9 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
                 true,
                 admin.id(),
                 Instant.now().plus(14, ChronoUnit.DAYS));
-        repo.addAssignee(inProgressProc.id(), anfaenger.get(1).id());
+        addToParty(inProgressProc.id(), anfaenger.get(1).id());
         if (!betreuer.isEmpty()) {
-            repo.addAssignee(inProgressProc.id(), betreuer.getFirst().id());
+            addToParty(inProgressProc.id(), betreuer.getFirst().id());
         }
         var items2 = repo.findItems(inProgressProc.id());
         for (int i = 0; i < Math.min(3, items2.size()); i++) {
@@ -191,9 +197,9 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
                 Instant.now().minus(3, ChronoUnit.DAYS),
                 null,
                 null);
-        repo.addAssignee(overdueProc.id(), betreuer.get(0).id());
+        addToParty(overdueProc.id(), betreuer.get(0).id());
         if (betreuer.size() > 1) {
-            repo.addAssignee(overdueProc.id(), betreuer.get(1).id());
+            addToParty(overdueProc.id(), betreuer.get(1).id());
         }
         var adHocItem1 = repo.createItem(
                 overdueProc.id(), "Anbieter kontaktieren", "DRK oder Malteser wegen Termin anfragen.", true, true, 0);
@@ -213,7 +219,7 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
                 Instant.now().plus(30, ChronoUnit.DAYS),
                 null,
                 null);
-        repo.addAssignee(privateProc.id(), admin.id());
+        addToParty(privateProc.id(), admin.id());
         repo.createItem(privateProc.id(), "Mitgliederzahlen zusammenstellen", null, false, false, 0);
         repo.createItem(privateProc.id(), "Übungsstunden auswerten", null, false, false, 1);
         repo.createItem(privateProc.id(), "Veranstaltungen dokumentieren", null, false, false, 2);
@@ -250,5 +256,18 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
         }
 
         return procedure;
+    }
+
+    /** Names one more member in a procedure's managing party. */
+    private void addToParty(int procedureId, int memberId) {
+        var selection =
+                restrictions.audienceOf(RestrictionType.PROCEDURE, procedureId).toSelection();
+        var members = new ArrayList<>(selection.memberIds());
+        members.add(memberId);
+        restrictions.setAudience(
+                RestrictionType.PROCEDURE,
+                procedureId,
+                new RestrictionAudience(
+                        selection.userTypes(), selection.groupIds(), selection.tagIds(), members, selection.mode()));
     }
 }

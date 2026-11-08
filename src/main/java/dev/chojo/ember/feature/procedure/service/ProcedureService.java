@@ -18,6 +18,9 @@ import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
 import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -39,11 +42,13 @@ public class ProcedureService {
 
     private final ProcedureRepository repository;
     private final DomainEventBus eventBus;
+    private final RestrictionService restrictions;
 
     @Inject
-    public ProcedureService(ProcedureRepository repository, DomainEventBus eventBus) {
+    public ProcedureService(ProcedureRepository repository, DomainEventBus eventBus, RestrictionService restrictions) {
         this.repository = repository;
         this.eventBus = eventBus;
+        this.restrictions = restrictions;
     }
 
     public List<ProcedureTemplate> findTemplatesByStation(int stationId, boolean includeArchived) {
@@ -154,9 +159,18 @@ public class ProcedureService {
         return repository.findProceduresByStation(stationId, status);
     }
 
-    public List<Procedure> findProceduresByAssignee(
+    /**
+     * The procedures whose managing party takes the member in, as "Meine" lists them.
+     *
+     * @param stationId  the station
+     * @param memberId   the member
+     * @param status     the state asked for, or null for both
+     * @param publicOnly whether to leave out procedures that are not public
+     * @return the procedures, newest first
+     */
+    public List<Procedure> findProceduresRunBy(
             int stationId, int memberId, @Nullable ProcedureStatus status, boolean publicOnly) {
-        return repository.findProceduresByAssignee(stationId, memberId, status, publicOnly);
+        return repository.findProceduresRunBy(stationId, memberId, status, publicOnly);
     }
 
     public Optional<Procedure> findProcedureById(int id) {
@@ -176,7 +190,9 @@ public class ProcedureService {
     }
 
     /**
-     * Writes a procedure, snapshots the template it was started from and puts its assignees on it.
+     * Writes a procedure, snapshots the template it was started from and gives it its managing party:
+     * the one asked for, else the template's, else none. The members the party names one by one are
+     * told it was handed to them.
      *
      * @param eventId   the appointment this was prepared for, or {@code null} for a procedure that
      *                  stands on its own
@@ -191,7 +207,7 @@ public class ProcedureService {
             boolean isPublic,
             int assignedBy,
             @Nullable Instant dueAt,
-            List<Integer> assigneeIds,
+            @Nullable RestrictionAudience party,
             @Nullable Integer eventId,
             @Nullable LocalDate eventDate) {
         var procedure = repository.createProcedure(
@@ -201,20 +217,20 @@ public class ProcedureService {
             snapshotTemplate(procedure.id(), templateId);
         }
 
-        for (int memberId : assigneeIds) {
-            repository.addAssignee(procedure.id(), memberId);
-        }
-
-        if (!assigneeIds.isEmpty()) {
-            eventBus.publish(new ProcedureAssigned(stationId, procedure.id(), name, assigneeIds, assignedBy));
+        var given =
+                party != null ? party : templateId != null ? templatePartyOf(templateId) : RestrictionAudience.empty();
+        restrictions.setAudience(RestrictionType.PROCEDURE, procedure.id(), given);
+        var named = given.toSelection().memberIds();
+        if (!named.isEmpty()) {
+            eventBus.publish(new ProcedureAssigned(stationId, procedure.id(), name, named, assignedBy));
         }
 
         log.info(
-                "Created procedure {} on station {} (template {}, assignees {})",
+                "Created procedure {} on station {} (template {}, party naming nobody: {})",
                 procedure.id(),
                 stationId,
                 templateId,
-                assigneeIds.size());
+                given.namesNobody());
         return procedure;
     }
 
@@ -240,9 +256,9 @@ public class ProcedureService {
             return false;
         }
 
-        var assigneeIds = repository.findAssigneeIds(id);
+        var party = partyMembers(procedure.get().stationId(), id);
         eventBus.publish(new ProcedureResolved(
-                procedure.get().stationId(), id, procedure.get().name(), assigneeIds, resolvedByMemberId));
+                procedure.get().stationId(), id, procedure.get().name(), party, resolvedByMemberId));
         log.info("Resolved procedure {} by member {}", id, resolvedByMemberId);
         return true;
     }
@@ -258,9 +274,9 @@ public class ProcedureService {
             return false;
         }
 
-        var assigneeIds = repository.findAssigneeIds(id);
+        var party = partyMembers(procedure.get().stationId(), id);
         eventBus.publish(new ProcedureReopened(
-                procedure.get().stationId(), id, procedure.get().name(), assigneeIds, reopenedByMemberId));
+                procedure.get().stationId(), id, procedure.get().name(), party, reopenedByMemberId));
         log.info("Reopened procedure {} by member {}", id, reopenedByMemberId);
         return true;
     }
@@ -275,38 +291,89 @@ public class ProcedureService {
         return deleted;
     }
 
-    public List<Integer> findAssigneeIds(int procedureId) {
-        return repository.findAssigneeIds(procedureId);
+    /**
+     * The managing party of a procedure: who sees its public steps, ticks the steps marked for them and
+     * is told about it.
+     *
+     * @param procedureId the procedure
+     * @return the party; one naming nobody where the procedure has none
+     */
+    public RestrictionAudience partyOf(int procedureId) {
+        return restrictions.audienceOf(RestrictionType.PROCEDURE, procedureId);
     }
 
-    public void addAssignees(int procedureId, List<Integer> memberIds, int assignedByMemberId) {
+    /**
+     * Whether the managing party of a procedure takes a member in. Unlike other restrictions, a
+     * procedure with no party is run by nobody beyond those who edit procedures.
+     *
+     * @param procedureId the procedure
+     * @param memberId    the member
+     * @return whether the member belongs to the party
+     */
+    public boolean runBy(int procedureId, int memberId) {
+        return restrictions.hasRestrictions(RestrictionType.PROCEDURE, procedureId)
+                && restrictions.includes(RestrictionType.PROCEDURE, procedureId, memberId);
+    }
+
+    /**
+     * The current members of the station the managing party of a procedure takes in, none where it has
+     * no party.
+     *
+     * @param stationId   the station
+     * @param procedureId the procedure
+     * @return the members' ids
+     */
+    public List<Integer> partyMembers(int stationId, int procedureId) {
+        var party = partyOf(procedureId);
+        if (party.namesNobody()) return List.of();
+        return restrictions.membersIn(stationId, party);
+    }
+
+    /**
+     * Gives a procedure another managing party. The members it names one by one for the first time are
+     * told it was handed to them.
+     *
+     * @param procedureId        the procedure
+     * @param party              the new party; one naming nobody leaves it to those who edit procedures
+     * @param assignedByMemberId who changed it
+     */
+    public void setParty(int procedureId, RestrictionAudience party, int assignedByMemberId) {
         var procedure = repository.findProcedureById(procedureId);
         if (procedure.isEmpty()) {
-            log.warn("Add assignees to procedure {} skipped: not found", procedureId);
+            log.warn("Party of procedure {} not changed: not found", procedureId);
             return;
         }
-
-        var existing = Set.copyOf(repository.findAssigneeIds(procedureId));
-        var newIds = memberIds.stream().filter(id -> !existing.contains(id)).toList();
-        for (int memberId : newIds) {
-            repository.addAssignee(procedureId, memberId);
-        }
-
-        if (!newIds.isEmpty()) {
+        var before = Set.copyOf(partyOf(procedureId).toSelection().memberIds());
+        restrictions.setAudience(RestrictionType.PROCEDURE, procedureId, party);
+        var newlyNamed = party.toSelection().memberIds().stream()
+                .filter(memberId -> !before.contains(memberId))
+                .toList();
+        if (!newlyNamed.isEmpty()) {
             eventBus.publish(new ProcedureAssigned(
-                    procedure.get().stationId(), procedureId, procedure.get().name(), newIds, assignedByMemberId));
-            log.info("Assigned {} new member(s) to procedure {}", newIds.size(), procedureId);
+                    procedure.get().stationId(), procedureId, procedure.get().name(), newlyNamed, assignedByMemberId));
         }
+        log.info("Changed the party of procedure {}, {} member(s) newly named", procedureId, newlyNamed.size());
     }
 
-    public boolean removeAssignee(int procedureId, int memberId) {
-        boolean removed = repository.removeAssignee(procedureId, memberId);
-        if (removed) {
-            log.info("Removed assignee {} from procedure {}", memberId, procedureId);
-        } else {
-            log.warn("Remove of assignee {} from procedure {} affected zero rows", memberId, procedureId);
-        }
-        return removed;
+    /**
+     * The managing party a procedure template hands to every procedure started from it.
+     *
+     * @param templateId the template
+     * @return the party; one naming nobody where the template has none
+     */
+    public RestrictionAudience templatePartyOf(int templateId) {
+        return restrictions.audienceOf(RestrictionType.PROCEDURE_TEMPLATE, templateId);
+    }
+
+    /**
+     * Sets the managing party a procedure template hands to every procedure started from it.
+     *
+     * @param templateId the template
+     * @param party      the party; one naming nobody hands none
+     */
+    public void setTemplateParty(int templateId, RestrictionAudience party) {
+        restrictions.setAudience(RestrictionType.PROCEDURE_TEMPLATE, templateId, party);
+        log.info("Changed the default party of procedure template {}", templateId);
     }
 
     /**
@@ -385,14 +452,15 @@ public class ProcedureService {
 
         var procedure = repository.findProcedureById(item.get().procedureId());
         if (procedure.isPresent()) {
-            var assigneeIds = repository.findAssigneeIds(procedure.get().id());
+            var party =
+                    partyMembers(procedure.get().stationId(), procedure.get().id());
             eventBus.publish(new ProcedureItemChecked(
                     procedure.get().stationId(),
                     procedure.get().id(),
                     procedure.get().name(),
                     itemId,
                     item.get().title(),
-                    assigneeIds,
+                    party,
                     checkedByMemberId));
         }
         log.info("Checked procedure item {} by member {}", itemId, checkedByMemberId);
@@ -444,8 +512,8 @@ public class ProcedureService {
         return dependencies.stream().allMatch(pair -> held.contains(pair[0]) && held.contains(pair[1]));
     }
 
-    public int countOpenByAssigneeWithAvailableItems(int stationId, int memberId) {
-        return repository.countOpenByAssigneeWithAvailableItems(stationId, memberId);
+    public int countOpenRunByWithAvailableItems(int stationId, int memberId) {
+        return repository.countOpenRunByWithAvailableItems(stationId, memberId);
     }
 
     public int countOpenByStation(int stationId) {

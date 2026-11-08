@@ -124,7 +124,7 @@ public class SidebarCountService {
         if (roles.contains(StationPermission.PROCEDURE_EDIT)) {
             procedureCount = procedureService.countOpenByStation(stationId);
         } else {
-            procedureCount = procedureService.countOpenByAssigneeWithAvailableItems(stationId, memberId);
+            procedureCount = procedureService.countOpenRunByWithAvailableItems(stationId, memberId);
         }
 
         return new SidebarCounts(
