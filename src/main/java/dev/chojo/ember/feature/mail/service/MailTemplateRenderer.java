@@ -87,7 +87,7 @@ public class MailTemplateRenderer {
      *
      * @throws IllegalStateException if neither the requested locale nor the {@code en} fallback exists.
      */
-    public String render(String name, String locale, Map<String, String> variables) {
+    public String render(String name, String locale, Map<String, ?> variables) {
         String effectiveLocale = resolveLocale(name, locale);
         PebbleTemplate template = engine.getTemplate(effectiveLocale + "/" + name);
         var context = new HashMap<String, Object>(variables);

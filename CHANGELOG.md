@@ -1,22 +1,169 @@
 # Changelog
 
-## v26.23.0
+## v26.24.0
 
-Signatures can be collected in person. A trainer with a tablet takes the signatures of trial users and members without a login on the spot. The trainer confirms with their own account that each person signed in front of them.
+Attendance can credit time spent before and after an appointment. A template names who prepares or tidies up and how many minutes that is worth. The attendance report counts those minutes in each person's hours. A member's equipment is handed out and taken back on the member's own page, which opens with the tabs each reader may see. Tabs on the main pages can be linked by their address. Missing equipment stands among the pieces a member holds and is handed out from a searchable window. The German interface uses one name for equipment movements throughout. Signatures can be collected in person from trial users and members without a login. The person collecting them confirms with their own account that each one signed in front of them.
 
 ### New Features
 
+- **Preparation and follow-up time counts in attendance.** An attendance template can credit chosen people with minutes before and after an appointment, such as a youth leader who sets up the room. Each sheet copies these rules and can correct them or leave one person out, and the report, its printouts and the spreadsheet count the minutes in each person's hours.
 - **Signatures collected in person.** A member with the new permission "Collect signatures in person" picks a member or trial user, opens one of their documents or makes one from a template on the spot, and hands the device over to read, agree and draw. The witness confirms with their own account, and the signature record and the verification page name the witness beside the person who signed.
 - **Whom witnesses reach can be narrowed.** Right under the permission, a station can limit its witnesses to some of its members and trial users, for example to trial users or one group. Without a choice they reach all of them.
 
+### Improvements
+
+- **Tabs can be linked.** The address names the open tab on member, appointment, test, template and form evaluation pages, so a link or a bookmark opens the same tab, such as `/station/members/detail/12#inventory`.
+- **Member pages open with the tabs a reader may see.** Each tab of a member's page appears for those allowed to see its content, and the page opens as long as one is left. Someone who may see the inventory but not member profiles opens a member's page with its Inventory tab.
+- **Pages show their loading indicator in the middle.** While a page or a section loads, its spinning wheel stands centred on a line of its own instead of in the top left corner.
+
+### Changes
+
+- **A member's equipment lives on the member's page.** The separate member inventory page is gone, and every member name in the inventory leads to the Inventory tab of the member's page. That tab gains scanning to hand out, "Ask for everything back" and the member's movements, and its buttons follow the inventory permissions instead of the right to edit members.
+- **Missing equipment stands among the held pieces.** On a member's Inventory tab, each missing piece shows as a card in its inventory's group instead of in a list above. Handing it out opens a window that searches the free pieces of that inventory, the chosen size first, or creates a new one.
+- **Equipment movements have one name in German.** The German interface, notifications, refusal messages, export file names and help center call a movement by the same word everywhere, the one the sidebar already used.
+
+## v26.23.5
+
+Repeating appointments keep their time of day after the clocks change.
+
+### Fixes
+
+- **Repeating appointments were an hour off in winter.** In some cases, a repeating appointment set up in summer time showed the wrong time once the clocks changed, on attendance sheets, generated documents, equipment planning and in subscribed calendars. Its time of day now stays the same on the station's clock throughout the year.
+
+## v26.23.4
+
+An invitation from a waiting list can offer several dates to pick from, and the station can write to the family when it offers other dates, starts the trial or takes someone off the list.
+
+### New Features
+
+- **Invitations can offer several dates.** An invitation from a waiting list can offer up to five appointments, each with its own arrival time, and the family picks the one that suits on the invitation page or says that none of them do. The station sees which date was picked on the entry and in the notification.
+
+### Improvements
+
+- **Other dates are offered in one step.** When the dates of an invitation do not suit, "Offer other dates" replaces them with new ones and a note, and the family gets them by mail or on the entry's page without the entry going back to waiting first.
+- **The station can write to the family.** Starting the trial and withdrawing an entry take an optional message, mailed to the family when the waiting list sends mail, and the message for the trial also stands on the entry's page while the trial runs. Invited entries can now be withdrawn directly as well.
+
+## v26.23.3
+
+Profiles no longer ask members to fill in fields they cannot fill in.
+
+### Fixes
+
+- **Profiles listed an age as missing.** A required field that was turned into an age, a heading or a spacer stayed required, and members without a value saw it in the list of missing fields on their profile, with no way to fill it in. Such fields are never required now, and the profile no longer lists fields the member may only read either.
+
+## v26.23.2
+
+The attendance check keeps its status buttons in the same place for every member.
+
+### Improvements
+
+- **Attendance check buttons stay in place.** In the attendance check, open swaps and found items of a member stand below the buttons instead of above them, so present, absent and declined stay in the same place from one member to the next. A recent birthday still stands beside the name.
+
+## v26.23.1
+
+Profile fields can be shown only when a yes/no question is answered yes, and fields that belong together can be grouped. An open procurement shows when a matching piece already lies in the station's storage and can hand it out right away. Every swap asks why in the same way, with the current size next to the wanted one, and the sections of the sidebar open in a new tab again.
+
+### New Features
+
+- **Profile fields can depend on a yes/no question.** A profile field can be set to show only when a chosen yes/no question of the same profile is answered yes, and it is only required then, so the JuLeiCa expiry date is asked only of people who have a JuLeiCa. A member who is not asked the yes/no question sees the field as usual, and the JuLeiCa template and the performance badge template set this up right away.
+- **Profile fields can be grouped.** Fields that belong together, such as an address, form a group: they are always asked of an audience together and stand together in its order on every form, optionally under the group's name as a heading. Templates with several fields create their group right away with the fields side by side, such as street and house number on one line, and dissolving a group keeps its fields and answers.
+
+### Improvements
+
+- **Procurements are served from storage.** An open procurement for a member shows how many pieces of the ordered inventory and size lie free in the station's storage. "Hand out from storage" picks one of them, starts handing it to the member as a movement and marks the procurement fulfilled.
+- **Every swap asks why in the same way.** Starting a swap from a movement, a member's gear, the own gear, a possessions check or a self-check offers too small, too large, broken or another reason in own words, with an optional note. Each reason preselects one size up, one size down or the same size, shown next to the current size, and the choice can still be changed.
+- **The owner of a piece in a mixed inventory can be changed.** A piece of a mixed inventory can be given to the station or the association when editing it while it lies in the station's store. Handing out a new piece in a mixed inventory asks whose it is.
+- **Requests and loss reports work without the association in Ember.** A station whose association does not use Ember can request gear from it and report its gear missing, and the station confirms the association's steps itself.
+
+### Changes
+
+- **The self-check has a single swap button.** "Does not fit anymore" and "Is broken" on a piece of the self-check are replaced by one "Swap" button, and the reason is chosen in its dialog.
+- **The association's gear is named the same everywhere.** A piece of the association reads as the association's whether or not the association uses Ember, without the added "not in Ember".
+
+### Fixes
+
+- **New gear handed out in a mixed inventory always belonged to the association.** Handing out a newly created piece from a mixed inventory recorded it as the association's, even where the station meant its own. The owner is now chosen when handing it out.
+- **Sidebar sections could not be opened in a new tab.** The sections in the list of all sections ignored a middle click or a click with a modifier key. They are now links that open their first page in a new tab like any other link.
+
+## v26.23.0
+
+Document templates can ask the person generating a document for details that the member's data does not hold, such as the date of a change or which of several boxes applies. Word forms with fields to fill in become PDF templates that keep their look, so a paper form such as a change notification is filled out in Ember. Check marks of existing PDF templates keep following the member's data and can now also be ticked by hand. Families on a waiting list take part in the trial from its first day. Guardians get their account when the trial begins, follow it on their start page and can end it themselves. An invitation always names an appointment, shows where the mail goes before it is sent and can carry a personal note.
+
+The sidebar shows one section at a time and stays short however many modules a station uses. Every section opens on its main page and lists all its pages, so nothing is reached only by clicking a section's name. The foot of the sidebar switches between stations, associations, the own account and the instance administration, each with the number of things waiting there. The header keeps the search and the account menu, and the help center joins the round buttons at the bottom right.
+
+### New Features
+
+- **Templates ask when a document is generated.** A template can ask for a text, a date, a number, an entry from a list or a tick, each within limits such as a latest day or a longest text, and prints each answer wherever it names it. Each question can suggest its answer from the member's data, which is then the answer in self service and in runs for many members.
+- **Word forms become PDF templates.** A Word form with fields to fill in becomes a PDF template that looks like the original, with member data where a field's label is recognised and a question for every other field, list and check box, each printing in the font and size of the form. A font that is not uploaded is replaced by one chosen before converting, in a weight and size that keep its look and its lines, and a preview shows the original beside the result, both filled with example values.
+- **Guardians take part in the trial.** When a trial begins, the guardians of the waiting list entry get their account and can sign in, take the child off appointments and see the trial on their start page with the visits so far. They can end the trial there themselves, which deletes the accounts made for it unless they are still needed, and the station is notified.
+
+### Improvements
+
+- **Text fields can keep their size.** A text field of a PDF template can print a long value at its full size and let it run on past the field, instead of making it smaller. Fields of templates made from a Word form start this way.
+- **More fonts come with every installation.** Carlito and Caladea set text exactly as wide as Calibri and Cambria, and Open Sans stands in for fonts such as Frutiger. All three can be chosen for letters and fields, and importing a Word form set in Calibri, Cambria, Arial or Times New Roman offers the matching one first.
+- **Invitations name their appointment and recipients.** An invitation can only be sent once an appointment is picked, and the dialog lists the addresses the mail goes to, or says that nobody is written to. The appointment picker shows the start time next to the date.
+- **Invitations carry a personal note.** A note written when inviting stands in the mail and on the page where the invitation is answered. The note given with an answer is shown in the notification the station receives.
+- **Open sign-ups are listed per date.** Under Events → Registrations, each date of a recurring appointment has a block of its own with its date in the heading. The list shows when each person signed up instead of the appointment's date.
+- **The quick search offers what the sidebar shows.** The quick search finds every sidebar page the reader can open, including the station's boards and the steps of the first setup.
+
+### Changes
+
+- **Check marks can be ticked by hand.** The check marks of existing PDF templates became questions that follow the member's data as before, so self service and runs for many members tick what they ticked before. A manager generating a single document can now tick or clear each of them.
+- **The sidebar shows one section at a time.** Opening a section replaces the list with that section and opens its first page, and "All sections" at the top leads back. A page opened by a link, a bookmark or the quick search shows the section it belongs to.
+- **All sections at once remains a choice.** Under Account → Appearance, the sidebar can list every section at once and open them in place, as before. The choice belongs to the account and holds on every device.
+- **Every section lists its main page.** The member list, the upcoming appointments, the own documents and the other pages a section's name used to open are the first entry of their section. A section left with a single page for a reader shows as that page.
+- **Places are switched from the sidebar.** The foot of the sidebar shows the current place and opens a list of every station, association, the own account and the instance administration, with the number of things waiting in each. The station switcher and the administration, association and station buttons in the header are gone.
+- **The help center moved to the bottom right.** The help center opens from a round button next to the bug report, so the header keeps only the search and the account menu.
+
+### Fixes
+
+- **An invitation could be sent with a single key press.** The invitation dialog opened with the send button selected, so pressing enter sent the mail at once, even without an appointment. The dialog now opens on the appointment, and sending waits until one is picked.
+- **Notification mails show readable descriptions.** The description of an appointment arrived in notification mails with its formatting marks, such as asterisks and hash signs, and at full length. It now reads as plain text, and a long one is cut short with a "Read more" button.
+- **A moved station showed its whole sidebar to some members.** In some cases a member who does not administer a station that moved to another installation saw the full sidebar next to the notice about the move. They now see only the notice.
+- **The quick search offered pages that no longer exist.** A few quick search entries, such as security and sessions under the station profile, led to a missing page. They are gone.
+- **The members a guardian looks after showed no profile data.** On a guardian's member page, the members they look after appeared with every profile field empty. Their answers now show as they do for guardians.
+
+## v26.22.6
+
+The fields of an attendance template and of a waiting list are edited in place, the way the fields of an appointment are. Appointments created in a batch keep the time of day that was typed and offer only the fields of the chosen attendance template.
+
+### Improvements
+
+- **Attendance template fields are edited in place.** The fields of an attendance template are written in the list itself, like the fields of an appointment: name, type, settings and width stand in each field's card, a field is dragged to another place in the list or in the preview, and all fields are saved with one button.
+- **Waiting list fields are edited in place.** The fields of a waiting list are written in the list the same way and saved together, instead of through one dialog per field.
+- **Loading an appointment template comes first.** When creating appointments in a batch, the choice of an appointment template stands at the top of the first step, above the details it fills in.
+- **Batch appointments show their time.** The table of appointments about to be created shows the start and end time next to each date.
+
+### Fixes
+
+- **Batch appointments stood at the wrong time.** Appointments created in a batch, from a schedule or from an imported file, were placed hours away from the time that was typed, by the difference between the reader's clock and UTC. They now keep the typed time of day in the reader's own time zone, across a clock change too.
+- **A batch offered the fields of every attendance template.** When creating appointments in a batch, "Take over from the attendance template" listed the fields of all the station's attendance templates. It now lists only those of the template chosen for the batch.
+
+## v26.22.5
+
+Formatted text in page and news blocks is shown formatted again instead of as raw text. Event highlights show when the event ends and keep long descriptions short.
+
+### Improvements
+
+- **Event highlights show the end time and a short description.** The event highlight block shows when the event ends next to when it starts. Its description is cut to a few lines by default, and a setting of the block shows it in full.
+
+### Fixes
+
+- **Some blocks showed formatting marks as text.** Descriptions in the event highlight, event recap, quote, tabs, blog subscription, form, quiz and member spotlight blocks, and on an appointment page of a partner station, showed asterisks and hashes instead of formatting. They are now displayed formatted.
+
 ## v26.22.4
 
-The day a member joined is visible in the member list and on the member's page, and can be taken over when importing members. Members open from the list in a new tab.
+The day a member joined is visible in the member list and on the member's page, and can be taken over when importing members. Members open from the list in a new tab. The menu no longer stays stuck over the page on older tablets.
 
 ### Improvements
 
 - **The join date is shown and can be imported.** The day a member joined is offered as a column of the member list, shown on the member's page and can be mapped from a column when importing members.
 - **Member pages open in a new tab from the list.** The view and edit buttons of the member list are links, so a member opens in a new tab with the middle mouse button or the context menu.
+- **Movements open in a new tab from their list.** The button that shows the course of a movement is a link, so a movement also opens in a new tab.
+
+### Fixes
+
+- **The menu stayed open on some tablets.** On some older tablet browsers the menu covered part of the page and could neither be closed nor collapsed. It now slides away there as on other devices.
 
 ## v26.22.3
 

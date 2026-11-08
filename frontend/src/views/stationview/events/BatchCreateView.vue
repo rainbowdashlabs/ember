@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import {useEventRoutes} from '@/composables/useEventRoutes'
@@ -64,6 +64,17 @@ const restriction = ref<RestrictionSelection>(emptyRestriction())
 const viewRestriction = ref<RestrictionSelection>(emptyRestriction())
 
 const rows = ref<BatchRow[]>([])
+
+/**
+ * The fields of the attendance sheet the batch names, and of no other.
+ *
+ * <p>Every sheet of the station used to be offered to take over, so a batch of drills was offered
+ * the questions of the youth sheet as well, and two sheets that both carry a field of the same name
+ * were indistinguishable in the list. The answer to a field taken from the wrong sheet goes to a
+ * sheet nobody opens.
+ */
+const sheetFields = computed(() => attendanceFields.value
+    .filter(field => String(field.templateId) === selectedTemplateId.value))
 
 const {loading, failure, reload} = useAsyncLoader(async () => {
   await reloadDeps()
@@ -172,6 +183,15 @@ const {running: saving, failure: createFailure, run: createBatch} = useAsyncActi
       />
 
       <NeutralContainer v-if="step === 1" class="space-y-6">
+        <div v-if="eventTemplates.length > 0" class="space-y-2">
+          <FieldLabel>{{ t('batchCreate.applyTemplate') }}</FieldLabel>
+          <SelectInput :model-value="String(selectedSourceTemplateId ?? '')"
+                       @update:model-value="selectedSourceTemplateId = $event ? Number($event) : null; applyTemplate()">
+            <option value="">-</option>
+            <option v-for="tpl in eventTemplates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
+          </SelectInput>
+        </div>
+
         <EventFormPanel
             v-model:name="eventName"
             v-model:description="eventDescription"
@@ -186,19 +206,10 @@ const {running: saving, failure: createFailure, run: createBatch} = useAsyncActi
             v-model:fields="fieldDefs"
             :categories="categories"
             :templates="templates"
-            :attendance-fields="attendanceFields"
+            :attendance-fields="sheetFields"
             :groups="groups"
             :tags="tags"
         />
-
-        <div v-if="eventTemplates.length > 0" class="space-y-2">
-          <FieldLabel>{{ t('batchCreate.applyTemplate') }}</FieldLabel>
-          <SelectInput :model-value="String(selectedSourceTemplateId ?? '')"
-                       @update:model-value="selectedSourceTemplateId = $event ? Number($event) : null; applyTemplate()">
-            <option value="">-</option>
-            <option v-for="tpl in eventTemplates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
-          </SelectInput>
-        </div>
 
         <div class="flex justify-end">
           <PrimaryButton @click="step = 2">

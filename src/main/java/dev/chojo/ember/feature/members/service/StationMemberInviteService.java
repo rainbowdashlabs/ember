@@ -172,7 +172,7 @@ public class StationMemberInviteService {
             StationUserType userType,
             @Nullable Integer groupId,
             @Nullable Integer invitedBy) {
-        var member = waitingMember(stationId, existing, firstName, lastName, invitedBy);
+        var member = waitingMember(stationId, existing, firstName, lastName, invitedBy, SetupMail.SEND_NOW);
         stationMemberRepository.setUserType(member.id(), userType);
         if (groupId != null) {
             groupMemberships.joinAutomatically(groupId, member.id());
@@ -182,10 +182,15 @@ public class StationMemberInviteService {
     }
 
     private StationMember waitingMember(
-            int stationId, Account existing, String firstName, String lastName, @Nullable Integer invitedBy) {
+            int stationId,
+            Account existing,
+            String firstName,
+            String lastName,
+            @Nullable Integer invitedBy,
+            SetupMail mail) {
         String name = (firstName.trim() + " " + lastName.trim()).trim();
         var member = stationMemberRepository.createWithoutAccount(stationId, name);
-        linkService.ask(stationId, member.id(), existing.id(), LinkOrigin.INVITE, invitedBy);
+        linkService.ask(stationId, member.id(), existing.id(), LinkOrigin.INVITE, invitedBy, mail);
         log.info(
                 "Member {} at station {} waits for account {} to accept the link",
                 member.id(),
@@ -204,7 +209,8 @@ public class StationMemberInviteService {
      * @param email     the address, or blank for somebody without one
      * @param firstName their first name
      * @param lastName  their last name
-     * @param setupMail whether the setup mail of a new account leaves now
+     * @param setupMail whether the setup mail of a new account, or the link request to an existing
+     *                  one, leaves now
      * @param invitedBy the member who enters them, or null where nobody of the station does
      * @return the member, with or without an account
      * @throws AccountInviteService.EmailInUseException when a made-up address already belongs to somebody
@@ -225,7 +231,7 @@ public class StationMemberInviteService {
                 && stationMemberRepository
                         .findByStationAndAccount(stationId, existing.id())
                         .isEmpty()) {
-            return waitingMember(stationId, existing, firstName, lastName, invitedBy);
+            return waitingMember(stationId, existing, firstName, lastName, invitedBy, setupMail);
         }
         var invited = accountInviteService.resolveOrCreate(stationId, email, firstName, lastName, setupMail);
         return stationMemberRepository.create(stationId, invited.account().id());

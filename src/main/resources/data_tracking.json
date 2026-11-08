@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:420f8e00835a3d3c9ee2b147e3527a575326d786b65f138c186fd676061a35ab",
-  "generatedAt": "2026-10-15T21:13:03Z",
+  "schemaHash": "sha256:b648ec84875ebc73d0e7438e2811b3e2db81a1e9f998f51b1348b0137baf5ff5",
+  "generatedAt": "2026-11-07T16:36:40Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -1027,6 +1027,59 @@
       },
       "description": "A station or an association asking a person to take an existing account in. A station asks to link the account to one of its members: an import that found the account by its address and an invite naming that address both leave the member without an account and ask here instead. An association asks the account to take a role there: adding an address that already has an account asks here instead of making the membership. Only the person signed in to that account can accept. The answered rows stay as the record of what was asked and answered."
     },
+    "account_preference": {
+      "feature": "account",
+      "scope": "USER",
+      "tableHash": "sha256:ee9b99a7a4ea99acd8f760db24b41f5c626b80a7118ba79e993bc8805f14423e",
+      "columns": [
+        {
+          "name": "account_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The account the preferences belong to."
+        },
+        {
+          "name": "sidebar",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "How the sidebar lists its sections: SECTIONS shows one section at a time, TREE shows every section at once and opens them in place."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Account-scoped data, not part of a station export"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "ACCOUNT_ID",
+            "column": "account_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "account_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on account delete"
+          }
+        ]
+      },
+      "description": "How an account likes the app laid out, on every device it signs in on. A row exists once the account changed something; an account without one sees the defaults."
+    },
     "account_session": {
       "feature": "account",
       "scope": "USER",
@@ -1499,7 +1552,7 @@
     "attendance_entry": {
       "feature": "attendance",
       "scope": "STATION",
-      "tableHash": "sha256:cefa5699dd248c92c503a605cb489f8f9380e0bd1f18376cbc00dea316c5ff6e",
+      "tableHash": "sha256:702884af753ba1d3922071864d430c85aa0d198ffa2bc8ae36a6cc400c208613",
       "columns": [
         {
           "name": "id",
@@ -1549,6 +1602,13 @@
           "nullable": false,
           "verified": true,
           "description": "How the entry was created: EXPECTED, MANUAL, REGISTRATION."
+        },
+        {
+          "name": "skip_extra_time",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether this person did not do the preparation and follow-up their sheet's time rules would credit them with this time. Set on the sheet; the report then counts their presence alone."
         }
       ],
       "foreignKeys": [
@@ -1892,6 +1952,176 @@
       },
       "description": "Field values for a specific attendance session (e.g. who was the instructor)."
     },
+    "attendance_session_time_rule": {
+      "feature": "attendance",
+      "scope": "STATION",
+      "tableHash": "sha256:279872cd441751dd795a6d440967a101c076df27ffaf802c753e7d528a419cce",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "session_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The sheet the rule belongs to. Deleting the sheet deletes its rules."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Where the rule stands in the sheet's list, starting at 0."
+        },
+        {
+          "name": "label",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the rule is for, such as a role name, shown beside the minutes. NULL where nobody named it."
+        },
+        {
+          "name": "preparation_minutes",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Minutes of preparation a present person the rule names is credited with."
+        },
+        {
+          "name": "follow_up_minutes",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Minutes of follow-up a present person the rule names is credited with."
+        },
+        {
+          "name": "restriction_mode",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "How the kinds named in attendance_session_time_rule_restriction combine: AND needs a match of every kind named, OR one of any. A rule naming nobody applies to nobody."
+        },
+        {
+          "name": "named_kinds",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "How many user types, groups and tags the rule named when it was written. A deleted group or tag removes its row from attendance_session_time_rule_restriction; a rule with fewer such rows than this credits nobody, so a deletion never widens it to people it did not name."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "session_id",
+          "refTable": "attendance_session",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "description": "Preparation and follow-up time a sheet grants to the people it names, copied from its template when the sheet was made and corrected on the sheet since. What the report counts."
+    },
+    "attendance_session_time_rule_restriction": {
+      "feature": "attendance",
+      "scope": "STATION",
+      "tableHash": "sha256:d886dd13b866d73533418b8f675ff9e50903968ff28cb20cc6cddf31d9ecb931",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "rule_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the rule."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required group membership."
+        },
+        {
+          "name": "tag_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required tag."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Specific member (always OR-connected, bypasses AND/OR mode)."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "rule_id",
+          "refTable": "attendance_session_time_rule",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "tag_id",
+          "refTable": "user_tag",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "description": "Whom a sheet time rule names. Shaped like event_restriction."
+    },
     "attendance_template": {
       "feature": "attendance",
       "scope": "STATION",
@@ -2082,6 +2312,176 @@
         "reason": "Attendance template/session config, not per-member"
       },
       "description": "Groups whose members are expected to attend sessions using this template."
+    },
+    "attendance_template_time_rule": {
+      "feature": "attendance",
+      "scope": "STATION",
+      "tableHash": "sha256:61fba3447f2335543ad3c1dbe2449c396b4341c441e608908def66dd34251822",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The template the rule belongs to. Deleting the template deletes its rules."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Where the rule stands in the template's list, starting at 0."
+        },
+        {
+          "name": "label",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the rule is for, such as a role name, shown beside the minutes. NULL where nobody named it."
+        },
+        {
+          "name": "preparation_minutes",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Minutes of preparation a present person the rule names is credited with."
+        },
+        {
+          "name": "follow_up_minutes",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Minutes of follow-up a present person the rule names is credited with."
+        },
+        {
+          "name": "restriction_mode",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "How the kinds named in attendance_template_time_rule_restriction combine: AND needs a match of every kind named, OR one of any. A rule naming nobody applies to nobody."
+        },
+        {
+          "name": "named_kinds",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "How many user types, groups and tags the rule named when it was written. A deleted group or tag removes its row from attendance_template_time_rule_restriction; a rule with fewer such rows than this credits nobody, so a deletion never widens it to people it did not name."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "template_id",
+          "refTable": "attendance_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "description": "Preparation and follow-up time a template grants to the people it names. Copied onto every sheet made from the template; a sheet never reads these rows again."
+    },
+    "attendance_template_time_rule_restriction": {
+      "feature": "attendance",
+      "scope": "STATION",
+      "tableHash": "sha256:33e705306953c758059526efe2f63765f7c42c7f159a394caf5eb1aa8b7236b7",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "rule_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the rule."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required group membership."
+        },
+        {
+          "name": "tag_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required tag."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Specific member (always OR-connected, bypasses AND/OR mode)."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "rule_id",
+          "refTable": "attendance_template_time_rule",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "tag_id",
+          "refTable": "user_tag",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Attendance template/session config, not per-member"
+      },
+      "description": "Whom a template time rule names. Shaped like event_restriction."
     },
     "attendance_template_user_type": {
       "feature": "attendance",
@@ -5061,7 +5461,7 @@
     "cluster_profile_field": {
       "feature": "cluster",
       "scope": "CLUSTER",
-      "tableHash": "sha256:6002842873440fc08900f31e50b5f2c0a8ead1ec75faa731b52aa741dcd9dc1a",
+      "tableHash": "sha256:a56e0371a92f34b4c873ff2c6acd69d6b1c7f1dd2c7aff116c349364bb99131d",
       "columns": [
         {
           "name": "id",
@@ -5139,6 +5539,27 @@
           "nullable": true,
           "verified": true,
           "description": "How much of a row the question takes: full, half or third. NULL is the whole row. An assignment may say otherwise for its own audience."
+        },
+        {
+          "name": "shown_if_field_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "A yes/no field of the same association this field depends on, NULL when it depends on none. While a member is asked both and has not answered yes, this field is hidden and not required. A member asked only this field sees it as usual. Restricts deleting the yes/no field while anything depends on it."
+        },
+        {
+          "name": "field_set_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The bundle of fields of the same association this field belongs to, NULL when it stands on its own. Cleared when the bundle is dissolved."
+        },
+        {
+          "name": "set_position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Where the field stands within its bundle, smallest first. Meaningless while it is in none."
         }
       ],
       "foreignKeys": [
@@ -5147,6 +5568,18 @@
           "refTable": "cluster",
           "refColumn": "id",
           "onDelete": "CASCADE"
+        },
+        {
+          "column": "field_set_id",
+          "refTable": "cluster_profile_field_set",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "shown_if_field_id",
+          "refTable": "cluster_profile_field",
+          "refColumn": "id",
+          "onDelete": "RESTRICT"
         },
         {
           "column": "station_group_id",
@@ -5245,6 +5678,60 @@
         "reason": "Names no person, so an account leaving has nothing to remove here"
       },
       "description": "Which kinds of member a cluster question is asked of. The stations it reaches stay on the definition, because that is a different axis."
+    },
+    "cluster_profile_field_set": {
+      "feature": "cluster",
+      "scope": "CLUSTER",
+      "tableHash": "sha256:1cf9ee5e8fcd19e97d5d777e50b97b6d9a6ba6ea4862fe653ab8d43eec7d7ef6",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "cluster_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the bundle is called, shown as a heading above its fields when name_as_section is set."
+        },
+        {
+          "name": "name_as_section",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the forms show the name as a heading above the fields, in place of a heading field placed by hand."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "cluster_id",
+          "refTable": "cluster",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Cluster-level, like the questions it bundles. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Names no person: how a cluster bundles its questions, not anybody's answer"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description": "A bundle of an association's profile fields that belong together, such as an address. Its fields are put to an audience together and stand together on every form. Dissolving it leaves the fields as they are."
     },
     "cluster_profile_field_value": {
       "feature": "cluster",
@@ -6672,7 +7159,7 @@
       "description": "A font uploaded for documents, one file per family and style. Owned by the instance (station_id and cluster_id both NULL), an association (cluster_id) or a station (station_id). A station reaches its own fonts, its association's and the instance's; on a family name found at several, the nearest owner wins. The file is kept in the owner's storage under fonts/<id>, an optional web version beside it under fonts/<id>-web. A browser receives either only in the template editor, the web version where there is one."
     },
     "document_generation": {
-      "tableHash": "sha256:432d4f9379816a510702311d3709173ce94e38bfd59b604700e8fca381e4f0ac",
+      "tableHash": "sha256:5fa82adf3e4e9cf539a18a5287042f64c464e2cb5c0a3b3ec69091d323e93df0",
       "columns": [
         {
           "name": "id",
@@ -6792,6 +7279,13 @@
           "nullable": false,
           "verified": true,
           "description": "Whether the document carries the empty signature field named issuer, which issuer_id is to sign."
+        },
+        {
+          "name": "answers",
+          "type": "jsonb",
+          "nullable": true,
+          "verified": true,
+          "description": "What the template's questions were answered with, by the key of the question, or NULL where it asks none."
         }
       ],
       "foreignKeys": [
@@ -7440,7 +7934,7 @@
       "description": "A template turned into a PDF for one member at a time, kept by a station (station_id) or by an association for all its stations (cluster_id). Never deleted, only archived, so every generated document keeps pointing at the template it came from."
     },
     "document_template_field": {
-      "tableHash": "sha256:496cfd9482ac9c733194d67bf138704bc6508e1f2c0d116678a180bbd352e217",
+      "tableHash": "sha256:bfd1f9c944426d5f119c9170b8a2bd199088cf5cec53f1af7f7fc39b134e7fda",
       "columns": [
         {
           "name": "id",
@@ -7588,6 +8082,13 @@
           "nullable": true,
           "verified": true,
           "description": "For FILL_IN: the most characters the typed value may have, 1 to 500. NULL for 500, and for every other kind."
+        },
+        {
+          "name": "keep_size",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether a text field prints at its size however long the value is, running past its box, instead of shrinking the value to fit. Set on the fields of a template made from a Word form, whose gaps are only as wide as their blank."
         }
       ],
       "foreignKeys": [
@@ -7863,6 +8364,94 @@
         ]
       },
       "description": "Every uploaded version of the PDF a PDF template fills in. The file is kept in the storage of the template's owner under document-templates/<id>/original (an association's in its home station), as it arrived, and never changed; a new upload is a new row."
+    },
+    "document_template_question": {
+      "tableHash": "sha256:4d6b1c3448f66b18f1430764b269a67dc261d3869be17371228921034bc15f8d",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the template that asks it."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The order the questions are asked in, counted from 0."
+        },
+        {
+          "name": "key",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The name the template names the answer by, as {{ask.<key>}}. Unique within the template."
+        },
+        {
+          "name": "label",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the person generating is asked."
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "TEXT takes a text, DATE a day, NUMBER a number, CHOICE one of the offered entries and CHECK a tick, which prints as a ticked or an empty box."
+        },
+        {
+          "name": "suggestion",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "A text with placeholders, filled in for the member to suggest the answer. For a CHECK it ticks the box where it says yes. Where nobody answers, as in self service, the suggestion is the answer."
+        },
+        {
+          "name": "required",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether an empty answer counts as a missing value of the document."
+        },
+        {
+          "name": "limits",
+          "type": "jsonb",
+          "nullable": false,
+          "verified": true,
+          "description": "What counts as an answer: earliest and latest day of a DATE, longest length and format of a TEXT, bounds of a NUMBER, the entries of a CHOICE. An answer outside them is refused; a suggestion outside them counts as no answer."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "template_id",
+          "refTable": "document_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Template content written by the station, not per-member data"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Template content written by the station, not per-member data"
+      },
+      "description": "What the person generating a document from a template is asked. The template names each answer as {{ask.<key>}}."
     },
     "document_template_restriction": {
       "tableHash": "sha256:9c35756d1fbb6fba6ea356c3fa0aa13d6548bb7792b18e5b54198effa3628aa3",
@@ -22487,7 +23076,7 @@
     "profile_field": {
       "feature": "members",
       "scope": "STATION",
-      "tableHash": "sha256:396215edb0cf3abcd6ea3a12db8a7eb5a22862e1b3caa3aa7eb41f7bdca9f606",
+      "tableHash": "sha256:665965b1b43f8a5b7f4ecb5348c051c2ff5b8fec85d8492ec5bc8738a8851339",
       "columns": [
         {
           "name": "id",
@@ -22551,9 +23140,42 @@
           "nullable": true,
           "verified": true,
           "description": "How much of a row the question takes: full, half or third. NULL is the whole row. An assignment may say otherwise for its own audience."
+        },
+        {
+          "name": "shown_if_field_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "A yes/no field of the same station this field depends on, NULL when it depends on none. While a member is asked both and has not answered yes, this field is hidden and not required. A member asked only this field sees it as usual. Restricts deleting the yes/no field while anything depends on it."
+        },
+        {
+          "name": "field_set_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The bundle of fields of the same station this field belongs to, NULL when it stands on its own. Cleared when the bundle is dissolved."
+        },
+        {
+          "name": "set_position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Where the field stands within its bundle, smallest first. Meaningless while it is in none."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "field_set_id",
+          "refTable": "profile_field_set",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "shown_if_field_id",
+          "refTable": "profile_field",
+          "refColumn": "id",
+          "onDelete": "RESTRICT"
+        },
         {
           "column": "station_id",
           "refTable": "station",
@@ -22893,6 +23515,62 @@
         ]
       },
       "description": "Manager acknowledgements of profile field changes."
+    },
+    "profile_field_set": {
+      "feature": "members",
+      "scope": "STATION",
+      "tableHash": "sha256:5994a5b323869b25641344f5736b3d95fb71b52d6e6e988d26a989cd7b39bf06",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the bundle is called, shown as a heading above its fields when name_as_section is set."
+        },
+        {
+          "name": "name_as_section",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the forms show the name as a heading above the fields, in place of a heading field placed by hand."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "ignoredColumns": [
+          "station_id"
+        ]
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Bundle of profile field definitions, not per-member value"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Bundle of profile field definitions, not per-member value"
+      },
+      "description": "A bundle of a station's profile fields that belong together, such as an address. Its fields are put to an audience together and stand together on every form. Dissolving it leaves the fields as they are."
     },
     "profile_field_value": {
       "feature": "members",
@@ -24515,7 +25193,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "In what capacity the act was given: ACCOUNT_HOLDER for themselves, GUARDIAN on behalf of the member, MEMBER_THROUGH_ACCOUNT by the member through the account of somebody else, WITNESSED by a person who signed in front of a witness, whose account confirmed it."
+          "description": "In what capacity the act was given: ACCOUNT_HOLDER for themselves, GUARDIAN on behalf of the member, MEMBER_THROUGH_ACCOUNT by the member through the account of somebody else."
         },
         {
           "name": "challenge_account_id",
@@ -24536,35 +25214,35 @@
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "The member at the station whose account confirmed the act, the witness for a WITNESSED act. NULL once that member was deleted."
+          "description": "The member at the station whose account confirmed the act. NULL once that member was deleted."
         },
         {
           "name": "member_id",
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "The member a guardian signed for, who signed through the account, or who signed in front of the witness. NULL where the account holder signed for themselves, and once that member was deleted."
+          "description": "The member a guardian signed for, or who signed through the account. NULL where the account holder signed for themselves, and once that member was deleted."
         },
         {
           "name": "account_holder_name",
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "The official name of the account holder whose step-up confirmed the act, the witness for a WITNESSED act, as it was at signing."
+          "description": "The official name of the account holder whose step-up confirmed the act, as it was at signing."
         },
         {
           "name": "member_name",
           "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "The official name of the member signed for, signing through the account, or signing in front of the witness, as it was at signing. NULL where the account holder signed for themselves."
+          "description": "The official name of the member signed for or signing through the account, as it was at signing. NULL where the account holder signed for themselves."
         },
         {
           "name": "guardian_position",
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "Where the guardian stood in the member's order of guardians at signing, counted from 0: the account holder when they acted as guardian or lent their account, the guardian who signed in front of a witness for a WITNESSED act. NULL where no guardian was involved."
+          "description": "Where the account holder stood in the member's order of guardians at signing, counted from 0, when they acted as guardian or lent their account. NULL where the account holder signed for themselves."
         },
         {
           "name": "guardian_linked_at",
@@ -25465,7 +26143,7 @@
     "station": {
       "feature": "station",
       "scope": "STATION",
-      "tableHash": "sha256:b9d25b16ef3619615ad19471081af5b3038edbe8b395c59195b41221c8f2095b",
+      "tableHash": "sha256:88f8679a2388db8526e32c3d812d66b2c19a79cbecf82e519e901f656e9fd94e",
       "columns": [
         {
           "name": "id",
@@ -25850,13 +26528,6 @@
           "nullable": true,
           "verified": true,
           "description": "The address of the installation the station moved to, as the destination named itself. Null while the station runs here, and where the destination named no address."
-        },
-        {
-          "name": "witness_reach_mode",
-          "type": "text",
-          "nullable": false,
-          "verified": true,
-          "description": "AND or OR, how the parts of witness_reach_restriction combine."
         }
       ],
       "foreignKeys": [
@@ -29366,7 +30037,7 @@
     "waiting_list_entry": {
       "feature": "waitinglist",
       "scope": "STATION",
-      "tableHash": "sha256:5ec0091f40a5475aa76c61d45ba0e88e18efe08894851ae9678d3ee575bb6725",
+      "tableHash": "sha256:ec26127ac5cf9764d5801dc7cb13a18fa4122e0a30fc3d1c64f8cb9e6996f148",
       "columns": [
         {
           "name": "id",
@@ -29502,27 +30173,6 @@
           "description": "JSONB-encoded ConsentProof captured at the time of public submission. NULL for entries created by managers via the admin UI."
         },
         {
-          "name": "invited_event_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "The appointment the current invitation asks them to come to, or NULL when nobody has been invited yet. No sign-up is created from it: they have not joined anything, so they are not on the attendee list and count towards nothing the station plans from. Deleting the appointment empties this, which leaves the invitation without an occasion rather than pointing at nothing."
-        },
-        {
-          "name": "invited_event_date",
-          "type": "date",
-          "nullable": true,
-          "verified": true,
-          "description": "The one date of that appointment they were invited to. An appointment repeats, so without a date the invitation would name every Tuesday there has ever been, and the answer to it would mean nothing."
-        },
-        {
-          "name": "invited_arrival_time",
-          "type": "time",
-          "nullable": true,
-          "verified": true,
-          "description": "When they were asked to be there, which is usually earlier than everybody else so somebody can meet them. NULL when the invitation named no time of its own. A time rather than an offset, because that is what the mail has to say and what the reader has to read."
-        },
-        {
           "name": "invitation_answer",
           "type": "text",
           "nullable": true,
@@ -29542,15 +30192,37 @@
           "nullable": false,
           "verified": true,
           "description": "What they wrote alongside the answer, empty when they wrote nothing. Given by whoever holds the entry link rather than by a member, which is why it is kept apart from the station's own notes on the entry."
+        },
+        {
+          "name": "invited_message",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "A personal note the station wrote into the current invitation, empty when it wrote none. Shown in the invitation mail and on the page behind the entry link. Cleared together with the invitation it belongs to."
+        },
+        {
+          "name": "invitation_round",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "How often the entry has been invited or offered other dates. An answer names the round it answers and is refused when that is not the current one, so a click on a page opened before the dates changed cannot apply to the dates that replaced them."
+        },
+        {
+          "name": "invitation_answer_position",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Which offered date a COMING answer picked, by its position among the options. NULL for any other answer and while the invitation is unanswered."
+        },
+        {
+          "name": "trial_message",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the station wrote to the family when the trial began, empty when it wrote nothing. Shown on the page behind the entry link for as long as the trial runs, so a list that sends no mail still delivers it."
         }
       ],
       "foreignKeys": [
-        {
-          "column": "invited_event_id",
-          "refTable": "station_event",
-          "refColumn": "id",
-          "onDelete": "SET NULL"
-        },
         {
           "column": "list_id",
           "refTable": "waiting_list",
@@ -29591,7 +30263,7 @@
     "waiting_list_entry_guardian": {
       "feature": "waitinglist",
       "scope": "STATION",
-      "tableHash": "sha256:aa4838fd7118ff01d864b49565348c39c7b51fb961dcaa90d7fba6f930f74071",
+      "tableHash": "sha256:e0bd1bd890f2351c3bb44633617a0de85ea21045e20b12ac9f28228df50a9ea4",
       "columns": [
         {
           "name": "id",
@@ -29634,6 +30306,13 @@
           "type": "text",
           "nullable": false,
           "verified": true
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The station member this guardian became when the trial began, either a new one or one already at the station they were linked to. NULL until then. Keeps a guardian from being taken on twice when the entry joins, and names which memberships ending the trial may take back."
         }
       ],
       "foreignKeys": [
@@ -29642,6 +30321,12 @@
           "refTable": "waiting_list_entry",
           "refColumn": "id",
           "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
         }
       ],
       "stationTransfer": {
@@ -29806,6 +30491,80 @@
         "reason": "Waiting list structure, not per-entry"
       },
       "description": "Custom fields on a waiting list application form."
+    },
+    "waiting_list_invitation_option": {
+      "feature": "waitinglist",
+      "scope": "STATION",
+      "tableHash": "sha256:cc06adb1aa90b50daafd3e118663bfec5da5841c0b8190e32dff8892c4e636dc",
+      "columns": [
+        {
+          "name": "entry_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The entry whose invitation offers this date. Deleting the entry deletes its options."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Where the date stands among the ones offered, starting at 0. An answer names the date it picked by this position."
+        },
+        {
+          "name": "event_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The appointment offered. Deleting the appointment removes the option, which leaves the invitation with the dates that still exist."
+        },
+        {
+          "name": "event_date",
+          "type": "date",
+          "nullable": false,
+          "verified": true,
+          "description": "The one date of that appointment. An appointment repeats, so without a date the option would name every occurrence there has ever been."
+        },
+        {
+          "name": "arrival_time",
+          "type": "time",
+          "nullable": true,
+          "verified": true,
+          "description": "When they were asked to be there on that date, usually earlier than everybody else so somebody can meet them. NULL when the station named no time of its own."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "entry_id",
+          "refTable": "waiting_list_entry",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "event_id",
+          "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Belongs in station transfer with the entry it hangs off"
+      },
+      "gdprExport": {
+        "status": "TRACKED"
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "entry_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE: removed with waitlist_entry"
+          }
+        ]
+      },
+      "description": "The appointments the current invitation of a waiting list entry offers, one row per date the person can pick from. No sign-up is created from any of them: they have not joined anything, so they are on no attendee list and count towards nothing the station plans from. Replaced as a whole whenever the station invites again or offers other dates."
     },
     "waiting_list_invite": {
       "feature": "waitinglist",
@@ -30063,96 +30822,6 @@
         "reason": "Time-limited token, cascade-deleted via account(id) foreign key"
       },
       "description": "Pending WebAuthn challenges, single use, short lived. Replaces the account_token rows the two-factor ceremonies used, and additionally carries ceremonies that do not know the account yet."
-    },
-    "witness_reach_restriction": {
-      "feature": "signing",
-      "scope": "STATION",
-      "tableHash": "sha256:74b5113e9ac1647b12177525332cec449b58d6fa9a3de4c346b5ad3ba44ce045",
-      "columns": [
-        {
-          "name": "id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "Auto-generated primary key."
-        },
-        {
-          "name": "station_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "The station whose witnesses the audience narrows."
-        },
-        {
-          "name": "user_type",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set."
-        },
-        {
-          "name": "group_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "Required group membership."
-        },
-        {
-          "name": "tag_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "Required tag."
-        },
-        {
-          "name": "member_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "Specific member (always OR-connected, bypasses AND/OR mode)."
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "group_id",
-          "refTable": "member_group",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        },
-        {
-          "column": "member_id",
-          "refTable": "station_member",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        },
-        {
-          "column": "station_id",
-          "refTable": "station",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        },
-        {
-          "column": "tag_id",
-          "refTable": "user_tag",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        }
-      ],
-      "stationTransfer": {
-        "status": "TRACKED",
-        "ignoredColumns": [
-          "station_id"
-        ]
-      },
-      "gdprExport": {
-        "status": "IGNORED",
-        "reason": "Station configuration, not per-member data"
-      },
-      "gdprDeletion": {
-        "status": "IGNORED",
-        "reason": "Station configuration, not per-member data; a member named in it goes with the member by cascade"
-      },
-      "description": "Whom the holders of DOCUMENT_SIGN_OTHERS at a station may collect signatures from in person, among its current members and trial users. Empty means all of them. Shaped like event_restriction."
     }
   },
   "fileStores": {

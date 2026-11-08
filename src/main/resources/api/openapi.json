@@ -5649,6 +5649,52 @@
         }
       }
     },
+    "/api/v1/attendance/entries/{id}/extra-time" : {
+      "put" : {
+        "summary" : "Set whether a person on a sheet did the preparation and follow-up its rules credit",
+        "tags" : [ "Attendance" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AttendanceEntry"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExtraTimeRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/attendance/entries/{id}/reset-times" : {
       "post" : {
         "summary" : "Reset check-in and check-out times for an entry",
@@ -6320,6 +6366,46 @@
         } ]
       }
     },
+    "/api/v1/attendance/sessions/{sessionId}/extra-time" : {
+      "get" : {
+        "summary" : "List who on an attendance sheet its rules credit with preparation and follow-up",
+        "tags" : [ "Attendance" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ExtraTimeCredit"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "sessionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/attendance/sessions/{sessionId}/fields" : {
       "get" : {
         "summary" : "Get session field values",
@@ -6415,6 +6501,93 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/attendance/sessions/{sessionId}/time-rules" : {
+      "get" : {
+        "summary" : "List the preparation and follow-up rules of an attendance sheet",
+        "tags" : [ "Attendance" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TimeRule"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "sessionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Replace the preparation and follow-up rules of an attendance sheet",
+        "tags" : [ "Attendance" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TimeRule"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "sessionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetTimeRulesRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/attendance/templates" : {
@@ -6874,6 +7047,93 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/attendance/templates/{templateId}/time-rules" : {
+      "get" : {
+        "summary" : "List the preparation and follow-up rules of an attendance template",
+        "tags" : [ "Attendance" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TimeRule"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "templateId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Replace the preparation and follow-up rules of an attendance template",
+        "tags" : [ "Attendance" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TimeRule"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "templateId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetTimeRulesRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/attendance/templates/{templateId}/user-types" : {
@@ -11381,6 +11641,83 @@
         }
       }
     },
+    "/api/v1/cluster/document-template-form-import" : {
+      "post" : {
+        "summary" : "Make a PDF template of the association from a Word form",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WordFormImport"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cluster/document-template-form-import/fonts" : {
+      "post" : {
+        "summary" : "The fonts of a Word form the association cannot draw it in, to choose a replacement for each",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MissingFonts"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cluster/document-template-form-import/preview" : {
+      "post" : {
+        "summary" : "Draw a Word form of the association in its own fonts or with the replacements chosen",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/cluster/document-template-import" : {
       "post" : {
         "summary" : "Read the body of a Word or OpenDocument text into a letter template of the association",
@@ -11809,6 +12146,138 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/cluster/field-sets" : {
+      "post" : {
+        "summary" : "Write down a new, empty group of profile fields",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FieldSet"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FieldSetRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "The groups the association keeps its profile fields in",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FieldSet"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cluster/field-sets/{setId}" : {
+      "put" : {
+        "summary" : "Rename a group of profile fields, or change whether its name is a heading",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "setId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FieldSetRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Dissolve a group of profile fields, keeping its fields",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "setId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/cluster/field-sets/{setId}/order" : {
+      "put" : {
+        "summary" : "Put the fields of a group in order",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "setId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FieldSetOrderRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/cluster/fields" : {
@@ -15278,6 +15747,63 @@
         }
       }
     },
+    "/api/v1/document-generation/templates/{templateId}/members/{memberId}/suggestions" : {
+      "post" : {
+        "summary" : "The questions of a template, each with the answer it suggests for a member",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/SuggestedAnswer"
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "templateId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ManagerGenerationRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/document-placeholders" : {
       "get" : {
         "summary" : "The placeholders a document template of the station can name",
@@ -15372,6 +15898,83 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/document-template-form-import" : {
+      "post" : {
+        "summary" : "Make a PDF template from a Word form, its fields filled from member data or asked when generating",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WordFormImport"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/document-template-form-import/fonts" : {
+      "post" : {
+        "summary" : "The fonts of a Word form the station cannot draw it in, to choose a replacement for each",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MissingFonts"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/document-template-form-import/preview" : {
+      "post" : {
+        "summary" : "Draw a Word form in its own fonts or with the replacements chosen, to compare them",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/document-template-import" : {
@@ -28079,6 +28682,62 @@
         } ]
       }
     },
+    "/api/v1/inventory-items/{id}/owner" : {
+      "put" : {
+        "summary" : "Give a piece of a mixed inventory to the station or to the association",
+        "tags" : [ "Inventory" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InventoryItem"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OwnerRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/inventory-items/{itemId}/tags" : {
       "get" : {
         "summary" : "The words one thing wears",
@@ -35171,6 +35830,62 @@
         } ]
       }
     },
+    "/api/v1/procurement/{id}/issue-from-stock" : {
+      "post" : {
+        "summary" : "Settle a procurement request with a piece from storage by handing it out through a movement",
+        "tags" : [ "Procurement" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/IssueFromStockResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/IssueFromStockRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/profile-changes/all" : {
       "get" : {
         "summary" : "Get all profile field changes for the station with pagination",
@@ -35255,6 +35970,168 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/AcknowledgeRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/profile-field-sets" : {
+      "post" : {
+        "summary" : "Write down a new, empty group of profile fields",
+        "tags" : [ "Profile Fields" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FieldSet"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FieldSetRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "The groups this station keeps its profile fields in",
+        "tags" : [ "Profile Fields" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FieldSet"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/profile-field-sets/{id}" : {
+      "put" : {
+        "summary" : "Rename a group of profile fields, or change whether its name is a heading",
+        "tags" : [ "Profile Fields" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FieldSetRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Dissolve a group of profile fields, keeping its fields",
+        "tags" : [ "Profile Fields" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/profile-field-sets/{id}/order" : {
+      "put" : {
+        "summary" : "Put the fields of a group in order",
+        "tags" : [ "Profile Fields" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FieldSetOrderRequest"
               }
             }
           }
@@ -41261,6 +42138,26 @@
         }
       }
     },
+    "/api/v1/session/preferences/sidebar" : {
+      "put" : {
+        "summary" : "Choose how the sidebar of the own account lists its sections",
+        "tags" : [ "Session" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SidebarPreference"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/session/signature" : {
       "get" : {
         "summary" : "The caller's own signature picture and consent to automatic signing",
@@ -42558,525 +43455,6 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/AgreementWithdrawalRequest"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/signing/witness/complete" : {
-      "post" : {
-        "summary" : "Confirm, as the witness, that a person signed in front of the reader",
-        "tags" : [ "Signing" ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/BatchCompleteResponse"
-                }
-              }
-            }
-          },
-          "400" : {
-            "description" : "Bad Request",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          },
-          "403" : {
-            "description" : "Forbidden",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Not Found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          },
-          "409" : {
-            "description" : "Conflict",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          },
-          "410" : {
-            "description" : "Gone",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          },
-          "429" : {
-            "description" : "Too Many Requests",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          }
-        },
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/BatchCompleteRequest"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/signing/witness/fields/{fieldId}" : {
-      "get" : {
-        "summary" : "One open field the reader may collect in person, with the people it names",
-        "tags" : [ "Signing" ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/WitnessFieldResponse"
-                }
-              }
-            }
-          },
-          "403" : {
-            "description" : "Forbidden",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Not Found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          },
-          "409" : {
-            "description" : "Conflict",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          }
-        },
-        "parameters" : [ {
-          "name" : "fieldId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        } ]
-      }
-    },
-    "/api/v1/signing/witness/fields/{fieldId}/document" : {
-      "get" : {
-        "summary" : "The document of a field the reader may collect in person, exactly as it was frozen",
-        "tags" : [ "Signing" ],
-        "responses" : {
-          "200" : {
-            "description" : "OK"
-          },
-          "403" : {
-            "description" : "Forbidden",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Not Found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          },
-          "409" : {
-            "description" : "Conflict",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          }
-        },
-        "parameters" : [ {
-          "name" : "fieldId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        } ]
-      }
-    },
-    "/api/v1/signing/witness/fields/{fieldId}/fill-ins" : {
-      "get" : {
-        "summary" : "The fields the person fills in when they sign a field in front of the reader",
-        "tags" : [ "Signing" ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/FillInResponse"
-                  }
-                }
-              }
-            }
-          },
-          "403" : {
-            "description" : "Forbidden",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Not Found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          },
-          "409" : {
-            "description" : "Conflict",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          }
-        },
-        "parameters" : [ {
-          "name" : "fieldId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        } ]
-      }
-    },
-    "/api/v1/signing/witness/fields/{fieldId}/start" : {
-      "post" : {
-        "summary" : "Start the act of a person signing a field in front of the reader",
-        "tags" : [ "Signing" ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/BatchStartResponse"
-                }
-              }
-            }
-          },
-          "400" : {
-            "description" : "Bad Request",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          },
-          "403" : {
-            "description" : "Forbidden",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Not Found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          },
-          "409" : {
-            "description" : "Conflict",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          }
-        },
-        "parameters" : [ {
-          "name" : "fieldId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/WitnessStartRequest"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/signing/witness/people" : {
-      "get" : {
-        "summary" : "The people the reader may collect signatures from in person",
-        "tags" : [ "Signing" ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/WitnessPersonResponse"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/signing/witness/people/{memberId}/offers" : {
-      "get" : {
-        "summary" : "What the reader may collect in person from one person: open fields and templates",
-        "tags" : [ "Signing" ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/WitnessOffersResponse"
-                }
-              }
-            }
-          },
-          "403" : {
-            "description" : "Forbidden",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          }
-        },
-        "parameters" : [ {
-          "name" : "memberId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        } ]
-      }
-    },
-    "/api/v1/signing/witness/people/{memberId}/templates/{templateId}" : {
-      "post" : {
-        "summary" : "Generate a document for a person on the spot, to sign it in front of the reader",
-        "tags" : [ "Signing" ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/WitnessFieldResponse"
-                  }
-                }
-              }
-            }
-          },
-          "400" : {
-            "description" : "Bad Request",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          },
-          "403" : {
-            "description" : "Forbidden",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Not Found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          }
-        },
-        "parameters" : [ {
-          "name" : "memberId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        }, {
-          "name" : "templateId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        } ]
-      }
-    },
-    "/api/v1/signing/witness/reach" : {
-      "get" : {
-        "summary" : "Whom the station's witnesses may collect signatures from, beyond its members and trial users",
-        "tags" : [ "Signing" ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/RestrictionAudience"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put" : {
-        "summary" : "Narrow whom the station's witnesses may collect signatures from",
-        "tags" : [ "Signing" ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/RestrictionAudience"
-                }
-              }
-            }
-          },
-          "400" : {
-            "description" : "Bad Request",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          },
-          "403" : {
-            "description" : "Forbidden",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          }
-        },
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/RestrictionAudience"
               }
             }
           }
@@ -46523,6 +46901,38 @@
         }
       }
     },
+    "/api/v1/trials" : {
+      "get" : {
+        "summary" : "The trials running for the reader or anybody they look after",
+        "tags" : [ "Waiting Lists" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TrialOverview"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/trials/{entryId}/end" : {
+      "post" : {
+        "summary" : "End a trial the reader or one of their wards is in",
+        "tags" : [ "Waiting Lists" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
     "/api/v1/user-type-permissions/{userType}" : {
       "get" : {
         "summary" : "Get station-level permissions for a user type",
@@ -46935,6 +47345,23 @@
         }
       }
     },
+    "/api/v1/waiting-lists/{id}/entries/{entryId}/invite/recipients" : {
+      "get" : {
+        "summary" : "Who an invitation for the entry would be written to",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InvitationRecipients"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/waiting-lists/{id}/entries/{entryId}/join" : {
       "post" : {
         "responses" : {
@@ -46945,6 +47372,31 @@
                 "schema" : {
                   "$ref" : "#/components/schemas/WaitingListEntry"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-lists/{id}/entries/{entryId}/other-dates" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WaitingListEntry"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WaitingListInvitationRequest"
               }
             }
           }
@@ -46973,6 +47425,15 @@
               }
             }
           }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WaitingListMessageRequest"
+              }
+            }
+          }
         }
       }
     },
@@ -46981,6 +47442,15 @@
         "responses" : {
           "204" : {
             "description" : "No Content"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WaitingListMessageRequest"
+              }
+            }
           }
         }
       }
@@ -47334,9 +47804,12 @@
           },
           "lastName" : {
             "type" : "string"
+          },
+          "sidebar" : {
+            "$ref" : "#/components/schemas/SidebarMode"
           }
         },
-        "required" : [ "id", "uid", "email", "username", "firstName", "lastName" ]
+        "required" : [ "id", "uid", "email", "username", "firstName", "lastName", "sidebar" ]
       },
       "AccountOverview" : {
         "type" : "object",
@@ -48772,9 +49245,12 @@
           },
           "source" : {
             "$ref" : "#/components/schemas/EntrySource"
+          },
+          "skipExtraTime" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "id", "sessionId", "memberId", "status", "checkIn", "checkOut", "source" ]
+        "required" : [ "id", "sessionId", "memberId", "status", "checkIn", "checkOut", "source", "skipExtraTime" ]
       },
       "AttendanceFieldConfig" : {
         "type" : "object",
@@ -51896,6 +52372,14 @@
           "stationGroupId" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "shownIfFieldId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "fieldSetId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         }
       },
@@ -51933,9 +52417,21 @@
           "stationGroupId" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "shownIfFieldId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "fieldSetId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "setPosition" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "name", "fieldType", "config", "required", "readonly", "width", "stationReadonly", "keepOnArchive", "stationGroupId" ]
+        "required" : [ "id", "name", "fieldType", "config", "required", "readonly", "width", "stationReadonly", "keepOnArchive", "stationGroupId", "shownIfFieldId", "fieldSetId", "setPosition" ]
       },
       "ClusterFlowResponse" : {
         "type" : "object",
@@ -54070,6 +54566,23 @@
         },
         "required" : [ "event", "nextDate", "previousDate", "cancellation" ]
       },
+      "DayBound" : {
+        "type" : "object",
+        "properties" : {
+          "day" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "fromToday" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        },
+        "required" : [ "day", "fromToday" ]
+      },
       "DayCount" : {
         "type" : "object",
         "properties" : {
@@ -55338,6 +55851,12 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "questions" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/TemplateQuestion"
+            }
           }
         }
       },
@@ -55454,9 +55973,15 @@
           },
           "signing" : {
             "$ref" : "#/components/schemas/TemplateSigning"
+          },
+          "questions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TemplateQuestion"
+            }
           }
         },
-        "required" : [ "id", "name", "kind", "titlePattern", "fileNamePattern", "tags", "hidden", "keepOnArchive", "legal", "forAppointments", "selfService", "cooldownDays", "audience", "language", "issuerId", "issuerFunction", "header", "footer", "body", "page", "pdf", "fields", "formBindings", "version", "updatedAt", "archivedAt", "signing" ]
+        "required" : [ "id", "name", "kind", "titlePattern", "fileNamePattern", "tags", "hidden", "keepOnArchive", "legal", "forAppointments", "selfService", "cooldownDays", "audience", "language", "issuerId", "issuerFunction", "header", "footer", "body", "page", "pdf", "fields", "formBindings", "version", "updatedAt", "archivedAt", "signing", "questions" ]
       },
       "DocumentTemplateSummary" : {
         "type" : "object",
@@ -57157,6 +57682,39 @@
         "type" : "string",
         "enum" : [ "BANNER", "ICON" ]
       },
+      "ExtraTimeCredit" : {
+        "type" : "object",
+        "properties" : {
+          "entryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "preparationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "followUpMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "skipped" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "entryId", "memberId", "preparationMinutes", "followUpMinutes", "skipped" ]
+      },
+      "ExtraTimeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "skip" : {
+            "type" : [ "boolean", "null" ]
+          }
+        }
+      },
       "FactorInfo" : {
         "type" : "object",
         "properties" : {
@@ -57221,6 +57779,9 @@
           },
           "descriptionOverride" : {
             "type" : "string"
+          },
+          "fullDescription" : {
+            "type" : "boolean"
           }
         }
       },
@@ -57832,12 +58393,9 @@
           },
           "together" : {
             "type" : "boolean"
-          },
-          "witnessName" : {
-            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "fieldName", "role", "state", "signerName", "signedAt", "proof", "bound", "together", "witnessName" ]
+        "required" : [ "fieldName", "role", "state", "signerName", "signedAt", "proof", "bound", "together" ]
       },
       "FieldConfig" : {
         "oneOf" : [ {
@@ -57976,6 +58534,65 @@
       "FieldRole" : {
         "type" : "string",
         "enum" : [ "PARTICIPANT", "GUARDIAN", "ANY_GUARDIAN", "ISSUER" ]
+      },
+      "FieldSet" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "ownerId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "nameAsSection" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "ownerId", "name", "nameAsSection" ]
+      },
+      "FieldSetLabel" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "heading" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "name", "heading" ]
+      },
+      "FieldSetOrderRequest" : {
+        "type" : "object",
+        "properties" : {
+          "fieldIds" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
+      },
+      "FieldSetRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "nameAsSection" : {
+            "type" : "boolean"
+          }
+        }
       },
       "FieldState" : {
         "type" : "string",
@@ -58397,6 +59014,9 @@
           "printsOnPdf" : {
             "type" : "boolean"
           },
+          "printsInLetters" : {
+            "type" : "boolean"
+          },
           "sample" : {
             "type" : "string"
           },
@@ -58404,7 +59024,7 @@
             "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "family", "origin", "styles", "printsOnPdf", "sample", "editorVersion" ]
+        "required" : [ "family", "origin", "styles", "printsOnPdf", "printsInLetters", "sample", "editorVersion" ]
       },
       "FontOrigin" : {
         "type" : "string",
@@ -58413,6 +59033,22 @@
       "FontOutline" : {
         "type" : "string",
         "enum" : [ "TRUETYPE", "CFF" ]
+      },
+      "FontReplacement" : {
+        "type" : "object",
+        "properties" : {
+          "family" : {
+            "type" : "string"
+          },
+          "replacement" : {
+            "type" : "string"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "family", "replacement", "size" ]
       },
       "FontStyle" : {
         "type" : "string",
@@ -59635,6 +60271,9 @@
           },
           "ignoreBreaks" : {
             "type" : [ "boolean", "null" ]
+          },
+          "timeZone" : {
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -61497,6 +62136,21 @@
         "type" : "string",
         "enum" : [ "INTERNAL", "EXTERNAL", "MIXED" ]
       },
+      "InvitationRecipients" : {
+        "type" : "object",
+        "properties" : {
+          "sendsMail" : {
+            "type" : "boolean"
+          },
+          "addresses" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "sendsMail", "addresses" ]
+      },
       "InviteCodeResponse" : {
         "type" : "object",
         "properties" : {
@@ -61549,6 +62203,25 @@
             "type" : "boolean"
           }
         }
+      },
+      "IssueFromStockRequest" : {
+        "type" : "object",
+        "properties" : {
+          "itemId" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "IssueFromStockResponse" : {
+        "type" : "object",
+        "properties" : {
+          "movementId" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "movementId" ]
       },
       "Issued" : {
         "type" : "object",
@@ -64222,10 +64895,6 @@
       "ManagedFieldResponse" : {
         "type" : "object",
         "properties" : {
-          "fieldId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
           "fieldName" : {
             "type" : "string"
           },
@@ -64265,7 +64934,7 @@
             } ]
           }
         },
-        "required" : [ "fieldId", "fieldName", "role", "signerName", "capacity", "statement", "state", "nobodyCanSign", "settledAt", "settledByName", "act" ]
+        "required" : [ "fieldName", "role", "signerName", "capacity", "statement", "state", "nobodyCanSign", "settledAt", "settledByName", "act" ]
       },
       "ManagedMember" : {
         "type" : "object",
@@ -64471,6 +65140,12 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "answers" : {
+            "type" : [ "object", "null" ],
+            "additionalProperties" : {
+              "type" : "string"
+            }
           }
         }
       },
@@ -65317,9 +65992,20 @@
           },
           "readonlyAtStation" : {
             "type" : "boolean"
+          },
+          "shownIfFieldId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "fieldSet" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/FieldSetLabel"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "name", "fieldType", "config", "required", "position", "width", "readonly", "role", "origin", "readonlyAtStation" ]
+        "required" : [ "id", "name", "fieldType", "config", "required", "position", "width", "readonly", "role", "origin", "readonlyAtStation", "shownIfFieldId", "fieldSet" ]
       },
       "MemberProfileRequest" : {
         "type" : "object",
@@ -65543,9 +66229,17 @@
           "presentCount" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "preparationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "followUpMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "memberId", "name", "totalHours", "sessionCount", "presentCount" ]
+        "required" : [ "memberId", "name", "totalHours", "sessionCount", "presentCount", "preparationMinutes", "followUpMinutes" ]
       },
       "MemberTable" : {
         "type" : "object",
@@ -65764,9 +66458,20 @@
           },
           "readonlyAtStation" : {
             "type" : "boolean"
+          },
+          "shownIfFieldId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "fieldSet" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/FieldSetLabel"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "name", "fieldType", "config", "required", "position", "width", "readonly", "role", "origin", "readonlyAtStation" ]
+        "required" : [ "id", "name", "fieldType", "config", "required", "position", "width", "readonly", "role", "origin", "readonlyAtStation", "shownIfFieldId", "fieldSet" ]
       },
       "MergedValue" : {
         "type" : "object",
@@ -65872,6 +66577,45 @@
           }
         },
         "required" : [ "totalKeys", "copied", "skipped", "deleted", "copiedBytes" ]
+      },
+      "MissingFonts" : {
+        "type" : "object",
+        "properties" : {
+          "missing" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "suggested" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "$ref" : "#/components/schemas/Suggestion"
+            }
+          },
+          "defaultFamily" : {
+            "type" : "string"
+          },
+          "embedded" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "light" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "lightCuts" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "missing", "suggested", "defaultFamily", "embedded", "light", "lightCuts" ]
       },
       "MissingStepsResponse" : {
         "type" : "object",
@@ -67308,7 +68052,7 @@
       },
       "NotificationType" : {
         "type" : "string",
-        "enum" : [ "NEW_NEWS", "NEWS_COMMENT", "COMMENT_MENTION", "EVENT_REGISTRATION_STATUS", "MOVEMENT_ADVANCED", "MOVEMENT_RAISED", "MOVEMENT_DECLINED", "MOVEMENT_CANCELLED", "NEW_EVENT", "NEW_EVENTS_BATCH", "MEMBER_ADDED_TO_GROUP", "PROFILE_FIELD_CHANGED", "PROCUREMENT_REQUESTED", "PROCUREMENT_FULFILLED", "NEW_FORM", "LOST_AND_FOUND_NEW", "LOST_AND_FOUND_CLAIMED", "WAITLIST_NEW_ENTRY", "LENDING_NEW_REQUEST", "LENDING_STATUS_CHANGE", "LENDING_NEW_MESSAGE", "BOARD_TICKET_UPDATE", "REGISTRATION_DEADLINE_EXPIRED", "EVENT_CANCELLED", "EVENT_REMINDER", "REGISTRATION_CLOSING", "REGISTRATION_ANSWER_MISSING", "EVENT_DATE_DROPPED", "EVENT_MOVED", "EVENT_DATE_RESTORED", "PROCEDURE_ASSIGNED", "PROCEDURE_RESOLVED", "PROCEDURE_REOPENED", "PROCEDURE_ITEM_CHECKED", "SELF_CHECK_ASSIGNED", "SELF_CHECK_SUBMITTED", "SELF_CHECK_ROW_REFUSED", "WAITLIST_PUBLIC_REGISTRATION", "WAITLIST_INVITATION_ANSWERED", "STORAGE_WARNING", "MAILBOX_SUSPENDED", "MAIL_IMPORT_UNBOUND", "CLUSTER_APPLICATION_SUBMITTED", "CLUSTER_APPLICATION_APPROVED", "CLUSTER_APPLICATION_DENIED", "CLUSTER_APPLICATION_WITHDRAWN", "CLUSTER_STATION_RELEASED", "CLUSTER_MODULE_DENIED", "CLUSTER_ITEM_ISSUED", "CLUSTER_ITEM_LOST", "CLUSTER_QUOTA_CHANGED", "CLUSTER_MEMBER_ROLE_CHANGED", "CLUSTER_FIELD_VALUE_CHANGED", "EXPIRY_REMINDER", "FEDERATION_REQUEST_RECEIVED", "FEDERATION_REQUEST_ACCEPTED", "FEDERATION_REQUEST_DECLINED", "NAME_CHANGE_REQUESTED", "NAME_CHANGE_APPROVED", "NAME_CHANGE_DENIED", "SIGNATURE_REQUESTED", "SIGNATURE_REMINDER", "DOCUMENT_SIGNED", "DOCUMENT_SCAN_REJECTED", "ACCOUNT_LINK_ACCEPTED", "ASSOCIATION_LINK_ACCEPTED", "SIGNATURE_WITHDRAWN", "PARTNER_SIGNATURE_WITHDRAWN" ]
+        "enum" : [ "NEW_NEWS", "NEWS_COMMENT", "COMMENT_MENTION", "EVENT_REGISTRATION_STATUS", "MOVEMENT_ADVANCED", "MOVEMENT_RAISED", "MOVEMENT_DECLINED", "MOVEMENT_CANCELLED", "NEW_EVENT", "NEW_EVENTS_BATCH", "MEMBER_ADDED_TO_GROUP", "PROFILE_FIELD_CHANGED", "PROCUREMENT_REQUESTED", "PROCUREMENT_FULFILLED", "NEW_FORM", "LOST_AND_FOUND_NEW", "LOST_AND_FOUND_CLAIMED", "WAITLIST_NEW_ENTRY", "LENDING_NEW_REQUEST", "LENDING_STATUS_CHANGE", "LENDING_NEW_MESSAGE", "BOARD_TICKET_UPDATE", "REGISTRATION_DEADLINE_EXPIRED", "EVENT_CANCELLED", "EVENT_REMINDER", "REGISTRATION_CLOSING", "REGISTRATION_ANSWER_MISSING", "EVENT_DATE_DROPPED", "EVENT_MOVED", "EVENT_DATE_RESTORED", "PROCEDURE_ASSIGNED", "PROCEDURE_RESOLVED", "PROCEDURE_REOPENED", "PROCEDURE_ITEM_CHECKED", "SELF_CHECK_ASSIGNED", "SELF_CHECK_SUBMITTED", "SELF_CHECK_ROW_REFUSED", "WAITLIST_PUBLIC_REGISTRATION", "WAITLIST_INVITATION_ANSWERED", "WAITLIST_TRIAL_ENDED", "STORAGE_WARNING", "MAILBOX_SUSPENDED", "MAIL_IMPORT_UNBOUND", "CLUSTER_APPLICATION_SUBMITTED", "CLUSTER_APPLICATION_APPROVED", "CLUSTER_APPLICATION_DENIED", "CLUSTER_APPLICATION_WITHDRAWN", "CLUSTER_STATION_RELEASED", "CLUSTER_MODULE_DENIED", "CLUSTER_ITEM_ISSUED", "CLUSTER_ITEM_LOST", "CLUSTER_QUOTA_CHANGED", "CLUSTER_MEMBER_ROLE_CHANGED", "CLUSTER_FIELD_VALUE_CHANGED", "EXPIRY_REMINDER", "FEDERATION_REQUEST_RECEIVED", "FEDERATION_REQUEST_ACCEPTED", "FEDERATION_REQUEST_DECLINED", "NAME_CHANGE_REQUESTED", "NAME_CHANGE_APPROVED", "NAME_CHANGE_DENIED", "SIGNATURE_REQUESTED", "SIGNATURE_REMINDER", "DOCUMENT_SIGNED", "DOCUMENT_SCAN_REJECTED", "ACCOUNT_LINK_ACCEPTED", "ASSOCIATION_LINK_ACCEPTED", "SIGNATURE_WITHDRAWN", "PARTNER_SIGNATURE_WITHDRAWN" ]
       },
       "NumberConfig" : {
         "type" : "object",
@@ -67365,6 +68109,33 @@
           }
         },
         "required" : [ "offer" ]
+      },
+      "OfferedDate" : {
+        "type" : "object",
+        "properties" : {
+          "position" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "eventId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "date" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "arrivalTime" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalTime"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "appointmentName" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "position", "eventId", "date", "arrivalTime", "appointmentName" ]
       },
       "OkResponse" : {
         "type" : "object",
@@ -67646,6 +68417,18 @@
           }
         },
         "required" : [ "name" ]
+      },
+      "OwnerRequest" : {
+        "type" : "object",
+        "properties" : {
+          "owner" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ItemOwner"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
       },
       "PadesLevel" : {
         "type" : "string",
@@ -68554,9 +69337,12 @@
           "maxLength" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "keepSize" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "kind", "rect", "text", "fontSize", "align", "wrap", "role", "fontFamily", "fontStyle", "withoutLine", "printText", "statement", "required", "maxLength" ]
+        "required" : [ "kind", "rect", "text", "fontSize", "align", "wrap", "role", "fontFamily", "fontStyle", "withoutLine", "printText", "statement", "required", "maxLength", "keepSize" ]
       },
       "PdfFieldKind" : {
         "type" : "string",
@@ -68851,7 +69637,7 @@
       },
       "PlaceholderCategory" : {
         "type" : "string",
-        "enum" : [ "MEMBER", "PRONOUNS", "GUARDIAN1", "GUARDIAN2", "STATION", "ASSOCIATION", "APPOINTMENT", "ISSUER", "DOCUMENT" ]
+        "enum" : [ "MEMBER", "PRONOUNS", "GUARDIAN1", "GUARDIAN2", "STATION", "ASSOCIATION", "APPOINTMENT", "ISSUER", "DOCUMENT", "QUESTION" ]
       },
       "PlaceholderValues" : {
         "type" : "object",
@@ -69638,9 +70424,15 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "stock" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StockPiece"
+            }
           }
         },
-        "required" : [ "id", "inventoryId", "inventoryName", "memberId", "memberName", "memberIdentity", "sizeId", "sizeLabel", "notes", "requestedAt", "fulfilledAt" ]
+        "required" : [ "id", "inventoryId", "inventoryName", "memberId", "memberName", "memberIdentity", "sizeId", "sizeLabel", "notes", "requestedAt", "fulfilledAt", "stock" ]
       },
       "ProfileField" : {
         "type" : "object",
@@ -69673,9 +70465,21 @@
           },
           "keepOnArchive" : {
             "type" : "boolean"
+          },
+          "shownIfFieldId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "fieldSetId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "setPosition" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "stationId", "name", "fieldType", "config", "required", "readonly", "width", "keepOnArchive" ]
+        "required" : [ "id", "stationId", "name", "fieldType", "config", "required", "readonly", "width", "keepOnArchive", "shownIfFieldId", "fieldSetId", "setPosition" ]
       },
       "ProfileFieldAssignment" : {
         "type" : "object",
@@ -69892,6 +70696,14 @@
           },
           "keepOnArchive" : {
             "type" : "boolean"
+          },
+          "shownIfFieldId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "fieldSetId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         }
       },
@@ -71046,6 +71858,52 @@
           }
         },
         "required" : [ "MULTIPLE_CHOICE", "FILL_IN_THE_BLANK", "FREE_ANSWER", "CONNECT", "IMAGE_TEXT", "TRUE_FALSE", "ORDERING", "ENUMERATION" ]
+      },
+      "QuestionLimits" : {
+        "type" : "object",
+        "properties" : {
+          "earliest" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/DayBound"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "latest" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/DayBound"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "maxLength" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "format" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/TextFormat"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "min" : {
+            "type" : [ "number", "null" ]
+          },
+          "max" : {
+            "type" : [ "number", "null" ]
+          },
+          "whole" : {
+            "type" : "boolean"
+          },
+          "choices" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "earliest", "latest", "maxLength", "format", "min", "max", "whole", "choices" ]
       },
       "QuizAccessRequest" : {
         "type" : "object",
@@ -73775,7 +74633,7 @@
       },
       "RestrictionType" : {
         "type" : "string",
-        "enum" : [ "EVENT", "EVENT_VIEW", "EVENT_TEMPLATE", "EVENT_TEMPLATE_VIEW", "QUIZ_TEST", "FORM", "NEWS", "KB_FOLDER", "KB_FILE", "DOCUMENT_TEMPLATE", "DOCUMENT_TEMPLATE_STATION_USE", "WITNESS_REACH" ]
+        "enum" : [ "EVENT", "EVENT_VIEW", "EVENT_TEMPLATE", "EVENT_TEMPLATE_VIEW", "QUIZ_TEST", "FORM", "NEWS", "KB_FOLDER", "KB_FILE", "DOCUMENT_TEMPLATE", "DOCUMENT_TEMPLATE_STATION_USE", "ATTENDANCE_TEMPLATE_TIME_RULE", "ATTENDANCE_SESSION_TIME_RULE" ]
       },
       "ResultFieldCondition" : {
         "type" : "object",
@@ -75447,9 +76305,17 @@
           },
           "hours" : {
             "type" : "number"
+          },
+          "preparationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "followUpMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "memberId", "name", "status", "checkIn", "checkOut", "hours" ]
+        "required" : [ "memberId", "name", "status", "checkIn", "checkOut", "hours", "preparationMinutes", "followUpMinutes" ]
       },
       "SessionRequest" : {
         "type" : "object",
@@ -75799,6 +76665,17 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/StationUserType"
+            }
+          }
+        }
+      },
+      "SetTimeRulesRequest" : {
+        "type" : "object",
+        "properties" : {
+          "rules" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TimeRuleInput"
             }
           }
         }
@@ -76286,6 +77163,22 @@
         },
         "required" : [ "notifications", "requirements", "pendingChanges", "pendingRegistrations", "lendingRequests", "federationRequests", "openEvents", "waitingListEntries", "lostAndFoundPending", "myInventoryCount", "openMovements", "procedureCount" ]
       },
+      "SidebarMode" : {
+        "type" : "string",
+        "enum" : [ "SECTIONS", "TREE" ]
+      },
+      "SidebarPreference" : {
+        "type" : "object",
+        "properties" : {
+          "sidebar" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/SidebarMode"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
+      },
       "SignInClaimRequest" : {
         "type" : "object",
         "properties" : {
@@ -76461,7 +77354,7 @@
       },
       "SignerCapacity" : {
         "type" : "string",
-        "enum" : [ "ACCOUNT_HOLDER", "GUARDIAN", "MEMBER_THROUGH_ACCOUNT", "WITNESSED" ]
+        "enum" : [ "ACCOUNT_HOLDER", "GUARDIAN", "MEMBER_THROUGH_ACCOUNT" ]
       },
       "SignerEntryDraft" : {
         "type" : "object",
@@ -77628,7 +78521,7 @@
       },
       "StationPermission" : {
         "type" : "string",
-        "enum" : [ "USER", "LOGIN", "ATTENDANCE_READ", "ATTENDANCE_EDIT", "ATTENDANCE_CONFIGURE", "ATTENDANCE_EXPORT", "ATTENDANCE_MANAGER", "INVENTORY_CREATE_EXTERNAL", "INVENTORY_CREATE_INTERNAL", "INVENTORY_READ", "INVENTORY_CREATE", "INVENTORY_MOVEMENTS", "INVENTORY_PROCUREMENT", "INVENTORY_CHECK", "INVENTORY_LENDING_REQUEST", "INVENTORY_LENDING_MANAGER", "INVENTORY_EDIT", "INVENTORY_ASSIGN", "INVENTORY_STORAGE", "INVENTORY_MANAGER", "EVENT_MANAGE_TEMPLATE", "EVENT_MANAGE_CATEGORY", "EVENT_INTERNAL", "EVENT_EDIT", "EVENT_REGISTRATION", "EVENTS_FEDERATE", "EVENT_MANAGER", "DOCUMENT_READ", "DOCUMENT_READ_MEMBER", "DOCUMENT_EDIT", "DOCUMENT_EDIT_MEMBER", "DOCUMENT_TEMPLATE_EDIT", "DOCUMENT_SIGN_OTHERS", "DOCUMENT_MANAGER", "MEMBER_READ", "MEMBER_NOTES", "MEMBER_GUARDIAN", "MEMBER_CHANGES", "MEMBER_MANAGE_GROUP", "MEMBER_MANAGE_TAGS", "MEMBER_SELF_UPLOAD", "MEMBER_EDIT", "MEMBER_FIELDS", "MEMBER_EXPORT", "MEMBER_MANAGER", "WAITLIST_READ", "WAITLIST_ADD", "WAITLIST_EDIT", "WAITLIST_MANAGER", "NEWS_EDIT", "NEWS_FEDERATE", "NEWS_MANAGER", "POLL_VIEW_RESULTS", "POLL_CREATE", "POLL_MANAGER", "LOST_AND_FOUND_CREATE", "LOST_AND_FOUND_MANAGE", "LOST_AND_FOUND_MANAGER", "CHECKLIST_READ", "CHECKLIST_MANAGE", "CHECKLIST_MANAGER", "TEST_CATALOG_VIEW", "TEST_CATALOG_EDIT", "TEST_CONFIGURE", "TEST_RESULT_READ", "TEST_REVIEW", "TEST_CATALOG_SHARE", "TEST_MANAGER", "PROTOCOL_TESTER", "PROTOCOL_CREATE", "PROTOCOL_CONFIGURE", "PROTOCOL_SHARE", "PROTOCOL_MANAGER", "BOARD_USE", "BOARD_EDIT", "BOARD_FEDERATE", "BOARD_MANAGER", "PAGE_EDIT", "PAGE_FORMS_VIEW", "PAGE_POLLS_VIEW", "PAGE_MANAGER", "PROCEDURE_READ", "PROCEDURE_EDIT", "PROCEDURE_MANAGER", "KNOWLEDGE_EDIT", "KNOWLEDGE_FEDERATE", "KNOWLEDGE_MANAGER", "STATION_LOOK_AND_FEEL", "STATION_GENERAL", "STATION_MAIL", "STATION_FEDERATION", "STATION_MODULES", "STATION_IMPORT_EXPORT", "STATION_STATISTICS", "STATION_MANAGER", "STATION_ADMINISTRATOR" ]
+        "enum" : [ "USER", "LOGIN", "ATTENDANCE_READ", "ATTENDANCE_EDIT", "ATTENDANCE_CONFIGURE", "ATTENDANCE_EXPORT", "ATTENDANCE_MANAGER", "INVENTORY_CREATE_EXTERNAL", "INVENTORY_CREATE_INTERNAL", "INVENTORY_READ", "INVENTORY_CREATE", "INVENTORY_MOVEMENTS", "INVENTORY_PROCUREMENT", "INVENTORY_CHECK", "INVENTORY_LENDING_REQUEST", "INVENTORY_LENDING_MANAGER", "INVENTORY_EDIT", "INVENTORY_ASSIGN", "INVENTORY_STORAGE", "INVENTORY_MANAGER", "EVENT_MANAGE_TEMPLATE", "EVENT_MANAGE_CATEGORY", "EVENT_INTERNAL", "EVENT_EDIT", "EVENT_REGISTRATION", "EVENTS_FEDERATE", "EVENT_MANAGER", "DOCUMENT_READ", "DOCUMENT_READ_MEMBER", "DOCUMENT_EDIT", "DOCUMENT_EDIT_MEMBER", "DOCUMENT_TEMPLATE_EDIT", "DOCUMENT_MANAGER", "MEMBER_READ", "MEMBER_NOTES", "MEMBER_GUARDIAN", "MEMBER_CHANGES", "MEMBER_MANAGE_GROUP", "MEMBER_MANAGE_TAGS", "MEMBER_SELF_UPLOAD", "MEMBER_EDIT", "MEMBER_FIELDS", "MEMBER_EXPORT", "MEMBER_MANAGER", "WAITLIST_READ", "WAITLIST_ADD", "WAITLIST_EDIT", "WAITLIST_MANAGER", "NEWS_EDIT", "NEWS_FEDERATE", "NEWS_MANAGER", "POLL_VIEW_RESULTS", "POLL_CREATE", "POLL_MANAGER", "LOST_AND_FOUND_CREATE", "LOST_AND_FOUND_MANAGE", "LOST_AND_FOUND_MANAGER", "CHECKLIST_READ", "CHECKLIST_MANAGE", "CHECKLIST_MANAGER", "TEST_CATALOG_VIEW", "TEST_CATALOG_EDIT", "TEST_CONFIGURE", "TEST_RESULT_READ", "TEST_REVIEW", "TEST_CATALOG_SHARE", "TEST_MANAGER", "PROTOCOL_TESTER", "PROTOCOL_CREATE", "PROTOCOL_CONFIGURE", "PROTOCOL_SHARE", "PROTOCOL_MANAGER", "BOARD_USE", "BOARD_EDIT", "BOARD_FEDERATE", "BOARD_MANAGER", "PAGE_EDIT", "PAGE_FORMS_VIEW", "PAGE_POLLS_VIEW", "PAGE_MANAGER", "PROCEDURE_READ", "PROCEDURE_EDIT", "PROCEDURE_MANAGER", "KNOWLEDGE_EDIT", "KNOWLEDGE_FEDERATE", "KNOWLEDGE_MANAGER", "STATION_LOOK_AND_FEEL", "STATION_GENERAL", "STATION_MAIL", "STATION_FEDERATION", "STATION_MODULES", "STATION_IMPORT_EXPORT", "STATION_STATISTICS", "STATION_MANAGER", "STATION_ADMINISTRATOR" ]
       },
       "StationPermissionsRequest" : {
         "type" : "object",
@@ -78075,6 +78968,22 @@
         },
         "required" : [ "verifiedAt" ]
       },
+      "StockPiece" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "internalId" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "id", "name", "internalId" ]
+      },
       "StorageAuditAction" : {
         "type" : "string",
         "enum" : [ "CREATED", "UPDATED", "DELETED", "PROBE_OK", "PROBE_FAILED", "MIGRATION_STARTED", "MIGRATION_COMPLETED", "MIGRATION_FAILED", "REJECTED", "INSTANCE_DEFAULT_UPDATED", "INSTANCE_MIGRATION_STARTED", "INSTANCE_MIGRATION_COMPLETED", "INSTANCE_MIGRATION_FAILED", "POLICY_CHANGED" ]
@@ -78144,6 +79053,30 @@
           }
         },
         "required" : [ "value" ]
+      },
+      "SuggestedAnswer" : {
+        "type" : "object",
+        "properties" : {
+          "question" : {
+            "$ref" : "#/components/schemas/TemplateQuestion"
+          },
+          "suggestion" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "question", "suggestion" ]
+      },
+      "Suggestion" : {
+        "type" : "object",
+        "properties" : {
+          "family" : {
+            "type" : "string"
+          },
+          "sameMeasure" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "family", "sameMeasure" ]
       },
       "Summary" : {
         "type" : "object",
@@ -78876,6 +79809,34 @@
         },
         "required" : [ "items", "total", "page", "size" ]
       },
+      "TemplateQuestion" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "$ref" : "#/components/schemas/TemplateQuestionKind"
+          },
+          "suggestion" : {
+            "type" : "string"
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "limits" : {
+            "$ref" : "#/components/schemas/QuestionLimits"
+          }
+        },
+        "required" : [ "key", "label", "kind", "suggestion", "required", "limits" ]
+      },
+      "TemplateQuestionKind" : {
+        "type" : "string",
+        "enum" : [ "TEXT", "DATE", "NUMBER", "CHOICE", "CHECK" ]
+      },
       "TemplateRequest" : {
         "type" : "object",
         "properties" : {
@@ -79286,6 +80247,10 @@
         },
         "required" : [ "kind", "text" ]
       },
+      "TextFormat" : {
+        "type" : "string",
+        "enum" : [ "DIGITS", "LETTERS", "POSTAL_CODE", "EMAIL", "PHONE" ]
+      },
       "ThemeFeel" : {
         "type" : "string",
         "enum" : [ "ROUNDED", "CORNERS" ]
@@ -79494,6 +80459,56 @@
           }
         },
         "required" : [ "id", "name", "total", "kb", "board", "images", "pages", "perFile", "perImage" ]
+      },
+      "TimeRule" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "position" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "label" : {
+            "type" : [ "string", "null" ]
+          },
+          "preparationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "followUpMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "audience" : {
+            "$ref" : "#/components/schemas/RestrictionAudience"
+          },
+          "intact" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "position", "label", "preparationMinutes", "followUpMinutes", "audience", "intact" ]
+      },
+      "TimeRuleInput" : {
+        "type" : "object",
+        "properties" : {
+          "label" : {
+            "type" : [ "string", "null" ]
+          },
+          "preparationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "followUpMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "audience" : {
+            "$ref" : "#/components/schemas/RestrictionAudience"
+          }
+        }
       },
       "TimestampCheck" : {
         "type" : "object",
@@ -79903,6 +80918,33 @@
       "TrialOutcome" : {
         "type" : "string",
         "enum" : [ "OK", "FOREIGN_CREDENTIAL", "FAILED" ]
+      },
+      "TrialOverview" : {
+        "type" : "object",
+        "properties" : {
+          "entryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "listName" : {
+            "type" : "string"
+          },
+          "since" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "visits" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "attendanceThreshold" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "entryId", "name", "listName", "since", "visits", "attendanceThreshold" ]
       },
       "TrialResponse" : {
         "type" : "object",
@@ -80796,6 +81838,10 @@
             "type" : "integer",
             "format" : "int32"
           },
+          "invitationRound" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
           "invitation" : {
             "anyOf" : [ {
               "$ref" : "#/components/schemas/WaitingListInvitation"
@@ -80809,9 +81855,12 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "trialMessage" : {
+            "type" : "string"
           }
         },
-        "required" : [ "id", "listId", "firstname", "lastname", "parentName", "email", "accessToken", "status", "confirmedAt", "reminderSentAt", "createdAt", "notes", "memberId", "invitedAt", "testingAt", "joinedAt", "withdrawnAt", "attendanceCount", "invitation", "answer" ]
+        "required" : [ "id", "listId", "firstname", "lastname", "parentName", "email", "accessToken", "status", "confirmedAt", "reminderSentAt", "createdAt", "notes", "memberId", "invitedAt", "testingAt", "joinedAt", "withdrawnAt", "attendanceCount", "invitationRound", "invitation", "answer", "trialMessage" ]
       },
       "WaitingListEntryGuardian" : {
         "type" : "object",
@@ -80839,9 +81888,13 @@
           "position" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "memberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "entryId", "firstname", "lastname", "email", "phone", "position" ]
+        "required" : [ "id", "entryId", "firstname", "lastname", "email", "phone", "position", "memberId" ]
       },
       "WaitingListEntryRequest" : {
         "type" : "object",
@@ -81018,22 +82071,17 @@
       "WaitingListInvitation" : {
         "type" : "object",
         "properties" : {
-          "eventId" : {
-            "type" : "integer",
-            "format" : "int32"
+          "message" : {
+            "type" : "string"
           },
-          "date" : {
-            "$ref" : "#/components/schemas/LocalDate"
-          },
-          "arrivalTime" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/LocalTime"
-            }, {
-              "type" : "null"
-            } ]
+          "options" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/OfferedDate"
+            }
           }
         },
-        "required" : [ "eventId", "date", "arrivalTime" ]
+        "required" : [ "message", "options" ]
       },
       "WaitingListInvitationAnswer" : {
         "type" : "object",
@@ -81046,29 +82094,34 @@
           },
           "note" : {
             "type" : "string"
+          },
+          "position" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "answer", "answeredAt", "note" ]
+        "required" : [ "answer", "answeredAt", "note", "position" ]
       },
       "WaitingListInvitationAnswerRequest" : {
         "type" : "object",
         "properties" : {
-          "eventId" : {
+          "round" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
           },
-          "date" : {
-            "type" : [ "string", "null" ]
-          },
           "answer" : {
             "type" : [ "string", "null" ]
+          },
+          "position" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           },
           "note" : {
             "type" : [ "string", "null" ]
           }
         }
       },
-      "WaitingListInvitationRequest" : {
+      "WaitingListInvitationOptionRequest" : {
         "type" : "object",
         "properties" : {
           "eventId" : {
@@ -81079,6 +82132,20 @@
             "type" : [ "string", "null" ]
           },
           "arrivalTime" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
+      "WaitingListInvitationRequest" : {
+        "type" : "object",
+        "properties" : {
+          "options" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/WaitingListInvitationOptionRequest"
+            }
+          },
+          "message" : {
             "type" : [ "string", "null" ]
           }
         }
@@ -81151,6 +82218,14 @@
           }
         }
       },
+      "WaitingListMessageRequest" : {
+        "type" : "object",
+        "properties" : {
+          "message" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
       "WaitingListPublicAnswer" : {
         "type" : "object",
         "properties" : {
@@ -81162,19 +82237,20 @@
           },
           "note" : {
             "type" : "string"
+          },
+          "position" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "answer", "answeredAt", "note" ]
+        "required" : [ "answer", "answeredAt", "note", "position" ]
       },
-      "WaitingListPublicInvitation" : {
+      "WaitingListPublicAppointment" : {
         "type" : "object",
         "properties" : {
-          "eventId" : {
+          "position" : {
             "type" : "integer",
             "format" : "int32"
-          },
-          "date" : {
-            "type" : "string"
           },
           "appointmentName" : {
             "type" : "string"
@@ -81192,7 +82268,26 @@
             "type" : "string"
           }
         },
-        "required" : [ "eventId", "date", "appointmentName", "appointmentDate", "appointmentTime", "arrivalTime", "location" ]
+        "required" : [ "position", "appointmentName", "appointmentDate", "appointmentTime", "arrivalTime", "location" ]
+      },
+      "WaitingListPublicInvitation" : {
+        "type" : "object",
+        "properties" : {
+          "round" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "appointments" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/WaitingListPublicAppointment"
+            }
+          },
+          "message" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "round", "appointments", "message" ]
       },
       "WaitingListPublicStatus" : {
         "type" : "object",
@@ -81260,9 +82355,12 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "trialMessage" : {
+            "type" : "string"
           }
         },
-        "required" : [ "firstname", "lastname", "parentName", "email", "status", "confirmedAt", "createdAt", "confirmIntervalDays", "position", "listName", "fields", "values", "guardians", "invitation", "answer" ]
+        "required" : [ "firstname", "lastname", "parentName", "email", "status", "confirmedAt", "createdAt", "confirmIntervalDays", "position", "listName", "fields", "values", "guardians", "invitation", "answer", "trialMessage" ]
       },
       "WaitingListRegisterRequest" : {
         "type" : "object",
@@ -81574,110 +82672,38 @@
         },
         "required" : [ "undoUntil" ]
       },
-      "WitnessFieldResponse" : {
+      "WordFormImport" : {
         "type" : "object",
         "properties" : {
-          "fieldId" : {
-            "type" : "integer",
-            "format" : "int32"
+          "template" : {
+            "$ref" : "#/components/schemas/DocumentTemplateResponse"
           },
-          "requestUid" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "documentId" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "documentTitle" : {
-            "type" : [ "string", "null" ]
-          },
-          "memberId" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "memberName" : {
-            "type" : "string"
-          },
-          "fieldName" : {
-            "type" : "string"
-          },
-          "role" : {
-            "$ref" : "#/components/schemas/FieldRole"
-          },
-          "statement" : {
-            "type" : "string"
-          },
-          "signers" : {
+          "recognised" : {
             "type" : "array",
             "items" : {
-              "$ref" : "#/components/schemas/WitnessPersonResponse"
+              "type" : "string"
             }
-          }
-        },
-        "required" : [ "fieldId", "requestUid", "documentId", "documentTitle", "memberId", "memberName", "fieldName", "role", "statement", "signers" ]
-      },
-      "WitnessOffersResponse" : {
-        "type" : "object",
-        "properties" : {
-          "fields" : {
+          },
+          "asked" : {
             "type" : "array",
             "items" : {
-              "$ref" : "#/components/schemas/WitnessFieldResponse"
+              "type" : "string"
             }
           },
-          "templates" : {
+          "unplaced" : {
             "type" : "array",
             "items" : {
-              "$ref" : "#/components/schemas/WitnessTemplateResponse"
+              "type" : "string"
             }
-          }
-        },
-        "required" : [ "fields", "templates" ]
-      },
-      "WitnessPersonResponse" : {
-        "type" : "object",
-        "properties" : {
-          "memberId" : {
-            "type" : "integer",
-            "format" : "int32"
           },
-          "name" : {
-            "type" : "string"
-          },
-          "userType" : {
-            "$ref" : "#/components/schemas/StationUserType"
-          }
-        },
-        "required" : [ "memberId", "name", "userType" ]
-      },
-      "WitnessStartRequest" : {
-        "type" : "object",
-        "properties" : {
-          "signerId" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "entries" : {
-            "type" : [ "array", "null" ],
+          "fonts" : {
+            "type" : "array",
             "items" : {
-              "$ref" : "#/components/schemas/SignerEntryDraft"
+              "$ref" : "#/components/schemas/FontReplacement"
             }
           }
-        }
-      },
-      "WitnessTemplateResponse" : {
-        "type" : "object",
-        "properties" : {
-          "templateId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "name" : {
-            "type" : "string"
-          }
         },
-        "required" : [ "templateId", "name" ]
+        "required" : [ "template", "recognised", "asked", "unplaced", "fonts" ]
       },
       "YoutubeFileRequest" : {
         "type" : "object",

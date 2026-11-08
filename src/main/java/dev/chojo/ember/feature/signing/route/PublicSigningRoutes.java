@@ -30,6 +30,10 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.servlet.MultipartConfigElement;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 
 /**
  * The public addresses a reader of a sealed document checks its seal against, without signing in: the
@@ -48,6 +52,8 @@ import org.jspecify.annotations.Nullable;
  */
 @Singleton
 public class PublicSigningRoutes implements Routes {
+    private static final Logger log = LoggerFactory.getLogger(PublicSigningRoutes.class);
+
     /** Where an authority's certificate is published, beside its revocation list. */
     static final String AUTHORITY_CERTIFICATE_ROUTE = "/public/signing/ca/{serial}.crt";
 
@@ -59,6 +65,12 @@ public class PublicSigningRoutes implements Routes {
      * request announcing more is refused before any of its body is read.
      */
     static final int FORM_ALLOWANCE_BYTES = 64 * 1024;
+
+    /**
+     * How much of a body cut off for its size is still read before it is refused: the rest of a form that
+     * grew past the limit, with room for the envelope around it.
+     */
+    private static final long UNREAD_ALLOWANCE_BYTES = 4L * FORM_ALLOWANCE_BYTES;
 
     /** How much of a form is kept in memory before the server writes it to a temporary file. */
     private static final int IN_MEMORY_BYTES = 1024 * 1024;
@@ -126,8 +138,33 @@ public class PublicSigningRoutes implements Routes {
         try {
             return ctx.uploadedFile("file");
         } catch (Exception e) {
-            if (overLimit(e)) throw DocumentRefusal.SEAL_CHECK_TOO_LARGE.raise();
-            throw DocumentRefusal.SEAL_CHECK_NOT_RECEIVED.raise();
+            if (!overLimit(e)) throw DocumentRefusal.SEAL_CHECK_NOT_RECEIVED.raise();
+            readRest(ctx);
+            throw DocumentRefusal.SEAL_CHECK_TOO_LARGE.raise();
+        }
+    }
+
+    /**
+     * Reads what is left of a body cut off for its size, up to {@link #UNREAD_ALLOWANCE_BYTES}, before the
+     * refusal is sent.
+     *
+     * <p>A form is cut off as it grows past the limit, while the client is still sending its last bytes. A
+     * server that answers and closes with those bytes unread has the connection reset by the network, and
+     * a client can lose the answer it was already given and see only a dropped connection. Reading the
+     * rest first lets the refusal arrive. The allowance keeps a client that never stops sending from
+     * holding the server: what lies past it is left unread, as before.
+     */
+    private static void readRest(Context ctx) {
+        try {
+            var rest = ctx.req().getInputStream();
+            byte[] buffer = new byte[8192];
+            long left = UNREAD_ALLOWANCE_BYTES;
+            int read;
+            while (left > 0 && (read = rest.read(buffer, 0, (int) Math.min(buffer.length, left))) != -1) {
+                left -= read;
+            }
+        } catch (IOException | IllegalStateException unreadable) {
+            log.debug("The rest of a refused seal check could not be read", unreadable);
         }
     }
 

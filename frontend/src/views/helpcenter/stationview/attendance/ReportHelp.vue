@@ -16,8 +16,34 @@ import TRow from '@/components/table/TRow.vue'
 import Td from '@/components/table/Td.vue'
 import Th from '@/components/table/Th.vue'
 import ReportFilterPanel from './reporthelp/ReportFilterPanel.vue'
+import ReportSessionTable from '@/views/stationview/attendance/reportview/ReportSessionTable.vue'
+import type {SessionMemberEntry} from '@/api/generated/schema'
 
 const {t} = useI18n()
+
+/** One evening of a sheet in the report: a supervisor credited with preparation beside a member who was not. */
+const sampleEntries: SessionMemberEntry[] = [
+  {
+    memberId: 1,
+    name: t('helpCenter.sample.people.maxMustermann'),
+    status: 'PRESENT',
+    checkIn: '2026-04-07T18:00:00',
+    checkOut: '2026-04-07T19:30:00',
+    hours: 2.25,
+    preparationMinutes: 30,
+    followUpMinutes: 15,
+  },
+  {
+    memberId: 2,
+    name: t('helpCenter.sample.people.erikaMuster'),
+    status: 'PRESENT',
+    checkIn: '2026-04-07T18:00:00',
+    checkOut: '2026-04-07T19:30:00',
+    hours: 1.5,
+    preparationMinutes: 0,
+    followUpMinutes: 0,
+  },
+]
 </script>
 
 <template>
@@ -42,6 +68,13 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.attendanceReport.countedTitle')">
       <p>{{ t('helpCenter.attendanceReport.countedText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.attendanceReport.extraTimeTitle')">
+      <p>{{ t('helpCenter.attendanceReport.extraTimeText') }}</p>
+      <NeutralContainer>
+        <ReportSessionTable :entries="sampleEntries"/>
+      </NeutralContainer>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.attendanceReport.previewTitle')">

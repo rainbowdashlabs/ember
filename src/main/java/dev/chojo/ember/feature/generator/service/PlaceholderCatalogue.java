@@ -19,6 +19,8 @@ import dev.chojo.ember.feature.generator.entity.PlaceholderKey;
 import dev.chojo.ember.feature.generator.entity.PlaceholderSubgroup;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
 import dev.chojo.ember.feature.generator.entity.PronounKey;
+import dev.chojo.ember.feature.generator.entity.TemplateQuestion;
+import dev.chojo.ember.feature.generator.entity.TemplateQuestionKind;
 import dev.chojo.ember.feature.generator.service.OfferedFields.SectionedField;
 import dev.chojo.ember.feature.generator.service.store.OwnerStores;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -213,6 +215,35 @@ public class PlaceholderCatalogue {
     }
 
     /**
+     * The placeholders of an owner together with the answers one template asks for, which only that
+     * template can name.
+     *
+     * @param known     the placeholders of the owner by key
+     * @param questions the questions of the template
+     * @param language  the language the labels are written in
+     * @return every placeholder the template can name, keyed
+     */
+    public static Map<String, Placeholder> withQuestions(
+            Map<String, Placeholder> known, List<TemplateQuestion> questions, DocumentLanguage language) {
+        if (questions.isEmpty()) return known;
+        var keyed = new LinkedHashMap<>(known);
+        String category = PlaceholderCategory.QUESTION.word(language);
+        for (var question : questions) {
+            keyed.put(
+                    question.placeholderKey(),
+                    new Placeholder(
+                            question.placeholderKey(),
+                            question.label(),
+                            PlaceholderCategory.QUESTION,
+                            List.of(category, question.label()),
+                            false,
+                            false,
+                            question.kind() == TemplateQuestionKind.DATE ? DateKind.DATE : null));
+        }
+        return keyed;
+    }
+
+    /**
      * The answers of the member to profile questions a template of the owner can name, which an import
      * recognises by the name of their question.
      *
@@ -239,9 +270,11 @@ public class PlaceholderCatalogue {
      */
     public void requireKnown(Owner owner, DocumentTemplateDraft draft) {
         var used = keysOf(
-                draft.titlePattern(), draft.fileNamePattern(), draft.content().texts());
+                draft.titlePattern(),
+                draft.fileNamePattern(),
+                Stream.concat(draft.content().texts(), TemplateQuestion.suggestions(draft.questions()).stream()));
         if (used.isEmpty()) return;
-        var known = byKey(owner);
+        var known = withQuestions(byKey(owner), draft.questions(), draft.language());
         for (String key : used) {
             var written = PlaceholderKey.parse(key);
             var placeholder = known.get(written.base());

@@ -161,6 +161,18 @@ public class ItemMovementRepository {
                 .first();
     }
 
+    /**
+     * Whether an open movement names this piece, setting out or promised.
+     *
+     * @param itemId the piece
+     * @return {@code true} when an open movement names it on either side
+     */
+    public boolean isOnAMovement(int itemId) {
+        return SqlSupport.exists(
+                "SELECT 1 FROM inventory_item WHERE id = :item_id AND NOT %s;",
+                call().bind("item_id", itemId), ItemCustodySql.notOnAMovement("inventory_item"));
+    }
+
     public int countOpenByStation(int stationId) {
         return SqlSupport.count(
                 "SELECT count(*) FROM item_movement WHERE station_id = :station_id AND state = :open;",

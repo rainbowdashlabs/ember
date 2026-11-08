@@ -24,7 +24,7 @@ const {t} = useI18n()
         <th class="p-2 text-center">{{ t('eventsRegistrations.score') }}</th>
         <th class="p-2 text-center">{{ t('eventsRegistrations.acceptedCol') }}</th>
         <th class="p-2 text-center">{{ t('eventsRegistrations.deniedCol') }}</th>
-        <th class="p-2 text-center">{{ t('eventsRegistrations.date') }}</th>
+        <th class="p-2 text-center">{{ t('eventsRegistrations.registeredAt') }}</th>
         <th class="p-2"/>
       </tr>
     </thead>
@@ -36,7 +36,7 @@ const {t} = useI18n()
         <td class="p-2 text-center font-bold text-error">8.5</td>
         <td class="p-2 text-center"><SuccessBadge>3</SuccessBadge></td>
         <td class="p-2 text-center"><ErrorBadge>2</ErrorBadge></td>
-        <td class="p-2 text-center text-xs text-(--text-muted)">2026-05-25</td>
+        <td class="p-2 text-center text-xs text-(--text-muted)">20.05.2026, 18:42</td>
         <td class="p-2">
           <ButtonRow pair align="end">
             <PrimaryButton compact :icon="['fas', 'check']">{{ t('eventsRegistrations.accept') }}</PrimaryButton>
@@ -51,7 +51,7 @@ const {t} = useI18n()
         <td class="p-2 text-center font-bold text-info">4.2</td>
         <td class="p-2 text-center"><SuccessBadge>5</SuccessBadge></td>
         <td class="p-2 text-center">0</td>
-        <td class="p-2 text-center text-xs text-(--text-muted)">2026-05-25</td>
+        <td class="p-2 text-center text-xs text-(--text-muted)">21.05.2026, 07:15</td>
         <td class="p-2">
           <ButtonRow pair align="end">
             <PrimaryButton compact :icon="['fas', 'check']">{{ t('eventsRegistrations.accept') }}</PrimaryButton>

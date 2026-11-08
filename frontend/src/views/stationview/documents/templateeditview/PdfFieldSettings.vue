@@ -74,6 +74,9 @@ function append(choice: PlaceholderChoice) {
       <FieldTextLayout v-model="field"/>
       <ToggleSetting :model-value="field.wrap" :label="t('documentTemplates.wrap')" :hint="t('documentTemplates.wrapHint')"
                      @update:model-value="wrap => field = {...field, wrap}"/>
+      <ToggleSetting v-if="!field.wrap" :model-value="field.keepSize" :label="t('documentTemplates.keepSize')"
+                     :hint="t('documentTemplates.keepSizeHint')" data-testid="pdf-field-keep-size"
+                     @update:model-value="keepSize => field = {...field, keepSize}"/>
       <FieldFontSettings v-model="field" :fonts="fonts" :default-family="defaultFamily"/>
     </template>
   </div>

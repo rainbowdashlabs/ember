@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
@@ -69,11 +70,11 @@ class DocumentGenerationRoutesTest {
         when(members.findById(11)).thenReturn(Optional.of(member(11, 3)));
         when(members.findById(12)).thenReturn(Optional.of(member(12, 4)));
         when(generation.usable(eq(OWNER), any())).thenReturn(new TemplatePage(List.of(), 0, 0, 24));
-        when(generation.preview(any(), eq(8), eq(11), any()))
+        when(generation.preview(any(), eq(8), eq(11), any(), any()))
                 .thenReturn(new PreviewResponse("JVBER", List.of(), List.of(), null));
         when(generation.previewDraft(any(), any(), any(), any()))
                 .thenReturn(new PreviewResponse("JVBER", List.of(), List.of(), null));
-        when(generation.generate(any(), eq(8), eq(11), any())).thenReturn(FILED);
+        when(generation.generate(any(), eq(8), eq(11), any(), any())).thenReturn(FILED);
         when(selfService.offers(any(), eq(11))).thenReturn(List.of());
         when(selfService.generate(any(), eq(8), eq(11))).thenReturn(FILED);
         harness = RouteHarness.serving(new DocumentGenerationRoutes(generation, selfService, templates, members));
@@ -102,7 +103,8 @@ class DocumentGenerationRoutesTest {
                     201,
                     client.post(
                                     PREFIX + "/document-generation/templates/8/members/11",
-                                    body("{\"issuer\": {\"memberId\": 14, \"function\": \"Kassenwart\"}}"),
+                                    body("{\"issuer\": {\"memberId\": 14, \"function\": \"Kassenwart\"},"
+                                            + " \"answers\": {\"grund\": \"Umzug\"}}"),
                                     filer)
                             .code());
             assertEquals(
@@ -114,9 +116,10 @@ class DocumentGenerationRoutesTest {
                     refusalOf(client.post(PREFIX + "/document-generation/templates/9/members/11", null, filer)));
         });
 
-        verify(generation).generate(any(), eq(8), eq(11), isNull());
-        verify(generation).generate(any(), eq(8), eq(11), eq(new IssuerChoice(14, "Kassenwart")));
-        verify(generation, never()).generate(any(), anyInt(), eq(12), any());
+        verify(generation).generate(any(), eq(8), eq(11), isNull(), eq(Map.of()));
+        verify(generation)
+                .generate(any(), eq(8), eq(11), eq(new IssuerChoice(14, "Kassenwart")), eq(Map.of("grund", "Umzug")));
+        verify(generation, never()).generate(any(), anyInt(), eq(12), any(), any());
     }
 
     @Test

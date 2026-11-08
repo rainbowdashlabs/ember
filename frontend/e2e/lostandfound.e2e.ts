@@ -6,7 +6,7 @@
 import type {APIRequestContext, Page} from '@playwright/test'
 import type {DemoAccount} from './fixtures/auth'
 import {test, expect, apiHeaders, demoAccounts, otherStationManager, pageAsThrowaway} from './fixtures/auth'
-import {sidebarEntry} from './fixtures/sidebar'
+import {allSections, sidebarEntry} from './fixtures/sidebar'
 import {unique} from './fixtures/unique'
 import {pickMemberByName} from './fixtures/memberMenu'
 import {must} from './fixtures/must'
@@ -543,6 +543,7 @@ test.describe('Lost and found', () => {
             await setLostAndFound(page, false)
             try {
                 await page.goto('/station/dashboard/overview')
+                await allSections(page)
                 await expect(sidebarEntry(page, 'Fundbüro')).toHaveCount(0)
             } finally {
                 await setLostAndFound(page, true)

@@ -33,6 +33,10 @@ import java.util.Optional;
  * @param keepOnArchive   whether the answer survives the member being marked as having left
  * @param stationGroupId  the group of stations it is asked of, or {@code null} for every station under the
  *                        association
+ * @param shownIfFieldId  a yes/no field of the same association this one depends on, or {@code null}. While
+ *                        a member is asked both and has not answered yes, this one is hidden and not required.
+ * @param fieldSetId      the bundle of the association's fields this one belongs to, or {@code null}
+ * @param setPosition     where it stands within that bundle, smallest first
  */
 public record ClusterProfileField(
         int id,
@@ -45,7 +49,10 @@ public record ClusterProfileField(
         @Nullable String width,
         boolean stationReadonly,
         boolean keepOnArchive,
-        @Nullable Integer stationGroupId) {
+        @Nullable Integer stationGroupId,
+        @Nullable Integer shownIfFieldId,
+        @Nullable Integer fieldSetId,
+        int setPosition) {
 
     /**
      * This field as everything that checks a question reads it, the same way a station's own field
@@ -67,6 +74,9 @@ public record ClusterProfileField(
                 row.getString("width"),
                 row.getBoolean("station_readonly"),
                 row.getBoolean("keep_on_archive"),
-                row.getObject("station_group_id", Integer.class));
+                row.getObject("station_group_id", Integer.class),
+                row.getObject("shown_if_field_id", Integer.class),
+                row.getObject("field_set_id", Integer.class),
+                row.getInt("set_position"));
     }
 }

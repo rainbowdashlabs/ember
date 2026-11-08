@@ -7,7 +7,7 @@ import {MADE_BY_A_STORY} from './fixtures/cluster'
 import {
     test, expect, enterCluster, clustersOf, theSeededCluster, apiHeaders, demoAccounts, pageAsThrowaway,
 } from './fixtures/auth'
-import {activeSidebarGroup, sidebarEntry} from './fixtures/sidebar'
+import {activeSidebarGroup, allSections, sidebarEntry} from './fixtures/sidebar'
 import {must} from './fixtures/must'
 
 /**
@@ -259,6 +259,7 @@ test.describe('Cluster', () => {
         await enterCluster(page)
         await page.goto('/cluster')
         await expect(page.getByTestId('app-shell')).toBeVisible()
+        await allSections(page)
 
         await expect(sidebarEntry(page, 'Inhalte'), 'the level that only added a click is gone').toHaveCount(0)
         for (const label of ['Wiki', 'Neuigkeiten', 'Termine']) {

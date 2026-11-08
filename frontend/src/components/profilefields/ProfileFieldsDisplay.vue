@@ -4,11 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
+import {shownFields} from '@/util/profileFields'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
 import type {LaidOutField} from './ProfileFieldsLayout.vue'
-import {isSection, isSpacer, spanClass} from './fieldLayout'
+import {isSection, isSpacer, setHeadingBefore, spanClass} from './fieldLayout'
 
 /**
  * The fields of a member as they are read rather than filled in, arranged the way the station
@@ -19,15 +21,21 @@ import {isSection, isSpacer, spanClass} from './fieldLayout'
  * far as the reader is concerned. Headings appear where they were put and short fields stand beside
  * each other, neither of which a plain list of name and value can do.
  */
-defineProps<{
+const props = defineProps<{
   fields: LaidOutField[]
   getValue: (field: LaidOutField) => unknown
 }>()
+
+/** The questions shown, without those hidden behind a yes/no question not answered yes. */
+const shown = computed(() => shownFields(props.fields, props.getValue))
 </script>
 
 <template>
   <div class="grid grid-cols-6 gap-x-4 gap-y-2 items-start">
-    <template v-for="field in fields" :key="`${field.origin ?? 'STATION'}-${field.id}`">
+    <template v-for="(field, index) in shown" :key="`${field.origin ?? 'STATION'}-${field.id}`">
+      <div v-if="setHeadingBefore(shown, index)" class="col-span-6 pt-2 first:pt-0" data-testid="field-set-heading">
+        <SubHeader class="text-sm">{{ setHeadingBefore(shown, index) }}</SubHeader>
+      </div>
       <div v-if="isSection(field)" data-testid="field-section" :class="spanClass(field)" class="pt-2 first:pt-0">
         <SubHeader class="text-sm">{{ field.name }}</SubHeader>
       </div>

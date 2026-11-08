@@ -13,21 +13,20 @@ import HelpRoleToggle from '@/components/helpcenter/HelpRoleToggle.vue'
 import type {HelpPerspective} from '@/components/helpcenter/HelpRoleToggle.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.vue'
 import Modal from '@/components/feedback/Modal.vue'
-import SizeBadge from '@/components/badge/SizeBadge.vue'
+import ExchangeReasonPicker from '@/components/movement/ExchangeReasonPicker.vue'
 import {
   ItemCustody,
   ItemOwner,
   MovementState,
   StationPermission,
   StepActor,
+  type InventorySize,
   type MyInventoryItem,
 } from '@/api/generated/schema'
 
@@ -39,6 +38,11 @@ const perspectives: HelpPerspective[] = [
 ]
 const activeView = ref('')
 const showExchangeModal = ref(false)
+
+const DEMO_SIZES = ['S', 'M', 'L', 'XL'].map((label, position) =>
+    ({id: position + 1, inventoryId: 1, label, position} as InventorySize))
+const demoNewSizeId = ref<number | null>(2)
+const demoReason = ref('')
 
 /** The fields a member's own piece carries when nothing about it is out of the ordinary. */
 function dummyPiece(piece: Partial<MyInventoryItem> & Pick<MyInventoryItem, 'id' | 'inventoryId' | 'inventoryName' | 'name'>): MyInventoryItem {
@@ -146,20 +150,13 @@ const dummyStiefel = dummyPiece({
     <Modal v-model="showExchangeModal">
       <div class="space-y-3">
         <SectionHeader>{{ t('profile.requestExchange') }}</SectionHeader>
-        <p class="text-sm">
-          {{ t('helpCenter.sample.equipment.helmetNumber12') }} <SizeBadge>M</SizeBadge>
-        </p>
-        <div class="space-y-1">
-          <FieldLabel>{{ t('movements.newSize') }}</FieldLabel>
-          <SelectInput model-value="">
-            <option value="" disabled>{{ t('movements.selectNewSize') }}</option>
-            <option value="1">S</option>
-            <option value="2">M</option>
-            <option value="3">L</option>
-            <option value="4">XL</option>
-          </SelectInput>
-        </div>
-        <TextAreaInput model-value="" :placeholder="t('profile.exchangeReasonPlaceholder')" :rows="3"/>
+        <p class="text-sm">{{ t('helpCenter.sample.equipment.helmetNumber12') }}</p>
+        <ExchangeReasonPicker
+            v-model:new-size-id="demoNewSizeId"
+            v-model:text="demoReason"
+            :sizes="DEMO_SIZES"
+            :current-size-id="2"
+        />
         <ButtonRow pair align="end">
           <SecondaryButton @click="showExchangeModal = false">{{ t('common.cancel') }}</SecondaryButton>
           <PrimaryButton disabled>{{ t('profile.submitExchange') }}</PrimaryButton>

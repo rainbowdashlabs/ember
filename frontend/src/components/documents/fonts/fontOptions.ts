@@ -42,14 +42,15 @@ export function sameFamily(a: string, b: string): boolean {
  *
  * @param reachable the families the owner's templates reach
  * @param current   the family the template names now, or null for the default font
- * @param pdfOnly   whether only families a field on an uploaded PDF can print in are offered
+ * @param pdfOnly   whether only families a field on an uploaded PDF can print in are offered; otherwise
+ *                  only families letters can print in are, which leaves out the light cuts
  */
 export function familyChoices(
     reachable: readonly FontFamilyOption[],
     current: string | null,
     pdfOnly = false,
 ): FamilyChoice[] {
-    const offered = reachable.filter(family => !pdfOnly || family.printsOnPdf)
+    const offered = reachable.filter(family => pdfOnly ? family.printsOnPdf : family.printsInLetters)
     const choices: FamilyChoice[] = [
         {value: '', family: null, missing: false},
         ...offered.map(family => ({value: family.family, family, missing: false})),

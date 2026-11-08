@@ -45,7 +45,13 @@ class WaitlistInvitationAnsweredHandlerTest {
 
     @Test
     void whoeverEditsTheListsIsToldWhoAnsweredAndWhat() {
-        handler.handle(new WaitlistInvitationAnswered(7, "Max Müller", "Schnupperstunde", WaitingListAnswer.COMING));
+        handler.handle(new WaitlistInvitationAnswered(
+                7,
+                "Max Müller",
+                "Schnupperstunde",
+                WaitingListAnswer.COMING,
+                "Wir kommen zu zweit",
+                "Dienstabend, 12.05.2026"));
 
         var captor = ArgumentCaptor.forClass(NotificationData.class);
         verify(notificationService)
@@ -60,6 +66,8 @@ class WaitlistInvitationAnsweredHandlerTest {
         assertEquals("Max Müller", params.childName());
         assertEquals("Schnupperstunde", params.listName());
         assertEquals("COMING", params.answer(), "the name travels and the label is looked up per reader");
+        assertEquals("Wir kommen zu zweit", params.note(), "what they wrote reaches the station with the answer");
+        assertEquals("Dienstabend, 12.05.2026", params.appointment(), "and so does the date they picked");
         assertEquals("waiting-lists", captor.getValue().link().route());
     }
 }

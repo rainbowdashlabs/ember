@@ -708,8 +708,8 @@ public class EventRoutes implements Routes {
                 LocalDate.parse(req.endDate()),
                 req.startTime() != null ? LocalTime.parse(req.startTime()) : null,
                 req.endTime() != null ? LocalTime.parse(req.endTime()) : null);
-        var rows =
-                batchEventService.generateDates(session.stationId(), interval, Boolean.TRUE.equals(req.ignoreBreaks()));
+        var rows = batchEventService.generateDates(
+                session.stationId(), interval, Boolean.TRUE.equals(req.ignoreBreaks()), req.timeZone());
         ctx.json(rows);
     }
 
@@ -850,7 +850,9 @@ public class EventRoutes implements Routes {
             String endDate,
             @Nullable String startTime,
             @Nullable String endTime,
-            @Nullable Boolean ignoreBreaks) {}
+            @Nullable Boolean ignoreBreaks,
+            /** The zone the times of day are meant in, as the browser names it; the station's where left out. */
+            @Nullable String timeZone) {}
 
     public record BatchCreateRequest(
             @Nullable String name,

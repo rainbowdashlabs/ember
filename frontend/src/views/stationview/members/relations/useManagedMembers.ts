@@ -25,6 +25,7 @@ export function useManagedMembers(
     memberId: Ref<number>,
     allMembers: Ref<MemberWithName[]>,
     failure: Ref<Failure | null>,
+    loadDetails: (people: MemberWithName[]) => Promise<void>,
 ) {
   const { t } = useI18n()
 
@@ -48,6 +49,7 @@ export function useManagedMembers(
     failure.value = null
     try {
       managedMembers.value = await stationMembers.setManaged(memberId.value, ids)
+      await loadDetails(managedMembers.value)
     } catch (e) {
       failure.value = describeFailure(e, t)
     }

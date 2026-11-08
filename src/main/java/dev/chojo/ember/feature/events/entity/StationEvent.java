@@ -9,10 +9,11 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import org.jspecify.annotations.Nullable;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
@@ -122,16 +123,27 @@ public record StationEvent(
      * being recorded, so those are placed on the day asked for. Taking that date as it stood is what
      * once opened a sheet for a Tuesday two years ago.
      *
+     * <p>Both times are read and placed on the station's clock, so an evening configured in summer
+     * stays the same evening in winter. Read in UTC, it moved by the hour the clocks changed. The end
+     * keeps its time of day and its distance in days from the start.
+     *
      * @param date the day the occurrence falls on
+     * @param zone the station's clock
      * @return the two moments it runs between, empty where the appointment has no times at all
      */
-    public Optional<Span> occurrenceOn(LocalDate date) {
+    public Optional<Span> occurrenceOn(LocalDate date, ZoneId zone) {
         if (startTime == null) return Optional.empty();
         Instant end = endTime != null && endTime.isAfter(startTime) ? endTime : startTime;
         if (eventType == EventType.ONE_TIME) return Optional.of(new Span(startTime, end));
-        Instant start =
-                date.atTime(startTime.atZone(ZoneOffset.UTC).toLocalTime()).toInstant(ZoneOffset.UTC);
-        return Optional.of(new Span(start, start.plus(Duration.between(startTime, end))));
+        ZonedDateTime configuredStart = startTime.atZone(zone);
+        ZonedDateTime configuredEnd = end.atZone(zone);
+        long days = ChronoUnit.DAYS.between(configuredStart.toLocalDate(), configuredEnd.toLocalDate());
+        Instant start = date.atTime(configuredStart.toLocalTime()).atZone(zone).toInstant();
+        Instant placedEnd = date.plusDays(days)
+                .atTime(configuredEnd.toLocalTime())
+                .atZone(zone)
+                .toInstant();
+        return Optional.of(new Span(start, placedEnd.isBefore(start) ? start : placedEnd));
     }
 
     /**

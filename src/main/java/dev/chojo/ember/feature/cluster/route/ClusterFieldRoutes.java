@@ -103,6 +103,8 @@ public class ClusterFieldRoutes implements Routes {
     private void create(Context ctx) {
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(ClusterFieldRequest.class);
+        fieldService.requireDependencyAllowed(cluster.id(), 0, request.shownIfFieldId());
+        fieldService.requireSetAllowed(cluster.id(), request.fieldSetId());
         ClusterProfileField field = fieldService.create(
                 cluster.id(),
                 request.name(),
@@ -114,7 +116,9 @@ public class ClusterFieldRoutes implements Routes {
                 request.stationReadonly(),
                 request.keepOnArchive(),
                 request.stationGroupId());
-        ctx.status(HttpStatus.CREATED).json(toResponse(field));
+        fieldService.dependOn(cluster.id(), field.id(), request.shownIfFieldId());
+        fieldService.joinSet(cluster.id(), field.id(), request.fieldSetId());
+        ctx.status(HttpStatus.CREATED).json(toResponse(fieldService.requireField(cluster.id(), field.id())));
     }
 
     @OpenApi(
@@ -128,9 +132,12 @@ public class ClusterFieldRoutes implements Routes {
     private void update(Context ctx) {
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(ClusterFieldRequest.class);
+        int fieldId = pathInt(ctx, "fieldId");
+        fieldService.requireDependencyAllowed(cluster.id(), fieldId, request.shownIfFieldId());
+        fieldService.requireSetAllowed(cluster.id(), request.fieldSetId());
         fieldService.update(
                 cluster.id(),
-                pathInt(ctx, "fieldId"),
+                fieldId,
                 request.name(),
                 parseType(request.fieldType()),
                 request.config() != null ? request.config() : ProfileFieldConfig.empty(),
@@ -140,6 +147,8 @@ public class ClusterFieldRoutes implements Routes {
                 request.stationReadonly(),
                 request.keepOnArchive(),
                 request.stationGroupId());
+        fieldService.dependOn(cluster.id(), fieldId, request.shownIfFieldId());
+        fieldService.joinSet(cluster.id(), fieldId, request.fieldSetId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -291,7 +300,10 @@ public class ClusterFieldRoutes implements Routes {
                 field.width(),
                 field.stationReadonly(),
                 field.keepOnArchive(),
-                field.stationGroupId());
+                field.stationGroupId(),
+                field.shownIfFieldId(),
+                field.fieldSetId(),
+                field.setPosition());
     }
 
     /**
@@ -302,6 +314,8 @@ public class ClusterFieldRoutes implements Routes {
      *                        {@code null} for the whole row
      * @param stationGroupId  the association's group of stations the question is pointed at, or
      *                        {@code null} for none
+     * @param shownIfFieldId  the association's yes/no question this one depends on, or {@code null} for none
+     * @param fieldSetId      the association's group of fields this one belongs to, or {@code null} for none
      */
     public record ClusterFieldRequest(
             String name,
@@ -312,8 +326,17 @@ public class ClusterFieldRoutes implements Routes {
             @Nullable String width,
             boolean stationReadonly,
             boolean keepOnArchive,
-            @Nullable Integer stationGroupId) {}
+            @Nullable Integer stationGroupId,
+            @Nullable Integer shownIfFieldId,
+            @Nullable Integer fieldSetId) {}
 
+    /**
+     * A question as the association's editor reads it back.
+     *
+     * @param shownIfFieldId the association's yes/no question this one depends on, or {@code null} for none
+     * @param fieldSetId     the association's group of fields this one belongs to, or {@code null} for none
+     * @param setPosition    where it stands within that group
+     */
     public record ClusterFieldResponse(
             int id,
             String name,
@@ -324,5 +347,8 @@ public class ClusterFieldRoutes implements Routes {
             @Nullable String width,
             boolean stationReadonly,
             boolean keepOnArchive,
-            @Nullable Integer stationGroupId) {}
+            @Nullable Integer stationGroupId,
+            @Nullable Integer shownIfFieldId,
+            @Nullable Integer fieldSetId,
+            int setPosition) {}
 }

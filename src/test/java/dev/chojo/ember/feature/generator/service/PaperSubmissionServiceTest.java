@@ -120,7 +120,8 @@ class PaperSubmissionServiceTest extends GeneratorTestBase {
                 wiring.issuers(),
                 new EventRestrictionService(eventRepo, restrictionService),
                 RequirementSignatures.NONE,
-                stationMemberRepo);
+                stationMemberRepo,
+                occurrenceCalendar);
         notifier = mock(Notifier.class);
         confirmations = mock(ScanConfirmations.class);
         scans = new PaperSubmissionService(

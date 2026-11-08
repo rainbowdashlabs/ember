@@ -102,7 +102,8 @@ const sectionActions = computed(() => ({
   onSuccess: showSuccessMessage,
   onApprove: transitions.approve,
   onReject: transitions.reject,
-  onInvite: invitation.request,
+  onInvite: (id: number) => invitation.request(id),
+  onOfferOtherDates: (id: number) => invitation.request(id, 'otherDates'),
   onBackToWaiting: transitions.backToWaiting,
   onMoveToTesting: transitions.moveToTesting,
   onMoveToJoined: transitions.moveToJoined,
@@ -246,15 +247,22 @@ function showFailure(reported: Failure) {
       @confirm="confirmDeleteList"
     />
     <TransitionConfirmModal
+      v-model:message="transitions.message.value"
       :pending="transitions.pending.value"
+      :recipients="transitions.recipients.value"
+      :can-confirm="transitions.canConfirm.value"
       :running="transitions.running.value"
       @cancel="transitions.pending.value = null"
       @confirm="transitions.confirm"
     />
     <InviteEntryModal
-      v-model:occurrence="invitation.occurrence.value"
-      v-model:arrival-time="invitation.arrivalTime.value"
+      v-model:dates="invitation.dates.value"
+      v-model:message="invitation.message.value"
       :target="invitation.target.value"
+      :mode="invitation.mode.value"
+      :recipients="invitation.recipients.value"
+      :can-send="invitation.canSend.value"
+      :duplicate="invitation.duplicate.value"
       :running="invitation.running.value"
       @cancel="invitation.cancel"
       @confirm="invitation.confirm"

@@ -1,0 +1,15 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hallo {{ name }},</h2>
+      <p>Deine Probezeit bei <strong>{{ stationName }}</strong> hat begonnen. Schön, dass du dabei bist.</p>
+      {% if appointment %}
+      <p>Du hast uns gesagt, dass du zu diesem Termin kommst: <strong>{{ appointment }}</strong></p>
+      {% endif %}
+      {% if message %}
+      <ul class="notification-list">
+        <li class="notification-item"><p class="message" style="white-space:pre-line">{{ message }}</p></li>
+      </ul>
+      {% endif %}
+      <p>Wenn für die Probezeit ein Konto für dich angelegt wurde, bekommst du dafür eine eigene E-Mail zum Einrichten.</p>
+      <div class="btn-wrap"><a class="btn" href="{{ url }}">Eintrag ansehen</a></div>
+{% endblock %}

@@ -14,6 +14,7 @@ import {
     type DemoStationGroup,
 } from './fixtures/auth'
 import {cast} from './fixtures/cast'
+import {sidebarEntry} from './fixtures/sidebar'
 
 /**
  * Logging in is the one story that walks the login screen itself; every other story in the suite
@@ -197,7 +198,7 @@ test.describe('Account & session', () => {
         test('leads back to the area last worked in', async ({managerPage: page}) => {
             await page.goto('/station/members/list')
             await expect(page.getByTestId('app-shell')).toBeVisible()
-            await expect(page.getByRole('link', {name: /Profil/}).first()).toBeVisible()
+            await expect(sidebarEntry(page, 'Mitgliederliste')).toBeVisible()
 
             await page.goto('/')
 
@@ -208,7 +209,7 @@ test.describe('Account & session', () => {
         test('stands where it is when it is asked for by name', async ({managerPage: page}) => {
             await page.goto('/station/members/list')
             await expect(page.getByTestId('app-shell')).toBeVisible()
-            await expect(page.getByRole('link', {name: /Profil/}).first()).toBeVisible()
+            await expect(sidebarEntry(page, 'Mitgliederliste')).toBeVisible()
 
             await page.goto('/?home')
 

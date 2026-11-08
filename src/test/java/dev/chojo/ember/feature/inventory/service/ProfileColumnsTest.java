@@ -25,7 +25,8 @@ class ProfileColumnsTest {
     private static final int MEMBER = 5;
 
     private static ProfileField fieldOf(int id, String name, FieldType type) {
-        return new ProfileField(id, 1, name, type, ProfileFieldConfig.empty(), false, false, null, false);
+        return new ProfileField(
+                id, 1, name, type, ProfileFieldConfig.empty(), false, false, null, false, null, null, 0);
     }
 
     private static final List<ProfileField> FIELDS = List.of(

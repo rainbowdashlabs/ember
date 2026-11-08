@@ -35,7 +35,8 @@ class OfferedFieldsTest {
             List.of(MEDICAL, ALLERGIES, SCHOOL, EMPLOYER, SWIMMER, SPACER, CONTACT);
 
     private static ProfileField field(int id, String name, FieldType type) {
-        return new ProfileField(id, 1, name, type, ProfileFieldConfig.empty(), false, false, null, false);
+        return new ProfileField(
+                id, 1, name, type, ProfileFieldConfig.empty(), false, false, null, false, null, null, 0);
     }
 
     private static ProfileFieldAssignment role(ProfileField field, ProfileFieldScope role, int position) {

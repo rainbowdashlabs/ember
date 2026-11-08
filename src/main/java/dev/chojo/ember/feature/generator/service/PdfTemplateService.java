@@ -90,19 +90,47 @@ public class PdfTemplateService {
     public DocumentTemplateResponse upload(Owner owner, int templateId, @Nullable UploadedFile file, int authorId) {
         var template = templateService.requireOwned(owner, templateId);
         if (template.kind() != DocumentTemplateKind.PDF) throw DocumentRefusal.DOCUMENT_TEMPLATE_NOT_PDF.raise();
-        int room = roomOf(owner);
-        var refusals = DocumentDoor.STATION.intake();
-        var upload = intake.read(room, file, refusals);
-        String type = intake.take(room, categoryOf(owner), upload, refusals);
+        var original = take(owner, templateId, receive(owner, file), authorId);
+        log.info("PDF {} uploaded for document template {} of {}", original.id(), templateId, owner);
+        return templateService.detail(owner, templateId);
+    }
+
+    /**
+     * Reads an upload meant for a template of the owner, checked as every uploaded file is, against the
+     * room of the owner.
+     *
+     * @param owner the station or the association that keeps the template
+     * @param file  the upload, or null where the request carried none
+     * @return the upload
+     */
+    DocumentIntake.Upload receive(Owner owner, @Nullable UploadedFile file) {
+        return intake.read(roomOf(owner), file, DocumentDoor.STATION.intake());
+    }
+
+    /**
+     * Takes in a PDF made for a template of the owner, such as one converted from a Word form, as the
+     * one the template fills from now on.
+     *
+     * @param owner      the station or the association that keeps the template
+     * @param templateId the template
+     * @param fileName   the name the PDF is kept under
+     * @param pdf        the PDF
+     * @param authorId   the account the PDF comes from
+     */
+    void takeMade(Owner owner, int templateId, String fileName, byte[] pdf, int authorId) {
+        var original = take(owner, templateId, new DocumentIntake.Upload(fileName, PDF, pdf), authorId);
+        log.info("PDF {} made for document template {} of {}", original.id(), templateId, owner);
+    }
+
+    private PdfOriginal take(Owner owner, int templateId, DocumentIntake.Upload upload, int authorId) {
+        String type = intake.take(roomOf(owner), categoryOf(owner), upload, DocumentDoor.STATION.intake());
         if (!PDF.equals(type)) throw DocumentRefusal.DOCUMENT_TEMPLATE_PDF_NOT_A_PDF.raise();
         var inspection = inspect(upload.data());
-        var original = Transactions.call(() -> {
+        return Transactions.call(() -> {
             var written = keep(owner, templateId, upload, inspection, authorId);
             templates.countVersion(templateId, authorId);
             return written;
         });
-        log.info("PDF {} uploaded for document template {} of {}", original.id(), templateId, owner);
-        return templateService.detail(owner, templateId);
     }
 
     /**

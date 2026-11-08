@@ -95,6 +95,7 @@ export function emptyDraft(kind: DocumentTemplateKind = DocumentTemplateKind.LET
         fields: [],
         formBindings: [],
         signing: null,
+        questions: [],
     }
 }
 
@@ -114,6 +115,7 @@ export function draftOf(template: DocumentTemplateResponse): TemplateDraft {
         fields: template.fields.map(field => ({...field, rect: {...field.rect}})),
         formBindings: template.formBindings.map(binding => ({...binding})),
         signing: {...template.signing},
+        questions: template.questions.map(question => ({...question})),
     }
 }
 

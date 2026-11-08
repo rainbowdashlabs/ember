@@ -6,7 +6,12 @@
 import { computed, ref, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSession } from '@/composables/useSession'
-import { PALETTE_ROUTES, type PaletteRouteEntry } from '@/data/paletteRoutes'
+import { useStationNav } from '@/composables/useStationNav'
+import { useAdminNav } from '@/composables/useAdminNav'
+import { useClusterNav } from '@/composables/useClusterNav'
+import type { QuickSearchScope } from '@/composables/useQuickSearch'
+import type { NavNode } from '@/data/sidebar/navTypes'
+import { navPages } from '@/util/navTree'
 import { StationModule, StationPermission } from '@/api/generated/schema'
 import type { PersonIdentity } from '@/util/personIdentity'
 import { listCompletions } from '@/api/stationMembers'
@@ -43,8 +48,8 @@ export interface PaletteSection {
 /**
  * What the quick-search palette offers for the current query.
  *
- * Pages are filtered in the browser from the static route list, because they are few and always
- * known, and the inventories are filtered the same way and for the same reason. Members, knowledge
+ * Pages are filtered in the browser from the scope's sidebar, so the palette offers exactly what the
+ * sidebar shows the reader plus the few pages reached from inside others, and the inventories are filtered the same way and for the same reason. Members, knowledge
  * base files and events come from the server: members and inventories once per opening, the other
  * two debounced per keystroke. Every source is capped and every failure degrades to an empty
  * section, so one unavailable module cannot stop the palette from answering.
@@ -54,7 +59,7 @@ export interface PaletteSection {
  */
 export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
   const { t } = useI18n()
-  const { hasPermission, hasClusterPermission, isModuleEnabled } = useSession()
+  const { hasPermission, isModuleEnabled } = useSession()
 
   const members = ref<MemberCompletion[]>([])
   const inventories = ref<Inventory[]>([])
@@ -67,37 +72,25 @@ export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
   /** Whether the inventories of this opening are in hand, so a lost request is asked for again. */
   let inventoriesLoaded = false
 
-  /**
-   * Whether the reader may reach an entry. An association's pages answer to what it granted, which
-   * has nothing to do with any station's rights.
-   */
-  function entryAllowed(entry: PaletteRouteEntry): boolean {
-    if (entry.scope !== scope.value) return false
-    if (entry.module && !isModuleEnabled(entry.module)) return false
-    if (entry.scope === 'cluster') {
-      if (entry.clusterPermission && !hasClusterPermission(entry.clusterPermission)) return false
-      if (entry.clusterAnyPermission && !entry.clusterAnyPermission.some(p => hasClusterPermission(p))) return false
-      return true
-    }
-    if (entry.permission && !hasPermission(entry.permission)) return false
-    if (entry.anyPermission && !entry.anyPermission.some(p => hasPermission(p))) return false
-    return true
-  }
-
   const inStation = computed(() => scope.value === 'station')
   const normalisedQuery = computed(() => query.value.trim().toLowerCase())
 
+  const navs: Record<QuickSearchScope, Ref<NavNode[]>> = {
+    station: useStationNav().nodes,
+    admin: useAdminNav().nodes,
+    cluster: useClusterNav().nodes,
+  }
+
   const pageResults = computed<PaletteResult[]>(() =>
-    PALETTE_ROUTES.filter(entryAllowed)
-      .map(entry => ({entry, label: t(entry.labelKey)}))
+    navPages(navs[scope.value as QuickSearchScope]?.value ?? [])
       .filter(({label}) => !normalisedQuery.value || label.toLowerCase().includes(normalisedQuery.value))
       .slice(0, MAX_PER_SECTION)
-      .map(({entry, label}) => ({
+      .map(page => ({
         kind: 'page' as const,
-        label,
-        sublabel: entry.to,
-        icon: entry.icon,
-        to: {path: entry.to},
+        label: page.label,
+        sublabel: page.to,
+        icon: page.icon,
+        to: {path: page.to},
       })),
   )
 

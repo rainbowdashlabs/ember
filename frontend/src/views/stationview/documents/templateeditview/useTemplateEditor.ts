@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, ref, shallowRef, watch, type Ref} from 'vue'
+import {useI18n} from 'vue-i18n'
 import {documents, stationMembers} from '@/api'
 import {audienceLists} from '@/components/documents/generation'
 import {
@@ -25,6 +26,7 @@ import {provideFontSamples} from '@/composables/useFontSamples'
 import {useEditorFonts} from '@/composables/useEditorFonts'
 import {draftOf, emptyDraft, requestOf, type TemplateDraft} from './templateDraft'
 import {templateFamilies} from './letterFonts'
+import {answerPlaceholders} from './templateQuestions'
 import {placeholdersOfTemplate} from './placeholderpicker/placeholderTree'
 import {placeholderLabels, providePlaceholderDates, type PlaceholderDates} from './placeholderpicker/placeholderDates'
 import type {TemplateScreens} from '../templateScreens'
@@ -75,7 +77,9 @@ async function stationChoices(): Promise<StationChoices> {
  * stations choose the audience of its templates themselves.
  *
  * <p>The values of an appointment are offered only while the template is for appointments, since only
- * a document generated for an appointment fills them.
+ * a document generated for an appointment fills them. The answers to the template's own questions are
+ * offered beside the owner's values, everywhere but in a question's suggestion, which is filled before
+ * anybody answers.
  *
  * <p>A new PDF of a PDF template becomes the template's current version and only that: the fields in
  * the draft stay as they are, saved or not, to be checked over the new pages.
@@ -86,6 +90,7 @@ async function stationChoices(): Promise<StationChoices> {
  */
 export function useTemplateEditor(
     templateId: Ref<number | null>, newKind: Ref<DocumentTemplateKind>, screens: TemplateScreens) {
+    const {t} = useI18n()
     const source = screens.source
     const draft = ref<TemplateDraft>(emptyDraft(newKind.value))
     const saved = ref<DocumentTemplateResponse | null>(null)
@@ -93,8 +98,10 @@ export function useTemplateEditor(
     const offer = shallowRef<PlaceholderCatalogueResponse>({
         placeholders: [], dateFormats: [], dateTokens: [], letterParts: [], language: DocumentLanguage.DE,
     })
-    const catalogue = computed<Placeholder[]>(() => offer.value.placeholders)
+    const answers = computed(() => answerPlaceholders(draft.value.questions, t('documentTemplates.questions.category')))
+    const catalogue = computed<Placeholder[]>(() => [...offer.value.placeholders, ...answers.value])
     const placeholders = computed(() => placeholdersOfTemplate(catalogue.value, draft.value.forAppointments))
+    const dataPlaceholders = computed(() => placeholdersOfTemplate(offer.value.placeholders, draft.value.forAppointments))
     const choices = shallowRef<StationChoices>(noChoices())
     const fontList = shallowRef<DocumentFontsResponse | null>(null)
     const fonts = computed<readonly FontFamilyOption[]>(() => fontList.value?.reachable ?? [])
@@ -181,6 +188,7 @@ export function useTemplateEditor(
         pdfLoader,
         uploading,
         placeholders,
+        dataPlaceholders,
         labels,
         letterCatalogue,
         groups: computed(() => choices.value.groups),

@@ -89,7 +89,7 @@ function onTagIdsUpdate(ids: number[]) {
       @close="emit('close')"
   />
 
-  <TabBar v-if="detailTabs.length > 1" v-model="activeTab" :tabs="detailTabs" />
+  <TabBar v-if="detailTabs.length > 1" v-model="activeTab" :tabs="detailTabs" linked />
 
   <template v-if="activeTab === 'test'">
     <TestInfoCard

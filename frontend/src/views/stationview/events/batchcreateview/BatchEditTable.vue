@@ -13,7 +13,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import EventFieldValueInput from '../eventshared/EventFieldValueInput.vue'
 import {FieldType, type BatchRow, type EventFieldEntry} from '@/api/generated/schema'
-import {formatDate} from '@/util/format'
+import {formatDate, formatTime} from '@/util/format'
 
 const {t} = useI18n()
 
@@ -87,7 +87,10 @@ function setAllName(value: string) {
           </thead>
           <tbody>
           <tr v-for="(row, index) in rows" :key="index" class="border-b border-(--border)">
-            <td class="p-2 whitespace-nowrap">{{ formatDate(row.startTime) }}</td>
+            <td class="p-2 whitespace-nowrap">
+              {{ formatDate(row.startTime) }}
+              <MutedText tag="span" size="sm">{{ formatTime(row.startTime) }} - {{ formatTime(row.endTime) }}</MutedText>
+            </td>
             <td class="p-2">
               <TextInput :model-value="row.name ?? ''" class="w-40"
                          @update:model-value="updateRow(index, {...row, name: $event ?? null})"/>

@@ -116,7 +116,9 @@ public class StationProfileFields implements ProfileFieldOwner {
                 assigned.readonly(),
                 assignment.role(),
                 FieldOrigin.STATION,
-                false);
+                false,
+                assigned.field().shownIfFieldId(),
+                assigned.set());
     }
 
     @Override

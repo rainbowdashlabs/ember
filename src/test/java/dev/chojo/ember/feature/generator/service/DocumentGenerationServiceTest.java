@@ -25,8 +25,13 @@ import dev.chojo.ember.feature.generator.entity.FillInField;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.MissingValue;
+import dev.chojo.ember.feature.generator.entity.QuestionLimits;
+import dev.chojo.ember.feature.generator.entity.QuestionLimits.DayBound;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.entity.SubjectRole;
+import dev.chojo.ember.feature.generator.entity.TemplateQuestion;
+import dev.chojo.ember.feature.generator.entity.TemplateQuestionKind;
+import dev.chojo.ember.feature.generator.entity.TextFormat;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
@@ -71,6 +76,7 @@ import tools.jackson.databind.node.StringNode;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
@@ -418,6 +424,203 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         assertEquals("Jugendwartin", logged.issuerFunction());
         assertTrue(logged.issuerFixed());
         assertTrue(logged.issuerSigns());
+    }
+
+    private static int asking(String name) {
+        var request = letterOf(
+                        name,
+                        true,
+                        false,
+                        0,
+                        rowsOf("Ausgetreten am {{ask.tag|long}} wegen {{ask.grund}}. Schule: {{ask.schule}}"))
+                .questions(
+                        new TemplateQuestion("tag", "Tag des Austritts", TemplateQuestionKind.DATE, "{{today}}", true),
+                        new TemplateQuestion("grund", "Grund", TemplateQuestionKind.TEXT, "", true),
+                        new TemplateQuestion(
+                                "schule",
+                                "Geht zur Schule",
+                                TemplateQuestionKind.CHECK,
+                                "{{profile.%d}}".formatted(schoolField),
+                                false))
+                .build();
+        return templates.create(owner, request, author).id();
+    }
+
+    @Test
+    void theManagersAnswersPrintAndAreLogged() {
+        int templateId = asking("Austritt");
+
+        var generated = generation.generate(
+                as(manager), templateId, lena.id(), null, Map.of("tag", "2026-09-30", "grund", "Umzug"));
+
+        assertTrue(generated.missing().isEmpty(), generated.missing().toString());
+        String text = textOf(generated.documentId());
+        assertTrue(text.contains("Ausgetreten am 30. September 2026 wegen Umzug."), text);
+        assertTrue(text.contains("Schule: ☒"), text);
+    }
+
+    @Test
+    void eachQuestionSuggestsAnAnswerForTheMember() {
+        int templateId = asking("Vorschlag");
+
+        var suggested = generation.suggestions(as(manager), templateId, lena.id(), null);
+
+        assertEquals(
+                List.of("tag=2026-10-02", "grund=", "schule=true"),
+                suggested.stream()
+                        .map(answer -> answer.question().key() + "=" + answer.suggestion())
+                        .toList());
+    }
+
+    @Test
+    void aRequiredQuestionNobodyAnsweredIsMissingByItsLabel() {
+        int templateId = asking("Unbeantwortet");
+
+        var generated = generation.generate(as(manager), templateId, lena.id(), null, Map.of("schule", "false"));
+
+        assertEquals(
+                List.of("Grund"),
+                generated.missing().stream().map(MissingValue::label).toList());
+        assertTrue(textOf(generated.documentId()).contains("Schule: ☐"));
+        refused(
+                DocumentRefusal.DOCUMENT_SELF_SERVICE_VALUES_MISSING,
+                () -> selfService.generate(as(lena), templateId, lena.id()));
+    }
+
+    @Test
+    void aDateAnswerThatNamesNoDayIsRefusedNamingTheQuestion() {
+        int templateId = asking("Kein Datum");
+
+        var refusal = assertThrows(
+                RefusalResponse.class,
+                () -> generation.generate(as(manager), templateId, lena.id(), null, Map.of("tag", "morgen")));
+
+        assertEquals(DocumentRefusal.DOCUMENT_ANSWER_NOT_A_DAY, refusal.refusal());
+        assertEquals(RefusalDetail.text("Tag des Austritts"), refusal.detail());
+    }
+
+    private static int limiting(String name) {
+        var request = letterOf(
+                        name,
+                        true,
+                        false,
+                        0,
+                        rowsOf("Am {{ask.tag}} mit {{ask.anzahl}} Personen als {{ask.rolle}}, PLZ {{ask.plz}}"))
+                .questions(
+                        new TemplateQuestion(
+                                "tag",
+                                "Tag",
+                                TemplateQuestionKind.DATE,
+                                "{{today}}",
+                                true,
+                                QuestionLimits.days(new DayBound(null, 1), new DayBound(null, 30))),
+                        new TemplateQuestion(
+                                "anzahl",
+                                "Anzahl",
+                                TemplateQuestionKind.NUMBER,
+                                "",
+                                false,
+                                QuestionLimits.number(BigDecimal.ONE, BigDecimal.TEN, false)),
+                        new TemplateQuestion(
+                                "rolle",
+                                "Rolle",
+                                TemplateQuestionKind.CHOICE,
+                                "",
+                                false,
+                                QuestionLimits.choice(List.of("Helfer", "Leitung"))),
+                        new TemplateQuestion(
+                                "plz",
+                                "PLZ",
+                                TemplateQuestionKind.TEXT,
+                                "",
+                                false,
+                                QuestionLimits.text(5, TextFormat.POSTAL_CODE)))
+                .build();
+        return templates.create(owner, request, author).id();
+    }
+
+    @Test
+    void answersWithinTheLimitsPrintInTheTemplatesLanguage() {
+        int templateId = limiting("Begrenzt");
+
+        var generated = generation.generate(
+                as(manager),
+                templateId,
+                lena.id(),
+                null,
+                Map.of("tag", "2026-10-05", "anzahl", "2.50", "rolle", "leitung", "plz", "12345"));
+
+        assertTrue(generated.missing().isEmpty(), generated.missing().toString());
+        String text = textOf(generated.documentId());
+        assertTrue(text.contains("Am 05.10.2026 mit 2,5 Personen als Leitung, PLZ 12345"), text);
+    }
+
+    @Test
+    void anAnswerOutsideItsLimitsIsRefusedNamingTheQuestion() {
+        int templateId = limiting("Zu weit");
+
+        refusedNaming(DocumentRefusal.DOCUMENT_ANSWER_DAY_OUT_OF_RANGE, "Tag", templateId, Map.of("tag", "2026-12-01"));
+        refusedNaming(
+                DocumentRefusal.DOCUMENT_ANSWER_NUMBER_OUT_OF_RANGE, "Anzahl", templateId, Map.of("anzahl", "11"));
+        refusedNaming(DocumentRefusal.DOCUMENT_ANSWER_NOT_A_NUMBER, "Anzahl", templateId, Map.of("anzahl", "zwei"));
+        refusedNaming(DocumentRefusal.DOCUMENT_ANSWER_NOT_A_CHOICE, "Rolle", templateId, Map.of("rolle", "Gast"));
+        refusedNaming(DocumentRefusal.DOCUMENT_ANSWER_WRONG_FORMAT, "PLZ", templateId, Map.of("plz", "1234a"));
+    }
+
+    @Test
+    void aSuggestionOutsideItsLimitsCountsAsNoAnswer() {
+        int templateId = limiting("Vorschlag zu früh");
+
+        var generated = generation.generate(as(manager), templateId, lena.id(), null, Map.of());
+
+        assertEquals(
+                List.of("Tag"),
+                generated.missing().stream().map(MissingValue::label).toList());
+    }
+
+    @Test
+    void contradictingLimitsAreRefusedWhenTheTemplateIsSaved() {
+        var reversed = letterOf("Verdreht", false, false, 0, rowsOf("Text"))
+                .questions(new TemplateQuestion(
+                        "anzahl",
+                        "Anzahl",
+                        TemplateQuestionKind.NUMBER,
+                        "",
+                        false,
+                        QuestionLimits.number(BigDecimal.TEN, BigDecimal.ONE, false)))
+                .build();
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_QUESTION_LIMITS_INVALID,
+                () -> templates.create(owner, reversed, author));
+        var empty = letterOf("Leere Auswahl", false, false, 0, rowsOf("Text"))
+                .questions(new TemplateQuestion(
+                        "rolle", "Rolle", TemplateQuestionKind.CHOICE, "", false, QuestionLimits.NONE))
+                .build();
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_QUESTION_CHOICES_INVALID,
+                () -> templates.create(owner, empty, author));
+    }
+
+    private void refusedNaming(DocumentRefusal expected, String label, int templateId, Map<String, String> answers) {
+        var refusal = assertThrows(
+                RefusalResponse.class, () -> generation.generate(as(manager), templateId, lena.id(), null, answers));
+        assertEquals(expected, refusal.refusal());
+        assertEquals(RefusalDetail.text(label), refusal.detail());
+    }
+
+    @Test
+    void aTemplateNamesOnlyTheAnswersItAsksFor() {
+        var unasked = letterOf("Ohne Abfrage", false, false, 0, rowsOf("{{ask.grund}}"))
+                .build();
+        refused(DocumentRefusal.DOCUMENT_TEMPLATE_PLACEHOLDER_UNKNOWN, () -> templates.create(owner, unasked, author));
+        var twice = letterOf("Doppelte Abfrage", false, false, 0, rowsOf("Text"))
+                .questions(
+                        new TemplateQuestion("grund", "Grund", TemplateQuestionKind.TEXT, "", false),
+                        new TemplateQuestion("grund", "Anlass", TemplateQuestionKind.TEXT, "", false))
+                .build();
+        var refusal = assertThrows(RefusalResponse.class, () -> templates.create(owner, twice, author));
+        assertEquals(DocumentRefusal.DOCUMENT_TEMPLATE_QUESTION_KEY_TWICE, refusal.refusal());
+        assertEquals(RefusalDetail.text("Anlass"), refusal.detail());
     }
 
     @Test

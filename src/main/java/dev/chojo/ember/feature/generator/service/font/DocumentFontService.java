@@ -128,7 +128,8 @@ public class DocumentFontService {
      * @param origin        who uploaded it, or that it is built in
      * @param styles        the styles it has
      * @param printsOnPdf   whether fields on an uploaded PDF can print in it
-     * @param sample        the version of its sample picture, which changes whenever its files do
+     * @param printsInLetters whether letters can print in it, which a light cut only PDF fields print in cannot
+     * @param sample       the version of its sample picture, which changes whenever its files do
      * @param editorVersion the version of the files the template editor loads, which changes whenever one
      *                      of them does, or null where it cannot load the family, as for a family Typst
      *                      carries inside itself
@@ -138,6 +139,7 @@ public class DocumentFontService {
             FontOrigin origin,
             List<FontStyle> styles,
             boolean printsOnPdf,
+            boolean printsInLetters,
             String sample,
             @Nullable String editorVersion) {}
 
@@ -287,7 +289,7 @@ public class DocumentFontService {
      * @param file the upload, or null where the request carried none
      * @return its bytes
      */
-    static byte[] readUpload(@Nullable UploadedFile file) {
+    public static byte[] readUpload(@Nullable UploadedFile file) {
         return DocumentIntake.readAtMost(MAX_BYTES, file, UPLOAD_REFUSALS).data();
     }
 
@@ -319,6 +321,7 @@ public class DocumentFontService {
                 family.origin(),
                 family.styles(),
                 family.printsOnPdf(),
+                family.printsInLetters(),
                 FontSampleService.versionOf(family),
                 EditorFontService.versionOf(family));
     }

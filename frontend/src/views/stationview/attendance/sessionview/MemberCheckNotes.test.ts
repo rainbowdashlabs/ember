@@ -62,6 +62,28 @@ describe('MemberCheckNotes', () => {
     }
 
     /**
+     * The check puts the birthday beside the name and what there is to settle below its buttons, so
+     * each part shows only its own notes, and nothing at all where it has none.
+     */
+    it('shows only the birthday or only what there is to settle when asked for one part', () => {
+        const both = notes({birthdayDaysAgo: 0, swaps: [handOver()]})
+
+        const birthday = mount(MemberCheckNotes, {props: {notes: both, part: 'birthday'}, ...i18n})
+        expect(birthday.find('[data-testid="note-birthday"]').exists()).toBe(true)
+        expect(birthday.find('[data-testid="note-swap"]').exists()).toBe(false)
+
+        const actions = mount(MemberCheckNotes, {props: {notes: both, part: 'actions'}, ...i18n})
+        expect(actions.find('[data-testid="note-birthday"]').exists()).toBe(false)
+        expect(actions.find('[data-testid="note-swap"]').exists()).toBe(true)
+
+        const nothingToSettle = mount(MemberCheckNotes, {
+            props: {notes: notes({birthdayDaysAgo: 0}), part: 'actions'},
+            ...i18n,
+        })
+        expect(nothingToSettle.find('[data-testid="member-check-notes"]').exists()).toBe(false)
+    })
+
+    /**
      * Being told a swap is waiting and being allowed to move it on are different rights. Without the
      * second the note still says what is happening, and offers no button.
      */

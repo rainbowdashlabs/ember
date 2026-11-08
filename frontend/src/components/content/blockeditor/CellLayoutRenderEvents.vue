@@ -13,6 +13,7 @@ import {publicEventsAddress} from './embeddedEventLookup'
 import type {LayoutKindName} from '@/api/pageManage'
 import type {FeaturedEventConfig, PastEventRecapConfig, UpcomingEventsConfig} from '@/api/generated/schema'
 import {formatDateTime, formatDateTimeLong} from '@/util/format'
+import {renderMarkdown} from '@/util/markdown'
 
 const props = defineProps<{
     kind: LayoutKindName
@@ -122,7 +123,7 @@ watch(
                 <a :href="pastEventResolved.href" class="hover:text-primary hover:underline">{{ pastEventResolved.name }}</a>
             </p>
             <p v-if="pastEventResolved.startTime" class="text-xs text-(--text-muted)">{{ formatDateTimeLong(pastEventResolved.startTime, timezone) }}</p>
-            <p v-if="pastEvent.recapDescription" class="text-sm whitespace-pre-line">{{ pastEvent.recapDescription }}</p>
+            <div v-if="pastEvent.recapDescription" class="markdown-content text-sm" v-html="renderMarkdown(pastEvent.recapDescription)"/>
         </div>
     </div>
     <EmptyHint v-else-if="kind === 'PAST_EVENT_RECAP'">{{ t('stationPages.cells.eventUnavailable') }}</EmptyHint>

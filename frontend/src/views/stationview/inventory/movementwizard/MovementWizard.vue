@@ -14,6 +14,7 @@ import WizardStep from './WizardStep.vue'
 import WizardFooter from './WizardFooter.vue'
 import {provideMovementWizard, useMovementWizard, type WizardPrefill} from './useMovementWizard'
 import {describeFailure, type Failure} from '@/util/failure'
+import {MovementPurpose} from '@/api/generated/schema'
 
 /**
  * The one way to start a movement.
@@ -52,6 +53,8 @@ const canGoOn = computed(() => {
       return wizard.memberId.value !== null || wizard.forTheStore.value
     case 'subject':
       return wizard.canLeaveSubject.value
+    case 'reason':
+      return wizard.purpose.value !== MovementPurpose.EXCHANGE || wizard.reason.value.trim() !== ''
     default:
       return true
   }

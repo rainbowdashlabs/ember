@@ -17,15 +17,20 @@ import org.jspecify.annotations.Nullable;
  *
  * @param field      what is asked
  * @param assignment how it is put to this audience
+ * @param set        the bundle the question belongs to, or {@code null}
  */
-public record AssignedProfileField(ProfileField field, ProfileFieldAssignment assignment) {
+public record AssignedProfileField(
+        ProfileField field,
+        ProfileFieldAssignment assignment,
+        @Nullable FieldSetLabel set) {
 
     /** The columns this reads, with the two identifiers told apart. */
     public static final String COLUMNS = """
             f.id, f.station_id, f.name, f.field_type, f.config, f.required, f.readonly, f.width,
-            f.keep_on_archive,
+            f.keep_on_archive, f.shown_if_field_id, f.field_set_id, f.set_position,
             a.id AS assignment_id, a.field_id, a.target_kind, a.role, a.group_id,
-            a.position, a.width_override, a.readonly_override, a.required_override""";
+            a.position, a.width_override, a.readonly_override, a.required_override,
+            """ + FieldSetLabel.columns("f", "profile_field_set");
 
     /** Whether this audience must answer, which the assignment may decide against the definition. */
     public boolean required() {
@@ -59,7 +64,10 @@ public record AssignedProfileField(ProfileField field, ProfileFieldAssignment as
                         row.getBoolean("required"),
                         row.getBoolean("readonly"),
                         row.getString("width"),
-                        row.getBoolean("keep_on_archive")),
+                        row.getBoolean("keep_on_archive"),
+                        row.getObject("shown_if_field_id", Integer.class),
+                        row.getObject("field_set_id", Integer.class),
+                        row.getInt("set_position")),
                 new ProfileFieldAssignment(
                         row.getInt("assignment_id"),
                         row.getInt("field_id"),
@@ -69,6 +77,7 @@ public record AssignedProfileField(ProfileField field, ProfileFieldAssignment as
                         row.getInt("position"),
                         row.getString("width_override"),
                         row.getObject("readonly_override") == null ? null : row.getBoolean("readonly_override"),
-                        row.getObject("required_override") == null ? null : row.getBoolean("required_override")));
+                        row.getObject("required_override") == null ? null : row.getBoolean("required_override")),
+                FieldSetLabel.read(row));
     }
 }

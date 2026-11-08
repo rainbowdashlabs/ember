@@ -9,6 +9,8 @@ import type {
     AssignmentRequest,
     ClusterFieldResponse,
     ClusterProfileFieldAssignment,
+    FieldSet,
+    FieldSetRequest,
     ProfileFieldAssignment,
     ProfileFieldScope,
 } from './generated/schema'
@@ -68,4 +70,31 @@ export async function assignField(fieldId: number, assignment: AssignmentRequest
 /** Stops asking a kind of member this question. The definition and its answers stay. */
 export async function unassignField(fieldId: number, target: AssignmentTarget): Promise<void> {
     await client.delete(`/cluster/fields/${fieldId}/assignments`, {data: target})
+}
+
+/** The groups the association keeps its fields in. */
+export async function listSets(): Promise<FieldSet[]> {
+    const res = await client.get<FieldSet[]>('/cluster/field-sets')
+    return res.data
+}
+
+/** Writes a new, empty group of fields down. */
+export async function createSet(data: FieldSetRequest): Promise<FieldSet> {
+    const res = await client.post<FieldSet>('/cluster/field-sets', data)
+    return res.data
+}
+
+/** Renames a group, or changes whether its name stands above its fields. */
+export async function updateSet(id: number, data: FieldSetRequest): Promise<void> {
+    await client.put(`/cluster/field-sets/${id}`, data)
+}
+
+/** Dissolves a group. Its fields stay, on their own. */
+export async function dissolveSet(id: number): Promise<void> {
+    await client.delete(`/cluster/field-sets/${id}`)
+}
+
+/** Puts a group's fields in order, which every form follows. */
+export async function orderSet(id: number, fieldIds: number[]): Promise<void> {
+    await client.put(`/cluster/field-sets/${id}/order`, {fieldIds})
 }

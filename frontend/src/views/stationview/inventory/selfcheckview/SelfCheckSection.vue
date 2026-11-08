@@ -10,7 +10,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SelfCheckEntryCard from './SelfCheckEntryCard.vue'
 import type {RequiredInventoryItem, SelfCheckAnswer} from '@/api/generated/schema'
-import type {ExchangeCauseName, RaisedReport, SelfCheckDraft, SelfCheckEntry} from '@/composables/useSelfCheck'
+import type {RaisedReport, SelfCheckDraft, SelfCheckEntry} from '@/composables/useSelfCheck'
 
 /** One kind of gear, with everything the member holds of it and every place that is still empty. */
 defineProps<{
@@ -29,7 +29,7 @@ const emit = defineEmits<{
   setTypedInternalId: [key: string, typed: string]
   setSizeId: [key: string, sizeId: string]
   reportLost: [entry: SelfCheckEntry]
-  requestExchange: [entry: SelfCheckEntry, cause: ExchangeCauseName]
+  requestExchange: [entry: SelfCheckEntry]
 }>()
 
 const {t} = useI18n()
@@ -61,7 +61,7 @@ const {t} = useI18n()
         @set-typed-internal-id="(k, v) => emit('setTypedInternalId', k, v)"
         @set-size-id="(k, v) => emit('setSizeId', k, v)"
         @report-lost="e => emit('reportLost', e)"
-        @request-exchange="(e, cause) => emit('requestExchange', e, cause)"
+        @request-exchange="e => emit('requestExchange', e)"
     />
   </NeutralContainer>
 </template>

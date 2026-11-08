@@ -211,7 +211,7 @@ class FormResultGroupingTest {
     private static ProfileField field(int id, FieldType type, List<String> options) {
         var config = new ProfileFieldConfig(
                 null, false, false, options, null, false, null, null, null, null, null, null, null, null, null, null);
-        return new ProfileField(id, STATION, "Feld " + id, type, config, false, false, null, false);
+        return new ProfileField(id, STATION, "Feld " + id, type, config, false, false, null, false, null, null, 0);
     }
 
     private static Respondent person(int id, StationUserType type) {

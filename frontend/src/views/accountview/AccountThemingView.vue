@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import ThemeSection from '@/views/stationview/profile/settingsview/ThemeSection.vue'
+import SidebarModeSection from './accountthemingview/SidebarModeSection.vue'
 
 const {t} = useI18n()
 </script>
@@ -14,5 +15,6 @@ const {t} = useI18n()
 <template>
   <ViewContent :title="t('pages.account-theming.title')" :subtitle="t('pages.account-theming.subtitle')">
     <ThemeSection />
+    <SidebarModeSection/>
   </ViewContent>
 </template>

@@ -7,6 +7,7 @@ import type {Ref} from 'vue'
 import {ageSourceOf, parseFieldConfig, type FieldSettings} from '@/api/profileFields'
 import {FieldType, type FieldOrigin, type MergedValue, type ProfileFieldAssignment} from '@/api/generated/schema'
 import {computeAge} from '@/util/age'
+import {isWrittenType} from '@/util/questions'
 
 /**
  * The answer to a question that is worked out rather than given, or null where this question is
@@ -73,6 +74,116 @@ export function asAsked<T extends {required?: boolean; readonly?: boolean; width
         readonly: assignment.readonlyOverride ?? field.readonly ?? false,
         position: assignment.position,
     }
+}
+
+/** A question as far as the group it belongs to goes. */
+export interface GroupedField {
+    id: number
+    fieldSetId?: number | null
+    setPosition?: number
+}
+
+/**
+ * Puts a form's questions in order with every group kept together, the way the server stores it: a group
+ * takes the place of whichever of its questions comes first, and its questions follow in the group's order.
+ *
+ * @param ordered the questions in the order they were dragged into
+ * @param fields  every question of the owner, which says which group each is in
+ */
+export function keepSetsTogether(ordered: readonly number[], fields: readonly GroupedField[]): number[] {
+    const byId = new Map(fields.map(field => [field.id, field]))
+    const setOf = (id: number) => byId.get(id)?.fieldSetId ?? null
+    const placed = new Set<number>()
+    const result: number[] = []
+    for (const id of ordered) {
+        const setId = setOf(id)
+        if (setId === null) {
+            result.push(id)
+            continue
+        }
+        if (placed.has(setId)) continue
+        placed.add(setId)
+        result.push(...membersOfSet(fields, setId)
+            .map(field => field.id)
+            .filter(id => ordered.includes(id)))
+    }
+    return result
+}
+
+/** The questions of one group, in the group's own order. */
+export function membersOfSet<T extends GroupedField>(fields: readonly T[], setId: number): T[] {
+    return fields
+        .filter(field => field.fieldSetId === setId)
+        .sort((a, b) => (a.setPosition ?? 0) - (b.setPosition ?? 0))
+}
+
+/** Who a question belongs to; one that does not say is the station's. */
+export function originOf(field: {origin?: FieldOrigin | null}): FieldOrigin {
+    return field.origin ?? 'STATION'
+}
+
+/** A question as far as depending on a yes/no question goes. */
+export interface DependentField {
+    id: number
+    origin?: FieldOrigin
+    shownIfFieldId?: number | null
+}
+
+/**
+ * Whether a question is hidden because the yes/no question it depends on is not answered yes.
+ *
+ * <p>Only where that yes/no question is on the same form: a member asked only the dependent question sees
+ * it as usual. The yes/no question is one of the same owner, since a station and its association number
+ * their questions apart.
+ *
+ * @param field   the question
+ * @param fields  every question on the form
+ * @param valueOf the answer to a question, as text or as the value itself
+ */
+export function hiddenByDependency<T extends DependentField>(
+    field: T,
+    fields: readonly T[],
+    valueOf: (field: T) => unknown,
+): boolean {
+    if (field.shownIfFieldId == null) return false
+    const controller = fields.find(other => other.id === field.shownIfFieldId && originOf(other) === originOf(field))
+    if (!controller) return false
+    const answer = valueOf(controller)
+    return answer !== true && answer !== 'true'
+}
+
+/** A question as far as whether a member still has to answer it goes. */
+export interface ExpectedField extends DependentField {
+    fieldType: string
+    required?: boolean
+    readonly?: boolean
+    readonlyAtStation?: boolean
+}
+
+/**
+ * The questions a member has to answer and has left blank, judged the way the server judges a profile
+ * complete.
+ *
+ * <p>Only a question somebody writes counts: a heading, a gap and an age hold no answer to give, and
+ * a question the member may only read is not theirs to fill in, whether the station or its association
+ * locked it. A question hidden behind a yes/no question that is not answered yes does not count either.
+ *
+ * @param fields  every question on the form
+ * @param valueOf the answer to a question, as text
+ */
+export function incompleteFields<T extends ExpectedField>(fields: readonly T[], valueOf: (field: T) => string): T[] {
+    return fields.filter(field => {
+        if (!field.required || field.readonly || field.readonlyAtStation) return false
+        if (!isWrittenType(field.fieldType)) return false
+        if (hiddenByDependency(field, fields, valueOf)) return false
+        const value = valueOf(field)
+        return !value || value === '""' || value === 'null'
+    })
+}
+
+/** The questions of a form that are shown, the ones hidden behind a yes/no question left out. */
+export function shownFields<T extends DependentField>(fields: readonly T[], valueOf: (field: T) => unknown): T[] {
+    return fields.filter(field => !hiddenByDependency(field, fields, valueOf))
 }
 
 /**

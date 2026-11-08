@@ -29,6 +29,7 @@ import {useCheckMode, type CheckRow} from './sessionview/useCheckMode'
 import {useSessionFields} from './sessionview/useSessionFields'
 import {useSessionNotes} from './sessionview/useSessionNotes'
 import SessionContent from './sessionview/SessionContent.vue'
+import {provideSheetExtraTime} from './sessionview/useSheetExtraTime'
 import {buildMemberSections, type MemberSection} from './sessionview/memberSections'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {presentFile} from '@/util/documentFile'
@@ -69,6 +70,8 @@ const templateFields = ref<AttendanceTemplateField[]>([])
 /** Whom the sheet expects, as the backend decides it: what it was started with, or its template's. */
 const audience = ref<SessionAudience>({userTypes: [], groupIds: []})
 const entries = ref<AttendanceEntry[]>([])
+const extraTime = provideSheetExtraTime(sessionId, canEdit)
+watch(() => entries.value.map(entry => entry.id).join(','), () => extraTime.reload())
 const allMembers = ref<MemberWithName[]>([])
 const groups = ref<MemberGroup[]>([])
 const groupMembers = ref<Map<number, MemberWithName[]>>(new Map())
@@ -445,6 +448,7 @@ watch(loaded, (isLoaded) => {
         @check-out="setCheckOut"
         @reset-times="resetEntryTimes"
         @add-member="addMember"
+        @time-rules-changed="extraTime.reload()"
     />
 
     <ExportSheetModal

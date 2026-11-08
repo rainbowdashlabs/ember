@@ -120,7 +120,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
           </PrimaryButton>
         </div>
 
-        <TabBar v-if="tabs.length > 1" v-model="activeTab" :tabs="tabs" />
+        <TabBar v-if="tabs.length > 1" v-model="activeTab" :tabs="tabs" linked />
 
         <EmptyState v-if="tests.length === 0">{{ t('quiz.tests.noTests') }}</EmptyState>
 

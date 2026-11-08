@@ -77,6 +77,10 @@ const {t} = useI18n()
       </NeutralContainer>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.itemDetail.ownerTitle')">
+      <p>{{ t('helpCenter.itemDetail.ownerText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.itemDetail.historyTitle')">
       <p>{{ t('helpCenter.itemDetail.historyText') }}</p>
 

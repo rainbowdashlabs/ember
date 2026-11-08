@@ -28,11 +28,9 @@ import {
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {
-  ExchangeCause,
   statedSizeOf,
   useSelfCheck,
   waitsForCorrection,
-  type ExchangeCauseName,
   type SelfCheckEntry,
 } from '@/composables/useSelfCheck'
 
@@ -180,15 +178,8 @@ const {running: submittingLost, failure: lostFailure, run: submitLost, clearErro
 const exchangeEntry = ref<SelfCheckEntry | null>(null)
 const showExchange = ref(false)
 const exchangeReason = ref('')
-const exchangeNewSizeId = ref('')
+const exchangeNewSizeId = ref<number | null>(null)
 const exchangeSizes = ref<InventorySize[]>([])
-const exchangeCause = ref<ExchangeCauseName>(ExchangeCause.DOES_NOT_FIT)
-
-/** Whether another size is the point of the exchange, which is what makes naming one unavoidable. */
-const wantsAnotherSize = computed(() => exchangeCause.value === ExchangeCause.DOES_NOT_FIT)
-
-/** What the exchange says it is for, which is the half of the reason nobody has to type. */
-const causeText = computed(() => t(`selfCheck.exchangeCause.${exchangeCause.value}`))
 
 /**
  * Asking for a swap, which is ordinarily on its way rather than waiting: the exchange lands on the
@@ -196,17 +187,14 @@ const causeText = computed(() => t(`selfCheck.exchangeCause.${exchangeCause.valu
  * putting the size right on the same line it waits instead, so that it starts from the size they
  * hold rather than the one they have just disowned.
  *
- * <p>A broken piece starts on the size it already is, because the replacement usually is that size,
- * and "already is" means the size the member says it is. A piece that no longer fits starts on
- * nothing, because the whole point is that the size changes.
+ * <p>The wanted size starts on the size the piece already is, and "already is" means the size the
+ * member says it is. The reason they give then moves it up, down, or leaves it.
  */
-async function openExchange(entry: SelfCheckEntry, cause: ExchangeCauseName) {
+async function openExchange(entry: SelfCheckEntry) {
   if (entry.type !== 'piece') return
-  const stated = statedSize(entry)
   exchangeEntry.value = entry
-  exchangeCause.value = cause
   exchangeReason.value = ''
-  exchangeNewSizeId.value = cause === ExchangeCause.BROKEN && stated != null ? String(stated) : ''
+  exchangeNewSizeId.value = statedSize(entry) ?? null
   clearExchangeError()
   exchangeSizes.value = entry.req.sizes
   showExchange.value = true
@@ -227,9 +215,8 @@ const {
 } = useAsyncAction(async () => {
   const entry = exchangeEntry.value
   if (entry?.type !== 'piece') return
-  const ownWords = exchangeReason.value.trim()
-  const reason = ownWords ? `${causeText.value} - ${ownWords}` : causeText.value
-  const wanted = exchangeNewSizeId.value ? Number(exchangeNewSizeId.value) : undefined
+  const reason = exchangeReason.value.trim()
+  const wanted = exchangeNewSizeId.value ?? undefined
   if (waits(entry)) {
     await saveWhatWasSaid()
     await selfChecks.holdReport(taskId.value, {
@@ -341,8 +328,6 @@ const exchangePiece = computed(() =>
         v-model:new-size-id="exchangeNewSizeId"
         :item="exchangePiece"
         :sizes="exchangeSizes"
-        :cause="causeText"
-        :size-required="wantsAnotherSize"
         :submitting="submittingExchange"
         :failure="exchangeFailure"
         @cancel="showExchange = false"

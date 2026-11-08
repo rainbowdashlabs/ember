@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.generator.entity.FormBinding;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.PdfField;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
+import dev.chojo.ember.feature.generator.entity.TemplateQuestion;
 import dev.chojo.ember.feature.generator.entity.TemplateSigning;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import org.jspecify.annotations.Nullable;
@@ -50,6 +51,7 @@ public final class TemplateRequestBuilder {
     private @Nullable List<PdfField> fields;
     private @Nullable List<FormBinding> formBindings;
     private @Nullable TemplateSigning signing;
+    private @Nullable List<TemplateQuestion> questions;
 
     private TemplateRequestBuilder(@Nullable String name) {
         this.name = name;
@@ -280,6 +282,11 @@ public final class TemplateRequestBuilder {
         return this;
     }
 
+    TemplateRequestBuilder questions(TemplateQuestion... questions) {
+        this.questions = List.of(questions);
+        return this;
+    }
+
     public DocumentTemplateRequest build() {
         return new DocumentTemplateRequest(
                 kind,
@@ -303,6 +310,7 @@ public final class TemplateRequestBuilder {
                 page,
                 fields,
                 formBindings,
-                signing);
+                signing,
+                questions);
     }
 }

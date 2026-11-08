@@ -48,13 +48,11 @@ const custodyLabel = computed(() =>
     props.item.custody ? t(`itemDetail.custodyValues.${props.item.custody}`) : '-')
 
 /**
- * Names the owner, and for gear the station does not own says whether that owner is reachable
- * in Ember or only stands behind the station's own record of it.
+ * Names the owner. A Träger reads the same whether or not it uses Ember, because telling the two apart
+ * says nothing the reader can act on.
  */
-const ownerLabel = computed(() => {
-  if (props.item.ownerKind !== ItemOwner.CLUSTER) return t('itemDetail.ownerStation')
-  return props.item.ownerClusterId != null ? t('itemDetail.ownerCluster') : t('itemDetail.ownerClusterOffline')
-})
+const ownerLabel = computed(() =>
+  props.item.ownerKind === ItemOwner.CLUSTER ? t('itemDetail.ownerCluster') : t('itemDetail.ownerStation'))
 </script>
 
 <template>

@@ -38,6 +38,10 @@ const port: FieldsPort = {
   assign: (fieldId, assignment) => clusterFields.assignField(fieldId, assignment),
   unassign: (fieldId, target) => clusterFields.unassignField(fieldId, target),
   reorder: (role, fieldIds) => clusterFields.reorderFields(role, fieldIds),
+  listSets: () => clusterFields.listSets(),
+  createSet: (data) => clusterFields.createSet(data),
+  updateSet: (id, data) => clusterFields.updateSet(id, data),
+  dissolveSet: (id) => clusterFields.dissolveSet(id),
   roles: CLUSTER_FIELD_ROLES,
   types: OfferedFieldTypes.ASSOCIATION,
   stationReadonly: true,
@@ -47,7 +51,7 @@ const port: FieldsPort = {
 const config = useFieldsConfig(port)
 const {
   availableStationGroups, selectedStationGroupId,
-  birthDateField, genderField, dateFields, showFieldModal, editingField, loading, failure,
+  birthDateField, genderField, dateFields, booleanFields, sets, showFieldModal, editingField, loading, failure,
   saveField, showDeleteModal, deleteTarget, confirmDelete,
 } = config
 
@@ -75,7 +79,7 @@ const activeStationGroup = computed({
       <p class="text-sm text-(--text-muted)">{{ t('clusterFields.hint') }}</p>
 
       <TabBar v-if="!loading && availableStationGroups.length > 0"
-              v-model="activeStationGroup" :tabs="stationGroupTabs"/>
+              v-model="activeStationGroup" :tabs="stationGroupTabs" linked/>
 
       <FieldsWorkspace v-if="!loading" :config="config" :roles="CLUSTER_FIELD_ROLES"/>
 
@@ -84,6 +88,8 @@ const activeStationGroup = computed({
           :birth-date-field="birthDateField"
           :gender-field="genderField"
           :date-fields="dateFields"
+          :boolean-fields="booleanFields"
+          :sets="sets"
           :field="editingField"
           @save="saveField"
       />

@@ -51,7 +51,7 @@ function entry(id: number, firstname: string, lastname: string,
         id, listId: 1, firstname, lastname, parentName: '', email: `${firstname.toLowerCase()}@example.org`,
         accessToken: `token-${id}`, status, confirmedAt: daysAgo(20), createdAt: daysAgo(200),
         notes: '', attendanceCount: 0, reminderSentAt: null, memberId: null, invitedAt: null, testingAt: null,
-        joinedAt: null, withdrawnAt: null, invitation: null, answer: null, ...rest,
+        joinedAt: null, withdrawnAt: null, invitationRound: 0, invitation: null, answer: null, trialMessage: '', ...rest,
     }
 }
 
@@ -64,7 +64,7 @@ function withScore(base: WaitingListEntry,
         entry: base, score, age: null, belowJoinAge: false,
         values: values.map(value => ({entryId: base.id, ...value})),
         guardians: guardians.map((guardian, index) => ({
-            id: index + 1, entryId: base.id, position: index, ...guardian,
+            id: index + 1, entryId: base.id, position: index, memberId: null, ...guardian,
         })),
     }
 }

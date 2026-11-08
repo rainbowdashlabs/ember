@@ -119,7 +119,7 @@ watch(includeFormer, () => { void config.reload() })
         </PrimaryButton>
       </NeutralContainer>
 
-      <MemberListPanel :config="config"/>
+      <MemberListPanel :config="config" linked-tabs/>
 
       <CreateMemberModal v-model="showCreate" :stations="stations" @created="onCreated"/>
     </div>

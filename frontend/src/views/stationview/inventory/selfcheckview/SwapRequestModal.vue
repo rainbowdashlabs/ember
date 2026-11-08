@@ -4,47 +4,36 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import SizeBadge from '@/components/badge/SizeBadge.vue'
+import ExchangeReasonPicker from '@/components/movement/ExchangeReasonPicker.vue'
 import type {NamedPiece} from '@/api/inventory'
 import type {InventorySize} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
 
 const modelValue = defineModel<boolean>({required: true})
 const reason = defineModel<string>('reason', {required: true})
-const newSizeId = defineModel<string>('newSizeId', {required: true})
+const newSizeId = defineModel<number | null>('newSizeId', {required: true})
 
 /**
  * Asking for a piece to be swapped while answering a self-check.
  *
  * <p>Its own dialogue rather than the wizard, because the check already knows the answers the wizard
- * asks for and knows one more it does not: why. A piece that no longer fits and a piece that is broken
- * are two different requests, and the answer decides the size as well as the words: another size is the
- * point of the first, and the same size back is the ordinary outcome of the second.
+ * asks for. Why and which size are asked the way every swap asks them, from the size the member says
+ * the piece is.
  */
-const props = withDefaults(
-    defineProps<{
-      item: NamedPiece | null
-      sizes: InventorySize[]
-      submitting: boolean
-      failure: Failure | null
-      /** Why the piece is being swapped, where the screen knows. Empty where the member says it themselves. */
-      cause?: string
-      /** Whether a different size is the point of it, which is what makes naming one unavoidable. */
-      sizeRequired?: boolean
-    }>(),
-    {cause: '', sizeRequired: true},
-)
+const props = defineProps<{
+  item: NamedPiece | null
+  sizes: InventorySize[]
+  submitting: boolean
+  failure: Failure | null
+}>()
 
 const emit = defineEmits<{
   cancel: []
@@ -53,36 +42,26 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const ready = computed(() => {
-  if (props.submitting) return false
-  if (!props.cause && !reason.value.trim()) return false
-  return !props.sizeRequired || props.sizes.length === 0 || newSizeId.value !== ''
+const opened = ref(0)
+
+watch(modelValue, open => {
+  if (open) opened.value++
 })
+
+const ready = computed(() => !props.submitting && reason.value.trim() !== '')
 </script>
 
 <template>
   <Modal v-model="modelValue">
     <div class="space-y-3">
       <SubHeader>{{ t('profile.requestExchange') }}</SubHeader>
-      <p v-if="item" class="text-sm">
-        {{ item.inventoryName }} - {{ item.name }}
-        <SizeBadge>{{ item.sizeName ?? t('common.unisize') }}</SizeBadge>
-      </p>
-      <p v-if="cause" class="text-sm" data-testid="exchange-cause">{{ cause }}</p>
-      <div v-if="sizes.length > 0" class="space-y-1">
-        <FieldLabel>{{ t('movements.newSize') }}</FieldLabel>
-        <SelectInput v-model="newSizeId" class="w-full" data-testid="exchange-new-size">
-          <option value="" :disabled="sizeRequired">
-            {{ sizeRequired ? t('movements.selectNewSize') : t('movements.noSize') }}
-          </option>
-          <option v-for="size in sizes" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
-        </SelectInput>
-      </div>
-      <TextAreaInput
-          v-model="reason"
-          :placeholder="cause ? t('profile.exchangeExtraPlaceholder') : t('profile.exchangeReasonPlaceholder')"
-          :rows="3"
-          data-testid="exchange-reason"
+      <p v-if="item" class="text-sm">{{ item.inventoryName }} - {{ item.name }}</p>
+      <ExchangeReasonPicker
+          :key="opened"
+          v-model:new-size-id="newSizeId"
+          v-model:text="reason"
+          :sizes="sizes"
+          :current-size-id="item?.sizeId ?? null"
       />
       <FailureAlert :failure="failure"/>
       <ButtonRow pair align="end">

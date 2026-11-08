@@ -842,7 +842,39 @@ public enum MemberRefusal implements Refusal {
     LINK_ACCOUNT_ALREADY_IN_ASSOCIATION(
             240,
             HttpStatus.CONFLICT,
-            "Your account already holds a role in that association, so it was not given a second one");
+            "Your account already holds a role in that association, so it was not given a second one"),
+
+    /** A question made to depend on a question its owner does not ask. */
+    PROFILE_DEPENDENCY_NOT_HERE(
+            241,
+            HttpStatus.BAD_REQUEST,
+            "The question this one is to depend on is not asked here, so nothing was saved"),
+
+    /** A question made to depend on itself. */
+    PROFILE_DEPENDENCY_ON_ITSELF(
+            242, HttpStatus.BAD_REQUEST, "A question cannot depend on itself, so nothing was saved"),
+
+    /** A question made to depend on one that is not a yes/no question, named after it. */
+    PROFILE_DEPENDENCY_NOT_YES_NO(
+            243,
+            HttpStatus.BAD_REQUEST,
+            "A question can only depend on a question answered with yes or no, so nothing was saved"),
+
+    /** A dependency that would chain: the yes/no question depends on another, or others depend on this one. */
+    PROFILE_DEPENDENCY_CHAIN(
+            244,
+            HttpStatus.BAD_REQUEST,
+            "Dependencies cannot be chained: a question others depend on cannot depend on one itself, so nothing was saved"),
+
+    /** A yes/no question deleted or turned into another type while others depend on it, naming them. */
+    PROFILE_DEPENDENCY_STILL_USED(
+            245, HttpStatus.CONFLICT, "Other questions depend on this question, so it was not deleted or changed"),
+
+    /** A bundle of questions that is gone, or belongs to another owner. */
+    PROFILE_FIELD_SET_NOT_HERE(246, HttpStatus.NOT_FOUND, "That group of fields is not here any more"),
+
+    /** A bundle of questions written down without a name. */
+    PROFILE_FIELD_SET_NEEDS_A_NAME(247, HttpStatus.BAD_REQUEST, "A group of fields needs a name, so nothing was saved");
 
     private final Definition definition;
 

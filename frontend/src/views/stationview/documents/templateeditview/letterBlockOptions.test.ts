@@ -15,7 +15,7 @@ const catalogue = {
     labels: new Map([['member.firstName', 'Vorname']]),
     legal: false,
     choices: {groups: [], tags: []},
-    fonts: [{family: 'Hausschrift', origin: FontOrigin.INSTANCE, styles: [FontStyle.REGULAR], printsOnPdf: true, sample: 'v1', editorVersion: 'e1'}],
+    fonts: [{family: 'Hausschrift', origin: FontOrigin.INSTANCE, styles: [FontStyle.REGULAR], printsOnPdf: true, printsInLetters: true, sample: 'v1', editorVersion: 'e1'}],
     parts: [
         {part: LetterPart.LETTERHEAD, maxColumns: 4, kinds: LETTERHEAD_KINDS},
         {part: LetterPart.BODY, maxColumns: 3, kinds: [...LETTERHEAD_KINDS, CellContentType.SIGNATURE]},

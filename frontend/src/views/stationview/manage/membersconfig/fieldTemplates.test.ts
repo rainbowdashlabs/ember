@@ -8,7 +8,15 @@ import {OfferedFieldTypes} from '@/api/fieldTypes'
 import {FieldType} from '@/api/generated/schema'
 import {expirySettingsOf} from '@/util/expiry'
 import {PRONOUN_OFFER} from './fieldmodal/fixtures'
+import {FieldWidths, type FieldWidthName} from '@/components/profilefields/fieldLayout'
 import {fieldTemplates} from './fieldTemplates'
+
+/** How many of a row's six columns each width takes. */
+const COLUMNS: Record<FieldWidthName, number> = {
+  [FieldWidths.FULL]: 6,
+  [FieldWidths.HALF]: 3,
+  [FieldWidths.THIRD]: 2,
+}
 
 /**
  * The settings a profile field may carry, as the server's record for them names them.
@@ -77,5 +85,27 @@ describe('fieldTemplates', () => {
       'JuLeiCa Ablaufdatum': 90,
       'Erste Hilfe gültig bis': 90,
     })
+  })
+
+  /**
+   * A template of several fields lays them out in whole lines: up to three on one, more on as many as
+   * they fill, like street and house number on one line and post code and city on the next.
+   */
+  it.each(templates.filter(template => template.fields.length > 1))('$name fills whole lines', template => {
+    const columns = template.fields.reduce((sum, field) => sum + COLUMNS[field.width ?? FieldWidths.FULL], 0)
+
+    if (template.fields.length <= 3) expect(columns).toBe(6)
+    else expect(columns % 6).toBe(0)
+  })
+
+  it('writes the house number beside the street and the city beside the post code', () => {
+    const address = templates.find(template => template.name === 'Adresse')
+
+    expect(address?.fields.map(field => [field.name, field.width])).toEqual([
+      ['Straße', FieldWidths.HALF],
+      ['Hausnummer', FieldWidths.HALF],
+      ['Postleitzahl', FieldWidths.HALF],
+      ['Ort', FieldWidths.HALF],
+    ])
   })
 })

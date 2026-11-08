@@ -15,6 +15,8 @@ import MutedText from '@/components/typography/MutedText.vue'
 import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
 import type {AppointmentField, SharedEvent} from '@/api/generated/schema'
 import {formatDate, formatTime} from '@/util/format'
+import {renderMarkdown} from '@/util/markdown'
+import ProseContent from '@/components/display/ProseContent.vue'
 
 const props = defineProps<{
   event: SharedEvent
@@ -67,7 +69,7 @@ const repeatEnd = computed(() => {
       </span>
     </div>
 
-    <p v-if="props.event.description" class="text-sm text-(--text-muted)">{{ props.event.description }}</p>
+    <ProseContent v-if="props.event.description" v-html="renderMarkdown(props.event.description)"/>
 
     <div v-if="props.publicFields.length > 0" class="space-y-1">
       <MutedText size="sm" class="font-medium">{{ t('federatedEventDetail.fields') }}</MutedText>

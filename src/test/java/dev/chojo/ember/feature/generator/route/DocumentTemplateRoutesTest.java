@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.generator.service.PdfTemplateService;
 import dev.chojo.ember.feature.generator.service.TemplateStationUseService;
 import dev.chojo.ember.feature.generator.service.TemplateStationUseService.TemplateUseRequest;
 import dev.chojo.ember.feature.generator.service.TemplateStationUseService.TemplateUseResponse;
+import dev.chojo.ember.feature.generator.service.WordFormImportService;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.owner.Owner;
@@ -87,7 +88,8 @@ class DocumentTemplateRoutesTest {
             1,
             Instant.EPOCH,
             null,
-            TemplateSigning.startingWith(false));
+            TemplateSigning.startingWith(false),
+            List.of());
 
     private DocumentTemplateService service;
     private PdfTemplateService pdfs;
@@ -110,8 +112,8 @@ class DocumentTemplateRoutesTest {
         pdfs = mock(PdfTemplateService.class);
         uses = mock(TemplateStationUseService.class);
         copies = mock(DocumentTemplateCopyService.class);
-        harness = RouteHarness.serving(
-                new DocumentTemplateRoutes(service, mock(LetterImportService.class), pdfs, uses, copies));
+        harness = RouteHarness.serving(new DocumentTemplateRoutes(
+                service, mock(LetterImportService.class), pdfs, uses, copies, mock(WordFormImportService.class)));
     }
 
     static DocumentTemplate template(int id) {

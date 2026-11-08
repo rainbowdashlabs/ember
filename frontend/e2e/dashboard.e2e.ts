@@ -4,13 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect, apiHeaders} from './fixtures/auth'
+import {sidebarEntry} from './fixtures/sidebar'
 
 test.describe('Dashboard', () => {
     test('the dashboard shows a member their day', async ({memberPage: page}) => {
         await page.goto('/station/dashboard/overview')
 
         await expect(page.getByTestId('app-shell')).toBeVisible()
-        await expect(page.getByRole('link', {name: /Profil/}).first()).toBeVisible()
+        await expect(sidebarEntry(page, 'Übersicht')).toBeVisible()
     })
 
     test('the station statistics render', async ({managerPage: page}) => {

@@ -10,6 +10,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
+import {incompleteFields} from '@/util/profileFields'
 import { useSession } from '@/composables/useSession'
 import { useProfileAnswers } from '@/composables/useProfileAnswers'
 import { ownProfileAnswers } from '@/composables/profileAnswerPorts'
@@ -48,13 +49,7 @@ const accountEmail = computed(() => sessionInfo.value?.account?.email ?? '')
  */
 const editableFields = computed(() => fields.value)
 
-const incompleteFields = computed(() => {
-  return editableFields.value.filter(f => {
-    if (!f.required || f.readonly) return false
-    const val = getValue(f)
-    return !val || val === '""' || val === '' || val === 'null'
-  })
-})
+const incomplete = computed(() => incompleteFields(editableFields.value, getValue))
 
 const { loading, failure, reload } = useAsyncLoader(async () => {
   if (!memberId.value) return
@@ -94,7 +89,7 @@ watch(memberId, (newId) => {
             :account-email="accountEmail"
         />
 
-        <IncompleteFieldsAlert :incomplete-fields="incompleteFields" />
+        <IncompleteFieldsAlert :incomplete-fields="incomplete" />
 
         <ProfileFieldsForm
             :editable-fields="editableFields"

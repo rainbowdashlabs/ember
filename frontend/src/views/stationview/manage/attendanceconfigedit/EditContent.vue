@@ -13,19 +13,23 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import GroupsEditor from './GroupsEditor.vue'
 import UserTypesEditor from './UserTypesEditor.vue'
 import FieldsList from './FieldsList.vue'
-import type {
-    AttendanceTemplateField, MemberGroup, StationUserType, TemplateGroupEntry,
-} from '@/api/generated/schema'
+import TimeRulesCard from './TimeRulesCard.vue'
+import type {MemberGroup, StationUserType, TemplateGroupEntry} from '@/api/generated/schema'
+import type {AttendanceFieldDraft} from './attendanceFieldDraft'
 
 const props = defineProps<{
   isEdit: boolean
+  /** The template being edited, null while it is being created. */
+  templateId: number | null
   name: string
-  fields: AttendanceTemplateField[]
   templateGroups: TemplateGroupEntry[]
   templateUserTypes: StationUserType[]
   availableGroups: MemberGroup[]
   saveTemplate: () => Promise<void>
+  saveFields: () => Promise<void>
 }>()
+
+const fields = defineModel<AttendanceFieldDraft[]>('fields', {required: true})
 
 const emit = defineEmits<{
   'update:name': [value: string]
@@ -33,10 +37,7 @@ const emit = defineEmits<{
   'add-group': [groupId: number]
   'remove-group': [groupId: number]
   'reorder-groups': [fromIndex: number, toIndex: number]
-  'add-field': []
-  'edit-field': [field: AttendanceTemplateField]
-  'delete-field': [field: AttendanceTemplateField]
-  'reorder-fields': [fromIndex: number, toIndex: number]
+  'delete-field': [index: number]
 }>()
 
 const {t} = useI18n()
@@ -78,12 +79,11 @@ const {t} = useI18n()
 
     <FieldsList
         v-if="props.isEdit"
+        v-model:fields="fields"
         :available-groups="props.availableGroups"
-        :fields="props.fields"
-        @add="emit('add-field')"
-        @delete="(f: AttendanceTemplateField) => emit('delete-field', f)"
-        @edit="(f: AttendanceTemplateField) => emit('edit-field', f)"
-        @reorder="(from: number, to: number) => emit('reorder-fields', from, to)"
+        :save-fields="props.saveFields"
+        @delete="(index: number) => emit('delete-field', index)"
     />
+    <TimeRulesCard v-if="props.isEdit && props.templateId !== null" :template-id="props.templateId"/>
   </div>
 </template>

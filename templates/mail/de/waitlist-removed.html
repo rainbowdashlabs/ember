@@ -1,0 +1,15 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hallo {{ name }},</h2>
+      {% if duringTrial %}
+      <p><strong>{{ stationName }}</strong> hat deine Probezeit beendet, du stehst nicht mehr auf der Warteliste.</p>
+      {% else %}
+      <p><strong>{{ stationName }}</strong> hat dich von der Warteliste genommen.</p>
+      {% endif %}
+      {% if message %}
+      <ul class="notification-list">
+        <li class="notification-item"><p class="message" style="white-space:pre-line">{{ message }}</p></li>
+      </ul>
+      {% endif %}
+      <p class="hint">Dein Eintrag und was du uns dazu gegeben hast, wurden entfernt.</p>
+{% endblock %}

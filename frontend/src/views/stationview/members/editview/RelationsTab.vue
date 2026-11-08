@@ -38,7 +38,7 @@ const {
   availableManagers,
   getManagerFields,
   getManagerFieldValue,
-  loadDetails: loadManagerDetails,
+  loadDetails: loadRelationDetails,
   linkManager,
   removeManager,
   reorderManagers,
@@ -46,7 +46,7 @@ const {
 } = useMemberManagers(memberId, allMembers, fieldsForUserType, failure)
 
 const {managedMembers, availableManaged, linkManaged, removeManaged} =
-    useManagedMembers(memberId, allMembers, failure)
+    useManagedMembers(memberId, allMembers, failure, loadRelationDetails)
 
 const showGuardians = computed(() => canHaveGuardians(props.userType))
 
@@ -64,7 +64,7 @@ const { loading, failure: loadFailure } = useAsyncLoader(async () => {
   managers.value = mgrs
   managedMembers.value = managed
   setValues(values)
-  await loadManagerDetails(mgrs)
+  await loadRelationDetails([...mgrs, ...managed])
 })
 </script>
 

@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.generator.entity;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * What a document is generated in the light of, beyond the member it is about.
@@ -15,9 +17,32 @@ import java.time.Instant;
  * @param generatedBy the member who generates it, or null where nobody does, as for a preview
  * @param event       the appointment it is generated for, or null where it is generated on its own
  * @param issuer      who issues it for the station
+ * @param answers     what the person generating answered the template's questions with, by the key of the
+ *                    question; a question left out takes its suggestion
  */
 public record GenerationContext(
-        @Nullable Integer generatedBy, @Nullable EventFacts event, DocumentIssuer issuer) {
+        @Nullable Integer generatedBy, @Nullable EventFacts event, DocumentIssuer issuer, Map<String, String> answers) {
+
+    public GenerationContext {
+        answers = answers == null
+                ? Map.of()
+                : answers.entrySet().stream()
+                        .filter(answer -> answer.getKey() != null && answer.getValue() != null)
+                        .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    /** A context in which nobody answers the template's questions, so every one takes its suggestion. */
+    public GenerationContext(@Nullable Integer generatedBy, @Nullable EventFacts event, DocumentIssuer issuer) {
+        this(generatedBy, event, issuer, Map.of());
+    }
+
+    /**
+     * @param given what the person generating answered, by the key of the question
+     * @return this context with those answers
+     */
+    public GenerationContext answering(Map<String, String> given) {
+        return new GenerationContext(generatedBy, event, issuer, given);
+    }
 
     /** A document nobody generates, for no appointment and without an issuer, as a preview without a member. */
     public static final GenerationContext NOBODY = new GenerationContext(null, null, DocumentIssuer.NONE);

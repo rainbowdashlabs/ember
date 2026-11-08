@@ -7,6 +7,7 @@ import {statSync} from 'node:fs'
 import type {Locator} from '@playwright/test'
 import {test, expect, apiHeaders, type Page} from './fixtures/auth'
 import {unique} from './fixtures/unique'
+import {ownMember} from './fixtures/ownMember'
 
 /**
  * Acknowledges step after step until the swap stands on the one that puts the piece into the
@@ -643,6 +644,95 @@ test.describe('Attendance', () => {
         await expect(page.getByTestId('session-counted-hours')).toHaveValue('3')
     })
 
+    /**
+     * Somebody who prepares an evening is credited with it: the template names who, the sheet copies
+     * the rule and says so beside their name, and the report counts the minutes. Marked as not having
+     * done it, the person counts their presence alone.
+     */
+    test('preparation and follow-up reach the sheet and the report', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        const {memberId} = await ownMember(page, 'Vorbereitung')
+        const group = await page.request.post('/api/v1/groups', {headers, data: {name: unique('Jugendwarte')}})
+        expect(group.ok(), `the story keeps a group of its own (${await group.text()})`).toBeTruthy()
+        const groupId: number = (await group.json()).id
+        let templateId: number | null = null
+        let sessionId: number | null = null
+
+        try {
+            const joined = await page.request.put(`/api/v1/groups/${groupId}/members`, {
+                headers,
+                data: {memberIds: [memberId], move: false},
+            })
+            expect(joined.ok(), `the member joins the group (${await joined.text()})`).toBeTruthy()
+
+            const template = await page.request.post('/api/v1/attendance/templates', {
+                headers,
+                data: {name: unique('Gruppenstunde')},
+            })
+            expect(template.ok(), `the story keeps a template of its own (${await template.text()})`).toBeTruthy()
+            templateId = (await template.json()).id as number
+            const rules = await page.request.put(`/api/v1/attendance/templates/${templateId}/time-rules`, {
+                headers,
+                data: {rules: [{
+                    label: 'Jugendwart',
+                    preparationMinutes: 30,
+                    followUpMinutes: 15,
+                    audience: {userTypes: [], groupIds: [groupId], tagIds: [], memberIds: [], mode: 'OR'},
+                }]},
+            })
+            expect(rules.ok(), `the template takes the rule (${await rules.text()})`).toBeTruthy()
+
+            const start = new Date(Date.now() - 2 * 3_600_000)
+            const end = new Date(start.getTime() + 90 * 60_000)
+            const sheet = await page.request.post(`/api/v1/attendance/templates/${templateId}/sessions`, {
+                headers,
+                data: {title: unique('Abend'), startTime: start.toISOString(), endTime: end.toISOString()},
+            })
+            expect(sheet.ok(), `the sheet is opened (${await sheet.text()})`).toBeTruthy()
+            sessionId = (await sheet.json()).id as number
+            const entered = await page.request.post(`/api/v1/attendance/sessions/${sessionId}/entries`, {
+                headers,
+                data: {memberId, source: 'EXTRA'},
+            })
+            expect(entered.ok(), `the member is on the sheet (${await entered.text()})`).toBeTruthy()
+            const entryId: number = (await entered.json())
+                .find((entry: {memberId: number}) => entry.memberId === memberId).id
+            const present = await page.request.put(`/api/v1/attendance/entries/${entryId}/status`, {
+                headers,
+                data: {status: 'PRESENT'},
+            })
+            expect(present.ok(), `the member is marked present (${await present.text()})`).toBeTruthy()
+
+            await page.goto(`/station/attendance/session/${sessionId}`)
+            const note = page.getByTestId(`member-row-${memberId}`).getByTestId('extra-time-note')
+            await expect(note).toContainText('+30 Min. Vorbereitung, +15 Min. Nachbereitung')
+
+            const hoursInReport = async (): Promise<number | undefined> => {
+                const params = new URLSearchParams({
+                    groupIds: String(groupId),
+                    from: new Date(start.getTime() - 3_600_000).toISOString(),
+                    to: new Date(end.getTime() + 3_600_000).toISOString(),
+                    rounding: 'exact',
+                })
+                const preview = await page.request.get(`/api/v1/attendance/report/preview?${params}`, {headers})
+                expect(preview.ok(), `the report is built (${await preview.text()})`).toBeTruthy()
+                const line = (await preview.json()).sessions
+                    .find((s: {sessionId: number}) => s.sessionId === sessionId)
+                expect(line, 'the sheet is in the report').toBeDefined()
+                return line?.entries.find((e: {memberId: number}) => e.memberId === memberId)?.hours
+            }
+            expect(await hoursInReport(), 'an hour and a half plus 45 minutes').toBe(2.25)
+
+            await note.getByTestId('extra-time-toggle').click()
+            await expect(note.getByTestId('extra-time-toggle')).toHaveText('Doch gemacht')
+            expect(await hoursInReport(), 'the presence alone').toBe(1.5)
+        } finally {
+            if (sessionId !== null) await page.request.delete(`/api/v1/attendance/sessions/${sessionId}`, {headers})
+            if (templateId !== null) await page.request.delete(`/api/v1/attendance/templates/${templateId}`, {headers})
+            await page.request.delete(`/api/v1/groups/${groupId}`, {headers})
+        }
+    })
+
     test('past sessions are listed', async ({managerPage: page}) => {
         await page.goto('/station/attendance/past')
 
@@ -801,23 +891,28 @@ test.describe('Attendance', () => {
             await expect(page.getByTestId('field-layout-preview')).toBeVisible()
         })
 
+        /**
+         * The questions are written in the list itself and saved together, so the width is set in
+         * the question's own card and read back there after a reload.
+         */
         test('a question set to half a row keeps that width', async ({managerPage: page}) => {
             await openConfig(page)
 
             const row = page.getByTestId('attendance-field-row').first()
-            const name = (await row.locator('span.font-medium').innerText()).trim()
+            const name = await row.getByTestId('question-name').inputValue()
 
-            await row.getByLabel('Bearbeiten').click()
-            const modal = page.getByTestId('modal')
-            await modal.getByTestId('field-width').selectOption('half')
-            await modal.getByRole('button', {name: 'Speichern'}).click()
+            await row.getByTestId('field-width').selectOption('half')
+            const readBack = page.waitForResponse(response =>
+                response.url().includes('/fields') && response.request().method() === 'GET')
+            await page.getByRole('button', {name: 'Felder speichern'}).click()
+            await readBack
 
             await page.reload()
-            await page.getByTestId('attendance-field-row').first().waitFor()
-            await page.getByTestId('attendance-field-row').filter({hasText: name}).first()
-                .getByLabel('Bearbeiten').click()
+            const first = page.getByTestId('attendance-field-row').first()
+            await first.waitFor()
 
-            await expect(page.getByTestId('modal').getByTestId('field-width')).toHaveValue('half')
+            await expect(first.getByTestId('question-name')).toHaveValue(name)
+            await expect(first.getByTestId('field-width')).toHaveValue('half')
         })
 
         /**
@@ -854,12 +949,14 @@ test.describe('Attendance', () => {
             await page.request.post(`/api/v1/attendance/sessions/${sessionId}/lock`, {headers})
 
             await page.goto(`/station/attendance/config/edit/${template.id}`)
-            const row = page.getByTestId('attendance-field-row').filter({hasText: topic})
+            const row = page.getByTestId('attendance-field-row').first()
+            await expect(row.getByTestId('question-name'), 'the sheet asks the one question').toHaveValue(topic)
             await row.getByLabel('Löschen').click()
             const confirm = page.getByTestId('modal')
             await expect(confirm, 'the question says it is archived').toContainText('archiviert')
             await confirm.locator('[data-confirm]').click()
-            await expect(row, 'the question is gone from the configuration').toHaveCount(0)
+            await expect(page.getByTestId('attendance-field-row'), 'the question is gone from the configuration')
+                .toHaveCount(0)
 
             await page.goto(`/station/attendance/session/${sessionId}`)
             await expect(page.getByText(topic), 'the sheet still names the question').toBeVisible()

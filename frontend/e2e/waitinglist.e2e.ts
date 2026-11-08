@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, apiHeaders, type Page} from './fixtures/auth'
+import {test, expect, apiHeaders, pageAsThrowaway, type Page} from './fixtures/auth'
 
 /**
  * A list of this story's own, for a story that changes the fields of one.
@@ -109,12 +109,14 @@ test.describe('Waiting lists', () => {
 
         await page.goto(`/station/members/waiting-lists/${id}/fields`)
         await page.getByRole('button', {name: 'Feld hinzufügen'}).click()
-        await page.getByPlaceholder('Name des Feldes').fill(fieldName)
-        await page.getByRole('combobox').first().selectOption('BIRTH_DATE')
-        await page.getByRole('button', {name: 'Speichern'}).click()
+        const added = page.getByTestId('waiting-list-field-row').last()
+        await added.getByPlaceholder('Name des Feldes').fill(fieldName)
+        await added.getByTestId('question-type').selectOption('BIRTH_DATE')
+        await page.getByRole('button', {name: 'Felder speichern'}).click()
 
         await page.reload()
-        await expect(page.getByText('Geburtsdatum').first()).toBeVisible()
+        await expect(page.getByTestId('waiting-list-field-row').last().getByTestId('question-type'))
+            .toHaveValue('BIRTH_DATE')
 
         const entered = await page.request.post(`/api/v1/waiting-lists/${id}/entries`, {
             headers: await apiHeaders(page),
@@ -144,9 +146,10 @@ test.describe('Waiting lists', () => {
 
         await page.goto(`/station/members/waiting-lists/${id}/fields`)
         await page.getByRole('button', {name: 'Feld hinzufügen'}).click()
-        await page.getByPlaceholder('Name des Feldes').fill(`Zweites-${Date.now()}`)
-        await page.getByRole('combobox').first().selectOption('BIRTH_DATE')
-        await page.getByRole('button', {name: 'Speichern'}).click()
+        const added = page.getByTestId('waiting-list-field-row').last()
+        await added.getByPlaceholder('Name des Feldes').fill(`Zweites-${Date.now()}`)
+        await added.getByTestId('question-type').selectOption('BIRTH_DATE')
+        await page.getByRole('button', {name: 'Felder speichern'}).click()
 
         await expect(page.getByText(/schon ein Feld für das Geburtsdatum|Fehler/)).toBeVisible()
     })
@@ -181,9 +184,14 @@ test.describe('Waiting lists', () => {
         const row = page.getByRole('row').filter({hasText: surname})
         await row.getByRole('button', {name: 'Einladen'}).click()
 
+        await expect(page.getByTestId('waitlist-invite-recipients'), 'the dialog names where the mail goes')
+            .toContainText(`${surname.toLowerCase()}@example.test`)
+        await expect(page.getByTestId('waitlist-invite-send'), 'nothing goes out before an appointment is picked')
+            .toBeDisabled()
         const occurrence = page.getByTestId('waitlist-invite-occurrence')
         await occurrence.locator('input[type="search"]').click()
         await occurrence.getByRole('button').first().click()
+        await page.getByTestId('waitlist-invite-message').fill('Bring bitte Sportschuhe mit.')
         await page.getByTestId('waitlist-invite-send').click()
         await expect(page.getByTestId('waitlist-invite-modal')).toHaveCount(0)
 
@@ -196,6 +204,8 @@ test.describe('Waiting lists', () => {
 
         await visitor.goto(`/waiting-list/status?token=${invited.entry.accessToken}`)
         await expect(visitor.getByTestId('waitlist-invitation'), 'the page says what it is about').toBeVisible()
+        await expect(visitor.getByTestId('waitlist-invitation-message'), 'with the note the station wrote')
+            .toHaveText('Bring bitte Sportschuhe mit.')
         await visitor.getByTestId('waitlist-answer-coming').click()
         await expect(visitor.getByTestId('waitlist-answer-given')).toBeVisible()
 
@@ -207,11 +217,154 @@ test.describe('Waiting lists', () => {
     })
 
     /**
+     * An invitation can offer several dates, and the family picks the one that suits. The station's
+     * side is walked through the API; picking is walked on the page, where "I'm coming" waits for a
+     * date to be chosen.
+     */
+    test('an invited family picks one of several dates', async ({managerPage: page, page: visitor}) => {
+        const surname = `Wahl-${Date.now()}`
+        const headers = await apiHeaders(page)
+        const list = await ownList(page)
+
+        const created = await page.request.post(`/api/v1/waiting-lists/${list}/entries`, {
+            headers,
+            data: {firstname: 'Neu', lastname: surname, guardians: [{firstname: 'Erika', lastname: surname, email: ''}]},
+        })
+        expect(created.ok(), `the entry was written down (${await created.text()})`).toBeTruthy()
+        const entry = await created.json()
+
+        const coming = await page.request.get('/api/v1/events/upcoming?limit=2', {headers})
+        const occurrences = await coming.json()
+        expect(occurrences.length, 'the seed has two dates coming up to offer').toBeGreaterThanOrEqual(2)
+        const invited = await page.request.post(`/api/v1/waiting-lists/${list}/entries/${entry.id}/invite`, {
+            headers,
+            data: {
+                options: occurrences.slice(0, 2).map((occurrence: {event: {id: number}, date: string}) => ({
+                    eventId: occurrence.event.id,
+                    date: occurrence.date,
+                })),
+            },
+        })
+        expect(invited.ok(), `the invitation went out (${await invited.text()})`).toBeTruthy()
+
+        await visitor.goto(`/waiting-list/status?token=${entry.accessToken}`)
+        await expect(visitor.getByTestId('waitlist-invitation-appointment'), 'both dates are on the page')
+            .toHaveCount(2)
+        await expect(visitor.getByTestId('waitlist-answer-coming'), 'coming waits for a date to be picked')
+            .toBeDisabled()
+        await visitor.getByTestId('waitlist-answer-pick').getByRole('radio').nth(1).check()
+        await visitor.getByTestId('waitlist-answer-coming').click()
+        await expect(visitor.getByTestId('waitlist-answer-given')).toBeVisible()
+
+        const entries = await page.request.get(`/api/v1/waiting-lists/${list}/entries`, {headers})
+        const answered = (await entries.json()).find((item: {entry: {id: number}}) => item.entry.id === entry.id)
+        expect(answered.entry.answer.position, 'the station learns which date was picked').toBe(1)
+    })
+
+    /**
+     * When the date does not suit, the station answers with other dates in one step, and the family
+     * can answer again: the entry never leaves the invited section and the old answer goes with the
+     * old dates.
+     */
+    test('the station offers other dates after the first did not suit', async ({managerPage: page, page: visitor}) => {
+        const surname = `Anders-${Date.now()}`
+        const headers = await apiHeaders(page)
+        const list = await ownList(page)
+
+        const created = await page.request.post(`/api/v1/waiting-lists/${list}/entries`, {
+            headers,
+            data: {firstname: 'Neu', lastname: surname, guardians: [{firstname: 'Erika', lastname: surname, email: ''}]},
+        })
+        expect(created.ok(), `the entry was written down (${await created.text()})`).toBeTruthy()
+        const entry = await created.json()
+
+        const coming = await page.request.get('/api/v1/events/upcoming?limit=1', {headers})
+        const [occurrence] = await coming.json()
+        const invited = await page.request.post(`/api/v1/waiting-lists/${list}/entries/${entry.id}/invite`, {
+            headers,
+            data: {options: [{eventId: occurrence.event.id, date: occurrence.date}]},
+        })
+        expect(invited.ok(), `the invitation went out (${await invited.text()})`).toBeTruthy()
+
+        await visitor.goto(`/waiting-list/status?token=${entry.accessToken}`)
+        await visitor.getByTestId('waitlist-answer-date').click()
+        await expect(visitor.getByTestId('waitlist-answer-given')).toBeVisible()
+
+        await page.goto(`/station/members/waiting-lists/${list}`)
+        const row = page.getByRole('row').filter({hasText: surname})
+        await row.getByTestId('waitlist-offer-other-dates').click()
+        await expect(page.getByTestId('waitlist-other-dates-answer'), 'the station sees what was said first')
+            .toBeVisible()
+        const picker = page.getByTestId('waitlist-invite-occurrence')
+        await picker.locator('input[type="search"]').click()
+        await picker.getByRole('button').first().click()
+        await page.getByTestId('waitlist-invite-message').fill('Wie wäre es an diesem Tag?')
+        await page.getByTestId('waitlist-invite-send').click()
+        await expect(page.getByTestId('waitlist-invite-modal')).toHaveCount(0)
+
+        await visitor.reload()
+        await expect(visitor.getByTestId('waitlist-invitation-message'), 'the family reads the new note')
+            .toHaveText('Wie wäre es an diesem Tag?')
+        await expect(visitor.getByTestId('waitlist-answer-coming'), 'and can answer the new dates').toBeVisible()
+    })
+
+    /**
      * A station nobody outside its own network can reach sends links nobody can open, so its lists
      * write to nobody. The story makes such a list, opens it to the public, and registers on it as
      * a stranger who leaves no address at all: the registration is on the list the moment it is
      * sent, rather than waiting for a confirmation that could never arrive.
      */
+    /**
+     * The family is there for the trial, not only once the child has joined. Starting the trial
+     * gives the guardian an account, their dashboard shows the trial, and they can end it themselves.
+     * The way to the trial is the station's and is walked through the API; the guardian's side is
+     * walked on the page.
+     */
+    test('a guardian ends the trial from the dashboard', async ({managerPage: page, browser, request}) => {
+        const surname = `Probezeit-${Date.now()}`
+        const guardianAddress = `${surname.toLowerCase()}@example.test`
+        const headers = await apiHeaders(page)
+        const list = await ownList(page)
+
+        const created = await page.request.post(`/api/v1/waiting-lists/${list}/entries`, {
+            headers,
+            data: {firstname: 'Neu', lastname: surname, guardians: [{firstname: 'Erika', lastname: surname, email: guardianAddress}]},
+        })
+        expect(created.ok(), `the entry was written down (${await created.text()})`).toBeTruthy()
+        const entryId = (await created.json()).id
+
+        const coming = await page.request.get('/api/v1/events/upcoming?limit=1', {headers})
+        const [occurrence] = await coming.json()
+        expect(occurrence, 'the seed has something coming up to invite to').toBeTruthy()
+        const invited = await page.request.post(`/api/v1/waiting-lists/${list}/entries/${entryId}/invite`, {
+            headers,
+            data: {options: [{eventId: occurrence.event.id, date: occurrence.date}]},
+        })
+        expect(invited.ok(), `the invitation went out (${await invited.text()})`).toBeTruthy()
+        const testing = await page.request.post(`/api/v1/waiting-lists/${list}/entries/${entryId}/testing`, {headers})
+        expect(testing.ok(), `the trial began (${await testing.text()})`).toBeTruthy()
+
+        const guardian = await pageAsThrowaway(browser, request, [], {
+            email: guardianAddress,
+            stationId: headers['X-Station-Id'],
+        })
+        await guardian.goto('/station/dashboard/overview')
+        const panel = guardian.getByTestId('trial-panel')
+        await expect(panel, 'the guardian sees the trial on their dashboard').toContainText(`Neu ${surname}`)
+        await expect(panel.getByTestId('trial-visits')).toContainText('0')
+
+        await panel.getByTestId('trial-end').click()
+        await guardian.getByTestId('trial-end-confirm').click()
+        await expect(guardian.getByTestId('trial-panel'), 'the trial is over').toHaveCount(0)
+
+        const entries = await page.request.get(`/api/v1/waiting-lists/${list}/entries`, {headers})
+        const body = await entries.json()
+        expect(
+            body.some((item: {entry: {id: number}}) => item.entry.id === entryId),
+            'the entry has left the list',
+        ).toBeFalsy()
+    })
+
     test('a list that sends no mail takes a registration without confirming it', async ({managerPage: page, page: visitor}) => {
         const listName = `Ohne Mail ${Date.now()}`
         const surname = `Ohnemail-${Date.now()}`
@@ -279,23 +432,25 @@ test.describe('Waiting lists', () => {
 
         await page.goto(`/station/members/waiting-lists/${id}/fields`)
         await page.getByRole('button', {name: 'Feld hinzufügen'}).click()
-        await page.getByPlaceholder('Name des Feldes').fill(fieldName)
-        await page.getByRole('combobox').first().selectOption('CHOICE')
+        const added = page.getByTestId('waiting-list-field-row').last()
+        await added.getByPlaceholder('Name des Feldes').fill(fieldName)
+        await added.getByTestId('question-type').selectOption('CHOICE')
 
-        await page.getByTestId('question-option-add').click()
-        await page.getByTestId('question-option-0').fill('rot')
-        await page.getByTestId('question-option-add').click()
-        await page.getByTestId('question-option-1').fill('blau, dunkel')
-        await page.getByRole('button', {name: 'Speichern'}).click()
+        await added.getByTestId('question-option-add').click()
+        await added.getByTestId('question-option-0').fill('rot')
+        await added.getByTestId('question-option-add').click()
+        await added.getByTestId('question-option-1').fill('blau, dunkel')
+        await page.getByRole('button', {name: 'Felder speichern'}).click()
 
         await page.reload()
-        await page.getByRole('button', {name: 'Bearbeiten'}).last().click()
+        const saved = page.getByTestId('waiting-list-field-row').last()
+        await expect(saved.getByTestId('question-name')).toHaveValue(fieldName)
 
-        await expect(page.getByTestId('question-option-0')).toHaveValue('rot')
+        await expect(saved.getByTestId('question-option-0')).toHaveValue('rot')
         await expect(
-            page.getByTestId('question-option-1'),
+            saved.getByTestId('question-option-1'),
             'a choice with a comma in it is one choice and not two',
         ).toHaveValue('blau, dunkel')
-        await expect(page.getByTestId('question-option-2')).toHaveCount(0)
+        await expect(saved.getByTestId('question-option-2')).toHaveCount(0)
     })
 })

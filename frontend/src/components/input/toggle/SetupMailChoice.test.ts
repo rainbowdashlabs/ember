@@ -8,7 +8,7 @@ import {afterEach, describe, expect, it, vi} from 'vitest'
 import {mount} from '@vue/test-utils'
 import {ref} from 'vue'
 import SetupMailChoice from './SetupMailChoice.vue'
-import type {SessionInfo} from '@/api/generated/schema'
+import {SidebarMode, type SessionInfo} from '@/api/generated/schema'
 
 const sessionInfo = ref<SessionInfo | null>(null)
 
@@ -24,7 +24,10 @@ function choice(props: {modelValue?: boolean; hasAddress?: boolean} = {}) {
 /** A manager signed in on an instance that can or cannot send mail. */
 function signedIn(canSendMail: boolean): SessionInfo {
   return {
-    account: {id: 1, uid: null, email: 'manager@example.org', username: null, firstName: 'Mia', lastName: 'Muster'},
+    account: {
+      id: 1, uid: null, email: 'manager@example.org', username: null, firstName: 'Mia', lastName: 'Muster',
+      sidebar: SidebarMode.SECTIONS,
+    },
     canSendMail,
     clusterId: null,
     clusterPermissions: [],

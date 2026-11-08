@@ -101,8 +101,8 @@ public class FontLibrary {
     }
 
     /**
-     * The families a template names that its owner cannot print with: one it does not reach, or, on an
-     * uploaded PDF, one whose outlines a field cannot embed.
+     * The families a template names that its owner cannot print with: one it does not reach, on an uploaded
+     * PDF one whose outlines a field cannot embed, and in a letter one only PDF fields print in.
      *
      * @param owner   the owner the template belongs to
      * @param content what the template is made of
@@ -115,7 +115,7 @@ public class FontLibrary {
         return families.stream()
                 .filter(family -> !reachable
                         .find(family)
-                        .map(found -> !(content instanceof PdfContent) || found.printsOnPdf())
+                        .map(found -> content instanceof PdfContent ? found.printsOnPdf() : found.printsInLetters())
                         .orElse(false))
                 .toList();
     }

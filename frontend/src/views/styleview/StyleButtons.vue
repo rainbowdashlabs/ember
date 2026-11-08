@@ -8,6 +8,7 @@ import {ref} from 'vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import DockButton from '@/components/button/DockButton.vue'
 import MutedIconButton from '@/components/button/MutedIconButton.vue'
 import DownloadButton from '@/components/button/DownloadButton.vue'
 import UploadButton from '@/components/button/UploadButton.vue'
@@ -38,6 +39,15 @@ const samplePicture = 'data:image/svg+xml,' + encodeURIComponent(
     <SectionHeader>Icon Buttons</SectionHeader>
     <div class="flex flex-wrap gap-2 items-center"><IconButton :icon="['fas', 'gear']" label="Settings"/><DownloadButton/><UploadButton/><DeleteButton/><ConfirmButton/><EditButton/></div>
     <div class="flex flex-wrap gap-2 items-center"><IconButton :icon="['fas', 'gear']" label="Settings" disabled/><DownloadButton disabled/><UploadButton disabled/><DeleteButton disabled/><ConfirmButton disabled/><EditButton disabled/></div>
+  </section>
+
+  <section class="space-y-4">
+    <SectionHeader>Dock Buttons</SectionHeader>
+    <div class="flex flex-wrap gap-2 items-center">
+      <DockButton :icon="['fas', 'bug']" label="Report a problem" tone="error"/>
+      <DockButton :icon="['fas', 'rocket']" label="Continue the setup"/>
+      <DockButton :icon="['fas', 'code']" label="Developer tools" tone="secondary"/>
+    </div>
   </section>
 
   <section class="space-y-4">

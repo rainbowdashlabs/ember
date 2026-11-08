@@ -14,6 +14,7 @@ import type {PersonIdentity} from '@/util/personIdentity'
 import type {CheckRow} from './useCheckMode'
 import SessionToolbar from './SessionToolbar.vue'
 import SessionHeader from './SessionHeader.vue'
+import SessionTimeRulesPanel from './SessionTimeRulesPanel.vue'
 import CheckModePanel from './CheckModePanel.vue'
 import SessionFieldsPanel from './SessionFieldsPanel.vue'
 import AttendanceSummary from './AttendanceSummary.vue'
@@ -56,6 +57,8 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
+  /** The sheet's preparation and follow-up rules were saved. */
+  timeRulesChanged: []
   back: []
   export: []
   sync: []
@@ -123,6 +126,8 @@ const emit = defineEmits<{
           @update-counted-hours="emit('updateCountedHours', $event)"
           @take-event-times="(start, end) => emit('takeEventTimes', start, end)"
       />
+
+      <SessionTimeRulesPanel :session-id="session.id" :can-edit="canEdit" @changed="emit('timeRulesChanged')"/>
 
       <CheckModePanel
           v-if="checkMode"

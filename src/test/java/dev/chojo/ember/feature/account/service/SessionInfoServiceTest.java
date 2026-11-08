@@ -11,6 +11,8 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.File;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.entity.SidebarMode;
+import dev.chojo.ember.feature.account.repository.AccountPreferenceRepository;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.mail.service.MailChainService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
@@ -58,6 +60,7 @@ class SessionInfoServiceTest {
     private StationMemberRepository stationMemberRepository;
     private UserSettingsRepository userSettingsRepository;
     private UserTagRepository userTagRepository;
+    private AccountPreferenceRepository preferences;
     private MailChainService mailChainService;
     private SessionInfoService service;
 
@@ -91,6 +94,8 @@ class SessionInfoServiceTest {
         stationMemberRepository = mock(StationMemberRepository.class);
         userSettingsRepository = mock(UserSettingsRepository.class);
         userTagRepository = mock(UserTagRepository.class);
+        preferences = mock(AccountPreferenceRepository.class);
+        when(preferences.sidebarOf(anyInt())).thenReturn(SidebarMode.SECTIONS);
         mailChainService = mock(MailChainService.class);
         when(mailChainService.forInstance()).thenReturn(List.of());
         service = new SessionInfoService(
@@ -104,6 +109,7 @@ class SessionInfoServiceTest {
                 userTagRepository,
                 mailChainService,
                 mock(MemberNameResolver.class),
+                preferences,
                 new File());
     }
 

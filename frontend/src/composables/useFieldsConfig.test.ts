@@ -13,7 +13,7 @@ import {FieldType, type ProfileFieldAssignment, type ProfileFieldScope} from '@/
 import {STATION_ROLES, useFieldsConfig, type FieldsPort} from './useFieldsConfig'
 
 function field(id: number, name: string, fieldType: FieldType = FieldType.BIRTH_DATE): EditableField {
-  return {id, name, fieldType, config: {}, required: false, readonly: false, keepOnArchive: false, width: null}
+  return {id, name, fieldType, config: {}, required: false, readonly: false, keepOnArchive: false, width: null, shownIfFieldId: null, fieldSetId: null, setPosition: 0}
 }
 
 function askedOf(id: number, fieldId: number, role: ProfileFieldScope, position = 0): ProfileFieldAssignment {
@@ -40,6 +40,10 @@ function portOf(
     assign: async () => undefined,
     unassign: async () => undefined,
     reorder: async () => undefined,
+    listSets: async () => [],
+    createSet: async (data) => ({id: 1, ownerId: 1, name: data.name ?? '', nameAsSection: !!data.nameAsSection}),
+    updateSet: async () => undefined,
+    dissolveSet: async () => undefined,
     roles: STATION_ROLES,
     types: OfferedFieldTypes.PROFILE,
     stationReadonly: false,
@@ -127,6 +131,7 @@ describe('useFieldsConfig', () => {
     const created: EditableFieldRequest[] = []
     const config = configFor([], [], created)
     const birthDate = {
+      name: 'Geburtsdatum',
       fields: [{name: 'Geburtsdatum', fieldType: FieldType.BIRTH_DATE, config: {}, required: true, readonly: true}],
     }
 
@@ -151,6 +156,7 @@ describe('useFieldsConfig', () => {
       },
     }))
     const firstAid = {
+      name: 'Erste Hilfe Kurs',
       fields: [
         {name: 'Erste Hilfe Kurs', fieldType: FieldType.DATE, config: {}},
         {name: 'Erste Hilfe gültig bis', fieldType: FieldType.EXPIRY_DATE, config: {}},
@@ -161,5 +167,109 @@ describe('useFieldsConfig', () => {
 
     expect(created.map(request => request.name)).toEqual(['Erste Hilfe Kurs', 'Erste Hilfe gültig bis'])
     expect(assign).not.toHaveBeenCalled()
+  })
+
+  /** A template of several questions bundles them into a group named after it, its name as the heading. */
+  it('bundles a template of several questions into a group', async () => {
+    const created: EditableFieldRequest[] = []
+    const createSet = vi.fn(async () => ({id: 7, ownerId: 1, name: 'Adresse', nameAsSection: true}))
+    let api: ReturnType<typeof useFieldsConfig> | null = null
+    mount(defineComponent({
+      setup() {
+        api = useFieldsConfig({...portOf([], [], created), createSet})
+        return () => null
+      },
+    }))
+
+    await api!.applyTemplate({
+      name: 'Adresse',
+      fields: [
+        {name: 'Straße', fieldType: FieldType.TEXT, config: {}},
+        {name: 'Ort', fieldType: FieldType.TEXT, config: {}},
+      ],
+    })
+
+    expect(createSet).toHaveBeenCalledWith({name: 'Adresse', nameAsSection: true})
+    expect(created.map(request => request.fieldSetId)).toEqual([7, 7])
+  })
+
+  /**
+   * A field of a group is never put to anybody on its own: ticking it ticks its whole group, and putting
+   * the ticked fields to an audience asks once for the group.
+   */
+  it('ticks and assigns a group as one', async () => {
+    const street = {...field(1, 'Straße', FieldType.TEXT), fieldSetId: 7}
+    const city = {...field(2, 'Ort', FieldType.TEXT), fieldSetId: 7}
+    const assign = vi.fn(async () => undefined)
+    let api: ReturnType<typeof useFieldsConfig> | null = null
+    mount(defineComponent({
+      setup() {
+        api = useFieldsConfig({...portOf([street, city, field(3, 'Allein', FieldType.TEXT)], [], []), assign})
+        return () => null
+      },
+    }))
+    await vi.waitFor(() => expect(api!.allFields.value).toHaveLength(3))
+
+    api!.toggleChecked(2)
+    expect([...api!.checkedIds.value].sort()).toEqual([1, 2])
+
+    await api!.assignCheckedTo({role: 'MEMBER', groupId: null})
+    expect(assign).toHaveBeenCalledTimes(1)
+
+    api!.toggleChecked(1)
+    api!.toggleChecked(1)
+    expect(api!.checkedIds.value.size).toBe(0)
+  })
+
+  /** A template naming a field the owner already has writes nothing, not even its group. */
+  it('writes nothing of a template whose field names are taken', async () => {
+    const created: EditableFieldRequest[] = []
+    const createSet = vi.fn(async () => ({id: 7, ownerId: 1, name: 'Adresse', nameAsSection: true}))
+    let api: ReturnType<typeof useFieldsConfig> | null = null
+    mount(defineComponent({
+      setup() {
+        api = useFieldsConfig({...portOf([field(3, 'Straße', FieldType.TEXT)], [], created), createSet})
+        return () => null
+      },
+    }))
+    await vi.waitFor(() => expect(api!.allFields.value).toHaveLength(1))
+
+    await api!.applyTemplate({
+      name: 'Adresse',
+      fields: [
+        {name: 'Straße', fieldType: FieldType.TEXT, config: {}},
+        {name: 'Ort', fieldType: FieldType.TEXT, config: {}},
+      ],
+    })
+
+    expect(createSet).not.toHaveBeenCalled()
+    expect(created).toHaveLength(0)
+    expect(api!.failure.value?.message).toContain('Straße')
+  })
+
+  /** Where the first field is refused anyway, the group made for the template is dissolved again. */
+  it('dissolves the group again when no field of the template could be written', async () => {
+    const dissolveSet = vi.fn(async () => undefined)
+    const createSet = vi.fn(async () => ({id: 7, ownerId: 1, name: 'Adresse', nameAsSection: true}))
+    const create = vi.fn(async () => {
+      throw new Error('refused')
+    })
+    let api: ReturnType<typeof useFieldsConfig> | null = null
+    mount(defineComponent({
+      setup() {
+        api = useFieldsConfig({...portOf([], [], []), createSet, create, dissolveSet})
+        return () => null
+      },
+    }))
+
+    await api!.applyTemplate({
+      name: 'Adresse',
+      fields: [
+        {name: 'Straße', fieldType: FieldType.TEXT, config: {}},
+        {name: 'Ort', fieldType: FieldType.TEXT, config: {}},
+      ],
+    })
+
+    expect(dissolveSet).toHaveBeenCalledWith(7)
   })
 })

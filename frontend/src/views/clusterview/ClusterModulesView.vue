@@ -86,7 +86,7 @@ async function save() {
       <template v-else>
         <p class="text-sm text-(--text-muted)">{{ t('clusterModules.hint') }}</p>
 
-        <TabBar v-if="groups.length > 0" v-model="activeTab" :tabs="tabs"/>
+        <TabBar v-if="groups.length > 0" v-model="activeTab" :tabs="tabs" linked/>
         <p v-if="groups.length > 0 && stationGroupId !== null" class="text-sm text-(--text-muted)">
           {{ t('clusterModules.groupHint') }}
         </p>

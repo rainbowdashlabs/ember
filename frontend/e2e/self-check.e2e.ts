@@ -411,8 +411,7 @@ test.describe('Self-check', () => {
     })
 
     /**
-     * SFC-5: a broken piece raises the same swap a piece that no longer fits does, saying which of
-     * the two it was and keeping the size it already is.
+     * SFC-5: a swap asked for because the piece is broken says so and keeps the size it already is.
      */
     test('a broken piece raises a swap that says so and keeps its size', async ({browser, request, managerPage}) => {
         const {page: memberPage, taskId} = await askSomebody(browser, request, managerPage)
@@ -423,15 +422,16 @@ test.describe('Self-check', () => {
         const sized = new Map((await ownTask(memberPage, taskId)).assigned
             .filter(item => item.sizeId != null)
             .map(item => [item.id, item.sizeId!]))
-        const pieceId = pieceOf(await entryOffering(memberPage, 'self-check-broken-piece-',
+        const pieceId = pieceOf(await entryOffering(memberPage, 'self-check-exchange-piece-',
             key => sized.has(pieceOf(key))))
         const sizeId = sized.get(pieceId)!
 
-        await memberPage.getByTestId(`self-check-broken-piece-${pieceId}`).click()
-        await expect(memberPage.getByTestId('exchange-cause')).toContainText('kaputt')
+        await memberPage.getByTestId(`self-check-exchange-piece-${pieceId}`).click()
+        await expect(memberPage.getByTestId('exchange-submit'), 'a swap says why before it goes').toBeDisabled()
+        await memberPage.getByTestId('exchange-reason-broken').click()
         await expect(memberPage.getByTestId('exchange-new-size')).toHaveValue(String(sizeId))
         await memberPage.getByTestId('exchange-submit').click()
-        await expect(memberPage.getByTestId(`self-check-broken-piece-${pieceId}`)).toBeDisabled()
+        await expect(memberPage.getByTestId(`self-check-exchange-piece-${pieceId}`)).toBeDisabled()
 
         const raised = (await ownTask(memberPage, taskId)) as unknown as {raised: {kind: string; itemId: number}[]}
         expect(
@@ -444,7 +444,7 @@ test.describe('Self-check', () => {
         expect(raisedSwaps.ok(), `the station reads its swaps (${await raisedSwaps.text()})`).toBeTruthy()
         const swap = (await raisedSwaps.json()).find((entry: {itemId: number | null}) => entry.itemId === pieceId)
         expect(swap, 'the swap reached the station').toBeTruthy()
-        expect(swap.reason, 'and says why it arose').toContain('kaputt')
+        expect(swap.reason, 'and says why it arose').toContain('Kaputt')
         expect(swap.newSizeId, 'the same size comes back').toBe(sizeId)
         await memberPage.context().close()
     })
@@ -462,7 +462,7 @@ test.describe('Self-check', () => {
             await expect(memberPage.getByTestId('app-shell')).toBeVisible()
 
             const pieceId = pieceOf(
-                await entryOfferingBoth(memberPage, 'self-check-broken-piece-', 'self-check-actual-size-piece-'),
+                await entryOfferingBoth(memberPage, 'self-check-exchange-piece-', 'self-check-actual-size-piece-'),
             )
             await answerEverything(memberPage)
             const task = await ownTask(memberPage, taskId)
@@ -474,11 +474,12 @@ test.describe('Self-check', () => {
             await memberPage.getByTestId(`self-check-actual-size-piece-${pieceId}`).selectOption(String(actual!.id))
             await expect(memberPage.getByTestId(`self-check-timing-piece-${pieceId}`)).toContainText('vorgemerkt')
 
-            await memberPage.getByTestId(`self-check-broken-piece-${pieceId}`).click()
+            await memberPage.getByTestId(`self-check-exchange-piece-${pieceId}`).click()
+            await memberPage.getByTestId('exchange-reason-broken').click()
             await expect(memberPage.getByTestId('exchange-new-size')).toHaveValue(String(actual!.id))
             await memberPage.getByTestId('exchange-submit').click()
-            await expect(memberPage.getByTestId(`self-check-broken-piece-${pieceId}`)).toBeDisabled()
-            await expect(memberPage.getByTestId(`self-check-broken-piece-${pieceId}`)).toContainText('vorgemerkt')
+            await expect(memberPage.getByTestId(`self-check-exchange-piece-${pieceId}`)).toBeDisabled()
+            await expect(memberPage.getByTestId(`self-check-exchange-piece-${pieceId}`)).toContainText('vorgemerkt')
 
             const held = (await ownTask(memberPage, taskId)) as unknown as {
                 raised: {kind: string; state: string; itemId: number}[]

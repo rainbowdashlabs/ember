@@ -10,6 +10,7 @@ import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import {renderMarkdown} from '@/util/markdown'
 import PublicConsentCheckbox from '@/components/public/PublicConsentCheckbox.vue'
 import PublicPageFields from '@/components/forms/fill/PublicPageFields.vue'
 import FormPageNav from '@/components/forms/fill/FormPageNav.vue'
@@ -79,7 +80,7 @@ const unreachable = computed(() => !loadFailure.value || loadFailure.value.kind 
         <template v-else-if="form">
             <div v-if="variant === 'contact' && (headlineOverride || bodyOverride)" class="space-y-1">
                 <p v-if="headlineOverride" class="text-xl font-bold">{{ headlineOverride }}</p>
-                <p v-if="bodyOverride" class="text-sm whitespace-pre-line">{{ bodyOverride }}</p>
+                <div v-if="bodyOverride" class="markdown-content text-sm" v-html="renderMarkdown(bodyOverride)"/>
             </div>
             <div v-else>
                 <p class="text-lg font-semibold">{{ form.title }}</p>

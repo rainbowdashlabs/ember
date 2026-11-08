@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.generator.service.DocumentTemplateService.Placeho
 import dev.chojo.ember.feature.generator.service.LetterImportService;
 import dev.chojo.ember.feature.generator.service.LetterImportService.LetterImport;
 import dev.chojo.ember.feature.generator.service.PdfTemplateService;
+import dev.chojo.ember.feature.generator.service.WordFormImportService;
 import dev.chojo.ember.owner.Owner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -81,8 +82,8 @@ class AssociationDocumentTemplateRoutesTest {
         copies = mock(DocumentTemplateCopyService.class);
         when(copies.duplicate(any(), anyInt(), any(), anyInt()))
                 .thenReturn(new DocumentTemplateCopy(template, List.of(), 0));
-        harness = RouteHarness.serving(
-                new AssociationDocumentTemplateRoutes(templates, generation, imports, pdfs, copies));
+        harness = RouteHarness.serving(new AssociationDocumentTemplateRoutes(
+                templates, generation, imports, pdfs, copies, mock(WordFormImportService.class)));
     }
 
     @Test

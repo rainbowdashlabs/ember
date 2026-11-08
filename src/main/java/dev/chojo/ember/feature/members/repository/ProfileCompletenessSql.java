@@ -23,7 +23,8 @@ import java.util.stream.Collectors;
  * groups as the first of those on their form, which is the way the profile lays them out.
  *
  * <p>Such a question counts against them when it takes an answer at all, they have to answer it, they may
- * write it, and the answer is blank. A question the station only lets them read is not theirs to fill in,
+ * write it, and the answer is blank. A question that depends on a yes/no question they are also asked does
+ * not count while that one is not answered yes, since they never see it. A question the station only lets them read is not theirs to fill in,
  * and neither is one the association asks and keeps to itself. Answers are documents, so a blank one is no
  * row, the document null a selection left on its blank entry writes, or the empty string.
  */
@@ -46,6 +47,19 @@ public final class ProfileCompletenessSql {
                        AND f.field_type NOT IN ({answerless})
                        AND coalesce(a.required_override, f.required)
                        AND NOT coalesce(a.readonly_override, f.readonly)
+                       AND NOT (f.shown_if_field_id IS NOT NULL
+                                AND EXISTS (SELECT 1
+                                            FROM profile_field_assignment ca
+                                            WHERE ca.field_id = f.shown_if_field_id
+                                              AND (ca.role = {m}.user_type
+                                                   OR ca.group_id IN (SELECT mge.group_id
+                                                                      FROM member_group_entry mge
+                                                                      WHERE mge.member_id = {m}.id)))
+                                AND NOT EXISTS (SELECT 1
+                                                FROM profile_field_value cv
+                                                WHERE cv.member_id = {m}.id
+                                                  AND cv.field_id = f.shown_if_field_id
+                                                  AND cv.value = 'true'::JSONB))
                        AND {blank})
              OR EXISTS (SELECT 1
                         FROM cluster_profile_field cpf
@@ -59,7 +73,22 @@ public final class ProfileCompletenessSql {
                           AND coalesce(a.required_override, cpf.required)
                           AND NOT coalesce(a.readonly_override, cpf.readonly)
                           AND NOT cpf.station_readonly
+                          AND NOT (cpf.shown_if_field_id IS NOT NULL
+                                   AND EXISTS (SELECT 1
+                                               FROM cluster_profile_field controller
+                                                        JOIN cluster_profile_field_assignment ca
+                                                             ON ca.field_id = controller.id
+                                               WHERE controller.id = cpf.shown_if_field_id
+                                                 AND ca.role = {m}.user_type
+                                                 AND {controllerReaches})
+                                   AND NOT EXISTS (SELECT 1
+                                                   FROM cluster_profile_field_value cv
+                                                   WHERE cv.member_id = {m}.id
+                                                     AND cv.field_id = cpf.shown_if_field_id
+                                                     AND cv.value = 'true'::JSONB))
                           AND {blank}))""".replace("{answerless}", answerlessTypes())
+            .replace(
+                    "{controllerReaches}", ClusterProfileFieldRepository.REACHES_STATION.replace("cpf.", "controller."))
             .replace("{reaches}", ClusterProfileFieldRepository.REACHES_STATION)
             .replace("{blank}", "(v.value IS NULL OR v.value::TEXT IN ('null', '\"\"'))");
 

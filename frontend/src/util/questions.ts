@@ -72,6 +72,14 @@ export function questionKindOf(
 }
 
 /**
+ * Whether somebody writes the answer to a field of this type, which is the only kind that can be
+ * required or locked. A heading and a gap hold nothing, and an age counts itself from a date.
+ */
+export function isWrittenType(fieldType: string | undefined | null): boolean {
+    return questionKindOf(fieldType) !== null
+}
+
+/**
  * Whether an answer says yes.
  *
  * <p>A yes has been stored as a JSON {@code true}, as the text {@code "true"} and as {@code "1"}, and

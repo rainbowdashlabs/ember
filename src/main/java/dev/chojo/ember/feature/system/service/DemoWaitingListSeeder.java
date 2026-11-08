@@ -251,6 +251,7 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
                     case TESTING -> {
                         int memberId = createTrialMember(stationId, entry.id(), kid.firstname, kid.lastname);
                         memberGroupRepository.addMember(gaesteGroup.id(), memberId);
+                        createTrialGuardians(stationId, entry.id(), memberId);
                         waitingListRepository.updateEntryStatusWithTimestamp(
                                 entry.id(), WaitingListEntryStatus.TESTING, "testing_at");
                     }
@@ -292,5 +293,24 @@ public class DemoWaitingListSeeder implements DemoPerStationSeeder {
                 .ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
         waitingListRepository.linkMember(entryId, member.id());
         return member.id();
+    }
+
+    /**
+     * The guardians a trial brings with it, as the waiting list takes them on when the trial begins.
+     * Their accounts carry no address, so a demo never writes to the example addresses on the list.
+     */
+    private void createTrialGuardians(int stationId, int entryId, int trialMemberId) {
+        for (var guardian : waitingListRepository.findGuardiansByEntry(entryId)) {
+            var account = accountRepository.create(null, guardian.firstname(), guardian.lastname());
+            var member = stationMemberRepository.create(stationId, account.id());
+            stationMemberRepository.setUserType(member.id(), StationUserType.GUARDIAN);
+            for (var permission : List.of(StationPermission.LOGIN, StationPermission.MEMBER_GUARDIAN)) {
+                stationMemberRepository
+                        .findPermissionByName(permission)
+                        .ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
+            }
+            stationMemberRepository.addManager(member.id(), trialMemberId);
+            waitingListRepository.linkGuardianMember(guardian.id(), member.id());
+        }
     }
 }

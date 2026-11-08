@@ -70,10 +70,14 @@ test.describe('Member equipment requirements', () => {
             const before = page.getByTestId('inventory-item-card')
             const held = await before.count()
 
-            const requiredSize = card.locator('select').filter({has: page.locator('option:text-is("Größe wählen")')})
+            await card.getByRole('button', {name: 'Zuweisen'}).click()
+            const handOut = page.getByTestId('hand-out-modal')
+            await expect(handOut).toBeVisible()
+
+            const requiredSize = handOut.locator('select').filter({has: page.locator('option:text-is("Größe wählen")')})
             if (await requiredSize.count() > 0) await requiredSize.selectOption({index: 1})
 
-            await card.getByRole('button', {name: 'Neu anlegen und zuweisen'}).click()
+            await handOut.getByRole('button', {name: 'Neu anlegen und zuweisen'}).click()
 
             await expect(page.getByTestId('inventory-item-card')).toHaveCount(held + 1, {timeout: 15000})
         } finally {

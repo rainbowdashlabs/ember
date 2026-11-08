@@ -32,11 +32,12 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class ProfileFieldRepository {
 
     private static final String PROFILE_FIELD_COLUMNS =
-            "id, station_id, name, field_type, config, required, readonly, width, keep_on_archive";
+            "id, station_id, name, field_type, config, required, readonly, width, keep_on_archive, shown_if_field_id,"
+                    + " field_set_id, set_position";
 
     private static final String FIELD_COLUMNS_F =
             "f.id, f.station_id, f.name, f.field_type, f.config, f.required, f.readonly, f.width,"
-                    + " f.keep_on_archive";
+                    + " f.keep_on_archive, f.shown_if_field_id, f.field_set_id, f.set_position";
 
     private static final String ASSIGNMENT_COLUMNS =
             "id, field_id, target_kind, role, group_id, position, width_override, readonly_override,"
@@ -408,6 +409,18 @@ public class ProfileFieldRepository {
      */
     public boolean delete(int id) {
         return SqlSupport.deleteById("profile_field", id);
+    }
+
+    /**
+     * Sets the yes/no question this one depends on, or clears it.
+     *
+     * @param id         the question
+     * @param controller the question it depends on, or {@code null} for none
+     */
+    public void setShownIf(int id, @Nullable Integer controller) {
+        query("UPDATE profile_field SET shown_if_field_id = :controller WHERE id = :id;")
+                .single(call().bind("id", id).bind("controller", controller))
+                .update();
     }
 
     /**

@@ -20,6 +20,7 @@ import type {
     InventorySettings,
     InventorySize,
     InventorySummary,
+    ItemOwner,
     ItemRequest,
     LossReportTerms,
     LostRequest,
@@ -245,6 +246,12 @@ export async function moveItem(id: number, inventoryId: number): Promise<Invento
 
 export async function assignItem(id: number, data: AssignRequest): Promise<InventoryItem> {
     const res = await client.put<InventoryItem>(`/inventory-items/${id}/assign`, data)
+    return res.data
+}
+
+/** Gives a piece of a mixed inventory to the station or to the Träger, while it rests in the store. */
+export async function changeOwner(id: number, owner: ItemOwner): Promise<InventoryItem> {
+    const res = await client.put<InventoryItem>(`/inventory-items/${id}/owner`, {owner})
     return res.data
 }
 

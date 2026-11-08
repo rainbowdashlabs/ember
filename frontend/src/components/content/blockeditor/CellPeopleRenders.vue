@@ -12,6 +12,7 @@ import UserTagBadge from '@/components/badge/UserTagBadge.vue'
 import {getMemberPickerByUid} from '@/api/members'
 import {isMemberListSource, resolveMemberListSource, type LayoutKindName} from '@/api/pageManage'
 import type {MemberListConfig, MemberSearchResult, MemberSpotlightConfig, ResolvedMember} from '@/api/generated/schema'
+import {renderMarkdown} from '@/util/markdown'
 
 /**
  * Renderer for MEMBER_SPOTLIGHT and MEMBER_LIST_SPOTLIGHT (member-list spotlight).
@@ -91,7 +92,7 @@ watch(() => memberList.value.resolvedMembers, resolveMemberList, {immediate: fal
                 >{{ memberResolved.displayTag }}</UserTagBadge>
             </p>
             <MutedText v-if="spotlightShowUserType && memberResolved.userType" tag="p">{{ memberResolved.userType }}</MutedText>
-            <MutedText v-if="memberSpotlight.blurb" tag="p" size="sm" class="mt-1">{{ memberSpotlight.blurb }}</MutedText>
+            <div v-if="memberSpotlight.blurb" class="mt-1 markdown-content text-sm text-(--text-muted)" v-html="renderMarkdown(memberSpotlight.blurb)"/>
         </div>
     </div>
     <EmptyHint v-else-if="kind === 'MEMBER_SPOTLIGHT'">{{ t('stationPages.cellHints.memberGone') }}</EmptyHint>

@@ -16,7 +16,7 @@ import TemplateButtons from './TemplateButtons.vue'
 import BatchAssignBar from './BatchAssignBar.vue'
 import type {FieldTemplate} from './fieldTemplates'
 import type {AssignmentTarget, EditableField, FieldSwitchName} from '@/api/profileFields'
-import type {MemberGroup} from '@/api/generated/schema'
+import type {FieldSet, MemberGroup} from '@/api/generated/schema'
 import type {WritabilityName} from '@/composables/useFieldsConfig'
 
 /**
@@ -35,6 +35,8 @@ const props = defineProps<{
   /** Every audience a batch may be put to, which is all of them rather than only the unasked ones. */
   roles: readonly string[]
   groups: MemberGroup[]
+  /** The owner's groups of fields, which the table names at each field in one. */
+  sets: FieldSet[]
 }>()
 
 const emit = defineEmits<{
@@ -87,6 +89,7 @@ const {t} = useI18n()
         v-if="props.fields.length > 0"
         :audience-count="props.audienceCount"
         :fields="props.fields"
+        :sets="props.sets"
         :selected-id="props.selectedId"
         :checked-ids="props.checkedIds"
         @select="(f: EditableField) => emit('select', f)"

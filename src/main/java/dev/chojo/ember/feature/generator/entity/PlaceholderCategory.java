@@ -27,7 +27,9 @@ public enum PlaceholderCategory {
     /** The member who issues the document for the station. */
     ISSUER("Ausstellende Person", "Issuer"),
     /** The document itself. */
-    DOCUMENT("Dokument", "Document");
+    DOCUMENT("Dokument", "Document"),
+    /** What the template asks the person generating the document. */
+    QUESTION("Abfragen", "Questions");
 
     private final String german;
     private final String english;

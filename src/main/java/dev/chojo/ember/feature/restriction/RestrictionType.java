@@ -73,7 +73,23 @@ public enum RestrictionType {
             "station",
             "id",
             "witness_reach_mode",
-            StationPermission.MEMBER_MANAGER);
+            StationPermission.MEMBER_MANAGER),
+    ATTENDANCE_TEMPLATE_TIME_RULE(
+            "attendance_template_time_rule_restriction",
+            "rule_id",
+            "attendance_template_time_rule",
+            "id",
+            "restriction_mode",
+            StationPermission.ATTENDANCE_CONFIGURE,
+            false),
+    ATTENDANCE_SESSION_TIME_RULE(
+            "attendance_session_time_rule_restriction",
+            "rule_id",
+            "attendance_session_time_rule",
+            "id",
+            "restriction_mode",
+            StationPermission.ATTENDANCE_EDIT,
+            false);
 
     private final String table;
     private final String fkColumn;
@@ -81,6 +97,7 @@ public enum RestrictionType {
     private final String entityIdColumn;
     private final String modeColumn;
     private final StationPermission managerPermission;
+    private final boolean guardsVisibility;
 
     RestrictionType(
             String table,
@@ -89,6 +106,18 @@ public enum RestrictionType {
             String entityIdColumn,
             String modeColumn,
             StationPermission managerPermission) {
+        this(table, fkColumn, entityTable, entityIdColumn, modeColumn, managerPermission, true);
+    }
+
+    RestrictionType(
+            String table,
+            String fkColumn,
+            String entityTable,
+            String entityIdColumn,
+            String modeColumn,
+            StationPermission managerPermission,
+            boolean guardsVisibility) {
+        this.guardsVisibility = guardsVisibility;
         this.table = table;
         this.fkColumn = fkColumn;
         this.entityTable = entityTable;
@@ -119,5 +148,19 @@ public enum RestrictionType {
 
     public StationPermission managerPermission() {
         return managerPermission;
+    }
+
+    /**
+     * Whether the restriction decides who may see or use something.
+     *
+     * <p>The attendance time rules do not: they name who is credited with preparation and follow-up
+     * time, and are only ever read and written through this registry. They never go through a
+     * visibility check, whose manager bypass would credit every attendance editor, and they do not
+     * keep a group from being deleted: a rule that loses a group it named stops crediting anybody.
+     *
+     * @return true for every restriction guarding visibility or use
+     */
+    public boolean guardsVisibility() {
+        return guardsVisibility;
     }
 }

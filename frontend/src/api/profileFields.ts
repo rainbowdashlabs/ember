@@ -9,6 +9,8 @@ import {
     FieldType,
     ProfileFieldScope,
     type AssignmentRequest,
+    type FieldSet,
+    type FieldSetRequest,
     type MergedField,
     type MergedValue,
     type ProfileField,
@@ -121,6 +123,33 @@ export const deleteField = fields.remove
  */
 export async function reorderFields(role: ProfileFieldScope, fieldIds: number[]): Promise<void> {
     await client.put('/profile-fields/order', {role, fieldIds})
+}
+
+/** The groups the station keeps its fields in. */
+export async function listSets(): Promise<FieldSet[]> {
+    const res = await client.get<FieldSet[]>('/profile-field-sets')
+    return res.data
+}
+
+/** Writes a new, empty group of fields down. */
+export async function createSet(data: FieldSetRequest): Promise<FieldSet> {
+    const res = await client.post<FieldSet>('/profile-field-sets', data)
+    return res.data
+}
+
+/** Renames a group, or changes whether its name stands above its fields. */
+export async function updateSet(id: number, data: FieldSetRequest): Promise<void> {
+    await client.put(`/profile-field-sets/${id}`, data)
+}
+
+/** Dissolves a group. Its fields stay, on their own. */
+export async function dissolveSet(id: number): Promise<void> {
+    await client.delete(`/profile-field-sets/${id}`)
+}
+
+/** Puts a group's fields in order, which every form follows. */
+export async function orderSet(id: number, fieldIds: number[]): Promise<void> {
+    await client.put(`/profile-field-sets/${id}/order`, {fieldIds})
 }
 
 /** The languages a gender field gives pronouns in, the roles each tells apart and the two predefined answers. */

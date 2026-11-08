@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {FieldType, StationModule, type ProfileFieldAssignment} from '@/api/generated/schema'
+import {FieldType, StationModule, type FieldSet, type ProfileFieldAssignment} from '@/api/generated/schema'
 import {STATION_MODULE_OPTIONS} from '@/data/stationModules'
 import type {EditableField, FieldSettings} from '@/api/profileFields'
 import type {Audience} from '@/composables/useFieldsConfig'
@@ -14,15 +14,18 @@ type Translate = (key: string) => string
 /** A question of the station's profile with the settings the table shows. */
 function question(id: number, name: string, fieldType: FieldType, required: boolean, readonly: boolean,
                   config: FieldSettings = {}): EditableField {
-  return {id, name, fieldType, required, readonly, keepOnArchive: true, width: null, config}
+  return {id, name, fieldType, required, readonly, keepOnArchive: true, width: null, config, shownIfFieldId: null, fieldSetId: null, setPosition: 0}
 }
 
 /** Three questions of a station's profile: a phone number, a birth date and a clothing size. */
 export const DEMO_FIELDS: EditableField[] = [
-  question(1, 'Telefonnummer', FieldType.TEXT, true, false),
+  {...question(1, 'Telefonnummer', FieldType.TEXT, true, false), fieldSetId: 1},
   question(2, 'Geburtsdatum', FieldType.BIRTH_DATE, true, true),
   question(3, 'Kleidergröße', FieldType.CHOICE, false, false, {options: ['S', 'M', 'L', 'XL']}),
 ]
+
+/** One group of fields, holding the phone number, whose name stands above it on the form. */
+export const DEMO_SETS: FieldSet[] = [{id: 1, ownerId: 1, name: 'Kontakt', nameAsSection: true}]
 
 /** How many audiences each of the questions is put to. */
 export const DEMO_AUDIENCE_COUNT: Record<number, number> = {1: 2, 2: 2, 3: 1}

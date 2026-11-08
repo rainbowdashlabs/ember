@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref, useSlots, watch} from 'vue'
+import {computed, onMounted, ref, useSlots, watch} from 'vue'
+import {useSidebarSubgroups} from '@/composables/useSidebarSubgroups'
 import {useRoute} from 'vue-router'
 import {useSidebarCollapse} from '@/composables/useSidebarCollapse'
 import {useSidebarFlyoutParent} from '@/composables/useSidebarFlyoutContext'
@@ -24,10 +25,13 @@ const props = defineProps<{
   prefix?: string | string[]
   icon?: string[]
   badge?: number
+  /** Remembers whether the reader opened or closed it, per browser, under this name. */
+  rememberAs?: string
 }>()
 
 const route = useRoute()
 const slots = useSlots()
+const {chosen, restore, setOpen} = useSidebarSubgroups()
 
 const prefixes = computed(() => {
   const written = Array.isArray(props.prefix) ? props.prefix : props.prefix ? [props.prefix] : []
@@ -42,6 +46,18 @@ const expanded = ref(isActive.value)
 watch(isActive, (active) => {
   if (active) expanded.value = true
 })
+
+onMounted(() => {
+  if (!props.rememberAs) return
+  restore()
+  const remembered = chosen.value[props.rememberAs]
+  if (remembered !== undefined && !isActive.value) expanded.value = remembered
+})
+
+function toggleExpanded() {
+  expanded.value = !expanded.value
+  if (props.rememberAs) setOpen(props.rememberAs, expanded.value)
+}
 
 const hiddenWhenCollapsed = computed(() => collapsed.value && !inFlyout)
 
@@ -69,7 +85,7 @@ function onRowClick() {
     flyoutForce(!flyoutOpen.value)
     return
   }
-  expanded.value = !expanded.value
+  toggleExpanded()
 }
 
 function onRowEnter() {

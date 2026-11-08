@@ -61,25 +61,29 @@ export function useMemberManagers(
   }
 
   /**
-   * Reads each manager's answers, one at a time so that one unreadable manager does not blank the rest.
+   * Reads the answers of the people on either side of the relation, guardians and the members they look
+   * after, one at a time so that one unreadable person does not blank the rest.
    *
-   * <p>Said out loud where any of them could not be read, because the panel then shows that manager with
+   * <p>What is read is added to what is already known rather than replacing it, so reading the guardians
+   * again after a change keeps the answers of the members in their care.
+   *
+   * <p>Said out loud where any of them could not be read, because the panel then shows that person with
    * empty fields, and an empty telephone number on a guardian reads as one nobody has given.
    */
-  async function loadDetails(mgrs: MemberWithName[]) {
-    const mgrVals = new Map<number, Map<number, string>>()
-    const mgrTypes = new Map<number, string>()
+  async function loadDetails(people: MemberWithName[]) {
+    const mgrVals = new Map(managerValues.value)
+    const mgrTypes = new Map(managerUserTypes.value)
     let unreadable: unknown = null
-    for (const mgr of mgrs) {
+    for (const person of people) {
       try {
         const [vals, memberData] = await Promise.all([
-          profileFields.getValues(mgr.id),
-          stationMembers.getMember(mgr.id),
+          profileFields.getValues(person.id),
+          stationMembers.getMember(person.id),
         ])
         const fieldMap = new Map<number, string>()
         for (const v of vals) { fieldMap.set(v.fieldId, v.value ?? '') }
-        mgrVals.set(mgr.id, fieldMap)
-        mgrTypes.set(mgr.id, memberData.userType ?? '')
+        mgrVals.set(person.id, fieldMap)
+        mgrTypes.set(person.id, memberData.userType ?? '')
       } catch (e) {
         unreadable = e
       }

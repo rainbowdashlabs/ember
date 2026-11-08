@@ -17,6 +17,7 @@ const setUserType = vi.fn()
 const setManagers = vi.fn()
 const getManagers = vi.fn()
 const getMember = vi.fn()
+const getValues = vi.fn()
 
 vi.mock('@/api', () => ({
     members: {
@@ -30,7 +31,7 @@ vi.mock('@/api', () => ({
         getMember: (...args: unknown[]) => getMember(...args),
     },
     profileFields: {
-        getValues: async () => [],
+        getValues: (...args: unknown[]) => getValues(...args),
     },
 }))
 
@@ -58,6 +59,7 @@ beforeEach(() => {
     setManagers.mockResolvedValue(undefined)
     getManagers.mockResolvedValue([])
     getMember.mockResolvedValue({userType: 'GUARDIAN'})
+    getValues.mockResolvedValue([])
 })
 
 describe('useMemberManagers', () => {
@@ -106,6 +108,21 @@ describe('useMemberManagers', () => {
         await managersFor([member(4, 40, 'TEAM')]).linkManager(4)
 
         expect(setUserType).not.toHaveBeenCalled()
+    })
+
+    /**
+     * The members a guardian looks after are read through the same store as the guardians, so reading
+     * the guardians again after a change must not blank the answers of the children beside them.
+     */
+    it('keeps the answers of the members looked after when the guardians are read again', async () => {
+        getValues.mockImplementation(async (id: number) => [{fieldId: 3, value: `answer of ${id}`}])
+        const managers = managersFor([])
+        await managers.loadDetails([member(5, 50, 'MEMBER')])
+
+        await managers.loadDetails([member(7, 70, 'GUARDIAN')])
+
+        expect(managers.getManagerFieldValue(5, 3)).toBe('answer of 5')
+        expect(managers.getManagerFieldValue(7, 3)).toBe('answer of 7')
     })
 
     it('changes nobody when the invited account cannot be found again', async () => {

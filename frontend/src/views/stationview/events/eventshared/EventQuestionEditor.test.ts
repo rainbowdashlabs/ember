@@ -20,7 +20,7 @@ describe('EventQuestionEditor', () => {
     }
 
     function offered(wrapper: Awaited<ReturnType<typeof edit>>) {
-        return wrapper.findAll('[data-testid="event-field-type"] option').map(option => option.attributes('value'))
+        return wrapper.findAll('[data-testid="question-type"] option').map(option => option.attributes('value'))
     }
 
     it('offers the organiser every appointment type and the registrant the registration ones', async () => {
@@ -41,7 +41,7 @@ describe('EventQuestionEditor', () => {
 
     it('hands back the whole question when its name changes', async () => {
         const wrapper = await edit('registrant', {...blankQuestion(), overview: true})
-        await wrapper.find('[data-testid="event-field-name"]').setValue('Shirtgröße')
+        await wrapper.find('[data-testid="question-name"]').setValue('Shirtgröße')
         const handed = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as EventFieldEntry
         expect(handed.name).toBe('Shirtgröße')
         expect(handed.overview).toBe(true)

@@ -61,6 +61,11 @@ public record FontFamily(String name, FontOrigin origin, Map<FontStyle, FontFace
         return files.values().stream().allMatch(FontFace::printsOnPdf);
     }
 
+    /** @return whether letters can print in the family */
+    public boolean printsInLetters() {
+        return files.values().stream().allMatch(FontFace::printsInLetters);
+    }
+
     /** @return whether the server holds a file of every style, which the template editor can load */
     public boolean hasFiles() {
         return files.values().stream().allMatch(FontFace::hasFile);

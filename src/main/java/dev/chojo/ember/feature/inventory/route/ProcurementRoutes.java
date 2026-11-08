@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.Procurement;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
+import dev.chojo.ember.feature.inventory.service.MovementGuards;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -33,6 +34,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -49,6 +51,7 @@ public class ProcurementRoutes implements Routes {
     private final MemberNameResolver names;
     private final InventoryService inventoryService;
     private final MemberIdentityFactory memberIdentityFactory;
+    private final MovementGuards guards;
 
     @Inject
     public ProcurementRoutes(
@@ -56,8 +59,10 @@ public class ProcurementRoutes implements Routes {
             StationMemberService memberService,
             MemberNameResolver names,
             InventoryService inventoryService,
-            MemberIdentityFactory memberIdentityFactory) {
+            MemberIdentityFactory memberIdentityFactory,
+            MovementGuards guards) {
         this.procurementService = procurementService;
+        this.guards = guards;
         this.memberService = memberService;
         this.names = names;
         this.inventoryService = inventoryService;
@@ -78,6 +83,10 @@ public class ProcurementRoutes implements Routes {
                 StationPermission.INVENTORY_READ);
         routes.post(prefix + "/procurement", this::create, StationPermission.INVENTORY_PROCUREMENT);
         routes.put(prefix + "/procurement/{id}/fulfill", this::fulfill, StationPermission.INVENTORY_PROCUREMENT);
+        routes.post(
+                prefix + "/procurement/{id}/issue-from-stock",
+                this::issueFromStock,
+                StationPermission.INVENTORY_PROCUREMENT);
         routes.delete(prefix + "/procurement/{id}", this::delete, StationPermission.INVENTORY_PROCUREMENT);
     }
 
@@ -141,6 +150,27 @@ public class ProcurementRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/procurement/{id}/issue-from-stock",
+            methods = HttpMethod.POST,
+            summary = "Settle a procurement request with a piece from storage by handing it out through a movement",
+            tags = {"Procurement"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = IssueFromStockRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = IssueFromStockResponse.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void issueFromStock(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        requireOwnedOrNotFound(ctx, id, procurementService::findById, Procurement::stationId);
+        var request = ctx.bodyAsClass(IssueFromStockRequest.class);
+        var movement = procurementService.issueFromStock(id, request.itemId(), guards.actorOf(session.user(), null));
+        ctx.status(HttpStatus.CREATED).json(new IssueFromStockResponse(movement.id()));
+    }
+
+    @OpenApi(
             path = "/api/v1/procurement/{id}",
             methods = HttpMethod.DELETE,
             summary = "Delete a procurement request",
@@ -190,11 +220,16 @@ public class ProcurementRoutes implements Routes {
                 sizeLabel,
                 procurement.notes(),
                 procurement.requestedAt(),
-                procurement.fulfilledAt());
+                procurement.fulfilledAt(),
+                procurementService.stockFor(procurement).stream()
+                        .map(item -> new StockPiece(item.id(), item.name(), item.internalId()))
+                        .toList());
     }
 
     /**
      * @param memberId who it is for, or {@code null} for an order a cluster places for its own store
+     * @param stock    the pieces lying free in storage that would answer this order, empty once it is
+     *                 settled or when it is for nobody
      */
     public record ProcurementResponse(
             int id,
@@ -207,7 +242,17 @@ public class ProcurementRoutes implements Routes {
             @Nullable String sizeLabel,
             String notes,
             Instant requestedAt,
-            @Nullable Instant fulfilledAt) {}
+            @Nullable Instant fulfilledAt,
+            List<StockPiece> stock) {}
+
+    /** A piece in storage that could be handed out against an order. */
+    public record StockPiece(int id, String name, @Nullable String internalId) {}
+
+    /** @param itemId the piece from storage to hand out */
+    public record IssueFromStockRequest(int itemId) {}
+
+    /** @param movementId the movement that now hands the piece out */
+    public record IssueFromStockResponse(int movementId) {}
 
     /**
      * @param memberId who it is for, left out for an order a cluster places for its own store

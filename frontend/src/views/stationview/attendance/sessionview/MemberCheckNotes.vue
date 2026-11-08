@@ -11,7 +11,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
-import {hasAnything, hasBirthday} from './memberNotes'
+import {actionCount, hasBirthday} from './memberNotes'
 import type {MemberNotes, SwapNote} from '@/api/generated/schema'
 
 const {t} = useI18n()
@@ -24,13 +24,18 @@ const {t} = useI18n()
  * of names. Where none is set aside yet the note says so rather than offering a button the step
  * would refuse.
  */
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   notes?: MemberNotes
   /** Whether this reader may move a swap on and call one off, which is the one right. */
   canManageSwap?: boolean
   /** Whether this reader may sign a found item over. */
   canSignOffFound?: boolean
-}>()
+  /**
+   * Which of the notes to show: all of them, only the birthday, or only what there is to settle, so a
+   * screen can put the birthday beside the name and what there is to settle below its own buttons.
+   */
+  part?: 'all' | 'birthday' | 'actions'
+}>(), {notes: undefined, part: 'all'})
 
 const emit = defineEmits<{
   moveSwap: [movementId: number, stepId: number, replacementItemId: number | null]
@@ -38,7 +43,9 @@ const emit = defineEmits<{
   signOffFound: [itemId: number]
 }>()
 
-const anything = computed(() => hasAnything(props.notes))
+const showsBirthday = computed(() => props.part !== 'actions' && hasBirthday(props.notes))
+const showsActions = computed(() => props.part !== 'birthday' && actionCount(props.notes) > 0)
+const anything = computed(() => showsBirthday.value || showsActions.value)
 
 /** The swap asked to be called off, held until said twice: a mis-press here cannot be got back. */
 const dropping = ref<SwapNote | null>(null)
@@ -77,7 +84,7 @@ const birthdayText = computed(() => {
 <template>
   <div v-if="anything" class="space-y-2" data-testid="member-check-notes">
     <div
-        v-if="hasBirthday(notes)"
+        v-if="showsBirthday"
         class="flex items-center gap-2 text-sm"
         data-testid="note-birthday"
     >
@@ -86,7 +93,7 @@ const birthdayText = computed(() => {
     </div>
 
     <ButtonRow
-        v-for="swap in notes?.swaps ?? []"
+        v-for="swap in showsActions ? notes?.swaps ?? [] : []"
         :key="swap.movementId"
         :data-swap="swap.movementId"
         class="text-sm"
@@ -115,7 +122,7 @@ const birthdayText = computed(() => {
     </ButtonRow>
 
     <div
-        v-for="item in notes?.foundItems ?? []"
+        v-for="item in showsActions ? notes?.foundItems ?? [] : []"
         :key="item.itemId"
         class="flex flex-wrap items-center gap-2 text-sm"
         data-testid="note-found"

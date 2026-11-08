@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -13,9 +14,9 @@ import {questionKindOf} from '@/util/questions'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ExpiryStateBadge from '@/components/display/ExpiryStateBadge.vue'
 import {parseFieldConfig, type FieldSettings} from '@/api/profileFields'
-import {FieldType, type FieldOrigin, type MergedField} from '@/api/generated/schema'
-import {calculatedAnswer} from '@/util/profileFields'
-import {isSection, isSpacer, spanClass} from './fieldLayout'
+import {FieldType, type FieldOrigin, type FieldSetLabel, type MergedField} from '@/api/generated/schema'
+import {calculatedAnswer, shownFields} from '@/util/profileFields'
+import {isSection, isSpacer, setHeadingBefore, spanClass} from './fieldLayout'
 
 /**
  * The fields of a member, laid out the way the station arranged them: headings between them, and
@@ -41,6 +42,10 @@ export type LaidOutField = Pick<MergedField, 'id' | 'name'> & Partial<Pick<Merge
   readonly?: boolean
   /** Set on a cluster field the cluster keeps to itself, which nobody at the station may write. */
   readonlyAtStation?: boolean
+  /** The yes/no question of the same owner this one is only shown behind, while it is answered yes. */
+  shownIfFieldId?: number | null
+  /** The group of the same owner this one belongs to, whose name may stand above it. */
+  fieldSet?: FieldSetLabel | null
 }
 
 const props = defineProps<{
@@ -96,6 +101,12 @@ function valueOf(field: LaidOutField): string {
   return computedAnswer(field) ?? props.getValue(field)
 }
 
+/**
+ * The questions drawn, without those hidden behind a yes/no question not answered yes. Read from the
+ * answers as they are typed, so ticking the yes/no question shows the one behind it at once.
+ */
+const shown = computed(() => shownFields(props.fields, props.getValue))
+
 /** The sentence the station wrote to say what the question is after, empty when it wrote none. */
 function descriptionOf(field: LaidOutField): string {
   return parseFieldConfig(field.config).description ?? ''
@@ -104,7 +115,10 @@ function descriptionOf(field: LaidOutField): string {
 
 <template>
   <div class="grid grid-cols-6 gap-x-4 gap-y-3 items-start">
-    <template v-for="field in props.fields" :key="`${field.origin ?? 'STATION'}-${field.id}`">
+    <template v-for="(field, index) in shown" :key="`${field.origin ?? 'STATION'}-${field.id}`">
+      <div v-if="setHeadingBefore(shown, index)" class="col-span-6 pt-2 first:pt-0" data-testid="field-set-heading">
+        <SubHeader class="text-sm">{{ setHeadingBefore(shown, index) }}</SubHeader>
+      </div>
       <div v-if="isSection(field)" :class="spanClass(field)" class="pt-2 first:pt-0">
         <SubHeader class="text-sm">{{ field.name }}</SubHeader>
       </div>

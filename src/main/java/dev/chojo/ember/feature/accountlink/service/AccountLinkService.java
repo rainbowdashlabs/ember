@@ -9,6 +9,7 @@ import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.accountlink.entity.AccountLinkRequest;
 import dev.chojo.ember.feature.accountlink.entity.LinkAnswer;
 import dev.chojo.ember.feature.accountlink.entity.LinkOrigin;
@@ -110,22 +111,31 @@ public class AccountLinkService {
      * Asks the owner of an account whether the station may link it to one of its members. A member that
      * already waits for a link keeps the request it has.
      *
+     * <p>A request asked without its mail is shown to the owner at sign-in only, and the mail goes out
+     * when somebody sends the request again from the member list.
+     *
      * @param stationId the station that asks
      * @param memberId  the member, which exists without an account
      * @param accountId the account found by the address the station named
      * @param origin    how the station came to ask
      * @param createdBy the member who invited the address, or null for an import
+     * @param mail      whether the request is mailed now or waits to be sent by hand
      * @return the request
      */
     public AccountLinkRequest ask(
-            int stationId, int memberId, int accountId, LinkOrigin origin, @Nullable Integer createdBy) {
+            int stationId,
+            int memberId,
+            int accountId,
+            LinkOrigin origin,
+            @Nullable Integer createdBy,
+            SetupMail mail) {
         var unanswered = repository.findUnansweredForMember(memberId);
         if (unanswered.isPresent()) {
             if (unanswered.get().waits(clock.instant())) return unanswered.get();
             repository.answer(unanswered.get().id(), LinkAnswer.EXPIRED);
         }
         var account = accountRepository.findById(accountId).orElse(null);
-        String token = account != null && mailGoesTo(account) ? RandomTokens.urlSafe(32) : null;
+        String token = account != null && mail.sendsNow() && mailGoesTo(account) ? RandomTokens.urlSafe(32) : null;
         var request = repository.create(
                 stationId,
                 memberId,
@@ -195,7 +205,7 @@ public class AccountLinkService {
         if (state.status() == LinkStatus.WAITING) {
             resend(latest);
         } else {
-            ask(stationId, memberId, latest.accountId(), latest.origin(), actorId);
+            ask(stationId, memberId, latest.accountId(), latest.origin(), actorId, SetupMail.SEND_NOW);
         }
         log.info("Member {} of station {} sent the link of member {} again", actorId, stationId, memberId);
         return repository

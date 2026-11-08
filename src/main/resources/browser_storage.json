@@ -241,6 +241,15 @@
       }
     },
     {
+      "key": "sidebar_subgroups",
+      "necessity": "COMFORT",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Welche Untergruppen der Seitenleiste Sie auf- oder zugeklappt haben.",
+        "en": "Which subgroups of the sidebar you opened or closed."
+      }
+    },
+    {
       "key": "landing_area",
       "necessity": "COMFORT",
       "retention": "UNTIL_CLEARED",

@@ -14,6 +14,7 @@ import * as publicQuiz from '@/api/publicQuiz'
 import {isQuizQuestionOf} from '@/api/quiz'
 import {QuizQuestionType, type PublicQuizQuestion, type QuizQuestion} from '@/api/generated/schema'
 import {moveWithin} from '@/util/reorder'
+import {renderMarkdown} from '@/util/markdown'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 /**
@@ -147,7 +148,7 @@ function setFillGap(gapIndex: number, value: string) {
             <font-awesome-icon :icon="['fas', 'graduation-cap']" class="text-2xl text-primary"/>
             <p class="font-semibold flex-1">{{ title || t('stationPages.editor.quizDefaultTitle') }}</p>
         </div>
-        <p v-if="description" class="text-sm text-(--text-muted)">{{ description }}</p>
+        <div v-if="description" class="markdown-content text-sm text-(--text-muted)" v-html="renderMarkdown(description)"/>
 
         <EmptyHint v-if="!catalogIds || catalogIds.length === 0">
             {{ t('stationPages.editor.quizCatalogsHint') }}

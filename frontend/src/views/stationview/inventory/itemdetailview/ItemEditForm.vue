@@ -58,6 +58,7 @@ const {t} = useI18n()
         <option v-for="s in props.sizes" :key="s.id" :value="String(s.id)">{{ s.label }}</option>
       </SelectInput>
     </div>
+    <slot/>
   </div>
   <div class="flex gap-2">
     <SaveButton :action="props.save" data-testid="item-edit-save"/>

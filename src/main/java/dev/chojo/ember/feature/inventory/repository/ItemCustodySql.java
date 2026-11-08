@@ -120,6 +120,20 @@ public final class ItemCustodySql {
     }
 
     /**
+     * A predicate matching the items no open movement names, neither as setting out nor as promised.
+     *
+     * <p>Such a piece is not free to be offered for anything else, however free its custody looks.
+     *
+     * @param itemAlias the alias of {@code inventory_item}, or the bare table name
+     * @return the SQL predicate, needing no bind of its own
+     */
+    public static String notOnAMovement(String itemAlias) {
+        return """
+                NOT EXISTS (SELECT 1 FROM item_movement open_movement WHERE open_movement.state = 'OPEN' \
+                AND %1$s.id IN (open_movement.outgoing_item_id, open_movement.incoming_item_id))""".formatted(itemAlias);
+    }
+
+    /**
      * A predicate matching the gear a station can actually put its hands on.
      *
      * <p>Narrower than {@link #heldBy(String, String)} and wider than {@link #freeStock(String)}, and

@@ -66,6 +66,7 @@ export function newField(
         statement: null,
         required: false,
         maxLength: null,
+        keepSize: false,
     }
 }
 

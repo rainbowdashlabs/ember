@@ -48,7 +48,7 @@ const tabs = computed(() => [
 </script>
 
 <template>
-  <TabBar v-model="activeTab" :tabs="tabs"/>
+  <TabBar v-model="activeTab" :tabs="tabs" linked/>
   <template v-if="activeTab === 'charts'">
     <GroupedChartsTab v-if="grouped" :questions="results.questions" :groups="results.groups" :names="names"
                       :series="series" :overlap="results.groupsOverlap"/>

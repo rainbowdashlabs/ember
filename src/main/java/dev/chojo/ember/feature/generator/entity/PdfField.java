@@ -39,6 +39,8 @@ import org.jspecify.annotations.Nullable;
  * @param required    for a field to fill in: whether its signer has to fill it in to sign
  * @param maxLength   for a field to fill in: the most characters its value may have, or null for
  *                    {@value FillInField#LONGEST_VALUE}
+ * @param keepSize    for a text field that does not wrap: whether it prints at its size however long the value
+ *                    is, running past its box, rather than shrinking the value to fit
  */
 public record PdfField(
         PdfFieldKind kind,
@@ -54,12 +56,70 @@ public record PdfField(
         boolean printText,
         @Nullable String statement,
         boolean required,
-        @Nullable Integer maxLength) {
+        @Nullable Integer maxLength,
+        boolean keepSize) {
 
     /** The columns {@link #map()} reads, in a form a query can splice in. */
     public static final String COLUMNS = """
             kind, page, x, y, width, height, text, font_size, align, wrap, role, font_family, font_style, \
-            without_line, print_text, statement, required, max_length""";
+            without_line, print_text, statement, required, max_length, keep_size""";
+
+    /** A field as it was before a text field could keep its size. */
+    public PdfField(
+            PdfFieldKind kind,
+            FieldRect rect,
+            @Nullable String text,
+            double fontSize,
+            TextAlign align,
+            boolean wrap,
+            @Nullable SignatureRole role,
+            @Nullable String fontFamily,
+            @Nullable FontStyle fontStyle,
+            boolean withoutLine,
+            boolean printText,
+            @Nullable String statement,
+            boolean required,
+            @Nullable Integer maxLength) {
+        this(
+                kind,
+                rect,
+                text,
+                fontSize,
+                align,
+                wrap,
+                role,
+                fontFamily,
+                fontStyle,
+                withoutLine,
+                printText,
+                statement,
+                required,
+                maxLength,
+                false);
+    }
+
+    /**
+     * @param moved where the field sits from now on
+     * @return the same field in another box
+     */
+    public PdfField withRect(FieldRect moved) {
+        return new PdfField(
+                kind,
+                moved,
+                text,
+                fontSize,
+                align,
+                wrap,
+                role,
+                fontFamily,
+                fontStyle,
+                withoutLine,
+                printText,
+                statement,
+                required,
+                maxLength,
+                keepSize);
+    }
 
     /** A field as it was before a field could be filled in by its signer. */
     public PdfField(
@@ -154,6 +214,7 @@ public record PdfField(
                 row.getBoolean("print_text"),
                 row.getString("statement"),
                 row.getBoolean("required"),
-                row.getObject("max_length", Integer.class));
+                row.getObject("max_length", Integer.class),
+                row.getBoolean("keep_size"));
     }
 }

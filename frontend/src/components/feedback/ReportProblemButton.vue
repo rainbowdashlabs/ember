@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import {openProblemReport} from '@/util/problemReportState'
-import BareButton from '@/components/button/BareButton.vue'
+import DockButton from '@/components/button/DockButton.vue'
 
 /**
  * The way in to reporting a fault from anywhere, for somebody who noticed one without a request having
@@ -19,12 +19,6 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <BareButton
-      class="fixed bottom-4 right-4 z-40 h-10 w-10 rounded-full bg-error text-error-text shadow-lg hover:bg-error/80 transition-colors flex items-center justify-center"
-      :title="t('problemReport.button')"
-      data-testid="report-problem"
-      @click="openProblemReport()"
-  >
-    <font-awesome-icon :icon="['fas', 'bug']" class="h-4 w-4"/>
-  </BareButton>
+  <DockButton :label="t('problemReport.button')" :icon="['fas', 'bug']" tone="error" data-testid="report-problem"
+              @click="openProblemReport()"/>
 </template>

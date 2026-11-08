@@ -31,7 +31,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   acknowledge: [movement: MovementResponse]
   correct: [movement: MovementResponse]
-  open: [movement: MovementResponse]
   pick: [movement: MovementResponse]
 }>()
 
@@ -52,7 +51,6 @@ const {t} = useI18n()
             :picking="props.picking"
             @acknowledge="emit('acknowledge', row)"
             @correct="emit('correct', row)"
-            @open="emit('open', row)"
             @pick="emit('pick', row)"
         />
       </template>

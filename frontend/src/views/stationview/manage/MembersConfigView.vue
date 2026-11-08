@@ -27,6 +27,10 @@ const port: FieldsPort = {
   assign: (fieldId, assignment) => profileFields.assignField(fieldId, assignment),
   unassign: (fieldId, target) => profileFields.unassignField(fieldId, target),
   reorder: (role, fieldIds) => profileFields.reorderFields(role, fieldIds),
+  listSets: () => profileFields.listSets(),
+  createSet: (data) => profileFields.createSet(data),
+  updateSet: (id, data) => profileFields.updateSet(id, data),
+  dissolveSet: (id) => profileFields.dissolveSet(id),
   roles: STATION_ROLES,
   types: OfferedFieldTypes.PROFILE,
   listGroups: () => memberGroups.listGroups(),
@@ -35,7 +39,7 @@ const port: FieldsPort = {
 
 const config = useFieldsConfig(port)
 const {
-  birthDateField, genderField, dateFields, showFieldModal, editingField, loading, failure,
+  birthDateField, genderField, dateFields, booleanFields, sets, showFieldModal, editingField, loading, failure,
   saveField, showDeleteModal, deleteTarget, confirmDelete,
 } = config
 </script>
@@ -56,6 +60,8 @@ const {
           :birth-date-field="birthDateField"
           :gender-field="genderField"
           :date-fields="dateFields"
+          :boolean-fields="booleanFields"
+          :sets="sets"
           :field="editingField"
           @save="saveField"
       />

@@ -6,12 +6,9 @@
 <script generic="T extends EventFieldEntry" lang="ts" setup>
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import TextInput from '@/components/input/text/TextInput.vue'
 import LabelledField from '@/components/input/LabelledField.vue'
-import FieldTypePicker from '@/components/input/FieldTypePicker.vue'
-import QuestionSettingsEditor from '@/components/input/questionsettings/QuestionSettingsEditor.vue'
+import QuestionCard from '@/components/input/questionsettings/QuestionCard.vue'
 import type {QuestionSettingsModel} from '@/components/input/questionsettings/questionSettings'
-import DeleteButton from '@/components/button/DeleteButton.vue'
 import EventFieldValueInput from './EventFieldValueInput.vue'
 import OrganiserQuestionSettings from './OrganiserQuestionSettings.vue'
 import RegistrantQuestionSettings from './RegistrantQuestionSettings.vue'
@@ -27,9 +24,10 @@ import {SHARED_SETTINGS, settingsModelOf, withSettingsModel, type EventQuestionM
  *
  * <p>The organiser's question and the registrant's question had an editor each, with their own type
  * list and their own way of writing the same choices. They share the name, the type and the settings
- * every field has, and differ only in what is theirs alone: the organiser's carries an answer, a width,
- * a tie to the attendance sheet and whether it is public; the registrant's may be required, start from
- * a value and keep its answer for the organisers. The mode says which of those this one shows.
+ * every field has, which is the shared question card, and differ only in what is theirs alone: the
+ * organiser's carries an answer, a width, a tie to the attendance sheet and whether it is public; the
+ * registrant's may be required, start from a value and keep its answer for the organisers. The mode
+ * says which of those this one shows.
  *
  * <p>The question is edited in place: every change hands back the whole question, so a question
  * moved to another row brings its form with it.
@@ -88,30 +86,23 @@ function updateSettings(model: QuestionSettingsModel) {
 </script>
 
 <template>
-  <div class="rounded border border-(--border) p-3 space-y-3">
-    <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-end">
-      <LabelledField :label="nameLabel">
-        <TextInput :model-value="question.name ?? ''" :placeholder="namePlaceholder" data-testid="event-field-name"
-                   @update:model-value="name => update({name: String(name ?? '')})"/>
-      </LabelledField>
-      <LabelledField :label="t('fieldTypes.type')" class="sm:w-56">
-        <FieldTypePicker :model-value="fieldType" :types="offered" data-testid="event-field-type"
-                         @update:model-value="type => update({fieldType: type})"/>
-      </LabelledField>
-      <DeleteButton class="justify-self-end" :label="t('common.delete')" @click="emit('remove')"/>
-    </div>
-
-    <QuestionSettingsEditor
-        :default-hint="t('events.registrationFields.defaultValueHint')"
-        :field-type="fieldType"
-        :groups="groups"
-        :members="members"
-        :model-value="settings"
-        :offers="SHARED_SETTINGS[mode]"
-        :tags="tags"
-        @update:model-value="updateSettings"
-    />
-
+  <QuestionCard
+      :default-hint="t('events.registrationFields.defaultValueHint')"
+      :field-type="fieldType"
+      :groups="groups"
+      :members="members"
+      :name="question.name ?? ''"
+      :name-label="nameLabel"
+      :name-placeholder="namePlaceholder"
+      :offers="SHARED_SETTINGS[mode]"
+      :settings="settings"
+      :tags="tags"
+      :types="offered"
+      @remove="emit('remove')"
+      @update:field-type="type => update({fieldType: type})"
+      @update:name="name => update({name})"
+      @update:settings="updateSettings"
+  >
     <OrganiserQuestionSettings
         v-if="organiser"
         :attendance-fields="attendanceFields"
@@ -132,5 +123,5 @@ function updateSettings(model: QuestionSettingsModel) {
           @update:model-value="value => update({value})"
       />
     </LabelledField>
-  </div>
+  </QuestionCard>
 </template>

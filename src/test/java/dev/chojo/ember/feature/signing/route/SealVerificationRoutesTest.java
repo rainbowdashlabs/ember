@@ -40,7 +40,10 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.cert.X509Certificate;
@@ -300,14 +303,29 @@ class SealVerificationRoutesTest extends RepositoryTestBase {
                 DocumentRefusal.SEAL_CHECK_NOT_A_PDF);
     }
 
+    /**
+     * A file a little over the limit is read and refused while its form is read; one whose announced length
+     * is past the form's allowance is refused before any of it is read. The second is sent the way a client
+     * that waits for the go-ahead sends it, since a client still sending when the refusal comes may see the
+     * connection close before it reads the answer ({@link TestUploads#announcedUpload}).
+     */
     @Test
     void aFileOverTheLimitIsRefused() {
         assertRefused(verifyStreamed(SealVerifier.MAX_BYTES + 1), 413, DocumentRefusal.SEAL_CHECK_TOO_LARGE);
 
-        assertRefused(
-                verifyStreamed(SealVerifier.MAX_BYTES + 2 * PublicSigningRoutes.FORM_ALLOWANCE_BYTES),
-                413,
-                DocumentRefusal.SEAL_CHECK_TOO_LARGE);
+        harness.run((server, client) -> {
+            var answer = HttpClient.newHttpClient()
+                    .send(
+                            TestUploads.announcedUpload(
+                                    URI.create(client.getOrigin() + VERIFY),
+                                    FILE_NAME,
+                                    SealVerifier.MAX_BYTES + 2 * PublicSigningRoutes.FORM_ALLOWANCE_BYTES),
+                            HttpResponse.BodyHandlers.ofString());
+            assertEquals(413, answer.statusCode());
+            assertEquals(
+                    DocumentRefusal.SEAL_CHECK_TOO_LARGE.code(),
+                    RouteHarness.body(answer.body()).path("code").asString(null));
+        });
     }
 
     @Test

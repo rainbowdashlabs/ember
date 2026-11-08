@@ -16,11 +16,12 @@ import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
 import FieldsPanel from '@/views/stationview/manage/membersconfig/FieldsPanel.vue'
 import AudiencesPanel from '@/views/stationview/manage/membersconfig/AudiencesPanel.vue'
 import TemplateButtons from '@/views/stationview/manage/membersconfig/TemplateButtons.vue'
+import FieldSetsPanel from '@/views/stationview/manage/membersconfig/FieldSetsPanel.vue'
 import ExpiryDateFields from '@/views/stationview/manage/membersconfig/fieldmodal/ExpiryDateFields.vue'
 import {STATION_ROLES} from '@/composables/useFieldsConfig'
 import {FieldType} from '@/api/generated/schema'
 import {expirySettingsOf, type ExpirySettings} from '@/util/expiry'
-import {DEMO_AUDIENCE_COUNT, DEMO_FIELDS, demoAudiences, demoExpiryDates} from './fixtures'
+import {DEMO_AUDIENCE_COUNT, DEMO_FIELDS, DEMO_SETS, demoAudiences, demoExpiryDates} from './fixtures'
 
 const {t} = useI18n()
 
@@ -54,7 +55,7 @@ const expiryDates = demoExpiryDates()
 
     <div class="grid gap-6 lg:grid-cols-2 items-start">
       <FieldsPanel :fields="DEMO_FIELDS" :selected-id="selectedField?.id ?? null" :audience-count="DEMO_AUDIENCE_COUNT"
-                   :checked-ids="noneChecked" :roles="STATION_ROLES" :groups="[]"/>
+                   :checked-ids="noneChecked" :roles="STATION_ROLES" :groups="[]" :sets="DEMO_SETS"/>
       <AudiencesPanel :field="selectedField" :audiences="audiences" :unasked-roles="unaskedRoles" :unasked-groups="[]"/>
     </div>
 
@@ -103,6 +104,20 @@ const expiryDates = demoExpiryDates()
       <p>{{ t('helpCenter.membersConfig.expiryReminders') }}</p>
       <p>{{ t('helpCenter.membersConfig.expiryRecipients') }}</p>
       <p>{{ t('helpCenter.membersConfig.expiryFilter') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.membersConfig.setsTitle')">
+      <p>{{ t('helpCenter.membersConfig.setsText') }}</p>
+      <p>{{ t('helpCenter.membersConfig.setsTogether') }}</p>
+      <p>{{ t('helpCenter.membersConfig.setsHeading') }}</p>
+    </HelpSection>
+
+    <FieldSetsPanel :sets="DEMO_SETS" :fields="DEMO_FIELDS"/>
+
+    <HelpSection :title="t('helpCenter.membersConfig.shownIfTitle')">
+      <p>{{ t('helpCenter.membersConfig.shownIfText') }}</p>
+      <p>{{ t('helpCenter.membersConfig.shownIfScope') }}</p>
+      <p>{{ t('helpCenter.membersConfig.shownIfRules') }}</p>
     </HelpSection>
 
     <NeutralContainer class="space-y-4">

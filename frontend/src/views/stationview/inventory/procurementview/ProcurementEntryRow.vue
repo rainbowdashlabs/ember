@@ -6,6 +6,9 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
@@ -24,6 +27,7 @@ defineProps<{
 
 defineEmits<{
   fulfill: [id: number]
+  fromStock: [entry: ProcurementResponse]
   delete: [id: number]
 }>()
 
@@ -38,6 +42,9 @@ defineEmits<{
           <SizeBadge>{{ entry.sizeLabel || t('common.unisize') }}</SizeBadge>
           <SuccessBadge v-if="entry.fulfilledAt">{{ t('procurement.fulfilled') }}</SuccessBadge>
           <ErrorBadge v-else>{{ t('procurement.open') }}</ErrorBadge>
+          <InfoBadge v-if="entry.stock.length > 0" data-testid="procurement-in-stock">
+            {{ t('procurement.inStock', {n: entry.stock.length}) }}
+          </InfoBadge>
         </div>
         <div class="text-sm text-(--text-muted) flex items-center gap-1">
           <template v-if="entry.memberIdentity">
@@ -52,7 +59,15 @@ defineEmits<{
         <div v-if="entry.notes" class="text-sm">{{ entry.notes }}</div>
       </div>
 
-      <div v-if="canManageProcurement" class="flex items-center gap-2 shrink-0">
+      <ButtonRow v-if="canManageProcurement" class="shrink-0">
+        <SecondaryButton
+            v-if="!entry.fulfilledAt && entry.stock.length > 0"
+            :icon="['fas', 'box']"
+            data-testid="procurement-from-stock"
+            @click="$emit('fromStock', entry)"
+        >
+          {{ t('procurement.fromStock') }}
+        </SecondaryButton>
         <PrimaryButton
             v-if="!entry.fulfilledAt"
             :icon="['fas', 'check']"
@@ -62,7 +77,7 @@ defineEmits<{
           {{ t('procurement.markFulfilled') }}
         </PrimaryButton>
         <DeleteButton @click="$emit('delete', entry.id)" />
-      </div>
+      </ButtonRow>
     </div>
   </NeutralContainer>
 </template>

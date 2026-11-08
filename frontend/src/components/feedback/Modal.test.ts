@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 /** @vitest-environment happy-dom */
-import {afterEach, describe, expect, it} from 'vitest'
+import {afterEach, describe, expect, it, vi} from 'vitest'
 import {enableAutoUnmount, flushPromises, mount} from '@vue/test-utils'
 import {defineComponent, h, nextTick, ref} from 'vue'
 import Modal from './Modal.vue'
@@ -166,6 +166,29 @@ describe('Modal', () => {
         await settle()
 
         expect(document.activeElement?.id).toBe('name')
+    })
+
+    /** A mark on a wrapper, as a component's root carries it, lands in the field inside. */
+    it('puts the focus on the field inside a marked wrapper', async () => {
+        const wrapper = await mountModal(
+            false, '<div data-autofocus><input id="search"></div><button id="ok">Senden</button>')
+
+        await wrapper.setProps({modelValue: true})
+        await settle()
+
+        expect(document.activeElement?.id).toBe('search')
+    })
+
+    /** A confirming button that is switched off is not answered by shift and enter. */
+    it('does not answer through a disabled confirming button', async () => {
+        const answered = vi.fn()
+        await mountModal(true, '<input id="field"><button id="ok" data-confirm disabled>Senden</button>')
+        document.getElementById('ok')!.addEventListener('click', answered)
+
+        press(document.getElementById('field')!, 'Enter', {shiftKey: true})
+        await settle()
+
+        expect(answered).not.toHaveBeenCalled()
     })
 
     it('gives the focus back to what opened it once it closes', async () => {

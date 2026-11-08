@@ -348,7 +348,7 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(31)
     void findBreakById() {
-        var br = breakService.create(station.id(), "Winter", LocalDate.of(2026, 12, 20), LocalDate.of(2027, 1, 5));
+        var br = breakService.create(station.id(), "Winter", LocalDate.of(2020, 12, 20), LocalDate.of(2021, 1, 5));
         var found = breakService.findById(br.id());
         assertTrue(found.isPresent());
         assertEquals(br.id(), found.get().id());
@@ -358,11 +358,11 @@ class EventServicesTest extends RepositoryTestBase {
     @Test
     @Order(32)
     void updateBreak() {
-        var br = breakService.create(station.id(), "Old Break", LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 7));
-        var updated = breakService.update(br.id(), "New Break", LocalDate.of(2026, 11, 2), LocalDate.of(2026, 11, 8));
+        var br = breakService.create(station.id(), "Old Break", LocalDate.of(2020, 11, 1), LocalDate.of(2020, 11, 7));
+        var updated = breakService.update(br.id(), "New Break", LocalDate.of(2020, 11, 2), LocalDate.of(2020, 11, 8));
         assertTrue(updated.isPresent());
         assertEquals("New Break", updated.get().name());
-        assertEquals(LocalDate.of(2026, 11, 2), updated.get().startDate());
+        assertEquals(LocalDate.of(2020, 11, 2), updated.get().startDate());
     }
 
     @Test

@@ -16,15 +16,19 @@ import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventBreakRepository;
 import dev.chojo.ember.feature.question.FieldTypes;
+import dev.chojo.ember.feature.station.entity.StationFormat;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +42,7 @@ public class BatchEventService {
     private final EventRestrictionService restrictionService;
     private final EventFieldService eventFieldService;
     private final EventBreakRepository breakRepository;
+    private final StationRepository stationRepository;
     private final DomainEventBus eventBus;
 
     @Inject
@@ -46,11 +51,13 @@ public class BatchEventService {
             EventRestrictionService restrictionService,
             EventFieldService eventFieldService,
             EventBreakRepository breakRepository,
+            StationRepository stationRepository,
             DomainEventBus eventBus) {
         this.crudService = crudService;
         this.restrictionService = restrictionService;
         this.eventFieldService = eventFieldService;
         this.breakRepository = breakRepository;
+        this.stationRepository = stationRepository;
         this.eventBus = eventBus;
     }
 
@@ -119,7 +126,23 @@ public class BatchEventService {
         return created;
     }
 
-    public List<BatchRow> generateDates(int stationId, IntervalConfig interval, boolean ignoreBreaks) {
+    /**
+     * The dates of a batch, each with the times of day the interval names placed on it.
+     *
+     * <p>The times are read on the clock of whoever typed them: a drill entered as seven in the
+     * evening was stored as seven in the evening UTC, and every appointment of the batch then stood
+     * two hours early in Berlin in summer. The zone is the one the browser sent, or the station's
+     * own where none came, and each date is converted on its own so a series across a clock change
+     * keeps its time of day.
+     *
+     * @param stationId    the station whose breaks are skipped
+     * @param interval     the interval and the times of day
+     * @param ignoreBreaks whether dates in a break are kept
+     * @param timeZone     the zone the times of day are meant in, or {@code null} for the station's
+     * @return one row per date, without a name or values
+     */
+    public List<BatchRow> generateDates(
+            int stationId, IntervalConfig interval, boolean ignoreBreaks, @Nullable String timeZone) {
         var dates = expandInterval(interval);
         if (!ignoreBreaks) {
             dates = dates.stream()
@@ -128,16 +151,32 @@ public class BatchEventService {
         }
         LocalTime startOfDay = interval.startTime() != null ? interval.startTime() : LocalTime.of(0, 0);
         LocalTime endOfDay = interval.endTime() != null ? interval.endTime() : LocalTime.of(23, 59);
+        ZoneId zone = zoneOf(stationId, timeZone);
 
         var rows = dates.stream()
                 .map(date -> new BatchRow(
                         null,
-                        date.atTime(startOfDay).toInstant(ZoneOffset.UTC),
-                        date.atTime(endOfDay).toInstant(ZoneOffset.UTC),
+                        date.atTime(startOfDay).atZone(zone).toInstant(),
+                        date.atTime(endOfDay).atZone(zone).toInstant(),
                         Map.of()))
                 .toList();
         log.info("Generated {} batch date rows for station {}", rows.size(), stationId);
         return rows;
+    }
+
+    /**
+     * The zone a batch's times of day are read in: the one asked for where it parses, otherwise the
+     * station's own, which is UTC for a station that keeps none.
+     */
+    private ZoneId zoneOf(int stationId, @Nullable String timeZone) {
+        if (timeZone != null && !timeZone.isBlank()) {
+            try {
+                return ZoneId.of(timeZone);
+            } catch (DateTimeException e) {
+                log.warn("Batch dates for station {} asked for the unusable zone '{}'", stationId, timeZone, e);
+            }
+        }
+        return StationFormat.timezoneOf(stationRepository.findById(stationId).orElse(null));
     }
 
     /**

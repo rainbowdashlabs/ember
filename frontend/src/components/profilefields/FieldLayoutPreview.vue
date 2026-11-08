@@ -32,10 +32,28 @@ const props = withDefaults(defineProps<{
   editable?: boolean
   /** Shown in place of the grid while there are no questions; without one the preview is left out. */
   emptyText?: string
+  /** The groups the fields may belong to, whose fields the preview draws together under their name. */
+  sets?: readonly {id: number; name: string}[]
 }>(), {
   editable: true,
   emptyText: undefined,
+  sets: () => [],
 })
+
+/** The group a field is in, or nothing. */
+function setOf(field: T): {id: number; name: string} | undefined {
+  return field.fieldSetId == null ? undefined : props.sets.find(set => set.id === field.fieldSetId)
+}
+
+/** The name of the group that starts at this field, or null where none starts here. */
+function groupStartingAt(fields: readonly T[], index: number): string | null {
+  const field = fields[index]
+  if (!field) return null
+  const set = setOf(field)
+  if (!set) return null
+  const previous = index > 0 ? fields[index - 1] : undefined
+  return previous && previous.fieldSetId === set.id ? null : set.name
+}
 
 const emit = defineEmits<{
   reorder: [fromIndex: number, toIndex: number]
@@ -61,18 +79,24 @@ const {shown, startMove, startResize, widthOf, moving, resizing} = usePreviewLay
     <EmptyState v-if="fields.length === 0" compact>{{ emptyText }}</EmptyState>
 
     <div v-else ref="grid" class="grid grid-cols-6 gap-x-4 gap-y-3 items-start">
-      <FieldPreviewTile
-          v-for="(field, index) in shown()"
-          :key="index"
-          :class="spanForWidth(widthOf(field))"
-          :field="field"
-          :index="index"
-          :width="widthOf(field)"
-          :editable="editable"
-          :moving="moving === field"
-          :resizing="resizing === field"
-          @move-start="f => startMove(f)"
-          @resize-start="(f, event) => startResize(f, event, grid)"/>
+      <template v-for="(field, index) in shown()" :key="index">
+        <div v-if="groupStartingAt(shown(), index)"
+             class="col-span-6 -mb-2 flex items-center gap-2 text-xs font-semibold"
+             data-testid="preview-set-label">
+          <font-awesome-icon :icon="['fas', 'layer-group']" class="h-3 w-3"/>
+          {{ groupStartingAt(shown(), index) }}
+        </div>
+        <FieldPreviewTile
+            :class="[spanForWidth(widthOf(field)), setOf(field) ? 'border-l-4 border-secondary' : '']"
+            :field="field"
+            :index="index"
+            :width="widthOf(field)"
+            :editable="editable"
+            :moving="moving === field"
+            :resizing="resizing === field"
+            @move-start="f => startMove(f)"
+            @resize-start="(f, event) => startResize(f, event, grid)"/>
+      </template>
     </div>
   </NeutralContainer>
 </template>

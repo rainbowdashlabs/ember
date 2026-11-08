@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {FieldType} from '@/api/generated/schema'
+import {FieldType, type FieldOrigin, type FieldSetLabel} from '@/api/generated/schema'
+import {originOf} from '@/util/profileFields'
 
 /**
  * The little a layout decision needs to know about a field.
@@ -21,6 +22,8 @@ export interface LayoutField {
 export interface PreviewField extends LayoutField {
     name: string
     required?: boolean
+    /** The group the field belongs to, which the preview draws its fields together under. */
+    fieldSetId?: number | null
 }
 
 /**
@@ -111,6 +114,30 @@ export function isSpacer(field: LayoutField): boolean {
  */
 export function holdsAnswer(field: LayoutField): boolean {
     return !isSection(field) && !isSpacer(field)
+}
+
+/** A field as far as the group it belongs to goes. */
+export interface SetField {
+    origin?: FieldOrigin
+    fieldSet?: FieldSetLabel | null
+}
+
+/**
+ * The heading a group puts above a field, or null where none goes there.
+ *
+ * <p>A group that shows its name does so once, above the first of its fields on the form. The group is
+ * one of an owner's, so a station's and an association's group of the same number are two groups.
+ *
+ * @param fields the fields as the form shows them
+ * @param index  the field asked about
+ */
+export function setHeadingBefore(fields: readonly SetField[], index: number): string | null {
+    const field = fields[index]
+    if (!field?.fieldSet?.heading) return null
+    const previous = index > 0 ? fields[index - 1] : undefined
+    const sameSet = previous?.fieldSet?.id === field.fieldSet.id
+        && originOf(previous) === originOf(field)
+    return sameSet ? null : field.fieldSet.name
 }
 
 /**

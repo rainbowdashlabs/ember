@@ -283,7 +283,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 organiser.issuers(),
                 new EventRestrictionService(eventRepo, restrictionService),
                 RequirementSignatures.NONE,
-                stationMemberRepo);
+                stationMemberRepo,
+                occurrenceCalendar);
         var notices = TestNotices.notices(
                 newNotifier(), emailQueueRepo, stationRepo, stationMemberRepo, accountRepo, memberDocumentRepo);
         agreements = new PartnerAgreements(

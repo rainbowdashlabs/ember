@@ -626,6 +626,21 @@ public class DemoClusterSeeder implements DemoSeeder {
                 false,
                 true,
                 breathingGroupId);
+        var breathingCheck = fieldService.create(
+                cluster.id(),
+                "G26.3 gültig bis",
+                FieldType.EXPIRY_DATE,
+                ProfileFieldConfig.empty(),
+                true,
+                false,
+                null,
+                false,
+                true,
+                breathingGroupId);
+        var breathingSet = fieldService.createSet(cluster.id(), "Atemschutz", true);
+        fieldService.joinSet(cluster.id(), breathing.id(), breathingSet.id());
+        fieldService.joinSet(cluster.id(), breathingCheck.id(), breathingSet.id());
+        fieldService.dependOn(cluster.id(), breathingCheck.id(), breathing.id());
         fieldService.assignToRole(cluster.id(), breathing.id(), ProfileFieldScope.MEMBER, 1, null, null, null);
 
         var head = member.members().head();
@@ -634,7 +649,11 @@ public class DemoClusterSeeder implements DemoSeeder {
                     head.id(),
                     List.of(
                             new FieldValueEntry(licence.id(), "\"C1\"", FieldOrigin.CLUSTER),
-                            new FieldValueEntry(breathing.id(), "true", FieldOrigin.CLUSTER)),
+                            new FieldValueEntry(breathing.id(), "true", FieldOrigin.CLUSTER),
+                            new FieldValueEntry(
+                                    breathingCheck.id(),
+                                    "\"%s\"".formatted(LocalDate.now().plusYears(2)),
+                                    FieldOrigin.CLUSTER)),
                     ProfileAuthor.member(head),
                     ProfileWriter.association());
         }

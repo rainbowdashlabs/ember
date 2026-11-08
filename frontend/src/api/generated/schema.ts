@@ -8085,6 +8085,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/attendance/entries/{id}/extra-time": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set whether a person on a sheet did the preparation and follow-up its rules credit */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ExtraTimeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AttendanceEntry"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/attendance/entries/{id}/reset-times": {
         parameters: {
             query?: never;
@@ -8874,6 +8925,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/attendance/sessions/{sessionId}/extra-time": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List who on an attendance sheet its rules credit with preparation and follow-up */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sessionId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ExtraTimeCredit"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/attendance/sessions/{sessionId}/fields": {
         parameters: {
             query?: never;
@@ -8970,6 +9068,88 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attendance/sessions/{sessionId}/time-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the preparation and follow-up rules of an attendance sheet */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sessionId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TimeRule"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Replace the preparation and follow-up rules of an attendance sheet */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sessionId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SetTimeRulesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TimeRule"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -9404,6 +9584,88 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attendance/templates/{templateId}/time-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the preparation and follow-up rules of an attendance template */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TimeRule"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Replace the preparation and follow-up rules of an attendance template */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SetTimeRulesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TimeRule"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -14603,6 +14865,139 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cluster/document-template-form-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make a PDF template of the association from a Word form */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WordFormImport"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/document-template-form-import/fonts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The fonts of a Word form the association cannot draw it in, to choose a replacement for each */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MissingFonts"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/document-template-form-import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draw a Word form of the association in its own fonts or with the replacements chosen */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cluster/document-template-import": {
         parameters: {
             query?: never;
@@ -15090,6 +15485,175 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/field-sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The groups the association keeps its profile fields in */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FieldSet"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Write down a new, empty group of profile fields */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FieldSetRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FieldSet"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/field-sets/{setId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Rename a group of profile fields, or change whether its name is a heading */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    setId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FieldSetRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        /** Dissolve a group of profile fields, keeping its fields */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    setId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/field-sets/{setId}/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put the fields of a group in order */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    setId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FieldSetOrderRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -19797,6 +20361,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/document-generation/templates/{templateId}/members/{memberId}/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The questions of a template, each with the answer it suggests for a member */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    memberId: number;
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ManagerGenerationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SuggestedAnswer"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/document-placeholders": {
         parameters: {
             query?: never;
@@ -19909,6 +20525,139 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-template-form-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make a PDF template from a Word form, its fields filled from member data or asked when generating */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WordFormImport"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-template-form-import/fonts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The fonts of a Word form the station cannot draw it in, to choose a replacement for each */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MissingFonts"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-template-form-import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draw a Word form in its own fonts or with the replacements chosen, to compare them */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -34459,6 +35208,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventory-items/{id}/owner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Give a piece of a mixed inventory to the station or to the association */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["OwnerRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InventoryItem"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inventory-items/{itemId}/tags": {
         parameters: {
             query?: never;
@@ -44980,6 +45789,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/procurement/{id}/issue-from-stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Settle a procurement request with a piece from storage by handing it out through a movement */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["IssueFromStockRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["IssueFromStockResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/procurement/open": {
         parameters: {
             query?: never;
@@ -45126,6 +45995,202 @@ export interface paths {
             };
         };
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profile-field-sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The groups this station keeps its profile fields in */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FieldSet"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Write down a new, empty group of profile fields */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FieldSetRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FieldSet"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profile-field-sets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Rename a group of profile fields, or change whether its name is a heading */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FieldSetRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Dissolve a group of profile fields, keeping its fields */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profile-field-sets/{id}/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put the fields of a group in order */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FieldSetOrderRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
@@ -54117,6 +55182,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/session/preferences/sidebar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Choose how the sidebar of the own account lists its sections */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SidebarPreference"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/session/signature": {
         parameters: {
             query?: never;
@@ -55630,598 +56733,6 @@ export interface paths {
                 };
             };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/signing/witness/complete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Confirm, as the witness, that a person signed in front of the reader */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["BatchCompleteRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["BatchCompleteResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-                /** @description Gone */
-                410: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-                /** @description Too Many Requests */
-                429: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/signing/witness/fields/{fieldId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** One open field the reader may collect in person, with the people it names */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    fieldId: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WitnessFieldResponse"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/signing/witness/fields/{fieldId}/document": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The document of a field the reader may collect in person, exactly as it was frozen */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    fieldId: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/signing/witness/fields/{fieldId}/fill-ins": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The fields the person fills in when they sign a field in front of the reader */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    fieldId: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["FillInResponse"][];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/signing/witness/fields/{fieldId}/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Start the act of a person signing a field in front of the reader */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    fieldId: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["WitnessStartRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["BatchStartResponse"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/signing/witness/people": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The people the reader may collect signatures from in person */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WitnessPersonResponse"][];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/signing/witness/people/{memberId}/offers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** What the reader may collect in person from one person: open fields and templates */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    memberId: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WitnessOffersResponse"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/signing/witness/people/{memberId}/templates/{templateId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Generate a document for a person on the spot, to sign it in front of the reader */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    memberId: number;
-                    templateId: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["WitnessFieldResponse"][];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/signing/witness/reach": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Whom the station's witnesses may collect signatures from, beyond its members and trial users */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["RestrictionAudience"];
-                    };
-                };
-            };
-        };
-        /** Narrow whom the station's witnesses may collect signatures from */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["RestrictionAudience"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["RestrictionAudience"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-            };
-        };
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -60834,6 +61345,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/trials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The trials running for the reader or anybody they look after */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TrialOverview"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/trials/{entryId}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End a trial the reader or one of their wards is in */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/user-type-permissions/{userType}": {
         parameters: {
             query?: never;
@@ -61391,6 +61972,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/waiting-lists/{id}/entries/{entryId}/invite/recipients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who an invitation for the entry would be written to */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InvitationRecipients"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/waiting-lists/{id}/entries/{entryId}/join": {
         parameters: {
             query?: never;
@@ -61408,6 +62025,45 @@ export interface paths {
                 cookie?: never;
             };
             requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListEntry"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/waiting-lists/{id}/entries/{entryId}/other-dates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WaitingListInvitationRequest"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -61475,7 +62131,11 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WaitingListMessageRequest"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -61510,7 +62170,11 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WaitingListMessageRequest"];
+                };
+            };
             responses: {
                 /** @description No Content */
                 204: {
@@ -61834,6 +62498,7 @@ export interface components {
             /** Format: int32 */
             id: number;
             lastName: string;
+            sidebar: components["schemas"]["SidebarMode"];
             uid: string | null;
             username: string | null;
         };
@@ -62340,6 +63005,7 @@ export interface components {
             memberId: number;
             /** Format: int32 */
             sessionId: number;
+            skipExtraTime: boolean;
             source: components["schemas"]["EntrySource"];
             status: components["schemas"]["AttendanceStatus"];
         };
@@ -63375,11 +64041,15 @@ export interface components {
         };
         ClusterFieldRequest: {
             config?: components["schemas"]["ProfileFieldConfig"];
+            /** Format: int32 */
+            fieldSetId?: number | null;
             fieldType?: string;
             keepOnArchive?: boolean;
             name?: string;
             readonly?: boolean;
             required?: boolean;
+            /** Format: int32 */
+            shownIfFieldId?: number | null;
             /** Format: int32 */
             stationGroupId?: number | null;
             stationReadonly?: boolean;
@@ -63387,6 +64057,8 @@ export interface components {
         };
         ClusterFieldResponse: {
             config: components["schemas"]["ProfileFieldConfig"];
+            /** Format: int32 */
+            fieldSetId: number | null;
             fieldType: components["schemas"]["FieldType"];
             /** Format: int32 */
             id: number;
@@ -63394,6 +64066,10 @@ export interface components {
             name: string;
             readonly: boolean;
             required: boolean;
+            /** Format: int32 */
+            setPosition: number;
+            /** Format: int32 */
+            shownIfFieldId: number | null;
             /** Format: int32 */
             stationGroupId: number | null;
             stationReadonly: boolean;
@@ -64154,6 +64830,11 @@ export interface components {
         DateValue: {
             value: string;
         };
+        DayBound: {
+            day: components["schemas"]["LocalDate"] | null;
+            /** Format: int32 */
+            fromToday: number | null;
+        };
         DayCount: {
             /** Format: int32 */
             count: number;
@@ -64573,6 +65254,7 @@ export interface components {
             legal?: boolean;
             name?: string | null;
             page?: components["schemas"]["LetterPage"] | null;
+            questions?: components["schemas"]["TemplateQuestion"][] | null;
             selfService?: boolean;
             signing?: components["schemas"]["TemplateSigning"] | null;
             tags?: string[] | null;
@@ -64603,6 +65285,7 @@ export interface components {
             name: string;
             page: components["schemas"]["LetterPage"];
             pdf: components["schemas"]["PdfOriginal"] | null;
+            questions: components["schemas"]["TemplateQuestion"][];
             selfService: boolean;
             signing: components["schemas"]["TemplateSigning"];
             tags: string[];
@@ -65208,6 +65891,20 @@ export interface components {
         };
         /** @enum {string} */
         ExternalLinkImageDisplay: "BANNER" | "ICON";
+        ExtraTimeCredit: {
+            /** Format: int32 */
+            entryId: number;
+            /** Format: int32 */
+            followUpMinutes: number;
+            /** Format: int32 */
+            memberId: number;
+            /** Format: int32 */
+            preparationMinutes: number;
+            skipped: boolean;
+        };
+        ExtraTimeRequest: {
+            skip?: boolean | null;
+        };
         FactorInfo: {
             createdAt: components["schemas"]["Instant"];
             /** Format: int32 */
@@ -65227,6 +65924,7 @@ export interface components {
             description?: string;
             descriptionOverride?: string;
             eventUid?: string;
+            fullDescription?: boolean;
             location?: string;
             title?: string;
         };
@@ -65438,7 +66136,6 @@ export interface components {
             signerName: string | null;
             state: components["schemas"]["FieldState"];
             together: boolean;
-            witnessName: string | null;
         };
         FieldConfig: components["schemas"]["BooleanConfig"] | components["schemas"]["DateConfig"] | components["schemas"]["EnumConfig"] | components["schemas"]["NumberConfig"] | components["schemas"]["TextConfig"];
         FieldDateValueRequest: {
@@ -65485,6 +66182,27 @@ export interface components {
         };
         /** @enum {string} */
         FieldRole: "PARTICIPANT" | "GUARDIAN" | "ANY_GUARDIAN" | "ISSUER";
+        FieldSet: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+            nameAsSection: boolean;
+            /** Format: int32 */
+            ownerId: number;
+        };
+        FieldSetLabel: {
+            heading: boolean;
+            /** Format: int32 */
+            id: number;
+            name: string;
+        };
+        FieldSetOrderRequest: {
+            fieldIds?: number[] | null;
+        };
+        FieldSetRequest: {
+            name?: string | null;
+            nameAsSection?: boolean;
+        };
         /** @enum {string} */
         FieldState: "OPEN" | "SIGNED" | "PAPER_CONFIRMED" | "WAIVED" | "WITHDRAWN";
         /** @enum {string} */
@@ -65623,6 +66341,7 @@ export interface components {
             editorVersion: string | null;
             family: string;
             origin: components["schemas"]["FontOrigin"];
+            printsInLetters: boolean;
             printsOnPdf: boolean;
             sample: string;
             styles: components["schemas"]["FontStyle"][];
@@ -65631,6 +66350,12 @@ export interface components {
         FontOrigin: "STATION" | "ASSOCIATION" | "INSTANCE" | "BUILT_IN";
         /** @enum {string} */
         FontOutline: "TRUETYPE" | "CFF";
+        FontReplacement: {
+            family: string;
+            replacement: string;
+            /** Format: int32 */
+            size: number;
+        };
         /** @enum {string} */
         FontStyle: "REGULAR" | "BOLD" | "ITALIC" | "BOLD_ITALIC";
         ForeignKey: {
@@ -66010,6 +66735,7 @@ export interface components {
             intervalType?: components["schemas"]["IntervalType"];
             startDate?: string;
             startTime?: string | null;
+            timeZone?: string | null;
         };
         GeneratedDocumentEntry: {
             /** Format: int32 */
@@ -66701,6 +67427,10 @@ export interface components {
         };
         /** @enum {string} */
         InventoryType: "INTERNAL" | "EXTERNAL" | "MIXED";
+        InvitationRecipients: {
+            addresses: string[];
+            sendsMail: boolean;
+        };
         InviteCodeResponse: {
             inviteCode: string;
         };
@@ -66732,6 +67462,14 @@ export interface components {
             loginName: string;
             name: string;
             password: string;
+        };
+        IssueFromStockRequest: {
+            /** Format: int32 */
+            itemId?: number;
+        };
+        IssueFromStockResponse: {
+            /** Format: int32 */
+            movementId: number;
         };
         IssuerChoice: {
             function?: string | null;
@@ -67694,8 +68432,6 @@ export interface components {
         ManagedFieldResponse: {
             act: components["schemas"]["SignedActResponse"] | null;
             capacity: components["schemas"]["SignerCapacity"];
-            /** Format: int32 */
-            fieldId: number;
             fieldName: string;
             nobodyCanSign: boolean;
             role: components["schemas"]["FieldRole"];
@@ -67777,6 +68513,9 @@ export interface components {
             lastName: string;
         };
         ManagerGenerationRequest: {
+            answers?: {
+                [key: string]: string;
+            } | null;
             issuer?: components["schemas"]["IssuerChoice"] | null;
         };
         MapConfig: {
@@ -68049,6 +68788,7 @@ export interface components {
         };
         MemberProfileFieldResponse: {
             config: components["schemas"]["ProfileFieldConfig"] | null;
+            fieldSet: components["schemas"]["FieldSetLabel"] | null;
             fieldType: string;
             /** Format: int32 */
             id: number;
@@ -68060,6 +68800,8 @@ export interface components {
             readonlyAtStation: boolean;
             required: boolean;
             role: string | null;
+            /** Format: int32 */
+            shownIfFieldId: number | null;
             width: string | null;
         };
         MemberProfileRequest: {
@@ -68133,8 +68875,12 @@ export interface components {
         };
         MemberSummary: {
             /** Format: int32 */
+            followUpMinutes: number;
+            /** Format: int32 */
             memberId: number;
             name: string;
+            /** Format: int32 */
+            preparationMinutes: number;
             /** Format: int32 */
             presentCount: number;
             /** Format: int32 */
@@ -68201,6 +68947,7 @@ export interface components {
         };
         MergedField: {
             config: components["schemas"]["ProfileFieldConfig"];
+            fieldSet: components["schemas"]["FieldSetLabel"] | null;
             fieldType: components["schemas"]["FieldType"];
             /** Format: int32 */
             id: number;
@@ -68212,6 +68959,8 @@ export interface components {
             readonlyAtStation: boolean;
             required: boolean;
             role: components["schemas"]["ProfileFieldScope"] | null;
+            /** Format: int32 */
+            shownIfFieldId: number | null;
             width: string | null;
         };
         MergedValue: {
@@ -68252,6 +69001,16 @@ export interface components {
             skipped: number;
             /** Format: int32 */
             totalKeys: number;
+        };
+        MissingFonts: {
+            defaultFamily: string;
+            embedded: string[];
+            light: string[];
+            lightCuts: string[];
+            missing: string[];
+            suggested: {
+                [key: string]: components["schemas"]["Suggestion"];
+            };
         };
         MissingStepsResponse: {
             missingSteps: string[];
@@ -68732,7 +69491,7 @@ export interface components {
             feed: boolean;
         };
         /** @enum {string} */
-        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED" | "SIGNATURE_REQUESTED" | "SIGNATURE_REMINDER" | "DOCUMENT_SIGNED" | "DOCUMENT_SCAN_REJECTED" | "ACCOUNT_LINK_ACCEPTED" | "ASSOCIATION_LINK_ACCEPTED" | "SIGNATURE_WITHDRAWN" | "PARTNER_SIGNATURE_WITHDRAWN";
+        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "WAITLIST_TRIAL_ENDED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED" | "SIGNATURE_REQUESTED" | "SIGNATURE_REMINDER" | "DOCUMENT_SIGNED" | "DOCUMENT_SCAN_REJECTED" | "ACCOUNT_LINK_ACCEPTED" | "ASSOCIATION_LINK_ACCEPTED" | "SIGNATURE_WITHDRAWN" | "PARTNER_SIGNATURE_WITHDRAWN";
         NumberConfig: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -68751,6 +69510,15 @@ export interface components {
         OfferAnswer: "LATER" | "DECLINED";
         OfferAnswerRequest: {
             answer?: components["schemas"]["OfferAnswer"] | null;
+        };
+        OfferedDate: {
+            appointmentName: string;
+            arrivalTime: components["schemas"]["LocalTime"] | null;
+            date: components["schemas"]["LocalDate"];
+            /** Format: int32 */
+            eventId: number;
+            /** Format: int32 */
+            position: number;
         };
         OfferResponse: {
             offer: boolean;
@@ -68839,6 +69607,9 @@ export interface components {
         };
         OwnerAboveResponse: {
             name: string | null;
+        };
+        OwnerRequest: {
+            owner?: components["schemas"]["ItemOwner"] | null;
         };
         OwnNameChange: {
             firstName: string;
@@ -69150,6 +69921,7 @@ export interface components {
             fontFamily: string | null;
             fontSize: number;
             fontStyle: components["schemas"]["FontStyle"] | null;
+            keepSize: boolean;
             kind: components["schemas"]["PdfFieldKind"];
             /** Format: int32 */
             maxLength: number | null;
@@ -69255,7 +70027,7 @@ export interface components {
             placeholders: components["schemas"]["Placeholder"][];
         };
         /** @enum {string} */
-        PlaceholderCategory: "MEMBER" | "PRONOUNS" | "GUARDIAN1" | "GUARDIAN2" | "STATION" | "ASSOCIATION" | "APPOINTMENT" | "ISSUER" | "DOCUMENT";
+        PlaceholderCategory: "MEMBER" | "PRONOUNS" | "GUARDIAN1" | "GUARDIAN2" | "STATION" | "ASSOCIATION" | "APPOINTMENT" | "ISSUER" | "DOCUMENT" | "QUESTION";
         PlaceholderValues: {
             values?: {
                 [key: string]: string;
@@ -69523,9 +70295,12 @@ export interface components {
             /** Format: int32 */
             sizeId: number | null;
             sizeLabel: string | null;
+            stock: components["schemas"]["StockPiece"][];
         };
         ProfileField: {
             config: components["schemas"]["ProfileFieldConfig"];
+            /** Format: int32 */
+            fieldSetId: number | null;
             fieldType: components["schemas"]["FieldType"];
             /** Format: int32 */
             id: number;
@@ -69533,6 +70308,10 @@ export interface components {
             name: string;
             readonly: boolean;
             required: boolean;
+            /** Format: int32 */
+            setPosition: number;
+            /** Format: int32 */
+            shownIfFieldId: number | null;
             /** Format: uuid */
             stationId: string;
             width: string | null;
@@ -69611,11 +70390,15 @@ export interface components {
         };
         ProfileFieldRequest: {
             config?: components["schemas"]["ProfileFieldConfig"];
+            /** Format: int32 */
+            fieldSetId?: number | null;
             fieldType?: components["schemas"]["FieldType"];
             keepOnArchive?: boolean;
             name?: string;
             readonly?: boolean;
             required?: boolean;
+            /** Format: int32 */
+            shownIfFieldId?: number | null;
             width?: string | null;
         };
         /** @enum {string} */
@@ -69997,6 +70780,17 @@ export interface components {
             MULTIPLE_CHOICE: components["schemas"]["MultipleChoice"];
             ORDERING: components["schemas"]["Ordering"];
             TRUE_FALSE: components["schemas"]["TrueFalse"];
+        };
+        QuestionLimits: {
+            choices: string[];
+            earliest: components["schemas"]["DayBound"] | null;
+            format: components["schemas"]["TextFormat"] | null;
+            latest: components["schemas"]["DayBound"] | null;
+            max: number | null;
+            /** Format: int32 */
+            maxLength: number | null;
+            min: number | null;
+            whole: boolean;
         };
         QuizAccessRequest: {
             closesAt?: components["schemas"]["Instant"] | null;
@@ -70916,7 +71710,7 @@ export interface components {
             userTypes?: components["schemas"]["StationUserType"][] | null;
         };
         /** @enum {string} */
-        RestrictionType: "EVENT" | "EVENT_VIEW" | "EVENT_TEMPLATE" | "EVENT_TEMPLATE_VIEW" | "QUIZ_TEST" | "FORM" | "NEWS" | "KB_FOLDER" | "KB_FILE" | "DOCUMENT_TEMPLATE" | "DOCUMENT_TEMPLATE_STATION_USE" | "WITNESS_REACH";
+        RestrictionType: "EVENT" | "EVENT_VIEW" | "EVENT_TEMPLATE" | "EVENT_TEMPLATE_VIEW" | "QUIZ_TEST" | "FORM" | "NEWS" | "KB_FOLDER" | "KB_FILE" | "DOCUMENT_TEMPLATE" | "DOCUMENT_TEMPLATE_STATION_USE" | "ATTENDANCE_TEMPLATE_TIME_RULE" | "ATTENDANCE_SESSION_TIME_RULE";
         ResultFieldCondition: {
             /** Format: int32 */
             fieldId?: number;
@@ -71448,10 +72242,14 @@ export interface components {
         SessionMemberEntry: {
             checkIn: components["schemas"]["LocalDateTime"] | null;
             checkOut: components["schemas"]["LocalDateTime"] | null;
+            /** Format: int32 */
+            followUpMinutes: number;
             hours: number;
             /** Format: int32 */
             memberId: number;
             name: string;
+            /** Format: int32 */
+            preparationMinutes: number;
             status: components["schemas"]["AttendanceStatus"];
         };
         SessionRequest: {
@@ -71563,6 +72361,9 @@ export interface components {
         };
         SetTemplateUserTypesRequest: {
             userTypes?: components["schemas"]["StationUserType"][];
+        };
+        SetTimeRulesRequest: {
+            rules?: components["schemas"]["TimeRuleInput"][];
         };
         SettingsRequest: {
             darkMode?: string;
@@ -71742,6 +72543,11 @@ export interface components {
             /** Format: int32 */
             waitingListEntries: number;
         };
+        /** @enum {string} */
+        SidebarMode: "SECTIONS" | "TREE";
+        SidebarPreference: {
+            sidebar?: components["schemas"]["SidebarMode"] | null;
+        };
         SignatureAskResponse: {
             fields: components["schemas"]["AskedFieldResponse"][];
             request: components["schemas"]["AskedRequestResponse"] | null;
@@ -71793,7 +72599,7 @@ export interface components {
             userVerified: boolean | null;
         };
         /** @enum {string} */
-        SignerCapacity: "ACCOUNT_HOLDER" | "GUARDIAN" | "MEMBER_THROUGH_ACCOUNT" | "WITNESSED";
+        SignerCapacity: "ACCOUNT_HOLDER" | "GUARDIAN" | "MEMBER_THROUGH_ACCOUNT";
         SignerEntryDraft: {
             field?: string | null;
             value?: string | null;
@@ -72220,7 +73026,7 @@ export interface components {
             visibility: components["schemas"]["PageVisibility"];
         };
         /** @enum {string} */
-        StationPermission: "USER" | "LOGIN" | "ATTENDANCE_READ" | "ATTENDANCE_EDIT" | "ATTENDANCE_CONFIGURE" | "ATTENDANCE_EXPORT" | "ATTENDANCE_MANAGER" | "INVENTORY_CREATE_EXTERNAL" | "INVENTORY_CREATE_INTERNAL" | "INVENTORY_READ" | "INVENTORY_CREATE" | "INVENTORY_MOVEMENTS" | "INVENTORY_PROCUREMENT" | "INVENTORY_CHECK" | "INVENTORY_LENDING_REQUEST" | "INVENTORY_LENDING_MANAGER" | "INVENTORY_EDIT" | "INVENTORY_ASSIGN" | "INVENTORY_STORAGE" | "INVENTORY_MANAGER" | "EVENT_MANAGE_TEMPLATE" | "EVENT_MANAGE_CATEGORY" | "EVENT_INTERNAL" | "EVENT_EDIT" | "EVENT_REGISTRATION" | "EVENTS_FEDERATE" | "EVENT_MANAGER" | "DOCUMENT_READ" | "DOCUMENT_READ_MEMBER" | "DOCUMENT_EDIT" | "DOCUMENT_EDIT_MEMBER" | "DOCUMENT_TEMPLATE_EDIT" | "DOCUMENT_SIGN_OTHERS" | "DOCUMENT_MANAGER" | "MEMBER_READ" | "MEMBER_NOTES" | "MEMBER_GUARDIAN" | "MEMBER_CHANGES" | "MEMBER_MANAGE_GROUP" | "MEMBER_MANAGE_TAGS" | "MEMBER_SELF_UPLOAD" | "MEMBER_EDIT" | "MEMBER_FIELDS" | "MEMBER_EXPORT" | "MEMBER_MANAGER" | "WAITLIST_READ" | "WAITLIST_ADD" | "WAITLIST_EDIT" | "WAITLIST_MANAGER" | "NEWS_EDIT" | "NEWS_FEDERATE" | "NEWS_MANAGER" | "POLL_VIEW_RESULTS" | "POLL_CREATE" | "POLL_MANAGER" | "LOST_AND_FOUND_CREATE" | "LOST_AND_FOUND_MANAGE" | "LOST_AND_FOUND_MANAGER" | "CHECKLIST_READ" | "CHECKLIST_MANAGE" | "CHECKLIST_MANAGER" | "TEST_CATALOG_VIEW" | "TEST_CATALOG_EDIT" | "TEST_CONFIGURE" | "TEST_RESULT_READ" | "TEST_REVIEW" | "TEST_CATALOG_SHARE" | "TEST_MANAGER" | "PROTOCOL_TESTER" | "PROTOCOL_CREATE" | "PROTOCOL_CONFIGURE" | "PROTOCOL_SHARE" | "PROTOCOL_MANAGER" | "BOARD_USE" | "BOARD_EDIT" | "BOARD_FEDERATE" | "BOARD_MANAGER" | "PAGE_EDIT" | "PAGE_FORMS_VIEW" | "PAGE_POLLS_VIEW" | "PAGE_MANAGER" | "PROCEDURE_READ" | "PROCEDURE_EDIT" | "PROCEDURE_MANAGER" | "KNOWLEDGE_EDIT" | "KNOWLEDGE_FEDERATE" | "KNOWLEDGE_MANAGER" | "STATION_LOOK_AND_FEEL" | "STATION_GENERAL" | "STATION_MAIL" | "STATION_FEDERATION" | "STATION_MODULES" | "STATION_IMPORT_EXPORT" | "STATION_STATISTICS" | "STATION_MANAGER" | "STATION_ADMINISTRATOR";
+        StationPermission: "USER" | "LOGIN" | "ATTENDANCE_READ" | "ATTENDANCE_EDIT" | "ATTENDANCE_CONFIGURE" | "ATTENDANCE_EXPORT" | "ATTENDANCE_MANAGER" | "INVENTORY_CREATE_EXTERNAL" | "INVENTORY_CREATE_INTERNAL" | "INVENTORY_READ" | "INVENTORY_CREATE" | "INVENTORY_MOVEMENTS" | "INVENTORY_PROCUREMENT" | "INVENTORY_CHECK" | "INVENTORY_LENDING_REQUEST" | "INVENTORY_LENDING_MANAGER" | "INVENTORY_EDIT" | "INVENTORY_ASSIGN" | "INVENTORY_STORAGE" | "INVENTORY_MANAGER" | "EVENT_MANAGE_TEMPLATE" | "EVENT_MANAGE_CATEGORY" | "EVENT_INTERNAL" | "EVENT_EDIT" | "EVENT_REGISTRATION" | "EVENTS_FEDERATE" | "EVENT_MANAGER" | "DOCUMENT_READ" | "DOCUMENT_READ_MEMBER" | "DOCUMENT_EDIT" | "DOCUMENT_EDIT_MEMBER" | "DOCUMENT_TEMPLATE_EDIT" | "DOCUMENT_MANAGER" | "MEMBER_READ" | "MEMBER_NOTES" | "MEMBER_GUARDIAN" | "MEMBER_CHANGES" | "MEMBER_MANAGE_GROUP" | "MEMBER_MANAGE_TAGS" | "MEMBER_SELF_UPLOAD" | "MEMBER_EDIT" | "MEMBER_FIELDS" | "MEMBER_EXPORT" | "MEMBER_MANAGER" | "WAITLIST_READ" | "WAITLIST_ADD" | "WAITLIST_EDIT" | "WAITLIST_MANAGER" | "NEWS_EDIT" | "NEWS_FEDERATE" | "NEWS_MANAGER" | "POLL_VIEW_RESULTS" | "POLL_CREATE" | "POLL_MANAGER" | "LOST_AND_FOUND_CREATE" | "LOST_AND_FOUND_MANAGE" | "LOST_AND_FOUND_MANAGER" | "CHECKLIST_READ" | "CHECKLIST_MANAGE" | "CHECKLIST_MANAGER" | "TEST_CATALOG_VIEW" | "TEST_CATALOG_EDIT" | "TEST_CONFIGURE" | "TEST_RESULT_READ" | "TEST_REVIEW" | "TEST_CATALOG_SHARE" | "TEST_MANAGER" | "PROTOCOL_TESTER" | "PROTOCOL_CREATE" | "PROTOCOL_CONFIGURE" | "PROTOCOL_SHARE" | "PROTOCOL_MANAGER" | "BOARD_USE" | "BOARD_EDIT" | "BOARD_FEDERATE" | "BOARD_MANAGER" | "PAGE_EDIT" | "PAGE_FORMS_VIEW" | "PAGE_POLLS_VIEW" | "PAGE_MANAGER" | "PROCEDURE_READ" | "PROCEDURE_EDIT" | "PROCEDURE_MANAGER" | "KNOWLEDGE_EDIT" | "KNOWLEDGE_FEDERATE" | "KNOWLEDGE_MANAGER" | "STATION_LOOK_AND_FEEL" | "STATION_GENERAL" | "STATION_MAIL" | "STATION_FEDERATION" | "STATION_MODULES" | "STATION_IMPORT_EXPORT" | "STATION_STATISTICS" | "STATION_MANAGER" | "STATION_ADMINISTRATOR";
         StationPermissionsRequest: {
             permissions?: string[];
         };
@@ -72388,6 +73194,12 @@ export interface components {
         StepUpVerifiedResponse: {
             verifiedAt: components["schemas"]["Instant"];
         };
+        StockPiece: {
+            /** Format: int32 */
+            id: number;
+            internalId: string | null;
+            name: string;
+        };
         /** @enum {string} */
         StorageAuditAction: "CREATED" | "UPDATED" | "DELETED" | "PROBE_OK" | "PROBE_FAILED" | "MIGRATION_STARTED" | "MIGRATION_COMPLETED" | "MIGRATION_FAILED" | "REJECTED" | "INSTANCE_DEFAULT_UPDATED" | "INSTANCE_MIGRATION_STARTED" | "INSTANCE_MIGRATION_COMPLETED" | "INSTANCE_MIGRATION_FAILED" | "POLICY_CHANGED";
         /** @enum {string} */
@@ -72419,6 +73231,14 @@ export interface components {
         Strategy: "CASCADE" | "DELETE_EXPLICIT" | "ANONYMIZE" | "NULL" | "RETAIN" | "RETAIN_UNLINKED" | "NOT_APPLICABLE";
         StringValue: {
             value: string;
+        };
+        SuggestedAnswer: {
+            question: components["schemas"]["TemplateQuestion"];
+            suggestion: string;
+        };
+        Suggestion: {
+            family: string;
+            sameMeasure: boolean;
         };
         Summary: {
             gdprDeletion: components["schemas"]["StatusCounts"];
@@ -72657,6 +73477,16 @@ export interface components {
             /** Format: int32 */
             total: number;
         };
+        TemplateQuestion: {
+            key: string;
+            kind: components["schemas"]["TemplateQuestionKind"];
+            label: string;
+            limits: components["schemas"]["QuestionLimits"];
+            required: boolean;
+            suggestion: string;
+        };
+        /** @enum {string} */
+        TemplateQuestionKind: "TEXT" | "DATE" | "NUMBER" | "CHOICE" | "CHECK";
         TemplateRequest: {
             name?: string;
         };
@@ -72827,6 +73657,8 @@ export interface components {
             text: string;
         };
         /** @enum {string} */
+        TextFormat: "DIGITS" | "LETTERS" | "POSTAL_CODE" | "EMAIL" | "PHONE";
+        /** @enum {string} */
         ThemeFeel: "ROUNDED" | "CORNERS";
         ThemeInfo: {
             allowUserFeel: boolean;
@@ -72911,6 +73743,27 @@ export interface components {
             perImage: number;
             /** Format: int64 */
             total: number;
+        };
+        TimeRule: {
+            audience: components["schemas"]["RestrictionAudience"];
+            /** Format: int32 */
+            followUpMinutes: number;
+            /** Format: int32 */
+            id: number;
+            intact: boolean;
+            label: string | null;
+            /** Format: int32 */
+            position: number;
+            /** Format: int32 */
+            preparationMinutes: number;
+        };
+        TimeRuleInput: {
+            audience?: components["schemas"]["RestrictionAudience"];
+            /** Format: int32 */
+            followUpMinutes?: number;
+            label?: string | null;
+            /** Format: int32 */
+            preparationMinutes?: number;
         };
         TimestampCheck: {
             authority: components["schemas"]["CertificateFacts"] | null;
@@ -73052,6 +73905,17 @@ export interface components {
         };
         /** @enum {string} */
         TrialOutcome: "OK" | "FOREIGN_CREDENTIAL" | "FAILED";
+        TrialOverview: {
+            /** Format: int32 */
+            attendanceThreshold: number;
+            /** Format: int32 */
+            entryId: number;
+            listName: string;
+            name: string;
+            since: components["schemas"]["Instant"];
+            /** Format: int32 */
+            visits: number;
+        };
         TrialResponse: {
             outcome: components["schemas"]["TrialOutcome"];
         };
@@ -73351,6 +74215,8 @@ export interface components {
             /** Format: int32 */
             id: number;
             invitation: components["schemas"]["WaitingListInvitation"] | null;
+            /** Format: int32 */
+            invitationRound: number;
             invitedAt: components["schemas"]["Instant"] | null;
             joinedAt: components["schemas"]["Instant"] | null;
             lastname: string;
@@ -73363,6 +74229,7 @@ export interface components {
             reminderSentAt: components["schemas"]["Instant"] | null;
             status: components["schemas"]["WaitingListEntryStatus"];
             testingAt: components["schemas"]["Instant"] | null;
+            trialMessage: string;
             withdrawnAt: components["schemas"]["Instant"] | null;
         };
         WaitingListEntryGuardian: {
@@ -73373,6 +74240,8 @@ export interface components {
             /** Format: int32 */
             id: number;
             lastname: string;
+            /** Format: int32 */
+            memberId: number | null;
             phone: string;
             /** Format: int32 */
             position: number;
@@ -73439,28 +74308,33 @@ export interface components {
             phone?: string | null;
         };
         WaitingListInvitation: {
-            arrivalTime: components["schemas"]["LocalTime"] | null;
-            date: components["schemas"]["LocalDate"];
-            /** Format: int32 */
-            eventId: number;
+            message: string;
+            options: components["schemas"]["OfferedDate"][];
         };
         WaitingListInvitationAnswer: {
             answer: components["schemas"]["WaitingListAnswer"];
             answeredAt: components["schemas"]["Instant"];
             note: string;
+            /** Format: int32 */
+            position: number | null;
         };
         WaitingListInvitationAnswerRequest: {
             answer?: string | null;
-            date?: string | null;
-            /** Format: int32 */
-            eventId?: number | null;
             note?: string | null;
+            /** Format: int32 */
+            position?: number | null;
+            /** Format: int32 */
+            round?: number | null;
         };
-        WaitingListInvitationRequest: {
+        WaitingListInvitationOptionRequest: {
             arrivalTime?: string | null;
             date?: string | null;
             /** Format: int32 */
             eventId?: number | null;
+        };
+        WaitingListInvitationRequest: {
+            message?: string | null;
+            options?: components["schemas"]["WaitingListInvitationOptionRequest"][] | null;
         };
         WaitingListInvite: {
             code: string;
@@ -73486,20 +74360,30 @@ export interface components {
             /** Format: int32 */
             maxUses?: number | null;
         };
+        WaitingListMessageRequest: {
+            message?: string | null;
+        };
         WaitingListPublicAnswer: {
             answer: components["schemas"]["WaitingListAnswer"];
             answeredAt: string;
             note: string;
+            /** Format: int32 */
+            position: number | null;
         };
-        WaitingListPublicInvitation: {
+        WaitingListPublicAppointment: {
             appointmentDate: string;
             appointmentName: string;
             appointmentTime: string;
             arrivalTime: string;
-            date: string;
-            /** Format: int32 */
-            eventId: number;
             location: string;
+            /** Format: int32 */
+            position: number;
+        };
+        WaitingListPublicInvitation: {
+            appointments: components["schemas"]["WaitingListPublicAppointment"][];
+            message: string;
+            /** Format: int32 */
+            round: number;
         };
         WaitingListPublicStatus: {
             answer: components["schemas"]["WaitingListPublicAnswer"] | null;
@@ -73518,6 +74402,7 @@ export interface components {
             /** Format: int32 */
             position: number;
             status: components["schemas"]["WaitingListEntryStatus"];
+            trialMessage: string;
             values: components["schemas"]["WaitingListEntryValue"][];
         };
         WaitingListRegisterRequest: {
@@ -73632,41 +74517,12 @@ export interface components {
         WithdrawalResponse: {
             undoUntil: components["schemas"]["Instant"];
         };
-        WitnessFieldResponse: {
-            /** Format: int32 */
-            documentId: number | null;
-            documentTitle: string | null;
-            /** Format: int32 */
-            fieldId: number;
-            fieldName: string;
-            /** Format: int32 */
-            memberId: number | null;
-            memberName: string;
-            /** Format: uuid */
-            requestUid: string;
-            role: components["schemas"]["FieldRole"];
-            signers: components["schemas"]["WitnessPersonResponse"][];
-            statement: string;
-        };
-        WitnessOffersResponse: {
-            fields: components["schemas"]["WitnessFieldResponse"][];
-            templates: components["schemas"]["WitnessTemplateResponse"][];
-        };
-        WitnessPersonResponse: {
-            /** Format: int32 */
-            memberId: number;
-            name: string;
-            userType: components["schemas"]["StationUserType"];
-        };
-        WitnessStartRequest: {
-            entries?: components["schemas"]["SignerEntryDraft"][] | null;
-            /** Format: int32 */
-            signerId?: number | null;
-        };
-        WitnessTemplateResponse: {
-            name: string;
-            /** Format: int32 */
-            templateId: number;
+        WordFormImport: {
+            asked: string[];
+            fonts: components["schemas"]["FontReplacement"][];
+            recognised: string[];
+            template: components["schemas"]["DocumentTemplateResponse"];
+            unplaced: string[];
         };
         YoutubeFileRequest: {
             description?: string;
@@ -74018,6 +74874,7 @@ export type DateFormatProblem = components['schemas']['DateFormatProblem'];
 export type DateKind = components['schemas']['DateKind'];
 export type DateTokenOption = components['schemas']['DateTokenOption'];
 export type DateValue = components['schemas']['DateValue'];
+export type DayBound = components['schemas']['DayBound'];
 export type DayCount = components['schemas']['DayCount'];
 export type DeclineBody = components['schemas']['DeclineBody'];
 export type Deleted = components['schemas']['Deleted'];
@@ -74154,6 +75011,8 @@ export type ExportColumnRequest = components['schemas']['ExportColumnRequest'];
 export type ExportMovementsRequest = components['schemas']['ExportMovementsRequest'];
 export type ExternalLinkCardConfig = components['schemas']['ExternalLinkCardConfig'];
 export type ExternalLinkImageDisplay = components['schemas']['ExternalLinkImageDisplay'];
+export type ExtraTimeCredit = components['schemas']['ExtraTimeCredit'];
+export type ExtraTimeRequest = components['schemas']['ExtraTimeRequest'];
 export type FactorInfo = components['schemas']['FactorInfo'];
 export type FailedInviteResponse = components['schemas']['FailedInviteResponse'];
 export type FeaturedEventConfig = components['schemas']['FeaturedEventConfig'];
@@ -74193,6 +75052,10 @@ export type FieldOrigin = components['schemas']['FieldOrigin'];
 export type FieldRect = components['schemas']['FieldRect'];
 export type FieldRequest = components['schemas']['FieldRequest'];
 export type FieldRole = components['schemas']['FieldRole'];
+export type FieldSet = components['schemas']['FieldSet'];
+export type FieldSetLabel = components['schemas']['FieldSetLabel'];
+export type FieldSetOrderRequest = components['schemas']['FieldSetOrderRequest'];
+export type FieldSetRequest = components['schemas']['FieldSetRequest'];
 export type FieldState = components['schemas']['FieldState'];
 export type FieldType = components['schemas']['FieldType'];
 export type FieldUpdateRequest = components['schemas']['FieldUpdateRequest'];
@@ -74220,6 +75083,7 @@ export type FolderTreeEntry = components['schemas']['FolderTreeEntry'];
 export type FontFamilyOption = components['schemas']['FontFamilyOption'];
 export type FontOrigin = components['schemas']['FontOrigin'];
 export type FontOutline = components['schemas']['FontOutline'];
+export type FontReplacement = components['schemas']['FontReplacement'];
 export type FontStyle = components['schemas']['FontStyle'];
 export type ForeignKey = components['schemas']['ForeignKey'];
 export type Form = components['schemas']['Form'];
@@ -74359,11 +75223,14 @@ export type InventorySummary = components['schemas']['InventorySummary'];
 export type InventoryTag = components['schemas']['InventoryTag'];
 export type InventoryTagRequest = components['schemas']['InventoryTagRequest'];
 export type InventoryType = components['schemas']['InventoryType'];
+export type InvitationRecipients = components['schemas']['InvitationRecipients'];
 export type InviteCodeResponse = components['schemas']['InviteCodeResponse'];
 export type InviteEntry = components['schemas']['InviteEntry'];
 export type InviteRequest = components['schemas']['InviteRequest'];
 export type Issued = components['schemas']['Issued'];
 export type IssuedOneTimePassword = components['schemas']['IssuedOneTimePassword'];
+export type IssueFromStockRequest = components['schemas']['IssueFromStockRequest'];
+export type IssueFromStockResponse = components['schemas']['IssueFromStockResponse'];
 export type IssuerChoice = components['schemas']['IssuerChoice'];
 export type ItemAssignment = components['schemas']['ItemAssignment'];
 export type ItemBooleanValue = components['schemas']['ItemBooleanValue'];
@@ -74573,6 +75440,7 @@ export type MessageResponse = components['schemas']['MessageResponse'];
 export type MetricsBatch = components['schemas']['MetricsBatch'];
 export type MetricsSubject = components['schemas']['MetricsSubject'];
 export type MigrationResponse = components['schemas']['MigrationResponse'];
+export type MissingFonts = components['schemas']['MissingFonts'];
 export type MissingStepsResponse = components['schemas']['MissingStepsResponse'];
 export type MissingValue = components['schemas']['MissingValue'];
 export type Mode = components['schemas']['Mode'];
@@ -74644,6 +75512,7 @@ export type NumberConfig = components['schemas']['NumberConfig'];
 export type NumberValue = components['schemas']['NumberValue'];
 export type OfferAnswer = components['schemas']['OfferAnswer'];
 export type OfferAnswerRequest = components['schemas']['OfferAnswerRequest'];
+export type OfferedDate = components['schemas']['OfferedDate'];
 export type OfferResponse = components['schemas']['OfferResponse'];
 export type OkResponse = components['schemas']['OkResponse'];
 export type OnboardAgainResponse = components['schemas']['OnboardAgainResponse'];
@@ -74660,6 +75529,7 @@ export type OutgoingPairRequestResponse = components['schemas']['OutgoingPairReq
 export type OutputShape = components['schemas']['OutputShape'];
 export type OverviewResponse = components['schemas']['OverviewResponse'];
 export type OwnerAboveResponse = components['schemas']['OwnerAboveResponse'];
+export type OwnerRequest = components['schemas']['OwnerRequest'];
 export type OwnNameChange = components['schemas']['OwnNameChange'];
 export type OwnNameChangeResponse = components['schemas']['OwnNameChangeResponse'];
 export type PadesLevel = components['schemas']['PadesLevel'];
@@ -74818,6 +75688,7 @@ export type QuestionBranch = components['schemas']['QuestionBranch'];
 export type QuestionColumn = components['schemas']['QuestionColumn'];
 export type QuestionConfig = components['schemas']['QuestionConfig'];
 export type QuestionConfigByType = components['schemas']['QuestionConfigByType'];
+export type QuestionLimits = components['schemas']['QuestionLimits'];
 export type QuizAccessRequest = components['schemas']['QuizAccessRequest'];
 export type QuizAnswerRequest = components['schemas']['QuizAnswerRequest'];
 export type QuizAttemptDetail = components['schemas']['QuizAttemptDetail'];
@@ -75032,6 +75903,7 @@ export type SetSessionFieldsRequest = components['schemas']['SetSessionFieldsReq
 export type SetShareRequest = components['schemas']['SetShareRequest'];
 export type SetTemplateGroupsRequest = components['schemas']['SetTemplateGroupsRequest'];
 export type SetTemplateUserTypesRequest = components['schemas']['SetTemplateUserTypesRequest'];
+export type SetTimeRulesRequest = components['schemas']['SetTimeRulesRequest'];
 export type SettingsRequest = components['schemas']['SettingsRequest'];
 export type SettingsResponse = components['schemas']['SettingsResponse'];
 export type SetupStatus = components['schemas']['SetupStatus'];
@@ -75053,6 +75925,8 @@ export type SharePartner = components['schemas']['SharePartner'];
 export type ShareScope = components['schemas']['ShareScope'];
 export type ShareSetting = components['schemas']['ShareSetting'];
 export type SidebarCounts = components['schemas']['SidebarCounts'];
+export type SidebarMode = components['schemas']['SidebarMode'];
+export type SidebarPreference = components['schemas']['SidebarPreference'];
 export type SignatureAskResponse = components['schemas']['SignatureAskResponse'];
 export type SignatureConfig = components['schemas']['SignatureConfig'];
 export type SignatureConsentRequest = components['schemas']['SignatureConsentRequest'];
@@ -75140,6 +76014,7 @@ export type StepUpProof = components['schemas']['StepUpProof'];
 export type StepUpRequest = components['schemas']['StepUpRequest'];
 export type StepUpResponse = components['schemas']['StepUpResponse'];
 export type StepUpVerifiedResponse = components['schemas']['StepUpVerifiedResponse'];
+export type StockPiece = components['schemas']['StockPiece'];
 export type StorageAuditAction = components['schemas']['StorageAuditAction'];
 export type StorageAuditOutcome = components['schemas']['StorageAuditOutcome'];
 export type StorageBackendType = components['schemas']['StorageBackendType'];
@@ -75147,6 +76022,8 @@ export type StorageCategory = components['schemas']['StorageCategory'];
 export type StorageQuotaPreset = components['schemas']['StorageQuotaPreset'];
 export type Strategy = components['schemas']['Strategy'];
 export type StringValue = components['schemas']['StringValue'];
+export type SuggestedAnswer = components['schemas']['SuggestedAnswer'];
+export type Suggestion = components['schemas']['Suggestion'];
 export type Summary = components['schemas']['Summary'];
 export type SwapNote = components['schemas']['SwapNote'];
 export type SwitchBlocker = components['schemas']['SwitchBlocker'];
@@ -75179,6 +76056,8 @@ export type TemplateDetailResponse = components['schemas']['TemplateDetailRespon
 export type TemplateFieldRequest = components['schemas']['TemplateFieldRequest'];
 export type TemplateGroupEntry = components['schemas']['TemplateGroupEntry'];
 export type TemplatePage = components['schemas']['TemplatePage'];
+export type TemplateQuestion = components['schemas']['TemplateQuestion'];
+export type TemplateQuestionKind = components['schemas']['TemplateQuestionKind'];
 export type TemplateRequest = components['schemas']['TemplateRequest'];
 export type TemplateRestrictions = components['schemas']['TemplateRestrictions'];
 export type TemplateSection = components['schemas']['TemplateSection'];
@@ -75200,6 +76079,7 @@ export type TextAlign = components['schemas']['TextAlign'];
 export type TextAnswer = components['schemas']['TextAnswer'];
 export type TextConfig = components['schemas']['TextConfig'];
 export type TextDetail = components['schemas']['TextDetail'];
+export type TextFormat = components['schemas']['TextFormat'];
 export type ThemeFeel = components['schemas']['ThemeFeel'];
 export type ThemeInfo = components['schemas']['ThemeInfo'];
 export type TicketLabelMapping = components['schemas']['TicketLabelMapping'];
@@ -75208,6 +76088,8 @@ export type TicketSummary = components['schemas']['TicketSummary'];
 export type TidyResult = components['schemas']['TidyResult'];
 export type TierRequest = components['schemas']['TierRequest'];
 export type TierResponse = components['schemas']['TierResponse'];
+export type TimeRule = components['schemas']['TimeRule'];
+export type TimeRuleInput = components['schemas']['TimeRuleInput'];
 export type TimestampCheck = components['schemas']['TimestampCheck'];
 export type TimestampRequest = components['schemas']['TimestampRequest'];
 export type TimestampResponse = components['schemas']['TimestampResponse'];
@@ -75234,6 +76116,7 @@ export type TransientKeyRequest = components['schemas']['TransientKeyRequest'];
 export type TrashEntry = components['schemas']['TrashEntry'];
 export type TrashView = components['schemas']['TrashView'];
 export type TrialOutcome = components['schemas']['TrialOutcome'];
+export type TrialOverview = components['schemas']['TrialOverview'];
 export type TrialResponse = components['schemas']['TrialResponse'];
 export type TrueFalse = components['schemas']['TrueFalse'];
 export type TrustedDeviceEntry = components['schemas']['TrustedDeviceEntry'];
@@ -75293,11 +76176,14 @@ export type WaitingListGuardianRequest = components['schemas']['WaitingListGuard
 export type WaitingListInvitation = components['schemas']['WaitingListInvitation'];
 export type WaitingListInvitationAnswer = components['schemas']['WaitingListInvitationAnswer'];
 export type WaitingListInvitationAnswerRequest = components['schemas']['WaitingListInvitationAnswerRequest'];
+export type WaitingListInvitationOptionRequest = components['schemas']['WaitingListInvitationOptionRequest'];
 export type WaitingListInvitationRequest = components['schemas']['WaitingListInvitationRequest'];
 export type WaitingListInvite = components['schemas']['WaitingListInvite'];
 export type WaitingListInviteInfo = components['schemas']['WaitingListInviteInfo'];
 export type WaitingListInviteRequest = components['schemas']['WaitingListInviteRequest'];
+export type WaitingListMessageRequest = components['schemas']['WaitingListMessageRequest'];
 export type WaitingListPublicAnswer = components['schemas']['WaitingListPublicAnswer'];
+export type WaitingListPublicAppointment = components['schemas']['WaitingListPublicAppointment'];
 export type WaitingListPublicInvitation = components['schemas']['WaitingListPublicInvitation'];
 export type WaitingListPublicStatus = components['schemas']['WaitingListPublicStatus'];
 export type WaitingListRegisterRequest = components['schemas']['WaitingListRegisterRequest'];
@@ -75319,11 +76205,7 @@ export type WebhookUrlResponse = components['schemas']['WebhookUrlResponse'];
 export type WeblinkRequest = components['schemas']['WeblinkRequest'];
 export type WikiAudienceRequest = components['schemas']['WikiAudienceRequest'];
 export type WithdrawalResponse = components['schemas']['WithdrawalResponse'];
-export type WitnessFieldResponse = components['schemas']['WitnessFieldResponse'];
-export type WitnessOffersResponse = components['schemas']['WitnessOffersResponse'];
-export type WitnessPersonResponse = components['schemas']['WitnessPersonResponse'];
-export type WitnessStartRequest = components['schemas']['WitnessStartRequest'];
-export type WitnessTemplateResponse = components['schemas']['WitnessTemplateResponse'];
+export type WordFormImport = components['schemas']['WordFormImport'];
 export type YoutubeFileRequest = components['schemas']['YoutubeFileRequest'];
 export type $defs = Record<string, never>;
 export type operations = Record<string, never>;
@@ -76149,6 +77031,7 @@ export const NotificationType = {
     WAITLIST_INVITATION_ANSWERED: "WAITLIST_INVITATION_ANSWERED",
     WAITLIST_NEW_ENTRY: "WAITLIST_NEW_ENTRY",
     WAITLIST_PUBLIC_REGISTRATION: "WAITLIST_PUBLIC_REGISTRATION",
+    WAITLIST_TRIAL_ENDED: "WAITLIST_TRIAL_ENDED",
 } as const;
 
 export const OfferAnswer = {
@@ -76253,6 +77136,7 @@ export const PlaceholderCategory = {
     ISSUER: "ISSUER",
     MEMBER: "MEMBER",
     PRONOUNS: "PRONOUNS",
+    QUESTION: "QUESTION",
     STATION: "STATION",
 } as const;
 
@@ -76369,6 +77253,8 @@ export const RestrictionMode = {
 } as const;
 
 export const RestrictionType = {
+    ATTENDANCE_SESSION_TIME_RULE: "ATTENDANCE_SESSION_TIME_RULE",
+    ATTENDANCE_TEMPLATE_TIME_RULE: "ATTENDANCE_TEMPLATE_TIME_RULE",
     DOCUMENT_TEMPLATE: "DOCUMENT_TEMPLATE",
     DOCUMENT_TEMPLATE_STATION_USE: "DOCUMENT_TEMPLATE_STATION_USE",
     EVENT: "EVENT",
@@ -76380,7 +77266,6 @@ export const RestrictionType = {
     KB_FOLDER: "KB_FOLDER",
     NEWS: "NEWS",
     QUIZ_TEST: "QUIZ_TEST",
-    WITNESS_REACH: "WITNESS_REACH",
 } as const;
 
 export const RevocationReason = {
@@ -76489,6 +77374,11 @@ export const ShareScope = {
     SPECIFIC: "SPECIFIC",
 } as const;
 
+export const SidebarMode = {
+    SECTIONS: "SECTIONS",
+    TREE: "TREE",
+} as const;
+
 export const SignatureImageSource = {
     DRAWN: "DRAWN",
     TYPED: "TYPED",
@@ -76508,7 +77398,6 @@ export const SignerCapacity = {
     ACCOUNT_HOLDER: "ACCOUNT_HOLDER",
     GUARDIAN: "GUARDIAN",
     MEMBER_THROUGH_ACCOUNT: "MEMBER_THROUGH_ACCOUNT",
-    WITNESSED: "WITNESSED",
 } as const;
 
 export const SigningKeyKind = {
@@ -76556,7 +77445,6 @@ export const StationPermission = {
     DOCUMENT_MANAGER: "DOCUMENT_MANAGER",
     DOCUMENT_READ: "DOCUMENT_READ",
     DOCUMENT_READ_MEMBER: "DOCUMENT_READ_MEMBER",
-    DOCUMENT_SIGN_OTHERS: "DOCUMENT_SIGN_OTHERS",
     DOCUMENT_TEMPLATE_EDIT: "DOCUMENT_TEMPLATE_EDIT",
     EVENTS_FEDERATE: "EVENTS_FEDERATE",
     EVENT_EDIT: "EVENT_EDIT",
@@ -76775,6 +77663,14 @@ export const TaskOutcome = {
     SUCCEEDED: "SUCCEEDED",
 } as const;
 
+export const TemplateQuestionKind = {
+    CHECK: "CHECK",
+    CHOICE: "CHOICE",
+    DATE: "DATE",
+    NUMBER: "NUMBER",
+    TEXT: "TEXT",
+} as const;
+
 export const TemplateSort = {
     CREATED: "CREATED",
     LAST_USED: "LAST_USED",
@@ -76792,6 +77688,14 @@ export const TextAlign = {
     CENTER: "CENTER",
     LEFT: "LEFT",
     RIGHT: "RIGHT",
+} as const;
+
+export const TextFormat = {
+    DIGITS: "DIGITS",
+    EMAIL: "EMAIL",
+    LETTERS: "LETTERS",
+    PHONE: "PHONE",
+    POSTAL_CODE: "POSTAL_CODE",
 } as const;
 
 export const ThemeFeel = {

@@ -193,6 +193,63 @@ class ProcurementServiceTest extends RepositoryTestBase {
     }
 
     /**
+     * A piece already on the shelf answers an order only in the size that was ordered and only while
+     * nothing else has promised it. Settling the order with it hands that piece out and writes nothing
+     * new down, since nothing arrived.
+     */
+    @Test
+    @Order(50)
+    void anOrderIsSettledWithAMatchingPieceFromStorage() {
+        var sized = inventoryRepo.create(station.id(), "Stiefel", InventoryType.INTERNAL, true);
+        inventoryRepo.createSize(sized.id(), "42", 0, null);
+        inventoryRepo.createSize(sized.id(), "44", 1, null);
+        var sizes = inventoryRepo.findSizes(sized.id());
+        int ordered = sizes.getFirst().id();
+        int other = sizes.getLast().id();
+        var fits = inventoryRepo.createItem(sized.id(), "S-1", "Stiefel 42", ordered, null);
+        inventoryRepo.createItem(sized.id(), "S-2", "Stiefel 44", other, null);
+        var order = service.create(station.id(), sized.id(), member.id(), ordered, "");
+
+        var stock = service.stockFor(order);
+        assertEquals(1, stock.size(), "only the piece in the ordered size is offered");
+        assertEquals(fits.id(), stock.getFirst().id());
+
+        var handOut = service.issueFromStock(order.id(), fits.id(), new ItemMovementService.Actor(member.id(), true));
+
+        assertEquals(MovementPurpose.ISSUE, handOut.purpose());
+        assertNotNull(service.findById(order.id()).orElseThrow().fulfilledAt(), "the order is settled");
+        assertEquals(2, inventoryRepo.findItems(sized.id()).size(), "and no new piece was written down");
+        var promised = inventoryRepo.findItemById(fits.id()).orElseThrow();
+        assertTrue(itemMovementService.isOnAMovement(promised.id()), "the piece is on its way to the member");
+
+        var second = service.create(station.id(), sized.id(), member.id(), ordered, "");
+        assertTrue(service.stockFor(second).isEmpty(), "a promised piece is not offered again");
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.issueFromStock(second.id(), fits.id(), new ItemMovementService.Actor(member.id(), true)));
+        assertEquals(InventoryRefusal.PROCUREMENT_PIECE_NOT_IN_STOCK, refused.refusal());
+
+        itemMovementService.abandon(handOut.id(), "Test vorbei");
+        service.delete(second.id());
+    }
+
+    /** An order for nobody has nobody to hand a piece to, so nothing in storage is offered for it. */
+    @Test
+    @Order(51)
+    void anOrderForNobodyIsNotSettledFromStorage() {
+        var order = service.create(station.id(), inventoryId, null, null, "");
+        inventoryRepo.createItem(inventoryId, "", "Jacke", null, null);
+
+        assertTrue(service.stockFor(order).isEmpty());
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.issueFromStock(order.id(), 1, new ItemMovementService.Actor(member.id(), true)));
+        assertEquals(InventoryRefusal.PROCUREMENT_FOR_NOBODY_FROM_STOCK, refused.refusal());
+
+        service.delete(order.id());
+    }
+
+    /**
      * A cluster orders for its own store, so the order names nobody and what arrives belongs to the
      * cluster and rests there, rather than landing on a person its station does not have.
      */

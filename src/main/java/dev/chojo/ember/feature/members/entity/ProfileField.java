@@ -34,6 +34,10 @@ import java.util.Optional;
  *                      {@code third}, null meaning the whole row. An assignment may override it for
  *                      its own audience, because the same question sits on forms of different shapes.
  * @param keepOnArchive whether to retain this field's values when a member is archived
+ * @param shownIfFieldId a yes/no field of the same station this one depends on, or {@code null}. While a
+ *                       member is asked both and has not answered yes, this one is hidden and not required.
+ * @param fieldSetId     the bundle of the station's fields this one belongs to, or {@code null}
+ * @param setPosition    where it stands within that bundle, smallest first
  */
 public record ProfileField(
         int id,
@@ -44,7 +48,10 @@ public record ProfileField(
         boolean required,
         boolean readonly,
         @Nullable String width,
-        boolean keepOnArchive) {
+        boolean keepOnArchive,
+        @Nullable Integer shownIfFieldId,
+        @Nullable Integer fieldSetId,
+        int setPosition) {
     /**
      * This field as everything that checks a question reads it, or nothing where it is a heading or
      * an age and asks nobody anything.
@@ -69,6 +76,9 @@ public record ProfileField(
                 row.getBoolean("required"),
                 row.getBoolean("readonly"),
                 row.getString("width"),
-                row.getBoolean("keep_on_archive"));
+                row.getBoolean("keep_on_archive"),
+                row.getObject("shown_if_field_id", Integer.class),
+                row.getObject("field_set_id", Integer.class),
+                row.getInt("set_position"));
     }
 }

@@ -1,22 +1,170 @@
 # Änderungsprotokoll
 
-## v26.23.0
+## v26.24.0
 
-Unterschriften lassen sich vor Ort sammeln. Wer mit einem Tablet beim Übungsabend steht, holt die Unterschriften von Probemitgliedern und Mitgliedern ohne eigenes Konto direkt ein. Mit dem eigenen Konto wird dann bestätigt, dass jede Person vor Ort unterschrieben hat.
+Die Anwesenheit kann Zeit vor und nach einem Termin gutschreiben. Eine Vorlage legt fest, wer vorbereitet oder aufräumt, etwa Jugendwarte oder Ausbilder, und wie viele Minuten das wert ist. Der Anwesenheitsbericht zählt diese Minuten zu den Stunden jeder Person. Die Ausrüstung eines Mitglieds wird auf seiner eigenen Seite aus- und zurückgegeben. Die Seite öffnet mit den Tabs, die jemand sehen darf. Tabs auf den Hauptseiten lassen sich über die Adresse verlinken. Fehlende Ausstattung steht bei der vorhandenen und wird über ein Fenster mit Suche ausgegeben. Bewegungen heißen überall Vorgänge. Unterschriften lassen sich vor Ort sammeln, von Probemitgliedern und Mitgliedern ohne eigenes Konto. Mit dem eigenen Konto wird bestätigt, dass jede Person vor Ort unterschrieben hat.
 
 ### Neue Funktionen
 
+- **Vor- und Nachbereitung zählen in der Anwesenheit.** Eine Anwesenheitsvorlage kann ausgewählten Personen nach Mitgliedstyp, Gruppe, Tag oder Name Minuten vor und nach einem Termin gutschreiben, etwa einem Jugendwart, der den Raum herrichtet. Jede Liste übernimmt diese Regeln und kann sie ändern oder eine Person ausnehmen, und Bericht, Ausdrucke und CSV-Export rechnen die Minuten zu den Stunden jeder Person.
 - **Unterschriften vor Ort sammeln.** Wer die neue Berechtigung „Unterschriften vor Ort sammeln“ hat, wählt ein Mitglied oder Probemitglied, öffnet eines seiner Dokumente oder erstellt eines aus einer Vorlage und gibt das Gerät zum Lesen, Zustimmen und Unterschreiben weiter. Bestätigt wird mit dem eigenen Konto, und Signaturnachweis und Prüfseite nennen die Zeugin oder den Zeugen neben der Person, die unterschrieben hat.
 - **Eingrenzen, von wem gesammelt wird.** Direkt unter der Berechtigung lässt sich festlegen, von welchen Mitgliedern und Probemitgliedern vor Ort gesammelt werden darf, etwa nur von Probemitgliedern oder von einer Gruppe. Ohne Auswahl gilt das für alle.
 
+### Verbesserungen
+
+- **Tabs lassen sich verlinken.** Die Adresse nennt den offenen Tab auf den Seiten von Mitgliedern, Terminen, Tests, Vorlagen und Formularauswertungen. Ein Link oder ein Lesezeichen öffnet so denselben Tab, etwa `/station/members/detail/12#inventory`.
+- **Mitgliederseiten öffnen mit den Tabs, die jemand sehen darf.** Jeder Tab auf der Seite eines Mitglieds erscheint für alle, die seinen Inhalt sehen dürfen, und die Seite öffnet, solange einer übrig bleibt. Wer das Inventar sehen darf, aber keine Mitgliederprofile, bekommt die Seite mit dem Tab Inventar.
+- **Seiten zeigen ihre Ladeanzeige in der Mitte.** Während eine Seite oder ein Abschnitt lädt, steht das drehende Rad mittig in einer eigenen Zeile statt oben links in der Ecke.
+
+### Änderungen
+
+- **Die Ausrüstung eines Mitglieds steht auf seiner Seite.** Die eigene Seite für das Inventar eines Mitglieds entfällt, und jeder Mitgliedsname im Inventar führt zum Tab Inventar auf der Seite des Mitglieds. Dort gibt es jetzt auch die Ausgabe per Scan, „Alles zurückfordern“ und die Vorgänge des Mitglieds, und die Knöpfe richten sich nach den Inventarrechten statt nach dem Recht, Mitglieder zu bearbeiten.
+- **Fehlende Ausstattung steht bei der vorhandenen.** Im Tab Inventar eines Mitglieds erscheint jedes fehlende Teil als Karte bei seinem Inventar statt in einer eigenen Liste darüber. Beim Ausgeben öffnet sich ein Fenster, das die freien Teile dieses Inventars durchsucht, die gewählte Größe zuerst, oder ein neues anlegt.
+- **Bewegungen heißen überall Vorgänge.** Oberfläche, Benachrichtigungen, Fehlermeldungen, Dateinamen von Exporten und das Hilfe-Center nennen sie wie die Seitenleiste, aus „Meine Bewegungen“ wird „Meine Vorgänge“.
+
+## v26.23.5
+
+Wiederkehrende Termine behalten ihre Uhrzeit, wenn die Uhren umgestellt werden.
+
+### Fehlerbehebungen
+
+- **Wiederkehrende Termine lagen im Winter eine Stunde daneben.** In manchen Fällen zeigte ein im Sommer angelegter wiederkehrender Termin nach der Zeitumstellung die falsche Uhrzeit, auf Anwesenheitslisten, erzeugten Dokumenten, in der Ausrüstungsplanung und in abonnierten Kalendern. Seine Uhrzeit bleibt jetzt das ganze Jahr über nach der Uhr der Wache gleich.
+
+## v26.23.4
+
+Eine Einladung von der Warteliste kann mehrere Termine zur Auswahl anbieten, und die Wache kann der Familie schreiben, wenn sie andere Termine anbietet, die Probezeit startet oder jemanden von der Liste nimmt.
+
+### Neue Funktionen
+
+- **Einladungen bieten mehrere Termine an.** Eine Einladung von der Warteliste kann bis zu fünf Termine mit je eigener Ankunftszeit anbieten, und die Familie wählt auf der Einladungsseite den passenden aus oder sagt, dass keiner passt. Die Wache sieht am Eintrag und in der Benachrichtigung, welcher Termin gewählt wurde.
+
+### Verbesserungen
+
+- **Andere Termine in einem Schritt.** Passen die Termine einer Einladung nicht, ersetzt „Andere Termine anbieten“ sie durch neue mit einer Nachricht, und die Familie bekommt sie per E-Mail oder auf der Seite des Eintrags, ohne dass der Eintrag erst zurück in die Warteliste muss.
+- **Die Wache kann der Familie schreiben.** Der Start der Probezeit und das Ausscheiden nehmen eine optionale Nachricht, die der Familie per E-Mail geschickt wird, wenn die Warteliste E-Mails verschickt, und die Nachricht zur Probezeit steht auch auf der Seite des Eintrags, solange die Probezeit läuft. Eingeladene Einträge können jetzt auch direkt ausscheiden.
+
+## v26.23.3
+
+Profile verlangen von Mitgliedern keine Felder mehr, die sie nicht ausfüllen können.
+
+### Fehlerbehebungen
+
+- **Profile führten ein Alter als fehlend auf.** Ein Pflichtfeld, das zu einem Alter, einer Überschrift oder einem Abstand umgestellt wurde, blieb Pflicht, und Mitglieder ohne Wert sahen es auf ihrem Profil unter den fehlenden Feldern, ohne es ausfüllen zu können. Solche Felder sind nun nie Pflicht, und das Profil führt auch keine Felder mehr auf, die das Mitglied nur lesen darf.
+
+## v26.23.2
+
+Die Schnellprüfung der Anwesenheit hält ihre Statusknöpfe bei jedem Mitglied an derselben Stelle.
+
+### Verbesserungen
+
+- **Die Knöpfe der Schnellprüfung bleiben stehen.** In der Schnellprüfung der Anwesenheit stehen offene Tauschvorgänge und Fundsachen eines Mitglieds unter den Knöpfen statt darüber, sodass Anwesend, Abwesend und Abgesagt von Mitglied zu Mitglied an derselben Stelle bleiben. Ein Geburtstag steht weiter beim Namen.
+
+## v26.23.1
+
+Profilfelder lassen sich nur dann anzeigen, wenn eine Ja/Nein-Frage mit Ja beantwortet ist, und zusammengehörige Felder lassen sich gruppieren. Eine offene Beschaffung zeigt, wenn ein passendes Stück bereits im Lager der Wache liegt, und kann es sofort ausgeben. Jeder Tausch fragt auf dieselbe Weise nach dem Grund, mit der aktuellen Größe neben der gewünschten, und die Bereiche der Seitenleiste öffnen sich wieder in einem neuen Tab.
+
+### Neue Funktionen
+
+- **Profilfelder können von einer Ja/Nein-Frage abhängen.** Ein Profilfeld lässt sich so einstellen, dass es nur erscheint, wenn eine gewählte Ja/Nein-Frage desselben Profils mit Ja beantwortet ist, und nur dann Pflicht ist, so wird das JuLeiCa-Ablaufdatum nur bei Personen mit JuLeiCa abgefragt. Wer die Ja/Nein-Frage nicht gestellt bekommt, sieht das Feld wie gewohnt, und die Vorlagen JuLeiCa und Leistungsspange richten das gleich mit ein.
+- **Profilfelder lassen sich gruppieren.** Felder, die zusammengehören, etwa eine Adresse, bilden eine Feldgruppe: Sie werden einer Zielgruppe immer gemeinsam gestellt und stehen in jedem Formular zusammen in ihrer Reihenfolge, auf Wunsch unter dem Namen der Gruppe als Überschrift. Vorlagen mit mehreren Feldern legen ihre Gruppe gleich mit an und stellen die Felder nebeneinander, etwa Straße und Hausnummer in eine Zeile, und eine aufgelöste Gruppe behält ihre Felder samt Antworten.
+
+### Verbesserungen
+
+- **Beschaffungen werden aus dem Lager bedient.** Eine offene Beschaffung für ein Mitglied zeigt, wie viele Stücke des bestellten Inventars in der bestellten Größe frei im Lager der Wache liegen. „Aus dem Lager ausgeben“ wählt eines davon, startet die Ausgabe an das Mitglied als Bewegung und markiert die Beschaffung als erledigt.
+- **Jeder Tausch fragt gleich nach dem Grund.** Ein Tausch aus einer Bewegung, der Ausrüstung eines Mitglieds, der eigenen Ausrüstung, einer Besitzprüfung oder einer Selbstprüfung bietet zu klein, zu groß, kaputt oder einen anderen Grund in eigenen Worten, mit einer freiwilligen Anmerkung. Jeder Grund wählt eine Größe größer, kleiner oder die gleiche vor, angezeigt neben der aktuellen Größe, und die Wahl lässt sich ändern.
+- **Der Eigentümer eines Stücks im gemischten Inventar lässt sich ändern.** Ein Stück eines gemischten Inventars lässt sich beim Bearbeiten der Wache oder dem Träger zuschreiben, solange es im Lager der Wache liegt. Wer in einem gemischten Inventar ein neues Stück ausgibt, wird gefragt, wem es gehört.
+- **Anfragen und Verlustmeldungen gehen auch ohne Träger in Ember.** Eine Wache, deren Träger Ember nicht nutzt, kann bei ihm Material anfragen und seine Ausrüstung als vermisst melden, und die Wache bestätigt die Schritte des Trägers selbst.
+
+### Änderungen
+
+- **Die Selbstprüfung hat einen einzigen Tausch-Knopf.** „Passt nicht mehr“ und „Ist kaputt“ an einem Stück der Selbstprüfung sind durch einen Knopf „Tauschen“ ersetzt, der Grund wird in dessen Dialog gewählt.
+- **Ausrüstung des Trägers heißt überall gleich.** Ein Stück des Trägers heißt „Träger“, ob der Träger Ember nutzt oder nicht, ohne den Zusatz „nicht in Ember“.
+
+### Fehlerbehebungen
+
+- **Neu ausgegebene Ausrüstung im gemischten Inventar gehörte immer dem Träger.** Ein beim Ausgeben neu angelegtes Stück eines gemischten Inventars wurde dem Träger zugeschrieben, auch wenn es der Wache gehören sollte. Der Eigentümer wird jetzt beim Ausgeben gewählt.
+
+- **Bereiche der Seitenleiste ließen sich nicht in einem neuen Tab öffnen.** Die Bereiche in der Liste aller Bereiche reagierten nicht auf einen Mittelklick oder einen Klick mit gedrückter Zusatztaste. Sie sind jetzt Links, die ihre erste Seite wie jeder andere Link in einem neuen Tab öffnen.
+
+## v26.23.0
+
+Dokumentvorlagen können beim Erstellen nach Angaben fragen, die nicht in den Daten des Mitglieds stehen, etwa nach dem Datum einer Änderung oder welches von mehreren Kästchen zutrifft. Word-Formulare mit Feldern zum Ausfüllen werden zu PDF-Vorlagen in ihrem gewohnten Aussehen. So lässt sich ein Papierformular wie eine Änderungsmeldung direkt in Ember ausfüllen. Ankreuzfelder bestehender PDF-Vorlagen folgen weiter den Daten des Mitglieds und lassen sich jetzt auch von Hand setzen. Familien auf einer Warteliste sind ab dem ersten Tag der Probezeit dabei. Erziehungsberechtigte bekommen ihr Konto mit dem Start der Probezeit, verfolgen sie auf ihrer Übersicht und können sie selbst beenden. Eine Einladung nennt immer einen Termin, zeigt vor dem Senden, wohin die E-Mail geht, und kann eine persönliche Nachricht enthalten.
+
+Die Seitenleiste zeigt einen Bereich auf einmal und bleibt kurz, egal wie viele Module eine Wache nutzt. Jeder Bereich öffnet auf seiner Hauptseite und listet alle seine Seiten, nichts ist mehr nur über den Namen eines Bereichs erreichbar. Der Fuß der Seitenleiste wechselt zwischen Wachen, Verbänden, dem eigenen Konto und der Administration der Instanz, jeweils mit der Zahl dessen, was dort wartet. In der Kopfzeile bleiben die Suche und das Kontomenü, das Hilfe-Center wandert zu den runden Knöpfen unten rechts.
+
+### Neue Funktionen
+
+- **Erziehungsberechtigte sind in der Probezeit dabei.** Beginnt die Probezeit, bekommen die Erziehungsberechtigten des Wartelisteneintrags ein Konto, mit dem sie das Kind von Terminen abmelden und die Probezeit mit den bisherigen Besuchen auf ihrer Übersicht sehen. Dort können sie die Probezeit auch selbst beenden, wobei die dafür angelegten Konten gelöscht werden, sofern sie nicht noch gebraucht werden, und die Wache wird benachrichtigt.
+- **Vorlagen fragen beim Erstellen nach.** Eine Vorlage kann nach einem Text, einem Datum, einer Zahl, einem Eintrag aus einer Liste oder einem Kreuz fragen, jeweils in Grenzen wie einem spätesten Tag oder einer Höchstlänge, und druckt jede Antwort dort, wo sie sie nennt. Jede Abfrage kann ihre Antwort aus den Daten des Mitglieds vorschlagen, und beim Selbst-Erstellen und beim Erstellen für viele Mitglieder gilt dann dieser Vorschlag.
+- **Word-Formulare werden zu PDF-Vorlagen.** Ein Word-Formular mit Feldern zum Ausfüllen wird zu einer PDF-Vorlage im Aussehen des Originals: Daten des Mitglieds dort, wo die Bezeichnung eines Felds erkannt wird, und eine Abfrage für jedes andere Feld, jede Auswahlliste und jedes Kontrollkästchen, jeweils in Schrift und Größe des Formulars. Eine Schrift, die nicht hochgeladen ist, wird vor dem Umwandeln durch eine gewählte ersetzt, in einer Stärke und Größe, die Aussehen und Zeilen halten, und eine Vorschau zeigt das Original neben dem Ergebnis, beide mit Beispielwerten ausgefüllt.
+
+### Verbesserungen
+
+- **Textfelder behalten ihre Größe.** Ein Textfeld einer PDF-Vorlage kann einen langen Wert in voller Größe drucken und über das Feld hinaus weiterlaufen lassen, statt ihn zu verkleinern. Felder aus Word-Formularen sind von Anfang an so eingestellt.
+- **Mehr Schriften in jeder Installation.** Carlito und Caladea setzen Text genau so breit wie Calibri und Cambria, und Open Sans steht für Schriften wie Frutiger ein. Alle drei lassen sich für Briefe und Felder wählen, und beim Import eines Word-Formulars in Calibri, Cambria, Arial oder Times New Roman ist die passende vorgewählt.
+- **Einladungen nennen Termin und Empfänger.** Eine Einladung lässt sich erst senden, wenn ein Termin gewählt ist, und der Dialog listet die Adressen, an die die E-Mail geht, oder sagt, dass niemand angeschrieben wird. Die Terminauswahl zeigt neben dem Datum die Uhrzeit.
+- **Einladungen enthalten eine persönliche Nachricht.** Eine Nachricht, die beim Einladen geschrieben wird, steht in der E-Mail und auf der Seite, auf der die Einladung beantwortet wird. Die Nachricht zu einer Antwort steht in der Benachrichtigung an die Wache.
+- **Offene Anmeldungen stehen nach Datum getrennt.** Unter Termine → Anmeldungen hat jedes Datum eines wiederkehrenden Termins einen eigenen Block mit dem Datum in der Überschrift. Die Liste zeigt, wann sich jemand angemeldet hat, statt des Termindatums.
+- **Die Schnellsuche bietet, was die Seitenleiste zeigt.** Die Schnellsuche findet jede Seite der Seitenleiste, die geöffnet werden darf, auch die Boards der Wache und die Schritte der ersten Einrichtung.
+
+### Änderungen
+
+- **Ankreuzfelder lassen sich von Hand setzen.** Die Ankreuzfelder bestehender PDF-Vorlagen sind zu Abfragen geworden, die wie bisher den Daten des Mitglieds folgen, beim Selbst-Erstellen und beim Erstellen für viele Mitglieder also unverändert ankreuzen. Wer ein einzelnes Dokument erstellt, kann jedes Kreuz jetzt setzen oder entfernen.
+- **Die Seitenleiste zeigt einen Bereich auf einmal.** Ein geöffneter Bereich ersetzt die Liste und öffnet seine erste Seite, „Alle Bereiche“ oben führt zurück. Eine Seite, die über einen Link, ein Lesezeichen oder die Schnellsuche geöffnet wird, zeigt den Bereich, zu dem sie gehört.
+- **Alle Bereiche auf einmal bleiben wählbar.** Unter Konto → Erscheinungsbild lässt sich die Seitenleiste so einstellen, dass sie wie bisher alle Bereiche untereinander zeigt und an Ort und Stelle aufklappt. Die Wahl gehört zum Konto und gilt auf allen Geräten.
+- **Jeder Bereich listet seine Hauptseite.** Die Mitgliederliste, die kommenden Termine, die eigenen Dokumente und die anderen Seiten, die früher der Name eines Bereichs öffnete, sind der erste Eintrag ihres Bereichs. Ein Bereich, in dem nur eine Seite übrig bleibt, erscheint als diese Seite.
+- **Orte wechseln über die Seitenleiste.** Der Fuß der Seitenleiste zeigt den aktuellen Ort und öffnet eine Liste aller Wachen, Verbände, des eigenen Kontos und der Administration der Instanz, jeweils mit der Zahl dessen, was dort wartet. Der Wachenwechsel und die Knöpfe für Administration, Verband und Wache in der Kopfzeile entfallen.
+- **Das Hilfe-Center sitzt unten rechts.** Das Hilfe-Center öffnet sich über einen runden Knopf neben der Fehlermeldung, die Kopfzeile behält nur die Suche und das Kontomenü.
+
+### Fehlerbehebungen
+
+- **Eine Einladung ließ sich mit einem Tastendruck senden.** Der Einladungsdialog öffnete mit ausgewähltem Senden-Knopf, so dass die Eingabetaste die E-Mail sofort verschickte, auch ohne Termin. Der Dialog öffnet jetzt auf dem Termin, und gesendet wird erst, wenn einer gewählt ist.
+- **Benachrichtigungsmails zeigen lesbare Beschreibungen.** Die Beschreibung eines Termins kam in Benachrichtigungsmails mit ihren Formatierungszeichen wie Sternchen und Rauten an, und zwar in voller Länge. Sie erscheint jetzt als reiner Text, und eine lange Beschreibung wird gekürzt und bekommt einen Knopf "Weiterlesen".
+- **Eine umgezogene Wache zeigte manchen Mitgliedern die ganze Seitenleiste.** In manchen Fällen sahen Mitglieder, die eine in eine andere Installation umgezogene Wache nicht verwalten, neben dem Hinweis auf den Umzug die volle Seitenleiste. Sie sehen jetzt nur den Hinweis.
+- **Die Schnellsuche bot Seiten an, die es nicht mehr gibt.** Einige Einträge der Schnellsuche, etwa Sicherheit und Sitzungen im Profil der Wache, führten auf eine fehlende Seite. Sie sind entfernt.
+- **Betreute Mitglieder zeigten keine Profildaten.** Auf der Mitgliederseite eines Erziehungsberechtigten standen die betreuten Mitglieder mit leeren Profilfeldern da. Ihre Angaben erscheinen jetzt wie die der Erziehungsberechtigten.
+
+## v26.22.6
+
+Die Felder einer Anwesenheitsvorlage und einer Warteliste werden direkt in der Liste bearbeitet, so wie die Felder eines Termins. In der Mehrfach-Erstellung behalten Termine die eingegebene Uhrzeit und bieten nur die Felder der gewählten Anwesenheitsvorlage an.
+
+### Verbesserungen
+
+- **Felder einer Anwesenheitsvorlage werden direkt bearbeitet.** Die Felder einer Anwesenheitsvorlage werden in der Liste selbst geschrieben, wie die Felder eines Termins: Name, Typ, Einstellungen und Breite stehen in der Karte jedes Feldes, ein Feld wird in der Liste oder in der Vorschau an eine andere Stelle gezogen, und alle Felder werden mit einem Knopf gespeichert.
+- **Felder einer Warteliste werden direkt bearbeitet.** Die Felder einer Warteliste werden auf dieselbe Weise in der Liste geschrieben und zusammen gespeichert, statt über einen Dialog je Feld.
+- **Das Laden einer Termin-Vorlage steht zuerst.** In der Mehrfach-Erstellung steht die Wahl einer Termin-Vorlage ganz oben im ersten Schritt, über den Angaben, die sie ausfüllt.
+- **Termine der Mehrfach-Erstellung zeigen ihre Uhrzeit.** Die Tabelle der zu erstellenden Termine zeigt neben jedem Datum die Start- und Endzeit.
+
+### Fehlerbehebungen
+
+- **Termine der Mehrfach-Erstellung standen zur falschen Uhrzeit.** Termine, die in der Mehrfach-Erstellung aus einem Zeitplan oder einer importierten Datei angelegt wurden, lagen um den Unterschied zwischen der Uhr des Lesers und UTC neben der eingegebenen Uhrzeit. Sie behalten jetzt die eingegebene Uhrzeit in der Zeitzone des Lesers, auch über eine Zeitumstellung hinweg.
+- **Die Mehrfach-Erstellung bot die Felder jeder Anwesenheitsvorlage an.** „Aus der Anwesenheitsvorlage übernehmen“ listete in der Mehrfach-Erstellung die Felder aller Anwesenheitsvorlagen der Wache auf. Jetzt werden nur die der für die Termine gewählten Vorlage angeboten.
+
+## v26.22.5
+
+Formatierter Text in Blöcken von Seiten und News erscheint wieder formatiert statt als Rohtext. Termin-Highlights zeigen, wann der Termin endet, und halten lange Beschreibungen kurz.
+
+### Verbesserungen
+
+- **Termin-Highlights zeigen das Ende und eine kurze Beschreibung.** Der Block „Termin (Highlight)“ zeigt neben dem Beginn auch, wann der Termin endet. Die Beschreibung ist standardmäßig auf wenige Zeilen gekürzt, eine Einstellung des Blocks zeigt sie vollständig.
+
+### Fehlerbehebungen
+
+- **Manche Blöcke zeigten Formatierungszeichen als Text.** Beschreibungen in den Blöcken für Termin-Highlight, Terminrückblick, Zitat, Tabs, Blog-Abo, Formular, Quiz und Mitglied im Porträt sowie auf der Terminseite einer Partnerwache zeigten Sternchen und Rauten statt Formatierung. Sie erscheinen jetzt formatiert.
+
 ## v26.22.4
 
-Der Tag, an dem ein Mitglied beigetreten ist, steht in der Mitgliederliste und auf der Seite des Mitglieds und lässt sich beim Import übernehmen. Mitglieder öffnen sich aus der Liste in einem neuen Tab.
+Der Tag, an dem ein Mitglied beigetreten ist, steht in der Mitgliederliste und auf der Seite des Mitglieds und lässt sich beim Import übernehmen. Mitglieder öffnen sich aus der Liste in einem neuen Tab. Das Menü bleibt auf älteren Tablets nicht mehr über der Seite stehen.
 
 ### Verbesserungen
 
 - **Das Eintrittsdatum ist sichtbar und importierbar.** Der Tag, an dem ein Mitglied beigetreten ist, steht als Spalte der Mitgliederliste zur Auswahl, erscheint auf der Seite des Mitglieds und lässt sich beim Import aus einer Spalte übernehmen.
 - **Mitgliederseiten öffnen sich aus der Liste in einem neuen Tab.** Die Knöpfe zum Ansehen und Bearbeiten in der Mitgliederliste sind Links, so dass sich ein Mitglied mit der mittleren Maustaste oder dem Kontextmenü in einem neuen Tab öffnet.
+- **Bewegungen öffnen sich aus ihrer Liste in einem neuen Tab.** Der Knopf „Ablauf ansehen“ ist ein Link, so dass sich eine Bewegung auch in einem neuen Tab öffnet.
+
+### Fehlerbehebungen
+
+- **Das Menü blieb auf manchen Tablets offen.** In manchen älteren Tablet-Browsern verdeckte das Menü einen Teil der Seite und ließ sich weder schließen noch einklappen. Es gleitet dort jetzt wie auf anderen Geräten zur Seite.
 
 ## v26.22.3
 

@@ -343,6 +343,10 @@ test.describe('Passkeys', () => {
     /**
      * The offer of a passkey goes only to somebody the way back in can be mailed to, appears once
      * after a sign-in, and once declined the next sign-in goes straight through.
+     *
+     * <p>The page leaves the app before the session cookie goes: an app page still open notices the
+     * missing session on its next request and heads for the login itself, which aborts the story's own
+     * way there.
      */
     test('the offer appears once after a sign-in and Nein danke ends it', async ({browser, request}) => {
         const account = await addressedStoryAccount(browser, request, 3)
@@ -369,6 +373,7 @@ test.describe('Passkeys', () => {
         await page.getByRole('button', {name: 'Nein danke'}).click()
         await expect(page.getByTestId('app-shell')).toBeVisible({timeout: 20_000})
 
+        await page.goto('about:blank')
         await context.clearCookies()
         await signInWithPassword()
         await expect(page.getByTestId('app-shell')).toBeVisible({timeout: 20_000})

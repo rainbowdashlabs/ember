@@ -16,14 +16,16 @@ import java.util.Set;
  * <p>A text says yes when it holds anything but the word for no. A yes or no question is filled in as
  * its word ("Ja", "Nein"), so a check field bound to it is ticked exactly where the answer is yes; a
  * field bound to anything else is ticked where the member has that value at all, for example an
- * allergy written in the profile.
+ * allergy written in the profile. A check the person generating answers prints as a ticked or an empty
+ * box, and the empty one counts as no.
  */
 public final class YesWords {
     private static final Set<String> NO = Set.of(
             DocumentWord.NO.in("de").toLowerCase(Locale.ROOT),
             DocumentWord.NO.in("en").toLowerCase(Locale.ROOT),
             "false",
-            "0");
+            "0",
+            "☐");
 
     private YesWords() {}
 

@@ -569,14 +569,19 @@ export default {
                 toggleText: 'Als Verwalter findest du die Modul-Einstellungen unter Wache verwalten. Dort kannst du einzelne Module per Schalter aktivieren oder deaktivieren:',
                 toggleText2: 'Deaktivierte Module sind komplett ausgeblendet. Keine Daten gehen verloren - wenn du ein Modul wieder aktivierst, sind alle Daten noch da.',
                 navigation: 'Navigation in Ember',
-                navigationText: 'Ember hat eine Seitenleiste links mit allen verfügbaren Bereichen. So findest du dich zurecht:',
-                nav1: 'Übersicht - Deine persönliche Startseite mit Benachrichtigungen und allem, was gerade wichtig ist.',
-                nav2: 'Die einzelnen Module (Mitglieder, Inventar, Anwesenheit etc.) - je nach aktivierten Modulen.',
-                nav3: 'Profil - Dein persönliches Profil, Einstellungen und Abwesenheiten.',
-                nav4: 'Wache verwalten - Einstellungen der Wache (nur für Verwalter).',
+                navigationText: 'Ember hat links eine Seitenleiste mit Seiten und Bereichen. Ein Bereich hat einen Pfeil: Ein Klick zeigt nur noch diesen Bereich mit allen seinen Seiten und öffnet seine erste Seite. „Alle Bereiche“ oben führt zur ganzen Liste zurück, ebenso die Escape-Taste. Öffnest du eine Seite über einen Link oder die Schnellsuche, zeigt die Seitenleiste gleich den Bereich, zu dem sie gehört. So findest du dich zurecht:',
+                nav1: 'Übersicht - Deine Startseite mit Benachrichtigungen und allem, was gerade wichtig ist, dazu die Statistiken.',
+                nav2: 'Die einzelnen Module (Mitglieder, Inventar, Anwesenheit etc.) - je nach aktivierten Modulen. Die Hauptseite eines Bereichs, etwa die Mitgliederliste, ist immer sein erster Eintrag.',
+                nav3: 'Profil - Dein Profil, Abwesenheiten und Benachrichtigungen.',
+                nav4: 'Verwalten - Einstellungen der Wache (nur für Verwalter).',
                 nav5: 'Das Ember-Logo oben links führt zur Startseite von Ember. Rufst du die Startseite '
                     + 'stattdessen über die Adresszeile auf, während du angemeldet bist, landest du wieder '
                     + 'in dem Bereich, in dem du zuletzt gearbeitet hast: Wache, Verband oder Verwaltung.',
+                nav6: 'Unten in der Seitenleiste steht, wo du gerade bist. Ein Klick listet alle deine Orte: deine '
+                    + 'Wachen, deine Verbände, dein Konto und, wenn du die Instanz verwaltest, die Administration, '
+                    + 'jeweils mit der Zahl dessen, was dort auf dich wartet, und wechselt dorthin.',
+                nav7: 'Unten rechts sitzen runde Knöpfe: der Fehlerbericht, das Hilfe-Center zur gerade offenen Seite '
+                    + 'und, solange eine Einführung offen ist, der Knopf zum Weitermachen.',
                 notifications: 'Benachrichtigungen',
                 notificationsText: 'Ember informiert dich über wichtige Änderungen per Benachrichtigung auf der Übersicht. Die Zahl neben dem Glockensymbol zeigt, wie viele ungelesene Benachrichtigungen du hast.',
                 notificationsText2: 'Du kannst in deinen Einstellungen festlegen, welche Benachrichtigungen du auch per E-Mail erhalten möchtest.',
@@ -1327,6 +1332,12 @@ volumes:
                 + 'abgelehnt, bringt „Entscheidung ändern" auf der Anmeldeseite die Auswahl zurück.',
             themeTitle: 'Erscheinungsbild',
             themeText: 'Hier kannst du dein Farbschema und den Modus (Hell/Dunkel) anpassen. Wenn die Wache es erlaubt, kannst du ein eigenes Farbschema wählen. Andernfalls siehst du eine Hinweismeldung.',
+            sidebarTitle: 'Seitenleiste',
+            sidebarText: 'Unter „Konto → Erscheinungsbild" legst du fest, wie die Seitenleiste ihre Bereiche zeigt. '
+                + 'Normalerweise öffnet ein Bereich an Stelle der Liste, „Alle Bereiche" führt zurück. Mit „Alle '
+                + 'Bereiche auf einmal zeigen" stehen alle Bereiche untereinander und klappen an Ort und Stelle auf, '
+                + 'der Bereich der geöffneten Seite von selbst. Die Einstellung gehört zu deinem Konto und gilt auf '
+                + 'allen Geräten.',
             emailTitle: 'E-Mail-Benachrichtigungen',
             emailText: 'Hier kannst du festlegen, ob du E-Mails von der Plattform erhalten möchtest. Wenn du E-Mails aktivierst, musst du der Weitergabe deiner E-Mail-Adresse an den E-Mail-Dienst zustimmen.',
             typesTitle: 'Benachrichtigungstypen',
@@ -1685,6 +1696,32 @@ volumes:
             tip: 'Du kannst bestehende Vorlagen duplizieren - so musst du nicht alles nochmal von vorne einrichten.',
         },
         membersConfig: {
+            setsTitle: 'Feldgruppen',
+            setsText: 'Eine Feldgruppe bündelt Felder, die zusammengehören, etwa Straße, Hausnummer, Postleitzahl '
+                + 'und Ort zu einer Adresse. Welcher Gruppe ein Feld angehört, wählst du beim Bearbeiten des Felds. '
+                + 'Vorlagen mit mehreren Feldern legen ihre Gruppe gleich mit an und stellen die Felder '
+                + 'nebeneinander: bis zu drei in eine Zeile, bei der Adresse Straße und Hausnummer in eine und '
+                + 'Postleitzahl und Ort in die nächste.',
+            setsTogether: 'Die Felder einer Gruppe werden immer gemeinsam gestellt: Stellst du eines davon einer '
+                + 'Zielgruppe, bekommt sie alle, und nimmst du eines weg, gehen alle. Im Formular stehen sie '
+                + 'zusammen in der Reihenfolge der Gruppe; verschiebst du eines, wandert die ganze Gruppe mit. '
+                + 'Pflicht, Breite und Änderbarkeit bleiben je Feld einstellbar. In der Feldliste und in der '
+                + 'Formularvorschau stehen die Felder einer Gruppe eingerahmt unter ihrem Namen, und wählst du ein '
+                + 'Feld einer Gruppe aus, gelten die Zielgruppen für die ganze Gruppe.',
+            setsHeading: 'Mit „Name als Überschrift" steht der Name der Gruppe im Formular über ihren Feldern, '
+                + 'ohne dass du eine eigene Überschrift anlegen musst. Löst du eine Gruppe auf, bleiben ihre '
+                + 'Felder samt Antworten erhalten.',
+            shownIfTitle: 'Felder, die nur bei Ja erscheinen',
+            shownIfText: 'Unter „Nur anzeigen, wenn" verbindest du ein Feld mit einer Ja/Nein-Frage. Das Feld '
+                + 'erscheint im Profil erst, wenn die Ja/Nein-Frage mit Ja beantwortet ist, und ist nur dann '
+                + 'Pflicht. So fragt das Profil nach dem JuLeiCa-Ablaufdatum nur, wenn jemand eine JuLeiCa hat. '
+                + 'Wird die Frage wieder auf Nein gesetzt, bleibt die Antwort gespeichert und ist nur ausgeblendet.',
+            shownIfScope: 'Das gilt nur, wenn jemand beide Felder gestellt bekommt. Wer nur das abhängige Feld '
+                + 'bekommt, sieht es immer, mit seiner üblichen Pflicht-Einstellung.',
+            shownIfRules: 'Ein Feld kann nur von einer Ja/Nein-Frage desselben Profils abhängen, und eine Frage, '
+                + 'von der andere abhängen, kann selbst nicht abhängen. Solange Felder von einer Ja/Nein-Frage '
+                + 'abhängen, lässt sie sich weder löschen noch in einen anderen Typ ändern. Die Vorlagen JuLeiCa '
+                + 'und Leistungsspange legen die Verbindung gleich mit an.',
             title: 'Mitglieder-Konfiguration',
             subtitle: 'Profilfelder für Mitglieder einrichten.',
             whatIs: 'Was sind Profilfelder?',
@@ -1729,7 +1766,8 @@ volumes:
                 + 'kommen dazu. Jede Antwort steht für er, sie, eigene Pronomen je Sprache oder den Vornamen. '
                 + 'Pro Wache gibt es ein Geschlechtsfeld, das eigene oder das des Verbands. Ein bestehendes '
                 + 'Auswahlfeld lässt sich zum Geschlecht umstellen; die gegebenen Antworten bleiben erhalten.',
-            typeAge: 'Alter - Wird automatisch aus einem Datumsfeld berechnet.',
+            typeAge: 'Alter - Wird automatisch aus einem Datumsfeld berechnet. Weil niemand es einträgt, '
+                + 'ist es nie Pflicht und nie gesperrt; wird ein Pflichtfeld zum Alter, entfällt die Pflicht.',
             typeSection: 'Überschrift - Kein Feld, sondern eine Zwischenüberschrift. Sie wird nach '
                 + 'nichts gefragt und steht in keinem Export.',
             layoutTitle: 'Felder anordnen',
@@ -2150,12 +2188,59 @@ volumes:
                 + 'ein Kreuz, wenn sein Wert Ja ist, und ein Unterschriftsfeld bleibt leer zum Unterschreiben.',
             pdfFieldsText: 'Ziehe ein Feld an seine Stelle und an der Ecke auf die richtige Größe. Mit den '
                 + 'Pfeiltasten verschiebst du es genauer. Ein Text, der nicht passt, wird kleiner oder bricht in weitere '
-                + 'Zeilen um. Ein Unterschriftsfeld für alle Erziehungsberechtigten teilt sich beim Erstellen in je ein '
+                + 'Zeilen um. Mit „Größe beibehalten" bleibt er so groß und läuft über das Feld hinaus weiter. '
+                + 'Ein Unterschriftsfeld für alle Erziehungsberechtigten teilt sich beim Erstellen in je ein '
                 + 'Feld nebeneinander, eines für die zweite erziehungsberechtigte Person fällt bei nur einer weg.',
             pdfFormText: 'Hat das PDF eigene Formularfelder, stehen sie darunter. Du füllst sie mit Platzhaltern oder '
                 + 'lässt sie, wie sie sind. Beim Erstellen werden alle Felder fest in die Seite übernommen.',
             pdfVersionText: 'Kommt eine neue Fassung des Formulars, lade sie einfach hoch. Die Felder bleiben, wo sie '
                 + 'waren, und du prüfst sie über den neuen Seiten. Schon erstellte Dokumente bleiben, wie sie sind.',
+            questionsTitle: 'Abfragen beim Erstellen',
+            questionsText: 'Unter „Abfragen" legst du fest, was beim Erstellen eingetragen wird: ein Text, ein Datum, '
+                + 'eine Zahl, ein Eintrag aus einer Auswahl oder ein Kreuz, etwa „Ausgetreten am" oder „In eine andere Gruppe gewechselt". Jede Abfrage steht '
+                + 'danach in der Platzhalter-Auswahl unter „Abfragen" und lässt sich im Text, auf PDF-Feldern und in '
+                + 'Formularfeldern einsetzen. Ein Datum nimmt dieselben Formate wie jedes andere Datum.',
+            questionsSuggestionText: 'Ein Vorschlag füllt die Antwort für das gewählte Mitglied vor, mit festem Text '
+                + 'oder Platzhaltern. Beim Erstellen für ein Mitglied stehen die Abfragen unter „Angaben" über der '
+                + 'Vorschau und lassen sich ändern. Beim Selbst-Erstellen und beim Erstellen für viele Mitglieder '
+                + 'fragt Ember nichts, dann gilt der Vorschlag. Eine Pflichtangabe ohne Antwort gilt als fehlender Wert.',
+            questionsCheckText: 'Ein Kreuz erscheint im Brief als angekreuztes oder leeres Kästchen und setzt auf '
+                + 'einem PDF das Kreuz eines Ankreuzfelds. Nennt sein Vorschlag ein Ja-Nein-Feld des Profils, ist es '
+                + 'bei Ja schon angekreuzt, und beim Erstellen lässt es sich trotzdem setzen oder entfernen. '
+                + 'Ankreuzfelder aus der Zeit vor den Abfragen sind dafür schon zu Abfragen geworden.',
+            questionsLimitsText: 'Jede Abfrage kann eingrenzen, was als Antwort gilt: ein Datum frühestens oder '
+                + 'spätestens an einem festen Tag oder einige Tage ab dem Erstellen, ein Text höchstens so lang oder in '
+                + 'einem Format wie Postleitzahl, eine Zahl zwischen zwei Grenzen oder nur ganz. Eine Auswahl bietet '
+                + 'genau ihre Einträge an. Eine Antwort außerhalb der Grenzen nimmt Ember nicht an. Liegt ein '
+                + 'Vorschlag außerhalb, gilt er als nicht beantwortet.',
+            wordFormTitle: 'Word-Formular importieren',
+            wordFormText: 'Hast du ein Formular als Word-Datei mit Feldern zum Ausfüllen, wähle in der Liste der '
+                + 'Vorlagen „Aus Word-Formular erstellen". Ember macht daraus eine PDF-Vorlage mit demselben Aussehen '
+                + 'und setzt ein Feld an jede Stelle, die im Formular ausgefüllt wird. Das gilt für Textfelder, '
+                + 'Zahlenfelder, Kontrollkästchen, Datumsfelder und Auswahllisten, alte wie neue. Die Einträge einer '
+                + 'Auswahlliste und die Höchstlänge eines Textfelds übernimmt Ember als Grenzen der Abfrage.',
+            wordFormFieldsText: 'Steht vor einem Feld eine bekannte Bezeichnung wie Name, Vorname, Geb.-Datum, '
+                + 'Eintritt, Datum, Bearbeiter oder der Name eines Profilfelds, füllt Ember es mit den Daten des '
+                + 'Mitglieds. Eine Ausweis-, Personal- oder Mitgliedsnummer findet ihr Profilfeld unter jedem dieser '
+                + 'Namen. Alle übrigen Felder werden zu Abfragen, jedes Kontrollkästchen zu einem Kreuz. Danach zeigt '
+                + 'Ember, was erkannt wurde, und öffnet die Vorlage im Editor, wo du alles anpassen kannst.',
+            wordFormFontsText: 'Nutzt das Formular Schriften, die nicht hochgeladen sind, fragt Ember vor dem '
+                + 'Umwandeln für jede, in welcher Schrift es stattdessen erscheinen soll. Ersetzt wird nichts ohne '
+                + 'deine Wahl. Für Arial, Times New Roman, Courier New, Calibri und Cambria ist eine mitgelieferte '
+                + 'Schrift mit denselben Buchstabenbreiten vorgewählt (Liberation, Carlito, Caladea), für Frutiger, '
+                + 'Myriad und ähnliche Schriften Open Sans, bei einem leichten Schnitt wie Frutiger 45 Light in '
+                + 'ihrem leichten Schnitt. Soll das Formular im Original erscheinen, lade die Schrift unter '
+                + 'Dokumente → Schriftarten hoch und importiere es erneut.',
+            wordFormPreviewText: 'Unter der Auswahl zeigt eine Vorschau das Formular zweimal: als Original und '
+                + 'mit den gewählten Schriften. Beide Seiten tragen dieselben Beispielwerte in die Felder ein, so '
+                + 'lässt sich der Text in den Feldern direkt vergleichen. Das Original erscheint in den Schriften, die das Formular '
+                + 'enthält. Für jede andere lässt sich die Schriftdatei hinzufügen, auch wenn sie sich anders nennt, '
+                + 'etwa Frutiger LT Std für Frutiger 45 Light. Sie gilt nur für die Vorschau und wird nicht '
+                + 'gespeichert. Ohne Datei zeigt das Original eine ähnliche Schrift und weist darauf hin. Neben der '
+                + 'Schrift wählst du die Stärke, leicht oder normal, wo die Schrift einen leichten Schnitt hat. Fetter '
+                + 'Text bleibt fett. Setzt die Ersatzschrift ihre Buchstaben breiter und brechen Zeilen anders um, '
+                + 'verkleinere sie in Prozent und aktualisiere die Vorschau. Die Felder der Vorlage drucken in '
+                + 'derselben Schrift und Größe wie der Text an ihrer Stelle.',
             pronounsTitle: 'Pronomen und Sprache',
             pronounsText: 'Pronomen folgen dem Geschlechtsfeld der Wache: Jede Antwort dort sagt, welche Pronomen in '
                 + 'Dokumenten stehen, je Sprache, oder dass der Vorname steht. Ohne Antwort steht ebenfalls der '
@@ -2395,7 +2480,7 @@ volumes:
             whatIs: 'Was ist mein Inventar?',
             whatIsText: 'Hier siehst du alle Ausrüstungsgegenstände, die dir zugewiesen sind - zum Beispiel Helm, Jacke oder Stiefel. Jeder Gegenstand hat einen Namen und eventuell eine Größe und eine Kennung.',
             exchangeTitle: 'Tausch anfragen',
-            exchangeText: 'Wenn ein Gegenstand nicht mehr passt oder kaputt ist, kannst du einen Tausch anfragen. Klicke auf den Button beim Gegenstand, gib einen Grund an und wähle die gewünschte neue Größe.',
+            exchangeText: 'Wenn ein Gegenstand nicht mehr passt oder kaputt ist, kannst du einen Tausch anfragen. Klicke auf den Button beim Gegenstand und wähle den Grund: zu klein, zu groß, kaputt oder ein anderer Grund in eigenen Worten. Die gewünschte Größe ist danach schon vorgewählt, eine Größe größer, kleiner oder gleich, und steht neben deiner aktuellen Größe. Du kannst sie ändern und eine Anmerkung dazuschreiben.',
             runningTitle: 'Laufende Vorgänge',
             runningText: 'Deine Liste zeigt, was du gerade hast. Läuft für ein Teil ein Vorgang, steht daran der letzte erledigte Schritt und auf wen gerade gewartet wird, genau wie unter den laufenden Vorgängen. Sobald du ein Teil an der Wache abgibst, verschwindet es aus deiner Liste und steht nur noch unter den laufenden Vorgängen. Der Ersatz erscheint in deiner Liste, wenn er dir übergeben wird.',
             withdrawTitle: 'Tausch zurücknehmen',
@@ -2417,8 +2502,7 @@ volumes:
             answersWrongRecord: 'Das ist nicht das, was ich habe - die Wache hat etwas anderes notiert als du tatsächlich hast. Was du wirklich hast, trägst du nicht selbst ein; das macht jemand von der Wache.',
             answersWrongSize: 'Stimmt nur die Größe nicht, stell sie direkt am Stück um: Steht 128 da und du hast ein 134, wählst du 134 aus. Damit ist gesagt, dass die Erfassung nicht stimmt, und die Wache sieht die richtige Größe als Angabe statt als Satz, den jemand lesen muss.',
             answersLost: 'Finde ich nicht mehr - das gilt sofort. Es ist keine Anfrage, und niemand muss sie beantworten. Taucht das Stück wieder auf, kann die Wache das zurücknehmen.',
-            answersExchange: 'Passt nicht mehr - der Tausch geht sofort an die Wache und wartet auf niemanden. Dabei sagst du, welche Größe du brauchst.',
-            answersBroken: 'Ist kaputt - derselbe Tausch, nur aus einem anderen Grund. Die Größe darf dieselbe bleiben, und du kannst sie auch offenlassen. Die Wache sieht am Tausch, ob er entstand, weil etwas nicht mehr passt oder weil es kaputt ist.',
+            answersExchange: 'Tauschen - der Tausch geht sofort an die Wache und wartet auf niemanden. Du wählst den Grund: zu klein, zu groß, kaputt oder ein anderer Grund in eigenen Worten. Zu klein und zu groß stellen die gewünschte Größe eine Größe weiter, kaputt lässt sie gleich. Neben der gewünschten steht deine aktuelle Größe, und du kannst die Vorauswahl jederzeit ändern.',
             answersNeverHad: 'Hatte ich nie - für einen Platz, für den du nie etwas bekommen hast.',
             answersHaveOne: 'Ich habe eins - du hast etwas, das niemand notiert hat. Steht eine Nummer darauf, kannst du sie eintippen; du musst aber nicht. Gibt es das Stück in Größen, kannst du die Größe dazusagen. Auch das ist freiwillig: Weißt du sie nicht, kommst du trotzdem durch, und die Wache sieht, dass keine genannt wurde.',
             answersBorrowedText: 'Bei Material einer Partnerwache kannst du nur sagen, ob du es hast. Ein Verlust gehört dort auf die Ausleihe, über die es zu euch gekommen ist.',
@@ -2452,23 +2536,23 @@ volumes:
         },
         inventoryFlows: {
             title: 'Abläufe',
-            subtitle: 'Welche Schritte eine Bewegung von Ausrüstung geht, und wer sie bestätigt.',
+            subtitle: 'Welche Schritte ein Vorgang von Ausrüstung geht, und wer sie bestätigt.',
             whatIs: 'Was ein Ablauf ist',
             whatIsText: 'Ein Ablauf ist die Kette von Schritten, die ein Vorgang geht. Jeder Schritt sagt, wer ihn bestätigt, um welches Teil es geht und wo das Teil danach liegt.',
             shapeText: 'Jede Kette beginnt mit einer Anforderung und endet damit, dass die Stelle, bei der das Teil landet, den Erhalt bestätigt. Kürzer als zwei Schritte geht es deshalb nicht, und eine Kette, die unterwegs endet oder nicht sagt, welches Teil angekommen ist, wird beim Speichern abgelehnt.',
             whichApplies: 'Welcher Ablauf gilt',
             groupedText: 'Die Ketten stehen nach Zweck gruppiert untereinander. Zugeklappt sagt jede Karte nur, aus wie vielen Schritten die Kette besteht; der Pfeil klappt die Zeichnung und die Schritte auf.',
-            whichAppliesText: 'Drei Dinge entscheiden das: wofür die Bewegung läuft, wem das Teil gehört, und ob am anderen Ende das Lager der Wache oder ein Mitglied steht. Für jede dieser Kombinationen gibt es genau eine Kette, und welche Kombination eine Kette bedient, steht oben auf ihrer Karte.',
+            whichAppliesText: 'Drei Dinge entscheiden das: wofür der Vorgang läuft, wem das Teil gehört, und ob am anderen Ende das Lager der Wache oder ein Mitglied steht. Für jede dieser Kombinationen gibt es genau eine Kette, und welche Kombination eine Kette bedient, steht oben auf ihrer Karte.',
             ownerText: 'Gehört das Teil dem Träger und führt der Träger sein Lager hier, gelten seine Ketten. Führt er es nicht hier, geht die Wache seine Schritte an seiner Stelle, und im Verlauf steht, dass sie behauptet und nicht bestätigt wurden.',
             editing: 'Schritte ändern',
-            editingText: 'Ein Schritt lässt sich umbenennen und in allen Angaben ändern, solange gerade keine Bewegung auf dieser Kette unterwegs ist. Ein Schritt, der nicht mehr gebraucht wird, wird stillgelegt statt gelöscht, damit abgeschlossene Vorgänge weiter so lesbar bleiben, wie sie gegangen wurden.',
+            editingText: 'Ein Schritt lässt sich umbenennen und in allen Angaben ändern, solange gerade kein Vorgang auf dieser Kette unterwegs ist. Ein Schritt, der nicht mehr gebraucht wird, wird stillgelegt statt gelöscht, damit abgeschlossene Vorgänge weiter so lesbar bleiben, wie sie gegangen wurden.',
             orderText: 'Die Reihenfolge lässt sich mit den Pfeilen ändern. Ein vergessener Schritt muss also nicht ans Ende, sondern kann dorthin, wo er hingehört.',
             receiptTitle: 'Erhalt ohne Bestätigung des Mitglieds',
-            receiptText: 'Hat eine Kette einen Schritt, in dem das Mitglied den Erhalt eines Teils bestätigt, zeigt ihre Karte dafür einen Schalter. Ist er an, wartet die Kette nicht auf das Mitglied: der Schritt wird in seinem Namen bestätigt, sobald eine Bewegung ihn erreicht, und im Verlauf steht „automatisch bestätigt". Das Mitglied bekommt keine Bitte um Bestätigung. Andere Ketten fragen weiter nach.',
-            receiptWaitingText: 'Bewegungen, die beim Einschalten schon auf diesen Schritt warten, bleiben stehen und werden wie bisher bestätigt oder erzwungen.',
+            receiptText: 'Hat eine Kette einen Schritt, in dem das Mitglied den Erhalt eines Teils bestätigt, zeigt ihre Karte dafür einen Schalter. Ist er an, wartet die Kette nicht auf das Mitglied: der Schritt wird in seinem Namen bestätigt, sobald ein Vorgang ihn erreicht, und im Verlauf steht „automatisch bestätigt". Das Mitglied bekommt keine Bitte um Bestätigung. Andere Ketten fragen weiter nach.',
+            receiptWaitingText: 'Vorgänge, die beim Einschalten schon auf diesen Schritt warten, bleiben stehen und werden wie bisher bestätigt oder erzwungen.',
             restoreTitle: 'Eine Kette zurücksetzen',
             restoreText: 'Zu jeder Kombination gehört eine vorbereitete Kette. Der Pfeil auf der Karte setzt die Kette darauf zurück, nachdem du die Rückfrage bestätigt hast: die Schritte werden ersetzt, die Kombination bleibt.',
-            restoreMovingText: 'Sind auf der Kette noch Bewegungen unterwegs, nennt die Rückfrage jede einzeln: den Schritt, auf dem sie jetzt steht, und den Schritt der neuen Kette, auf dem sie weitergeht. Wo sich der nicht sicher zuordnen ließ, ist die Bewegung markiert und du wählst den Schritt selbst. Zurückgesetzt wird erst, wenn für jede Bewegung einer feststeht.',
+            restoreMovingText: 'Sind auf der Kette noch Vorgänge unterwegs, nennt die Rückfrage jeden einzeln: den Schritt, auf dem er jetzt steht, und den Schritt der neuen Kette, auf dem er weitergeht. Wo sich der nicht sicher zuordnen ließ, ist der Vorgang markiert und du wählst den Schritt selbst. Zurückgesetzt wird erst, wenn für jeden Vorgang einer feststeht.',
             restoreOwnerText: 'Eine Kette, die der Träger vorgibt, lässt sich hier nicht zurücksetzen: sie gehört ihm und nicht der Wache. Eine Kette, die die Wache selbst geschrieben hat, steht für keine Kombination und hat deshalb auch keine Vorgabe, auf die sie zurückgehen könnte.',
             problemsTitle: 'Wenn eine Kette nicht stimmt',
             problemsText: 'Was einer Kette fehlt, steht an der Kette selbst, und eine abgelehnte Änderung wird an derselben Stelle erklärt. Gespeichert wird immer nur die eine Kette, an der du gerade arbeitest; die übrigen bleiben so, wie du sie aufgeklappt hast.',
@@ -2567,7 +2651,9 @@ volumes:
             createType: 'Wähle den Typ: Eigentum der Wache, Eigentum des Trägers, oder Gemischt, wo pro '
                 + 'Gegenstand entschieden wird. Gehört die Ausrüstung dem Träger, entstehen die einzelnen '
                 + 'Gegenstände erst bei der Zuweisung. Stellst du den Typ später um, werden die vorhandenen '
-                + 'Gegenstände auf den neuen Eigentümer umgestellt; nur geliehene Gegenstände behalten ihren.',
+                + 'Gegenstände auf den neuen Eigentümer umgestellt; nur geliehene Gegenstände behalten ihren. '
+                + 'In einem gemischten Inventar legst du den Eigentümer auch beim Ausgeben fest und kannst ihn '
+                + 'beim Bearbeiten eines Gegenstands ändern, solange er im Lager der Wache liegt.',
             createSizes: 'Aktiviere Größen, wenn die Gegenstände in verschiedenen Größen vorkommen (z.B. S, M, L).',
             kindsTitle: 'Einheitlich oder Sammlung',
             kindsText: 'Beim Anlegen wählst du, was das Inventar enthält. Ein einheitliches Inventar hält eine Sache '
@@ -2667,6 +2753,11 @@ volumes:
             fulfilledText: 'Ist die Ausrüstung angekommen, markiere die Beschaffung als erledigt. Ember erfasst das '
                 + 'Teil und startet die Ausgabe an das Mitglied: es liegt im Lager und ist vorgemerkt, bis jemand es '
                 + 'übergibt und den Schritt bestätigt. War die Bestellung für das Lager, bleibt das Teil dort.',
+            fromStockTitle: 'Aus dem Lager ausgeben',
+            fromStockText: 'Liegt ein passendes Stück (gleiches Inventar, gleiche Größe) bereits frei im Lager der Wache, '
+                + 'zeigt die Beschaffung an, wie viele es sind. Mit „Aus dem Lager ausgeben" wählst du eines davon aus: '
+                + 'Ember startet die Ausgabe an das Mitglied als Vorgang und markiert die Beschaffung als erledigt, '
+                + 'ohne ein neues Teil zu erfassen.',
             tip: 'Beschaffungen können auch direkt aus Tausch-Anfragen oder der Inventarprüfung erstellt werden.',
         },
         inventoryLending: {
@@ -2875,7 +2966,8 @@ volumes:
                 + 'Diese Person war an dem Termin noch nicht dabei und kann deshalb auch nicht nachgetragen werden. Ist kein Beitrittsdatum hinterlegt, gilt keine Einschränkung.',
             notesTitle: 'Hinweise zum Mitglied',
             notesText: 'Neben jedem Namen steht, was für dieses Mitglied noch offen ist: ein laufender Tausch mit dem, worauf gerade gewartet wird, eine Fundsache, die noch abgeholt werden muss, und ein Geburtstag der letzten sechs Tage. '
-                + 'Die Hinweise stehen sowohl in der Schnellprüfung als auch in der Liste aller Anwesenheiten, denn genau dann steht die Person vor dir.',
+                + 'Die Hinweise stehen sowohl in der Schnellprüfung als auch in der Liste aller Anwesenheiten, denn genau dann steht die Person vor dir. '
+                + 'In der Schnellprüfung steht der Geburtstag beim Namen, alles zu Erledigende unter den Knöpfen, damit die Statusknöpfe bei jedem Mitglied an derselben Stelle bleiben.',
             notesActionsText: 'Zwei davon lassen sich direkt erledigen: Bei einem Vorgang trägt der Button den Namen des Schritts, den du gerade erledigst, samt Teil und Größe. '
                 + 'Angezeigt werden nur Schritte, bei denen das Mitglied beteiligt ist; ist das Mitglied selbst am Zug, steht der Schritt da, ohne Button. '
                 + 'Eine Fundsache wird mit "Übergeben" ausgehändigt und verschwindet damit aus der Liste.',
@@ -2910,6 +3002,13 @@ volumes:
                 + 'zählt: Ein Zeltlager von Freitagabend bis Sonntagnachmittag sind keine 46 Arbeitsstunden. Im Feld '
                 + '„Gewertete Stunden" legst du fest, was eine volle Anwesenheit auf diesem Bogen wert ist. Der '
                 + 'Zeitraum bleibt unverändert, nur die Summe im Bericht ändert sich.',
+            timeRulesTitle: 'Vor- und Nachbereitung',
+            timeRulesText: 'Unter den Zeiten steht zugeklappt, welche Regeln für Vor- und Nachbereitung dieser Bogen aus '
+                + 'seiner Vorlage übernommen hat. Klappst du sie auf, siehst du die Regeln. Darfst du den Bogen bearbeiten und '
+                + 'ist er nicht abgeschlossen, kannst du sie dort für diesen einen Termin ändern, ohne die Vorlage oder andere Bögen zu berühren.',
+            timeRulesPersonText: 'Bei jeder anwesenden Person, für die eine Regel gilt, stehen ihre Minuten unter dem Namen. '
+                + 'Wer den Bogen bearbeiten darf, sieht dort den Schalter „Nicht gemacht“: Hat die Person an diesem Abend nicht '
+                + 'vorbereitet oder aufgeräumt, zählt dann nur ihre Anwesenheit, und „Doch gemacht“ nimmt das zurück.',
             countedHoursShareText: 'Wer nur einen Teil der Zeit da war, bekommt seinen Anteil: Bei vier Stunden, die '
                 + 'als drei gewertet werden, erhält eine halbe Anwesenheit anderthalb Stunden. Bleibt das Feld leer, '
                 + 'entscheiden wie bisher Beginn und Ende.',
@@ -2938,6 +3037,11 @@ volumes:
                 + 'seiner Tabelle folgen dieser Zahl statt der Uhrzeit. Läuft ein Bogen über mehrere Tage, stehen '
                 + 'beide Daten am Bogen und jede Kommen- und Gehen-Zeit trägt ihren Tag. Ein Bogen zählt in dem '
                 + 'Monat, in dem er beginnt, auch wenn er in den nächsten hineinläuft.',
+            extraTimeTitle: 'Vor- und Nachbereitung',
+            extraTimeText: 'Minuten für Vor- und Nachbereitung kommen zur Anwesenheit dazu, bevor gerundet wird, auch bei '
+                + 'Bögen mit gewerteten Stunden. In der Vorschau und im PDF steht neben dem Namen, wie viele Minuten es waren. '
+                + 'Lädst du den Bericht als CSV-Datei herunter, eine Tabelle für Excel, bekommt jede Person zwei eigene Spalten '
+                + 'mit ihren Minuten.',
             previewTitle: 'Vorschau & PDF',
             previewText: 'Klicke auf Vorschau, um den Bericht anzuzeigen. Mit PDF exportieren erstellst du eine druckfertige Version.',
             previewSave: 'Du kannst häufig genutzte Filtereinstellungen als Vorlage speichern und später wiederverwenden.',
@@ -3476,18 +3580,28 @@ volumes:
             statusTitle: 'Status eines Eintrags',
             statusFlowText: 'Ein Eintrag durchläuft die Stufen: Wartend, Eingeladen, Probe, Aufgenommen oder Zurückgezogen.',
             statusAccountText: 'Ein Mitglied entsteht erst mit dem Start der Probezeit, also wenn die Person das erste Mal da ist. Eine Einladung ist bis dahin nur eine Nachricht: Wer absagt oder sich selbst von der Liste nimmt, hinterlässt nichts in der Wache.',
+            trialGuardiansText: 'Mit dem Start der Probezeit bekommen auch die Erziehungsberechtigten ein Konto. Sie können sich schon in der Probezeit anmelden, das Kind von Terminen abmelden und sehen auf ihrer Startseite, wie oft es schon da war. Dort können sie die Probezeit auch selbst beenden. Dann wird der Eintrag von der Liste genommen, das Konto des Kindes gelöscht, das eines Erziehungsberechtigten nur, wenn er sonst niemanden betreut und nirgends sonst Mitglied ist, und du wirst benachrichtigt.',
             invitationTitle: 'Einladen und die Antwort',
-            invitationText: 'Beim Einladen wählst du einen Termin samt Datum und optional eine Uhrzeit, zu der die Person da sein soll. Beides steht in der Einladungs-E-Mail; angemeldet wird für den Termin niemand. Über den Link in der E-Mail kann ohne Anmeldung geantwortet werden:',
-            invitationComing: 'Ich komme: ihr wisst, dass jemand kommt.',
-            invitationDate: 'Der Termin passt mir nicht: Interesse besteht weiter. Mit „Zurück in die Warteliste" kannst du einen anderen Termin anbieten.',
+            invitationText: 'Beim Einladen wählst du einen oder bis zu fünf Termine samt Datum, je Termin optional eine Uhrzeit, zu der die Person da sein soll, und eine persönliche Nachricht. Bei mehreren Terminen sucht sich die Person einen davon aus. Ohne Termin lässt sich nichts senden, und der Dialog zeigt vorher, an welche Adressen die E-Mail geht. Angemeldet wird für die Termine niemand. Über den Link in der E-Mail kann ohne Anmeldung geantwortet werden, jede Antwort optional mit einer Nachricht an euch:',
+            invitationComing: 'Ich komme: ihr wisst, dass jemand kommt, und bei mehreren Terminen auch, zu welchem. Der gewählte Termin steht am Eintrag.',
+            invitationDate: 'Der Termin passt mir nicht, bei mehreren Terminen: Keiner der Termine passt. Interesse besteht weiter, und mit „Andere Termine anbieten" schickst du neue.',
             invitationNo: 'Kein Interesse: die Person möchte nicht mehr gefragt werden.',
             invitationStays: 'Die Antwort steht als Kennzeichen am Eintrag, und der Eintrag bleibt im Abschnitt „Wartend & Eingeladen" stehen. Auch eine Absage verschwindet also nicht aus dem Blick.',
+            messagesTitle: 'Der Familie schreiben',
+            messagesText: 'Auch ihr könnt bei diesen drei Schritten eine Nachricht mitschicken. Der Dialog zeigt vorher, an welche Adressen sie geht:',
+            messagesOtherDates: 'Andere Termine anbieten: ersetzt die bisherigen Termine in einem Schritt, der Eintrag bleibt eingeladen. Die Antwort auf die alten Termine verfällt, und die Familie bekommt die neuen per E-Mail und auf der Seite des Eintrags.',
+            messagesTrial: 'Probezeit starten: die Familie bekommt eine E-Mail mit eurer Nachricht und dem Termin, den sie gewählt hat. Die Nachricht steht während der Probezeit auch auf der Seite des Eintrags.',
+            messagesWithdraw: 'Ausscheiden: geht für eingeladene Einträge und während der Probezeit. Die Familie erfährt per E-Mail, dass sie nicht mehr auf der Warteliste steht. Beendet sie die Probezeit selbst, bekommt sie keine solche E-Mail.',
+            messagesNoMail: 'Eine Warteliste, die keine E-Mails verschickt, schreibt niemandem. Neue Termine und die Nachricht zum Start der Probezeit stehen dann nur auf der Seite des Eintrags, und beim Ausscheiden gibt es keine Nachricht, weil der Eintrag mit seiner Seite gelöscht wird.',
             createEntryTitle: 'Neuen Eintrag erstellen',
             createEntryText: 'Trage Vorname, Nachname, Erziehungsberechtigte und Notizen ein.',
             entryDetailTitle: 'Eintrag bearbeiten',
             entryDetailText: 'Auf der Detailseite bearbeitest du die Daten und siehst den Status. Wer die Warteliste bearbeiten darf, kann den Eintrag dort auch löschen, egal in welchem Status er steht.',
             fieldEditorTitle: 'Eigene Felder anlegen',
-            fieldEditorText: 'Du kannst eigene Felder erstellen mit verschiedenen Typen.',
+            fieldEditorText: 'Du kannst eigene Felder mit verschiedenen Typen erstellen. Jedes Feld wird direkt in der '
+                + 'Liste bearbeitet, so wie die Felder eines Termins: Name, Typ, Pflichtfeld, die Optionen einer Auswahl '
+                + 'und ob das öffentliche Formular es abfragt stehen in seiner Karte. Die Reihenfolge änderst du mit den '
+                + 'Pfeilen oder durch Ziehen, und alle Felder werden zusammen mit „Felder speichern“ gespeichert.',
             invites: 'Einladungslinks',
             invitesText: 'Jeder Einladungslink kann einmal (oder mehrfach) benutzt werden. Teile den Link per E-Mail oder Nachricht. Nach der Anmeldung erhält der Nutzer einen persönlichen Link, um seinen Status einzusehen.',
             scoring: 'Bewertungsformel',
@@ -4596,7 +4710,7 @@ volumes:
             membershipTitle: 'Verband und Wache sind getrennt',
             membershipText: 'Deine Rechte im Verband haben nichts mit deinen Rechten in einer Wache zu tun. Wer den Verband verwaltet, ist damit noch lange nicht in jeder Wache angemeldet, und umgekehrt.',
             switchTitle: 'Zwischen Verbänden wechseln',
-            switchText: 'Gehörst du zu mehreren Verbänden, wählst du oben in der Seitenleiste aus, für welchen du gerade arbeitest. Die Seite lädt danach neu, damit alles zum gewählten Verband passt.',
+            switchText: 'Gehörst du zu mehreren Verbänden, wählst du unten in der Seitenleiste aus, für welchen du gerade arbeitest. Die Seite lädt danach neu, damit alles zum gewählten Verband passt.',
             tip: 'Über die Schaltfläche unten in der Seitenleiste kommst du jederzeit zurück in deine Wache.',
         },
         clusterSettings: {
@@ -4806,10 +4920,10 @@ volumes:
             tip: 'Änderungen durch den Verband landen im selben Änderungsverlauf wie die der Wache, damit ein Profil eine Geschichte erzählt und nicht zwei.',
         },
         clusterMovementDetail: {
-            title: 'Eine Bewegung des Verbands',
+            title: 'Ein Vorgang des Verbands',
             subtitle: 'Wo ein Stück gerade steht und wer am Zug ist.',
             whatTitle: 'Was hier steht',
-            whatText: 'Eine Bewegung ist der Weg, den ein Stück nimmt, in einzelnen Schritten. Diese Seite'
+            whatText: 'Ein Vorgang ist der Weg, den ein Stück nimmt, in einzelnen Schritten. Diese Seite'
                 + ' zeigt alle Schritte, welche schon bestätigt sind und welcher gerade offen ist.',
             stepsTitle: 'Wer bestätigt was',
             stepsText: 'Jede Seite bestätigt nur ihre eigenen Schritte. Ein Schritt, der auf die Wache'
@@ -4942,7 +5056,7 @@ volumes:
                 + ' wenn es um Material geht. Diese Einstellung gehört zu den Modulen und ist deshalb an'
                 + ' das entsprechende Recht gebunden.',
             flowsTitle: 'Abläufe',
-            flowsText: 'Ein Ablauf beschreibt, welche Schritte eine Bewegung geht und wer welchen Schritt'
+            flowsText: 'Ein Ablauf beschreibt, welche Schritte ein Vorgang geht und wer welchen Schritt'
                 + ' bestätigt. Wer das Material des Verbands führt, legt sie an.',
             lossTitle: 'Verlustmeldungen',
             lossText: 'Meldet eine Wache euch ein verlorenes Teil, fragt sie damit Ersatz an. Hier legt ihr fest,'
@@ -5277,15 +5391,20 @@ volumes:
             absencesTitle: 'Abwesenheiten',
             absencesText: 'Im Abwesenheiten-Tab siehst du die eingetragenen Abwesenheiten des Mitglieds.',
             inventoryExampleTitle: 'So sieht der Inventar-Tab aus',
+            inventoryExampleText: 'Die Gegenstände stehen nach Inventar geordnet. An jedem Gegenstand kannst du einen Tausch starten, ihn einem anderen Mitglied geben oder die Zuweisung aufheben.',
+            returnEverythingText: 'Wer das Inventar verwaltet, sieht darüber „Alles zurückfordern". Damit wird für jeden Gegenstand des Mitglieds eine Rückgabe gestartet, zum Beispiel wenn es die Wehr verlässt.',
+            movementsText: 'Unter der Liste stehen die Vorgänge des Mitglieds: Ausgaben, Rückgaben und Tausche, die noch laufen.',
             fieldsTitle: 'Profilfelder',
             fieldsText: 'Alle ausgefüllten Profilfelder des Mitglieds werden hier angezeigt.',
             managersTitle: 'Verwalter',
             managersText: 'Bei regulären Mitgliedern siehst du die zugewiesenen Erziehungsberechtigten. Du kannst bestehende Verwalter zuweisen oder neue erstellen. Bei jemandem, der selbst Mitglieder betreut, heißt der Tab „Verwaltete Mitglieder" und listet diese Mitglieder auf; ein Klick öffnet deren Seite.',
             inventoryTitle: 'Inventar',
-            inventoryText: 'Alle Ausrüstungsgegenstände, die dem Mitglied zugewiesen sind. Dieser Bereich ist nur sichtbar, wenn das Inventar-Modul aktiviert ist.',
+            inventoryText: 'Alles zur Ausrüstung des Mitglieds an einer Stelle: was fehlt, was es hat und welche Vorgänge gerade laufen. Der Tab ist sichtbar, wenn das Inventar-Modul an ist und du das Inventar sehen darfst. Wer nur das Inventar sehen darf, bekommt die Seite mit diesem einen Tab. Über die Adresse mit #inventory am Ende öffnet sich die Seite direkt hier, so führen auch alle Namen im Inventar hierher.',
+            scanTitle: 'Gegenstände per Scan ausgeben',
+            scanText: 'Scanne den Code eines Gegenstands oder tippe ihn ein, und er wird dem Mitglied zugewiesen. Mit „Ausgabe planen" wird er nur vorgemerkt und erst später übergeben. Ist der Code noch unbekannt, kannst du den Gegenstand gleich anlegen und ausgeben.',
             missingTitle: 'Fehlende Ausstattung',
-            missingText: 'Über der Liste steht, was für das Mitglied vorgesehen, aber noch nicht zugewiesen ist. Das sind dieselben Vorgaben, mit denen auch die Überprüfung arbeitet: was die Rolle und die Gruppen des Mitglieds verlangen.',
-            missingHandOutText: 'Zu jedem fehlenden Eintrag lässt sich direkt ein freier Gegenstand aus dem Lager auswählen und zuweisen, oder ein neuer anlegen und im selben Schritt zuweisen. Hat das Inventar Größen, wird die Größe vorher abgefragt. Danach verschwindet der Eintrag aus der Liste, sobald die Vorgabe erfüllt ist.',
+            missingText: 'Was für das Mitglied vorgesehen, aber noch nicht zugewiesen ist, steht als Karte „Fehlt“ direkt bei den anderen Gegenständen seines Inventars. Neben dem Namen des Inventars steht, wie viele es hat, wie viele es haben soll und wie viele fehlen. Das sind dieselben Vorgaben, mit denen auch die Überprüfung arbeitet: was die Rolle und die Gruppen des Mitglieds verlangen.',
+            missingHandOutText: '„Zuweisen“ auf einer fehlenden Karte öffnet ein Fenster für genau dieses Inventar. Hat es Größen, wählst du zuerst die Größe, dann stehen die passenden Gegenstände aus dem Lager oben in der Suche. Liegt nichts Passendes im Lager, legst du mit „Neu anlegen und zuweisen“ einen neuen Gegenstand an. Sobald die Vorgabe erfüllt ist, verschwindet die Karte.',
             changesTitle: 'Änderungsverlauf',
             changesText: 'Zeigt alle Profiländerungen dieses Mitglieds. Du kannst Änderungen bestätigen und optional einen Kommentar hinterlassen.',
             formerTitle: 'Als ehemalig markieren',
@@ -5467,12 +5586,30 @@ volumes:
             groupsText: 'Wähle die Mitgliedergruppen aus, deren Mitglieder bei einer Anwesenheit mit dieser Vorlage erwartet werden. '
                 + 'Wer eine Anwesenheit startet, sieht Mitgliedstypen und Gruppen der Vorlage vorausgewählt und kann sie für diese eine Liste ändern.',
             fieldsTitle: 'Felder',
-            fieldsText: 'Füge Felder hinzu, die pro Mitglied in einer Anwesenheitssitzung erfasst werden. Jedes Feld hat einen Typ (Text, Zahl, Ja/Nein, Auswahl, Datum/Uhrzeit), kann ein Pflichtfeld sein und einen Standardwert haben.',
+            fieldsText: 'Füge Felder hinzu, die pro Mitglied in einer Anwesenheitssitzung erfasst werden. Jedes Feld wird '
+                + 'direkt in der Liste bearbeitet, so wie die Felder eines Termins: Name, Typ (Text, Zahl, Ja/Nein, '
+                + 'Auswahl, Datum/Uhrzeit, Mitglied), Pflichtfeld und Standardwert stehen in seiner Karte. Alle Felder '
+                + 'werden zusammen mit „Felder speichern“ gespeichert; das Löschen eines Feldes fragt vorher nach.',
             autoAttendTitle: 'Automatische Anwesenheit',
             autoAttendText: 'Felder mit der Option „Automatisch zur Anwesenheit hinzufügen" markieren Mitglieder automatisch als anwesend, wenn sie in der Sitzung erscheinen.',
             widthTitle: 'Breite und Vorschau',
-            widthText: 'Im Feld-Dialog legst du mit „Breite" fest, ob ein Feld eine ganze, eine halbe oder eine drittel Zeile einnimmt. Schmale Felder stehen nebeneinander, solange eine Zeile sie fasst. Die Vorschau über der Liste zeigt, wie die Sitzung dadurch aussieht.',
-            tip: 'Die Reihenfolge der Felder änderst du mit den Pfeilen an jeder Zeile, am Rechner zusätzlich durch Ziehen am Griff daneben.',
+            timeRulesTitle: 'Vor- und Nachbereitung',
+            timeRulesText: 'Manche bereiten einen Termin vor oder räumen danach auf, etwa Jugendwarte oder Ausbilder. '
+                + 'Unter „Vor- und Nachbereitung“ legst du fest, wem dafür wie viele Minuten gutgeschrieben werden. Jede Regel '
+                + 'nennt die Personen mit der gleichen Auswahl wie überall sonst: Mitgliedstypen, Gruppen, Tags oder einzelne '
+                + 'Mitglieder, verknüpft mit „und“ oder „oder“.',
+            timeRulesSaveText: 'Die Karte erscheint, sobald die Vorlage angelegt ist. Die Regeln speicherst du mit „Regeln '
+                + 'speichern“ in der Karte, unabhängig vom Speichern der Vorlage oben.',
+            timeRulesMatchText: 'Passen mehrere Regeln auf eine Person, zählt jeweils die größte Vorbereitung und die größte '
+                + 'Nachbereitung, nicht die Summe. Jede neue Anwesenheitsliste übernimmt die Regeln, bereits angelegte Listen '
+                + 'behalten ihre. Wird eine Gruppe oder ein Tag einer Regel gelöscht, gilt die Regel für niemanden mehr, bis du '
+                + 'neu festlegst, für wen sie gilt.',
+            widthText: 'Mit „Breite“ in der Karte eines Feldes legst du fest, ob es eine ganze, eine halbe oder eine drittel '
+                + 'Zeile einnimmt. Schmale Felder stehen nebeneinander, solange eine Zeile sie fasst. Die Vorschau unter der '
+                + 'Liste zeigt, wie die Sitzung dadurch aussieht; dort lässt sich ein Feld auch an der rechten Kante breiter '
+                + 'oder schmaler ziehen.',
+            tip: 'Die Reihenfolge der Felder änderst du mit den Pfeilen an jeder Karte, am Rechner zusätzlich durch Ziehen am '
+                + 'Griff daneben oder in der Vorschau. Die neue Reihenfolge gilt, sobald du die Felder speicherst.',
         },
         inventoryDetail: {
             title: 'Inventar - Details',
@@ -5669,7 +5806,7 @@ volumes:
             countTitle: 'Mehrere gleiche Gegenstände',
             countText: 'Sind von einem Gegenstand mehrere gefordert, steht vor jeder Zeile eine Nummer: 1/2 und 2/2 bei zwei T-Shirts. In der Schnellprüfung steht dieselbe Nummer über dem Gegenstand, damit klar ist, welches Stück gerade gemeint ist.',
             exchangeTitle: 'Tausch aus der Prüfung heraus',
-            exchangeText: 'Über „Tausch" hältst du fest, dass ein Stück ersetzt werden muss. Dabei wirst du gefragt, ob der Gegenstand gleich abgegeben wurde: ist er abgegeben, ist der Tausch bereits einen Schritt weiter, sonst ist er nur angekündigt. So oder so geht die Prüfung zum nächsten Gegenstand.',
+            exchangeText: 'Über „Tausch" hältst du fest, dass ein Stück ersetzt werden muss. Den Grund wählst du wie bei jedem Tausch: zu klein, zu groß, kaputt oder ein anderer Grund, und die gewünschte Größe steht danach schon neben der aktuellen. Dabei wirst du gefragt, ob der Gegenstand gleich abgegeben wurde: ist er abgegeben, ist der Tausch bereits einen Schritt weiter, sonst ist er nur angekündigt. So oder so geht die Prüfung zum nächsten Gegenstand.',
             partialTitle: 'Teilweise prüfen',
             partialText: 'Du musst nicht alles auf einmal prüfen. Gespeichert wird nur, was du wirklich markiert hast; alles andere behält das Ergebnis der letzten Prüfung.',
             correctTitle: 'Eintrag korrigieren',
@@ -5698,32 +5835,32 @@ volumes:
             resultText: 'Nach Abschluss landet die Prüfung im Verlauf des Behälters und die als verloren markierten Items werden im Inventar als verloren geführt.',
             tip: 'Eine offen gelassene Zeile wird beim Abschluss als „fehlend" gewertet.',
         },
-        inventoryMember: {
-            title: 'Mitglieder-Inventar',
-            subtitle: 'Zugewiesene Ausrüstung eines einzelnen Mitglieds.',
-            whatShown: 'Was zeigt diese Seite?',
-            whatShownText: 'Hier siehst du alle Ausrüstungsgegenstände, die einem bestimmten Mitglied zugewiesen sind - gruppiert nach Inventar.',
-            tip: 'Du gelangst hierher über die Mitglieder-Inventar-Übersicht oder die Mitglieder-Detailseite.',
-        },
         movementDetail: {
-            title: 'Ablauf einer Bewegung',
+            title: 'Ablauf eines Vorgangs',
             subtitle: 'Wie Ausrüstung zwischen Mitglied, Wache und Träger wandert',
             whatIs: 'Worum geht es hier?',
-            whatIsText: 'Eine Bewegung ist ein Weg, den ein Ausrüstungsteil zwischen zwei Parteien nimmt: eine Ausgabe, eine Rückgabe oder ein Tausch. Diese Seite zeigt die ganze Kette auf einen Blick.',
+            whatIsText: 'Ein Vorgang ist ein Weg, den ein Ausrüstungsteil zwischen zwei Parteien nimmt: eine Ausgabe, eine Rückgabe oder ein Tausch. Diese Seite zeigt die ganze Kette auf einen Blick.',
             steps: 'Die Schritte',
             stepsText: 'Jeder Schritt sagt, wer ihn bestätigt, um welches Teil es geht und wo das Teil danach ist. Erledigte Schritte tragen den Namen dessen, der sie bestätigt hat, und den Zeitpunkt. Beim aktuellen Schritt steht der Knopf, sofern du an der Reihe bist, sonst der Hinweis, auf wen gewartet wird.',
             acks: 'Bestätigt, vermerkt, erzwungen',
             acksText: 'Bestätigt heißt: die Partei, der der Schritt gehört, hat selbst bestätigt. Von der Wache vermerkt heißt: die Wache hat für einen Träger eingetragen, der Ember nicht nutzt und deshalb nicht antworten kann. Erzwungen heißt: jemand hat einen Schritt über eine Partei hinweg eingetragen, die hätte antworten können. Das steht dauerhaft im Verlauf.',
             endings: 'Ablehnen und Abbrechen',
-            endingsText: 'Wer an der Reihe ist, kann mit einer Begründung ablehnen. Die Bewegung endet dann, und das abgehende Teil geht dorthin zurück, wo es vorher war. Abbrechen geht, solange die Bewegung noch auf der eigenen Seite steht.',
+            endingsText: 'Wer an der Reihe ist, kann mit einer Begründung ablehnen. Der Vorgang endet dann, und das abgehende Teil geht dorthin zurück, wo es vorher war. Abbrechen geht, solange der Vorgang noch auf der eigenen Seite steht.',
             rechain: 'Ablauf wechseln',
-            rechainText: 'Manchmal ist eine Bewegung auf einem Ablauf gestartet, der nicht zu dem Teil gehört. Dann stehen dort Schritte, die für die Ausrüstung von jemand anderem geschrieben wurden, und über den Knopf neben der Überschrift des Ablaufs stellst du die Bewegung auf den richtigen Ablauf um. Dabei legst du fest, auf welchem Schritt sie danach steht. Das geht nur bei offenen Bewegungen und nur mit dem Recht zur Inventarverwaltung.',
+            rechainText: 'Manchmal ist ein Vorgang auf einem Ablauf gestartet, der nicht zu dem Teil gehört. Dann stehen dort Schritte, die für die Ausrüstung von jemand anderem geschrieben wurden, und über den Knopf neben der Überschrift des Ablaufs stellst du den Vorgang auf den richtigen Ablauf um. Dabei legst du fest, auf welchem Schritt er danach steht. Das geht nur bei offenen Vorgängen und nur mit dem Recht zur Inventarverwaltung.',
             lossReport: 'Verlustmeldungen',
             lossReportText: 'Meldet eine Wache ein verlorenes Teil, steht oben, was beide Seiten dazu geschrieben haben: die Notiz der Wache und die des Mitglieds vom Melden, jeweils mit dem Namen dahinter. Ein Beleg, den der Verband verlangt hat, hängt daneben und wird von hier heruntergeladen.',
-            lossReportEndingsText: 'Ein Verlust hat keinen Rückweg: Es läuft nur die Hälfte mit dem Ersatz. Lehnt der Verband ab, bleibt das Teil vermisst, und die Begründung steht bei der Bewegung.',
-            tip: 'Die Bezeichnungen der Schritte kommen aus dem Ablauf, den deine Wache unter Inventar eingerichtet hat. Eine abgeschlossene Bewegung behält die Worte, unter denen sie gelaufen ist, auch wenn der Ablauf später umbenannt wird.',
+            lossReportEndingsText: 'Ein Verlust hat keinen Rückweg: Es läuft nur die Hälfte mit dem Ersatz. Lehnt der Verband ab, bleibt das Teil vermisst, und die Begründung steht beim Vorgang.',
+            tip: 'Die Bezeichnungen der Schritte kommen aus dem Ablauf, den deine Wache unter Inventar eingerichtet hat. Ein abgeschlossener Vorgang behält die Worte, unter denen er gelaufen ist, auch wenn der Ablauf später umbenannt wird.',
         },
         itemDetail: {
+            ownerTitle: 'Eigentümer ändern',
+            ownerText: 'In einem gemischten Inventar legst du für jeden Gegenstand fest, ob er der Wache oder dem '
+                + 'Träger gehört. Ändern kannst du das beim Bearbeiten des Gegenstands, im Inventar wie auf seiner '
+                + 'eigenen Seite, solange der Gegenstand im Lager der Wache liegt, also nicht, '
+                + 'während ihn jemand hat, er unterwegs ist oder vermisst wird. Dafür brauchst du die Berechtigung, '
+                + 'Ausrüstung der Wache und des Trägers anzulegen. Einen Gegenstand eines Trägers, der selbst Ember '
+                + 'nutzt, kann die Wache nicht sich selbst zuschreiben.',
             title: 'Gegenstand - Details',
             subtitle: 'Alle Informationen zu einem einzelnen Gegenstand.',
             whatIs: 'Was zeigt diese Seite?',
@@ -6691,7 +6828,7 @@ volumes:
             whatIsText: 'Wenn eure Ausrüstung längst in den Spinden hängt, ist der Weg über einzelne Gegenstände '
                 + 'zäh: anlegen, Größe wählen, Nummer tippen, Fenster schließen, zuweisen. Hier geht es andersherum, '
                 + 'von der Mitgliederliste zu den Stücken: eine Zeile je Mitglied, einmal ausfüllen, einmal speichern.',
-            notAMovementText: 'Die Aufnahme trägt nur ein, was ohnehin da ist. Sie startet keine Bewegung und keinen '
+            notAMovementText: 'Die Aufnahme trägt nur ein, was ohnehin da ist. Sie startet keinen Vorgang und keinen '
                 + 'Ablauf, denn übergeben wurde nichts.',
             whoTitle: 'Schritt 1: Wer kommt in die Liste',
             whoText: 'Alle Mitglieder, ein Mitgliedstyp oder eine Gruppe. Das ist nur der Anfang: einzelne Zeilen '

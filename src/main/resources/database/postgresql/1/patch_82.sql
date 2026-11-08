@@ -1,56 +1,124 @@
-INSERT INTO ember_schema.station_permission (name)
-VALUES ('DOCUMENT_SIGN_OTHERS')
-ON CONFLICT (name) DO NOTHING;
+ALTER TABLE ember_schema.waiting_list_entry
+    ADD COLUMN IF NOT EXISTS invited_message TEXT NOT NULL DEFAULT '';
 
-ALTER TABLE ember_schema.signing_evidence
-    DROP CONSTRAINT IF EXISTS signing_evidence_capacity_check;
+COMMENT ON COLUMN ember_schema.waiting_list_entry.invited_message IS
+    'A personal note the station wrote into the current invitation, empty when it wrote none. Shown in the invitation mail and on the page behind the entry link. Cleared together with the invitation it belongs to.';
 
-ALTER TABLE ember_schema.signing_evidence
-    ADD CONSTRAINT signing_evidence_capacity_check
-        CHECK (capacity IN ('ACCOUNT_HOLDER', 'GUARDIAN', 'MEMBER_THROUGH_ACCOUNT', 'WITNESSED'));
+ALTER TABLE ember_schema.waiting_list_entry_guardian
+    ADD COLUMN IF NOT EXISTS member_id INTEGER NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL;
 
-COMMENT ON CONSTRAINT signing_evidence_capacity_check ON ember_schema.signing_evidence IS
-    'The capacities an act can be given in.';
-COMMENT ON COLUMN ember_schema.signing_evidence.capacity IS
-    'In what capacity the act was given: ACCOUNT_HOLDER for themselves, GUARDIAN on behalf of the member, MEMBER_THROUGH_ACCOUNT by the member through the account of somebody else, WITNESSED by a person who signed in front of a witness, whose account confirmed it.';
-COMMENT ON COLUMN ember_schema.signing_evidence.account_member_id IS
-    'The member at the station whose account confirmed the act, the witness for a WITNESSED act. NULL once that member was deleted.';
-COMMENT ON COLUMN ember_schema.signing_evidence.account_holder_name IS
-    'The official name of the account holder whose step-up confirmed the act, the witness for a WITNESSED act, as it was at signing.';
-COMMENT ON COLUMN ember_schema.signing_evidence.member_id IS
-    'The member a guardian signed for, who signed through the account, or who signed in front of the witness. NULL where the account holder signed for themselves, and once that member was deleted.';
-COMMENT ON COLUMN ember_schema.signing_evidence.member_name IS
-    'The official name of the member signed for, signing through the account, or signing in front of the witness, as it was at signing. NULL where the account holder signed for themselves.';
-COMMENT ON COLUMN ember_schema.signing_evidence.guardian_position IS
-    'Where the guardian stood in the member''s order of guardians at signing, counted from 0: the account holder when they acted as guardian or lent their account, the guardian who signed in front of a witness for a WITNESSED act. NULL where no guardian was involved.';
+CREATE INDEX IF NOT EXISTS idx_wle_guardian_member
+    ON ember_schema.waiting_list_entry_guardian (member_id)
+    WHERE member_id IS NOT NULL;
 
-ALTER TABLE ember_schema.station
-    ADD COLUMN IF NOT EXISTS witness_reach_mode TEXT NOT NULL DEFAULT 'AND' CHECK (witness_reach_mode IN ('AND', 'OR'));
+COMMENT ON COLUMN ember_schema.waiting_list_entry_guardian.member_id IS
+    'The station member this guardian became when the trial began, either a new one or one already at the station they were linked to. NULL until then. Keeps a guardian from being taken on twice when the entry joins, and names which memberships ending the trial may take back.';
 
-COMMENT ON COLUMN ember_schema.station.witness_reach_mode IS
-    'AND or OR, how the parts of witness_reach_restriction combine.';
-
-CREATE TABLE IF NOT EXISTS ember_schema.witness_reach_restriction
+CREATE TABLE IF NOT EXISTS ember_schema.document_template_question
 (
-    id         SERIAL PRIMARY KEY,
-    station_id INT NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
-    user_type  TEXT,
-    group_id   INT REFERENCES ember_schema.member_group (id) ON DELETE CASCADE,
-    tag_id     INT REFERENCES ember_schema.user_tag (id) ON DELETE CASCADE,
-    member_id  INT REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
-    CHECK (num_nonnulls(user_type, group_id, tag_id, member_id) = 1)
+    id          SERIAL PRIMARY KEY,
+    template_id INTEGER NOT NULL REFERENCES ember_schema.document_template (id) ON DELETE CASCADE,
+    position    INTEGER NOT NULL,
+    key         TEXT    NOT NULL CHECK (key ~ '^[A-Za-z0-9_]{1,40}$'),
+    label       TEXT    NOT NULL,
+    kind        TEXT    NOT NULL CHECK (kind IN ('TEXT', 'DATE', 'NUMBER', 'CHOICE', 'CHECK')),
+    suggestion  TEXT    NOT NULL DEFAULT '',
+    required    BOOLEAN NOT NULL DEFAULT FALSE,
+    limits      JSONB   NOT NULL DEFAULT '{}',
+    UNIQUE (template_id, key)
 );
 
-CREATE INDEX IF NOT EXISTS idx_witness_reach_restriction_station
-    ON ember_schema.witness_reach_restriction (station_id);
+CREATE INDEX IF NOT EXISTS idx_document_template_question_template
+    ON ember_schema.document_template_question (template_id, position);
 
-COMMENT ON TABLE ember_schema.witness_reach_restriction IS
-    'Whom the holders of DOCUMENT_SIGN_OTHERS at a station may collect signatures from in person, among its current members and trial users. Empty means all of them. Shaped like event_restriction.';
-COMMENT ON COLUMN ember_schema.witness_reach_restriction.id IS 'Auto-generated primary key.';
-COMMENT ON COLUMN ember_schema.witness_reach_restriction.station_id IS 'The station whose witnesses the audience narrows.';
-COMMENT ON COLUMN ember_schema.witness_reach_restriction.user_type IS
-    'Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set.';
-COMMENT ON COLUMN ember_schema.witness_reach_restriction.group_id IS 'Required group membership.';
-COMMENT ON COLUMN ember_schema.witness_reach_restriction.tag_id IS 'Required tag.';
-COMMENT ON COLUMN ember_schema.witness_reach_restriction.member_id IS
-    'Specific member (always OR-connected, bypasses AND/OR mode).';
+COMMENT ON TABLE ember_schema.document_template_question IS
+    'What the person generating a document from a template is asked. The template names each answer as {{ask.<key>}}.';
+COMMENT ON COLUMN ember_schema.document_template_question.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.document_template_question.template_id IS 'References the template that asks it.';
+COMMENT ON COLUMN ember_schema.document_template_question.position IS 'The order the questions are asked in, counted from 0.';
+COMMENT ON COLUMN ember_schema.document_template_question.key IS
+    'The name the template names the answer by, as {{ask.<key>}}. Unique within the template.';
+COMMENT ON COLUMN ember_schema.document_template_question.label IS 'What the person generating is asked.';
+COMMENT ON COLUMN ember_schema.document_template_question.kind IS
+    'TEXT takes a text, DATE a day, NUMBER a number, CHOICE one of the offered entries and CHECK a tick, which prints as a ticked or an empty box.';
+COMMENT ON COLUMN ember_schema.document_template_question.suggestion IS
+    'A text with placeholders, filled in for the member to suggest the answer. For a CHECK it ticks the box where it says yes. Where nobody answers, as in self service, the suggestion is the answer.';
+COMMENT ON COLUMN ember_schema.document_template_question.required IS
+    'Whether an empty answer counts as a missing value of the document.';
+COMMENT ON COLUMN ember_schema.document_template_question.limits IS
+    'What counts as an answer: earliest and latest day of a DATE, longest length and format of a TEXT, bounds of a NUMBER, the entries of a CHOICE. An answer outside them is refused; a suggestion outside them counts as no answer.';
+
+ALTER TABLE ember_schema.document_generation
+    ADD COLUMN IF NOT EXISTS answers JSONB NULL;
+
+COMMENT ON COLUMN ember_schema.document_generation.answers IS
+    'What the template''s questions were answered with, by the key of the question, or NULL where it asks none.';
+
+WITH checks AS (SELECT f.id,
+                       f.template_id,
+                       f.text,
+                       row_number() OVER (PARTITION BY f.template_id ORDER BY f.position, f.id) AS number
+                FROM ember_schema.document_template_field f
+                WHERE f.kind = 'CHECK'
+                  AND coalesce(f.text, '') NOT LIKE '{{ask.%'),
+     asked AS (
+         INSERT INTO ember_schema.document_template_question (template_id, position, key, label, kind, suggestion)
+             SELECT template_id, number - 1, 'kreuz_' || number, 'Kreuz ' || number, 'CHECK', coalesce(text, '')
+             FROM checks
+             ON CONFLICT (template_id, key) DO NOTHING
+             RETURNING template_id, key)
+UPDATE ember_schema.document_template_field f
+SET text = '{{ask.kreuz_' || c.number || '}}'
+FROM checks c
+WHERE f.id = c.id;
+
+WITH boxes AS (SELECT b.template_id,
+                      b.field_name,
+                      b.text,
+                      coalesce(nullif(trim(form_field ->> 'tooltip'), ''), b.field_name) AS label,
+                      row_number() OVER (PARTITION BY b.template_id ORDER BY b.field_name) AS number
+               FROM ember_schema.document_template_form_binding b
+                        JOIN ember_schema.document_template_pdf p ON p.template_id = b.template_id
+                        JOIN ember_schema.document_template_pdf_original o ON o.id = p.original_id
+                        CROSS JOIN LATERAL jsonb_array_elements(o.inspection -> 'formFields') AS form_field
+               WHERE form_field ->> 'name' = b.field_name
+                 AND form_field ->> 'kind' = 'CHECK'
+                 AND b.text NOT LIKE '{{ask.%'),
+     offset_by AS (SELECT template_id, count(*) AS taken
+                   FROM ember_schema.document_template_question
+                   GROUP BY template_id),
+     asked AS (
+         INSERT INTO ember_schema.document_template_question (template_id, position, key, label, kind, suggestion)
+             SELECT bx.template_id,
+                    coalesce(o.taken, 0) + bx.number - 1,
+                    'feld_' || bx.number,
+                    left(bx.label, 120),
+                    'CHECK',
+                    bx.text
+             FROM boxes bx
+                      LEFT JOIN offset_by o ON o.template_id = bx.template_id
+             ON CONFLICT (template_id, key) DO NOTHING
+             RETURNING template_id, key)
+UPDATE ember_schema.document_template_form_binding b
+SET text = '{{ask.feld_' || bx.number || '}}'
+FROM boxes bx
+WHERE b.template_id = bx.template_id
+  AND b.field_name = bx.field_name;
+
+ALTER TABLE ember_schema.document_template_field
+    ADD COLUMN IF NOT EXISTS keep_size BOOLEAN NOT NULL DEFAULT FALSE;
+
+COMMENT ON COLUMN ember_schema.document_template_field.keep_size IS
+    'Whether a text field prints at its size however long the value is, running past its box, instead of shrinking the value to fit. Set on the fields of a template made from a Word form, whose gaps are only as wide as their blank.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.account_preference
+(
+    account_id INTEGER PRIMARY KEY REFERENCES ember_schema.account (id) ON DELETE CASCADE,
+    sidebar    TEXT    NOT NULL DEFAULT 'SECTIONS' CHECK (sidebar IN ('SECTIONS', 'TREE'))
+);
+
+COMMENT ON TABLE ember_schema.account_preference IS
+    'How an account likes the app laid out, on every device it signs in on. A row exists once the account changed something; an account without one sees the defaults.';
+COMMENT ON COLUMN ember_schema.account_preference.account_id IS 'The account the preferences belong to.';
+COMMENT ON COLUMN ember_schema.account_preference.sidebar IS
+    'How the sidebar lists its sections: SECTIONS shows one section at a time, TREE shows every section at once and opens them in place.';

@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.inventory.entity.InventorySize;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.Procurement;
 import dev.chojo.ember.feature.inventory.service.InventoryService;
+import dev.chojo.ember.feature.inventory.service.MovementGuards;
 import dev.chojo.ember.feature.inventory.service.ProcurementService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
@@ -36,6 +37,7 @@ import static dev.chojo.ember.api.TestSessions.MEMBER_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -74,8 +76,16 @@ class ProcurementRoutesTest {
                 .thenReturn(Optional.of(new Inventory(
                         INVENTORY, STATION, "Jacken", InventoryType.INTERNAL, true, false, false, null, null)));
         when(inventories.findSizes(INVENTORY)).thenReturn(List.of(new InventorySize(2, INVENTORY, "L", 0, null)));
-        var harness = RouteHarness.serving(
-                new ProcurementRoutes(procurements, members, names, inventories, mock(MemberIdentityFactory.class)));
+        when(procurements.findById(1)).thenReturn(Optional.of(forMara));
+        when(procurements.issueFromStock(eq(1), eq(77), any()))
+                .thenThrow(InventoryRefusal.PROCUREMENT_PIECE_NOT_IN_STOCK.raise());
+        var harness = RouteHarness.serving(new ProcurementRoutes(
+                procurements,
+                members,
+                names,
+                inventories,
+                mock(MemberIdentityFactory.class),
+                mock(MovementGuards.class)));
         var buyer = harness.as(TestSessions.member(STATION, StationPermission.INVENTORY_PROCUREMENT));
 
         harness.run((server, client) -> {
@@ -91,6 +101,10 @@ class ProcurementRoutesTest {
             assertEquals(
                     InventoryRefusal.INVENTORY_NOT_HERE_ON_PROCUREMENT,
                     refusalOf(client.post(PREFIX + "/procurement", body("{\"inventoryId\": 99}"), buyer)));
+            assertEquals(
+                    InventoryRefusal.PROCUREMENT_PIECE_NOT_IN_STOCK,
+                    refusalOf(
+                            client.post(PREFIX + "/procurement/1/issue-from-stock", body("{\"itemId\": 77}"), buyer)));
         });
     }
 }

@@ -227,4 +227,36 @@ class LossReportServiceTest extends RepositoryTestBase {
         clusterService.releaseStation(cluster.id(), station.id());
         stationRepo.delete(station.id());
     }
+
+    /**
+     * A station connected to no association in Ember still has one, which just does not use Ember. Its gear
+     * is reported missing like any other, the station filing the report standing in for it, and since the
+     * association has said nothing here about what it wants, the report needs nothing beyond itself.
+     */
+    @Test
+    void theStationReportsALossToAnAssociationOutsideEmber() {
+        var station = stationRepo.create("Wache ohne Verband " + NAMES.incrementAndGet());
+        int memberId = memberAt(station);
+        var inventory = inventoryRepo.create(
+                station.id(), "Verbandskleidung " + NAMES.incrementAndGet(), InventoryType.EXTERNAL, false);
+        int itemId = inventoryRepo
+                .createItem(
+                        inventory.id(), "VA-" + NAMES.incrementAndGet(), "Jacke", null, null, ItemOwner.CLUSTER, null)
+                .id();
+        itemCustodyService.assignToMember(itemId, memberId, "Ver Lust");
+        itemCustodyService.markLost(itemId, "Verloren", memberId);
+        try {
+            assertEquals(
+                    LossReportRequirement.NOTHING,
+                    lossReportService.requirementFor(itemId).orElseThrow());
+
+            var movement = lossReportService.report(station.id(), itemId, null, null, memberId);
+
+            assertTrue(movement.lostReport());
+            assertEquals(MovementState.OPEN, movement.state());
+            itemMovementService.abandon(movement.id(), "Test vorbei");
+        } finally {
+            stationRepo.delete(station.id());
+        }
+    }
 }

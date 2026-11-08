@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import TabBar from '@/components/navigation/TabBar.vue'
 import FieldsPanel from './FieldsPanel.vue'
 import AudiencesPanel from './AudiencesPanel.vue'
+import FieldSetsPanel from './FieldSetsPanel.vue'
 import FieldLayoutPreview from '@/components/profilefields/FieldLayoutPreview.vue'
 import type {AskedField} from './askedField'
 import type {FieldTemplate} from './fieldTemplates'
@@ -53,6 +54,7 @@ const audienceCount = computed(() => c.allAssignments.value.reduce<Record<number
           :checked-ids="c.checkedIds.value"
           :roles="props.roles"
           :groups="c.availableGroups.value"
+          :sets="c.sets.value"
           @add="c.openAddField"
           @select="(f: EditableField) => c.select(f.id)"
           @toggle-checked="(f: EditableField) => c.toggleChecked(f.id)"
@@ -73,16 +75,25 @@ const audienceCount = computed(() => c.allAssignments.value.reduce<Record<number
           :field="c.selectedField.value"
           :unasked-groups="c.unaskedGroups.value"
           :unasked-roles="c.unaskedRoles.value"
+          :field-set="c.selectedSet.value"
           @add="c.addAudience"
           @remove="c.removeAudience"
           @set="c.setAudience"
       />
     </div>
 
+    <FieldSetsPanel
+        :sets="c.sets.value"
+        :fields="c.allFields.value"
+        @create="(name: string) => c.createSet(name, true)"
+        @update="c.updateSet"
+        @dissolve="c.dissolveSet"/>
+
     <TabBar v-model="c.previewRole.value" :tabs="tabs"/>
 
     <FieldLayoutPreview
         :fields="c.previewFields.value"
+        :sets="c.sets.value"
         :hint="t('membersConfig.previewHint')"
         :empty-text="t('membersConfig.orderEmpty')"
         @reorder="(from: number, to: number) => c.onReorder(c.previewRole.value, from, to)"

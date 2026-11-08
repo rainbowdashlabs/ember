@@ -4,49 +4,66 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
-import EditButton from '@/components/button/EditButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import DragList from '@/components/input/DragList.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import type {AttendanceTemplateField, MemberGroup} from '@/api/generated/schema'
-import MutedText from '@/components/typography/MutedText.vue'
 import FieldLayoutPreview from '@/components/profilefields/FieldLayoutPreview.vue'
-import {configOf} from '@/components/profilefields/fieldLayout'
-import {fieldTypeLabel} from '@/api/fieldTypes'
+import type {FieldWidthName, PreviewField} from '@/components/profilefields/fieldLayout'
+import type {MemberGroup} from '@/api/generated/schema'
+import {moveWithin} from '@/util/reorder'
+import FieldEditor from './FieldEditor.vue'
+import {blankDraft, previewOf, type AttendanceFieldDraft} from './attendanceFieldDraft'
+
+/**
+ * The fields of an attendance sheet, each edited where it stands, as the questions of an appointment
+ * are.
+ *
+ * <p>They were a list of names with a dialog behind each, which asked for the place in the sheet
+ * as a number, and a picture of the sheet that could only be looked at. Now the list is the editor:
+ * a field is written in its row, dragged to another place by its grip or in the preview, and made
+ * narrower by its edge there. The whole list is saved at once.
+ */
+const fields = defineModel<AttendanceFieldDraft[]>('fields', {required: true})
 
 const props = defineProps<{
-  fields: AttendanceTemplateField[]
   availableGroups: MemberGroup[]
+  /** Writes every field as it stands; the button shows saving and saved. */
+  saveFields: () => Promise<void>
 }>()
 
-/** The settings an attendance question carries, of which the list shows a few. */
-interface AttendanceFieldConfig {
-  groupId?: number
-  required?: boolean
-  autoAttend?: boolean
-  width?: string
-}
-
 const emit = defineEmits<{
-  add: []
-  edit: [field: AttendanceTemplateField]
-  delete: [field: AttendanceTemplateField]
-  reorder: [fromIndex: number, toIndex: number]
+  delete: [index: number]
 }>()
 
 const {t} = useI18n()
 
-/** What a field's settings say, in the shape this list reads them in. */
-function parseConfig(config: string | Record<string, unknown> | undefined): AttendanceFieldConfig {
-  return configOf(config) as AttendanceFieldConfig
+const canSave = computed(() => fields.value.every(field => field.name.trim() !== ''))
+
+function addField() {
+  fields.value = [...fields.value, blankDraft()]
 }
 
-function groupName(groupId: number): string {
-  return props.availableGroups.find(g => g.id === groupId)?.name ?? `#${groupId}`
+function updateField(index: number, field: AttendanceFieldDraft) {
+  fields.value = fields.value.map((existing, i) => (i === index ? field : existing))
+}
+
+function moveField(fromIndex: number, toIndex: number) {
+  fields.value = moveWithin(fields.value, fromIndex, toIndex)
+}
+
+const previewFields = computed<PreviewField[]>(() => fields.value.map(previewOf))
+
+/** Takes the width a field was dragged to in the preview into its settings. */
+function resizeField(shown: PreviewField, width: FieldWidthName) {
+  const index = previewFields.value.indexOf(shown)
+  const field = fields.value[index]
+  if (!field) return
+  updateField(index, {...field, width})
 }
 </script>
 
@@ -54,48 +71,35 @@ function groupName(groupId: number): string {
   <NeutralContainer class="space-y-4" data-testid="attendance-fields">
     <div class="flex items-center justify-between">
       <SectionHeader>{{ t('attendanceConfig.fields') }}</SectionHeader>
-      <PrimaryButton :icon="['fas', 'plus']" @click="emit('add')">
+      <SecondaryButton :icon="['fas', 'plus']" @click="addField">
         {{ t('attendanceConfig.addField') }}
-      </PrimaryButton>
+      </SecondaryButton>
     </div>
 
     <EmptyState v-if="fields.length === 0">{{ t('attendanceConfig.noFields') }}</EmptyState>
 
-    <FieldLayoutPreview
-        :fields="props.fields.map(field => ({
-          name: field.name,
-          fieldType: field.fieldType,
-          required: parseConfig(field.config).required,
-          width: parseConfig(field.config).width,
-        }))"
-        :hint="t('attendanceConfig.fieldsPreviewHint')"
-        :editable="false"
-    />
-
-    <DragList :items="fields" :key-fn="(f) => f.id" @reorder="(from, to) => emit('reorder', from, to)">
-      <template #default="{ item: field }">
-        <div
-            class="flex items-center justify-between rounded-lg border p-4 border-bg-light-accent bg-bg-light-accent/20 dark:border-bg-dark-accent dark:bg-bg-dark-accent/20 mb-2"
-            data-testid="attendance-field-row">
-          <div class="flex items-center gap-2">
-            <div>
-              <span class="font-medium">{{ field.name }}</span>
-              <span v-if="parseConfig(field.config).required" class="ml-1 text-xs text-error">*</span>
-              <MutedText size="sm" class="ml-2">({{ fieldTypeLabel(t, field.fieldType) }})</MutedText>
-              <MutedText v-if="parseConfig(field.config).groupId" class="ml-1">
-                - {{ groupName(parseConfig(field.config).groupId!) }}
-              </MutedText>
-              <span v-if="parseConfig(field.config).autoAttend" class="ml-2 text-xs text-primary">
-                <font-awesome-icon :icon="['fas', 'user-plus']" class="mr-0.5"/>auto
-              </span>
-            </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <EditButton @click="emit('edit', field)"/>
-            <DeleteButton @click="emit('delete', field)"/>
-          </div>
+    <DragList :items="fields" :key-fn="(field, index) => field.id ?? `new-${index}`" @reorder="moveField">
+      <template #default="{index}">
+        <div class="mb-2" data-testid="attendance-field-row">
+          <FieldEditor
+              :available-groups="props.availableGroups"
+              :model-value="fields[index]!"
+              @update:model-value="updateField(index, $event)"
+              @remove="emit('delete', index)"
+          />
         </div>
       </template>
     </DragList>
+
+    <FieldLayoutPreview
+        :fields="previewFields"
+        :hint="t('attendanceConfig.fieldsPreviewHint')"
+        @reorder="moveField"
+        @resize="resizeField"
+    />
+
+    <SaveButton :action="props.saveFields" :disabled="!canSave">
+      {{ t('attendanceConfig.saveFields') }}
+    </SaveButton>
   </NeutralContainer>
 </template>

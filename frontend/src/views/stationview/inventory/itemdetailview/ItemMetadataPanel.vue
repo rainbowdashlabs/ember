@@ -14,6 +14,8 @@ import type {InventoryArt, InventoryItem, InventorySize, ItemLocationResponse} f
 import type {MemberLike} from '@/components/input/select/memberOption'
 import ItemEditForm from './ItemEditForm.vue'
 import ItemMetadataDisplay from './ItemMetadataDisplay.vue'
+import ItemOwnerField from '../ItemOwnerField.vue'
+import {useItemOwnerChoice} from '../useItemOwnerChoice'
 import {parseItemMetadata} from '../detailview/itemMetadata'
 import {describeFailure, type Failure} from '@/util/failure'
 
@@ -39,6 +41,8 @@ const editSizeId = ref('')
 const editArtId = ref<number | null>(null)
 const editArtDraft = ref('')
 const arts = ref<InventoryArt[]>([])
+const ownerChoice = useItemOwnerChoice(() => props.item)
+const {owner: editOwner, offered: ownerOffered, atRest: ownerAtRest} = ownerChoice
 
 /**
  * The kinds this piece's inventory holds. An empty list is the ordinary answer, because most
@@ -64,13 +68,15 @@ function startEdit() {
   editSizeId.value = props.item.sizeId != null ? String(props.item.sizeId) : ''
   editArtId.value = props.item.artId ?? null
   editArtDraft.value = ''
+  ownerChoice.reset()
   editing.value = true
 }
 
 /**
  * Writes the piece's description back.
  *
- * <p>A kind typed into the picker reaches the server only now, together with the piece it was typed for.
+ * <p>A kind typed into the picker reaches the server only now, together with the piece it was typed for. A
+ * changed owner is handed over after the description is saved.
  */
 async function saveEdit() {
   try {
@@ -84,9 +90,10 @@ async function saveEdit() {
       artId: showArt.value ? resolvedArt : props.item.artId ?? null,
       metadata: parseItemMetadata(props.item.metadata),
     })
+    const reowned = await ownerChoice.apply()
     editing.value = false
     if (editArtDraft.value) await loadArts()
-    emit('updated', updated)
+    emit('updated', reowned ?? updated)
   } catch (e) {
     emit('error', describeFailure(e, t))
     throw e
@@ -122,7 +129,9 @@ const assignedMemberIdentity = computed(() => {
       :show-art="showArt"
       :save="saveEdit"
       @cancel="editing = false"
-    />
+    >
+      <ItemOwnerField v-if="ownerOffered" v-model="editOwner" :at-rest="ownerAtRest"/>
+    </ItemEditForm>
 
     <ItemMetadataDisplay
       v-else

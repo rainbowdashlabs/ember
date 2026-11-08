@@ -514,6 +514,17 @@ public class ItemMovementService {
         requireFree(incomingItemId);
     }
 
+    /**
+     * Whether an open movement already carries this piece, setting out or promised. Such a piece is not
+     * free to be offered for anything else, however free its custody looks.
+     *
+     * @param itemId the piece
+     * @return {@code true} when an open movement names it on either side
+     */
+    public boolean isOnAMovement(int itemId) {
+        return movementRepository.isOnAMovement(itemId);
+    }
+
     private void requireFree(@Nullable Integer itemId) {
         if (itemId == null) return;
         movementRepository.findOpenByOutgoingItem(itemId).ifPresent(open -> {

@@ -35,14 +35,10 @@ const {t} = useI18n()
                  to="/helpcenter/station/inventory/movements" @navigate="close">
       {{ t('sidebar.inventoryMovements') }}
     </SidebarLink>
-    <SidebarExpandableLink :icon="['fas', 'users']" name="help-inventory-members"
-                           to="/helpcenter/station/inventory/members" prefix="/helpcenter/station/inventory/member" @navigate="close">
-      <template #label>{{ t('sidebar.inventoryMembers') }}</template>
-      <SidebarLink :icon="['fas', 'user']" name="help-inventory-member"
-                   to="/helpcenter/station/inventory/member" @navigate="close">
-        {{ t('sidebar.inventoryMemberDetail') }}
-      </SidebarLink>
-    </SidebarExpandableLink>
+    <SidebarLink :icon="['fas', 'users']" name="help-inventory-members"
+                 to="/helpcenter/station/inventory/members" @navigate="close">
+      {{ t('sidebar.inventoryMembers') }}
+    </SidebarLink>
     <SidebarExpandableLink :icon="['fas', 'box-open']" name="help-inventory-manage"
                            to="/helpcenter/station/inventory/manage" @navigate="close">
       <template #label>{{ t('sidebar.inventoryManage') }}</template>

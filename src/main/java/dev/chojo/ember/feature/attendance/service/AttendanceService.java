@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.attendance.entity.SessionSummary;
 import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
+import dev.chojo.ember.feature.attendance.repository.AttendanceTimeRuleRepository;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -42,6 +43,7 @@ import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.Json;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -91,6 +93,7 @@ public class AttendanceService {
     private final AttendanceAudienceService audienceService;
     private final MemberEligibility memberEligibility;
     private final AttendanceTemplateGuards templateGuards;
+    private final AttendanceTimeRuleRepository timeRuleRepository;
 
     @Inject
     public AttendanceService(
@@ -106,7 +109,9 @@ public class AttendanceService {
             EventDateCancellationRepository cancellationRepository,
             AttendanceAudienceService audienceService,
             MemberEligibility memberEligibility,
-            AttendanceTemplateGuards templateGuards) {
+            AttendanceTemplateGuards templateGuards,
+            AttendanceTimeRuleRepository timeRuleRepository) {
+        this.timeRuleRepository = timeRuleRepository;
         this.memberEligibility = memberEligibility;
         this.templateGuards = templateGuards;
         this.cancellationRepository = cancellationRepository;
@@ -441,7 +446,7 @@ public class AttendanceService {
                 LocalDate day = sheetDay(event, eventDate, startTime, zone);
                 requireNotCancelled(event, day);
                 if (resolvedStart == null || resolvedEnd == null) {
-                    var span = event.occurrenceOn(day);
+                    var span = event.occurrenceOn(day, zone);
                     if (span.isPresent()) {
                         if (resolvedStart == null) resolvedStart = span.get().start();
                         if (resolvedEnd == null) resolvedEnd = span.get().end();
@@ -466,8 +471,15 @@ public class AttendanceService {
             }
         }
 
-        var session = attendanceRepository.createSession(
-                templateId, resolvedStart, resolvedEnd, eventId, resolvedTitle, countedMinutes);
+        Instant start = resolvedStart;
+        Instant end = resolvedEnd;
+        String sheetTitle = resolvedTitle;
+        var session = Transactions.call(() -> {
+            var created =
+                    attendanceRepository.createSession(templateId, start, end, eventId, sheetTitle, countedMinutes);
+            timeRuleRepository.copyTemplateRules(templateId, created.id());
+            return created;
+        });
         log.info("Created attendance session {} for template {} (event {})", session.id(), templateId, eventId);
         var templateFields = fieldsById(templateId);
         for (var field : templateFields.values()) {
@@ -898,15 +910,32 @@ public class AttendanceService {
     /**
      * Refuses every write to a frozen sheet.
      *
-     * <p>Guards all four ways of writing to one, because a sheet that refuses a status but takes a
+     * <p>Guards every way of writing to one, because a sheet that refuses a status but takes a
      * check-out time is not frozen, it is confusing: the late corrections are exactly the times.
      *
      * @param sessionId the sheet being written to
+     * @throws io.javalin.http.HttpResponseException {@link AttendanceRefusal#ATTENDANCE_SHEET_CLOSED}
      */
-    private void requireSessionOpen(int sessionId) {
+    public void requireSessionOpen(int sessionId) {
         if (!isSessionOpen(sessionId)) {
             throw AttendanceRefusal.ATTENDANCE_SHEET_CLOSED.raise();
         }
+    }
+
+    /**
+     * Records whether a person did the preparation and follow-up their sheet's rules would credit
+     * them with. Their presence itself is untouched.
+     *
+     * @param entryId the person's row on the sheet
+     * @param skip    true where they did not do it, so the report counts their presence alone
+     * @return the row as stored, empty where there is no such row
+     * @throws io.javalin.http.HttpResponseException {@link AttendanceRefusal#ATTENDANCE_SHEET_CLOSED}
+     */
+    public Optional<AttendanceEntry> setSkipExtraTime(int entryId, boolean skip) {
+        requireSessionOpenForEntry(entryId);
+        if (!attendanceRepository.setSkipExtraTime(entryId, skip)) return Optional.empty();
+        log.info("Set skip extra time of attendance entry {} to {}", entryId, skip);
+        return attendanceRepository.findEntryById(entryId);
     }
 
     private void requireSessionOpenForEntry(int entryId) {

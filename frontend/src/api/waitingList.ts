@@ -6,6 +6,7 @@
 import client from './client'
 import {createCrudResource, createScopedCrudResource} from './crud'
 import type {
+    InvitationRecipients,
     PublicWaitlistFormResponse,
     PublicWaitlistRegistrationRequest,
     PublicWaitlistSummary,
@@ -19,6 +20,7 @@ import type {
     WaitingListFieldRequest,
     WaitingListInvitationAnswerRequest,
     WaitingListInvitationRequest,
+    WaitingListMessageRequest,
     WaitingListInvite,
     WaitingListInviteInfo,
     WaitingListInviteRequest,
@@ -28,6 +30,7 @@ import type {
     WaitingListRequest,
     WaitingListVisibleFieldsRequest,
     WaitingListWithCount,
+    TrialOverview,
 } from './generated/schema'
 
 /**
@@ -105,11 +108,40 @@ export async function updateCreatedAt(listId: number, entryId: number, createdAt
 export async function inviteEntry(
     listId: number,
     entryId: number,
-    invitation?: WaitingListInvitationRequest | null,
+    invitation: WaitingListInvitationRequest,
 ): Promise<WaitingListEntry> {
     const res = await client.post<WaitingListEntry>(
-        `/waiting-lists/${listId}/entries/${entryId}/invite`, invitation ?? {})
+        `/waiting-lists/${listId}/entries/${entryId}/invite`, invitation)
     return res.data
+}
+
+/** Offers an invited entry other dates in place of the ones it holds, and writes them to the family. */
+export async function reofferEntry(
+    listId: number,
+    entryId: number,
+    invitation: WaitingListInvitationRequest,
+): Promise<WaitingListEntry> {
+    const res = await client.post<WaitingListEntry>(
+        `/waiting-lists/${listId}/entries/${entryId}/other-dates`, invitation)
+    return res.data
+}
+
+/** Who an invitation for the entry would be written to, read before it is sent. */
+export async function invitationRecipients(listId: number, entryId: number): Promise<InvitationRecipients> {
+    const res = await client.get<InvitationRecipients>(
+        `/waiting-lists/${listId}/entries/${entryId}/invite/recipients`)
+    return res.data
+}
+
+/** The trials running for the reader or anybody they look after. */
+export async function listOwnTrials(): Promise<TrialOverview[]> {
+    const res = await client.get<TrialOverview[]>('/trials')
+    return res.data
+}
+
+/** Ends a trial the reader or one of their wards is in. */
+export async function endOwnTrial(entryId: number): Promise<void> {
+    await client.post(`/trials/${entryId}/end`)
 }
 
 export async function returnToWaiting(listId: number, entryId: number): Promise<WaitingListEntry> {
@@ -117,8 +149,10 @@ export async function returnToWaiting(listId: number, entryId: number): Promise<
     return res.data
 }
 
-export async function moveToTesting(listId: number, entryId: number): Promise<WaitingListEntry> {
-    const res = await client.post<WaitingListEntry>(`/waiting-lists/${listId}/entries/${entryId}/testing`)
+/** Starts the trial, with what the station writes to the family; an empty message writes nothing of its own. */
+export async function moveToTesting(listId: number, entryId: number, message = ''): Promise<WaitingListEntry> {
+    const request: WaitingListMessageRequest = {message: message.trim() || null}
+    const res = await client.post<WaitingListEntry>(`/waiting-lists/${listId}/entries/${entryId}/testing`, request)
     return res.data
 }
 
@@ -127,8 +161,10 @@ export async function moveToJoined(listId: number, entryId: number): Promise<Wai
     return res.data
 }
 
-export async function withdrawEntry(listId: number, entryId: number): Promise<void> {
-    await client.post(`/waiting-lists/${listId}/entries/${entryId}/withdraw`)
+/** Takes the entry off the list and tells the family, with what the station writes to them. */
+export async function withdrawEntry(listId: number, entryId: number, message = ''): Promise<void> {
+    const request: WaitingListMessageRequest = {message: message.trim() || null}
+    await client.post(`/waiting-lists/${listId}/entries/${entryId}/withdraw`, request)
 }
 
 export async function getInviteInfo(code: string): Promise<WaitingListInviteInfo> {
@@ -157,9 +193,9 @@ export async function confirmInterest(token: string): Promise<void> {
 /**
  * Answers the invitation the entry currently holds.
  *
- * The occurrence travels with the answer so it says what it answers: an entry carries one current
- * invitation, and a click from a mail that has been superseded is refused rather than applied to
- * the invitation that replaced it.
+ * The invitation round travels with the answer so it says what it answers: an entry carries one
+ * current invitation, and a click on a page opened before it was replaced is refused rather than
+ * applied to the invitation that replaced it.
  */
 export async function answerInvitation(token: string, data: WaitingListInvitationAnswerRequest): Promise<void> {
     await client.post(`/public/waiting-list/entry/${token}/answer`, data)

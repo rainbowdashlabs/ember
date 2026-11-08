@@ -182,9 +182,7 @@ const isLast = computed(() => walkIdx.value >= walkOrder.value.length - 1)
       :title="pageTitle"
       :subtitle="t('pages.inventory-check-container-walk.subtitle')"
   >
-    <div v-if="loading" class="flex justify-center py-12">
-      <Spinner size="lg" />
-    </div>
+    <Spinner v-if="loading" size="lg"/>
     <template v-else-if="detail">
       <WalkBreadcrumb :path-display="detail.pathDisplay" />
 

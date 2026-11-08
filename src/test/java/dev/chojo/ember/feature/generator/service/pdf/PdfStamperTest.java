@@ -112,6 +112,39 @@ class PdfStamperTest {
     }
 
     @Test
+    void aTextThatKeepsItsSizeRunsPastItsBoxInsteadOfShrinking() throws IOException {
+        var narrow = new FieldRect(1, 100, 700, 20, 14);
+        var kept = new PdfField(
+                PdfFieldKind.TEXT,
+                narrow,
+                "{{member.fullName}}",
+                12,
+                TextAlign.LEFT,
+                false,
+                null,
+                null,
+                FontStyle.REGULAR,
+                false,
+                false,
+                null,
+                false,
+                null,
+                true);
+
+        var positions = TestPdfs.positions(stamp(TestPdfs.plain(1), kept).pdf(), 1);
+
+        assertEquals("Lena Schmidt", drawn(positions));
+        assertEquals(12, positions.getFirst().getTextMatrix().getScaleX(), 0.01);
+        assertTrue(positions.getLast().getXDirAdj() > narrow.right(), "the value runs on past the box");
+
+        var shrunk = TestPdfs.positions(
+                stamp(TestPdfs.plain(1), text(narrow, "{{member.fullName}}", TextAlign.LEFT, false))
+                        .pdf(),
+                1);
+        assertTrue(shrunk.getFirst().getTextMatrix().getScaleX() < 12, "a field that does not keep its size shrinks");
+    }
+
+    @Test
     void aTextSitsLeftCentredOrRight() throws IOException {
         var left = new FieldRect(1, 100, 700, 200, 20);
         var right = new FieldRect(1, 100, 600, 200, 20);

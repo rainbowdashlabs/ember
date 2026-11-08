@@ -12,8 +12,10 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import type {FeaturedEventConfig} from '@/api/generated/schema'
 import {useEventRoutes} from '@/composables/useEventRoutes'
 import {useBlockAudience} from '@/composables/useBlockAudience'
-import {formatDateTimeLong} from '@/util/format'
-import {occurrenceLabel} from '@/util/occurrenceLabel'
+import ProseContent from '@/components/display/ProseContent.vue'
+import ProseExcerpt from '@/components/display/ProseExcerpt.vue'
+import {renderMarkdown} from '@/util/markdown'
+import {appointmentLabel, occurrenceLabel} from '@/util/occurrenceLabel'
 import {findEmbeddedEvent, publicEventsAddress, type FoundEvent} from '../embeddedEventLookup'
 
 /**
@@ -25,6 +27,9 @@ import {findEmbeddedEvent, publicEventsAddress, type FoundEvent} from '../embedd
  * public events are shown, whoever reads it. Where the reader cannot see the event, as on a partner
  * station or the public blog for an event the station keeps to itself, the block says so and shows
  * nothing else about it.
+ *
+ * <p>The description is cut to a few lines unless the block is set to show it whole, so a long event
+ * text does not take over the article; the button leads to the rest.
  */
 const props = defineProps<{
     config: FeaturedEventConfig
@@ -56,13 +61,14 @@ watch(() => [props.stationUid, props.config.eventUid], resolve)
 const when = computed(() => {
     const event = found.value
     if (!event) return ''
+    const until = t('stationPages.cells.eventUntil')
     if (props.config.date) {
-        return occurrenceLabel(props.config.date, event.startTime, event.endTime, t('stationPages.cells.eventUntil'), props.timezone)
+        return occurrenceLabel(props.config.date, event.startTime, event.endTime, until, props.timezone)
     }
-    return event.startTime ? formatDateTimeLong(event.startTime, props.timezone) : ''
+    return event.startTime ? appointmentLabel(event.startTime, event.endTime, until, props.timezone) : ''
 })
 
-const description = computed(() => props.config.descriptionOverride || found.value?.description || '')
+const description = computed(() => props.config.descriptionOverride || found.value?.description)
 
 const href = computed(() => {
     const source = found.value?.source
@@ -87,7 +93,8 @@ const href = computed(() => {
                 <p v-if="found.categoryName" class="text-xs text-(--text-muted)">{{ found.categoryName }}</p>
             </div>
         </div>
-        <p v-if="description" class="text-sm whitespace-pre-line">{{ description }}</p>
+        <ProseContent v-if="config.fullDescription" v-html="renderMarkdown(description)"/>
+        <ProseExcerpt v-else :html="renderMarkdown(description)" max-height="max-h-32"/>
         <a :href="href" class="inline-block px-3 py-1.5 rounded-theme bg-primary !text-primary-text text-sm font-medium hover:bg-primary-accent">
             {{ t('stationPages.cellHints.learnMore') }}
         </a>

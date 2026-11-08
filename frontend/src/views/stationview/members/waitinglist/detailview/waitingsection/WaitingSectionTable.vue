@@ -28,8 +28,10 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   invite: [entryId: number]
+  offerOtherDates: [entryId: number]
   backToWaiting: [entryId: number]
   moveToTesting: [entryId: number]
+  withdraw: [entryId: number]
   navigateToEntry: [entryId: number]
   deleteEntry: [entry: WaitingListEntryWithScore]
 }>()
@@ -82,8 +84,10 @@ function birthDateClass(item: WaitingListEntryWithScore): string {
       <WaitingSectionActions
         :item="row"
         @invite="(id) => emit('invite', id)"
+        @offer-other-dates="(id) => emit('offerOtherDates', id)"
         @back-to-waiting="(id) => emit('backToWaiting', id)"
         @move-to-testing="(id) => emit('moveToTesting', id)"
+        @withdraw="(id) => emit('withdraw', id)"
         @navigate-to-entry="(id) => emit('navigateToEntry', id)"
         @delete-entry="(entry) => emit('deleteEntry', entry)"
       />

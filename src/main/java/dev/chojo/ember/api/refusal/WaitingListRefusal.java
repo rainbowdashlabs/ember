@@ -220,15 +220,54 @@ public enum WaitingListRefusal implements Refusal {
     WAITING_LIST_INVITATION_NO_LONGER_OPEN(
             58, HttpStatus.CONFLICT, "This invitation can no longer be answered, so nothing was saved"),
 
-    /** An answer that names an appointment or a date the entry is not invited to. */
+    /** An answer given to an invitation that has since been replaced by another. */
     WAITING_LIST_INVITATION_ANSWER_FOR_ANOTHER(
-            59,
-            HttpStatus.CONFLICT,
-            "This answer is about a different appointment than the invitation, so nothing was saved"),
+            59, HttpStatus.CONFLICT, "The invitation has changed since this page was opened, so nothing was saved"),
 
     /** A sign-up from somebody younger than the list takes registrations from. */
     WAITING_LIST_REGISTRANT_TOO_YOUNG(
-            60, HttpStatus.BAD_REQUEST, "This list does not take registrations at this age yet, so nothing was saved");
+            60, HttpStatus.BAD_REQUEST, "This list does not take registrations at this age yet, so nothing was saved"),
+
+    /** An invitation that names no appointment. */
+    INVITATION_NEEDS_AN_APPOINTMENT(
+            61, HttpStatus.BAD_REQUEST, "An invitation needs an appointment, so nothing was sent"),
+
+    /** A personal note on an invitation that is longer than an invitation carries. */
+    INVITATION_MESSAGE_TOO_LONG(
+            62, HttpStatus.BAD_REQUEST, "The personal note is longer than 2000 characters, so nothing was sent"),
+
+    /** Ending a trial for an entry the person asking does not answer for. */
+    TRIAL_NOT_YOURS_TO_END(63, HttpStatus.FORBIDDEN, "This trial is not yours to end, so nothing was changed"),
+
+    /** Ending a trial that is no longer running. */
+    TRIAL_NO_LONGER_RUNNING(64, HttpStatus.CONFLICT, "This trial is no longer running, so nothing was changed"),
+
+    /** Coming to an invitation that offers several dates, without saying which. */
+    WAITING_LIST_ANSWER_NEEDS_A_DATE(
+            65, HttpStatus.BAD_REQUEST, "Pick the date you are coming to, so nothing was saved"),
+
+    /** Coming to a date the invitation does not offer. */
+    WAITING_LIST_ANSWER_DATE_NOT_OFFERED(
+            66, HttpStatus.CONFLICT, "That date is not one the invitation offers, so nothing was saved"),
+
+    /** An invitation offering more dates than one invitation carries. */
+    INVITATION_TOO_MANY_DATES(67, HttpStatus.BAD_REQUEST, "An invitation offers at most 5 dates, so nothing was sent"),
+
+    /** An invitation offering the same date of the same appointment twice. */
+    INVITATION_DATE_TWICE(68, HttpStatus.BAD_REQUEST, "The same date is offered twice, so nothing was sent"),
+
+    /** Other dates for an entry that is not invited, so there is nothing to replace. */
+    WAITING_LIST_ENTRY_NOT_REOFFERED(
+            69,
+            HttpStatus.BAD_REQUEST,
+            "This entry cannot be offered other dates as it now stands, so nothing was changed"),
+
+    /** A message to the family that is longer than one is allowed to be. */
+    STATION_MESSAGE_TOO_LONG(
+            70, HttpStatus.BAD_REQUEST, "The message is longer than 2000 characters, so nothing was changed"),
+
+    /** An entry that went before it could be offered other dates. */
+    WAITING_LIST_ENTRY_NOT_HERE_ON_OTHER_DATES(71, HttpStatus.NOT_FOUND, Sentences.WAITING_LIST_ENTRY_NOT_HERE);
 
     private final Definition definition;
 

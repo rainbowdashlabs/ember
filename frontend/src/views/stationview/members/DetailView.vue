@@ -8,11 +8,10 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
-import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import DetailModals from './detailview/DetailModals.vue'
 import DetailHeader from './detailview/DetailHeader.vue'
+import DetailStatus from './detailview/DetailStatus.vue'
 import LoadedTabs from './detailview/LoadedTabs.vue'
 import MemberLinkPanel from './detailview/MemberLinkPanel.vue'
 import { useMemberProfileFields } from './detailview/useMemberProfileFields'
@@ -34,9 +33,14 @@ const route = useRoute()
 
 const { sessionInfo, hasPermission, isGuardian, canManageInventory, isModuleEnabled, canEditMemberAccounts } = useSession()
 const canEdit = computed(() => canEditMemberAccounts())
+const canReadMembers = computed(() => hasPermission(StationPermission.MEMBER_READ))
+const canReadDocuments = computed(() => canReadMembers.value || hasPermission(StationPermission.DOCUMENT_READ_MEMBER))
 const inventoryEnabled = computed(() => isModuleEnabled(StationModule.INVENTORY))
 const canReadInventory = computed(() => inventoryEnabled.value && hasPermission(StationPermission.INVENTORY_READ))
-const showInventoryManagement = computed(() => canReadInventory.value && canManageInventory())
+const canAssignInventory = computed(() => canReadInventory.value
+    && (hasPermission(StationPermission.INVENTORY_ASSIGN) || hasPermission(StationPermission.INVENTORY_EDIT)))
+const canExchangeInventory = computed(() => canReadInventory.value && canManageInventory())
+const canReturnEverything = computed(() => canReadInventory.value && hasPermission(StationPermission.INVENTORY_MANAGER))
 
 const memberId = computed(() => Number(route.params.id))
 const currentMemberId = computed(() => sessionInfo.value?.member?.id ?? 0)
@@ -63,7 +67,7 @@ const {
   availableManagers,
   getManagerFields,
   getManagerFieldValue,
-  loadDetails: loadManagerDetails,
+  loadDetails: loadRelationDetails,
   linkManager,
   removeManager,
   reorderManagers,
@@ -71,7 +75,7 @@ const {
 } = useMemberManagers(memberId, allMembers, fieldsForUserType, failure)
 
 const {managedMembers, availableManaged, linkManaged, removeManaged} =
-    useManagedMembers(memberId, allMembers, failure)
+    useManagedMembers(memberId, allMembers, failure, loadRelationDetails)
 
 const {
   items: memberInventory,
@@ -97,13 +101,24 @@ const {
   deleteMember,
 } = useMemberLifecycle(memberId, member, memberUserType, memberInventory, failure)
 
+/**
+ * The tabs the viewer may open, each behind the right its data needs.
+ *
+ * <p>The page stands as long as one of them is left, so somebody who keeps the gear but may not read
+ * profiles still reaches a member's equipment here, with that one tab.
+ */
 const tabs = computed(() => {
-  const t_ = [
-    { key: 'profile', label: t('memberDetail.tabProfile') },
-    { key: 'permissions', label: t('memberDetail.tabPermissions') },
-    { key: 'relations', label: relationsLabel.value },
-    { key: 'documents', label: t('memberDetail.tabDocuments') },
-  ]
+  const t_: { key: string; label: string }[] = []
+  if (canReadMembers.value) {
+    t_.push(
+      { key: 'profile', label: t('memberDetail.tabProfile') },
+      { key: 'permissions', label: t('memberDetail.tabPermissions') },
+      { key: 'relations', label: relationsLabel.value },
+    )
+  }
+  if (canReadDocuments.value) {
+    t_.push({ key: 'documents', label: t('memberDetail.tabDocuments') })
+  }
   if (canEdit.value) {
     t_.push({ key: 'absences', label: t('memberDetail.tabAbsences') })
   }
@@ -145,10 +160,30 @@ async function loadChanges() {
   }
 }
 
+/**
+ * Reads the member and what each visible tab shows, and nothing a hidden tab would.
+ *
+ * <p>The name comes from the station's member list, which the inventory rights may read as well as the
+ * member rights; everything only the profile, permission and relation tabs show waits for the right to
+ * read members, so a refusal there cannot take the rest of the page with it.
+ */
 async function loadDetail() {
-  const [allFields, allMems, memberData, profileValues, mgrs, managed, perms, mGroups, mTags] = await Promise.all([
+  if (tabs.value.length === 0) return
+  const allMems = await stationMembers.listMembers()
+  allMembers.value = allMems
+  member.value = allMems.find(m => m.id === memberId.value) ?? null
+  if (canReadMembers.value) {
+    await loadMemberRecord()
+  }
+  if (canReadInventory.value) {
+    await loadMemberInventory()
+  }
+}
+
+/** Reads what the profile, permission and relation tabs show, all of it behind the right to read members. */
+async function loadMemberRecord() {
+  const [allFields, memberData, profileValues, mgrs, managed, perms, mGroups, mTags] = await Promise.all([
     profileFields.listFields(),
-    stationMembers.listMembers(),
     stationMembers.getMember(memberId.value),
     profileFields.getValues(memberId.value),
     stationMembers.getManagers(memberId.value),
@@ -159,8 +194,6 @@ async function loadDetail() {
     loadAudiences(),
   ])
   fields.value = allFields
-  allMembers.value = allMems
-  member.value = allMems.find(m => m.id === memberId.value) ?? null
   memberUserType.value = memberData.userType ?? ''
   managers.value = mgrs
   managedMembers.value = managed
@@ -168,12 +201,9 @@ async function loadDetail() {
   memberGroupList.value = mGroups
   memberTagList.value = mTags
   setValues(profileValues)
-  await loadManagerDetails(mgrs)
+  await loadRelationDetails([...mgrs, ...managed])
   if (showChangeHistory.value) {
     await loadChanges()
-  }
-  if (canReadInventory.value) {
-    await loadMemberInventory()
   }
 }
 
@@ -204,8 +234,9 @@ const loadedTabsProps = computed(() => ({
   getManagerFieldValue,
   memberInventory: memberInventory.value,
   memberRequirements: memberRequirements.value,
-  showInventoryManagement: showInventoryManagement.value,
-  canManageInventory: canManageInventory(),
+  canAssignInventory: canAssignInventory.value,
+  canExchangeInventory: canExchangeInventory.value,
+  canReturnEverything: canReturnEverything.value,
 }))
 
 const detailModalsProps = computed(() => ({
@@ -234,11 +265,10 @@ const detailModalsProps = computed(() => ({
         @open-delete-modal="modalsRef?.openDeleteModal()"
       />
 
-      <Spinner v-if="loading" size="lg" />
-      <FailureAlert :failure="failure ?? formerFailure ?? deleteFailure"/>
+      <DetailStatus :nothing-visible="tabs.length === 0" :loading="loading" :failure="failure ?? formerFailure ?? deleteFailure"/>
 
       <MemberLinkPanel
-        v-if="!loading && member && !member.accountId && !member.formerAt"
+        v-if="!loading && canReadMembers && member && !member.accountId && !member.formerAt"
         :member-id="memberId" :can-edit="canEdit"
       />
 
@@ -252,12 +282,13 @@ const detailModalsProps = computed(() => ({
         @create-manager="createManager"
         @link-managed="linkManaged"
         @remove-managed="removeManaged"
-        @assign-item="modalsRef?.openAssignModal()"
         @hand-out="assignItem"
+        @plan-hand-out="planHandOut"
         @hand-out-new="handOutNewItem"
         @request-exchange="modalsRef?.openExchangeModal($event)"
         @unassign="unassignItem"
         @reassign="modalsRef?.openReassignModal($event)"
+        @inventory-changed="loadMemberInventory"
       />
 
       <Alert v-if="formerSuccess" variant="success">{{ t('memberDetail.formerSuccess') }}</Alert>
@@ -268,8 +299,6 @@ const detailModalsProps = computed(() => ({
         v-bind="detailModalsProps"
         @mark-former="markFormer"
         @delete-member="deleteMember"
-        @assign-item="assignItem"
-        @plan-hand-out="planHandOut"
         @reassign-item="reassignItem"
         @exchange-started="loadMemberInventory"
       />

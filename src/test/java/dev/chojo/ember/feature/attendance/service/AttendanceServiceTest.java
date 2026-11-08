@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.attendance.handler.EventAnswerRecordedHandler;
+import dev.chojo.ember.feature.attendance.repository.AttendanceTimeRuleRepository;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
@@ -46,7 +47,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -81,7 +81,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 eventDateCancellationRepo,
                 new AttendanceAudienceService(attendanceRepo),
                 memberEligibility,
-                new AttendanceTemplateGuards(attendanceRepo));
+                new AttendanceTemplateGuards(attendanceRepo),
+                new AttendanceTimeRuleRepository());
         station = stationRepo.create("AttendanceSvc Station");
         account = accountRepo.create("attend-svc@test.com", "Attend", "User");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -491,13 +492,11 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
         var session = openSheet(templateId, null, null, weekly.id(), null);
 
+        var zone = StationFormat.timezoneOf(stationRepo.findById(station.id()).orElseThrow());
+        assertEquals(LocalDate.now(zone), session.startTime().atZone(zone).toLocalDate());
         assertEquals(
-                LocalDate.now(stationRepo
-                        .findById(station.id())
-                        .map(StationFormat::timezoneOf)
-                        .orElseThrow()),
-                session.startTime().atZone(ZoneOffset.UTC).toLocalDate());
-        assertEquals(18, session.startTime().atZone(ZoneOffset.UTC).getHour());
+                configuredLongAgo.atZone(zone).toLocalTime(),
+                session.startTime().atZone(zone).toLocalTime());
         assertEquals(Duration.ofHours(2), Duration.between(session.startTime(), session.endTime()));
 
         service.deleteSession(session.id());
@@ -676,8 +675,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
             var session = openSheet(templateId, null, null, weekly.id(), null);
 
             assertEquals(
-                    LocalDate.now(faraway),
-                    session.startTime().atZone(ZoneOffset.UTC).toLocalDate());
+                    LocalDate.now(faraway), session.startTime().atZone(faraway).toLocalDate());
 
             service.deleteSession(session.id());
         } finally {
