@@ -29,6 +29,7 @@ const typeIcons: Partial<Record<NotificationType, string>> = {
   NEW_NEWS: 'newspaper',
   NEWS_COMMENT: 'comment',
   COMMENT_MENTION: 'at',
+  EVENT_COMMENT: 'circle-question',
   EVENT_REGISTRATION_STATUS: 'calendar-days',
   MOVEMENT_DECLINED: 'ban',
   NEW_EVENT: 'calendar-plus',

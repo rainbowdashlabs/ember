@@ -618,6 +618,12 @@ class NotificationFeedGoldenTest {
                 new NotificationParams.EventDateRestored("Probe", LocalDate.of(2026, 9, 26)),
                 "event-detail",
                 event43);
+        add(
+                list,
+                NotificationType.EVENT_COMMENT,
+                new NotificationParams.EventComment("Probe", "Dana", "Wer bringt die Noten mit?"),
+                "event-detail",
+                event42);
         return list;
     }
 
