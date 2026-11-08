@@ -11330,7 +11330,7 @@ export default {
             done: {
                 heading: '{name} hat unterschrieben',
                 hint: 'Das Dokument liegt bei {name}. Eine Kopie geht an {name} oder an die erziehungsberechtigten Personen, nicht an dich.',
-                samePerson: 'Weiter mit {name}',
+                samePerson: 'Weitere Unterschriften von {name}',
                 nextPerson: 'Nächste Person',
                 following: 'Auf diesem Dokument fehlt noch die Unterschrift von {names}.',
                 continue: 'Jetzt unterschreibt {names}',

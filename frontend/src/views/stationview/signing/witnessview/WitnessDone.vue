@@ -15,12 +15,18 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 /**
  * The end of one signature collected in person: it is filed with the person, and their copy goes to them
  * or their guardians. Where the same document still waits on somebody, such as a guardian after the child,
- * that comes first; otherwise it leads on to the same person or to the next one.
+ * that comes first; where other signatures still wait on the person the documents are about, it offers to
+ * go on with them; and it always offers the next person.
  */
 defineProps<{
+  /** Who just signed. */
   name: string
+  /** Whom the documents are about, which is who just signed or the child a guardian signed for. */
+  personName: string
   /** Who signs the next open field of the same document, empty where nothing more waits on it. */
   followingNames?: string[]
+  /** Whether other signatures still wait on the person the documents are about. */
+  moreForPerson?: boolean
 }>()
 
 defineEmits<{samePerson: []; nextPerson: []; continueDocument: []}>()
@@ -50,8 +56,9 @@ onMounted(() => document.getElementById(headingId)?.focus())
                        @click="$emit('nextPerson')">
         {{ t('signing.witness.done.nextPerson') }}
       </SecondaryButton>
-      <SecondaryButton type="button" data-testid="witness-same-person" @click="$emit('samePerson')">
-        {{ t('signing.witness.done.samePerson', {name}) }}
+      <SecondaryButton v-if="moreForPerson && !followingNames?.length" type="button" data-testid="witness-same-person"
+                       @click="$emit('samePerson')">
+        {{ t('signing.witness.done.samePerson', {name: personName}) }}
       </SecondaryButton>
     </ButtonRow>
   </SuccessContainer>

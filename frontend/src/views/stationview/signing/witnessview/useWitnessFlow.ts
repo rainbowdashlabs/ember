@@ -39,6 +39,8 @@ export function useWitnessFlow() {
     const field = ref<WitnessFieldResponse | null>(null)
     /** The next open field on the document just signed, where one waits that the witness may collect. */
     const following = ref<WitnessFieldResponse | null>(null)
+    /** Whether anything else still waits on the person once a signature is collected. */
+    const moreForPerson = ref(false)
     const signer = ref<WitnessPersonResponse | null>(null)
     const fillIns = ref<FillInResponse[]>([])
     const values = ref<FillInValues>({})
@@ -139,11 +141,13 @@ export function useWitnessFlow() {
         const current = person.value
         const signed = field.value
         following.value = null
+        moreForPerson.value = false
         if (!current || !signed) return
         const fresh = await getWitnessOffers(current.memberId)
         offers.value = fresh
         following.value = fresh.fields.find(open =>
             open.requestUid === signed.requestUid && open.fieldId !== signed.fieldId) ?? null
+        moreForPerson.value = fresh.fields.some(open => open.fieldId !== signed.fieldId)
     }
 
     /** Goes on with the next open field of the document just signed. */
@@ -185,6 +189,7 @@ export function useWitnessFlow() {
         offers,
         field,
         following,
+        moreForPerson,
         signer,
         fillIns,
         values,

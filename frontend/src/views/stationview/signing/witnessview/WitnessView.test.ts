@@ -172,6 +172,8 @@ describe('WitnessView', () => {
             pictures: [{memberId: 5, signatureImage: 'VElN', signatureSource: 'DRAWN'}],
         })
         expect(view.get('[data-testid="witness-done"]').text()).toContain('Tim Probe hat unterschrieben')
+        expect(view.find('[data-testid="witness-same-person"]').exists(), 'nothing else waits on Tim').toBe(false)
+        expect(view.find('[data-testid="witness-continue"]').exists()).toBe(false)
         getWitnessPeople.mockResolvedValue([listed(GRETA, 0), listed(TIM, 0)])
         await click(view, 'witness-next-person')
         expect(view.find('[data-testid="witness-people"]').exists()).toBe(true)

@@ -110,8 +110,9 @@ function withSecret(proof: TypedProof, secret: string) {
     <p class="sr-only" role="status" aria-live="polite" data-testid="witness-announcement">{{ announcement }}</p>
     <Spinner v-if="loading"/>
     <SigningUnavailable v-else-if="loadFailure" :failure="loadFailure"/>
-    <WitnessDone v-else-if="flow.act.outcome.value" :name="signerName"
+    <WitnessDone v-else-if="flow.act.outcome.value" :name="signerName" :person-name="flow.person.value?.name ?? signerName"
                  :following-names="flow.following.value?.signers.map(person => person.name)"
+                 :more-for-person="flow.moreForPerson.value"
                  @next-person="flow.nextPerson" @same-person="choosingRun(flow.samePerson)"
                  @continue-document="choosingRun(flow.continueDocument)"/>
     <WitnessPersonStep v-else-if="step === 'person'" :people="people" :group-names="groupNames" :position="position" :total="total"
