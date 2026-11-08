@@ -14,8 +14,11 @@ import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
+import dev.chojo.ember.feature.procedure.entity.ProcedureStepKind;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
+import dev.chojo.ember.feature.procedure.entity.StepKindChoice;
+import dev.chojo.ember.feature.procedure.service.DocumentStepTemplates.StepDocument;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import io.javalin.http.Context;
@@ -34,6 +37,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
@@ -119,7 +123,16 @@ public class ProcedureRoutes implements Routes {
                 requireOwnedOrNotFound(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
         var items = procedureService.findTemplateItems(tid);
         var deps = procedureService.findTemplateItemDependencies(tid);
-        ctx.json(new ProcedureTemplateDetail(template, items, deps, procedureService.templatePartyOf(tid)));
+        ctx.json(new ProcedureTemplateDetail(
+                template,
+                items,
+                deps,
+                procedureService.templatePartyOf(tid),
+                procedureService.stepDocuments(
+                        template.stationId(),
+                        items.stream()
+                                .map(ProcedureTemplateItem::documentTemplateId)
+                                .toList())));
     }
 
     @OpenApi(
@@ -177,12 +190,15 @@ public class ProcedureRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcedureTemplateItem.class)))
     private void createTemplateItem(Context ctx) {
         int tid = pathInt(ctx, "tid");
-        requireOwnedOrNotFound(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
+        var template =
+                requireOwnedOrNotFound(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
         var req = ctx.bodyAsClass(ProcedureItemRequest.class);
         if (req.title() == null || req.title().isBlank())
             throw ProcedureRefusal.PROCEDURE_TEMPLATE_STEP_NEEDS_A_TITLE.raise();
-        ctx.json(procedureService.createTemplateItem(
-                tid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position()));
+        var kind = kindOf(ctx, template.stationId(), StepKindChoice.CHECK, req).orElse(StepKindChoice.CHECK);
+        var item = procedureService.createTemplateItem(
+                tid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position(), kind);
+        ctx.json(item);
     }
 
     @OpenApi(
@@ -191,8 +207,11 @@ public class ProcedureRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProcedureItemRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void updateTemplateItem(Context ctx) {
-        int iid = requireTemplateStep(ctx).id();
+        var step = requireTemplateStep(ctx);
+        int iid = step.id();
         var req = ctx.bodyAsClass(ProcedureItemRequest.class);
+        var change = kindOf(ctx, StationSession.from(ctx).stationId(), StepKindChoice.of(step), req);
+        change.ifPresent(kind -> procedureService.setTemplateStepKind(iid, kind));
         if (!procedureService.updateTemplateItem(
                 iid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position())) {
             throw ProcedureRefusal.PROCEDURE_TEMPLATE_STEP_NOT_HERE_TO_CHANGE.raise();
@@ -311,7 +330,15 @@ public class ProcedureRoutes implements Routes {
             items = items.stream().filter(ProcedureItem::isPublic).toList();
         }
 
-        ctx.json(new ProcedureDetail(procedure, items, deps, party, named));
+        ctx.json(new ProcedureDetail(
+                procedure,
+                items,
+                deps,
+                party,
+                named,
+                procedureService.stepDocuments(
+                        procedure.stationId(),
+                        items.stream().map(ProcedureItem::documentTemplateId).toList())));
     }
 
     @OpenApi(
@@ -328,6 +355,10 @@ public class ProcedureRoutes implements Routes {
                     .findTemplateById(req.templateId())
                     .filter(template -> template.stationId() == session.stationId())
                     .orElseThrow(ProcedureRefusal.PROCEDURE_TEMPLATE_NOT_HERE_TO_START::raise);
+            if (!session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)
+                    && procedureService.asksToSign(req.templateId())) {
+                throw ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NOT_YOURS.raise();
+            }
         }
         var procedure = procedureService.createProcedure(
                 session.stationId(),
@@ -425,11 +456,13 @@ public class ProcedureRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcedureItem.class)))
     private void addItem(Context ctx) {
         int rid = pathInt(ctx, "rid");
-        requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
+        var procedure = requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         var req = ctx.bodyAsClass(ProcedureItemRequest.class);
         if (req.title() == null || req.title().isBlank()) throw ProcedureRefusal.PROCEDURE_STEP_NEEDS_A_TITLE.raise();
-        ctx.json(procedureService.createItem(
-                rid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position()));
+        var kind = kindOf(ctx, procedure.stationId(), StepKindChoice.CHECK, req).orElse(StepKindChoice.CHECK);
+        var item = procedureService.createItem(
+                rid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position(), kind);
+        ctx.json(item);
     }
 
     @OpenApi(
@@ -438,8 +471,11 @@ public class ProcedureRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProcedureItemRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void editItem(Context ctx) {
-        int iid = requireProcedureStep(ctx).id();
+        var step = requireProcedureStep(ctx);
+        int iid = step.id();
         var req = ctx.bodyAsClass(ProcedureItemRequest.class);
+        var change = kindOf(ctx, StationSession.from(ctx).stationId(), StepKindChoice.of(step), req);
+        change.ifPresent(kind -> procedureService.setStepKind(step, kind));
         if (!procedureService.updateItem(
                 iid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position())) {
             throw ProcedureRefusal.PROCEDURE_STEP_NOT_HERE_TO_CHANGE.raise();
@@ -547,20 +583,51 @@ public class ProcedureRoutes implements Routes {
      *
      * @param dependencies pairs of step ids: the step first, the step it waits for second
      * @param party        the managing party every procedure started from it begins with
+     * @param documents    the document templates its steps ask to sign
      */
     public record ProcedureTemplateDetail(
             ProcedureTemplate template,
             List<ProcedureTemplateItem> items,
             List<int[]> dependencies,
-            RestrictionAudience party) {}
+            RestrictionAudience party,
+            List<StepDocument> documents) {}
+
+    /**
+     * What a step is to ask for after the request, as {@link ProcedureService#kindChange} decides it for the
+     * caller of this request.
+     *
+     * @param stationId the station whose document templates the step may generate
+     * @param ctx       the request's context, naming the caller
+     * @param current   what the step asks for now; a step ticked by hand for a new one
+     * @param req       the request
+     * @return what the step is to ask for, empty where nothing changes
+     */
+    private Optional<StepKindChoice> kindOf(
+            Context ctx, int stationId, StepKindChoice current, ProcedureItemRequest req) {
+        return procedureService.kindChange(
+                stationId,
+                current,
+                req.kind(),
+                req.documentTemplateId(),
+                StationSession.from(ctx).hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER));
+    }
 
     /**
      * A step of a template or a procedure as it is added or changed.
      *
-     * @param description what the step asks for, or {@code null} for nothing
+     * @param description        what the step asks for, or {@code null} for nothing
+     * @param kind               a step ticked by hand or a document to sign; {@code null} leaves a step as it
+     *                           is and adds a new one ticked by hand
+     * @param documentTemplateId the document template a document step asks to sign
      */
     public record ProcedureItemRequest(
-            String title, @Nullable String description, boolean isPublic, boolean userAssigned, int position) {}
+            String title,
+            @Nullable String description,
+            boolean isPublic,
+            boolean userAssigned,
+            int position,
+            @Nullable ProcedureStepKind kind,
+            @Nullable Integer documentTemplateId) {}
 
     public record DependencyEntry(int itemId, int dependsOnItemId) {}
 
@@ -613,12 +680,14 @@ public class ProcedureRoutes implements Routes {
      * A procedure with its steps, the order they depend on each other in and its managing party.
      *
      * @param party the managing party; one naming nobody where only those who edit procedures run it
-     * @param named the members the party names one by one, as their names are shown
+     * @param named     the members the party names one by one, as their names are shown
+     * @param documents the document templates its steps ask to sign
      */
     public record ProcedureDetail(
             Procedure procedure,
             List<ProcedureItem> items,
             List<int[]> dependencies,
             RestrictionAudience party,
-            List<MemberIdentity> named) {}
+            List<MemberIdentity> named,
+            List<StepDocument> documents) {}
 }

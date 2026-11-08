@@ -70768,9 +70768,15 @@
             "items" : {
               "$ref" : "#/components/schemas/MemberIdentity"
             }
+          },
+          "documents" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StepDocument"
+            }
           }
         },
-        "required" : [ "procedure", "items", "dependencies", "party", "named" ]
+        "required" : [ "procedure", "items", "dependencies", "party", "named", "documents" ]
       },
       "ProcedureItem" : {
         "type" : "object",
@@ -70815,9 +70821,20 @@
           "checkedBy" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "kind" : {
+            "$ref" : "#/components/schemas/ProcedureStepKind"
+          },
+          "documentTemplateId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "generationId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "procedureId", "title", "description", "note", "isPublic", "userAssigned", "position", "checked", "checkedAt", "checkedBy" ]
+        "required" : [ "id", "procedureId", "title", "description", "note", "isPublic", "userAssigned", "position", "checked", "checkedAt", "checkedBy", "kind", "documentTemplateId", "generationId" ]
       },
       "ProcedureItemRequest" : {
         "type" : "object",
@@ -70837,12 +70854,27 @@
           "position" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "kind" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ProcedureStepKind"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "documentTemplateId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         }
       },
       "ProcedureStatus" : {
         "type" : "string",
         "enum" : [ "OPEN", "RESOLVED" ]
+      },
+      "ProcedureStepKind" : {
+        "type" : "string",
+        "enum" : [ "CHECK", "DOCUMENT" ]
       },
       "ProcedureTemplate" : {
         "type" : "object",
@@ -70898,9 +70930,15 @@
           },
           "party" : {
             "$ref" : "#/components/schemas/RestrictionAudience"
+          },
+          "documents" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StepDocument"
+            }
           }
         },
-        "required" : [ "template", "items", "dependencies", "party" ]
+        "required" : [ "template", "items", "dependencies", "party", "documents" ]
       },
       "ProcedureTemplateItem" : {
         "type" : "object",
@@ -70928,9 +70966,16 @@
           "position" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "kind" : {
+            "$ref" : "#/components/schemas/ProcedureStepKind"
+          },
+          "documentTemplateId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "templateId", "title", "description", "isPublic", "userAssigned", "position" ]
+        "required" : [ "id", "templateId", "title", "description", "isPublic", "userAssigned", "position", "kind", "documentTemplateId" ]
       },
       "ProcedureTemplateRequest" : {
         "type" : "object",
@@ -79405,6 +79450,19 @@
       "StepActor" : {
         "type" : "string",
         "enum" : [ "MEMBER", "STATION", "OWNER" ]
+      },
+      "StepDocument" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "name" ]
       },
       "StepOrderRequest" : {
         "type" : "object",

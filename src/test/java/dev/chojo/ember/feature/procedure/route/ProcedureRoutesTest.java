@@ -14,13 +14,17 @@ import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
+import dev.chojo.ember.feature.procedure.entity.ProcedureStepKind;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
+import dev.chojo.ember.feature.procedure.entity.StepKindChoice;
 import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
+import dev.chojo.ember.feature.procedure.service.SuitableDocuments;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -36,8 +40,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -75,7 +81,8 @@ class ProcedureRoutesTest {
         when(restrictions.includes(RestrictionType.PROCEDURE, PROCEDURE, TestSessions.MEMBER_ID))
                 .thenReturn(true);
         when(restrictions.audienceOf(any(), anyInt())).thenReturn(RestrictionAudience.empty());
-        var service = new ProcedureService(repository, mock(DomainEventBus.class), restrictions);
+        var service =
+                new ProcedureService(repository, mock(DomainEventBus.class), restrictions, SuitableDocuments.NONE);
         harness = RouteHarness.serving(new ProcedureRoutes(service, mock(MemberIdentityFactory.class)));
     }
 
@@ -198,6 +205,112 @@ class ProcedureRoutesTest {
         assertEquals(204, answer.code());
     }
 
+    /** A step asking for a document the station cannot have signed is refused before anything is written. */
+    @Test
+    void aStepAsksOnlyForADocumentThatCanBeSigned() {
+        harness.run((server, client) -> {
+            var manager = harness.as(TestSessions.member(
+                    STATION,
+                    StationPermission.PROCEDURE_MANAGER,
+                    StationPermission.PROCEDURE_EDIT,
+                    StationPermission.DOCUMENT_EDIT_MEMBER));
+            var withoutDocuments = harness.as(TestSessions.member(
+                    STATION, StationPermission.PROCEDURE_MANAGER, StationPermission.PROCEDURE_EDIT));
+            String unsuitable = "{\"title\": \"Unterschreiben\", \"isPublic\": true, \"userAssigned\": true,"
+                    + " \"position\": 0, \"kind\": \"DOCUMENT\", \"documentTemplateId\": 7}";
+            String missing = "{\"title\": \"Unterschreiben\", \"isPublic\": true, \"userAssigned\": true,"
+                    + " \"position\": 0, \"kind\": \"DOCUMENT\"}";
+
+            assertEquals(
+                    ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_UNSUITABLE,
+                    refusalOf(client.post(
+                            PREFIX + "/procedure-templates/" + TEMPLATE + "/items", body(unsuitable), manager)));
+            assertEquals(
+                    ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_MISSING,
+                    refusalOf(client.put(
+                            PREFIX + "/procedure-templates/" + TEMPLATE + "/items/" + OWN_TEMPLATE_STEP,
+                            body(missing),
+                            manager)));
+            assertEquals(
+                    ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_UNSUITABLE,
+                    refusalOf(client.post(PREFIX + "/procedures/" + PROCEDURE + "/items", body(unsuitable), manager)));
+            assertEquals(
+                    ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NOT_YOURS,
+                    refusalOf(client.post(
+                            PREFIX + "/procedure-templates/" + TEMPLATE + "/items",
+                            body(unsuitable),
+                            withoutDocuments)));
+        });
+
+        verify(repository, never())
+                .createTemplateItem(anyInt(), anyString(), any(), anyBoolean(), anyBoolean(), anyInt(), any());
+        verify(repository, never())
+                .updateTemplateItem(anyInt(), anyString(), any(), anyBoolean(), anyBoolean(), anyInt());
+        verify(repository, never()).setTemplateItemKind(anyInt(), any());
+        verify(repository, never()).setItemKind(anyInt(), any());
+    }
+
+    /**
+     * A step sent without a kind keeps what it asks for, and one sent unchanged is not checked again, so a
+     * document step whose template is no longer suitable still saves its other fields.
+     */
+    @Test
+    void anEditLeavesAStepsDocumentAsItIs() {
+        when(repository.findItemById(OWN_STEP)).thenReturn(Optional.of(documentStep(OWN_STEP, 7, null)));
+        when(repository.updateItem(eq(OWN_STEP), anyString(), any(), anyBoolean(), anyBoolean(), anyInt()))
+                .thenReturn(true);
+
+        harness.run((server, client) -> {
+            var editor = harness.as(TestSessions.member(STATION, StationPermission.PROCEDURE_EDIT));
+            String step = PREFIX + "/procedures/" + PROCEDURE + "/items/" + OWN_STEP;
+
+            assertEquals(204, client.put(step, body(STEP_BODY), editor).code());
+            assertEquals(
+                    204,
+                    client.put(
+                                    step,
+                                    body("{\"title\": \"Packen\", \"isPublic\": true, \"userAssigned\": true,"
+                                            + " \"position\": 0, \"kind\": \"DOCUMENT\", \"documentTemplateId\": 7}"),
+                                    editor)
+                            .code());
+        });
+
+        verify(repository, never()).setItemKind(anyInt(), any());
+        verify(repository, times(2)).updateItem(eq(OWN_STEP), anyString(), any(), anyBoolean(), anyBoolean(), anyInt());
+    }
+
+    /** A step that already made its document keeps asking for it, and nothing else of it is changed either. */
+    @Test
+    void aStepThatMadeItsDocumentKeepsIt() {
+        when(repository.findItemById(OWN_STEP)).thenReturn(Optional.of(documentStep(OWN_STEP, 7, 900)));
+        when(repository.setItemKind(OWN_STEP, StepKindChoice.CHECK)).thenReturn(false);
+
+        var answer = harness.request(client -> client.put(
+                PREFIX + "/procedures/" + PROCEDURE + "/items/" + OWN_STEP,
+                body("{\"title\": \"Packen\", \"isPublic\": true, \"userAssigned\": true, \"position\": 0,"
+                        + " \"kind\": \"CHECK\"}"),
+                harness.as(TestSessions.member(STATION, StationPermission.PROCEDURE_EDIT))));
+
+        assertEquals(ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_ALREADY_MADE, refusalOf(answer));
+        verify(repository, never()).updateItem(anyInt(), anyString(), any(), anyBoolean(), anyBoolean(), anyInt());
+    }
+
+    /** A template asking to sign a document starts only for those who generate documents for members. */
+    @Test
+    void aTemplateAskingToSignStartsOnlyForThoseWhoGenerateDocuments() {
+        when(repository.findTemplateItems(TEMPLATE))
+                .thenReturn(List.of(new ProcedureTemplateItem(
+                        OWN_TEMPLATE_STEP, TEMPLATE, "Antrag", null, true, true, 0, ProcedureStepKind.DOCUMENT, 7)));
+
+        var answer = harness.request(client -> client.post(
+                PREFIX + "/procedures",
+                body("{\"name\": \"Aufnahme\", \"isPublic\": true, \"templateId\": " + TEMPLATE + "}"),
+                harness.as(TestSessions.member(STATION, StationPermission.PROCEDURE_EDIT))));
+
+        assertEquals(ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NOT_YOURS, refusalOf(answer));
+        verify(repository, never()).snapshotTemplateItem(anyInt(), any());
+    }
+
     /** The party of the station's own procedure is set; another station's procedure is not found. */
     @Test
     void aPartyIsSetOnlyOnTheStationsOwnProcedure() {
@@ -310,6 +423,24 @@ class ProcedureRoutesTest {
 
     private static ProcedureItem step(int id, int procedureId) {
         return new ProcedureItem(id, procedureId, "Packen", null, null, true, true, 0, false, null, null);
+    }
+
+    private static ProcedureItem documentStep(int id, int documentTemplateId, @Nullable Integer generationId) {
+        return new ProcedureItem(
+                id,
+                PROCEDURE,
+                "Packen",
+                null,
+                null,
+                true,
+                true,
+                0,
+                false,
+                null,
+                null,
+                ProcedureStepKind.DOCUMENT,
+                documentTemplateId,
+                generationId);
     }
 
     private static ProcedureTemplate template() {

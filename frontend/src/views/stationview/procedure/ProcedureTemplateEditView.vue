@@ -24,13 +24,15 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TemplateItemCard from '@/views/stationview/procedure/proceduretemplateeditview/TemplateItemCard.vue'
 import PartySection from '@/views/stationview/procedure/procedurecreateview/PartySection.vue'
+import StepDocumentChoice from '@/components/procedures/StepDocumentChoice.vue'
+import { stepDocumentOf, stepKindOf } from '@/components/procedures/stepDocument'
 import { audienceLists, type AudienceLists } from '@/components/documents/generation'
 import { emptyRestriction, toRestriction } from '@/components/input/restriction'
 import type { RestrictionSelection } from '@/api/types'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { procedures, stationMembers } from '@/api'
-import { StationPermission, type MemberCompletion, type ProcedureTemplateDetail, type ProcedureTemplateItem } from '@/api/generated/schema'
+import { StationPermission, type MemberCompletion, type ProcedureTemplateDetail, type ProcedureTemplateItem, type StepDocument } from '@/api/generated/schema'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -60,6 +62,7 @@ const itemTitle = ref('')
 const itemDescription = ref('')
 const itemIsPublic = ref(true)
 const itemUserAssigned = ref(false)
+const itemDocument = ref<StepDocument | null>(null)
 
 const showDepModal = ref(false)
 const depTargetItem = ref<ProcedureTemplateItem | null>(null)
@@ -144,6 +147,7 @@ function openAddItemModal() {
   itemDescription.value = ''
   itemIsPublic.value = true
   itemUserAssigned.value = false
+  itemDocument.value = null
   showItemModal.value = true
 }
 
@@ -153,6 +157,7 @@ function openEditItemModal(item: ProcedureTemplateItem) {
   itemDescription.value = item.description ?? ''
   itemIsPublic.value = item.isPublic
   itemUserAssigned.value = item.userAssigned
+  itemDocument.value = stepDocumentOf(item, detail.value?.documents ?? [])
   showItemModal.value = true
 }
 
@@ -165,6 +170,16 @@ function nextPosition(): number {
   return positions.length === 0 ? 0 : Math.max(...positions) + 1
 }
 
+/**
+ * Whether the step's document was changed in the dialog. Only a change is sent, so saving a step whose
+ * document is gone or no longer suitable keeps it as it is rather than being refused or turning it into
+ * a step ticked by hand.
+ */
+function documentChanged(item: ProcedureTemplateItem): boolean {
+  const before = stepDocumentOf(item, detail.value?.documents ?? [])
+  return (before?.id ?? null) !== (itemDocument.value?.id ?? null)
+}
+
 async function handleSaveItem() {
   if (!itemTitle.value.trim()) return
   await writeThenReload(async () => {
@@ -175,6 +190,7 @@ async function handleSaveItem() {
         isPublic: itemIsPublic.value,
         userAssigned: itemUserAssigned.value,
         position: editingItem.value.position,
+        ...(documentChanged(editingItem.value) ? stepKindOf(itemDocument.value) : {}),
       })
     } else {
       await procedures.createTemplateItem(templateId.value, {
@@ -183,6 +199,7 @@ async function handleSaveItem() {
         isPublic: itemIsPublic.value,
         userAssigned: itemUserAssigned.value,
         position: nextPosition(),
+        ...stepKindOf(itemDocument.value),
       })
     }
     showItemModal.value = false
@@ -276,6 +293,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
           :can-manage="canManage"
           :dependencies="getDepsForItem(item.id)"
           :get-item-by-id="getItemById"
+          :document="stepDocumentOf(item, detail.documents)"
           @edit="openEditItemModal"
           @delete="handleDeleteItem"
           @open-deps="openDepModal"
@@ -314,6 +332,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
             <ToggleInput v-model="itemUserAssigned" />
           </div>
         </div>
+        <StepDocumentChoice v-model="itemDocument" />
         <div class="flex gap-2 justify-end">
           <PrimaryButton type="submit">{{ t('common.save') }}</PrimaryButton>
         </div>

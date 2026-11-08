@@ -70846,6 +70846,7 @@ export interface components {
         };
         ProcedureDetail: {
             dependencies: number[][];
+            documents: components["schemas"]["StepDocument"][];
             items: components["schemas"]["ProcedureItem"][];
             named: components["schemas"]["MemberIdentity"][];
             party: components["schemas"]["RestrictionAudience"];
@@ -70858,8 +70859,13 @@ export interface components {
             checkedBy: number | null;
             description: string | null;
             /** Format: int32 */
+            documentTemplateId: number | null;
+            /** Format: int32 */
+            generationId: number | null;
+            /** Format: int32 */
             id: number;
             isPublic: boolean;
+            kind: components["schemas"]["ProcedureStepKind"];
             note: string | null;
             /** Format: int32 */
             position: number;
@@ -70870,7 +70876,10 @@ export interface components {
         };
         ProcedureItemRequest: {
             description?: string | null;
+            /** Format: int32 */
+            documentTemplateId?: number | null;
             isPublic?: boolean;
+            kind?: components["schemas"]["ProcedureStepKind"] | null;
             /** Format: int32 */
             position?: number;
             title?: string;
@@ -70878,6 +70887,8 @@ export interface components {
         };
         /** @enum {string} */
         ProcedureStatus: "OPEN" | "RESOLVED";
+        /** @enum {string} */
+        ProcedureStepKind: "CHECK" | "DOCUMENT";
         ProcedureTemplate: {
             archived: boolean;
             createdAt: components["schemas"]["Instant"];
@@ -70892,6 +70903,7 @@ export interface components {
         };
         ProcedureTemplateDetail: {
             dependencies: number[][];
+            documents: components["schemas"]["StepDocument"][];
             items: components["schemas"]["ProcedureTemplateItem"][];
             party: components["schemas"]["RestrictionAudience"];
             template: components["schemas"]["ProcedureTemplate"];
@@ -70899,8 +70911,11 @@ export interface components {
         ProcedureTemplateItem: {
             description: string | null;
             /** Format: int32 */
+            documentTemplateId: number | null;
+            /** Format: int32 */
             id: number;
             isPublic: boolean;
+            kind: components["schemas"]["ProcedureStepKind"];
             /** Format: int32 */
             position: number;
             /** Format: int32 */
@@ -73781,6 +73796,11 @@ export interface components {
         };
         /** @enum {string} */
         StepActor: "MEMBER" | "STATION" | "OWNER";
+        StepDocument: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+        };
         StepOrderRequest: {
             stepIds?: number[];
         };
@@ -76303,6 +76323,7 @@ export type ProcedureDetail = components['schemas']['ProcedureDetail'];
 export type ProcedureItem = components['schemas']['ProcedureItem'];
 export type ProcedureItemRequest = components['schemas']['ProcedureItemRequest'];
 export type ProcedureStatus = components['schemas']['ProcedureStatus'];
+export type ProcedureStepKind = components['schemas']['ProcedureStepKind'];
 export type ProcedureTemplate = components['schemas']['ProcedureTemplate'];
 export type ProcedureTemplateDetail = components['schemas']['ProcedureTemplateDetail'];
 export type ProcedureTemplateItem = components['schemas']['ProcedureTemplateItem'];
@@ -76684,6 +76705,7 @@ export type StatusRequest = components['schemas']['StatusRequest'];
 export type StatusResponse = components['schemas']['StatusResponse'];
 export type StatusUpdateRequest = components['schemas']['StatusUpdateRequest'];
 export type StepActor = components['schemas']['StepActor'];
+export type StepDocument = components['schemas']['StepDocument'];
 export type StepOrderRequest = components['schemas']['StepOrderRequest'];
 export type StepRequest = components['schemas']['StepRequest'];
 export type StepResponse = components['schemas']['StepResponse'];
@@ -77844,6 +77866,11 @@ export const PollStatus = {
 export const ProcedureStatus = {
     OPEN: "OPEN",
     RESOLVED: "RESOLVED",
+} as const;
+
+export const ProcedureStepKind = {
+    CHECK: "CHECK",
+    DOCUMENT: "DOCUMENT",
 } as const;
 
 export const ProfileFieldScope = {

@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.procedure.service;
 
+import dev.chojo.ember.api.refusal.ProcedureRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ProcedureAssigned;
 import dev.chojo.ember.event.events.ProcedureItemChecked;
@@ -13,8 +15,10 @@ import dev.chojo.ember.event.events.ProcedureResolved;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
+import dev.chojo.ember.feature.procedure.entity.ProcedureStepKind;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
+import dev.chojo.ember.feature.procedure.entity.StepKindChoice;
 import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -26,6 +30,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,6 +51,7 @@ class ProcedureServiceTest {
     private static final int PROCEDURE_ID = 200;
     private static final int ITEM_ID = 300;
     private static final int EVENT_ID = 400;
+    private static final int SUITABLE_DOCUMENT = 500;
 
     @BeforeEach
     void setup() {
@@ -54,7 +60,8 @@ class ProcedureServiceTest {
         restrictions = mock(RestrictionService.class);
         when(restrictions.audienceOf(any(), anyInt())).thenReturn(RestrictionAudience.empty());
         when(restrictions.ofStation(anyInt(), any())).thenReturn(true);
-        service = new ProcedureService(repository, eventBus, restrictions);
+        service = new ProcedureService(
+                repository, eventBus, restrictions, new SuitableDocuments(template -> template == SUITABLE_DOCUMENT));
     }
 
     private static RestrictionAudience named(Integer... memberIds) {
@@ -125,15 +132,107 @@ class ProcedureServiceTest {
     @Test
     void createTemplateItem() {
         var item = new ProcedureTemplateItem(1, TEMPLATE_ID, "Step", "Desc", true, true, 1);
-        when(repository.createTemplateItem(TEMPLATE_ID, "Step", "Desc", true, true, 1))
+        when(repository.createTemplateItem(TEMPLATE_ID, "Step", "Desc", true, true, 1, StepKindChoice.CHECK))
                 .thenReturn(item);
-        assertEquals(item, service.createTemplateItem(TEMPLATE_ID, "Step", "Desc", true, true, 1));
+        assertEquals(
+                item, service.createTemplateItem(TEMPLATE_ID, "Step", "Desc", true, true, 1, StepKindChoice.CHECK));
     }
 
     @Test
     void updateTemplateItem() {
         when(repository.updateTemplateItem(1, "S", "D", true, true, 1)).thenReturn(true);
         assertTrue(service.updateTemplateItem(1, "S", "D", true, true, 1));
+    }
+
+    @Test
+    void aRequestWithoutAKindLeavesTheStepAsItIs() {
+        var current = StepKindChoice.document(7);
+        assertEquals(Optional.empty(), service.kindChange(STATION_ID, current, null, null, false));
+        assertEquals(
+                Optional.empty(),
+                service.kindChange(STATION_ID, current, ProcedureStepKind.DOCUMENT, 7, false),
+                "an unchanged step is not checked again, even where its template is no longer suitable");
+        assertEquals(
+                Optional.empty(),
+                service.kindChange(STATION_ID, StepKindChoice.CHECK, ProcedureStepKind.CHECK, null, false));
+    }
+
+    @Test
+    void aStepBecomesOneTickedByHand() {
+        assertEquals(
+                Optional.of(StepKindChoice.CHECK),
+                service.kindChange(STATION_ID, StepKindChoice.document(7), ProcedureStepKind.CHECK, 7, false));
+    }
+
+    @Test
+    void aDocumentStepNamesASuitableDocumentItsCallerMayGenerate() {
+        assertEquals(
+                Optional.of(StepKindChoice.document(SUITABLE_DOCUMENT)),
+                service.kindChange(
+                        STATION_ID, StepKindChoice.CHECK, ProcedureStepKind.DOCUMENT, SUITABLE_DOCUMENT, true));
+        assertEquals(
+                ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_MISSING,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.kindChange(
+                                        STATION_ID, StepKindChoice.CHECK, ProcedureStepKind.DOCUMENT, null, true))
+                        .refusal());
+        assertEquals(
+                ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NOT_YOURS,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.kindChange(
+                                        STATION_ID,
+                                        StepKindChoice.CHECK,
+                                        ProcedureStepKind.DOCUMENT,
+                                        SUITABLE_DOCUMENT,
+                                        false))
+                        .refusal());
+        assertEquals(
+                ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_UNSUITABLE,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.kindChange(
+                                        STATION_ID, StepKindChoice.CHECK, ProcedureStepKind.DOCUMENT, 7, true))
+                        .refusal());
+    }
+
+    @Test
+    void aStepKeepsItsDocumentOnceItIsMade() {
+        when(repository.setItemKind(ITEM_ID, StepKindChoice.CHECK)).thenReturn(false);
+        assertEquals(
+                ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_ALREADY_MADE,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.setStepKind(documentStep(SUITABLE_DOCUMENT), StepKindChoice.CHECK))
+                        .refusal());
+    }
+
+    @Test
+    void theDocumentsOfStepsAreNamedOnceEach() {
+        var ids = new ArrayList<Integer>(List.of(SUITABLE_DOCUMENT, SUITABLE_DOCUMENT));
+        ids.add(null);
+        assertEquals(
+                List.of(new DocumentStepTemplates.StepDocument(SUITABLE_DOCUMENT, "Dokument " + SUITABLE_DOCUMENT)),
+                service.stepDocuments(STATION_ID, ids));
+    }
+
+    private static ProcedureItem documentStep(int documentTemplateId) {
+        return new ProcedureItem(
+                ITEM_ID,
+                PROCEDURE_ID,
+                "Sign",
+                null,
+                null,
+                true,
+                true,
+                1,
+                false,
+                null,
+                null,
+                ProcedureStepKind.DOCUMENT,
+                documentTemplateId,
+                null);
     }
 
     @Test
@@ -422,8 +521,9 @@ class ProcedureServiceTest {
     @Test
     void createItem() {
         var item = procedureItem(ITEM_ID, false);
-        when(repository.createItem(PROCEDURE_ID, "T", "D", true, true, 1)).thenReturn(item);
-        assertEquals(item, service.createItem(PROCEDURE_ID, "T", "D", true, true, 1));
+        when(repository.createItem(PROCEDURE_ID, "T", "D", true, true, 1, StepKindChoice.CHECK))
+                .thenReturn(item);
+        assertEquals(item, service.createItem(PROCEDURE_ID, "T", "D", true, true, 1, StepKindChoice.CHECK));
     }
 
     @Test

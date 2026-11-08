@@ -51,6 +51,8 @@ const ITEMS: EditableItem[] = [
     userAssigned: false,
     position: 0,
     dependsOn: [],
+    document: null,
+    documentMade: false,
   },
   {
     tempId: 2,
@@ -60,6 +62,8 @@ const ITEMS: EditableItem[] = [
     userAssigned: true,
     position: 1,
     dependsOn: [1],
+    document: null,
+    documentMade: false,
   },
 ]
 </script>

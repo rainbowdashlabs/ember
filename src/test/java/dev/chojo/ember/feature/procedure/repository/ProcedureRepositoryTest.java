@@ -7,10 +7,13 @@ package dev.chojo.ember.feature.procedure.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.generator.service.GeneratorTestBase;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
+import dev.chojo.ember.feature.procedure.entity.ProcedureStepKind;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
+import dev.chojo.ember.feature.procedure.entity.StepKindChoice;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionType;
@@ -29,6 +32,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.letter;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -464,6 +468,67 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
         assertEquals("First step", snapped.description());
         assertEquals(adHocProcedureId, snapped.procedureId());
         assertFalse(snapped.checked());
+    }
+
+    @Test
+    @Order(71)
+    void aDocumentStepCarriesItsTemplateIntoTheProcedure() {
+        var wiring = GeneratorTestBase.wire(station);
+        int document = wiring.templates()
+                .create(wiring.owner(), letter("Fotoerlaubnis", "Text").build(), member.id())
+                .id();
+        var templateItem = procedureRepo.createTemplateItem(
+                templateId, "Sign", null, true, true, 9, StepKindChoice.document(document));
+
+        var stored = procedureRepo.findTemplateItems(templateId).stream()
+                .filter(item -> item.id() == templateItem.id())
+                .findFirst()
+                .orElseThrow();
+        assertEquals(ProcedureStepKind.DOCUMENT, stored.kind());
+        assertEquals(document, stored.documentTemplateId());
+
+        var snapped = procedureRepo.snapshotTemplateItem(adHocProcedureId, stored);
+        assertEquals(ProcedureStepKind.DOCUMENT, snapped.kind());
+        assertEquals(document, snapped.documentTemplateId());
+        assertNull(snapped.generationId());
+
+        assertTrue(procedureRepo.setItemKind(snapped.id(), StepKindChoice.CHECK));
+        var byHand = procedureRepo.findItemById(snapped.id()).orElseThrow();
+        assertEquals(ProcedureStepKind.CHECK, byHand.kind());
+        assertNull(byHand.documentTemplateId());
+
+        assertTrue(procedureRepo.setTemplateItemKind(templateItem.id(), StepKindChoice.CHECK));
+        assertEquals(
+                ProcedureStepKind.CHECK,
+                procedureRepo.findTemplateItems(templateId).stream()
+                        .filter(item -> item.id() == templateItem.id())
+                        .findFirst()
+                        .orElseThrow()
+                        .kind());
+
+        procedureRepo.deleteItem(snapped.id());
+        procedureRepo.deleteTemplateItem(templateItem.id());
+    }
+
+    /** Only the signatures settle a document step, so one made from a ticked step starts unticked. */
+    @Test
+    @Order(72)
+    void aTickedStepLosesItsTickWhenItAsksToSign() {
+        var wiring = GeneratorTestBase.wire(station);
+        int document = wiring.templates()
+                .create(wiring.owner(), letter("Aufnahmeantrag", "Text").build(), member.id())
+                .id();
+        var step = procedureRepo.createItem(adHocProcedureId, "Antrag", null, true, true, 9);
+        assertTrue(procedureRepo.checkItem(step.id(), member.id()));
+
+        assertTrue(procedureRepo.setItemKind(step.id(), StepKindChoice.document(document)));
+
+        var asking = procedureRepo.findItemById(step.id()).orElseThrow();
+        assertEquals(ProcedureStepKind.DOCUMENT, asking.kind());
+        assertFalse(asking.checked());
+        assertNull(asking.checkedAt());
+        assertNull(asking.checkedBy());
+        procedureRepo.deleteItem(step.id());
     }
 
     @Test

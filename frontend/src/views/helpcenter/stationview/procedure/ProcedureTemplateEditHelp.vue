@@ -31,6 +31,8 @@ const ITEMS: ProcedureTemplateItem[] = [
     isPublic: true,
     userAssigned: false,
     position: 0,
+    kind: 'CHECK',
+    documentTemplateId: null,
   },
   {
     id: 2,
@@ -40,6 +42,8 @@ const ITEMS: ProcedureTemplateItem[] = [
     isPublic: true,
     userAssigned: true,
     position: 1,
+    kind: 'CHECK',
+    documentTemplateId: null,
   },
 ]
 

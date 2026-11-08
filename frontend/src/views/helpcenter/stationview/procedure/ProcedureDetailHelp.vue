@@ -33,6 +33,9 @@ const DONE_ITEM: ProcedureItem = {
   checked: true,
   checkedAt: '2026-05-02T17:40:00Z',
   checkedBy: 1,
+  kind: 'CHECK',
+  documentTemplateId: null,
+  generationId: null,
 }
 
 const LOCKED_ITEM: ProcedureItem = {
@@ -47,6 +50,9 @@ const LOCKED_ITEM: ProcedureItem = {
   checked: false,
   checkedAt: null,
   checkedBy: null,
+  kind: 'CHECK',
+  documentTemplateId: null,
+  generationId: null,
 }
 </script>
 

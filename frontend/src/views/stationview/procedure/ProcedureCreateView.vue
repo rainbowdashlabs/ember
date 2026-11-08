@@ -12,6 +12,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TemplateSelectorSection from '@/views/stationview/procedure/procedurecreateview/TemplateSelectorSection.vue'
 import BasicInfoSection from '@/views/stationview/procedure/procedurecreateview/BasicInfoSection.vue'
@@ -36,7 +37,7 @@ const presetTemplateId = computed(() => (route.query.template ? Number(route.que
 const form = useProcedureForm(editId, presetTemplateId)
 const {
   name, savedName, description, dueAt, isPublic,
-  templates, selectedTemplateId, members, groups, tags, party, items,
+  templates, selectedTemplateId, members, groups, tags, party, items, documentsNotYours, documentsGone,
   isEditMode, loading, failure,
 } = form
 
@@ -101,9 +102,15 @@ watch(loaded, (v) => {
             @update="form.updateItem"
         />
 
+        <Alert v-if="documentsNotYours" variant="info" data-testid="procedure-documents-not-yours">
+          {{ t('procedures.stepDocumentsNotYours') }}
+        </Alert>
+        <Alert v-if="documentsGone" variant="info" data-testid="procedure-documents-gone">
+          {{ t('procedures.stepDocumentsGone') }}
+        </Alert>
         <ButtonRow pair align="end">
           <SecondaryButton @click="router.back()">{{ t('common.cancel') }}</SecondaryButton>
-          <PrimaryButton :disabled="!name.trim() || saving" @click="handleSubmit">
+          <PrimaryButton :disabled="!name.trim() || saving || documentsNotYours || documentsGone" @click="handleSubmit">
             {{ isEditMode ? t('common.save') : t('procedures.createProcedure') }}
           </PrimaryButton>
         </ButtonRow>

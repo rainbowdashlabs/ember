@@ -9,7 +9,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import type { ProcedureTemplateItem } from '@/api/generated/schema'
+import type { ProcedureTemplateItem, StepDocument } from '@/api/generated/schema'
 
 const { t } = useI18n()
 
@@ -19,6 +19,8 @@ defineProps<{
   canManage: boolean
   dependencies: number[]
   getItemById: (id: number) => ProcedureTemplateItem | undefined
+  /** The document the step asks to sign, null for a step ticked by hand. */
+  document?: StepDocument | null
 }>()
 
 const emit = defineEmits<{
@@ -42,6 +44,9 @@ const emit = defineEmits<{
           </span>
           <span v-else>
             <font-awesome-icon :icon="['fas', 'eye-slash']" class="w-3 h-3 mr-0.5" /> {{ t('procedures.itemPrivate') }}
+          </span>
+          <span v-if="document" data-testid="step-document-badge">
+            <font-awesome-icon :icon="['fas', 'file-signature']" class="w-3 h-3 mr-0.5" /> {{ document.name ? t('procedures.stepDocumentNamed', {name: document.name}) : t('procedures.stepDocumentGone') }}
           </span>
           <span v-if="item.userAssigned">
             <font-awesome-icon :icon="['fas', 'user']" class="w-3 h-3 mr-0.5" /> {{ t('procedures.itemUserAssigned') }}

@@ -16,7 +16,21 @@ public record ProcedureTemplateItem(
         @Nullable String description,
         boolean isPublic,
         boolean userAssigned,
-        int position) {
+        int position,
+        ProcedureStepKind kind,
+        @Nullable Integer documentTemplateId) {
+
+    /** A step ticked by hand. */
+    public ProcedureTemplateItem(
+            int id,
+            int templateId,
+            String title,
+            @Nullable String description,
+            boolean isPublic,
+            boolean userAssigned,
+            int position) {
+        this(id, templateId, title, description, isPublic, userAssigned, position, ProcedureStepKind.CHECK, null);
+    }
 
     @MappingProvider("")
     public static RowMapping<ProcedureTemplateItem> map() {
@@ -27,6 +41,8 @@ public record ProcedureTemplateItem(
                 row.getString("description"),
                 row.getBoolean("public"),
                 row.getBoolean("user_assigned"),
-                row.getInt("position"));
+                row.getInt("position"),
+                ProcedureStepKind.valueOf(row.getString("kind")),
+                row.getObject("document_template_id", Integer.class));
     }
 }

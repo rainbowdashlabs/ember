@@ -8,8 +8,10 @@ package dev.chojo.ember.feature.procedure.repository;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
+import dev.chojo.ember.feature.procedure.entity.ProcedureStepKind;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
+import dev.chojo.ember.feature.procedure.entity.StepKindChoice;
 import dev.chojo.ember.feature.restriction.RestrictionSql;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.WhereBuilder;
@@ -43,12 +45,13 @@ public class ProcedureRepository {
     private static final String PROCEDURE_TEMPLATE_COLUMNS =
             "id, station_id, name, description, archived, created_by, created_at";
     private static final String PROCEDURE_TEMPLATE_ITEM_COLUMNS =
-            "id, template_id, title, description, public, user_assigned, position";
+            "id, template_id, title, description, public, user_assigned, position, kind, document_template_id";
     private static final String PROCEDURE_COLUMNS = """
             id, station_id, template_id, name, description, public, status, assigned_by, due_at, \
             created_at, resolved_at, event_id, event_date""";
     private static final String PROCEDURE_ITEM_COLUMNS =
-            "id, procedure_id, title, description, note, public, user_assigned, position, checked, checked_at, checked_by";
+            "id, procedure_id, title, description, note, public, user_assigned, position, checked, checked_at, checked_by,"
+                    + " kind, document_template_id, generation_id";
 
     public List<ProcedureTemplate> findTemplatesByStation(int stationId, boolean includeArchived) {
         var where = WhereBuilder.create().addIf(!includeArchived, "AND archived = FALSE");
@@ -117,20 +120,42 @@ public class ProcedureRepository {
             boolean isPublic,
             boolean userAssigned,
             int position) {
+        return createTemplateItem(
+                templateId, title, description, isPublic, userAssigned, position, StepKindChoice.CHECK);
+    }
+
+    /**
+     * Adds a step to a template, asking for what it is given in the same write.
+     *
+     * @param kind what the step asks for
+     * @return the step
+     */
+    public ProcedureTemplateItem createTemplateItem(
+            int templateId,
+            String title,
+            @Nullable String description,
+            boolean isPublic,
+            boolean userAssigned,
+            int position,
+            StepKindChoice kind) {
         return insertReturning(
                 """
                 INSERT
                 INTO
-                    procedure_template_item(template_id, title, description, public, user_assigned, position)
+                    procedure_template_item(template_id, title, description, public, user_assigned, position, kind,
+                                            document_template_id)
                 VALUES
-                    (:template_id, :title, :description, :public, :user_assigned, :position)
+                    (:template_id, :title, :description, :public, :user_assigned, :position, :kind,
+                     :document_template_id)
                 RETURNING %s;""",
                 call().bind("template_id", templateId)
                         .bind("title", title)
                         .bind("description", description)
                         .bind("public", isPublic)
                         .bind("user_assigned", userAssigned)
-                        .bind("position", position),
+                        .bind("position", position)
+                        .bind("kind", kind.kind().name())
+                        .bind("document_template_id", kind.documentTemplateId()),
                 ProcedureTemplateItem.map(),
                 PROCEDURE_TEMPLATE_ITEM_COLUMNS);
     }
@@ -151,6 +176,25 @@ public class ProcedureRepository {
                         .bind("public", isPublic)
                         .bind("user_assigned", userAssigned)
                         .bind("position", position)
+                        .bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Makes a template step a step ticked by hand or a document to sign.
+     *
+     * @param id   the step
+     * @param kind what the step asks for
+     * @return whether the step was there
+     */
+    public boolean setTemplateItemKind(int id, StepKindChoice kind) {
+        return query("""
+                UPDATE procedure_template_item
+                SET kind = :kind, document_template_id = :document_template_id
+                WHERE id = :id;""")
+                .single(call().bind("kind", kind.kind().name())
+                        .bind("document_template_id", kind.documentTemplateId())
                         .bind("id", id))
                 .update()
                 .changed();
@@ -359,20 +403,41 @@ public class ProcedureRepository {
             boolean isPublic,
             boolean userAssigned,
             int position) {
+        return createItem(procedureId, title, description, isPublic, userAssigned, position, StepKindChoice.CHECK);
+    }
+
+    /**
+     * Adds a step to a procedure, asking for what it is given in the same write.
+     *
+     * @param kind what the step asks for
+     * @return the step
+     */
+    public ProcedureItem createItem(
+            int procedureId,
+            String title,
+            @Nullable String description,
+            boolean isPublic,
+            boolean userAssigned,
+            int position,
+            StepKindChoice kind) {
         return insertReturning(
                 """
                 INSERT
                 INTO
-                    procedure_item(procedure_id, title, description, public, user_assigned, position)
+                    procedure_item(procedure_id, title, description, public, user_assigned, position, kind,
+                                   document_template_id)
                 VALUES
-                    (:procedure_id, :title, :description, :public, :user_assigned, :position)
+                    (:procedure_id, :title, :description, :public, :user_assigned, :position, :kind,
+                     :document_template_id)
                 RETURNING %s;""",
                 call().bind("procedure_id", procedureId)
                         .bind("title", title)
                         .bind("description", description)
                         .bind("public", isPublic)
                         .bind("user_assigned", userAssigned)
-                        .bind("position", position),
+                        .bind("position", position)
+                        .bind("kind", kind.kind().name())
+                        .bind("document_template_id", kind.documentTemplateId()),
                 ProcedureItem.map(),
                 PROCEDURE_ITEM_COLUMNS);
     }
@@ -393,6 +458,32 @@ public class ProcedureRepository {
                         .bind("public", isPublic)
                         .bind("user_assigned", userAssigned)
                         .bind("position", position)
+                        .bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Makes a step of a procedure a step ticked by hand or a document to sign, while it has generated
+     * nothing yet. A step turned into a document step loses its tick, since only the signatures settle it.
+     *
+     * @param id   the step
+     * @param kind what the step asks for
+     * @return whether the step was there and had generated nothing yet
+     */
+    public boolean setItemKind(int id, StepKindChoice kind) {
+        return query("""
+                UPDATE procedure_item
+                SET kind                 = :kind,
+                    document_template_id = :document_template_id,
+                    checked              = checked AND NOT :asks_to_sign,
+                    checked_at           = CASE WHEN :asks_to_sign THEN NULL ELSE checked_at END,
+                    checked_by           = CASE WHEN :asks_to_sign THEN NULL ELSE checked_by END
+                WHERE id = :id
+                  AND generation_id IS NULL;""")
+                .single(call().bind("kind", kind.kind().name())
+                        .bind("document_template_id", kind.documentTemplateId())
+                        .bind("asks_to_sign", kind.kind() == ProcedureStepKind.DOCUMENT)
                         .bind("id", id))
                 .update()
                 .changed();
@@ -476,16 +567,20 @@ public class ProcedureRepository {
                 """
                 INSERT
                 INTO
-                    procedure_item(procedure_id, title, description, public, user_assigned, position)
+                    procedure_item(procedure_id, title, description, public, user_assigned, position, kind,
+                                   document_template_id)
                 VALUES
-                    (:procedure_id, :title, :description, :public, :user_assigned, :position)
+                    (:procedure_id, :title, :description, :public, :user_assigned, :position, :kind,
+                     :document_template_id)
                 RETURNING %s;""",
                 call().bind("procedure_id", procedureId)
                         .bind("title", item.title())
                         .bind("description", item.description())
                         .bind("public", item.isPublic())
                         .bind("user_assigned", item.userAssigned())
-                        .bind("position", item.position()),
+                        .bind("position", item.position())
+                        .bind("kind", item.kind().name())
+                        .bind("document_template_id", item.documentTemplateId()),
                 ProcedureItem.map(),
                 PROCEDURE_ITEM_COLUMNS);
     }

@@ -46,6 +46,11 @@ export default {
     'R-030': 'Wer den Ablauf betreut, nennt eine Gruppe, einen Tag oder ein Mitglied einer anderen Wache, es wurde nichts gespeichert',
     'R-031': 'Gib an, wer den Ablauf betreut, es wurde nichts gespeichert',
     'R-032': 'Diese Ablauf-Vorlage gibt es hier nicht, es wurde kein Ablauf angelegt',
+    'R-033': 'Dieses Dokument kann kein Schritt sein: Es muss in Gebrauch sein, darf nicht für Termine gedacht sein '
+        + 'und muss das Mitglied oder eine erziehungsberechtigte Person unterschreiben lassen, es wurde nichts gespeichert',
+    'R-034': 'Wähle das Dokument, das der Schritt unterschreiben lässt, es wurde nichts gespeichert',
+    'R-035': 'Dieser Schritt hat sein Dokument schon erstellt, was er verlangt, bleibt deshalb so',
+    'R-036': 'Nur wer Dokumente für Mitglieder erstellen darf, kann einen Schritt ein Dokument unterschreiben lassen, es wurde nichts gespeichert',
 
     'R-001': PROCEDURE_NOT_YOURS,
     'R-002': PROCEDURE_NOT_YOURS,

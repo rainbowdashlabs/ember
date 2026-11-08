@@ -6,12 +6,14 @@
 import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { procedures, stationMembers } from '@/api'
-import type { MemberCompletion, MemberGroup, ProcedureItemRequest, ProcedureTemplate, ProcedureTemplateDetail, UserTag } from '@/api/generated/schema'
+import { StationPermission, type MemberCompletion, type MemberGroup, type ProcedureItemRequest, type ProcedureStepKind, type ProcedureTemplate, type ProcedureTemplateDetail, type StepDocument, type UserTag } from '@/api/generated/schema'
 import type { RestrictionSelection } from '@/api/types'
 import { audienceLists } from '@/components/documents/generation'
 import { emptyRestriction, toRestriction } from '@/components/input/restriction'
+import { stepDocumentOf, stepKindOf } from '@/components/procedures/stepDocument'
 import type { StepDependency } from '@/api/procedures'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useSession } from '@/composables/useSession'
 import { describeFailure } from '@/util/failure'
 import { dateToInstant, instantToDate } from '@/util/format'
 import { moveWithin } from '@/util/reorder'
@@ -26,6 +28,12 @@ export interface EditableItem {
     userAssigned: boolean
     position: number
     dependsOn: number[]
+    /** The document the step asks to sign, null for a step ticked by hand. */
+    document: StepDocument | null
+    /** Whether the step already made its document, which fixes what it asks for. */
+    documentMade: boolean
+    /** The document the stored step asks to sign, to send what it asks for only when that changed. */
+    storedDocumentId?: number | null
 }
 
 /** Whether a party names anybody: a template with an empty one leaves the party picked so far alone. */
@@ -47,6 +55,7 @@ function namesSomebody(party: RestrictionSelection): boolean {
  */
 export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: Ref<number | null>) {
   const { t } = useI18n()
+  const { hasPermission } = useSession()
 
   const name = ref('')
   /**
@@ -85,8 +94,19 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
    * server ids, so they are translated through the temp id each item is given here.
    */
   function toEditableItems(
-    source: {id: number; title: string; description?: string | null; isPublic: boolean; userAssigned: boolean; position: number}[],
+    source: {
+      id: number
+      title: string
+      description?: string | null
+      isPublic: boolean
+      userAssigned: boolean
+      position: number
+      kind?: ProcedureStepKind
+      documentTemplateId?: number | null
+      generationId?: number | null
+    }[],
     dependencies: number[][],
+    documents: readonly StepDocument[],
     keepIds: boolean,
   ): EditableItem[] {
     const realToTemp = new Map<number, number>()
@@ -102,6 +122,9 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
         userAssigned: item.userAssigned,
         position: item.position,
         dependsOn: [],
+        document: stepDocumentOf(item, documents),
+        documentMade: keepIds && item.generationId != null,
+        ...(keepIds ? {storedDocumentId: stepDocumentOf(item, documents)?.id ?? null} : {}),
       }
     })
     for (const {itemId, dependsOnItemId} of procedures.dependencyEntries(dependencies)) {
@@ -126,7 +149,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       templateDetail.value = detail
       name.value = detail.template.name
       description.value = detail.template.description ?? ''
-      items.value = toEditableItems(detail.items, detail.dependencies, false)
+      items.value = toEditableItems(detail.items, detail.dependencies, detail.documents, false)
       const templateParty = toRestriction(detail.party)
       if (!isEditMode.value && namesSomebody(templateParty)) party.value = templateParty
     } catch (e) {
@@ -168,7 +191,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       isPublic.value = detail.procedure.isPublic
       party.value = toRestriction(detail.party)
       existingItemIds.value = new Set(detail.items.map(i => i.id))
-      items.value = toEditableItems(detail.items, detail.dependencies, true)
+      items.value = toEditableItems(detail.items, detail.dependencies, detail.documents, true)
       return
     }
     if (presetTemplateId.value != null) {
@@ -191,6 +214,8 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       userAssigned: false,
       position: items.value.length,
       dependsOn: [],
+      document: null,
+      documentMade: false,
     }]
   }
 
@@ -215,6 +240,21 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     items.value = items.value.map((current, i) => (i === index ? item : current))
   }
 
+  /**
+   * Whether a step sends what it asks for: a new one always, a stored one only where its document was
+   * changed, so a step whose document is gone or no longer suitable saves its other fields unchanged.
+   */
+  function sendsKind(item: EditableItem): boolean {
+    return item.storedDocumentId === undefined || item.storedDocumentId !== (item.document?.id ?? null)
+  }
+
+  /** Whether the form starts document steps its user may not ask for, which the server would refuse. */
+  const documentsNotYours = computed(() => !hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)
+    && items.value.some(item => item.document != null && sendsKind(item)))
+
+  /** Whether the form starts document steps whose document is gone, which the server would refuse. */
+  const documentsGone = computed(() => items.value.some(item => item.document?.name === '' && sendsKind(item)))
+
   function itemPayload(item: EditableItem, position: number): ProcedureItemRequest {
     return {
       title: item.title,
@@ -222,6 +262,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       isPublic: item.isPublic,
       userAssigned: item.userAssigned,
       position,
+      ...(sendsKind(item) ? stepKindOf(item.document) : {}),
     }
   }
 
@@ -309,6 +350,8 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     tags,
     party,
     items,
+    documentsNotYours,
+    documentsGone,
     isEditMode,
     loading,
     failure,

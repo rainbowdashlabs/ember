@@ -15,8 +15,10 @@ import dev.chojo.ember.event.events.ProcedureResolved;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
+import dev.chojo.ember.feature.procedure.entity.ProcedureStepKind;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
+import dev.chojo.ember.feature.procedure.entity.StepKindChoice;
 import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionType;
@@ -29,9 +31,11 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -43,12 +47,18 @@ public class ProcedureService {
     private final ProcedureRepository repository;
     private final DomainEventBus eventBus;
     private final RestrictionService restrictions;
+    private final DocumentStepTemplates documentSteps;
 
     @Inject
-    public ProcedureService(ProcedureRepository repository, DomainEventBus eventBus, RestrictionService restrictions) {
+    public ProcedureService(
+            ProcedureRepository repository,
+            DomainEventBus eventBus,
+            RestrictionService restrictions,
+            DocumentStepTemplates documentSteps) {
         this.repository = repository;
         this.eventBus = eventBus;
         this.restrictions = restrictions;
+        this.documentSteps = documentSteps;
     }
 
     public List<ProcedureTemplate> findTemplatesByStation(int stationId, boolean includeArchived) {
@@ -88,15 +98,23 @@ public class ProcedureService {
         return repository.findTemplateItems(templateId);
     }
 
+    /**
+     * Adds a step to a template, asking for what it is given in the same write.
+     *
+     * @param kind what the step asks for, as {@link #kindChange} decided it
+     * @return the step
+     */
     public ProcedureTemplateItem createTemplateItem(
             int templateId,
             String title,
             @Nullable String description,
             boolean isPublic,
             boolean userAssigned,
-            int position) {
-        var item = repository.createTemplateItem(templateId, title, description, isPublic, userAssigned, position);
-        log.info("Created procedure template item {} on template {}", item.id(), templateId);
+            int position,
+            StepKindChoice kind) {
+        var item =
+                repository.createTemplateItem(templateId, title, description, isPublic, userAssigned, position, kind);
+        log.info("Created procedure template item {} on template {} asking for {}", item.id(), templateId, kind);
         return item;
     }
 
@@ -109,6 +127,89 @@ public class ProcedureService {
             log.warn("Update for procedure template item {} affected zero rows", id);
         }
         return updated;
+    }
+
+    /**
+     * Whether a template holds a step asking to sign a document, which only those who generate
+     * documents for members may start.
+     *
+     * @param templateId the template
+     * @return whether any of its steps asks to sign a document
+     */
+    public boolean asksToSign(int templateId) {
+        return repository.findTemplateItems(templateId).stream()
+                .anyMatch(item -> item.kind() == ProcedureStepKind.DOCUMENT);
+    }
+
+    /**
+     * Makes a template step a step ticked by hand or a document to sign.
+     *
+     * @param itemId the step
+     * @param kind   what the step asks for, as {@link #kindChange} decided it
+     */
+    public void setTemplateStepKind(int itemId, StepKindChoice kind) {
+        repository.setTemplateItemKind(itemId, kind);
+    }
+
+    /**
+     * Makes a step of a procedure a step ticked by hand or a document to sign, refused once it made its
+     * document.
+     *
+     * @param item the step as it stands
+     * @param kind what the step asks for, as {@link #kindChange} decided it
+     */
+    public void setStepKind(ProcedureItem item, StepKindChoice kind) {
+        if (!repository.setItemKind(item.id(), kind)) {
+            throw ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_ALREADY_MADE.raise();
+        }
+    }
+
+    /**
+     * What a step is to ask for after a request, or empty where the request leaves it as it is: it names
+     * no kind, or the kind and document template the step already has. Only a change is checked, so a step
+     * whose document template was archived since still saves its other fields.
+     *
+     * <p>A step asking to sign a document is refused where it names no template, where the caller may
+     * not generate documents for members, or where the template cannot be signed by the member side.
+     *
+     * @param stationId          the station whose document templates a step may generate
+     * @param current            what the step asks for now; a step ticked by hand for a new one
+     * @param kind               what the request asks for, null to leave it
+     * @param documentTemplateId the document template of a document step
+     * @param generatesDocuments whether the caller may generate documents for members
+     * @return what the step is to ask for, empty where nothing changes
+     */
+    public Optional<StepKindChoice> kindChange(
+            int stationId,
+            StepKindChoice current,
+            @Nullable ProcedureStepKind kind,
+            @Nullable Integer documentTemplateId,
+            boolean generatesDocuments) {
+        if (kind == null) return Optional.empty();
+        if (kind == ProcedureStepKind.CHECK) {
+            return current.equals(StepKindChoice.CHECK) ? Optional.empty() : Optional.of(StepKindChoice.CHECK);
+        }
+        if (documentTemplateId == null) throw ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_MISSING.raise();
+        var wanted = StepKindChoice.document(documentTemplateId);
+        if (current.equals(wanted)) return Optional.empty();
+        if (!generatesDocuments) throw ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NOT_YOURS.raise();
+        if (!documentSteps.suitable(stationId, documentTemplateId)) {
+            throw ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_UNSUITABLE.raise();
+        }
+        return Optional.of(wanted);
+    }
+
+    /**
+     * The document templates the given steps ask to sign, by name.
+     *
+     * @param stationId           the station the steps are of
+     * @param documentTemplateIds the document templates of the steps, null for a step ticked by hand
+     * @return one per template that still exists
+     */
+    public List<DocumentStepTemplates.StepDocument> stepDocuments(
+            int stationId, Collection<@Nullable Integer> documentTemplateIds) {
+        return documentSteps.named(
+                stationId, documentTemplateIds.stream().filter(Objects::nonNull).toList());
     }
 
     public boolean deleteTemplateItem(int id) {
@@ -432,15 +533,22 @@ public class ProcedureService {
         return repository.findItems(procedureId);
     }
 
+    /**
+     * Adds a step to a procedure, asking for what it is given in the same write.
+     *
+     * @param kind what the step asks for, as {@link #kindChange} decided it
+     * @return the step
+     */
     public ProcedureItem createItem(
             int procedureId,
             String title,
             @Nullable String description,
             boolean isPublic,
             boolean userAssigned,
-            int position) {
-        var item = repository.createItem(procedureId, title, description, isPublic, userAssigned, position);
-        log.info("Created procedure item {} on procedure {}", item.id(), procedureId);
+            int position,
+            StepKindChoice kind) {
+        var item = repository.createItem(procedureId, title, description, isPublic, userAssigned, position, kind);
+        log.info("Created procedure item {} on procedure {} asking for {}", item.id(), procedureId, kind);
         return item;
     }
 

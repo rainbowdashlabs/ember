@@ -110,6 +110,27 @@ public enum ProcedureRefusal implements Refusal {
     PROCEDURE_TEMPLATE_NOT_HERE_TO_START(
             32, HttpStatus.NOT_FOUND, "That procedure template is not here, so no procedure was started"),
 
+    /** A document step whose document template it may not generate. */
+    PROCEDURE_STEP_DOCUMENT_UNSUITABLE(
+            33,
+            HttpStatus.BAD_REQUEST,
+            "That document cannot be a step: it has to be in use, not meant for appointments, and ask the member"
+                    + " or a guardian to sign, so nothing was saved"),
+
+    /** A document step without a document template. */
+    PROCEDURE_STEP_DOCUMENT_MISSING(
+            34, HttpStatus.BAD_REQUEST, "Choose the document a document step asks to sign, so nothing was saved"),
+
+    /** A step whose kind was changed after it already made its document. */
+    PROCEDURE_STEP_DOCUMENT_ALREADY_MADE(
+            35, HttpStatus.CONFLICT, "This step already made its document, so what it asks for stays as it is"),
+
+    /** A document step set by somebody who may not generate documents for members. */
+    PROCEDURE_STEP_DOCUMENT_NOT_YOURS(
+            36,
+            HttpStatus.FORBIDDEN,
+            "Only those who generate documents for members can make a step ask to sign one, so nothing was saved"),
+
     /** A note on a step written by somebody who does not run the procedure. */
     PROCEDURE_STEP_NOTE_NOT_YOURS(
             29, HttpStatus.FORBIDDEN, "Only whoever runs the procedure can write a note on a step"),
