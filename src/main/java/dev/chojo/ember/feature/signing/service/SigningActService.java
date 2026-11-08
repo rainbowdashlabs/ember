@@ -653,7 +653,7 @@ public class SigningActService {
             case PASSKEY, SECURITY_KEY ->
                 assertions.answer(parked.nonce(), required(answer.credentialJson()), circumstances);
             case TOTP -> {
-                if (!twoFactor.verifyAuthenticatorCode(accountId, required(answer.secret()))) {
+                if (!twoFactor.verifyTotp(accountId, required(answer.secret()))) {
                     log.info("Signing code of account {} was not right for batch {}", accountId, parked.batchUid());
                     throw DocumentRefusal.SIGNING_CODE_WRONG.raise();
                 }

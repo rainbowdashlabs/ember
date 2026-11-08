@@ -1465,24 +1465,22 @@ class SigningRoutesTest extends RepositoryTestBase {
         assertEquals(FieldState.OPEN, fieldState(request));
     }
 
+    /** A development instance takes its fixed code for a signature, as it does for signing in. */
     @Test
-    void theDevelopmentCodeNeverConfirmsASignature() throws IOException {
+    void theDevelopmentCodeConfirmsASignatureOnADevelopmentInstance() throws IOException {
         var signer = member("Dev", "Kode", true);
         enrolAuthenticatorApp(signer.accountId());
         var request = ask(signer, SignatureRole.PARTICIPANT);
 
-        harness.run((server, client) -> assertRefused(
-                DocumentRefusal.SIGNING_CODE_WRONG,
-                complete(
-                        client,
-                        signer,
-                        fieldOf(request),
-                        start(client, signer, fieldOf(request), null),
-                        "TOTP",
-                        null,
-                        DEVELOPMENT_CODE)));
-        assertEquals(FieldState.OPEN, fieldState(request));
-        assertTrue(requestRepo.fieldsOf(request.id()).stream().noneMatch(field -> field.state() == FieldState.SIGNED));
+        harness.run((server, client) -> json(complete(
+                client,
+                signer,
+                fieldOf(request),
+                start(client, signer, fieldOf(request), null),
+                "TOTP",
+                null,
+                DEVELOPMENT_CODE)));
+        assertEquals(FieldState.SIGNED, fieldState(request));
     }
 
     @Test
