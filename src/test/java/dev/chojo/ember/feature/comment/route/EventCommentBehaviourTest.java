@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -296,13 +297,23 @@ class EventCommentBehaviourTest extends RepositoryTestBase {
         assertEquals("x".repeat(100) + "…", created.getFirst().preview());
     }
 
+    /** A new thread tells the appointment managers, leaving out its author and whoever it mentions. */
     @Test
-    void aTopLevelCommentTellsNobodyButTheMentioned() {
+    void aTopLevelCommentTellsTheManagersAndTheMentioned() {
         var mentioned = stationMemberRepo.findById(other.id()).orElseThrow();
         write(author, eventId, "Hallo @[%s/%s:Otto]".formatted(station.uid(), mentioned.uid()));
 
         var events = published();
-        assertTrue(events.stream().noneMatch(CommentCreated.class::isInstance));
+        var created = events.stream()
+                .filter(CommentCreated.class::isInstance)
+                .map(CommentCreated.class::cast)
+                .toList();
+        assertEquals(1, created.size());
+        assertEquals(
+                StationAudience.holders(station.id(), StationPermission.EVENT_MANAGER)
+                        .except(author.id())
+                        .except(other.id()),
+                created.getFirst().toldOfNewThread());
         assertTrue(events.stream()
                 .anyMatch(event ->
                         event instanceof MentionedInComment mention && mention.mentionedMemberId() == other.id()));

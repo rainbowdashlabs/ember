@@ -200,11 +200,77 @@ class CommentServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void aReplyToOneselfAndATopLevelCommentTellNobody() {
+    void aReplyToOneselfTellsNobody() {
         var parent = write(alice, "Alice", null, "Ich");
+        reset(BUS);
+
         write(alice, "Alice", parent.id(), "Ich nochmal");
 
         assertTrue(published().stream().noneMatch(CommentCreated.class::isInstance));
+    }
+
+    private static CommentCreated onlyCreated() {
+        return published().stream()
+                .filter(CommentCreated.class::isInstance)
+                .map(CommentCreated.class::cast)
+                .findFirst()
+                .orElseThrow();
+    }
+
+    /** A new thread on an appointment is mostly a question, so its managers hear of it, not its author. */
+    @Test
+    void aTopLevelCommentTellsTheAppointmentManagersButNotItsAuthor() {
+        write(alice, "Alice", null, "Wann geht es los?");
+
+        var created = onlyCreated();
+        assertEquals(
+                StationAudience.holders(station.id(), StationPermission.EVENT_MANAGER)
+                        .except(alice.id()),
+                created.toldOfNewThread());
+        assertNull(created.parentCommentId());
+    }
+
+    /** Whoever the question names by name is told by the mention, and not a second time as manager. */
+    @Test
+    void aManagerMentionedInANewThreadIsToldOnlyByTheMention() {
+        write(alice, "Alice", null, "Frage an " + mention(station, bob, "Bob"));
+
+        assertEquals(
+                StationAudience.holders(station.id(), StationPermission.EVENT_MANAGER)
+                        .except(alice.id())
+                        .except(bob.id()),
+                onlyCreated().toldOfNewThread());
+        assertTrue(published().stream()
+                .filter(MentionedInComment.class::isInstance)
+                .map(MentionedInComment.class::cast)
+                .anyMatch(mentioned -> mentioned.mentionedMemberId() == bob.id()));
+    }
+
+    @Test
+    void aReplyTellsNoManagerAboutANewThread() {
+        var parent = write(alice, "Alice", null, "Frage");
+        reset(BUS);
+
+        write(bob, "Bob", parent.id(), "Antwort");
+
+        assertNull(onlyCreated().toldOfNewThread());
+    }
+
+    /** A partner's question reaches the managers too, and nobody it mentions, since mentions stay here. */
+    @Test
+    void aTopLevelCommentFromAPartnerTellsTheAppointmentManagers() {
+        var target = service.target(CommentEntityType.EVENT, eventId).orElseThrow();
+
+        service.createOn(
+                target,
+                CommentWriter.partner(new MemberIdentity(UUID.randomUUID(), UUID.randomUUID()), "Partner"),
+                new NewComment(null, null, "Frage " + mention(station, bob, "Bob")));
+
+        var created = onlyCreated();
+        assertEquals(StationAudience.holders(station.id(), StationPermission.EVENT_MANAGER), created.toldOfNewThread());
+        assertNull(created.authorMemberId());
+        assertEquals("Partner", created.authorName());
+        assertTrue(published().stream().noneMatch(MentionedInComment.class::isInstance));
     }
 
     @Test
@@ -359,6 +425,7 @@ class CommentServiceTest extends RepositoryTestBase {
         var edited = service.update(comment, writer(alice, "Alice"), kept).orElseThrow();
         assertEquals(kept, edited.content());
         assertEquals(1, published().size());
+        assertTrue(published().getFirst() instanceof MentionedInComment, "an edit starts no new thread");
         reset(BUS);
 
         service.update(edited, writer(alice, "Alice"), kept + ", Tippfehler");
