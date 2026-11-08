@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.signing.entity.DocumentToSign;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.OpenSignature;
 import dev.chojo.ember.feature.signing.entity.PendingSignature;
+import dev.chojo.ember.feature.signing.entity.SignatureAsk;
 import dev.chojo.ember.feature.signing.entity.Signer;
 import dev.chojo.ember.feature.signing.entity.SignerEntryDraft;
 import dev.chojo.ember.feature.signing.entity.SigningAnswer;
@@ -164,6 +165,27 @@ public class WitnessedSigningService {
     public List<WitnessedField> generate(StationSession session, StationMember person, int templateId) {
         var generated = generation.generateForWitness(session, templateId, person.id());
         var asked = requestService.requestForWitness(session.member().id(), generated.generationId());
+        return collectable(session, asked);
+    }
+
+    /**
+     * Asks for the signatures of a document the reader just generated for a person, to collect them in
+     * front of the reader right away, without telling anybody. The reader has to be allowed to change the
+     * document and to collect signatures from the person, both checked before anything is asked.
+     *
+     * @param session      the witness
+     * @param generationId the generation log entry of the document
+     * @return the fields the witness may collect on the document
+     */
+    public List<WitnessedField> askInPerson(StationSession session, int generationId) {
+        reach.requireWitness(session);
+        var person = requestService.requireOwnedMember(session, generationId);
+        reach.requireReachable(session, person.id());
+        var asked = requestService.requireOwnedThenRequestInPerson(session, generationId);
+        return collectable(session, asked);
+    }
+
+    private List<WitnessedField> collectable(StationSession session, SignatureAsk asked) {
         var request = asked.request();
         if (request == null) throw DocumentRefusal.SIGNING_NO_FIELDS.raise();
         return requests.fieldsOf(request.id()).stream()

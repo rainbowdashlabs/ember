@@ -74,6 +74,7 @@ public class WitnessedSigningRoutes implements Routes {
         routes.get(prefix + "/signing/witness/people", this::people, role);
         routes.get(prefix + "/signing/witness/people/{memberId}/offers", this::offers, role);
         routes.post(prefix + "/signing/witness/people/{memberId}/templates/{templateId}", this::generate, role);
+        routes.post(prefix + "/signing/witness/generations/{generationId}", this::askInPerson, role);
         routes.get(prefix + "/signing/witness/fields/{fieldId}", this::field, role);
         routes.get(prefix + "/signing/witness/fields/{fieldId}/document", this::document, role);
         routes.get(prefix + "/signing/witness/fields/{fieldId}/fill-ins", this::fillIns, role);
@@ -135,6 +136,26 @@ public class WitnessedSigningRoutes implements Routes {
         var session = StationSession.from(ctx);
         var person = witnessed.requireOwnedPerson(session, pathInt(ctx, "memberId"));
         ctx.json(witnessed.generate(session, person, pathInt(ctx, "templateId")).stream()
+                .map(WitnessFieldResponse::of)
+                .toList());
+    }
+
+    @OpenApi(
+            path = "/api/v1/signing/witness/generations/{generationId}",
+            methods = HttpMethod.POST,
+            summary = "Ask for a generated document's signatures to collect them in front of the reader",
+            tags = {"Signing"},
+            pathParams = @OpenApiParam(name = "generationId", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = WitnessFieldResponse[].class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void askInPerson(Context ctx) {
+        var session = StationSession.from(ctx);
+        ctx.json(witnessed.askInPerson(session, pathInt(ctx, "generationId")).stream()
                 .map(WitnessFieldResponse::of)
                 .toList());
     }

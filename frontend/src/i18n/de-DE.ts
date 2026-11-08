@@ -11451,6 +11451,7 @@ export default {
             none: 'Dieses Dokument hat keine Felder, die noch zu unterschreiben sind.',
             asked: 'Unterschriften angefordert.',
             request: 'Unterschriften anfordern',
+            inPerson: 'Vor Ort unterschreiben lassen',
             skip: 'Nicht jetzt',
             anyGuardian: 'eine der erziehungsberechtigten Personen',
             nobody: 'niemand eingetragen, das Feld bleibt offen',

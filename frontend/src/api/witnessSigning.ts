@@ -64,6 +64,12 @@ export async function generateForWitness(memberId: number, templateId: number): 
     return res.data
 }
 
+/** Asks for a generated document's signatures, to collect them in front of the reader right away. */
+export async function askInPerson(generationId: number): Promise<WitnessFieldResponse[]> {
+    const res = await client.post<WitnessFieldResponse[]>(`/signing/witness/generations/${generationId}`)
+    return res.data
+}
+
 /**
  * One open field the reader may collect in person, with the people it names.
  *

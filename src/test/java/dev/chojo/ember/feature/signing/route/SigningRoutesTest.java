@@ -874,6 +874,42 @@ class SigningRoutesTest extends RepositoryTestBase {
         });
     }
 
+    /**
+     * A document just generated for a member is asked for in person: the witness gets the fields they may
+     * collect on it, and the request stands. A witness who may not change the document is refused before
+     * anything is asked, and so is one who does not reach the person.
+     */
+    @Test
+    void aGeneratedDocumentIsAskedForInPerson() throws IOException {
+        var witness = witness("Wera", "Gleich");
+        var person = member("Paul", "Gleich", false);
+        var generation = generated(person, "participant");
+        var team = member("Tara", "Team", true);
+        stationMemberRepo.setUserType(team.id(), StationUserType.TEAM);
+        var teamGeneration = generated(team, "participant");
+        String path = PREFIX + "/signing/witness/generations/" + generation.id();
+        var editing = harness.as(signedIn(
+                witness,
+                StationPermission.LOGIN,
+                StationPermission.DOCUMENT_SIGN_OTHERS,
+                StationPermission.DOCUMENT_EDIT_MEMBER));
+
+        harness.run((server, client) -> {
+            assertRefused(
+                    DocumentRefusal.DOCUMENT_NOT_YOURS_TO_CHANGE, client.post(path, body("{}"), asWitness(witness)));
+            assertTrue(requestRepo.findLiveFor(generation.id()).isEmpty(), "nothing was asked");
+            assertRefused(
+                    DocumentRefusal.SIGNING_WITNESS_OUT_OF_REACH,
+                    client.post(PREFIX + "/signing/witness/generations/" + teamGeneration.id(), body("{}"), editing));
+            assertTrue(requestRepo.findLiveFor(teamGeneration.id()).isEmpty(), "nothing was asked of the team");
+
+            JsonNode fields = accepted(client.post(path, body("{}"), editing));
+            assertEquals(1, fields.size());
+            assertEquals(List.of(person.id()), memberIds(fields.get(0).path("signers")));
+            assertTrue(requestRepo.findLiveFor(generation.id()).isPresent(), "the request stands");
+        });
+    }
+
     private static JsonNode personIn(JsonNode people, int memberId) {
         for (JsonNode person : people) {
             if (person.path("memberId").asInt() == memberId) return person;

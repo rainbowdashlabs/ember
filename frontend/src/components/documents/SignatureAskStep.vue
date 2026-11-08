@@ -13,8 +13,11 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import {useRouter} from 'vue-router'
 import {signing} from '@/api'
-import type {SignatureAskResponse} from '@/api/generated/schema'
+import {askInPerson} from '@/api/witnessSigning'
+import {FieldRole, StationPermission, type SignatureAskResponse} from '@/api/generated/schema'
+import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {showToast} from '@/util/toast'
@@ -28,6 +31,9 @@ import {signerOf} from './signatureSigner'
  *
  * <p>Right after generating, a document without a field to sign needs no step, so it ends at once where
  * asked to; from the list it says so.
+ *
+ * <p>Whoever may collect signatures in person can instead have the document signed right away: that asks
+ * without telling anybody and opens the first field on the witness page, which leads on to the others.
  */
 const props = withDefaults(defineProps<{
   /** The document's entry in the generation log. */
@@ -43,6 +49,8 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+const router = useRouter()
+const {hasPermission} = useSession()
 
 const ask = ref<SignatureAskResponse | null>(null)
 
@@ -62,6 +70,21 @@ const asking = useAsyncAction(async () => {
 const request = computed(() => ask.value?.request ?? null)
 const fields = computed(() => ask.value?.fields ?? [])
 
+/** Whether the reader may have the document signed in front of them now, before anybody was asked. */
+const inPersonOffered = computed(() => !request.value
+    && hasPermission(StationPermission.DOCUMENT_SIGN_OTHERS)
+    && fields.value.some(field => field.role !== FieldRole.ISSUER))
+
+const inPerson = useAsyncAction(async () => {
+  const collectable = await askInPerson(props.generationId)
+  const first = collectable[0]
+  if (!first) {
+    emit('done')
+    return
+  }
+  await router.push({path: '/station/signing/witness', query: {field: String(first.fieldId)}})
+})
+
 const keeping = computed(() => {
   const months = request.value?.retentionMonths
   if (months === null || months === undefined) return t('signing.ask.keptWhileMember')
@@ -73,7 +96,7 @@ const keeping = computed(() => {
   <div class="space-y-4" data-testid="signature-ask">
     <SubHeader>{{ t('signing.ask.heading') }}</SubHeader>
     <Spinner v-if="loader.loading.value"/>
-    <FailureAlert :failure="loader.failure.value ?? asking.failure.value"/>
+    <FailureAlert :failure="loader.failure.value ?? asking.failure.value ?? inPerson.failure.value"/>
     <template v-if="ask">
       <MutedText v-if="fields.length === 0" size="sm" tag="p" data-testid="signature-ask-none">
         {{ t('signing.ask.none') }}
@@ -97,9 +120,13 @@ const keeping = computed(() => {
         <MutedText v-else size="sm" tag="p">{{ t('signing.ask.later') }}</MutedText>
       </template>
     </template>
-    <ButtonRow pair align="end">
+    <ButtonRow :pair="!inPersonOffered" align="end">
       <SecondaryButton data-testid="signature-ask-skip" @click="emit('done')">
         {{ request || fields.length === 0 ? t('common.close') : t('signing.ask.skip') }}
+      </SecondaryButton>
+      <SecondaryButton v-if="inPersonOffered" :icon="['fas', 'signature']" :disabled="inPerson.running.value || asking.running.value"
+                       data-testid="signature-ask-in-person" @click="inPerson.run()">
+        {{ t('signing.ask.inPerson') }}
       </SecondaryButton>
       <PrimaryButton v-if="!request && fields.length > 0" :icon="['fas', 'file-signature']"
                      :disabled="asking.running.value" data-testid="signature-ask-request" @click="asking.run()">
