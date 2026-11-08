@@ -19,9 +19,14 @@ import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Whom a witness may collect signatures from, and on which fields.
@@ -161,6 +166,34 @@ public class WitnessReach {
     public boolean offers(StationSession session, RequestedSignature field) {
         return field.role() != FieldRole.ISSUER
                 && !wouldSignThemselves(session.member().id(), field);
+    }
+
+    /**
+     * Which fields of the people the witness reaches they collect, by the rule of {@link #offers}, for
+     * many fields at once: the members in the witness's care are read once instead of once per field.
+     *
+     * @param session the witness
+     * @return whether a field is offered to them
+     */
+    public Predicate<RequestedSignature> offering(StationSession session) {
+        int me = session.member().id();
+        Set<Integer> wards =
+                members.findManaged(me).stream().map(StationMember::id).collect(Collectors.toSet());
+        return field -> field.role() != FieldRole.ISSUER
+                && !Objects.equals(field.signerId(), me)
+                && !(field.role() == FieldRole.ANY_GUARDIAN && wards.contains(field.memberId()));
+    }
+
+    /**
+     * The groups of each of the given members.
+     *
+     * @param memberIds the members
+     * @return the group ids of each member, none for a member without groups
+     */
+    public Map<Integer, List<Integer>> groupsOf(Collection<Integer> memberIds) {
+        var groups = new HashMap<Integer, List<Integer>>();
+        restrictions.membersOf(memberIds).forEach((memberId, member) -> groups.put(memberId, member.groupIds()));
+        return groups;
     }
 
     /**

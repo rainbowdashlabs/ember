@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.signing.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.FileResponse;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -18,6 +19,7 @@ import dev.chojo.ember.feature.signing.entity.FieldRole;
 import dev.chojo.ember.feature.signing.entity.SignerEntryDraft;
 import dev.chojo.ember.feature.signing.entity.SigningAnswer;
 import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
+import dev.chojo.ember.feature.signing.entity.WitnessCandidate;
 import dev.chojo.ember.feature.signing.entity.WitnessPerson;
 import dev.chojo.ember.feature.signing.entity.WitnessedField;
 import dev.chojo.ember.feature.signing.route.SigningBatchRoutes.BatchCompleteRequest;
@@ -85,11 +87,13 @@ public class WitnessedSigningRoutes implements Routes {
             summary = "The people the reader may collect signatures from in person",
             tags = {"Signing"},
             responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = WitnessPersonResponse[].class)))
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = WitnessCandidateResponse[].class)))
     private void people(Context ctx) {
         var session = StationSession.from(ctx);
         ctx.json(witnessed.people(session).stream()
-                .map(WitnessPersonResponse::of)
+                .map(candidate -> WitnessCandidateResponse.of(session.stationUid(), candidate))
                 .toList());
     }
 
@@ -246,6 +250,37 @@ public class WitnessedSigningRoutes implements Routes {
                 new SigningCircumstances(ctx.ip(), ctx.userAgent()));
         ctx.json(new BatchCompleteResponse(
                 outcomes.stream().map(SigningCompleteResponse::of).toList()));
+    }
+
+    /**
+     * A person on the reader's list, with what waits on them.
+     *
+     * @param memberId      the member
+     * @param identity      the member as the profile card and the avatar name them
+     * @param name          their official name
+     * @param userType      what kind of member they are
+     * @param groupIds      the groups they are in
+     * @param openFields    how many fields wait to be signed in front of the reader
+     * @param openDocuments the titles of the documents those fields are on
+     */
+    public record WitnessCandidateResponse(
+            int memberId,
+            MemberIdentity identity,
+            String name,
+            StationUserType userType,
+            List<Integer> groupIds,
+            int openFields,
+            List<String> openDocuments) {
+        static WitnessCandidateResponse of(UUID stationUid, WitnessCandidate candidate) {
+            return new WitnessCandidateResponse(
+                    candidate.memberId(),
+                    new MemberIdentity(stationUid, candidate.memberUid()),
+                    candidate.name(),
+                    candidate.userType(),
+                    candidate.groupIds(),
+                    candidate.openFields(),
+                    candidate.openDocuments());
+        }
     }
 
     /**

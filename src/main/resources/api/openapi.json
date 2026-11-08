@@ -43803,7 +43803,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/WitnessPersonResponse"
+                    "$ref" : "#/components/schemas/WitnessCandidateResponse"
                   }
                 }
               }
@@ -83197,6 +83197,42 @@
           }
         },
         "required" : [ "undoUntil" ]
+      },
+      "WitnessCandidateResponse" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "identity" : {
+            "$ref" : "#/components/schemas/MemberIdentity"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "userType" : {
+            "$ref" : "#/components/schemas/StationUserType"
+          },
+          "groupIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "openFields" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "openDocuments" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "memberId", "identity", "name", "userType", "groupIds", "openFields", "openDocuments" ]
       },
       "WitnessFieldResponse" : {
         "type" : "object",

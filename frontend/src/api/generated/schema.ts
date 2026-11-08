@@ -57127,7 +57127,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["WitnessPersonResponse"][];
+                        "application/json": components["schemas"]["WitnessCandidateResponse"][];
                     };
                 };
             };
@@ -75112,6 +75112,17 @@ export interface components {
         WithdrawalResponse: {
             undoUntil: components["schemas"]["Instant"];
         };
+        WitnessCandidateResponse: {
+            groupIds: number[];
+            identity: components["schemas"]["MemberIdentity"];
+            /** Format: int32 */
+            memberId: number;
+            name: string;
+            openDocuments: string[];
+            /** Format: int32 */
+            openFields: number;
+            userType: components["schemas"]["StationUserType"];
+        };
         WitnessFieldResponse: {
             /** Format: int32 */
             documentId: number | null;
@@ -76836,6 +76847,7 @@ export type WebhookUrlResponse = components['schemas']['WebhookUrlResponse'];
 export type WeblinkRequest = components['schemas']['WeblinkRequest'];
 export type WikiAudienceRequest = components['schemas']['WikiAudienceRequest'];
 export type WithdrawalResponse = components['schemas']['WithdrawalResponse'];
+export type WitnessCandidateResponse = components['schemas']['WitnessCandidateResponse'];
 export type WitnessFieldResponse = components['schemas']['WitnessFieldResponse'];
 export type WitnessOffersResponse = components['schemas']['WitnessOffersResponse'];
 export type WitnessPersonResponse = components['schemas']['WitnessPersonResponse'];

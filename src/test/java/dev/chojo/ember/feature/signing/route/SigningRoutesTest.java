@@ -50,6 +50,7 @@ import dev.chojo.ember.feature.passkey.service.TestAuthenticator;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.signing.entity.ActPictureSource;
+import dev.chojo.ember.feature.signing.entity.FieldRole;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.RequestState;
 import dev.chojo.ember.feature.signing.entity.SignatureImageSource;
@@ -821,6 +822,48 @@ class SigningRoutesTest extends RepositoryTestBase {
 
     private static String offersPath(StationMember person) {
         return PREFIX + "/signing/witness/people/" + person.id() + "/offers";
+    }
+
+    /**
+     * The witness's list says what waits on each person: the fields of their documents the witness may
+     * collect, counted, with the document they are on. The issuer's field waits on nobody there, a person
+     * with nothing open lists none, and a field signed in front of the witness leaves the list.
+     */
+    @Test
+    void thePeopleListSaysWhatWaitsOnEachPerson() throws IOException {
+        var witness = witness("Willa", "Liste");
+        var waiting = member("Wilma", "Wartet", false);
+        var idle = member("Ida", "Nichts", false);
+        var request = ask(waiting, SignatureRole.PARTICIPANT, SignatureRole.ISSUER);
+
+        harness.run((server, client) -> {
+            JsonNode people = accepted(client.get(PREFIX + "/signing/witness/people", asWitness(witness)));
+            JsonNode listed = personIn(people, waiting.id());
+            assertEquals(1, listed.path("openFields").asInt(), "the issuer's field is not the person's to sign");
+            assertEquals(1, listed.path("openDocuments").size());
+            assertEquals(
+                    waiting.uid().toString(),
+                    listed.path("identity").path("memberUid").asString());
+            assertEquals(0, personIn(people, idle.id()).path("openFields").asInt());
+
+            int field = requestRepo.fieldsOf(request.id()).stream()
+                    .filter(each -> each.role() == FieldRole.PARTICIPANT)
+                    .findFirst()
+                    .orElseThrow()
+                    .id();
+            JsonNode started = accepted(startWitnessed(client, witness, field, waiting.id()));
+            accepted(completeWitnessed(client, witness, started, waiting.id()));
+
+            JsonNode after = accepted(client.get(PREFIX + "/signing/witness/people", asWitness(witness)));
+            assertEquals(0, personIn(after, waiting.id()).path("openFields").asInt());
+        });
+    }
+
+    private static JsonNode personIn(JsonNode people, int memberId) {
+        for (JsonNode person : people) {
+            if (person.path("memberId").asInt() == memberId) return person;
+        }
+        throw new AssertionError("member " + memberId + " is not on the list");
     }
 
     private static List<Integer> memberIds(JsonNode people) {

@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.signing.entity.SigningAnswer;
 import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
 import dev.chojo.ember.feature.signing.entity.SigningOutcome;
 import dev.chojo.ember.feature.signing.entity.SigningPictures;
+import dev.chojo.ember.feature.signing.entity.WitnessCandidate;
 import dev.chojo.ember.feature.signing.entity.WitnessPerson;
 import dev.chojo.ember.feature.signing.entity.WitnessedField;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
@@ -33,6 +34,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Signatures collected in person: a witness picks a person of the station and a document for them, hands
@@ -76,16 +78,40 @@ public class WitnessedSigningService {
     }
 
     /**
-     * The people the witness may collect signatures from.
+     * The people the witness may collect signatures from, each with the fields that wait on them.
+     *
+     * <p>The open fields are read for the whole station at once and counted by the same rule as
+     * {@link #offers}, so a person listed with something open finds it when picked.
      *
      * @param session the witness
      * @return the members and trial users they reach, by name
      */
-    public List<WitnessPerson> people(StationSession session) {
+    public List<WitnessCandidate> people(StationSession session) {
         reach.requireWitness(session);
-        return reach.reachable(session).stream()
-                .map(this::person)
-                .sorted(Comparator.comparing(WitnessPerson::name, String.CASE_INSENSITIVE_ORDER))
+        var reachable = reach.reachable(session);
+        var offered = reach.offering(session);
+        var open = requests.openAtStation(session.stationId());
+        var groups = reach.groupsOf(reachable.stream().map(StationMember::id).toList());
+        return reachable.stream()
+                .map(member -> {
+                    var fields = open.getOrDefault(member.id(), List.of()).stream()
+                            .filter(pending -> offered.test(pending.field()))
+                            .toList();
+                    var documents = fields.stream()
+                            .map(PendingSignature::documentTitle)
+                            .filter(Objects::nonNull)
+                            .distinct()
+                            .toList();
+                    return new WitnessCandidate(
+                            member.id(),
+                            member.uid(),
+                            names.official(member.id()),
+                            member.userType(),
+                            groups.getOrDefault(member.id(), List.of()),
+                            fields.size(),
+                            documents);
+                })
+                .sorted(Comparator.comparing(WitnessCandidate::name, String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }
 

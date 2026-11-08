@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.signing.repository;
 
+import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.signing.entity.AppointmentCopy;
 import dev.chojo.ember.feature.signing.entity.AppointmentRequest;
@@ -25,7 +26,9 @@ import org.postgresql.util.PSQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -671,6 +674,37 @@ public class SignatureRequestRepository {
                 .single(call().bind("station_id", stationId).bind("member_id", memberId))
                 .map(PendingSignature.map())
                 .all();
+    }
+
+    /**
+     * The open fields of every document at a station that somebody of the member's side signs, by the
+     * member the document is about, by the same rule as {@link #openAbout}.
+     *
+     * @param stationId the station
+     * @return the fields of each member, oldest request first
+     */
+    public Map<Integer, List<PendingSignature>> openAtStation(int stationId) {
+        RowMapping<PendingSignature> pending = PendingSignature.map();
+        var open = new LinkedHashMap<Integer, List<PendingSignature>>();
+        query("""
+                        SELECT %s, r.uid AS request_uid, r.document_id, r.member_name AS request_member_name,
+                               r.member_id AS request_member_id, d.title AS document_title
+                        FROM signing_request_field f
+                                 JOIN signing_request r ON r.id = f.request_id
+                                 LEFT JOIN member_document d ON d.id = r.document_id
+                        WHERE r.station_id = :station_id
+                          AND r.member_id IS NOT NULL
+                          AND r.state = 'OPEN'
+                          AND f.state = 'OPEN'
+                          AND f.role <> 'ISSUER'
+                          AND NOT %s
+                        ORDER BY r.created_at, r.id, f.id;""", SqlSupport.alias("f", RequestedSignature.COLUMNS), SCAN_WAITS)
+                .single(call().bind("station_id", stationId))
+                .map(row -> Map.entry(row.getInt("request_member_id"), pending.map(row)))
+                .all()
+                .forEach(entry -> open.computeIfAbsent(entry.getKey(), member -> new ArrayList<>())
+                        .add(entry.getValue()));
+        return open;
     }
 
     /**
