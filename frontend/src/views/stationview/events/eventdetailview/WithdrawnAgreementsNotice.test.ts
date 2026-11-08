@@ -21,6 +21,7 @@ function registration(id: number, name: string, agreementWithdrawnAt: string | n
         createdByName: null,
         eventName: null,
         answersMissing: false,
+        placeGivenUp: false,
         fromField: false,
         fieldName: null,
         agreementWithdrawnAt,

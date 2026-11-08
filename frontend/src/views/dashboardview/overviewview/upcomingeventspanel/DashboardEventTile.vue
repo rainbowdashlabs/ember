@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {RouteLocationRaw} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -16,7 +17,7 @@ import RegistrationStatusBadge from '@/views/stationview/events/eventshared/Regi
 import type {EventCategory, EventSummary, RegistrationResponse} from '@/api/generated/schema'
 import {formatDate, formatTime} from '@/util/format'
 
-defineProps<{
+const props = defineProps<{
   event: EventSummary
   date: string
   dayLabel: string
@@ -41,6 +42,16 @@ defineEmits<{
 }>()
 
 const {t} = useI18n()
+
+/**
+ * Whether saying "not coming" is still on offer. An appointment everybody is expected at takes it until
+ * the day; one that has to be signed up for takes it while registration is open, so that whoever has no
+ * time stops being reminded of a list they will not join.
+ */
+const canDecline = computed(() => props.openCount > 0
+    && (!props.event.requiresRegistration
+        || !props.event.registrationDeadline
+        || new Date(props.event.registrationDeadline).getTime() > Date.now()))
 </script>
 
 <template>
@@ -61,23 +72,24 @@ const {t} = useI18n()
           </p>
         </div>
 
-        <SecondaryBadge v-if="event.requiresRegistration && answers.length === 0 && openCount === 0"
-                        class="shrink-0" :data-testid="`dashboard-not-open-${event.id}`">
-          {{ t('dashboard.registrationNotOpen') }}
-        </SecondaryBadge>
-        <InfoBadge v-else-if="event.requiresRegistration && answers.length === 0" class="shrink-0">
-          {{ t('dashboard.registrationRequired') }}
-        </InfoBadge>
-        <SecondaryButton
-            v-else-if="!event.requiresRegistration && openCount > 0"
-            :disabled="busy"
-            :data-testid="`dashboard-decline-${event.id}`"
-            class="shrink-0"
-            compact
-            @click="$emit('decline')"
-        >
-          {{ t('eventsUpcoming.decline') }}
-        </SecondaryButton>
+        <div class="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2">
+          <SecondaryBadge v-if="event.requiresRegistration && answers.length === 0 && openCount === 0"
+                          :data-testid="`dashboard-not-open-${event.id}`">
+            {{ t('dashboard.registrationNotOpen') }}
+          </SecondaryBadge>
+          <InfoBadge v-else-if="event.requiresRegistration && answers.length === 0">
+            {{ t('dashboard.registrationRequired') }}
+          </InfoBadge>
+          <SecondaryButton
+              v-if="canDecline"
+              :disabled="busy"
+              :data-testid="`dashboard-decline-${event.id}`"
+              compact
+              @click="$emit('decline')"
+          >
+            {{ t('eventsUpcoming.decline') }}
+          </SecondaryButton>
+        </div>
       </div>
 
       <div v-if="answers.length > 0" class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">

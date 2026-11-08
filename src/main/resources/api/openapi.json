@@ -73391,9 +73391,12 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "placeGivenUp" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "id", "eventId", "memberId", "memberName", "memberIdentity", "eventDate", "status", "createdAt", "createdByName", "fields", "eventName", "answersMissing", "fromField", "fieldName", "agreementWithdrawnAt" ]
+        "required" : [ "id", "eventId", "memberId", "memberName", "memberIdentity", "eventDate", "status", "createdAt", "createdByName", "fields", "eventName", "answersMissing", "fromField", "fieldName", "agreementWithdrawnAt", "placeGivenUp" ]
       },
       "RegistrationStatsResponse" : {
         "type" : "object",

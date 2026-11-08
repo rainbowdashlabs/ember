@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed} from 'vue'
+import {computed, useTemplateRef} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -25,6 +25,9 @@ import OnboardingTaskCard from '@/components/onboarding/OnboardingTaskCard.vue'
 const {t} = useI18n()
 const router = useRouter()
 const {isModuleEnabled, sessionInfo, hasPermission} = useSession()
+
+/** The events still owing an answer, read again once one is declined further down the page. */
+const awaitingAnswer = useTemplateRef<InstanceType<typeof AwaitingAnswerPanel>>('awaitingAnswer')
 
 const profileIncomplete = computed(() => sessionInfo.value?.profileComplete === false)
 </script>
@@ -50,9 +53,9 @@ const profileIncomplete = computed(() => sessionInfo.value?.profileComplete === 
         <NotificationsPanel/>
         <OpenMovementsPanel v-if="isModuleEnabled(StationModule.INVENTORY)"/>
         <SelfChecksPanel v-if="isModuleEnabled(StationModule.INVENTORY)"/>
-        <AwaitingAnswerPanel v-if="isModuleEnabled(StationModule.EVENTS)"/>
+        <AwaitingAnswerPanel v-if="isModuleEnabled(StationModule.EVENTS)" ref="awaitingAnswer"/>
         <RegistrationsPanel v-if="isModuleEnabled(StationModule.EVENTS)"/>
-        <UpcomingEventsPanel v-if="isModuleEnabled(StationModule.EVENTS)"/>
+        <UpcomingEventsPanel v-if="isModuleEnabled(StationModule.EVENTS)" @answered="awaitingAnswer?.reload()"/>
       </div>
     </div>
   </ViewContent>

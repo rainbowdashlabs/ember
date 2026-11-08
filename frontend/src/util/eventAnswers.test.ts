@@ -6,7 +6,7 @@
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {FieldType, RegistrationStatus, type EventRegistrationField, type RegistrationResponse} from '@/api/generated/schema'
-import {answerTotals, localAnswers, membersToRegister, rowsOnDate, saysNotComing} from './eventAnswers'
+import {answerTotals, localAnswers, maySignUp, membersToRegister, rowsOnDate, saysNotComing} from './eventAnswers'
 
 const SETTINGS = {required: false, managersOnly: false, selfRegistration: false, perDate: false}
 
@@ -43,6 +43,7 @@ function registration(id: number, status: RegistrationStatus, answers: Record<nu
     createdByName: null,
     eventName: null,
     answersMissing: false,
+    placeGivenUp: false,
     fromField: false,
     fieldName: null,
     agreementWithdrawnAt: null,
@@ -162,33 +163,72 @@ describe('membersToRegister', () => {
 })
 
 describe('saysNotComing', () => {
+  const row = (status: RegistrationStatus, placeGivenUp = false) => ({status, placeGivenUp})
+
   it('reads a refusal as not coming either way', () => {
-    expect(saysNotComing(RegistrationStatus.DECLINED, false)).toBe(true)
-    expect(saysNotComing(RegistrationStatus.DECLINED, true)).toBe(true)
+    expect(saysNotComing(row(RegistrationStatus.DECLINED), false)).toBe(true)
+    expect(saysNotComing(row(RegistrationStatus.DECLINED), true)).toBe(true)
   })
 
   /** Where everybody is expected, taking back is taking a refusal back, so the member is expected again. */
-  it('reads a withdrawal as not coming only where the appointment is signed up for', () => {
-    expect(saysNotComing(RegistrationStatus.WITHDRAWN, true)).toBe(true)
-    expect(saysNotComing(RegistrationStatus.WITHDRAWN, false)).toBe(false)
+  it('reads a place given up as not coming only where the appointment is signed up for', () => {
+    expect(saysNotComing(row(RegistrationStatus.WITHDRAWN, true), true)).toBe(true)
+    expect(saysNotComing(row(RegistrationStatus.WITHDRAWN), false)).toBe(false)
+  })
+
+  /** Taking a refusal back leaves the member undecided, not signed off. */
+  it('reads a refusal taken back as no answer on an appointment signed up for', () => {
+    expect(saysNotComing(row(RegistrationStatus.WITHDRAWN), true)).toBe(false)
   })
 
   it('reads a held or awaited place as coming', () => {
-    expect(saysNotComing(RegistrationStatus.ACCEPTED, true)).toBe(false)
-    expect(saysNotComing(RegistrationStatus.PENDING, true)).toBe(false)
+    expect(saysNotComing(row(RegistrationStatus.ACCEPTED), true)).toBe(false)
+    expect(saysNotComing(row(RegistrationStatus.PENDING), true)).toBe(false)
+  })
+})
+
+describe('maySignUp', () => {
+  /** A refusal or a place given up can be changed into a sign-up; a denied place cannot. */
+  it('offers signing up to whoever holds nothing and was not denied', () => {
+    expect(maySignUp(undefined)).toBe(true)
+    expect(maySignUp({status: RegistrationStatus.DECLINED})).toBe(true)
+    expect(maySignUp({status: RegistrationStatus.WITHDRAWN})).toBe(true)
+    expect(maySignUp({status: RegistrationStatus.ACCEPTED})).toBe(false)
+    expect(maySignUp({status: RegistrationStatus.PENDING})).toBe(false)
+    expect(maySignUp({status: RegistrationStatus.DENIED})).toBe(false)
   })
 })
 
 describe('localAnswers', () => {
   const people = [{key: 1, name: 'Ich'}, {key: 2, name: 'Kind'}]
 
-  /** Whoever gave a place back holds nothing and owes an answer, so they are offered to sign up again. */
-  it('leaves out a place given back and keeps a refusal', () => {
+  /** A refusal taken back leaves no answer, so whoever took it back is offered to answer again. */
+  it('leaves out a refusal taken back and keeps a refusal', () => {
     const answers = localAnswers(people, [
       registration(1, RegistrationStatus.WITHDRAWN, {}),
       registration(2, RegistrationStatus.DECLINED, {}),
     ])
 
     expect(answers.map(answer => [answer.key, answer.status])).toEqual([[2, RegistrationStatus.DECLINED]])
+  })
+
+  /** A place given up is an answer: it stands, and what it offers is signing up anew. */
+  it('keeps a place given up as an answer', () => {
+    const answers = localAnswers(people, [
+      {...registration(1, RegistrationStatus.WITHDRAWN, {}), placeGivenUp: true},
+    ])
+
+    expect(answers).toHaveLength(1)
+    expect(answers[0]!.placeGivenUp).toBe(true)
+  })
+
+  /** Only somebody coming has answers worth correcting; a refusal or a place given up has none. */
+  it('offers changing the answers only to whoever holds or awaits a place', () => {
+    const answers = localAnswers(people, [
+      registration(1, RegistrationStatus.ACCEPTED, {}),
+      registration(2, RegistrationStatus.DECLINED, {}),
+    ], true)
+
+    expect(answers.map(answer => [answer.key, answer.canUpdate])).toEqual([[1, true], [2, false]])
   })
 })

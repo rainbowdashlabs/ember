@@ -25,6 +25,8 @@ const props = defineProps<{
   showNames: boolean
   /** Whether the appointment has to be signed up for, which decides what deleting a refusal means. */
   requiresRegistration: boolean
+  /** Whether signing up is still taken, which a place given up offers to do again. */
+  signUpOpen: boolean
   registering: boolean
 }>()
 
@@ -43,13 +45,20 @@ const {t} = useI18n()
  * answer at all, and what that means depends on the appointment: where everybody is expected it puts
  * the person back among them, and where a place has to be asked for it simply clears the refusal.
  * Reading this off the appointment alone once put "sign off" behind somebody who had already
- * refused.
+ * refused. A place already given up is asked for anew, so its button signs up.
  */
-function undoLabel(status: RegistrationStatus): string {
+function undoLabel(row: GivenAnswer<K, U>): string {
+  if (row.placeGivenUp) return t('eventsUpcoming.register')
+  const status: RegistrationStatus = row.status
   if (!isRefusal(status)) return t('eventsUpcoming.unregister')
   return props.requiresRegistration
       ? t('eventsUpcoming.undoDecline')
       : t('eventsUpcoming.register')
+}
+
+/** Whether a row offers anything to undo: a place given up only while signing up is still taken. */
+function canUndo(row: GivenAnswer<K, U>): boolean {
+  return !row.placeGivenUp || props.signUpOpen
 }
 </script>
 
@@ -63,7 +72,7 @@ function undoLabel(status: RegistrationStatus): string {
         : t('eventsUpcoming.heldByField') }}
     </MutedText>
     <SecondaryButton
-        v-else
+        v-else-if="canUndo(row)"
         :disabled="registering"
         :icon="['fas', 'rotate-left']"
         :data-testid="`undo-answer-${row.key}`"
@@ -71,7 +80,7 @@ function undoLabel(status: RegistrationStatus): string {
         class="text-sm"
         @click.stop="emit('undo', row.undo)"
     >
-      {{ undoLabel(row.status) }}
+      {{ undoLabel(row) }}
     </SecondaryButton>
 
     <PrimaryButton

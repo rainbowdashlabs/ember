@@ -71310,6 +71310,7 @@ export interface components {
             memberId: number;
             memberIdentity: components["schemas"]["MemberIdentity"] | null;
             memberName: string;
+            placeGivenUp: boolean;
             status: components["schemas"]["RegistrationStatus"];
         };
         RegistrationStatsResponse: {
