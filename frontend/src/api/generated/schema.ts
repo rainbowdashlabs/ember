@@ -72381,7 +72381,7 @@ export interface components {
             userTypes?: components["schemas"]["StationUserType"][] | null;
         };
         /** @enum {string} */
-        RestrictionType: "EVENT" | "EVENT_VIEW" | "EVENT_TEMPLATE" | "EVENT_TEMPLATE_VIEW" | "QUIZ_TEST" | "FORM" | "NEWS" | "KB_FOLDER" | "KB_FILE" | "DOCUMENT_TEMPLATE" | "DOCUMENT_TEMPLATE_STATION_USE" | "WITNESS_REACH" | "ATTENDANCE_TEMPLATE_TIME_RULE" | "ATTENDANCE_SESSION_TIME_RULE";
+        RestrictionType: "EVENT" | "EVENT_VIEW" | "EVENT_TEMPLATE" | "EVENT_TEMPLATE_VIEW" | "QUIZ_TEST" | "FORM" | "NEWS" | "KB_FOLDER" | "KB_FILE" | "DOCUMENT_TEMPLATE" | "DOCUMENT_TEMPLATE_STATION_USE" | "WITNESS_REACH" | "ATTENDANCE_TEMPLATE_TIME_RULE" | "ATTENDANCE_SESSION_TIME_RULE" | "PROCEDURE" | "PROCEDURE_TEMPLATE";
         ResultFieldCondition: {
             /** Format: int32 */
             fieldId?: number;
@@ -77990,6 +77990,8 @@ export const RestrictionType = {
     KB_FILE: "KB_FILE",
     KB_FOLDER: "KB_FOLDER",
     NEWS: "NEWS",
+    PROCEDURE: "PROCEDURE",
+    PROCEDURE_TEMPLATE: "PROCEDURE_TEMPLATE",
     QUIZ_TEST: "QUIZ_TEST",
     WITNESS_REACH: "WITNESS_REACH",
 } as const;

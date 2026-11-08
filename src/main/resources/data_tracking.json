@@ -1,7 +1,7 @@
 {
   "version": 1,
   "schemaHash": "sha256:770c7e3804fa6a5df231a2d29f04bad708c5add9c6fc03655cd640f104292c5d",
-  "generatedAt": "2026-11-08T20:06:36Z",
+  "generatedAt": "2026-11-08T20:15:44Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -22702,8 +22702,13 @@
         "rationale": "Belongs in station transfer; handler in StationExportService/StationImportService not yet implemented"
       },
       "gdprExport": {
-        "status": "IGNORED",
-        "reason": "Procedure data — pending detailed review for per-member fields"
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "about_member_id"
+          }
+        ]
       },
       "gdprDeletion": {
         "status": "IGNORED",
@@ -22831,6 +22836,10 @@
       ],
       "stationTransfer": {
         "status": "TRACKED",
+        "optionalReferences": [
+          "document_template_id",
+          "generation_id"
+        ],
         "rationale": "Belongs in station transfer; handler in StationExportService/StationImportService not yet implemented"
       },
       "gdprExport": {
@@ -22962,8 +22971,7 @@
         }
       ],
       "stationTransfer": {
-        "status": "TRACKED",
-        "rationale": "Belongs in station transfer; handler in StationExportService/StationImportService not yet implemented"
+        "status": "TRACKED"
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -23140,6 +23148,9 @@
       ],
       "stationTransfer": {
         "status": "TRACKED",
+        "optionalReferences": [
+          "document_template_id"
+        ],
         "rationale": "Belongs in station transfer; handler in StationExportService/StationImportService not yet implemented"
       },
       "gdprExport": {
@@ -23271,8 +23282,7 @@
         }
       ],
       "stationTransfer": {
-        "status": "TRACKED",
-        "rationale": "Belongs in station transfer; handler in StationExportService/StationImportService not yet implemented"
+        "status": "TRACKED"
       },
       "gdprExport": {
         "status": "IGNORED",

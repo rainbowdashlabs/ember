@@ -337,11 +337,9 @@ public class ProcedureRepository {
                 INSERT
                 INTO
                     procedure_restriction(procedure_id, member_id)
-                SELECT :procedure_id, :member_id
-                WHERE NOT EXISTS (SELECT 1
-                                  FROM procedure_restriction
-                                  WHERE procedure_id = :procedure_id
-                                    AND member_id = :member_id);""")
+                VALUES
+                    (:procedure_id, :member_id)
+                ON CONFLICT (member_id, procedure_id) WHERE member_id IS NOT NULL DO NOTHING;""")
                 .single(call().bind("procedure_id", procedureId).bind("member_id", memberId))
                 .insert();
     }

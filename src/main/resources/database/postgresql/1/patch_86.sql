@@ -232,6 +232,8 @@ CREATE TABLE IF NOT EXISTS ember_schema.procedure_restriction
 
 CREATE INDEX IF NOT EXISTS idx_procedure_restriction_procedure
     ON ember_schema.procedure_restriction (procedure_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_procedure_restriction_member
+    ON ember_schema.procedure_restriction (member_id, procedure_id) WHERE member_id IS NOT NULL;
 
 COMMENT ON TABLE ember_schema.procedure_restriction IS
     'The managing party of a procedure: who sees its public steps, ticks the steps marked for them and is told about it. Empty means nobody beyond those who edit procedures. Shaped like event_restriction.';
@@ -283,7 +285,8 @@ COMMENT ON COLUMN ember_schema.procedure_template_restriction.member_id IS
 
 ALTER TABLE ember_schema.procedure_template_item
     ADD COLUMN IF NOT EXISTS kind                 TEXT NOT NULL DEFAULT 'CHECK' CHECK (kind IN ('CHECK', 'DOCUMENT')),
-    ADD COLUMN IF NOT EXISTS document_template_id INT NULL REFERENCES ember_schema.document_template (id) ON DELETE SET NULL;
+    ADD COLUMN IF NOT EXISTS document_template_id INT NULL REFERENCES ember_schema.document_template (id) ON DELETE SET NULL,
+    ADD CONSTRAINT procedure_template_item_document_check CHECK (kind = 'DOCUMENT' OR document_template_id IS NULL);
 
 COMMENT ON COLUMN ember_schema.procedure_template_item.kind IS
     'CHECK for a step ticked by hand, DOCUMENT for a document to sign that ticks itself once settled.';
@@ -293,7 +296,12 @@ COMMENT ON COLUMN ember_schema.procedure_template_item.document_template_id IS
 ALTER TABLE ember_schema.procedure_item
     ADD COLUMN IF NOT EXISTS kind                 TEXT NOT NULL DEFAULT 'CHECK' CHECK (kind IN ('CHECK', 'DOCUMENT')),
     ADD COLUMN IF NOT EXISTS document_template_id INT NULL REFERENCES ember_schema.document_template (id) ON DELETE SET NULL,
-    ADD COLUMN IF NOT EXISTS generation_id        INT NULL REFERENCES ember_schema.document_generation (id) ON DELETE SET NULL;
+    ADD COLUMN IF NOT EXISTS generation_id        INT NULL REFERENCES ember_schema.document_generation (id) ON DELETE SET NULL,
+    ADD CONSTRAINT procedure_item_document_check
+        CHECK (kind = 'DOCUMENT' OR (document_template_id IS NULL AND generation_id IS NULL));
+
+CREATE INDEX IF NOT EXISTS idx_procedure_item_generation
+    ON ember_schema.procedure_item (generation_id) WHERE generation_id IS NOT NULL;
 
 COMMENT ON COLUMN ember_schema.procedure_item.kind IS
     'CHECK for a step ticked by hand, DOCUMENT for a document to sign that ticks itself once settled.';
