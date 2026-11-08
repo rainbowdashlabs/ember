@@ -87,6 +87,7 @@ import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
+import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
@@ -495,7 +496,8 @@ class DomainEventHandlerTest {
                 MEMBER_ID,
                 "Author",
                 "preview",
-                NEWS_MANAGERS));
+                NEWS_MANAGERS,
+                null));
 
         verify(notifier)
                 .notify(
@@ -525,7 +527,8 @@ class DomainEventHandlerTest {
                 MEMBER_ID,
                 "Author",
                 "preview",
-                NEWS_MANAGERS));
+                NEWS_MANAGERS,
+                null));
 
         verify(notifier, never()).notify(eq(StationAudience.member(MEMBER_ID)), any(), any(), any());
     }
@@ -545,6 +548,7 @@ class DomainEventHandlerTest {
                 MEMBER_ID,
                 "Author",
                 "preview",
+                null,
                 null));
 
         verify(notifier, never()).notify(any(), any(), any(), any());
@@ -565,7 +569,8 @@ class DomainEventHandlerTest {
                 MEMBER_ID,
                 "Author",
                 "preview",
-                NEWS_MANAGERS));
+                NEWS_MANAGERS,
+                null));
 
         verify(notifier).notify(any(), any(), any(), any());
         verifyTold(
@@ -573,6 +578,35 @@ class DomainEventHandlerTest {
                         .except(MEMBER_ID),
                 NotificationType.NEWS_COMMENT,
                 Delivery.ONCE_WHILE_UNREAD);
+    }
+
+    @Test
+    void aNewThreadTellsWhoeverRunsTheTargetAsAnAppointmentComment() {
+        var handler = new CommentCreatedHandler(notifier);
+        var managers = StationAudience.holders(STATION_ID, StationPermission.EVENT_MANAGER)
+                .except(MEMBER_ID);
+
+        handler.handle(new CommentCreated(
+                STATION_ID,
+                CommentEntityType.EVENT,
+                "Event Title",
+                NotificationLinks.comment(NotificationLinks.event(5), 100),
+                100,
+                null,
+                null,
+                MEMBER_ID,
+                "Author",
+                "preview",
+                null,
+                managers));
+
+        verify(notifier)
+                .notify(
+                        eq(managers),
+                        eq(NotificationType.EVENT_COMMENT),
+                        argThat(data -> new NotificationParams.EventComment("Event Title", "Author", "preview")
+                                .equals(data.params())),
+                        eq(Delivery.ONCE_WHILE_UNREAD));
     }
 
     @Test

@@ -91,6 +91,7 @@ const detailRoute = computed(() => ({
         :people="eligibleMembers"
         :answers="answers"
         :requires-registration="true"
+        :declinable="false"
         :has-managed-members="eligibleMembers.length > 1"
         :registering="registering != null"
         @register="people => emit('register', fed, people)"

@@ -163,6 +163,54 @@ class EventRepositoryTest extends RepositoryTestBase {
         }
     }
 
+    /**
+     * Declining a registration event is an answer, and so is giving up a place: neither leaves the event
+     * waiting for an answer, which is what kept the warnings coming for people who were not interested.
+     */
+    @Test
+    void aDeclinedOrGivenUpRegistrationAwaitsNoAnswer() {
+        Instant start = Instant.now().plus(java.time.Duration.ofDays(10));
+        var asked = eventRepo.create(
+                station.id(),
+                "Anmeldung",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plusSeconds(3600),
+                null,
+                true,
+                Instant.now().plus(java.time.Duration.ofDays(2)),
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        try {
+            var day = occurrenceCalendar.dateInView(asked).orElseThrow();
+            assertTrue(
+                    eventRegistrationRepo.findAwaitingAnswer(List.of(member.id())).stream()
+                            .anyMatch(a -> a.eventId() == asked.id()),
+                    "nobody has answered yet");
+
+            var answer = eventRegistrationRepo.create(asked.id(), member.id(), day, RegistrationStatus.DECLINED, null);
+            assertTrue(
+                    eventRegistrationRepo.findAwaitingAnswer(List.of(member.id())).stream()
+                            .noneMatch(a -> a.eventId() == asked.id()),
+                    "a decline is an answer");
+
+            eventRegistrationRepo.recordAnswer(answer.id(), RegistrationStatus.ACCEPTED);
+            eventRegistrationRepo.recordAnswer(answer.id(), RegistrationStatus.WITHDRAWN);
+            assertTrue(
+                    eventRegistrationRepo.findAwaitingAnswer(List.of(member.id())).stream()
+                            .noneMatch(a -> a.eventId() == asked.id()),
+                    "and so is a place given up");
+        } finally {
+            eventRepo.delete(asked.id());
+        }
+    }
+
     @Test
     void createReadUpdateDelete() {
         var event = eventRepo.create(

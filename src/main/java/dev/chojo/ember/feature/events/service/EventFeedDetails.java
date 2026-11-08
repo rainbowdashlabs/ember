@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 
@@ -39,6 +40,11 @@ public class EventFeedDetails implements FeedDetailsContributor {
     @Override
     public void contribute(NotificationParams params, Notification notification, FeedDetails details) {
         switch (params) {
+            case NotificationParams.EventComment(String eventName, String author, String preview) -> {
+                details.putIfPresent(details.label("by"), author);
+                details.putIfPresent(details.label("event", "Event"), eventName);
+                details.putSnippetIfPresent(details.label("preview", "Preview"), preview);
+            }
             case NotificationParams.NewEvent(String _, String eventDescription) -> {
                 details.putSnippetIfPresent(details.label("description", "Description"), eventDescription);
                 addEventContext(details);
@@ -120,6 +126,11 @@ public class EventFeedDetails implements FeedDetailsContributor {
             }
             default -> {}
         }
+    }
+
+    @Override
+    public @Nullable String author(NotificationParams params) {
+        return params instanceof NotificationParams.EventComment comment ? comment.author() : null;
     }
 
     /**

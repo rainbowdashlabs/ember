@@ -91,8 +91,8 @@ public class CommentMentions {
      * @param content  the text after it
      */
     public void announceAdded(Origin origin, String previous, String content) {
-        var members = members(origin.stationId(), content);
-        members.removeAll(members(origin.stationId(), previous));
+        var members = mentionedMembers(origin.stationId(), content);
+        members.removeAll(mentionedMembers(origin.stationId(), previous));
         members.stream()
                 .filter(memberId -> !memberId.equals(origin.authorMemberId()))
                 .forEach(memberId -> publishMember(origin, memberId));
@@ -102,7 +102,13 @@ public class CommentMentions {
         audiences.forEach(audience -> publishAudience(origin, audience));
     }
 
-    private Set<Integer> members(int stationId, String content) {
+    /**
+     * The members a comment mentions by name, as members of the station.
+     *
+     * @param stationId the station the comment is written in
+     * @param content   the comment's text
+     */
+    public Set<Integer> mentionedMembers(int stationId, String content) {
         var members = new LinkedHashSet<Integer>();
         var matcher = MEMBER_MENTION.matcher(content);
         int read = 0;

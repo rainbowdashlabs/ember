@@ -32,6 +32,14 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 @Singleton
 public class EventRegistrationRepository {
+    /**
+     * A registration row standing for an answer the member gave. Every status does except a
+     * withdrawal, and a withdrawal only where it gave up a place, which its previous status says: one
+     * taking back a refusal leaves no answer, and one the system wrote because the date went away
+     * ({@link #withdrawOnDates}) carries no previous status at all.
+     */
+    private static final String GIVEN_ANSWER =
+            "(er.status <> 'WITHDRAWN' OR er.previous_status IN ('PENDING', 'ACCEPTED'))";
 
     private static final String COLUMNS =
             "id, event_id, member_id, event_date, status, created_at, created_by, status_changed_at, previous_status, from_field, "
@@ -593,9 +601,13 @@ public class EventRegistrationRepository {
     /**
      * The members of a station who have said nothing about an event.
      *
-     * <p>Saying nothing means having no answer on record, or having taken one back: a withdrawn
-     * registration leaves the event without an answer again, which is exactly the state a reminder is for.
-     * Being turned down is an answer, and so is declining, so neither is asked again.
+     * <p>Saying nothing means having no answer on record. A decline, a place given up and being turned
+     * down all say where the member stands, so none of them is asked again. A refusal taken back leaves
+     * no answer, and a place the system withdrew because its date went away is no answer of the
+     * member's, so both are asked again.
+     *
+     * <p>Meant for appointments that have to be signed up for: on one that expects everybody, a
+     * withdrawal is a refusal taken back.
      *
      * <p>Eligibility is not decided here. It depends on the reader's rights as well as the event's
      * restrictions, so the caller filters what this returns.
@@ -614,7 +626,7 @@ public class EventRegistrationRepository {
                                   FROM event_registration er
                                   WHERE er.event_id = :event_id
                                     AND er.member_id = sm.id
-                                    AND er.status <> 'WITHDRAWN');""")
+                                    AND %s);""", GIVEN_ANSWER)
                 .single(call().bind("event_id", eventId).bind("station_id", stationId))
                 .map(row -> row.getInt("member_id"))
                 .all();
@@ -657,8 +669,8 @@ public class EventRegistrationRepository {
                                   FROM event_registration er
                                   WHERE er.event_id = e.id
                                     AND er.member_id = sm.id
-                                    AND er.status <> 'WITHDRAWN')
-                ORDER BY e.registration_deadline, e.id;""", CancellationSql.NO_DATE_CANCELLED)
+                                    AND %s)
+                ORDER BY e.registration_deadline, e.id;""", CancellationSql.NO_DATE_CANCELLED, GIVEN_ANSWER)
                 .single(call().bind("member_ids", memberIds, PostgreSqlTypes.INTEGER))
                 .map(row -> new AwaitingAnswer(
                         row.getInt("event_id"),

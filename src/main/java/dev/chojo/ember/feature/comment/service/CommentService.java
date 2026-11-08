@@ -16,11 +16,13 @@ import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.CommentFilter;
 import dev.chojo.ember.feature.comment.entity.CommentWriter;
+import dev.chojo.ember.feature.comment.entity.CreatedAudience;
 import dev.chojo.ember.feature.comment.entity.Moderation;
 import dev.chojo.ember.feature.comment.entity.NewComment;
 import dev.chojo.ember.feature.comment.entity.TargetInfo;
 import dev.chojo.ember.feature.comment.repository.CommentRepository;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -227,7 +229,8 @@ public class CommentService {
         Integer authorMemberId = resolveLocalMemberId(stationId, writer.identity());
         Integer parentAuthorId = audience.parentAuthor() ? parentAuthorOf(stationId, comment) : null;
         boolean answersSomebodyElse = parentAuthorId != null && !parentAuthorId.equals(authorMemberId);
-        if (answersSomebodyElse || audience.others() != null) {
+        var toldOfNewThread = toldOfNewThread(audience, stationId, comment, authorMemberId);
+        if (answersSomebodyElse || audience.others() != null || toldOfNewThread != null) {
             eventBus.publish(new CommentCreated(
                     stationId,
                     target.type(),
@@ -239,12 +242,31 @@ public class CommentService {
                     authorMemberId,
                     writer.name(),
                     preview(comment.content()),
-                    audience.others()));
+                    audience.others(),
+                    toldOfNewThread));
         }
         if (audience.mentions()) {
             mentions.announce(
                     origin(target, comment.id(), authorMemberId, writer.name(), comment.content()), comment.content());
         }
+    }
+
+    /**
+     * Who hears that a new thread was started: whoever runs the target, for a top-level comment only.
+     * The author is left out, and so is everybody the comment mentions by name where mentions are
+     * announced, because they are told by the mention already.
+     */
+    private @Nullable StationAudience toldOfNewThread(
+            CreatedAudience audience, int stationId, Comment comment, @Nullable Integer authorMemberId) {
+        var runners = audience.newThreads();
+        if (runners == null || comment.parentId() != null) return null;
+        var told = runners.except(authorMemberId);
+        if (audience.mentions()) {
+            for (int mentioned : mentions.mentionedMembers(stationId, comment.content())) {
+                told = told.except(mentioned);
+            }
+        }
+        return told;
     }
 
     private @Nullable Integer parentAuthorOf(int stationId, Comment comment) {

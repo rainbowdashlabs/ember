@@ -245,7 +245,8 @@ public class EventRegistrationRoutes implements Routes {
                 answersMissing,
                 r.fromField(),
                 r.fromField() ? lookups.namingField(r) : null,
-                r.agreementWithdrawnAt());
+                r.agreementWithdrawnAt(),
+                r.gaveUpPlace());
     }
 
     /**
@@ -984,7 +985,12 @@ public class EventRegistrationRoutes implements Routes {
              * while the registration stood, which flags it for whoever runs the appointment; null where none
              * was, or once it was signed anew.
              */
-            @Nullable Instant agreementWithdrawnAt) {}
+            @Nullable Instant agreementWithdrawnAt,
+            /**
+             * Whether the member gave up a place they held or asked for, which is an answer they gave
+             * and is shown as one, where any other withdrawal leaves no answer at all.
+             */
+            boolean placeGivenUp) {}
 
     public record EventRegisterRequest(String eventDate, Integer memberId, List<EventRegistrationFieldValue> fields) {}
 

@@ -2,7 +2,7 @@
 
 ## v26.24.0
 
-Attendance can credit time spent before and after an appointment. A template names who prepares or tidies up and how many minutes that is worth. The attendance report counts those minutes in each person's hours. A member's equipment is handed out and taken back on the member's own page, which opens with the tabs each reader may see. Tabs on the main pages can be linked by their address. Missing equipment stands among the pieces a member holds and is handed out from a searchable window. The German interface uses one name for equipment movements throughout. Signatures can be collected in person from trial users and members without a login. The person collecting them confirms with their own account that each one signed in front of them. Templates say for whom they are meant, wherever a document is made from them.
+Attendance can credit time spent before and after an appointment, and the report counts those minutes in each person's hours. A member's equipment is handed out and taken back on the member's own page, which opens with the tabs each reader may see. Tabs on the main pages can be linked by their address. Missing equipment stands among the pieces a member holds and is handed out from a searchable window. The German interface uses one name for equipment movements throughout. Appointments that need a sign-up can be declined, which ends the reminders that registration is closing. Appointment managers are notified about every new conversation on an appointment. Signatures can be collected in person from trial users and members without a login, confirmed by the account of whoever collects them. Templates say for whom they are meant, wherever a document is made from them.
 
 ### New Features
 
@@ -10,9 +10,11 @@ Attendance can credit time spent before and after an appointment. A template nam
 - **Signatures collected in person.** A member with the new permission "Collect signatures in person" picks someone from a list of open signatures or makes a document from a template, then hands the device over to read, agree and draw. The witness confirms with their own account, and the signature record and the verification page name the witness beside the person who signed.
 - **Whom witnesses reach can be narrowed.** Right under the permission, a station can limit its witnesses to some of its members and trial users, for example to trial users or one group. Without a choice they reach all of them.
 - **Signing in person right after generating.** After a document is made on a member's page, the step that asks for signatures also offers "Sign in person". Nobody is notified, and the witness flow opens at the document's first signature.
+- **Appointment managers hear about new comments.** Every new comment that starts a thread under an appointment notifies those who manage appointments, also when it comes from a member of a partner station. The notification has its own row in the notification settings, and a manager mentioned in the comment only gets the mention.
 
 ### Improvements
 
+- **Appointments that need a sign-up can be declined.** The appointment page, the upcoming list and the dashboard offer "Sign off" while registration is open. Whoever signs off or gives up a place gets no more reminders that registration is closing, and can sign up again while it is open.
 - **Tabs can be linked.** The address names the open tab on member, appointment, test, template and form evaluation pages, so a link or a bookmark opens the same tab, such as `/station/members/detail/12#inventory`.
 - **Member pages open with the tabs a reader may see.** Each tab of a member's page appears for those allowed to see its content, and the page opens as long as one is left. Someone who may see the inventory but not member profiles opens a member's page with its Inventory tab.
 - **Pages show their loading indicator in the middle.** While a page or a section loads, its spinning wheel stands centred on a line of its own instead of in the top left corner.

@@ -7,7 +7,9 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import AnsweredAnswers from './eventregistrationactions/AnsweredAnswers.vue'
 import SignOffConfirm from './eventregistrationactions/SignOffConfirm.vue'
@@ -17,10 +19,9 @@ import {isRefusal, notOpenLabelKey, type AnswerablePerson, type GivenAnswer} fro
 /**
  * Answering an appointment, for oneself and for whoever one answers for.
  *
- * <p>An appointment takes one answer, and which answer it is depends on what it expects. One that has
- * to be signed up for expects nobody unless they say so, so the only thing to say is that you are
- * coming. One that expects everybody is the other way round: the only thing to say is that you are
- * not coming.
+ * <p>What an appointment asks depends on what it expects. One that has to be signed up for expects
+ * nobody unless they say so: the answer is coming, or not coming for whoever wants no more reminders
+ * that registration is closing. One that expects everybody takes only the refusal.
  *
  * <p>Undoing is a deletion in both directions, never the opposite answer written down. Somebody who
  * takes back their place has not refused the appointment, and somebody who takes back their refusal
@@ -30,7 +31,7 @@ import {isRefusal, notOpenLabelKey, type AnswerablePerson, type GivenAnswer} fro
  * controls serve the station's own appointments and those a partner station shares. A second copy for
  * the partner's ones drifted away from this one the moment either was touched.
  */
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   /** Everyone the appointment can be answered for here, whether they have answered or not. */
   people: AnswerablePerson<K>[]
   /** What each of them has said so far. */
@@ -40,7 +41,12 @@ const props = defineProps<{
   registrationDeadline?: string | null
   hasManagedMembers: boolean
   registering: boolean
-}>()
+  /**
+   * Whether an appointment that has to be signed up for can also be refused here. A partner station
+   * takes sign-ups only, so its appointments are not.
+   */
+  declinable?: boolean
+}>(), {declinable: true, registrationDeadline: null})
 
 const emit = defineEmits<{
   register: [people: AnswerablePerson<K>[]]
@@ -87,6 +93,13 @@ const buttonLabel = computed(() => {
   return t(forLabel, {name: open[0]!.name})
 })
 
+/** What the refusal beside the sign-up says, naming the person where it answers for one of a household. */
+const declineLabel = computed(() => {
+  const open = peopleWithoutAnswer.value
+  if (!props.hasManagedMembers || open.length !== 1) return t('eventsUpcoming.decline')
+  return t('eventsUpcoming.declineFor', {name: open[0]!.name})
+})
+
 /**
  * Signing somebody off, which is the one answer worth asking about twice.
  *
@@ -123,9 +136,25 @@ function answer() {
 }
 
 /**
- * Taking an answer back. Only giving up a place asks first: undoing a refusal costs nobody anything.
+ * Saying "not coming" to an appointment that has to be signed up for, for everybody still open.
+ *
+ * <p>Nobody here holds a place, so nothing is lost and nothing is asked first. It stops the reminders
+ * that registration is closing, for whoever simply has no time on that date.
+ */
+function declineRegistration() {
+  emit('decline', peopleWithoutAnswer.value)
+}
+
+/**
+ * Taking an answer back. Only giving up a place asks first: undoing a refusal costs nobody anything. A
+ * place already given up is not taken back but asked for anew.
  */
 function undoAnswer(answered: GivenAnswer<K, U>) {
+  if (answered.placeGivenUp) {
+    const person = props.people.find(entry => entry.key === answered.key)
+    if (person) emit('register', [person])
+    return
+  }
   if (isRefusal(answered.status)) {
     emit('withdraw', answered.undo)
     return
@@ -143,11 +172,11 @@ function onUndo(reference: U) {
   <div data-onboarding="events.item.pending" class="space-y-1">
     <AnsweredAnswers
         :rows="answers" :show-names="hasManagedMembers" :requires-registration="requiresRegistration"
-        :registering="registering" @undo="onUndo" @update="reference => emit('update', reference)"/>
+        :sign-up-open="stillOpen" :registering="registering" @undo="onUndo" @update="reference => emit('update', reference)"/>
 
     <MutedText v-if="notOpenLabel" class="text-sm">{{ notOpenLabel }}</MutedText>
 
-    <div v-if="peopleWithoutAnswer.length > 0 && canAnswer" class="flex flex-wrap items-center gap-2">
+    <ButtonRow v-if="peopleWithoutAnswer.length > 0 && canAnswer" :pair="requiresRegistration && declinable">
       <PrimaryButton
           v-if="requiresRegistration"
           :disabled="registering"
@@ -159,8 +188,18 @@ function onUndo(reference: U) {
         <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
         {{ buttonLabel }}
       </PrimaryButton>
+      <SecondaryButton
+          v-if="requiresRegistration && declinable"
+          :disabled="registering"
+          data-testid="decline-registration"
+          class="text-sm"
+          @click.stop="declineRegistration"
+      >
+        <font-awesome-icon :icon="['fas', 'ban']" class="mr-1"/>
+        {{ declineLabel }}
+      </SecondaryButton>
       <ErrorButton
-          v-else
+          v-else-if="!requiresRegistration"
           :disabled="registering"
           data-onboarding="events.item.attendance"
           data-testid="answer-selected"
@@ -170,7 +209,7 @@ function onUndo(reference: U) {
         <font-awesome-icon :icon="['fas', 'ban']" class="mr-1"/>
         {{ buttonLabel }}
       </ErrorButton>
-    </div>
+    </ButtonRow>
 
     <SignOffConfirm v-model="showSignOffConfirm" :busy="registering" @confirm="confirmSignOff"/>
   </div>

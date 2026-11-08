@@ -281,8 +281,8 @@ test.describe('Guardian', () => {
 
             await page.goto(`/station/events/${eventId}`)
             await page.getByRole('tab', {name: 'Anmeldungen'}).click()
-            await expect(page.getByTestId(`my-answer-${gives}`), 'the place is gone, not turned into a refusal')
-                .toHaveText('Noch keine Antwort', {timeout: 15000})
+            await expect(page.getByTestId(`my-answer-${gives}`), 'the place given up reads as signed off')
+                .toHaveText('Abgemeldet', {timeout: 15000})
 
             await managerPage.request.delete(`/api/v1/events/${eventId}`, {headers: managerHeaders})
             await page.context().close()

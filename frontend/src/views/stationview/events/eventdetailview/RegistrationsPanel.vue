@@ -138,7 +138,7 @@ const registrationSummary = computed(() => {
     if (r.status === RegistrationStatus.ACCEPTED) accepted++
     else if (r.status === RegistrationStatus.PENDING) pending++
     else if (r.status === RegistrationStatus.DENIED) denied++
-    else if (saysNotComing(r.status, !!props.event.requiresRegistration)) declined++
+    else if (saysNotComing(r, !!props.event.requiresRegistration)) declined++
   }
   return {accepted, pending, denied, declined}
 })

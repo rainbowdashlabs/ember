@@ -37,7 +37,7 @@ import EventAnswerDialog from '../eventshared/EventAnswerDialog.vue'
 import RegistrationSigningStep from '../eventshared/RegistrationSigningStep.vue'
 import {useRegistrationSigningStep} from '@/composables/useRegistrationSigningStep'
 import {useHouseholdSignOff} from './useHouseholdSignOff'
-import {isStandingAnswer, membersToRegister, notOpenLabelKey, type AnswerablePerson, type PersonAnswer} from '@/util/eventAnswers'
+import {holdsOrAwaitsPlace, isMembersAnswer, maySignUp, membersToRegister, notOpenLabelKey, type AnswerablePerson, type PersonAnswer} from '@/util/eventAnswers'
 
 const props = defineProps<{
   event: StationEvent
@@ -122,12 +122,17 @@ function getRegistrationForMember(memberId: number): RegistrationResponse | unde
 
 /**
  * The answer this member currently has standing, which is what their own side of the screen is
- * about. A place given back is none, and saying otherwise left them looking at a state they could
- * not leave.
+ * about. A place given up is one, shown as signed off, and signing up again stays on offer; a refusal
+ * taken back is none.
  */
 function standingRegistrationFor(memberId: number): RegistrationResponse | undefined {
   const registration = getRegistrationForMember(memberId)
-  return registration && isStandingAnswer(registration) ? registration : undefined
+  return registration && isMembersAnswer(registration) ? registration : undefined
+}
+
+/** What the member's own answer reads as: a place given up reads as signed off, like everywhere else. */
+function myAnswerLabel(registration: RegistrationResponse): string {
+  return registration.placeGivenUp ? t('eventsUpcoming.statusDeclined') : statusLabel(registration.status)
 }
 
 function statusLabel(status: string): string {
@@ -263,13 +268,13 @@ function answerForHousehold() {
  */
 const withPlace = computed(() =>
     household.value.filter(person => {
-      const registration = standingRegistrationFor(person.key)
-      return registration !== undefined && !registration.fromField
+      const registration = getRegistrationForMember(person.key)
+      return registration !== undefined && holdsOrAwaitsPlace(registration) && !registration.fromField
     }))
 
-/** Everyone still to answer, which is who the sign-up button is for. */
+/** Everyone who may still sign up, which is who the sign-up button is for. */
 const withoutPlace = computed(() =>
-    household.value.filter(person => standingRegistrationFor(person.key) === undefined))
+    household.value.filter(person => maySignUp(getRegistrationForMember(person.key))))
 
 const answerLabel = computed(() =>
     withoutPlace.value.length > 1 ? t('events.answerForAll') : t('eventsUpcoming.register'))
@@ -395,7 +400,7 @@ onMounted(loadRegistrations)
             :is="standingRegistrationFor(member.key)!.status === RegistrationStatus.ACCEPTED ? SuccessBadge : standingRegistrationFor(member.key)!.status === RegistrationStatus.PENDING ? InfoBadge : ErrorBadge"
             v-if="standingRegistrationFor(member.key)"
             :data-testid="`my-answer-${member.key}`">
-          {{ statusLabel(standingRegistrationFor(member.key)!.status) }}
+          {{ myAnswerLabel(standingRegistrationFor(member.key)!) }}
         </component>
         <SecondaryBadge v-else :data-testid="`my-answer-${member.key}`">{{ t('eventDetail.noAnswerYet') }}</SecondaryBadge>
       </div>
