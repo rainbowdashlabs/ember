@@ -553,6 +553,71 @@ class EventServicesTest extends RepositoryTestBase {
         assertEquals(RegistrationStatus.DECLINED, reg.status());
     }
 
+    /**
+     * Declining a registration event is no promise never to come: somebody with no time on first sight
+     * can still register while registration is open, and the registration replaces the decline.
+     */
+    @Test
+    void aDeclineOfARegistrationEventCanBeFollowedByARegistration() {
+        var start = Instant.now().plus(14, ChronoUnit.DAYS);
+        var event = crudService.create(
+                station.id(),
+                "Erst abgemeldet",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                true,
+                null,
+                false,
+                categoryId,
+                null,
+                null,
+                null,
+                null);
+        LocalDate day = LocalDate.ofInstant(start, stationZone());
+
+        var declined = registrationService.decline(event.id(), member.id(), day, null);
+        var registered = registrationService.register(event.id(), member.id(), day, false, null);
+
+        assertEquals(RegistrationStatus.DECLINED, declined.status());
+        assertEquals(declined.id(), registered.id(), "the same answer, changed");
+        assertEquals(RegistrationStatus.PENDING, registered.status());
+    }
+
+    /** Giving up a place is an answer: whoever withdrew is not warned that registration is closing. */
+    @Test
+    void aMemberWhoGaveUpTheirPlaceIsNotAskedAgain() {
+        var start = Instant.now().plus(15, ChronoUnit.DAYS);
+        var event = crudService.create(
+                station.id(),
+                "Platz zurueckgegeben",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                true,
+                null,
+                false,
+                categoryId,
+                null,
+                null,
+                null,
+                null);
+        LocalDate day = LocalDate.ofInstant(start, stationZone());
+        var registered = registrationService.register(event.id(), member.id(), day, false, null);
+
+        assertTrue(registrationService.withdraw(registered.id()));
+
+        assertFalse(eventRegistrationRepo
+                .findUnansweredMemberIds(event.id(), station.id())
+                .contains(member.id()));
+    }
+
     /** An appointment that expects everybody, which is answered only with a refusal. */
     private StationEvent appointmentWithoutRegistration(String name, int inDays) {
         var start = Instant.now().plus(inDays, ChronoUnit.DAYS);
