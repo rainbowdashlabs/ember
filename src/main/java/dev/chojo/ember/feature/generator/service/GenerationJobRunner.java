@@ -46,8 +46,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * which is what carries a run on after a restart.
  *
  * <p>A member fails on their own and the run goes on: missing data where the run does not file gaps, a
- * letter that asks one person to sign twice, an archived template, and anything that goes wrong while
- * drawing or filing. The cooldown of self service does not apply, as for any document a manager files.
+ * letter that asks one person to sign twice, an archived template, a member the template is not meant
+ * for, and anything that goes wrong while drawing or filing. The cooldown of self service does not apply, as for any document a manager files.
  */
 @Singleton
 public class GenerationJobRunner implements TaskSource {
@@ -123,6 +123,7 @@ public class GenerationJobRunner implements TaskSource {
         for (int memberId : waiting) {
             try {
                 if (template.archived()) throw DocumentRefusal.DOCUMENT_TEMPLATE_ARCHIVED.raise();
+                generation.requireMeantFor(template, job.stationId(), memberId);
                 var prepared = batch.prepare(source, memberId, context);
                 if (!job.acceptMissing()) {
                     generator.requireComplete(prepared, DocumentRefusal.DOCUMENT_JOB_VALUES_MISSING);

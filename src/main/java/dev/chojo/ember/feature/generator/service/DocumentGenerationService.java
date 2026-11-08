@@ -154,14 +154,21 @@ public class DocumentGenerationService {
 
     /**
      * The templates in use a manager can generate documents from: the station's own and those of its
-     * association.
+     * association, only those meant for the member where one is named.
      *
-     * @param owner the station
-     * @param query the search, order and page
+     * @param owner    the station
+     * @param query    the search, order and page
+     * @param memberId the member the document is for, or null where none is chosen yet
      * @return the page of templates asked for
      */
-    public TemplateQuery.TemplatePage usable(Owner.Station owner, TemplateQuery query) {
-        return query.pageOf(templates.list(owner, false));
+    public TemplateQuery.TemplatePage usable(Owner.Station owner, TemplateQuery query, @Nullable Integer memberId) {
+        var listed = templates.list(owner, false);
+        if (memberId == null) return query.pageOf(listed);
+        var member = templates.audienceMember(memberId);
+        return query.pageOf(listed.stream()
+                .filter(template ->
+                        templates.meantFor(template.id(), template.ofAssociation(), owner.stationId(), member))
+                .toList());
     }
 
     /**
@@ -196,6 +203,7 @@ public class DocumentGenerationService {
             @Nullable IssuerChoice issuer,
             Map<String, String> answers) {
         var template = templates.requireInUse(session.stationId(), templateId);
+        templates.requireMeantFor(template, session.stationId(), memberId);
         return generator.preview(
                 generator.sourceOf(template), memberId, managerContext(session, template, issuer, answers));
     }
@@ -329,21 +337,37 @@ public class DocumentGenerationService {
             @Nullable IssuerChoice issuer,
             Map<String, String> answers) {
         var template = templates.requireInUse(session.stationId(), templateId);
+        templates.requireMeantFor(template, session.stationId(), memberId);
         var prepared = generator.prepare(template, memberId, managerContext(session, template, issuer, answers));
         return file(template, memberId, session.member().id(), GenerationOrigin.MANAGER, prepared);
     }
 
     /**
      * The templates in use a witness can generate a document from for the person in front of them: those
-     * whose documents ask the member or a guardian to sign.
+     * meant for the person whose documents ask the member or a guardian to sign.
      *
-     * @param station the station
+     * @param station  the station
+     * @param memberId the person
      * @return the templates by name
      */
-    public List<DocumentTemplate> askingMemberSignatures(Owner.Station station) {
+    public List<DocumentTemplate> askingMemberSignatures(Owner.Station station, int memberId) {
+        var member = templates.audienceMember(memberId);
         return templates.inUse(station).stream()
+                .filter(template ->
+                        templates.meantFor(template.id(), template.ofAssociation(), station.stationId(), member))
                 .filter(template -> generator.sourceOf(template).asksMemberSideToSign(MemberView.EVERYBODY))
                 .toList();
+    }
+
+    /**
+     * Refuses a template for a member it is not meant for, for a run that generates for many.
+     *
+     * @param template  the template
+     * @param stationId the station the document would be filed at
+     * @param memberId  the member
+     */
+    public void requireMeantFor(DocumentTemplate template, int stationId, int memberId) {
+        templates.requireMeantFor(template, stationId, memberId);
     }
 
     /**
@@ -358,6 +382,7 @@ public class DocumentGenerationService {
      */
     public GeneratedDocumentResponse generateForWitness(StationSession session, int templateId, int memberId) {
         var template = templates.requireInUse(session.stationId(), templateId);
+        templates.requireMeantFor(template, session.stationId(), memberId);
         if (!generator.sourceOf(template).asksMemberSideToSign(MemberView.EVERYBODY)) {
             throw DocumentRefusal.SIGNING_NO_FIELDS.raise();
         }

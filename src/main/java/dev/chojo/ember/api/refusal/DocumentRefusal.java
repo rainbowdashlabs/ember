@@ -793,7 +793,10 @@ public enum DocumentRefusal implements Refusal {
     SIGNING_WITNESS_FIELD_NOT_OFFERED(328, HttpStatus.FORBIDDEN, "This field is not signed in front of a witness"),
 
     /** A person picked to sign in front of a witness whom the field does not name. */
-    SIGNING_WITNESS_SIGNER_NOT_NAMED(329, HttpStatus.BAD_REQUEST, "This field does not ask this person to sign");
+    SIGNING_WITNESS_SIGNER_NOT_NAMED(329, HttpStatus.BAD_REQUEST, "This field does not ask this person to sign"),
+
+    /** A document generated for a member the template is not meant for, as its audience says. */
+    DOCUMENT_TEMPLATE_NOT_FOR_MEMBER(330, HttpStatus.FORBIDDEN, "This template is not meant for this member");
 
     private final Definition definition;
 

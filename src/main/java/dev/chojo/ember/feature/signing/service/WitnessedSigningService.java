@@ -142,7 +142,7 @@ public class WitnessedSigningService {
                 .filter(pending -> reach.offers(session, pending.field()))
                 .map(pending -> witnessed(session, pending))
                 .toList();
-        return new Offers(fields, generation.askingMemberSignatures(session.owner()));
+        return new Offers(fields, generation.askingMemberSignatures(session.owner(), person.id()));
     }
 
     /**

@@ -15544,6 +15544,13 @@
             "type" : "integer",
             "format" : "int32"
           }
+        }, {
+          "name" : "memberId",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
         } ]
       }
     },

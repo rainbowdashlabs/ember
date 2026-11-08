@@ -31,6 +31,7 @@ import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.entity.SubjectRole;
 import dev.chojo.ember.feature.generator.entity.TemplateQuestion;
 import dev.chojo.ember.feature.generator.entity.TemplateQuestionKind;
+import dev.chojo.ember.feature.generator.entity.TemplateSort;
 import dev.chojo.ember.feature.generator.entity.TextFormat;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
@@ -905,7 +906,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 row(signature(SignatureRole.ANY_GUARDIAN, "")));
         var witness = as(guardian, StationPermission.DOCUMENT_SIGN_OTHERS);
 
-        var offered = generation.askingMemberSignatures(owner).stream()
+        var offered = generation.askingMemberSignatures(owner, lena.id()).stream()
                 .map(template -> template.id())
                 .toList();
         assertTrue(offered.contains(hiddenSigned));
@@ -921,6 +922,61 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         refused(
                 DocumentRefusal.DOCUMENT_SELF_SERVICE_VALUES_MISSING,
                 () -> generation.generateForWitness(witness, needsGuardian, max.id()));
+    }
+
+    /**
+     * A template meant for members only is not generated for a guardian: a manager, a preview and a witness
+     * are refused, and neither the manager's picker nor the witness's list offers it for them, while a
+     * member it is meant for gets it as before.
+     */
+    @Test
+    void aTemplateIsGeneratedOnlyForTheMembersItIsMeantFor() throws IOException {
+        int forMembers = templates
+                .create(
+                        owner,
+                        letterOf(
+                                        "Fotoerlaubnis Mitglieder",
+                                        false,
+                                        false,
+                                        0,
+                                        List.of(row(signature(SignatureRole.PARTICIPANT, ""))))
+                                .audience(new RestrictionAudience(
+                                        List.of(StationUserType.MEMBER),
+                                        List.of(),
+                                        List.of(),
+                                        List.of(),
+                                        RestrictionMode.AND))
+                                .issuer(manager.id(), "Jugendwartin")
+                                .build(),
+                        author)
+                .id();
+        var filer = as(manager, StationPermission.DOCUMENT_EDIT_MEMBER);
+        var witness = as(manager, StationPermission.DOCUMENT_SIGN_OTHERS);
+        var everything = new TemplateQuery(null, null, null, TemplateSort.NAME, 0, TemplateQuery.MAX_SIZE);
+
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_MEMBER,
+                () -> generation.generate(filer, forMembers, guardian.id(), null));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_MEMBER,
+                () -> generation.preview(filer, forMembers, guardian.id(), null));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_MEMBER,
+                () -> generation.generateForWitness(witness, forMembers, guardian.id()));
+        assertFalse(idsOf(generation.usable(owner, everything, guardian.id())).contains(forMembers));
+        assertTrue(idsOf(generation.usable(owner, everything, lena.id())).contains(forMembers));
+        assertTrue(idsOf(generation.usable(owner, everything, null)).contains(forMembers));
+        assertFalse(generation.askingMemberSignatures(owner, guardian.id()).stream()
+                .anyMatch(template -> template.id() == forMembers));
+
+        var filed = generation.generate(filer, forMembers, lena.id(), null);
+        assertTrue(memberDocumentRepo.findById(filed.documentId()).isPresent());
+    }
+
+    private static List<Integer> idsOf(TemplateQuery.TemplatePage page) {
+        return page.items().stream()
+                .map(DocumentTemplateService.DocumentTemplateSummary::id)
+                .toList();
     }
 
     /**

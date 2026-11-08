@@ -35,6 +35,7 @@ import dev.chojo.ember.feature.generator.repository.TemplateQuestionRepository;
 import dev.chojo.ember.feature.generator.repository.TemplateStationUseRepository;
 import dev.chojo.ember.feature.generator.service.store.OwnerStores;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.RestrictionMember;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.owner.Owner;
@@ -198,6 +199,63 @@ public class DocumentTemplateService {
                 .filter(template ->
                         template.owner().equals(new Owner.Station(stationId)) || keptForStation(template, stationId))
                 .orElseThrow(DocumentRefusal.DOCUMENT_TEMPLATE_NOT_HERE::raise);
+    }
+
+    /**
+     * Whether a template is meant for a member read before, for a caller that asks about several templates
+     * for one member: the members its documents may be generated for, by a manager, a bulk run, a witness,
+     * an appointment or the member themselves.
+     *
+     * <p>A station's own template says it in its audience. A template of the association says it per
+     * station, in the audience the station chose for it; a station that chose nothing takes in everybody.
+     * An audience naming nobody takes in every member.
+     *
+     * @param templateId    the template
+     * @param ofAssociation whether the template is the association's rather than the station's own
+     * @param stationId     the station the document would be filed at
+     * @param member        the member as restrictions see them, or null where there is no such member
+     * @return whether the template is meant for the member
+     */
+    public boolean meantFor(int templateId, boolean ofAssociation, int stationId, @Nullable RestrictionMember member) {
+        if (member == null) return false;
+        if (!ofAssociation) return restrictions.includes(RestrictionType.DOCUMENT_TEMPLATE, templateId, member);
+        return uses.find(templateId, stationId)
+                .map(use -> restrictions.includes(RestrictionType.DOCUMENT_TEMPLATE_STATION_USE, use.id(), member))
+                .orElse(true);
+    }
+
+    /**
+     * Whether a template is meant for a member, as {@link #meantFor(int, boolean, int, RestrictionMember)}
+     * answers it.
+     *
+     * @param template  the template
+     * @param stationId the station the document would be filed at
+     * @param memberId  the member
+     * @return whether the template is meant for the member
+     */
+    public boolean meantFor(DocumentTemplate template, int stationId, int memberId) {
+        return meantFor(template.id(), template.ofAssociation(), stationId, audienceMember(memberId));
+    }
+
+    /**
+     * Refuses a template for a member it is not meant for.
+     *
+     * @param template  the template
+     * @param stationId the station the document would be filed at
+     * @param memberId  the member
+     */
+    public void requireMeantFor(DocumentTemplate template, int stationId, int memberId) {
+        if (!meantFor(template, stationId, memberId)) throw DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_MEMBER.raise();
+    }
+
+    /**
+     * A member as a template's audience sees them, for asking about several templates at once.
+     *
+     * @param memberId the member
+     * @return the member, or null where there is no such member
+     */
+    public @Nullable RestrictionMember audienceMember(int memberId) {
+        return restrictions.memberOf(memberId).orElse(null);
     }
 
     /**

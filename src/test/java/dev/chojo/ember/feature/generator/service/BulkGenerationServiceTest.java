@@ -291,6 +291,30 @@ class BulkGenerationServiceTest extends GeneratorTestBase {
                 resultOf(bulk.job(wiring.station().id(), jobId), anna).status());
     }
 
+    /** A member a template is not meant for fails in a run with that reason, and the run files the others. */
+    @Test
+    void aRunFailsTheMembersTheTemplateIsNotMeantFor() {
+        var members = new RestrictionAudience(
+                List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), RestrictionMode.AND);
+        var request = letter("Nur Mitglieder")
+                .body(List.of(row(text("{{member.fullName}}"))))
+                .audience(members)
+                .issuer(manager.id(), "Jugendwartin")
+                .build();
+        int forMembers =
+                wiring.templates().create(wiring.owner(), request, manager.id()).id();
+        int jobId = jobs.create(
+                wiring.station().id(), forMembers, manager.id(), true, issuer(), List.of(anna.id(), carla.id()));
+
+        runner().run(jobId);
+
+        var job = bulk.job(wiring.station().id(), jobId);
+        assertEquals(JobMemberStatus.FILED, resultOf(job, anna).status());
+        assertEquals(
+                DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_MEMBER.code(),
+                resultOf(job, carla).refusalCode());
+    }
+
     @Test
     void aRunOfAnArchivedTemplateFailsItsMembers() {
         int archived = template("Archiviert");

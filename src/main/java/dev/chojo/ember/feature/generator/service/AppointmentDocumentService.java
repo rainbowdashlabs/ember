@@ -210,8 +210,10 @@ public class AppointmentDocumentService {
         var offers = event.requiresRegistration() ? Set.<Offer>of() : offers(event, own);
         return new AppointmentDocuments(
                 required,
-                participantsOf(own, required, copies.asParticipantsSee(), offers, Map.of()),
-                overview ? participantsOf(everyone, required, copies, Set.of(), withdrawals(event, date)) : null);
+                participantsOf(event, own, required, copies.asParticipantsSee(), offers, Map.of()),
+                overview
+                        ? participantsOf(event, everyone, required, copies, Set.of(), withdrawals(event, date))
+                        : null);
     }
 
     /** When each participant whose registration is flagged withdrew a signed agreement, by participant. */
@@ -305,17 +307,38 @@ public class AppointmentDocumentService {
     }
 
     private List<ParticipantDocuments> participantsOf(
+            StationEvent event,
             Collection<Integer> memberIds,
             List<RequiredTemplate> required,
             Copies copies,
             Set<Offer> offers,
             Map<Integer, Instant> withdrawn) {
+        var associations = new HashMap<Integer, Boolean>();
+        required.forEach(template -> associations.put(
+                template.templateId(),
+                templates
+                        .find(template.templateId())
+                        .map(DocumentTemplate::ofAssociation)
+                        .orElse(false)));
         return memberIds.stream()
                 .map(memberId -> new ParticipantDocuments(
                         memberId,
                         names.identified(memberId),
-                        statuses(required, copies, memberId, offers),
+                        statuses(meantFor(event, required, associations, memberId), copies, memberId, offers),
                         withdrawn.get(memberId)))
+                .toList();
+    }
+
+    /** The documents of an appointment meant for one participant, as each template's audience says. */
+    private List<RequiredTemplate> meantFor(
+            StationEvent event, List<RequiredTemplate> required, Map<Integer, Boolean> associations, int memberId) {
+        var member = templates.audienceMember(memberId);
+        return required.stream()
+                .filter(template -> templates.meantFor(
+                        template.templateId(),
+                        associations.getOrDefault(template.templateId(), false),
+                        event.stationId(),
+                        member))
                 .toList();
     }
 
@@ -333,6 +356,7 @@ public class AppointmentDocumentService {
             StationSession session, StationEvent event, LocalDate date, int templateId, int memberId) {
         requireMayHandIn(session, event, date, memberId, false);
         var template = requireAsked(session.stationId(), event.id(), templateId);
+        templates.requireMeantFor(template, session.stationId(), memberId);
         return generateFor(event, date, template, memberId, session.member().id());
     }
 
@@ -359,7 +383,8 @@ public class AppointmentDocumentService {
 
     /**
      * The documents an appointment asks for whose copy for the member asks the member or a guardian to
-     * sign, in the appointment's order. A document only the issuer signs is not among them.
+     * sign, in the appointment's order. A document only the issuer signs is not among them, and neither is
+     * one whose template is not meant for the member.
      *
      * @param event    the appointment
      * @param memberId the participant
@@ -368,6 +393,7 @@ public class AppointmentDocumentService {
     public List<DocumentTemplate> signableFor(StationEvent event, int memberId) {
         return inUse(event.id()).stream()
                 .flatMap(required -> templates.find(required.templateId()).stream())
+                .filter(template -> templates.meantFor(template, event.stationId(), memberId))
                 .filter(template -> generator.asksMemberSideToSign(template, memberId))
                 .toList();
     }

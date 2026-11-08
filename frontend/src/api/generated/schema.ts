@@ -20125,6 +20125,7 @@ export interface paths {
                 query?: {
                     forAppointments?: boolean;
                     kind?: components["schemas"]["DocumentTemplateKind"];
+                    memberId?: number;
                     page?: number;
                     q?: string;
                     size?: number;

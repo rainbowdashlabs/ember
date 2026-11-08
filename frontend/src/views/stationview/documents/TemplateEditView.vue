@@ -65,7 +65,7 @@ const tabs = computed(() => [
     ? [{key: 'pdf', label: t('documentTemplates.tabPdf')}]
     : [{key: 'letter', label: t('documentTemplates.tabLetter')}]),
   {key: 'questions', label: t('documentTemplates.tabQuestions')},
-  {key: 'selfService', label: t('documentTemplates.tabSelfService')},
+  {key: 'selfService', label: t(props.screens.hasMembers ? 'documentTemplates.tabAudience' : 'documentTemplates.tabSelfService')},
   {key: 'preview', label: t('common.preview')},
 ])
 

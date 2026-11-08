@@ -26,10 +26,10 @@ import type {RestrictionSelection} from '@/api/types'
 import {STATION_TEMPLATE_SCREENS} from '../templateScreens'
 
 /**
- * The station's choice for one template of its association: whether its members generate it for
- * themselves, and who of them, and who of its members issues the template's documents at the station.
- * The self service choice only takes effect while the association offers the template for self service,
- * which the panel says where it does not.
+ * The station's choice for one template of its association: for whom of its members the template is
+ * meant, whoever generates it, whether they generate it for themselves, and who of its members issues the
+ * template's documents at the station. The self service choice only takes effect while the association
+ * offers the template for self service, which the panel says where it does not.
  */
 const selfService = defineModel<boolean>('selfService', {required: true})
 const audience = defineModel<RestrictionSelection>('audience', {required: true})
@@ -60,11 +60,12 @@ const issuers = computed(() => props.members.map(fromMember))
     </div>
     <MutedText size="sm" tag="p">{{ t('documentTemplates.use.intro') }}</MutedText>
     <Alert v-if="!use.offered" variant="info">{{ t('documentTemplates.use.notOffered') }}</Alert>
+    <LabelledField :label="t('documentTemplates.audience')" :help="t('documentTemplates.audienceHelp')">
+      <RestrictionPicker v-model="audience" :groups="groups" :tags="tags" :members="members" show-members
+                         data-testid="template-use-audience"/>
+    </LabelledField>
     <ToggleSetting v-model="selfService" :label="t('documentTemplates.selfService')"
                    :hint="t('documentTemplates.use.cooldown', {days: use.cooldownDays})" data-testid="template-use-self-service"/>
-    <LabelledField v-if="selfService" :label="t('documentTemplates.audience')" :help="t('documentTemplates.audienceHelp')">
-      <RestrictionPicker v-model="audience" :groups="groups" :tags="tags" :members="members" show-members/>
-    </LabelledField>
     <div class="space-y-2" data-testid="template-use-issuer">
       <FieldLabel>{{ t('documentTemplates.issuer.title') }}</FieldLabel>
       <MutedText size="sm" tag="p">{{ t('documentTemplates.issuer.useHint') }}</MutedText>
