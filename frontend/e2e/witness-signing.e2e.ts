@@ -91,6 +91,7 @@ test.describe('Signatures collected in person', () => {
 
         await managerPage.goto('/station/signing/witness')
         await hydrated(managerPage)
+        await managerPage.getByTestId('witness-tab-all').click()
         await managerPage.getByTestId('witness-person-search').locator('input').fill(trial.surname)
         await managerPage.getByTestId(`witness-person-${trial.memberId}`).click()
         await managerPage.getByTestId(`witness-template-${templateId}`).click()

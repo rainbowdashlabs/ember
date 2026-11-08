@@ -30,6 +30,8 @@ vi.mock('@/api/witnessSigning', () => ({
     completeWitnessedSigning,
 }))
 
+vi.mock('@/api/memberGroups', () => ({listGroups: vi.fn(async () => [])}))
+
 vi.mock('vue-router', async (importOriginal) => ({
     ...(await importOriginal<typeof import('vue-router')>()),
     useRoute: () => route,
@@ -40,6 +42,17 @@ const DRAWN = {dataUrl: 'data:image/png;base64,VElN', source: 'DRAWN' as const}
 const TIM = {memberId: 5, name: 'Tim Probe', userType: 'TRIAL' as const}
 const GRETA = {memberId: 6, name: 'Greta Probe', userType: 'MEMBER' as const}
 const OLAF = {memberId: 7, name: 'Olaf Probe', userType: 'MEMBER' as const}
+
+/** A person as the witness's list names them, with how many signatures wait on them. */
+function listed(person: typeof TIM | typeof GRETA, openFields: number) {
+    return {
+        ...person,
+        identity: {stationUid: '00000000-0000-4000-a000-000000000001', memberUid: `00000000-0000-0000-0000-00000000000${person.memberId}`},
+        groupIds: [],
+        openFields,
+        openDocuments: openFields > 0 ? ['Fotoerlaubnis'] : [],
+    }
+}
 
 function field(fieldId: number, overrides: Partial<WitnessFieldResponse> = {}): WitnessFieldResponse {
     return {
@@ -128,7 +141,7 @@ describe('WitnessView', () => {
         }
         URL.createObjectURL = vi.fn(() => 'blob:witness-document')
         URL.revokeObjectURL = vi.fn()
-        getWitnessPeople.mockResolvedValue([GRETA, TIM])
+        getWitnessPeople.mockResolvedValue([listed(GRETA, 0), listed(TIM, 1)])
         getWitnessOffers.mockResolvedValue({fields: [field(9)], templates: [{templateId: 4, name: 'Fotoerlaubnis'}]})
         getWitnessFillIns.mockResolvedValue([])
         getWitnessDocument.mockResolvedValue(new Blob(['%PDF-1.7'], {type: 'application/pdf'}))
@@ -144,7 +157,7 @@ describe('WitnessView', () => {
     it('collects a trial user\'s signature and confirms it with the witness\'s code', async () => {
         const view = await open()
 
-        expect(view.get('[data-testid="witness-person-5"]').text()).toContain('Probe')
+        expect(view.get('[data-testid="witness-people"]').text()).toContain('Fotoerlaubnis')
         await click(view, 'witness-person-5')
         expect(getWitnessOffers).toHaveBeenCalledWith(5)
         await click(view, 'witness-field-9')
@@ -169,6 +182,27 @@ describe('WitnessView', () => {
         expect(view.get('[data-testid="witness-done"]').text()).toContain('Tim Probe hat unterschrieben')
         await click(view, 'witness-next-person')
         expect(view.find('[data-testid="witness-people"]').exists()).toBe(true)
+        view.unmount()
+    })
+
+    /** The list opens on those something waits on; everybody else is one tab away. */
+    it('lists those something waits on first, and everybody on the other tab', async () => {
+        const view = await open()
+
+        expect(view.find('[data-testid="witness-person-5"]').exists()).toBe(true)
+        expect(view.find('[data-testid="witness-person-6"]').exists()).toBe(false)
+        await click(view, 'witness-tab-all')
+        expect(view.find('[data-testid="witness-person-6"]').exists()).toBe(true)
+        view.unmount()
+    })
+
+    /** Where nothing waits on anybody, the list opens on everybody, since a document can still be made. */
+    it('opens on everybody where nothing waits on anyone', async () => {
+        getWitnessPeople.mockResolvedValue([listed(GRETA, 0), listed(TIM, 0)])
+        const view = await open()
+
+        expect(view.find('[data-testid="witness-person-6"]').exists()).toBe(true)
+        expect(view.find('[data-testid="witness-person-5"]').exists()).toBe(true)
         view.unmount()
     })
 

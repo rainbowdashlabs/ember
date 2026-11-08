@@ -5,7 +5,7 @@
  */
 import {describe, expect, it} from 'vitest'
 import type {WitnessFieldResponse} from '@/api/generated/schema'
-import {afterChoosing, handedOver, peopleMatching, personOf, positionOf} from './witnessFlow'
+import {afterChoosing, handedOver, personOf, positionOf} from './witnessFlow'
 
 const ANNA = {memberId: 1, name: 'Anna Probe', userType: 'TRIAL' as const}
 const BERT = {memberId: 2, name: 'Bert Muster', userType: 'MEMBER' as const}
@@ -43,10 +43,5 @@ describe('witnessFlow', () => {
         expect(personOf(field([ANNA]))).toEqual(ANNA)
         expect(personOf(field([BERT]))?.name).toBe('Anna Probe')
         expect(personOf(field([], null))).toBeNull()
-    })
-
-    it('finds people by any part of their name, ignoring case', () => {
-        expect(peopleMatching([ANNA, BERT], 'probe')).toEqual([ANNA])
-        expect(peopleMatching([ANNA, BERT], '  ')).toEqual([ANNA, BERT])
     })
 })

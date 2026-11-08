@@ -20,6 +20,8 @@ defineProps<{
   title: string
   position: number
   total: number
+  /** Whether the step takes the page's width, for a table rather than a column of text. */
+  wide?: boolean
 }>()
 
 const {t} = useI18n()
@@ -29,7 +31,7 @@ onMounted(() => document.getElementById(headingId)?.focus())
 </script>
 
 <template>
-  <section :aria-labelledby="headingId" class="space-y-4 max-w-3xl" data-testid="signing-step">
+  <section :aria-labelledby="headingId" :class="['space-y-4', wide ? '' : 'max-w-3xl']" data-testid="signing-step">
     <MutedText tag="p" size="sm" data-testid="signing-progress">{{ t('signing.flow.progress', {position, total}) }}</MutedText>
     <SectionHeader :id="headingId" tabindex="-1" class="focus:outline-none">{{ title }}</SectionHeader>
     <slot/>

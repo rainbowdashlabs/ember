@@ -12,7 +12,7 @@ import type {
     SignerEntryDraft,
     WitnessFieldResponse,
     WitnessOffersResponse,
-    WitnessPersonResponse,
+    WitnessCandidateResponse,
 } from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/api/types'
 import client from './client'
@@ -35,8 +35,8 @@ export async function setWitnessReach(audience: RestrictionSelection): Promise<R
 }
 
 /** The people the reader may collect signatures from in person, by name. */
-export async function getWitnessPeople(): Promise<WitnessPersonResponse[]> {
-    const res = await client.get<WitnessPersonResponse[]>('/signing/witness/people')
+export async function getWitnessPeople(): Promise<WitnessCandidateResponse[]> {
+    const res = await client.get<WitnessCandidateResponse[]>('/signing/witness/people')
     return res.data
 }
 

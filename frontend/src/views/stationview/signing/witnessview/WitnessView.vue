@@ -16,8 +16,9 @@ import WitnessSignerStep from './WitnessSignerStep.vue'
 import WitnessHandedOverSteps from './WitnessHandedOverSteps.vue'
 import WitnessConfirmStep from './WitnessConfirmStep.vue'
 import WitnessDone from './WitnessDone.vue'
-import type {WitnessPersonResponse} from '@/api/generated/schema'
+import type {WitnessCandidateResponse} from '@/api/generated/schema'
 import {getWitnessPeople} from '@/api/witnessSigning'
+import {listGroups} from '@/api/memberGroups'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -39,13 +40,16 @@ const {t} = useI18n()
 const route = useRoute()
 const {fullName} = useSession()
 const flow = useWitnessFlow()
-const people = ref<WitnessPersonResponse[]>([])
+const people = ref<WitnessCandidateResponse[]>([])
+const groupNames = ref<ReadonlyMap<number, string>>(new Map())
 
 const {loading, failure: loadFailure} = useAsyncLoader(async (isCurrent) => {
   const fieldId = Number(route.query.field)
   if (Number.isInteger(fieldId) && fieldId > 0) await flow.openField(fieldId)
-  const loaded = await getWitnessPeople()
-  if (isCurrent()) people.value = loaded
+  const [loaded, groups] = await Promise.all([getWitnessPeople(), listGroups().catch(() => [])])
+  if (!isCurrent()) return
+  people.value = loaded
+  groupNames.value = new Map(groups.map(group => [group.id, group.name]))
 })
 
 const step = flow.step
@@ -65,7 +69,13 @@ watch(step, current => {
     step: t(`signing.witness.stepName.${current}`),
   })
   if (current === 'confirm') void prepare()
+  if (current === 'person') void reloadPeople()
 })
+
+/** Reads the list again on the way back to it, since what waits on the person just seen has changed. */
+async function reloadPeople() {
+  people.value = await getWitnessPeople().catch(() => people.value)
+}
 
 const confirming = ref(false)
 const confirmFailure = ref<Failure | null>(null)
@@ -101,7 +111,7 @@ function withSecret(proof: TypedProof, secret: string) {
     <SigningUnavailable v-else-if="loadFailure" :failure="loadFailure"/>
     <WitnessDone v-else-if="flow.act.outcome.value" :name="signerName"
                  @next-person="flow.nextPerson" @same-person="choosingRun(flow.samePerson)"/>
-    <WitnessPersonStep v-else-if="step === 'person'" :people="people" :position="position" :total="total"
+    <WitnessPersonStep v-else-if="step === 'person'" :people="people" :group-names="groupNames" :position="position" :total="total"
                        @pick="person => choosingRun(() => flow.pickPerson(person))"/>
     <WitnessDocumentStep v-else-if="step === 'document' && flow.person.value && flow.offers.value"
                          :person="flow.person.value" :offers="flow.offers.value" :busy="choosing" :failure="chooseFailure"

@@ -62,15 +62,3 @@ export function personOf(field: WitnessFieldResponse): WitnessPersonResponse | n
     const signing = field.signers.find(signer => signer.memberId === field.memberId)
     return {memberId: field.memberId, name: field.memberName, userType: signing?.userType ?? StationUserType.MEMBER}
 }
-
-/**
- * The people whose name contains what was typed, ignoring case; everybody where nothing was typed.
- *
- * @param people the people the witness reaches
- * @param search what was typed
- */
-export function peopleMatching(people: readonly WitnessPersonResponse[], search: string): WitnessPersonResponse[] {
-    const wanted = search.trim().toLocaleLowerCase()
-    if (!wanted) return [...people]
-    return people.filter(person => person.name.toLocaleLowerCase().includes(wanted))
-}
