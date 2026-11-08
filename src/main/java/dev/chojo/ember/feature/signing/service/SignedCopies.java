@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.signing.entity.FieldRole;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SignatureRequestView;
+import dev.chojo.ember.feature.signing.entity.SigningAct;
 import dev.chojo.ember.feature.signing.entity.StoredEvidence;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
@@ -47,7 +48,8 @@ import java.util.Locale;
  * most mailboxes still take; a larger one is left out and the mail says why.
  *
  * <p>The copy goes to the account whose step-up confirmed the act, through {@link MailRecipientService}, so
- * the guardians read it where that account has no address of its own. It is written in the station's
+ * the guardians read it where that account has no address of its own. An act a witness confirmed is the
+ * signer's, not the witness's: its copy goes to the person who signed, or to their guardians. It is written in the station's
  * language and goes through the instance-wide relay. It is queued in the transaction that files the version,
  * so a copy exists exactly when its version does. A copy that cannot be put together, such as for a template
  * that does not render, is logged and left out, and the version stays filed; a database failure while queueing
@@ -157,9 +159,21 @@ public class SignedCopies {
                 attachment,
                 tooLarge);
         String locale = StationFormat.languageOf(station);
-        for (var recipient : mailRecipients.forAccount(act.signer().accountId())) {
+        for (var recipient : recipientsOf(act)) {
             email.sendSignedCopy(recipient.email(), recipient.name(), recipient.guardian(), copy, locale);
         }
+    }
+
+    /**
+     * Who gets the copy of an act: the account that confirmed it, except where a witness confirmed it, whose
+     * copy goes to the person who signed in front of them instead, or to their guardians.
+     */
+    private List<MailRecipientService.Recipient> recipientsOf(SigningAct act) {
+        Integer memberId = act.signer().memberId();
+        if (act.signer().witnessed() && memberId != null) {
+            return mailRecipients.forMember(memberId, act.signerName());
+        }
+        return mailRecipients.forAccount(act.signer().accountId());
     }
 
     /**

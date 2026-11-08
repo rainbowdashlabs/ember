@@ -69,7 +69,7 @@ class DocumentGenerationRoutesTest {
                 .thenThrow(DocumentRefusal.DOCUMENT_TEMPLATE_NOT_HERE.raise());
         when(members.findById(11)).thenReturn(Optional.of(member(11, 3)));
         when(members.findById(12)).thenReturn(Optional.of(member(12, 4)));
-        when(generation.usable(eq(OWNER), any())).thenReturn(new TemplatePage(List.of(), 0, 0, 24));
+        when(generation.usable(eq(OWNER), any(), any())).thenReturn(new TemplatePage(List.of(), 0, 0, 24));
         when(generation.preview(any(), eq(8), eq(11), any(), any()))
                 .thenReturn(new PreviewResponse("JVBER", List.of(), List.of(), null));
         when(generation.previewDraft(any(), any(), any(), any()))
@@ -134,7 +134,10 @@ class DocumentGenerationRoutesTest {
                                     filer)
                             .code());
             verify(generation)
-                    .usable(OWNER, new TemplateQuery("Aus", DocumentTemplateKind.PDF, false, TemplateSort.NAME, 2, 8));
+                    .usable(
+                            OWNER,
+                            new TemplateQuery("Aus", DocumentTemplateKind.PDF, false, TemplateSort.NAME, 2, 8),
+                            null);
 
             assertEquals(
                     200,
@@ -142,7 +145,18 @@ class DocumentGenerationRoutesTest {
             verify(generation)
                     .usable(
                             OWNER,
-                            new TemplateQuery(null, null, null, TemplateSort.LAST_USED, 0, TemplateQuery.DEFAULT_SIZE));
+                            new TemplateQuery(null, null, null, TemplateSort.LAST_USED, 0, TemplateQuery.DEFAULT_SIZE),
+                            null);
+
+            assertEquals(
+                    200,
+                    client.get(PREFIX + "/document-generation/templates?memberId=11", filer)
+                            .code());
+            verify(generation)
+                    .usable(
+                            OWNER,
+                            new TemplateQuery(null, null, null, TemplateSort.LAST_USED, 0, TemplateQuery.DEFAULT_SIZE),
+                            11);
 
             assertEquals(
                     400,

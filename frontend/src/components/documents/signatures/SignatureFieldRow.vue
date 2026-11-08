@@ -12,7 +12,9 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {FieldSettlement} from '@/api/signing'
-import {FieldState, type ManagedFieldResponse} from '@/api/generated/schema'
+import AppLink from '@/components/navigation/AppLink.vue'
+import {FieldRole, FieldState, SignerCapacity, StationPermission, type ManagedFieldResponse} from '@/api/generated/schema'
+import {useSession} from '@/composables/useSession'
 import {formatDateTime} from '@/util/format'
 import {signerOf} from '../signatureSigner'
 import {proofWords} from './proofWords'
@@ -23,7 +25,8 @@ import {proofWords} from './proofWords'
  *
  * <p>A field that still waits offers what no signing act does: confirming a paper signature, waiving it or
  * withdrawing it. Each is asked once more before it is done, since a settled field stays settled. A field
- * nobody can sign says so, because only these actions settle it.
+ * nobody can sign says so, because only these actions settle it. A reader who collects signatures in person
+ * may also have a field of the member's side signed in front of them from here.
  */
 const props = defineProps<{
   field: ManagedFieldResponse
@@ -40,11 +43,16 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 const asked = ref<FieldSettlement | null>(null)
-
+const {hasPermission} = useSession()
 
 const waits = computed(() => props.settleable && props.field.state === FieldState.OPEN)
 
-/** The act in one sentence: who signed, through whose account where it was another's, when and how. */
+/** Whether the reader may have the field signed in front of them, from here, as a witness. */
+const collectable = computed(() => waits.value
+    && props.field.role !== FieldRole.ISSUER
+    && hasPermission(StationPermission.DOCUMENT_SIGN_OTHERS))
+
+/** The act in one sentence: who signed, through whose account or in front of whom, when and how. */
 const actLine = computed(() => {
   const act = props.field.act
   if (!act) return null
@@ -54,6 +62,7 @@ const actLine = computed(() => {
     time: formatDateTime(act.signedAt),
     proof: proofWords(act.proof, t),
   }
+  if (act.capacity === SignerCapacity.WITNESSED) return t('signing.manage.actWitnessed', named)
   return t(act.signerName === act.accountHolderName ? 'signing.manage.act' : 'signing.manage.actThrough', named)
 })
 
@@ -103,5 +112,9 @@ function settle() {
         {{ t(`signing.manage.action.${settlement}`) }}
       </SecondaryButton>
     </ButtonRow>
+    <AppLink v-if="collectable && !asked" :href="`/station/signing/witness?field=${props.field.fieldId}`" :icon="['fas', 'signature']"
+             data-testid="signature-field-witness">
+      {{ t('signing.witness.fromTile') }}
+    </AppLink>
   </li>
 </template>

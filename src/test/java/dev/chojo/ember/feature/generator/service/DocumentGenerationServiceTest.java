@@ -31,6 +31,7 @@ import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.entity.SubjectRole;
 import dev.chojo.ember.feature.generator.entity.TemplateQuestion;
 import dev.chojo.ember.feature.generator.entity.TemplateQuestionKind;
+import dev.chojo.ember.feature.generator.entity.TemplateSort;
 import dev.chojo.ember.feature.generator.entity.TextFormat;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
@@ -877,6 +878,128 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         var generated = generation.generate(as(manager), templateId, lena.id(), null);
 
         assertEquals(List.of("participant"), signatureFields(generated.documentId()));
+    }
+
+    /**
+     * A witness generates a document only from a template that asks the member's side to sign, files it
+     * with the person alone and never hidden from them, and is refused one whose data is not all there.
+     */
+    @Test
+    void aWitnessGeneratesADocumentForThePersonInFrontOfThem() throws IOException {
+        int hiddenSigned = templates
+                .create(
+                        owner,
+                        letterOf(
+                                        "Fotoerlaubnis",
+                                        false,
+                                        true,
+                                        0,
+                                        List.of(row(signature(SignatureRole.PARTICIPANT, ""))))
+                                .issuer(manager.id(), "Jugendwartin")
+                                .build(),
+                        author)
+                .id();
+        int issuerOnly = templateOf("Nur Ausstellung", row(signature(SignatureRole.ISSUER, "Unterschrift")));
+        int needsGuardian = templateOf(
+                "Mit Elternteil",
+                row(text("Vertreten durch {{guardian1.fullName}}.")),
+                row(signature(SignatureRole.ANY_GUARDIAN, "")));
+        var witness = as(guardian, StationPermission.DOCUMENT_SIGN_OTHERS);
+
+        var offered = generation.askingMemberSignatures(owner, lena.id()).stream()
+                .map(template -> template.id())
+                .toList();
+        assertTrue(offered.contains(hiddenSigned));
+        assertFalse(offered.contains(issuerOnly), "a template only the issuer signs is not offered");
+
+        var generated = generation.generateForWitness(witness, hiddenSigned, lena.id());
+        var document = memberDocumentRepo.findById(generated.documentId()).orElseThrow();
+        assertFalse(document.hidden(), "the person always sees what they signed in front of a witness");
+        assertTrue(memberDocumentRepo.isBoundTo(document.id(), lena.id()));
+        assertFalse(memberDocumentRepo.isBoundTo(document.id(), guardian.id()), "never filed with the witness");
+        assertEquals(List.of("participant"), signatureFields(document.id()));
+        refused(DocumentRefusal.SIGNING_NO_FIELDS, () -> generation.generateForWitness(witness, issuerOnly, lena.id()));
+        refused(
+                DocumentRefusal.DOCUMENT_SELF_SERVICE_VALUES_MISSING,
+                () -> generation.generateForWitness(witness, needsGuardian, max.id()));
+    }
+
+    /**
+     * A template meant for members only is not generated for a guardian: a manager, a preview and a witness
+     * are refused, and neither the manager's picker nor the witness's list offers it for them, while a
+     * member it is meant for gets it as before.
+     */
+    @Test
+    void aTemplateIsGeneratedOnlyForTheMembersItIsMeantFor() throws IOException {
+        int forMembers = templates
+                .create(
+                        owner,
+                        letterOf(
+                                        "Fotoerlaubnis Mitglieder",
+                                        false,
+                                        false,
+                                        0,
+                                        List.of(row(signature(SignatureRole.PARTICIPANT, ""))))
+                                .audience(new RestrictionAudience(
+                                        List.of(StationUserType.MEMBER),
+                                        List.of(),
+                                        List.of(),
+                                        List.of(),
+                                        RestrictionMode.AND))
+                                .issuer(manager.id(), "Jugendwartin")
+                                .build(),
+                        author)
+                .id();
+        var filer = as(manager, StationPermission.DOCUMENT_EDIT_MEMBER);
+        var witness = as(manager, StationPermission.DOCUMENT_SIGN_OTHERS);
+        var everything = new TemplateQuery(null, null, null, TemplateSort.NAME, 0, TemplateQuery.MAX_SIZE);
+
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_MEMBER,
+                () -> generation.generate(filer, forMembers, guardian.id(), null));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_MEMBER,
+                () -> generation.preview(filer, forMembers, guardian.id(), null));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_MEMBER,
+                () -> generation.generateForWitness(witness, forMembers, guardian.id()));
+        assertFalse(idsOf(generation.usable(owner, everything, guardian.id())).contains(forMembers));
+        assertTrue(idsOf(generation.usable(owner, everything, lena.id())).contains(forMembers));
+        assertTrue(idsOf(generation.usable(owner, everything, null)).contains(forMembers));
+        assertFalse(generation.askingMemberSignatures(owner, guardian.id()).stream()
+                .anyMatch(template -> template.id() == forMembers));
+
+        var filed = generation.generate(filer, forMembers, lena.id(), null);
+        assertTrue(memberDocumentRepo.findById(filed.documentId()).isPresent());
+    }
+
+    /**
+     * A member who left still gets the documents of a template meant for everybody, such as a leaving
+     * certificate, while somebody of another station gets none.
+     */
+    @Test
+    void aFormerMemberStillGetsWhatTheirTemplateIsMeantFor() {
+        var left = member("gen-left@test.com", "Lia", "Gegangen");
+        stationMemberRepo.setFormer(left.id(), true);
+        int forEverybody = templateOf("Austrittsbescheinigung", row(text("{{member.fullName}}")));
+        var filer = as(manager, StationPermission.DOCUMENT_EDIT_MEMBER);
+
+        var filed = generation.generate(filer, forEverybody, left.id(), null);
+
+        assertTrue(memberDocumentRepo.findById(filed.documentId()).isPresent());
+        assertTrue(templates.fitFor(owner.stationId(), left.id()).meantFor(forEverybody, false, left.id()));
+        var abroad = stationMemberRepo.create(
+                stationRepo.create("Fremde Austritts Wache").id(),
+                accountRepo.create("gen-abroad@test.com", "Ali", "Fremd").id());
+        assertFalse(
+                templates.fitFor(owner.stationId(), abroad.id()).meantFor(forEverybody, false, abroad.id()),
+                "somebody of another station is meant for nothing here");
+    }
+
+    private static List<Integer> idsOf(TemplateQuery.TemplatePage page) {
+        return page.items().stream()
+                .map(DocumentTemplateService.DocumentTemplateSummary::id)
+                .toList();
     }
 
     /**

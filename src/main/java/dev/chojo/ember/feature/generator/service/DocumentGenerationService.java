@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.generator.entity.DocumentGeneration;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
 import dev.chojo.ember.feature.generator.entity.GenerationOrigin;
+import dev.chojo.ember.feature.generator.entity.MemberView;
 import dev.chojo.ember.feature.generator.entity.MissingValue;
 import dev.chojo.ember.feature.generator.entity.TemplateQuestion;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
@@ -153,14 +154,20 @@ public class DocumentGenerationService {
 
     /**
      * The templates in use a manager can generate documents from: the station's own and those of its
-     * association.
+     * association, only those meant for the member where one is named.
      *
-     * @param owner the station
-     * @param query the search, order and page
+     * @param owner    the station
+     * @param query    the search, order and page
+     * @param memberId the member the document is for, or null where none is chosen yet
      * @return the page of templates asked for
      */
-    public TemplateQuery.TemplatePage usable(Owner.Station owner, TemplateQuery query) {
-        return query.pageOf(templates.list(owner, false));
+    public TemplateQuery.TemplatePage usable(Owner.Station owner, TemplateQuery query, @Nullable Integer memberId) {
+        var listed = templates.list(owner, false);
+        if (memberId == null) return query.pageOf(listed);
+        var fit = templates.fitFor(owner.stationId(), memberId);
+        return query.pageOf(listed.stream()
+                .filter(template -> fit.meantFor(template.id(), template.ofAssociation(), memberId))
+                .toList());
     }
 
     /**
@@ -195,6 +202,7 @@ public class DocumentGenerationService {
             @Nullable IssuerChoice issuer,
             Map<String, String> answers) {
         var template = templates.requireInUse(session.stationId(), templateId);
+        templates.requireMeantFor(template, session.stationId(), memberId);
         return generator.preview(
                 generator.sourceOf(template), memberId, managerContext(session, template, issuer, answers));
     }
@@ -328,8 +336,57 @@ public class DocumentGenerationService {
             @Nullable IssuerChoice issuer,
             Map<String, String> answers) {
         var template = templates.requireInUse(session.stationId(), templateId);
+        templates.requireMeantFor(template, session.stationId(), memberId);
         var prepared = generator.prepare(template, memberId, managerContext(session, template, issuer, answers));
         return file(template, memberId, session.member().id(), GenerationOrigin.MANAGER, prepared);
+    }
+
+    /**
+     * The templates in use a witness can generate a document from for the person in front of them: those
+     * meant for the person whose documents ask the member or a guardian to sign.
+     *
+     * @param station  the station
+     * @param memberId the person
+     * @return the templates by name
+     */
+    public List<DocumentTemplate> askingMemberSignatures(Owner.Station station, int memberId) {
+        var fit = templates.fitFor(station.stationId(), memberId);
+        return templates.inUse(station).stream()
+                .filter(template -> fit.meantFor(template, memberId))
+                .filter(template -> generator.sourceOf(template).asksMemberSideToSign(MemberView.EVERYBODY))
+                .toList();
+    }
+
+    /**
+     * Which templates are meant for which members of a station, for a run that generates for many.
+     *
+     * @param stationId the station the documents would be filed at
+     * @return the answer for the station, reading each audience once
+     */
+    public TemplateFit fitAt(int stationId) {
+        return templates.fitAt(stationId);
+    }
+
+    /**
+     * Generates a document for the person in front of a witness and files it with that person alone, never
+     * hidden from them, issued by the template's issuer. Data the document needs and the profile lacks
+     * refuses it, as self service does, since nobody fills in a line by hand on the spot.
+     *
+     * @param session    the witness
+     * @param templateId the template, which has to ask the member or a guardian to sign
+     * @param memberId   the person, already checked to be one the witness reaches
+     * @return the filed document
+     */
+    public GeneratedDocumentResponse generateForWitness(StationSession session, int templateId, int memberId) {
+        var template = templates.requireInUse(session.stationId(), templateId);
+        templates.requireMeantFor(template, session.stationId(), memberId);
+        if (!generator.sourceOf(template).asksMemberSideToSign(MemberView.EVERYBODY)) {
+            throw DocumentRefusal.SIGNING_NO_FIELDS.raise();
+        }
+        var context = GenerationContext.by(session.member().id(), issuers.ofTemplate(template, session.stationId()));
+        var prepared = generator.prepare(template, memberId, context);
+        generator.requireComplete(prepared, DocumentRefusal.DOCUMENT_SELF_SERVICE_VALUES_MISSING);
+        return file(template, memberId, session.member().id(), GenerationOrigin.WITNESS, prepared);
     }
 
     /**

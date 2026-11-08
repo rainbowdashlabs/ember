@@ -63,6 +63,17 @@ public enum RestrictionType {
             "id",
             "restriction_mode",
             StationPermission.DOCUMENT_TEMPLATE_EDIT),
+    /**
+     * Whom the witnesses of a station reach, one audience per station. Its manager permission is the one
+     * that sets it; it never lets a person through, since the audience is about whom a witness picks.
+     */
+    WITNESS_REACH(
+            "witness_reach_restriction",
+            "station_id",
+            "station",
+            "id",
+            "witness_reach_mode",
+            StationPermission.MEMBER_MANAGER),
     ATTENDANCE_TEMPLATE_TIME_RULE(
             "attendance_template_time_rule_restriction",
             "rule_id",

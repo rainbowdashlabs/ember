@@ -28,11 +28,15 @@ import {saveBlob} from '@/util/saveBlob'
  *
  * <p>A document that could not be opened says so in place of the drawing.
  */
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   fieldId: number
   title: string
   fileName: string
-}>()
+  /** Where the document is read from: the reader's own field, or a field they collect as a witness. */
+  load?: (fieldId: number) => Promise<Blob>
+}>(), {
+  load: getSigningDocument,
+})
 
 const {t} = useI18n()
 const headingId = useId()
@@ -42,7 +46,7 @@ const pdf = ref<Blob | null>(null)
 const address = ref<string | null>(null)
 
 const {loading, failure} = useAsyncLoader(async (isCurrent) => {
-  const loaded = await getSigningDocument(props.fieldId)
+  const loaded = await props.load(props.fieldId)
   if (!isCurrent()) return
   pdf.value = loaded
   address.value = URL.createObjectURL(new Blob([loaded], {type: 'application/pdf'}))

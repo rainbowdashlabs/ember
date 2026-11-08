@@ -60,8 +60,11 @@ public record SigningEvidenceFile(
      */
     public record Issued(@Nullable String issuerName, Instant consentedAt, Instant signedAt, String pictureSha256) {}
 
-    /** The name and version of the layout; the second version adds the batch an act was confirmed in. */
-    public static final String FORMAT = "ember-signing-evidence-v2";
+    /**
+     * The name and version of the layout; the second version adds the batch an act was confirmed in, the
+     * third the witness before whom a person signed.
+     */
+    public static final String FORMAT = "ember-signing-evidence-v3";
 
     /** The name the file carries inside the document. */
     public static final String FILE_NAME = "signing-evidence.json";
@@ -119,6 +122,9 @@ public record SigningEvidenceFile(
      *                          none
      * @param batch             the batch the act was confirmed in together with other fields, or null for an
      *                          act confirmed on its own, whose challenge has the file's {@code challengeLayout}
+     * @param witnessName       the official name of the witness before whom the person signed, whose account
+     *                          confirmed the act, or null for an act not signed in front of a witness; for
+     *                          such an act the account holder is the witness and the member is who signed
      */
     public record Act(
             SignatureLevel level,
@@ -141,7 +147,8 @@ public record SigningEvidenceFile(
             @Nullable GuardianLink guardianLink,
             @Nullable WebAuthn webAuthn,
             @Nullable Picture picture,
-            @Nullable Batch batch) {}
+            @Nullable Batch batch,
+            @Nullable String witnessName) {}
 
     /**
      * The batch an act was confirmed in: one proof for several fields, across documents and across the

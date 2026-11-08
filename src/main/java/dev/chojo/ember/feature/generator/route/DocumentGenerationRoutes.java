@@ -143,11 +143,18 @@ public class DocumentGenerationRoutes implements Routes {
                         description = "Only templates for appointments when true, only the others when false"),
                 @OpenApiParam(name = "sort", type = TemplateSort.class),
                 @OpenApiParam(name = "page", type = Integer.class, description = "Counted from 0"),
-                @OpenApiParam(name = "size", type = Integer.class)
+                @OpenApiParam(name = "size", type = Integer.class),
+                @OpenApiParam(
+                        name = "memberId",
+                        type = Integer.class,
+                        description = "Only templates meant for this member")
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TemplatePage.class)))
     private void usable(Context ctx) {
-        ctx.json(generation.usable(StationSession.from(ctx).owner(), TemplateQueries.of(ctx)));
+        Integer memberId = ctx.queryParam("memberId") == null
+                ? null
+                : ctx.queryParamAsClass("memberId", Integer.class).get();
+        ctx.json(generation.usable(StationSession.from(ctx).owner(), TemplateQueries.of(ctx), memberId));
     }
 
     /**

@@ -47,7 +47,9 @@ public record EvidenceSummary(
      * @param signedAt   when it was signed, or null
      * @param proof      what the signature was confirmed with, or null
      * @param bound      whether that proof is bound to the document
-     * @param together   whether it was confirmed with one proof together with other fields
+     * @param together    whether it was confirmed with one proof together with other fields
+     * @param witnessName the official name of the witness the signer signed in front of, whose proof it
+     *                    was, or null where the signer confirmed it with an account of their side
      */
     public record Field(
             String fieldName,
@@ -57,7 +59,8 @@ public record EvidenceSummary(
             @Nullable Instant signedAt,
             @Nullable StepUpProof proof,
             boolean bound,
-            boolean together) {
+            boolean together,
+            @Nullable String witnessName) {
 
         static Field of(SigningEvidenceFile.Field field) {
             var act = field.act();
@@ -69,7 +72,8 @@ public record EvidenceSummary(
                     act == null ? null : act.signedAt(),
                     act == null ? null : act.proof(),
                     act != null && act.boundToDocument(),
-                    act != null && act.batch() != null);
+                    act != null && act.batch() != null,
+                    act == null ? null : act.witnessName());
         }
     }
 }
