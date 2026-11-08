@@ -180,8 +180,11 @@ describe('WitnessView', () => {
             pictures: [{memberId: 5, signatureImage: 'VElN', signatureSource: 'DRAWN'}],
         })
         expect(view.get('[data-testid="witness-done"]').text()).toContain('Tim Probe hat unterschrieben')
+        getWitnessPeople.mockResolvedValue([listed(GRETA, 0), listed(TIM, 0)])
         await click(view, 'witness-next-person')
         expect(view.find('[data-testid="witness-people"]').exists()).toBe(true)
+        expect(view.find('[data-testid="witness-person-6"]').exists(), 'with nothing left open the list shows everybody')
+            .toBe(true)
         view.unmount()
     })
 
@@ -193,6 +196,20 @@ describe('WitnessView', () => {
         expect(view.find('[data-testid="witness-person-6"]').exists()).toBe(false)
         await click(view, 'witness-tab-all')
         expect(view.find('[data-testid="witness-person-6"]').exists()).toBe(true)
+        view.unmount()
+    })
+
+    /** The search finds people by the documents that wait on them, and says so when it finds nobody. */
+    it('finds people by a waiting document and says when the search finds nobody', async () => {
+        const view = await open()
+        await click(view, 'witness-tab-all')
+        const search = view.get('[data-testid="witness-person-search"] input')
+
+        await search.setValue('Fotoerlaubnis')
+        expect(view.find('[data-testid="witness-person-5"]').exists()).toBe(true)
+        expect(view.find('[data-testid="witness-person-6"]').exists()).toBe(false)
+        await search.setValue('niemand hier')
+        expect(view.get('[data-testid="witness-people"]').text()).toContain('Niemand passt zur Suche.')
         view.unmount()
     })
 

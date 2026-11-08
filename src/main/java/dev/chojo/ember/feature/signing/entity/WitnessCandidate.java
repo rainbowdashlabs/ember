@@ -5,16 +5,16 @@
  */
 package dev.chojo.ember.feature.signing.entity;
 
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationUserType;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * A person on a witness's list of whom to collect signatures from, with what waits on them.
  *
  * @param memberId      the member
- * @param memberUid     the member's uid, which names them beyond the station
+ * @param identity      the member with what their name is shown with: avatar, colour, tag
  * @param name          their official name, which the document and the signature carry
  * @param userType      what kind of member they are, which tells a trial user apart
  * @param groupIds      the groups they are in
@@ -23,7 +23,7 @@ import java.util.UUID;
  */
 public record WitnessCandidate(
         int memberId,
-        UUID memberUid,
+        MemberIdentity identity,
         String name,
         StationUserType userType,
         List<Integer> groupIds,

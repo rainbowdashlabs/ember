@@ -11284,6 +11284,8 @@ export default {
                 colGroups: 'Gruppen',
                 colOpen: 'Offene Unterschriften',
                 collect: 'Unterschreiben lassen',
+                collectFor: '{name} unterschreiben lassen',
+                nobody: 'Du darfst gerade von niemandem Unterschriften vor Ort sammeln.',
             },
             document: {
                 heading: 'Was unterschreibt {name}?',

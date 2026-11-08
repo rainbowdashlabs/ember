@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.signing.service;
 
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
@@ -104,7 +105,7 @@ public class WitnessedSigningService {
                             .toList();
                     return new WitnessCandidate(
                             member.id(),
-                            member.uid(),
+                            names.enrichDisplay(new MemberIdentity(session.stationUid(), member.uid())),
                             names.official(member.id()),
                             member.userType(),
                             groups.getOrDefault(member.id(), List.of()),

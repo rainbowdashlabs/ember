@@ -826,14 +826,19 @@ class SigningRoutesTest extends RepositoryTestBase {
 
     /**
      * The witness's list says what waits on each person: the fields of their documents the witness may
-     * collect, counted, with the document they are on. The issuer's field waits on nobody there, a person
-     * with nothing open lists none, and a field signed in front of the witness leaves the list.
+     * collect, counted, with the document they are on, and the same number the person's offers show. The
+     * issuer's field waits on nobody there, a field any guardian may sign of a member in the witness's own
+     * care is not theirs to collect, a person with nothing open lists none, and a field signed in front of
+     * the witness leaves the list.
      */
     @Test
     void thePeopleListSaysWhatWaitsOnEachPerson() throws IOException {
         var witness = witness("Willa", "Liste");
         var waiting = member("Wilma", "Wartet", false);
         var idle = member("Ida", "Nichts", false);
+        var ward = member("Wanja", "Schutz", false);
+        stationMemberRepo.addManager(witness.id(), ward.id(), manager.id());
+        ask(ward, SignatureRole.PARTICIPANT, SignatureRole.ANY_GUARDIAN);
         var request = ask(waiting, SignatureRole.PARTICIPANT, SignatureRole.ISSUER);
 
         harness.run((server, client) -> {
@@ -844,7 +849,17 @@ class SigningRoutesTest extends RepositoryTestBase {
             assertEquals(
                     waiting.uid().toString(),
                     listed.path("identity").path("memberUid").asString());
+            assertFalse(listed.path("identity").path("name").asString().isBlank(), "the list shows a name");
             assertEquals(0, personIn(people, idle.id()).path("openFields").asInt());
+            assertEquals(
+                    1, personIn(people, ward.id()).path("openFields").asInt(), "the guardian's field is not theirs");
+            for (var person : List.of(waiting, idle, ward)) {
+                JsonNode offers = accepted(client.get(offersPath(person), asWitness(witness)));
+                assertEquals(
+                        offers.path("fields").size(),
+                        personIn(people, person.id()).path("openFields").asInt(),
+                        "the list counts what the offers show");
+            }
 
             int field = requestRepo.fieldsOf(request.id()).stream()
                     .filter(each -> each.role() == FieldRole.PARTICIPANT)

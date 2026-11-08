@@ -93,7 +93,7 @@ public class WitnessedSigningRoutes implements Routes {
     private void people(Context ctx) {
         var session = StationSession.from(ctx);
         ctx.json(witnessed.people(session).stream()
-                .map(candidate -> WitnessCandidateResponse.of(session.stationUid(), candidate))
+                .map(WitnessCandidateResponse::of)
                 .toList());
     }
 
@@ -271,10 +271,10 @@ public class WitnessedSigningRoutes implements Routes {
             List<Integer> groupIds,
             int openFields,
             List<String> openDocuments) {
-        static WitnessCandidateResponse of(UUID stationUid, WitnessCandidate candidate) {
+        static WitnessCandidateResponse of(WitnessCandidate candidate) {
             return new WitnessCandidateResponse(
                     candidate.memberId(),
-                    new MemberIdentity(stationUid, candidate.memberUid()),
+                    candidate.identity(),
                     candidate.name(),
                     candidate.userType(),
                     candidate.groupIds(),
