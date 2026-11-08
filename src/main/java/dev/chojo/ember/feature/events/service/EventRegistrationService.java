@@ -322,11 +322,11 @@ public class EventRegistrationService {
      * up. Signing up again is unaffected, because a registration is written over its own row where
      * one already stands for that member on that day.
      *
-     * <p>What is written is always WITHDRAWN and never a decline, which would have been easy to get
-     * wrong: a decline reads as an answer given, and somebody who gave a place back before anybody
-     * confirmed it is still owed the question. What they had answered outlives the refusal by exactly
-     * the window it can be taken back in, because an undo handing back a registration with its
-     * questions blank would be worse than none.
+     * <p>What is written is always WITHDRAWN and never a decline, so the list and the notification can
+     * say that a place was given up rather than that somebody declined. Either is an answer: whoever
+     * gives up a place is not asked again before the deadline. What they had answered outlives the
+     * refusal by exactly the window it can be taken back in, because an undo handing back a
+     * registration with its questions blank would be worse than none.
      *
      * <p>On an appointment that expects everybody this is how a refusal is taken back. The row stays
      * for the same reasons, and every read of who is coming takes it for no answer at all, so the

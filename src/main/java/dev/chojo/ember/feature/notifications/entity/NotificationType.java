@@ -14,6 +14,7 @@ public enum NotificationType {
     NEW_NEWS(NotificationParams.NewNews.class, "notification.newNews"),
     NEWS_COMMENT(NotificationParams.NewsComment.class, "notification.newsComment"),
     COMMENT_MENTION(NotificationParams.CommentMention.class, "notification.commentMention"),
+    EVENT_COMMENT(NotificationParams.EventComment.class, "notification.eventComment"),
     EVENT_REGISTRATION_STATUS(NotificationParams.EventRegistrationStatus.class, "notification.eventRegistrationStatus"),
     MOVEMENT_ADVANCED(NotificationParams.MovementMoved.class, "notification.movementAdvanced"),
     MOVEMENT_RAISED(NotificationParams.MovementRaised.class, "notification.movementRaised"),

@@ -2,14 +2,16 @@
 
 ## v26.24.0
 
-Die Anwesenheit kann Zeit vor und nach einem Termin gutschreiben. Eine Vorlage legt fest, wer vorbereitet oder aufräumt, etwa Jugendwarte oder Ausbilder, und wie viele Minuten das wert ist. Der Anwesenheitsbericht zählt diese Minuten zu den Stunden jeder Person. Die Ausrüstung eines Mitglieds wird auf seiner eigenen Seite aus- und zurückgegeben. Die Seite öffnet mit den Tabs, die jemand sehen darf. Tabs auf den Hauptseiten lassen sich über die Adresse verlinken. Fehlende Ausstattung steht bei der vorhandenen und wird über ein Fenster mit Suche ausgegeben. Bewegungen heißen überall Vorgänge.
+Die Anwesenheit kann Zeit vor und nach einem Termin gutschreiben. Eine Vorlage legt fest, wer vorbereitet oder aufräumt, etwa Jugendwarte oder Ausbilder, und wie viele Minuten das wert ist. Der Anwesenheitsbericht zählt diese Minuten zu den Stunden jeder Person. Die Ausrüstung eines Mitglieds wird auf seiner eigenen Seite aus- und zurückgegeben, und die Seite öffnet mit den Tabs, die jemand sehen darf. Tabs auf den Hauptseiten lassen sich über die Adresse verlinken. Fehlende Ausstattung steht bei der vorhandenen und wird über ein Fenster mit Suche ausgegeben. Bewegungen heißen überall Vorgänge. Auch bei Terminen mit Anmeldung gibt es „Abmelden“, und danach enden die Erinnerungen an die Anmeldefrist. Wer Termine verwaltet, erfährt von jeder neuen Unterhaltung unter einem Termin.
 
 ### Neue Funktionen
 
 - **Vor- und Nachbereitung zählen in der Anwesenheit.** Eine Anwesenheitsvorlage kann ausgewählten Personen nach Mitgliedstyp, Gruppe, Tag oder Name Minuten vor und nach einem Termin gutschreiben, etwa einem Jugendwart, der den Raum herrichtet. Jede Liste übernimmt diese Regeln und kann sie ändern oder eine Person ausnehmen, und Bericht, Ausdrucke und CSV-Export rechnen die Minuten zu den Stunden jeder Person.
+- **Terminverwaltung erfährt von neuen Kommentaren.** Jeder neue Kommentar, der unter einem Termin eine Unterhaltung beginnt, meldet sich bei allen, die Termine verwalten, auch wenn er von einem Mitglied einer Partnerwache kommt. Die Benachrichtigung hat eine eigene Zeile in den Benachrichtigungseinstellungen, und wer im Kommentar erwähnt ist, bekommt nur die Erwähnung.
 
 ### Verbesserungen
 
+- **Termine mit Anmeldung lassen sich absagen.** Die Terminseite, die Terminliste und die Übersicht bieten „Abmelden“ an, solange die Anmeldung offen ist. Wer sich abmeldet oder seinen Platz zurückgibt, bekommt keine Erinnerungen an die Anmeldefrist mehr und kann sich wieder anmelden, solange die Anmeldung offen ist.
 - **Tabs lassen sich verlinken.** Die Adresse nennt den offenen Tab auf den Seiten von Mitgliedern, Terminen, Tests, Vorlagen und Formularauswertungen. Ein Link oder ein Lesezeichen öffnet so denselben Tab, etwa `/station/members/detail/12#inventory`.
 - **Mitgliederseiten öffnen mit den Tabs, die jemand sehen darf.** Jeder Tab auf der Seite eines Mitglieds erscheint für alle, die seinen Inhalt sehen dürfen, und die Seite öffnet, solange einer übrig bleibt. Wer das Inventar sehen darf, aber keine Mitgliederprofile, bekommt die Seite mit dem Tab Inventar.
 - **Seiten zeigen ihre Ladeanzeige in der Mitte.** Während eine Seite oder ein Abschnitt lädt, steht das drehende Rad mittig in einer eigenen Zeile statt oben links in der Ecke.

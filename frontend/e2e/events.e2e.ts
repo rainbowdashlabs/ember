@@ -207,9 +207,8 @@ test.describe('Events', () => {
      * appointment repeats and is opened on one of its dates, because the tab reads the answers of
      * that date only and the answer given has to land on it.
      *
-     * <p>Giving the place back leaves no answer at all rather than a refusal. Not being signed up is
-     * already how somebody says they are not coming, and writing that down a second time would say it
-     * twice.
+     * <p>Giving the place back is an answer: the member reads as signed off, and signing up again stays
+     * on offer while registration is open.
      */
     test('a member registers for an event and gives the place back', async ({managerPage, memberPage: page}) => {
         const appointment = await weeklyAppointment(managerPage, `Hin und zurück ${test.info().workerIndex}-${Date.now()}`)
@@ -225,7 +224,9 @@ test.describe('Events', () => {
             await expect(myAnswer).toHaveText('Bestätigt', {timeout: 15000})
 
             await signOff(page, page.getByTestId('withdraw-household'))
-            await expect(myAnswer).toHaveText('Noch keine Antwort', {timeout: 15000})
+            await expect(myAnswer).toHaveText('Abgemeldet', {timeout: 15000})
+            await expect(page.getByTestId('answer-household')).toBeVisible()
+            await expect(page.getByTestId('withdraw-household')).toHaveCount(0)
         } finally {
             await appointment.remove()
         }
@@ -267,7 +268,7 @@ test.describe('Events', () => {
             await expect(myAnswer).toHaveText('Bestätigt', {timeout: 15000})
 
             await signOff(memberPage, memberPage.getByTestId('withdraw-household'))
-            await expect(myAnswer, 'the place is given up').toHaveText('Noch keine Antwort', {timeout: 15000})
+            await expect(myAnswer, 'the place is given up').toHaveText('Abgemeldet', {timeout: 15000})
 
             await memberPage.getByTestId('toast-action').click()
             await expect(myAnswer, 'the seat comes back as a seat, not as a pending answer')
@@ -278,11 +279,54 @@ test.describe('Events', () => {
     })
 
     /**
+     * Somebody with no time on that date says so on an appointment that has to be signed up for. That is
+     * an answer, so the appointment no longer waits for one and its closing reminders stop.
+     */
+    test('a member declines an appointment that has to be signed up for', async ({managerPage, memberPage}) => {
+        const managerHeaders = await apiHeaders(managerPage)
+        const name = `Keine Zeit ${test.info().workerIndex}-${Date.now()}`
+
+        const created = await managerPage.request.post('/api/v1/events', {
+            headers: managerHeaders,
+            data: {
+                name,
+                description: 'Anmeldung mit Frist',
+                eventType: 'ONE_TIME',
+                startTime: new Date(Date.now() + 25 * 86400000).toISOString(),
+                endTime: new Date(Date.now() + 25 * 86400000 + 3600000).toISOString(),
+                requiresRegistration: true,
+                registrationDeadline: new Date(Date.now() + 20 * 86400000).toISOString(),
+            },
+        })
+        expect(created.ok(), `the organiser made an event (${await created.text()})`).toBeTruthy()
+        const eventId = (await created.json()).id
+
+        try {
+            const awaiting = async () => {
+                const answer = await memberPage.request.get('/api/v1/events/registrations/awaiting',
+                    {headers: await apiHeaders(memberPage)})
+                expect(answer.ok(), `the waiting answers are read (${await answer.text()})`).toBeTruthy()
+                return JSON.stringify(await answer.json()).includes(`"eventId":${eventId}`)
+            }
+            expect(await awaiting(), 'the appointment waits for an answer').toBe(true)
+
+            await memberPage.goto(`/station/events/${eventId}`)
+            await memberPage.getByTestId('decline-registration').first().click()
+
+            await expect(memberPage.getByTestId('registration-status').first()).toHaveText('Abgemeldet', {timeout: 15000})
+            await expect(memberPage.getByTestId('answer-selected'), 'nothing is left to answer').toHaveCount(0)
+            expect(await awaiting(), 'and it waits no longer').toBe(false)
+        } finally {
+            await managerPage.request.delete(`/api/v1/events/${eventId}`, {headers: managerHeaders})
+        }
+    })
+
+    /**
      * A place that is still waiting to be confirmed can be given back like any other.
      *
      * <p>An appointment that confirms its sign-ups leaves the member in between for a while: they have
      * said they are coming and nobody has said yes yet. That is still a place taken, so it can be
-     * given back, and giving it back removes it rather than turning it into a refusal.
+     * given back, and giving it back is an answer: the member reads as signed off and can sign up again.
      */
     test('a place still waiting to be confirmed can be given back',
         async ({managerPage, memberPage}) => {
@@ -313,8 +357,9 @@ test.describe('Events', () => {
             await expect(myAnswer, 'nobody has said yes to them yet').toHaveText('Ausstehend', {timeout: 15000})
 
             await signOff(memberPage, memberPage.getByTestId('withdraw-household'))
-            await expect(myAnswer, 'the place is gone rather than refused')
-                .toHaveText('Noch keine Antwort', {timeout: 15000})
+            await expect(myAnswer, 'the place is given up, and that is an answer')
+                .toHaveText('Abgemeldet', {timeout: 15000})
+            await expect(memberPage.getByTestId('answer-household'), 'signing up again stays on offer').toBeVisible()
 
             await managerPage.request.delete(`/api/v1/events/${eventId}`, {headers: managerHeaders})
         })

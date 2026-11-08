@@ -70,8 +70,53 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
     }
 
     /**
-     * Saying nothing is having no answer on record, or having taken one back. Declining is an answer and
-     * is not asked again; withdrawing leaves the event unanswered, which is what a reminder is for.
+     * Taking a refusal back leaves no answer: whoever declined and changed their mind is asked again, so
+     * the warning before the deadline reaches them.
+     */
+    @Test
+    void aRefusalTakenBackOwesAnAnswerAgain() {
+        var created = event("Umentschieden", Instant.parse("2028-08-01T09:00:00Z"));
+        LocalDate date = LocalDate.of(2028, 8, 1);
+        try {
+            var declined =
+                    eventRegistrationRepo.create(created.id(), member.id(), date, RegistrationStatus.DECLINED, null);
+            eventRegistrationRepo.recordAnswer(declined.id(), RegistrationStatus.WITHDRAWN);
+
+            assertTrue(
+                    eventRegistrationRepo
+                            .findUnansweredMemberIds(created.id(), station.id())
+                            .contains(member.id()),
+                    "the refusal is gone and nothing replaced it");
+        } finally {
+            eventRepo.delete(created.id());
+        }
+    }
+
+    /**
+     * A place the system withdrew because its date went away is no answer of the member's: they had said
+     * they were coming, so they are still asked.
+     */
+    @Test
+    void aPlaceWithdrawnForADroppedDateStillOwesAnAnswer() {
+        var created = event("Verlegt", Instant.parse("2028-07-01T09:00:00Z"));
+        LocalDate date = LocalDate.of(2028, 7, 1);
+        try {
+            eventRegistrationRepo.create(created.id(), member.id(), date, RegistrationStatus.ACCEPTED, null);
+            eventRegistrationRepo.withdrawOnDates(created.id(), List.of(date));
+
+            assertTrue(
+                    eventRegistrationRepo
+                            .findUnansweredMemberIds(created.id(), station.id())
+                            .contains(member.id()),
+                    "the system took the place, the member said nothing");
+        } finally {
+            eventRepo.delete(created.id());
+        }
+    }
+
+    /**
+     * Saying nothing is having no answer on record. Declining is an answer and is not asked again, and so
+     * is giving up a place: whoever gave it up has said they are not coming.
      */
     @Test
     void whoStillOwesAnAnswer() {
@@ -91,12 +136,13 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
                             .contains(member.id()),
                     "declining is an answer");
 
-            eventRegistrationRepo.updateStatus(reg.id(), RegistrationStatus.WITHDRAWN);
-            assertTrue(
+            eventRegistrationRepo.recordAnswer(reg.id(), RegistrationStatus.ACCEPTED);
+            eventRegistrationRepo.recordAnswer(reg.id(), RegistrationStatus.WITHDRAWN);
+            assertFalse(
                     eventRegistrationRepo
                             .findUnansweredMemberIds(created.id(), station.id())
                             .contains(member.id()),
-                    "taking an answer back leaves none");
+                    "giving up a place is an answer too");
         } finally {
             eventRepo.delete(created.id());
         }

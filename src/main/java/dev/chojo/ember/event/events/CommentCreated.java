@@ -27,6 +27,9 @@ import org.jspecify.annotations.Nullable;
  * @param preview         the excerpt of the comment the notification shows
  * @param alsoTold        who is told about every comment on the target besides, {@code null} for
  *                        nobody; the author is left out of them
+ * @param toldOfNewThread who is told that a new top-level comment was written, {@code null} for
+ *                        nobody or for a reply; the author and the members it mentions by name are
+ *                        already left out of them
  */
 public record CommentCreated(
         int stationId,
@@ -39,5 +42,6 @@ public record CommentCreated(
         @Nullable Integer authorMemberId,
         String authorName,
         String preview,
-        @Nullable StationAudience alsoTold)
+        @Nullable StationAudience alsoTold,
+        @Nullable StationAudience toldOfNewThread)
         implements DomainEvent {}
