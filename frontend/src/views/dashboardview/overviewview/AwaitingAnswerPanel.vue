@@ -21,10 +21,8 @@ import type {AwaitingAnswer, EventCategory} from '@/api/generated/schema'
  * <p>One row per event, naming who still owes an answer, because a household usually answers the same way
  * for everyone and reading the event once is how somebody decides that.
  *
- * <p>The row leads to the event and nothing else. An event that has to be registered for in advance
- * takes one answer, which is the registration: whoever is not down for it is not coming, and there is
- * nothing to say beyond that. The row used to offer a refusal, which wrote down a no that changed
- * nothing anybody reads.
+ * <p>The row leads to the event, where both answers are offered: signing up, or signing off, which
+ * stops the reminders as well.
  *
  * <p>Only events open to the person and still open for answers appear, which is the same question the
  * warning notification asks, so a reader who acts on the notification finds the row gone.
@@ -64,6 +62,8 @@ async function loadData() {
 }
 
 onMounted(loadData)
+
+defineExpose({reload: loadData})
 </script>
 
 <template>

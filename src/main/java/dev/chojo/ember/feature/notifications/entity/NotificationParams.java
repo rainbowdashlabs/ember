@@ -70,6 +70,9 @@ public sealed interface NotificationParams {
 
     record CommentMention(String entityTitle, String author, String preview) implements NotificationParams {}
 
+    /** A new question on an appointment, told to whoever runs the station's appointments. */
+    record EventComment(String eventName, String author, String preview) implements NotificationParams {}
+
     record NewEvent(String title, String eventDescription) implements NotificationParams {}
 
     /**

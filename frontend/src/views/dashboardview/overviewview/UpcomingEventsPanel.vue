@@ -7,6 +7,7 @@
 import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
+import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -30,7 +31,12 @@ import {getFeedStatus} from '@/api/feedToken'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useSession} from '@/composables/useSession'
 import {toIsoDate, todayIsoDate, weekdayName} from '@/util/format'
-import {answerableMembers, isStandingAnswer} from '@/util/eventAnswers'
+import {answerableMembers, isMembersAnswer} from '@/util/eventAnswers'
+
+const emit = defineEmits<{
+  /** Somebody was declined, which changes who still owes an answer elsewhere on the page. */
+  answered: []
+}>()
 
 const {t} = useI18n()
 const router = useRouter()
@@ -151,11 +157,16 @@ async function loadData() {
   }).catch(() => {})
 }
 
-/** The dialog is open exactly while an appointment is waiting to be refused for somebody. */
+/**
+ * The dialog is open exactly while an appointment is waiting to be refused for somebody. Closing it
+ * dismisses what went wrong inside it as well.
+ */
 const declineDialogOpen = computed({
   get: () => declining.value !== null,
   set: (open: boolean) => {
-    if (!open) declining.value = null
+    if (open) return
+    declining.value = null
+    declineFailure.value = null
   },
 })
 
@@ -178,12 +189,13 @@ function answerableFor(item: UpcomingEvent) {
  * What has been answered for this date, one entry per person who answered.
  *
  * <p>An appointment repeats, so an answer belongs to a date rather than to the appointment: last
- * week's refusal says nothing about next week. A place given back is no answer at all.
+ * week's refusal says nothing about next week. A place given up is an answer; a refusal taken back is
+ * none.
  */
 function answersOn(item: UpcomingEvent) {
   const answerable = answerableFor(item)
   return myRegistrations.value
-      .filter(reg => reg.eventId === item.event.id && reg.eventDate === item.date && isStandingAnswer(reg))
+      .filter(reg => reg.eventId === item.event.id && reg.eventDate === item.date && isMembersAnswer(reg))
       .map(reg => ({
         registration: reg,
         name: answerable.find(person => person.key === reg.memberId)?.name ?? reg.memberName,
@@ -197,12 +209,6 @@ function withoutAnswer(item: UpcomingEvent) {
 }
 
 /**
- * Refuses the appointment for one person, or asks which of them where there is more than one.
- *
- * <p>A guardian answers for a household, and the household rarely refuses as a whole: one child is
- * ill while the other goes. Which is why the choice is asked rather than assumed.
- */
-/**
  * Signing off asks first, the same question the appointment's own page asks. Answering for several
  * at once opens the picker instead, which already takes a deliberate press of its own.
  */
@@ -214,8 +220,19 @@ const {
   onConfirm: async signOff => signOff(),
 })
 
+/**
+ * Refuses the appointment for one person, or asks which of them where there is more than one.
+ *
+ * <p>A guardian answers for a household, and the household rarely refuses as a whole: one child is
+ * ill while the other goes. Which is why the choice is asked rather than assumed. Declining an
+ * appointment that has to be signed up for asks nothing: nobody held a place, so nothing is lost.
+ */
 function decline(item: UpcomingEvent) {
   const open = withoutAnswer(item)
+  if (open.length === 1 && item.event.requiresRegistration) {
+    void sendDecline(item, [open[0]!.key])
+    return
+  }
   if (open.length === 1) {
     requestSignOff(() => sendDecline(item, [open[0]!.key]))
     return
@@ -247,6 +264,7 @@ async function sendDecline(item: UpcomingEvent, memberIds: number[]) {
     decliningBusy.value = false
     return
   }
+  emit('answered')
   try {
     myRegistrations.value = await events.listMyRegistrations()
   } catch (e) {
@@ -270,6 +288,7 @@ onMounted(loadData)
         {{ t('dashboard.showAll') }}
       </SecondaryButton>
     </div>
+    <FailureAlert v-if="!declineDialogOpen" :failure="declineFailure" class="mb-3 shrink-0"/>
     <div class="overflow-y-auto flex-1 space-y-2">
       <InfoContainer v-if="showFeedCta" class="flex items-center justify-between gap-3 py-2 px-3">
         <div class="flex items-center gap-2">

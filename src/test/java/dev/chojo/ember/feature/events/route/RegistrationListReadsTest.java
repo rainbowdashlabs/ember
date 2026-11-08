@@ -51,6 +51,7 @@ import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -219,7 +220,8 @@ class RegistrationListReadsTest {
                         false,
                         true,
                         "Fahrer",
-                        null),
+                        null,
+                        false),
                 row);
     }
 
@@ -233,5 +235,24 @@ class RegistrationListReadsTest {
         assertEquals("", row.memberName());
         assertNull(row.memberIdentity());
         assertNull(row.fieldName());
+    }
+
+    /** A member who gave up their place reads as having done so, which is how they answered. */
+    @Test
+    void aPlaceGivenUpReadsAsGivenUp() {
+        placed(List.of(9));
+        var givenUp = new EventRegistration(
+                1009,
+                EVENT_ID,
+                9,
+                DATE,
+                RegistrationStatus.WITHDRAWN,
+                Instant.parse("2026-08-01T10:00:00Z"),
+                null,
+                Instant.parse("2026-08-02T10:00:00Z"),
+                RegistrationStatus.ACCEPTED,
+                false);
+
+        assertTrue(list(List.of(givenUp)).getFirst().placeGivenUp());
     }
 }

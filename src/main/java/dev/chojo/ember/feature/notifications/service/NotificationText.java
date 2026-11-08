@@ -197,6 +197,7 @@ public class NotificationText {
                 switch (n.type()) {
                     case NEW_NEWS -> params instanceof NotificationParams.NewNews p ? p.preview() : null;
                     case NEWS_COMMENT -> params instanceof NotificationParams.NewsComment p ? p.preview() : null;
+                    case EVENT_COMMENT -> params instanceof NotificationParams.EventComment p ? p.preview() : null;
                     case MOVEMENT_ADVANCED ->
                         params instanceof NotificationParams.MovementMoved p ? p.stepLabel() : null;
                     case MOVEMENT_RAISED -> params instanceof NotificationParams.MovementRaised p ? p.reason() : null;

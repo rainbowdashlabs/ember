@@ -46,6 +46,11 @@ export interface GivenAnswer<K extends string | number = number, U = number> ext
      * list is out of the question, and this is what says so in place of the button.
      */
     heldByField?: string | null
+    /**
+     * Whether this answer is a place the person gave up. It stands as an answer, so they are not asked
+     * again, and what it offers is signing up anew rather than taking the answer back.
+     */
+    placeGivenUp?: boolean
 }
 
 /** One person's answer to the appointment's questions, ready to be sent. */
@@ -62,31 +67,54 @@ export function isRefusal(status: RegistrationStatus): boolean {
 /**
  * Whether an answer says the member will not be at the appointment.
  *
- * <p>A refusal always does. Taking an answer back only does where the appointment has to be signed up
- * for, because there it gives a place up. Where everybody is expected, it takes a refusal back, and
- * the member is expected again.
+ * <p>A refusal always does. A withdrawal only does where it gave a place up on an appointment that
+ * has to be signed up for. Where everybody is expected, or where a refusal was taken back, the member
+ * has said nothing that keeps them away.
  *
  * @param registrationRequired whether the appointment has to be signed up for
  */
-export function saysNotComing(status: RegistrationStatus, registrationRequired: boolean): boolean {
-    return status === RegistrationStatus.DECLINED
-        || (status === RegistrationStatus.WITHDRAWN && registrationRequired)
+export function saysNotComing(
+    registration: Pick<RegistrationResponse, 'status' | 'placeGivenUp'>,
+    registrationRequired: boolean,
+): boolean {
+    return registration.status === RegistrationStatus.DECLINED
+        || (registration.status === RegistrationStatus.WITHDRAWN && registrationRequired && registration.placeGivenUp)
 }
 
 /**
  * Whether a registration is still an answer somebody holds.
  *
- * <p>A place that was given back is kept for whoever runs the appointment, so the row outlives the
- * place. To the member it is not an answer they are holding: they hold nothing, they owe one, and
- * they may sign up again.
+ * <p>A withdrawn row is kept for whoever runs the appointment, so the row outlives the place or the
+ * refusal it held. What is still standing is a place held or awaited, or a refusal.
  */
 export function isStandingAnswer(registration: Pick<RegistrationResponse, 'status'>): boolean {
     return registration.status !== RegistrationStatus.WITHDRAWN
 }
 
+/**
+ * Whether a registration is an answer the member gave, as the member sees it.
+ *
+ * <p>Every standing answer is, and so is a place given up: whoever gave it up has said they are not
+ * coming. Any other withdrawal takes an answer back and leaves none.
+ */
+export function isMembersAnswer(registration: Pick<RegistrationResponse, 'status' | 'placeGivenUp'>): boolean {
+    return isStandingAnswer(registration) || registration.placeGivenUp
+}
+
 /** Whether a registration holds a place or is waiting for one to be confirmed. */
 export function holdsOrAwaitsPlace(registration: Pick<RegistrationResponse, 'status'>): boolean {
     return isStandingAnswer(registration) && !isRefusal(registration.status)
+}
+
+/**
+ * Whether somebody may still sign up, judged by their registration on the date.
+ *
+ * <p>Nobody holding or awaiting a place may, which includes whoever refused or gave a place up: they
+ * may change their mind. A place the organiser denied stays denied.
+ */
+export function maySignUp(registration: Pick<RegistrationResponse, 'status'> | undefined): boolean {
+    return registration === undefined
+        || (!holdsOrAwaitsPlace(registration) && registration.status !== RegistrationStatus.DENIED)
 }
 
 /**
@@ -180,8 +208,8 @@ export function notOpenLabelKey(hasManagedMembers: boolean): string {
  * What each of these people has answered about one appointment on one date.
  *
  * <p>The station's own answers, mapped onto the shape the shared controls read. Taking one back
- * refers to the registration row itself, which is what the server deletes. A place given back is no
- * answer, so whoever gave it back is offered to sign up again rather than to give it back twice.
+ * refers to the registration row itself, which is what the server deletes. A place given back is an
+ * answer too, shown as one, and offers signing up again rather than giving it back twice.
  *
  * @param asksQuestions whether the appointment asks anything, which is what makes an answer worth
  *                      opening again
@@ -194,16 +222,17 @@ export function localAnswers(
     const answers: GivenAnswer[] = []
     for (const person of people) {
         const registration = registrations.find(entry => entry.memberId === person.key)
-        if (!registration || !isStandingAnswer(registration)) continue
+        if (!registration || !isMembersAnswer(registration)) continue
         answers.push({
             key: person.key,
             name: person.name,
             status: registration.status,
             undo: registration.id,
             createdByName: registration.createdByName,
-            canUpdate: asksQuestions,
+            canUpdate: asksQuestions && holdsOrAwaitsPlace(registration),
             answersMissing: registration.answersMissing,
             heldByField: registration.fromField ? (registration.fieldName ?? '') : null,
+            placeGivenUp: registration.placeGivenUp,
         })
     }
     return answers

@@ -864,8 +864,8 @@ public class EventFederationService implements FederationServer {
     }
 
     /**
-     * Creates a comment from a remote federated partner. A comment from a partner tells nobody here,
-     * which the appointment's comment target decides.
+     * Creates a comment from a remote federated partner. Whom it tells here the appointment's comment
+     * target decides: a new top-level comment reaches the appointment managers, and nothing else does.
      */
     public CommentResponse createRemoteComment(
             FederationPartner partner,

@@ -19,9 +19,10 @@ import jakarta.inject.Singleton;
 import java.util.Objects;
 
 /**
- * Tells the author of the answered comment about a reply, and whoever the comment's target names
- * besides about every comment. Who that is the target decided when the comment was written; the
- * author is never told about their own comment.
+ * Tells the author of the answered comment about a reply, whoever the comment's target names
+ * besides about every comment, and whoever runs the target about a new top-level comment. Who that
+ * is the target decided when the comment was written; the author is never told about their own
+ * comment.
  */
 @Singleton
 public class CommentCreatedHandler implements DomainEventHandler<CommentCreated> {
@@ -58,6 +59,18 @@ public class CommentCreatedHandler implements DomainEventHandler<CommentCreated>
                     alsoTold.except(event.authorMemberId()),
                     NotificationType.NEWS_COMMENT,
                     data,
+                    Delivery.ONCE_WHILE_UNREAD);
+        }
+
+        var toldOfNewThread = event.toldOfNewThread();
+        if (toldOfNewThread != null) {
+            notifier.notify(
+                    toldOfNewThread,
+                    NotificationType.EVENT_COMMENT,
+                    NotificationData.of(
+                            new NotificationParams.EventComment(
+                                    event.entityTitle(), event.authorName(), event.preview()),
+                            event.link()),
                     Delivery.ONCE_WHILE_UNREAD);
         }
     }

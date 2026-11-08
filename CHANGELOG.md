@@ -2,14 +2,16 @@
 
 ## v26.24.0
 
-Attendance can credit time spent before and after an appointment. A template names who prepares or tidies up and how many minutes that is worth. The attendance report counts those minutes in each person's hours. A member's equipment is handed out and taken back on the member's own page, which opens with the tabs each reader may see. Tabs on the main pages can be linked by their address. Missing equipment stands among the pieces a member holds and is handed out from a searchable window. The German interface uses one name for equipment movements throughout.
+Attendance can credit time spent before and after an appointment. A template names who prepares or tidies up and how many minutes that is worth. The attendance report counts those minutes in each person's hours. A member's equipment is handed out and taken back on the member's own page, which opens with the tabs each reader may see. Tabs on the main pages can be linked by their address. Missing equipment stands among the pieces a member holds and is handed out from a searchable window. The German interface uses one name for equipment movements throughout. Appointments that need a sign-up can be declined, which ends the reminders that registration is closing. Appointment managers are notified about every new conversation on an appointment.
 
 ### New Features
 
 - **Preparation and follow-up time counts in attendance.** An attendance template can credit chosen people with minutes before and after an appointment, such as a youth leader who sets up the room. Each sheet copies these rules and can correct them or leave one person out, and the report, its printouts and the spreadsheet count the minutes in each person's hours.
+- **Appointment managers hear about new comments.** Every new comment that starts a thread under an appointment notifies those who manage appointments, also when it comes from a member of a partner station. The notification has its own row in the notification settings, and a manager mentioned in the comment only gets the mention.
 
 ### Improvements
 
+- **Appointments that need a sign-up can be declined.** The appointment page, the upcoming list and the dashboard offer "Sign off" while registration is open. Whoever signs off or gives up a place gets no more reminders that registration is closing, and can sign up again while it is open.
 - **Tabs can be linked.** The address names the open tab on member, appointment, test, template and form evaluation pages, so a link or a bookmark opens the same tab, such as `/station/members/detail/12#inventory`.
 - **Member pages open with the tabs a reader may see.** Each tab of a member's page appears for those allowed to see its content, and the page opens as long as one is left. Someone who may see the inventory but not member profiles opens a member's page with its Inventory tab.
 - **Pages show their loading indicator in the middle.** While a page or a section loads, its spinning wheel stands centred on a line of its own instead of in the top left corner.

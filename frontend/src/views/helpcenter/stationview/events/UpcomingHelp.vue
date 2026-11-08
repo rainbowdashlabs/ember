@@ -15,7 +15,7 @@ import {StationPermission} from '@/api/generated/schema'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
@@ -104,9 +104,9 @@ const activeView = ref('')
             <PrimaryButton :icon="['fas', 'check']">
               {{ t('eventsUpcoming.register') }}
             </PrimaryButton>
-            <ErrorButton :icon="['fas', 'ban']">
+            <SecondaryButton :icon="['fas', 'ban']">
               {{ t('eventsUpcoming.decline') }}
-            </ErrorButton>
+            </SecondaryButton>
           </ButtonRow>
         </NeutralContainer>
         <NeutralContainer class="space-y-2">

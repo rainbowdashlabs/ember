@@ -98,6 +98,16 @@ public record EventRegistration(
     }
 
     /**
+     * Whether the member gave up a place they held or asked for. That is an answer of its own: whoever
+     * gave up a place is not asked again. A withdrawal taking back a refusal is none, and neither is
+     * one the system wrote because the date went away, which carries no previous status.
+     */
+    public boolean gaveUpPlace() {
+        return status == RegistrationStatus.WITHDRAWN
+                && (previousStatus == RegistrationStatus.PENDING || previousStatus == RegistrationStatus.ACCEPTED);
+    }
+
+    /**
      * Creates a row mapping for database result set conversion.
      */
     public static RowMapping<EventRegistration> map() {

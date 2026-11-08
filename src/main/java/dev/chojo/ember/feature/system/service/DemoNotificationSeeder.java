@@ -225,6 +225,14 @@ public class DemoNotificationSeeder implements DemoPerStationSeeder {
 
         tell(
                 memberId,
+                NotificationType.EVENT_COMMENT,
+                NotificationData.of(
+                        new NotificationParams.EventComment(
+                                "Offenes Training", "Bob Schmidt", "Muss ich Schutzkleidung mitbringen?"),
+                        oneTimeLink));
+
+        tell(
+                memberId,
                 NotificationType.NEW_EVENT,
                 NotificationData.of(
                         new NotificationParams.NewEvent(

@@ -37,6 +37,7 @@ const allRows: NotifyRow[] = [
   {type: 'NEWS_COMMENT', label: 'notifyComments', hint: 'notifyCommentsHint'},
   {type: 'COMMENT_MENTION', label: 'notifyMentions', hint: 'notifyMentionsHint'},
   {type: 'NEW_EVENT', label: 'notifyEvents', hint: 'notifyEventsHint'},
+  {type: 'EVENT_COMMENT', label: 'notifyEventComments', hint: 'notifyEventCommentsHint'},
   {type: 'EVENT_REGISTRATION_STATUS', label: 'notifyEventStatus', hint: 'notifyEventStatusHint'},
   {type: 'MEMBER_ADDED_TO_GROUP', label: 'notifyGroups', hint: 'notifyGroupsHint'},
   {type: 'PROFILE_FIELD_CHANGED', label: 'notifyProfile', hint: 'notifyProfileHint'},
