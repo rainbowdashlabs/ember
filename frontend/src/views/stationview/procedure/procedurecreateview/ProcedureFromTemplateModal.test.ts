@@ -7,6 +7,7 @@ import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import type {MemberCompletion, ProcedureTemplate} from '@/api/generated/schema'
+import {fromCompletion} from '@/components/input/select/memberOption'
 import {procedures} from '@/api'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ProcedureFromTemplateModal from './ProcedureFromTemplateModal.vue'
@@ -19,7 +20,7 @@ vi.mock('vue-router', async (original) => ({
 }))
 
 vi.mock('@/api', () => ({
-    procedures: {createProcedure: vi.fn()},
+    procedures: {createProceduresForMembers: vi.fn()},
 }))
 
 const TEMPLATE: ProcedureTemplate = {
@@ -38,7 +39,7 @@ const LEON: MemberCompletion = {
 
 async function mountModal() {
     return mountSuspended(ProcedureFromTemplateModal, {
-        props: {modelValue: true, template: TEMPLATE, members: [LEON]},
+        props: {modelValue: true, template: TEMPLATE, members: [fromCompletion(LEON)]},
         global: {stubs: {
             Modal: {template: '<div><slot/></div>'},
             MemberSelectInput: {
@@ -50,11 +51,14 @@ async function mountModal() {
     })
 }
 
-/** A procedure from a template asks only whom it is about and when it is due, and is named after both. */
+/**
+ * A procedure from a template asks only whom it is about and when it is due. The server names it after the
+ * template and the person; the dialog previews that name.
+ */
 describe('ProcedureFromTemplateModal', () => {
     beforeEach(() => {
         push.mockReset()
-        vi.mocked(procedures.createProcedure).mockReset()
+        vi.mocked(procedures.createProceduresForMembers).mockReset()
     })
 
     it('starts nothing before somebody is chosen', async () => {
@@ -62,11 +66,11 @@ describe('ProcedureFromTemplateModal', () => {
 
         expect(view.find('[data-testid="procedure-from-template-submit"]').attributes('disabled')).toBeDefined()
         await view.find('form').trigger('submit')
-        expect(procedures.createProcedure).not.toHaveBeenCalled()
+        expect(procedures.createProceduresForMembers).not.toHaveBeenCalled()
     })
 
-    it('starts the procedure from the template, named after it and the person, and opens it', async () => {
-        vi.mocked(procedures.createProcedure).mockResolvedValue({id: 9} as never)
+    it('starts the procedure from the template for the person, previews its name, and opens it', async () => {
+        vi.mocked(procedures.createProceduresForMembers).mockResolvedValue([{id: 9}] as never)
         const view = await mountModal()
 
         await view.find('[data-testid="procedure-from-template-about"]').trigger('click')
@@ -74,19 +78,19 @@ describe('ProcedureFromTemplateModal', () => {
         await view.find('form').trigger('submit')
         await flushPromises()
 
-        expect(procedures.createProcedure).toHaveBeenCalledWith({
+        expect(procedures.createProceduresForMembers).toHaveBeenCalledWith({
             templateId: 4,
-            name: 'Neues Mitglied aufnehmen: Leon Lang',
+            memberIds: [21],
+            name: 'Neues Mitglied aufnehmen',
             description: 'Aufnahme mit Antrag.',
             dueAt: undefined,
             isPublic: true,
-            aboutMemberId: 21,
         })
         expect(push).toHaveBeenCalledWith({name: 'procedure-detail', params: {id: 9}})
     })
 
     it('shows a refusal and stays open', async () => {
-        vi.mocked(procedures.createProcedure).mockRejectedValue(new Error('Nicht erlaubt'))
+        vi.mocked(procedures.createProceduresForMembers).mockRejectedValue(new Error('Nicht erlaubt'))
         const view = await mountModal()
 
         await view.find('[data-testid="procedure-from-template-about"]').trigger('click')

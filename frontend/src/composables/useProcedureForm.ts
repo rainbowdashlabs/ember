@@ -5,12 +5,13 @@
  */
 import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { procedures, stationMembers } from '@/api'
-import { StationPermission, type MemberCompletion, type MemberGroup, type ProcedureItemRequest, type ProcedureStepKind, type ProcedureTemplate, type ProcedureTemplateDetail, type StepDocument, type UserTag } from '@/api/generated/schema'
+import { procedures } from '@/api'
+import { StationPermission, type ProcedureItemRequest, type ProcedureStepKind, type ProcedureTemplate, type ProcedureTemplateDetail, type StepDocument } from '@/api/generated/schema'
 import type { RestrictionSelection } from '@/api/types'
-import { audienceLists } from '@/components/documents/generation'
 import { emptyRestriction, namesSomebody, toRestriction } from '@/components/input/restriction'
-import { stepDocumentOf, stepKindOf } from '@/components/procedures/stepDocument'
+import { documentChanged, stepDocumentOf, stepKindChange, type AskedDocument } from '@/components/procedures/stepDocument'
+import { loadPartyChoices, noPartyChoices, type PartyChoices } from '@/components/procedures/partyChoices'
+import { fromCompletion } from '@/components/input/select/memberOption'
 import type { StepDependency } from '@/api/procedures'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useSession } from '@/composables/useSession'
@@ -29,7 +30,7 @@ export interface EditableItem {
     position: number
     dependsOn: number[]
     /** The document the step asks to sign, null for a step ticked by hand. */
-    document: StepDocument | null
+    document: AskedDocument | null
     /** Whether the step already made its document, which fixes what it asks for. */
     documentMade: boolean
     /** The document the stored step asks to sign, to send what it asks for only when that changed. */
@@ -73,16 +74,17 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
   const savedAbout = ref('')
   /** Whether the procedure is about somebody already, who can be changed but not taken away. */
   const aboutFixed = computed(() => savedAbout.value !== '')
-  /** Whether a new procedure still names nobody it is about, which every new one has to. */
-  const aboutMissing = computed(() => !isEditMode.value && !about.value)
+  /** Whether the procedure has to name somebody it is about, which every new one does. */
+  const aboutRequired = computed(() => !isEditMode.value)
 
   const templates = ref<ProcedureTemplate[]>([])
   const selectedTemplateId = ref<number | null>(null)
   const templateDetail = ref<ProcedureTemplateDetail | null>(null)
 
-  const members = ref<MemberCompletion[]>([])
-  const groups = ref<MemberGroup[]>([])
-  const tags = ref<UserTag[]>([])
+  /** Whom the party can name; its members are also whom the procedure can be about. */
+  const partyChoices = ref<PartyChoices>(noPartyChoices())
+  /** The members the procedure can be about, as the member pickers offer them. */
+  const aboutChoices = computed(() => partyChoices.value.members.map(fromCompletion))
   /** The managing party: who sees the public steps, ticks those marked for them and is told. */
   const party = ref<RestrictionSelection>(emptyRestriction())
 
@@ -116,6 +118,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     const editable: EditableItem[] = source.map(item => {
       const tempId = nextTempId++
       realToTemp.set(item.id, tempId)
+      const document = stepDocumentOf(item, documents)
       return {
         ...(keepIds ? {id: item.id} : {}),
         tempId,
@@ -125,9 +128,9 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
         userAssigned: item.userAssigned,
         position: item.position,
         dependsOn: [],
-        document: stepDocumentOf(item, documents),
+        document,
         documentMade: keepIds && item.generationId != null,
-        ...(keepIds ? {storedDocumentId: stepDocumentOf(item, documents)?.id ?? null} : {}),
+        ...(keepIds ? {storedDocumentId: document?.id ?? null} : {}),
       }
     })
     for (const {itemId, dependsOnItemId} of procedures.dependencyEntries(dependencies)) {
@@ -175,15 +178,9 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
   }
 
   const {loading, failure, reload} = useAsyncLoader(async () => {
-    const [tpls, mbrs, lists] = await Promise.all([
-      procedures.getTemplates(),
-      stationMembers.listCompletions(),
-      audienceLists(),
-    ])
+    const [tpls, choices] = await Promise.all([procedures.getTemplates(), loadPartyChoices()])
     templates.value = tpls.filter(tpl => !tpl.archived)
-    members.value = mbrs
-    groups.value = lists.groups
-    tags.value = lists.tags
+    partyChoices.value = choices
 
     if (isEditMode.value) {
       const detail = await procedures.getProcedure(editId.value!)
@@ -245,23 +242,25 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     items.value = items.value.map((current, i) => (i === index ? item : current))
   }
 
+  /** The documents the form starts asking to sign: those of new steps and of steps whose document changed. */
+  const changedDocuments = computed(() => items.value
+    .filter(item => item.document != null && documentChanged(item.storedDocumentId, item.document))
+    .map(item => item.document!))
+
   /**
-   * Whether a step sends what it asks for: a new one always, a stored one only where its document was
-   * changed, so a step whose document is gone or no longer suitable saves its other fields unchanged.
+   * Why the form cannot be saved as it stands, as the messages to show, each a refusal the server would
+   * give: document steps its user may not ask for, documents that are gone, a new procedure about nobody,
+   * and documents to sign on a procedure about nobody.
    */
-  function sendsKind(item: EditableItem): boolean {
-    return item.storedDocumentId === undefined || item.storedDocumentId !== (item.document?.id ?? null)
-  }
-
-  /** Whether the form starts document steps its user may not ask for, which the server would refuse. */
-  const documentsNotYours = computed(() => !hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)
-    && items.value.some(item => item.document != null && sendsKind(item)))
-
-  /** Whether the form asks to sign documents on a procedure about nobody, which the server would refuse. */
-  const documentsNeedAbout = computed(() => !about.value && items.value.some(item => item.document != null && sendsKind(item)))
-
-  /** Whether the form starts document steps whose document is gone, which the server would refuse. */
-  const documentsGone = computed(() => items.value.some(item => item.document?.name === '' && sendsKind(item)))
+  const blockers = computed(() => {
+    const changed = changedDocuments.value
+    return [
+      changed.length > 0 && !hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER) && 'procedures.stepDocumentsNotYours',
+      changed.some(document => document.gone) && 'procedures.stepDocumentsGone',
+      aboutRequired.value && !about.value && 'procedures.aboutRequired',
+      changed.length > 0 && !about.value && 'procedures.stepDocumentsNeedAbout',
+    ].filter((key): key is string => typeof key === 'string')
+  })
 
   function itemPayload(item: EditableItem, position: number): ProcedureItemRequest {
     return {
@@ -270,7 +269,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       isPublic: item.isPublic,
       userAssigned: item.userAssigned,
       position,
-      ...(sendsKind(item) ? stepKindOf(item.document) : {}),
+      ...stepKindChange(item.storedDocumentId, item.document),
     }
   }
 
@@ -356,18 +355,15 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     isPublic,
     about,
     aboutFixed,
-    aboutMissing,
+    aboutRequired,
     templates,
     selectedTemplateId,
     templateDetail,
-    members,
-    groups,
-    tags,
+    partyChoices,
+    aboutChoices,
     party,
     items,
-    documentsNotYours,
-    documentsGone,
-    documentsNeedAbout,
+    blockers,
     isEditMode,
     loading,
     failure,

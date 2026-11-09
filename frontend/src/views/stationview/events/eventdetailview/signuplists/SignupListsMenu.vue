@@ -13,9 +13,8 @@ import MutedText from '@/components/typography/MutedText.vue'
 import SignupChecklistDialog from './SignupChecklistDialog.vue'
 import SignupProcedureDialog from './SignupProcedureDialog.vue'
 import SignupSurveyDialog from './SignupSurveyDialog.vue'
-import {noPartyChoices, type PartyChoices} from './partyChoices'
-import {checklists, forms, procedures, stationMembers} from '@/api'
-import {audienceLists} from '@/components/documents/generation'
+import {loadPartyChoices, noPartyChoices, type PartyChoices} from '@/components/procedures/partyChoices'
+import {checklists, forms, procedures} from '@/api'
 import type {RestrictionSelection} from '@/api/types'
 import {
   FormPurpose,
@@ -154,15 +153,14 @@ const {running: creatingSurvey, failure: surveyFailure, run: runCreateSurvey} = 
  */
 const {running: loadingProcedure, failure: procedureLoadFailure, run: runLoadProcedure} = useAsyncAction(
     async () => {
-      const [templates, prepared, members, lists] = await Promise.all([
+      const [templates, prepared, choices] = await Promise.all([
         procedures.getTemplates(),
         procedures.getProceduresForEvent(props.event.id, props.effectiveDate!),
-        stationMembers.listCompletions(),
-        audienceLists(),
+        loadPartyChoices(),
       ])
       procedureTemplates.value = templates.filter(template => !template.archived)
       existingProcedures.value = prepared
-      partyChoices.value = {members, groups: lists.groups, tags: lists.tags}
+      partyChoices.value = choices
     },
     {formatError: (e) => describeFailure(e, t).message},
 )

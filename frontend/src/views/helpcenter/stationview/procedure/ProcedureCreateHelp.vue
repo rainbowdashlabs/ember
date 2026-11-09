@@ -89,7 +89,7 @@ const ITEMS: EditableItem[] = [
                           description="Alle Schritte bis zum ersten Übungsabend."
                           due-at="2026-06-12" :is-public="true" about="2"
                           :members="MEMBERS.map(fromCompletion)"/>
-        <PartySection :model-value="PARTY" :members="MEMBERS" :groups="GROUPS" :tags="[]"/>
+        <PartySection :model-value="PARTY" :choices="{members: MEMBERS, groups: GROUPS, tags: []}"/>
         <ItemsSection :items="ITEMS"/>
         <ButtonRow pair align="end">
           <SecondaryButton>{{ t('common.cancel') }}</SecondaryButton>

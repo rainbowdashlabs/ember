@@ -17,24 +17,23 @@ import DateInput from '@/components/input/datetime/DateInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import {fromCompletion} from '@/components/input/select/memberOption'
+import type {MemberOption} from '@/components/input/select/memberOption'
 import {procedures} from '@/api'
-import type {MemberCompletion, ProcedureTemplate} from '@/api/generated/schema'
+import type {ProcedureTemplate} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {describeFailure} from '@/util/failure'
 import {dateToInstant} from '@/util/format'
 
 /**
  * Starts a procedure from a template, asking only whom it is about and when it is due. Everything else
- * comes from the template: its steps and their order, its description and its managing party. The
- * procedure is named after the template and the person, as procedures from sign-ups are.
+ * comes from the template: its steps and their order, its description and its managing party. It starts
+ * the way procedures from sign-ups do, for one person, so the server names it after the template and them.
  */
 const open = defineModel<boolean>({required: true})
 
 const props = defineProps<{
   template: ProcedureTemplate
   /** The members a procedure can be about. */
-  members: MemberCompletion[]
+  members: MemberOption[]
 }>()
 
 const {t} = useI18n()
@@ -44,31 +43,28 @@ const router = useRouter()
 const about = ref('')
 const dueAt = ref('')
 
-const choices = computed(() => props.members.map(fromCompletion))
-
 /**
- * The name the procedure gets: the template's, followed by the person's. It follows the same pattern
- * the server uses for procedures started from a sign-up.
+ * A preview of the name the procedure gets: the template's, followed by the person's. The server names
+ * it, so this only says ahead what it will write.
  */
 const name = computed(() => {
-  const person = props.members.find(member => String(member.id) === about.value)?.name
+  const person = props.members.find(member => member.value === about.value)?.name
   return person ? `${props.template.name}: ${person}` : props.template.name
 })
 
 const {running, failure, run, clearError} = useAsyncAction(
     async () => {
-      const created = await procedures.createProcedure({
+      const [created] = await procedures.createProceduresForMembers({
         templateId: props.template.id,
-        name: name.value,
+        memberIds: [Number(about.value)],
+        name: props.template.name,
         description: props.template.description || undefined,
         dueAt: dateToInstant(dueAt.value) ?? undefined,
         isPublic: true,
-        aboutMemberId: Number(about.value),
       })
       open.value = false
-      await router.push({name: 'procedure-detail', params: {id: created.id}})
+      if (created) await router.push({name: 'procedure-detail', params: {id: created.id}})
     },
-    {formatError: (e) => describeFailure(e, t).message},
 )
 
 watch(open, opened => {
@@ -86,7 +82,7 @@ watch(open, opened => {
       <MutedText tag="p" size="sm">{{ t('procedures.start.dialogHint') }}</MutedText>
       <div>
         <FieldLabel class="mb-1">{{ t('procedures.about') }}</FieldLabel>
-        <MemberSelectInput v-model="about" :members="choices" data-testid="procedure-from-template-about"/>
+        <MemberSelectInput v-model="about" :members="members" data-testid="procedure-from-template-about"/>
       </div>
       <div>
         <FieldLabel class="mb-1">{{ t('procedures.dueDate') }}</FieldLabel>

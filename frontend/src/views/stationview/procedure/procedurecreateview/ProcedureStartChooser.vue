@@ -6,12 +6,11 @@
 <script setup lang="ts">
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import MutedText from '@/components/typography/MutedText.vue'
+import StartTile from '@/components/start/StartTile.vue'
+import StartTileSection from '@/components/start/StartTileSection.vue'
 import ProcedureFromTemplateModal from './ProcedureFromTemplateModal.vue'
-import type {MemberCompletion, ProcedureTemplate} from '@/api/generated/schema'
+import type {ProcedureTemplate} from '@/api/generated/schema'
+import type {MemberOption} from '@/components/input/select/memberOption'
 
 /**
  * How a procedure starts: from one of the station's templates, which brings everything but whom it is
@@ -21,7 +20,7 @@ defineProps<{
   /** The station's templates, without the archived ones. */
   templates: ProcedureTemplate[]
   /** The members a procedure can be about. */
-  members: MemberCompletion[]
+  members: MemberOption[]
 }>()
 
 const emit = defineEmits<{
@@ -42,42 +41,19 @@ function choose(template: ProcedureTemplate) {
 
 <template>
   <div class="space-y-6">
-    <div class="space-y-3">
-      <SubHeader>{{ t('procedures.start.fromTemplate') }}</SubHeader>
-      <MutedText v-if="templates.length === 0" tag="div" size="sm" class="py-2">
-        {{ t('procedures.start.noTemplates') }}
-      </MutedText>
-      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <NeutralContainer v-for="template in templates" :key="template.id"
-                          :data-testid="`procedure-start-template-${template.id}`"
-                          class="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
-                          @click="choose(template)">
-          <div class="space-y-2">
-            <div class="flex items-center justify-between gap-2">
-              <span class="font-medium">{{ template.name }}</span>
-              <PrimaryButton :icon="['fas', 'plus']">{{ t('procedures.start.create') }}</PrimaryButton>
-            </div>
-            <MutedText v-if="template.description" tag="p" size="sm">{{ template.description }}</MutedText>
-          </div>
-        </NeutralContainer>
-      </div>
-    </div>
+    <StartTileSection :title="t('procedures.start.fromTemplate')"
+                      :empty-note="templates.length === 0 ? t('procedures.start.noTemplates') : null">
+      <StartTile v-for="template in templates" :key="template.id"
+                 :data-testid="`procedure-start-template-${template.id}`"
+                 :title="template.name" :button-label="t('procedures.start.create')" :hint="template.description"
+                 @start="choose(template)"/>
+    </StartTileSection>
 
-    <div class="space-y-3">
-      <SubHeader>{{ t('procedures.start.withoutTemplate') }}</SubHeader>
-      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <NeutralContainer class="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
-                          data-testid="procedure-start-blank" @click="emit('blank')">
-          <div class="space-y-2">
-            <div class="flex items-center justify-between gap-2">
-              <span class="font-medium">{{ t('procedures.start.blankTitle') }}</span>
-              <PrimaryButton :icon="['fas', 'plus']">{{ t('procedures.start.create') }}</PrimaryButton>
-            </div>
-            <MutedText tag="p" size="sm">{{ t('procedures.start.blankHint') }}</MutedText>
-          </div>
-        </NeutralContainer>
-      </div>
-    </div>
+    <StartTileSection :title="t('procedures.start.withoutTemplate')">
+      <StartTile data-testid="procedure-start-blank" :title="t('procedures.start.blankTitle')"
+                 :button-label="t('procedures.start.create')" :hint="t('procedures.start.blankHint')"
+                 @start="emit('blank')"/>
+    </StartTileSection>
 
     <ProcedureFromTemplateModal v-if="chosen" v-model="open" :template="chosen" :members="members"/>
   </div>

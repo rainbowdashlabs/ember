@@ -6,7 +6,8 @@
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import type {TimeRule} from '@/api/generated/schema'
-import {draftOf, emptyDraft, inputOf, minutesFit, namesSomebody, savable} from './timeRuleDraft'
+import {namesSomebody} from '@/components/input/restriction'
+import {draftOf, emptyDraft, inputOf, minutesFit, savable} from './timeRuleDraft'
 
 const RULE: TimeRule = {
     id: 3,
@@ -51,7 +52,7 @@ describe('timeRuleDraft', () => {
     it('holds back a rule naming nobody', () => {
         const fresh = emptyDraft()
 
-        expect(namesSomebody(fresh)).toBe(false)
+        expect(namesSomebody(fresh.audience)).toBe(false)
         expect(savable([draftOf(RULE), fresh])).toBe(false)
         expect(savable([draftOf(RULE)])).toBe(true)
     })

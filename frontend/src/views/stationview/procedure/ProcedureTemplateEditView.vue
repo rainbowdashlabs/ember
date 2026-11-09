@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -25,14 +25,14 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TemplateItemCard from '@/views/stationview/procedure/proceduretemplateeditview/TemplateItemCard.vue'
 import PartySection from '@/views/stationview/procedure/procedurecreateview/PartySection.vue'
 import StepDocumentChoice from '@/components/procedures/StepDocumentChoice.vue'
-import { stepDocumentOf, stepKindOf } from '@/components/procedures/stepDocument'
-import { audienceLists, type AudienceLists } from '@/components/documents/generation'
-import { emptyRestriction, toRestriction } from '@/components/input/restriction'
+import { stepDocumentOf, stepKindChange, stepKindOf, type AskedDocument } from '@/components/procedures/stepDocument'
+import { loadPartyChoices, noPartyChoices, type PartyChoices } from '@/components/procedures/partyChoices'
+import { emptyRestriction, sameRestriction, toRestriction } from '@/components/input/restriction'
 import type { RestrictionSelection } from '@/api/types'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
-import { procedures, stationMembers } from '@/api'
-import { StationPermission, type MemberCompletion, type ProcedureTemplateDetail, type ProcedureTemplateItem, type StepDocument } from '@/api/generated/schema'
+import { procedures } from '@/api'
+import { StationPermission, type ProcedureTemplateDetail, type ProcedureTemplateItem } from '@/api/generated/schema'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -62,34 +62,27 @@ const itemTitle = ref('')
 const itemDescription = ref('')
 const itemIsPublic = ref(true)
 const itemUserAssigned = ref(false)
-const itemDocument = ref<StepDocument | null>(null)
+const itemDocument = ref<AskedDocument | null>(null)
 
 const showDepModal = ref(false)
 const depTargetItem = ref<ProcedureTemplateItem | null>(null)
 const depSelectedId = ref<number | null>(null)
 
-/** The managing party every procedure started from the template begins with, and what it can name. */
+/** The managing party every procedure started from the template begins with. */
 const party = ref<RestrictionSelection>(emptyRestriction())
+/** The party as last saved, against which an edit is told apart. */
+const savedParty = ref<RestrictionSelection>(emptyRestriction())
 /** Whether the party was changed since it was last saved, so a reload after another change keeps it. */
-const partyEdited = ref(false)
-watch(party, () => { partyEdited.value = true }, {deep: true})
-const audience = ref<AudienceLists>({groups: [], tags: []})
-const members = ref<MemberCompletion[]>([])
+const partyEdited = computed(() => !sameRestriction(party.value, savedParty.value))
+const partyChoices = ref<PartyChoices>(noPartyChoices())
 
 const {loading, failure, reload} = useAsyncLoader(async () => {
-  const [loaded, lists, completions] = await Promise.all([
-    procedures.getTemplate(templateId.value),
-    audienceLists(),
-    stationMembers.listCompletions().catch(() => []),
-  ])
+  const [loaded, choices] = await Promise.all([procedures.getTemplate(templateId.value), loadPartyChoices()])
   detail.value = loaded
-  if (!partyEdited.value) {
-    party.value = toRestriction(loaded.party)
-    await nextTick()
-    partyEdited.value = false
-  }
-  audience.value = lists
-  members.value = completions
+  const keepEdit = partyEdited.value
+  savedParty.value = toRestriction(loaded.party)
+  if (!keepEdit) party.value = savedParty.value
+  partyChoices.value = choices
 }, {autoLoad: false})
 
 /** Saves the template's party, keeping its name and description as they are. */
@@ -102,7 +95,7 @@ async function saveParty() {
       description: template.description ?? undefined,
       party: party.value,
     })
-    partyEdited.value = false
+    savedParty.value = party.value
   })
 }
 
@@ -170,16 +163,6 @@ function nextPosition(): number {
   return positions.length === 0 ? 0 : Math.max(...positions) + 1
 }
 
-/**
- * Whether the step's document was changed in the dialog. Only a change is sent, so saving a step whose
- * document is gone or no longer suitable keeps it as it is rather than being refused or turning it into
- * a step ticked by hand.
- */
-function documentChanged(item: ProcedureTemplateItem): boolean {
-  const before = stepDocumentOf(item, detail.value?.documents ?? [])
-  return (before?.id ?? null) !== (itemDocument.value?.id ?? null)
-}
-
 async function handleSaveItem() {
   if (!itemTitle.value.trim()) return
   await writeThenReload(async () => {
@@ -190,7 +173,7 @@ async function handleSaveItem() {
         isPublic: itemIsPublic.value,
         userAssigned: itemUserAssigned.value,
         position: editingItem.value.position,
-        ...(documentChanged(editingItem.value) ? stepKindOf(itemDocument.value) : {}),
+        ...stepKindChange(stepDocumentOf(editingItem.value, detail.value?.documents ?? [])?.id ?? null, itemDocument.value),
       })
     } else {
       await procedures.createTemplateItem(templateId.value, {
@@ -271,7 +254,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       </div>
 
       <div v-if="canManage" class="mb-4 space-y-2">
-        <PartySection v-model="party" :members="members" :groups="audience.groups" :tags="audience.tags"/>
+        <PartySection v-model="party" :choices="partyChoices"/>
         <ButtonRow align="end">
           <PrimaryButton data-testid="template-party-save" @click="saveParty">{{ t('common.save') }}</PrimaryButton>
         </ButtonRow>

@@ -114,11 +114,11 @@ describe('useProcedureForm', () => {
     it('holds back document steps on a procedure about nobody', async () => {
         const form = await openForEditing([SIGN])
         form.about.value = ''
-        expect(form.documentsNeedAbout.value).toBe(false)
+        expect(form.blockers.value).not.toContain('procedures.stepDocumentsNeedAbout')
 
         form.addItem('Noch eins')
         form.updateItem(1, {...form.items.value[1]!, document: {id: 7, name: 'Aufnahmeantrag'}})
-        expect(form.documentsNeedAbout.value).toBe(true)
+        expect(form.blockers.value).toContain('procedures.stepDocumentsNeedAbout')
     })
 
     it('sends a document step switched off as one ticked by hand', async () => {
@@ -140,19 +140,38 @@ describe('useProcedureForm', () => {
     it('holds back a new document step its user may not ask for', async () => {
         generatesDocuments = false
         const form = await openForEditing([SIGN])
-        expect(form.documentsNotYours.value).toBe(false)
+        expect(form.blockers.value).not.toContain('procedures.stepDocumentsNotYours')
 
         form.addItem('Noch eins')
         form.updateItem(1, {...form.items.value[1]!, document: {id: 7, name: 'Aufnahmeantrag'}})
-        expect(form.documentsNotYours.value).toBe(true)
+        expect(form.blockers.value).toContain('procedures.stepDocumentsNotYours')
     })
 
     it('holds back a new step whose document is gone', async () => {
         const form = await openForEditing([{...SIGN, documentTemplateId: null}])
-        expect(form.documentsGone.value).toBe(false)
+        expect(form.blockers.value).not.toContain('procedures.stepDocumentsGone')
 
         form.addItem('Noch eins')
-        form.updateItem(1, {...form.items.value[1]!, document: {id: 0, name: ''}})
-        expect(form.documentsGone.value).toBe(true)
+        form.updateItem(1, {...form.items.value[1]!, document: {id: 0, name: '', gone: true}})
+        expect(form.blockers.value).toContain('procedures.stepDocumentsGone')
+    })
+
+    it('asks a new procedure to name whom it is about, and an edited one not', async () => {
+        const edited = await openForEditing([])
+        edited.about.value = ''
+        expect(edited.aboutRequired.value).toBe(false)
+        expect(edited.blockers.value).toEqual([])
+
+        let created!: ReturnType<typeof useProcedureForm>
+        await mountSuspended(defineComponent({
+            setup() {
+                created = useProcedureForm(ref(null), ref(null))
+                return () => null
+            },
+        }))
+        expect(created.aboutRequired.value).toBe(true)
+        expect(created.blockers.value).toEqual(['procedures.aboutRequired'])
+        created.about.value = '5'
+        expect(created.blockers.value).toEqual([])
     })
 })

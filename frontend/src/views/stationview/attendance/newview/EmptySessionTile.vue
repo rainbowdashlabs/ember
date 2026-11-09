@@ -5,10 +5,8 @@
  */
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import MutedText from '@/components/typography/MutedText.vue'
+import StartTile from '@/components/start/StartTile.vue'
+import StartTileSection from '@/components/start/StartTileSection.vue'
 
 /**
  * The way in for a sheet whose people no template describes.
@@ -25,22 +23,9 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <div class="space-y-3">
-    <SubHeader>{{ t('attendanceNew.withoutTemplate') }}</SubHeader>
-    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <NeutralContainer
-          class="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
-          data-testid="attendance-start-empty"
-          @click="emit('start')"
-      >
-        <div class="space-y-2">
-          <div class="flex items-center justify-between gap-2">
-            <span class="font-medium">{{ t('attendanceNew.emptyTitle') }}</span>
-            <PrimaryButton :icon="['fas', 'plus']">{{ t('attendanceNew.create') }}</PrimaryButton>
-          </div>
-          <MutedText tag="p" size="sm">{{ t('attendanceNew.emptyHint') }}</MutedText>
-        </div>
-      </NeutralContainer>
-    </div>
-  </div>
+  <StartTileSection :title="t('attendanceNew.withoutTemplate')">
+    <StartTile data-testid="attendance-start-empty" :title="t('attendanceNew.emptyTitle')"
+               :button-label="t('attendanceNew.create')" :hint="t('attendanceNew.emptyHint')"
+               @start="emit('start')"/>
+  </StartTileSection>
 </template>

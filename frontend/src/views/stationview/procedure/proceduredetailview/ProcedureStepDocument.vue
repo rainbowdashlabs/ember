@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import AppLink from '@/components/navigation/AppLink.vue'
 import type {ProcedureItem, StepDocumentState} from '@/api/generated/schema'
+import type {StepDocumentView} from './stepDocumentView'
 
 /**
  * The document a document step asks to sign: its name, where its signatures stand, and the ways on from
@@ -18,18 +19,8 @@ const {t} = useI18n()
 defineProps<{
   item: ProcedureItem
   dependencyMet: boolean
-  /** The name of the document the step asks to sign. */
-  documentName?: string
-  /** Where the document it made stands with its signatures, or nothing where it made none yet. */
-  documentState?: StepDocumentState | null
-  /** Where the reader opens the document, or nothing where they may not. */
-  documentHref?: string | null
-  /** Where the reader has it signed in front of them, or signs it themselves, or nothing. */
-  signHref?: string | null
-  /** What the sign link says: signing in front of a witness, or signing oneself. */
-  signLabel?: string
-  /** Whether the reader may ask for the document again. */
-  canAskAgain?: boolean
+  /** The document and the reader's ways on from it. */
+  document: StepDocumentView
 }>()
 
 const emit = defineEmits<{
@@ -61,19 +52,19 @@ function documentLine(item: ProcedureItem, state: StepDocumentState | null | und
   <div class="mt-1 space-y-1 text-sm" data-testid="procedure-step-document">
     <div class="flex flex-wrap items-center gap-x-2 text-[var(--text-muted)]">
       <font-awesome-icon :icon="['fas', 'file-signature']" class="w-3 h-3"/>
-      <span v-if="documentName" class="font-medium">{{ documentName }}</span>
-      <span data-testid="procedure-step-document-state">{{ documentLine(item, documentState, dependencyMet) }}</span>
+      <span v-if="document.name" class="font-medium">{{ document.name }}</span>
+      <span data-testid="procedure-step-document-state">{{ documentLine(item, document.state, dependencyMet) }}</span>
     </div>
-    <div v-if="documentHref || signHref || canAskAgain" class="flex flex-wrap items-center gap-3">
-      <AppLink v-if="documentHref" :href="documentHref" :icon="['fas', 'file-lines']"
+    <div v-if="document.href || document.signHref || document.canAskAgain" class="flex flex-wrap items-center gap-3">
+      <AppLink v-if="document.href" :href="document.href" :icon="['fas', 'file-lines']"
                data-testid="procedure-step-document-open">
         {{ t('procedures.document.open') }}
       </AppLink>
-      <AppLink v-if="signHref" :href="signHref" :icon="['fas', 'signature']"
+      <AppLink v-if="document.signHref" :href="document.signHref" :icon="['fas', 'signature']"
                data-testid="procedure-step-document-sign">
-        {{ signLabel }}
+        {{ document.signLabel }}
       </AppLink>
-      <SecondaryButton v-if="canAskAgain" :icon="['fas', 'rotate']" data-testid="procedure-step-ask-again"
+      <SecondaryButton v-if="document.canAskAgain" :icon="['fas', 'rotate']" data-testid="procedure-step-ask-again"
                        @click="emit('ask-again')">
         {{ t('procedures.document.askAgain') }}
       </SecondaryButton>

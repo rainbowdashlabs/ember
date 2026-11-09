@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
+import {useRouter} from 'vue-router'
 import Alert from '@/components/feedback/Alert.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -29,6 +30,12 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+const router = useRouter()
+
+/** The address of a procedure's page, by its route rather than by a path written out here. */
+function procedureHref(procedure: Procedure): string {
+  return router.resolve({name: 'procedure-detail', params: {id: procedure.id}}).href
+}
 </script>
 
 <template>
@@ -38,7 +45,7 @@ const {t} = useI18n()
     </Alert>
     <ul class="space-y-1" data-testid="signup-procedure-existing-list">
       <li v-for="procedure in existing" :key="procedure.id">
-        <AppLink :href="`/station/procedures/${procedure.id}`">{{ procedure.name }}</AppLink>
+        <AppLink :href="procedureHref(procedure)">{{ procedure.name }}</AppLink>
       </li>
     </ul>
     <ButtonRow align="end" class="pt-2">

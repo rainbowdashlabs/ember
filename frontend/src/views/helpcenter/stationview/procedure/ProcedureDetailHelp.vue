@@ -17,7 +17,8 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import ProcedureItemRow from '@/views/stationview/procedure/proceduredetailview/ProcedureItemRow.vue'
-import {StationPermission, type ProcedureItem, type StepDocumentState} from '@/api/generated/schema'
+import {StationPermission, type ProcedureItem} from '@/api/generated/schema'
+import type {StepDocumentView} from '@/views/stationview/procedure/proceduredetailview/stepDocumentView'
 
 const {t} = useI18n()
 
@@ -38,8 +39,15 @@ const DONE_ITEM: ProcedureItem = {
   generationId: 1,
 }
 
-/** Where the signed application of the first step stands. */
-const DONE_DOCUMENT: StepDocumentState = {itemId: 1, documentId: null, progress: 'AGREED', settled: 2, fields: 2, openFieldId: null}
+/** The signed application of the first step and where it stands. */
+const DONE_DOCUMENT: StepDocumentView = {
+  name: 'Aufnahmeantrag',
+  state: {itemId: 1, documentId: null, progress: 'AGREED', settled: 2, fields: 2, openFieldId: null},
+  href: null,
+  signHref: null,
+  signLabel: '',
+  canAskAgain: false,
+}
 
 const LOCKED_ITEM: ProcedureItem = {
   id: 2,
@@ -98,8 +106,7 @@ const LOCKED_ITEM: ProcedureItem = {
       <SubHeader class="mb-3">{{ t('procedures.items') }}</SubHeader>
       <div class="space-y-2">
         <ProcedureItemRow :item="DONE_ITEM" :can-edit="true" :can-check="false"
-                          :dependency-met="true" :dependency-names="[]" document-name="Aufnahmeantrag"
-                          :document-state="DONE_DOCUMENT"/>
+                          :dependency-met="true" :dependency-names="[]" :document="DONE_DOCUMENT"/>
         <ProcedureItemRow :item="LOCKED_ITEM" :can-edit="true" :can-check="false"
                           :dependency-met="false" :dependency-names="[DONE_ITEM.title]"/>
       </div>

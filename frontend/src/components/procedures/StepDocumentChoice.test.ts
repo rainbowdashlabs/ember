@@ -6,9 +6,8 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
-import type {StepDocument} from '@/api/generated/schema'
 import StepDocumentChoice from './StepDocumentChoice.vue'
-import {stepDocumentOf, stepKindOf} from './stepDocument'
+import {documentChanged, stepDocumentOf, stepKindChange, stepKindOf, type AskedDocument} from './stepDocument'
 
 let generatesDocuments = true
 
@@ -23,10 +22,10 @@ const PICKER = {
         + '<button data-testid="close" @click="$emit(\'update:modelValue\', false)"/></div>',
 }
 
-async function mountChoice(document: StepDocument | null, locked = false) {
-    const changes: (StepDocument | null)[] = []
+async function mountChoice(document: AskedDocument | null, locked = false) {
+    const changes: (AskedDocument | null)[] = []
     const view = await mountSuspended(StepDocumentChoice, {
-        props: {modelValue: document, locked, 'onUpdate:modelValue': (next: StepDocument | null) => changes.push(next)},
+        props: {modelValue: document, locked, 'onUpdate:modelValue': (next: AskedDocument | null) => changes.push(next)},
         global: {stubs: {TemplatePickerModal: PICKER, FileThumbnail: true}},
     })
     return {view, changes}
@@ -68,7 +67,7 @@ describe('StepDocumentChoice', () => {
     })
 
     it('says so where the document of a step is gone', async () => {
-        const {view} = await mountChoice({id: 0, name: ''})
+        const {view} = await mountChoice({id: 0, name: '', gone: true})
 
         expect(view.find('[data-testid="step-document-gone"]').exists()).toBe(true)
         expect(view.find('[data-testid="step-document-name"]').exists()).toBe(false)
@@ -92,9 +91,21 @@ describe('stepDocument', () => {
         const documents = [{id: 7, name: 'Fotoerlaubnis'}]
 
         expect(stepDocumentOf({kind: 'DOCUMENT', documentTemplateId: 7}, documents)).toEqual({id: 7, name: 'Fotoerlaubnis'})
-        expect(stepDocumentOf({kind: 'DOCUMENT', documentTemplateId: null}, documents)).toEqual({id: 0, name: ''})
+        expect(stepDocumentOf({kind: 'DOCUMENT', documentTemplateId: null}, documents)).toEqual({id: 0, name: '', gone: true})
         expect(stepDocumentOf({kind: 'CHECK', documentTemplateId: null}, documents)).toBeNull()
         expect(stepKindOf({id: 7, name: 'Fotoerlaubnis'})).toEqual({kind: 'DOCUMENT', documentTemplateId: 7})
         expect(stepKindOf(null)).toEqual({kind: 'CHECK', documentTemplateId: null})
+    })
+
+    it('sends what a step asks to sign only for a new step or where it was changed', () => {
+        const form = {id: 7, name: 'Fotoerlaubnis'}
+
+        expect(documentChanged(undefined, null)).toBe(true)
+        expect(documentChanged(7, form)).toBe(false)
+        expect(documentChanged(null, null)).toBe(false)
+        expect(documentChanged(7, null)).toBe(true)
+        expect(documentChanged(null, form)).toBe(true)
+        expect(stepKindChange(7, form)).toEqual({})
+        expect(stepKindChange(undefined, form)).toEqual({kind: 'DOCUMENT', documentTemplateId: 7})
     })
 })

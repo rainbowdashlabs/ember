@@ -9,8 +9,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RestrictionPicker from '@/components/input/RestrictionPicker.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {MemberCompletion, MemberGroup, UserTag} from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/api/types'
+import type {PartyChoices} from '@/components/procedures/partyChoices'
 
 /**
  * Who runs a procedure: groups, member types, tags or members named one by one. They see its public
@@ -20,9 +20,8 @@ import type {RestrictionSelection} from '@/api/types'
 const party = defineModel<RestrictionSelection>({required: true})
 
 defineProps<{
-  members: MemberCompletion[]
-  groups: MemberGroup[]
-  tags: UserTag[]
+  /** Whom the party can name. */
+  choices: PartyChoices
 }>()
 
 const {t} = useI18n()
@@ -32,6 +31,6 @@ const {t} = useI18n()
   <NeutralContainer class="space-y-3" data-testid="procedure-party">
     <SubHeader>{{ t('procedures.party') }}</SubHeader>
     <MutedText size="sm" tag="p">{{ t('procedures.partyHint') }}</MutedText>
-    <RestrictionPicker v-model="party" :groups="groups" :tags="tags" :members="members" show-members/>
+    <RestrictionPicker v-model="party" :groups="choices.groups" :tags="choices.tags" :members="choices.members" show-members/>
   </NeutralContainer>
 </template>

@@ -10,7 +10,8 @@ import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ProcedureStepDocument from './ProcedureStepDocument.vue'
 import ProcedureStepMark from './ProcedureStepMark.vue'
-import type {ProcedureItem, StepDocumentState} from '@/api/generated/schema'
+import type {ProcedureItem} from '@/api/generated/schema'
+import type {StepDocumentView} from './stepDocumentView'
 import {formatDateTime} from '@/util/format'
 
 const {t} = useI18n()
@@ -21,18 +22,8 @@ defineProps<{
   canCheck: boolean
   dependencyMet: boolean
   dependencyNames: string[]
-  /** The name of the document a document step asks to sign. */
-  documentName?: string
-  /** Where the document it made stands with its signatures, or nothing where it made none yet. */
-  documentState?: StepDocumentState | null
-  /** Where the reader opens the document, or nothing where they may not. */
-  documentHref?: string | null
-  /** Where the reader has it signed in front of them, or signs it themselves, or nothing. */
-  signHref?: string | null
-  /** What the sign link says: signing in front of a witness, or signing oneself. */
-  signLabel?: string
-  /** Whether the reader may ask for the document again. */
-  canAskAgain?: boolean
+  /** What a document step shows of its document, nothing for a step ticked by hand. */
+  document?: StepDocumentView | null
 }>()
 
 const emit = defineEmits<{
@@ -55,15 +46,10 @@ function onNoteBlur(e: Event) {
         <div class="font-medium" :class="{ 'line-through opacity-60': item.checked }">{{ item.title }}</div>
         <div v-if="item.description" class="text-sm text-[var(--text-muted)]">{{ item.description }}</div>
         <ProcedureStepDocument
-            v-if="item.kind === 'DOCUMENT'"
+            v-if="document"
             :item="item"
             :dependency-met="dependencyMet"
-            :document-name="documentName"
-            :document-state="documentState"
-            :document-href="documentHref"
-            :sign-href="signHref"
-            :sign-label="signLabel"
-            :can-ask-again="canAskAgain"
+            :document="document"
             @ask-again="emit('ask-again')"
         />
         <div v-if="!dependencyMet && !item.checked"

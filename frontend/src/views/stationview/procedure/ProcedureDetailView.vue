@@ -24,6 +24,8 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import ProcedureItemRow from './proceduredetailview/ProcedureItemRow.vue'
 import PartySummary from './proceduredetailview/PartySummary.vue'
+import type {StepDocumentView} from './proceduredetailview/stepDocumentView'
+import {witnessSigningHref} from '@/components/documents/signatures/witnessSigning'
 import MemberName from '@/components/avatar/MemberName.vue'
 import {audienceLists, type AudienceLists} from '@/components/documents/generation'
 import {useSession} from '@/composables/useSession'
@@ -159,23 +161,12 @@ function canCheckItem(item: ProcedureItem): boolean {
   return true
 }
 
-/** Where the document a step made stands, or nothing where it made none yet. */
-function documentStateOf(item: ProcedureItem): StepDocumentState | null {
-  return detail.value?.documentStates.find(state => state.itemId === item.id) ?? null
-}
-
-/** The name of the document a step asks to sign. */
-function documentNameOf(item: ProcedureItem): string | undefined {
-  return detail.value?.documents.find(document => document.id === item.documentTemplateId)?.name
-}
-
 /**
  * Where the reader opens the document a step made: the documents of the member it is about for whoever
  * reads members' documents, else the reader's own documents, which hold it for the member and their
  * guardians, whether or not they run the procedure too.
  */
-function documentHrefOf(item: ProcedureItem): string | null {
-  const state = documentStateOf(item)
+function documentHrefOf(state: StepDocumentState | null): string | null {
   const about = detail.value?.procedure.aboutMemberId
   if (!state?.documentId || about == null) return null
   if (hasPermission(StationPermission.DOCUMENT_READ_MEMBER)) {
@@ -190,26 +181,47 @@ function documentHrefOf(item: ProcedureItem): string | null {
  * whoever collects signatures in person, else the reader's own open signatures, for the member and their
  * guardians, which hold just the fields that are theirs.
  */
-function signHrefOf(item: ProcedureItem): string | null {
-  const field = documentStateOf(item)?.openFieldId
+function signHrefOf(state: StepDocumentState | null): string | null {
+  const field = state?.openFieldId
   if (field == null) return null
-  if (hasPermission(StationPermission.DOCUMENT_SIGN_OTHERS)) return `/station/signing/witness?field=${field}`
+  if (hasPermission(StationPermission.DOCUMENT_SIGN_OTHERS)) return witnessSigningHref(field)
   if (detail.value?.readsAbout) return router.resolve({name: 'station-signing-all'}).href
   return null
 }
 
-function signLabelOf(): string {
-  return hasPermission(StationPermission.DOCUMENT_SIGN_OTHERS) ? t('signing.witness.fromTile') : t('procedures.document.sign')
-}
+/** What the sign link says, the same for every step: signing in front of a witness, or signing oneself. */
+const signLabel = computed(() => hasPermission(StationPermission.DOCUMENT_SIGN_OTHERS)
+    ? t('signing.witness.fromTile')
+    : t('procedures.document.sign'))
 
 /** Whether the reader may ask again for the document of a step whose document is missing or ended without agreement. */
-function canAskAgain(item: ProcedureItem): boolean {
+function canAskAgain(item: ProcedureItem, state: StepDocumentState | null): boolean {
   if (item.kind !== 'DOCUMENT' || item.checked || !isDependencyMet(item)) return false
   if (!canEdit.value || !hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) return false
   if (detail.value?.procedure.status !== ProcedureStatus.OPEN || detail.value.procedure.aboutMemberId == null) return false
-  const progress = documentStateOf(item)?.progress
+  const progress = state?.progress
   return progress == null || progress === 'NOT_ASKED' || progress === 'NOT_AGREED' || progress === 'WITHDRAWN'
 }
+
+/** What each document step shows of its document, by the step's id. */
+const documentViews = computed(() => {
+  const views = new Map<number, StepDocumentView>()
+  const current = detail.value
+  if (!current) return views
+  for (const item of current.items) {
+    if (item.kind !== 'DOCUMENT') continue
+    const state = current.documentStates.find(documentState => documentState.itemId === item.id) ?? null
+    views.set(item.id, {
+      name: current.documents.find(document => document.id === item.documentTemplateId)?.name,
+      state,
+      href: documentHrefOf(state),
+      signHref: signHrefOf(state),
+      signLabel: signLabel.value,
+      canAskAgain: canAskAgain(item, state),
+    })
+  }
+  return views
+})
 
 async function askAgain(item: ProcedureItem) {
   failure.value = null
@@ -353,12 +365,7 @@ watch(loaded, (v) => {
             :can-check="canCheckItem(item)"
             :dependency-met="isDependencyMet(item)"
             :dependency-names="getDependencyNames(item)"
-            :document-name="documentNameOf(item)"
-            :document-state="documentStateOf(item)"
-            :document-href="documentHrefOf(item)"
-            :sign-href="signHrefOf(item)"
-            :sign-label="signLabelOf()"
-            :can-ask-again="canAskAgain(item)"
+            :document="documentViews.get(item.id) ?? null"
             @toggle="toggleItem(item)"
             @ask-again="askAgain(item)"
             @update-note="(note) => updateNote(item, note)"

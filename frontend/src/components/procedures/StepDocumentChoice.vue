@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref, watch} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
@@ -12,7 +12,8 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FileThumbnail from '@/components/documents/FileThumbnail.vue'
 import TemplatePickerModal from '@/components/documents/templatepicker/TemplatePickerModal.vue'
 import {stationTemplateSource, usableTemplates} from '@/api/documentTemplates'
-import {StationPermission, type StepDocument} from '@/api/generated/schema'
+import {StationPermission} from '@/api/generated/schema'
+import type {AskedDocument} from './stepDocument'
 import {useSession} from '@/composables/useSession'
 
 /**
@@ -24,7 +25,7 @@ import {useSession} from '@/composables/useSession'
  * <p>Only those who generate documents for members pick one, as the server demands; anybody else sees
  * the document a step asks for and may still make it a step ticked by hand.
  */
-const document = defineModel<StepDocument | null>({required: true})
+const document = defineModel<AskedDocument | null>({required: true})
 
 defineProps<{
   /** Whether the step already made its document, which fixes what it asks for. */
@@ -37,21 +38,12 @@ const {t} = useI18n()
 const {hasPermission} = useSession()
 const mayChoose = computed(() => hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER))
 const picking = ref(false)
-const asksToSign = ref(document.value != null)
+const asksToSign = computed(() => document.value != null || picking.value)
 
 function setAsking(asking: boolean) {
-  asksToSign.value = asking
   if (!asking) document.value = null
   else if (document.value == null) picking.value = true
 }
-
-watch(picking, open => {
-  if (!open && document.value == null) asksToSign.value = false
-})
-
-watch(document, chosen => {
-  if (!picking.value) asksToSign.value = chosen != null
-})
 </script>
 
 <template>
@@ -65,7 +57,7 @@ watch(document, chosen => {
       {{ locked ? t('procedures.stepDocumentLocked') : mayChoose ? t('procedures.stepDocumentHint') : t('procedures.stepDocumentNotYours') }}
     </p>
     <div v-if="asksToSign" class="flex items-center gap-3">
-      <template v-if="document?.name">
+      <template v-if="document && !document.gone">
         <FileThumbnail v-if="mayChoose" :url="stationTemplateSource.pictureUrl(document.id, PICTURE_SIZE)" mime-type="application/pdf"
                        :alt="document.name" size="h-20 w-16" anchor-top/>
         <div class="min-w-0 flex-1 truncate font-medium" data-testid="step-document-name">{{ document.name }}</div>

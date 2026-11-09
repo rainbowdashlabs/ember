@@ -19,7 +19,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SignupSetNotes from './SignupSetNotes.vue'
 import type {ProcedureTemplate} from '@/api/generated/schema'
-import type {PartyChoices} from './partyChoices'
+import type {PartyChoices} from '@/components/procedures/partyChoices'
 import type {RestrictionSelection} from '@/api/types'
 import PartySection from '@/views/stationview/procedure/procedurecreateview/PartySection.vue'
 import type {SignupMemberSet} from '@/composables/useSignupMemberSet'
@@ -97,8 +97,7 @@ const canSubmit = computed(() =>
       <MutedText tag="p" class="mt-1">{{ t('signupLists.procedureDueHelp') }}</MutedText>
     </div>
 
-    <PartySection v-model="party" :members="partyChoices.members" :groups="partyChoices.groups"
-                  :tags="partyChoices.tags"/>
+    <PartySection v-model="party" :choices="partyChoices"/>
 
     <SignupSetNotes :member-set="memberSet" :date-label="dateLabel"/>
 

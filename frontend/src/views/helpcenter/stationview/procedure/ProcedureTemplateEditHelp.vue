@@ -71,7 +71,7 @@ const getItemById = (id: number) => ITEMS.find(item => item.id === id)
         <SecondaryButton :icon="['fas', 'pen']">{{ t('common.edit') }}</SecondaryButton>
         <SecondaryButton :icon="['fas', 'arrow-left']">{{ t('common.back') }}</SecondaryButton>
       </ButtonRow>
-      <PartySection :model-value="PARTY" :members="[]" :groups="GROUPS" :tags="[]" class="mb-4"/>
+      <PartySection :model-value="PARTY" :choices="{members: [], groups: GROUPS, tags: []}" class="mb-4"/>
       <div class="flex items-center justify-between mb-3">
         <SubHeader>{{ t('procedures.items') }}</SubHeader>
         <PrimaryButton :icon="['fas', 'plus']">{{ t('procedures.addItem') }}</PrimaryButton>
