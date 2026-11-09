@@ -29,6 +29,8 @@ defineProps<{
   members: MemberOption[]
   /** Whether the procedure is about somebody already, who can be changed but not taken away. */
   aboutFixed?: boolean
+  /** Whether the procedure has to name somebody, as every new one does. */
+  aboutRequired?: boolean
 }>()
 </script>
 
@@ -45,7 +47,7 @@ defineProps<{
     </div>
     <div>
       <FieldLabel class="mb-1">{{ t('procedures.about') }}</FieldLabel>
-      <MemberSelectInput v-model="about" :members="members" :clearable="!aboutFixed"
+      <MemberSelectInput v-model="about" :members="members" :clearable="!aboutFixed && !aboutRequired"
                          :empty-label="t('procedures.aboutNobody')"
                          data-testid="procedure-about"/>
       <p class="text-xs text-[var(--text-muted)] mt-1">{{ t('procedures.aboutHint') }}</p>

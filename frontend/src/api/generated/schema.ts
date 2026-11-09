@@ -45712,6 +45712,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/procedures/for-members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CreateProceduresRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Procedure"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/procurement": {
         parameters: {
             query?: never;
@@ -65385,6 +65424,19 @@ export interface components {
             /** Format: int32 */
             templateId?: number | null;
         };
+        CreateProceduresRequest: {
+            description?: string | null;
+            dueAt?: components["schemas"]["Instant"] | null;
+            eventDate?: components["schemas"]["LocalDate"] | null;
+            /** Format: int32 */
+            eventId?: number | null;
+            isPublic?: boolean;
+            memberIds?: number[] | null;
+            name?: string;
+            party?: components["schemas"]["RestrictionAudience"] | null;
+            /** Format: int32 */
+            templateId?: number | null;
+        };
         CreateProcurementRequest: {
             /** Format: int32 */
             inventoryId?: number;
@@ -75686,6 +75738,7 @@ export type CreateMovementRequest = components['schemas']['CreateMovementRequest
 export type CreatePageRequest = components['schemas']['CreatePageRequest'];
 export type CreatePresetRequest = components['schemas']['CreatePresetRequest'];
 export type CreateProcedureRequest = components['schemas']['CreateProcedureRequest'];
+export type CreateProceduresRequest = components['schemas']['CreateProceduresRequest'];
 export type CreateProcurementRequest = components['schemas']['CreateProcurementRequest'];
 export type CreateRequest = components['schemas']['CreateRequest'];
 export type CreateTemplateRequest = components['schemas']['CreateTemplateRequest'];

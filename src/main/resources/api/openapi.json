@@ -35508,6 +35508,34 @@
         }
       }
     },
+    "/api/v1/procedures/for-members" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Procedure"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateProceduresRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/procedures/{rid}" : {
       "get" : {
         "responses" : {
@@ -54655,6 +54683,56 @@
           "aboutMemberId" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          }
+        }
+      },
+      "CreateProceduresRequest" : {
+        "type" : "object",
+        "properties" : {
+          "templateId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "isPublic" : {
+            "type" : "boolean"
+          },
+          "dueAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "party" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionAudience"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "eventId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "eventDate" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "memberIds" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
           }
         }
       },

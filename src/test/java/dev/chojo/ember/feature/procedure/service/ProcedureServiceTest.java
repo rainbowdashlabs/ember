@@ -1185,10 +1185,110 @@ class ProcedureServiceTest {
         return new StepDocumentState(ITEM_ID, 55, progress, 0, 1, null);
     }
 
+    /**
+     * Procedures for several members are only started once every member was checked; one the template's
+     * document is not meant for stops all of them before anything is written.
+     */
+    @Test
+    void proceduresForMembersAreCheckedBeforeAnyIsWritten() {
+        when(restrictions.currentMemberAt(eq(STATION_ID), anyInt())).thenReturn(true);
+        when(repository.findTemplateItems(TEMPLATE_ID))
+                .thenReturn(List.of(new ProcedureTemplateItem(
+                        1, TEMPLATE_ID, "Antrag", null, true, true, 0, ProcedureStepKind.DOCUMENT, SUITABLE_DOCUMENT)));
+        var members = List.of(
+                new ProcedureService.NamedMember(ABOUT_ID, "Zeltlager: Lena"),
+                new ProcedureService.NamedMember(OTHER_ABOUT_ID, "Zeltlager: Max"));
+        var onlyLena = new ProcedureService(
+                repository,
+                eventBus,
+                restrictions,
+                new SuitableDocuments(template -> true, member -> member == ABOUT_ID),
+                signing);
+
+        assertEquals(
+                DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_MEMBER,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> onlyLena.createForMembers(
+                                        STATION_ID,
+                                        TEMPLATE_ID,
+                                        "Zeltlager",
+                                        null,
+                                        true,
+                                        MEMBER_ID,
+                                        null,
+                                        null,
+                                        null,
+                                        null,
+                                        members))
+                        .refusal());
+        verify(repository, never())
+                .createProcedure(
+                        anyInt(), any(), anyString(), any(), anyBoolean(), anyInt(), any(), any(), any(), any());
+    }
+
+    /**
+     * Every member gets a procedure of their own; the members the party names are told once, and the
+     * document steps are asked for only after every procedure is written.
+     */
+    @Test
+    void proceduresForMembersTellThePartyOnce() {
+        when(restrictions.currentMemberAt(eq(STATION_ID), anyInt())).thenReturn(true);
+        when(restrictions.audienceOf(RestrictionType.PROCEDURE, PROCEDURE_ID)).thenReturn(named(MEMBER_ID_2));
+        when(repository.findTemplateItems(TEMPLATE_ID)).thenReturn(List.of());
+        when(repository.findTemplateItemDependencies(TEMPLATE_ID)).thenReturn(List.of());
+        when(repository.createProcedure(
+                        eq(STATION_ID),
+                        eq(TEMPLATE_ID),
+                        anyString(),
+                        any(),
+                        anyBoolean(),
+                        anyInt(),
+                        any(),
+                        any(),
+                        any(),
+                        anyInt()))
+                .thenReturn(about(ABOUT_ID));
+        when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.empty());
+        var members = List.of(
+                new ProcedureService.NamedMember(ABOUT_ID, "Zeltlager: Lena"),
+                new ProcedureService.NamedMember(OTHER_ABOUT_ID, "Zeltlager: Max"));
+
+        var created = service.createForMembers(
+                STATION_ID,
+                TEMPLATE_ID,
+                "Zeltlager",
+                null,
+                true,
+                MEMBER_ID,
+                null,
+                named(MEMBER_ID_2),
+                null,
+                null,
+                members);
+
+        assertEquals(2, created.size());
+        verify(repository)
+                .createProcedure(
+                        STATION_ID,
+                        TEMPLATE_ID,
+                        "Zeltlager: Max",
+                        null,
+                        true,
+                        MEMBER_ID,
+                        null,
+                        null,
+                        null,
+                        OTHER_ABOUT_ID);
+        var told = ArgumentCaptor.forClass(ProcedureAssigned.class);
+        verify(eventBus, times(1)).publish(told.capture());
+        assertEquals("Zeltlager", told.getValue().procedureName());
+    }
+
     /** The service with every template refused for every member, so only a step not asked anew passes. */
     private ProcedureService picky() {
         return new ProcedureService(
-                repository, eventBus, restrictions, new SuitableDocuments(template -> true, false), signing);
+                repository, eventBus, restrictions, new SuitableDocuments(template -> true, member -> false), signing);
     }
 
     private void unlockedStep() {

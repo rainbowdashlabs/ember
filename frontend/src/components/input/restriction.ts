@@ -98,3 +98,13 @@ export function restrictionLabels(
         tags: restriction.tagIds.map(id => nameOf(tags, id)),
     }
 }
+
+/**
+ * Whether a selection names anybody at all, by member type, group, tag or by name.
+ *
+ * @param selection the selection
+ */
+export function namesSomebody(selection: RestrictionSelection): boolean {
+    return selection.userTypes.length + selection.groupIds.length + selection.tagIds.length
+        + selection.memberIds.length > 0
+}

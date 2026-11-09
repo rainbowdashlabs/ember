@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.procedure.route;
 
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -33,6 +34,9 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
 import static dev.chojo.ember.api.RouteHarness.body;
@@ -315,7 +319,8 @@ class ProcedureRoutesTest {
 
         var answer = harness.request(client -> client.post(
                 PREFIX + "/procedures",
-                body("{\"name\": \"Aufnahme\", \"isPublic\": true, \"templateId\": " + TEMPLATE + "}"),
+                body("{\"name\": \"Aufnahme\", \"isPublic\": true, \"aboutMemberId\": 77, \"templateId\": " + TEMPLATE
+                        + "}"),
                 harness.as(TestSessions.member(STATION, StationPermission.PROCEDURE_EDIT))));
 
         assertEquals(ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NOT_YOURS, refusalOf(answer));
@@ -390,6 +395,146 @@ class ProcedureRoutesTest {
 
         verify(repository, never()).checkItem(anyInt(), anyInt());
         verify(repository, never()).uncheckItem(anyInt());
+    }
+
+    /** A new procedure names whom it is about; nothing is written without. */
+    @Test
+    void aNewProcedureNamesWhomItIsAbout() {
+        var answer = harness.request(client -> client.post(
+                PREFIX + "/procedures",
+                body("{\"name\": \"Aufnahme\", \"isPublic\": true}"),
+                harness.as(TestSessions.member(STATION, StationPermission.PROCEDURE_EDIT))));
+
+        assertEquals(ProcedureRefusal.PROCEDURE_ABOUT_MISSING, refusalOf(answer));
+        verify(repository, never())
+                .createProcedure(
+                        anyInt(), any(), anyString(), any(), anyBoolean(), anyInt(), any(), any(), any(), any());
+    }
+
+    /**
+     * One procedure is started per member, named after them and about them, all run by the same party;
+     * a request naming nobody is refused.
+     */
+    @Test
+    void oneProcedureIsStartedPerMember() {
+        when(restrictions.currentMemberAt(eq(STATION), anyInt())).thenReturn(true);
+        when(repository.createProcedure(
+                        eq(STATION), any(), anyString(), any(), anyBoolean(), anyInt(), any(), any(), any(), any()))
+                .thenReturn(procedure());
+        var identities = mock(MemberIdentityFactory.class);
+        when(identities.fromMemberId(77)).thenReturn(identity("Lena Hoffmann"));
+        when(identities.fromMemberId(78)).thenReturn(identity("Max Hoffmann"));
+        var routes = RouteHarness.serving(new ProcedureRoutes(
+                new ProcedureService(
+                        repository,
+                        mock(DomainEventBus.class),
+                        restrictions,
+                        new SuitableDocuments(template -> false),
+                        mock(DocumentStepSigning.class)),
+                identities,
+                guardians));
+        var editor = routes.as(TestSessions.member(STATION, StationPermission.PROCEDURE_EDIT));
+
+        routes.run((server, client) -> {
+            assertEquals(
+                    200,
+                    client.post(
+                                    PREFIX + "/procedures/for-members",
+                                    body("{\"name\": \"Zeltlager\", \"isPublic\": true, \"memberIds\": [77, 78, 77]}"),
+                                    editor)
+                            .code());
+            assertEquals(
+                    ProcedureRefusal.PROCEDURE_ABOUT_MISSING,
+                    refusalOf(client.post(
+                            PREFIX + "/procedures/for-members",
+                            body("{\"name\": \"Zeltlager\", \"isPublic\": true, \"memberIds\": []}"),
+                            editor)));
+        });
+
+        verify(repository)
+                .createProcedure(
+                        eq(STATION),
+                        any(),
+                        eq("Zeltlager: Lena Hoffmann"),
+                        any(),
+                        anyBoolean(),
+                        anyInt(),
+                        any(),
+                        any(),
+                        any(),
+                        eq(77));
+        verify(repository)
+                .createProcedure(
+                        eq(STATION),
+                        any(),
+                        eq("Zeltlager: Max Hoffmann"),
+                        any(),
+                        anyBoolean(),
+                        anyInt(),
+                        any(),
+                        any(),
+                        any(),
+                        eq(78));
+    }
+
+    /**
+     * Starting procedures for members is refused, with nothing written, for another station's template, a
+     * template asking to sign without document rights, somebody no longer a member, a blank name, and more
+     * people than one request takes.
+     */
+    @Test
+    void proceduresForMembersAreRefusedBeforeAnythingIsWritten() {
+        when(repository.findTemplateById(99))
+                .thenReturn(Optional.of(new ProcedureTemplate(
+                        99, STATION + 1, "Fremd", null, false, TestSessions.MEMBER_ID, Instant.EPOCH)));
+        when(repository.findTemplateItems(TEMPLATE))
+                .thenReturn(List.of(new ProcedureTemplateItem(
+                        OWN_TEMPLATE_STEP, TEMPLATE, "Antrag", null, true, true, 0, ProcedureStepKind.DOCUMENT, 7)));
+        when(restrictions.currentMemberAt(STATION, 77)).thenReturn(false);
+        String many = IntStream.rangeClosed(1, ProcedureRoutes.MAX_MEMBERS_AT_ONCE + 1)
+                .mapToObj(String::valueOf)
+                .collect(Collectors.joining(", "));
+
+        harness.run((server, client) -> {
+            var editor = harness.as(TestSessions.member(STATION, StationPermission.PROCEDURE_EDIT));
+            var documents = harness.as(TestSessions.member(
+                    STATION, StationPermission.PROCEDURE_EDIT, StationPermission.DOCUMENT_EDIT_MEMBER));
+            String path = PREFIX + "/procedures/for-members";
+
+            assertEquals(
+                    ProcedureRefusal.PROCEDURE_TEMPLATE_NOT_HERE_TO_START,
+                    refusalOf(client.post(
+                            path,
+                            body("{\"name\": \"Lager\", \"isPublic\": true, \"templateId\": 99, \"memberIds\": [77]}"),
+                            editor)));
+            assertEquals(
+                    ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NOT_YOURS,
+                    refusalOf(client.post(
+                            path,
+                            body("{\"name\": \"Lager\", \"isPublic\": true, \"templateId\": " + TEMPLATE
+                                    + ", \"memberIds\": [77]}"),
+                            editor)));
+            assertEquals(
+                    ProcedureRefusal.PROCEDURE_ABOUT_NOT_OF_STATION,
+                    refusalOf(client.post(
+                            path,
+                            body("{\"name\": \"Lager\", \"isPublic\": true, \"memberIds\": [77, null]}"),
+                            documents)));
+            assertEquals(
+                    ProcedureRefusal.PROCEDURE_NEEDS_A_NAME,
+                    refusalOf(client.post(
+                            path, body("{\"name\": \" \", \"isPublic\": true, \"memberIds\": [77]}"), editor)));
+            assertEquals(
+                    ProcedureRefusal.PROCEDURE_TOO_MANY_AT_ONCE,
+                    refusalOf(client.post(
+                            path,
+                            body("{\"name\": \"Lager\", \"isPublic\": true, \"memberIds\": [" + many + "]}"),
+                            editor)));
+        });
+
+        verify(repository, never())
+                .createProcedure(
+                        anyInt(), any(), anyString(), any(), anyBoolean(), anyInt(), any(), any(), any(), any());
     }
 
     /** The party of the station's own procedure is set; another station's procedure is not found. */
@@ -613,6 +758,10 @@ class ProcedureRoutesTest {
                 null,
                 null,
                 null);
+    }
+
+    private static MemberIdentity identity(String name) {
+        return new MemberIdentity(UUID.randomUUID(), UUID.randomUUID(), name, null, null, null);
     }
 
     private static Procedure procedure() {

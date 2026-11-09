@@ -8,6 +8,7 @@ import type { RestrictionSelection } from './types'
 import { createCrudResource, createScopedCrudResource, type NoContent } from './crud'
 import type {
     CreateProcedureRequest,
+    CreateProceduresRequest,
     DependencyEntry,
     DependencyRequest,
     PatchItemRequest,
@@ -143,6 +144,12 @@ export async function setParty(id: number, party: RestrictionSelection): Promise
  */
 export async function setAbout(id: number, memberId: number, ask = true): Promise<Procedure> {
     const res = await client.put<Procedure>(`/procedures/${id}/about`, {memberId, ask})
+    return res.data
+}
+
+/** Starts one procedure per member from the same template, each about that member and named after them. */
+export async function createProceduresForMembers(request: CreateProceduresRequest): Promise<Procedure[]> {
+    const res = await client.post<Procedure[]>('/procedures/for-members', request)
     return res.data
 }
 

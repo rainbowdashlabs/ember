@@ -10,13 +10,13 @@ import java.util.List;
 import java.util.function.IntPredicate;
 
 /**
- * Document templates for steps as a test decides them: suitable where the predicate says so, meant for
- * every member or for none, and named after their id.
+ * Document templates for steps as a test decides them: suitable where the predicate says so, meant for the
+ * members the other predicate takes in, and named after their id.
  *
- * @param suitable   which templates a step may generate
- * @param meantForAll whether every template is meant for every member, or none for anybody
+ * @param suitable which templates a step may generate
+ * @param meantFor which members every template is meant for
  */
-public record SuitableDocuments(IntPredicate suitable, boolean meantForAll) implements DocumentStepTemplates {
+public record SuitableDocuments(IntPredicate suitable, IntPredicate meantFor) implements DocumentStepTemplates {
     /** No template is suitable. */
     public static final SuitableDocuments NONE = new SuitableDocuments(template -> false);
 
@@ -26,7 +26,7 @@ public record SuitableDocuments(IntPredicate suitable, boolean meantForAll) impl
      * @param suitable which templates a step may generate
      */
     public SuitableDocuments(IntPredicate suitable) {
-        this(suitable, true);
+        this(suitable, member -> true);
     }
 
     @Override
@@ -36,7 +36,7 @@ public record SuitableDocuments(IntPredicate suitable, boolean meantForAll) impl
 
     @Override
     public boolean meantFor(int stationId, int templateId, int memberId) {
-        return meantForAll;
+        return meantFor.test(memberId);
     }
 
     @Override

@@ -46,6 +46,9 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 
 @Singleton
 public class ProcedureRoutes implements Routes {
+    /** How many procedures one request starts at most, one per member. */
+    static final int MAX_MEMBERS_AT_ONCE = 100;
+
     private final ProcedureService procedureService;
     private final MemberIdentityFactory memberIdentityFactory;
     private final GuardianPolicy guardians;
@@ -89,6 +92,8 @@ public class ProcedureRoutes implements Routes {
                 this::listProceduresForOccurrence,
                 StationPermission.PROCEDURE_EDIT);
         routes.post(prefix + "/procedures", this::createProcedure, StationPermission.PROCEDURE_EDIT);
+        routes.post(
+                prefix + "/procedures/for-members", this::createProceduresForMembers, StationPermission.PROCEDURE_EDIT);
         routes.get(prefix + "/procedures/about-me", this::listProceduresAboutMe, StationPermission.USER);
         routes.get(prefix + "/procedures/{rid}", this::getProcedure, StationPermission.USER);
         routes.put(prefix + "/procedures/{rid}", this::updateProcedure, StationPermission.PROCEDURE_EDIT);
@@ -384,16 +389,8 @@ public class ProcedureRoutes implements Routes {
         var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(CreateProcedureRequest.class);
         if (req.name() == null || req.name().isBlank()) throw ProcedureRefusal.PROCEDURE_NEEDS_A_NAME.raise();
-        if (req.templateId() != null) {
-            procedureService
-                    .findTemplateById(req.templateId())
-                    .filter(template -> template.stationId() == session.stationId())
-                    .orElseThrow(ProcedureRefusal.PROCEDURE_TEMPLATE_NOT_HERE_TO_START::raise);
-            if (!session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)
-                    && procedureService.asksToSign(req.templateId())) {
-                throw ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NOT_YOURS.raise();
-            }
-        }
+        if (req.aboutMemberId() == null) throw ProcedureRefusal.PROCEDURE_ABOUT_MISSING.raise();
+        requireTemplateToStart(session, req.templateId());
         var procedure = procedureService.createProcedure(
                 session.stationId(),
                 req.templateId(),
@@ -407,6 +404,62 @@ public class ProcedureRoutes implements Routes {
                 req.eventId() != null ? req.eventDate() : null,
                 req.aboutMemberId());
         ctx.json(procedure);
+    }
+
+    /**
+     * Starts one procedure from a template for each of the given members, each about that member and named
+     * after them, all with the same managing party. Every member is checked before any procedure is written,
+     * so a member a document step's template is not meant for refuses the whole request.
+     */
+    @OpenApi(
+            path = "/api/v1/procedures/for-members",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateProceduresRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Procedure[].class)))
+    private void createProceduresForMembers(Context ctx) {
+        var session = StationSession.from(ctx);
+        var req = ctx.bodyAsClass(CreateProceduresRequest.class);
+        if (req.name() == null || req.name().isBlank()) throw ProcedureRefusal.PROCEDURE_NEEDS_A_NAME.raise();
+        var memberIds = req.memberIds() == null
+                ? List.<Integer>of()
+                : req.memberIds().stream().filter(Objects::nonNull).distinct().toList();
+        if (memberIds.isEmpty()) throw ProcedureRefusal.PROCEDURE_ABOUT_MISSING.raise();
+        if (memberIds.size() > MAX_MEMBERS_AT_ONCE) throw ProcedureRefusal.PROCEDURE_TOO_MANY_AT_ONCE.raise();
+        requireTemplateToStart(session, req.templateId());
+        var named = memberIds.stream()
+                .map(memberId -> new ProcedureService.NamedMember(memberId, nameFor(req.name(), memberId)))
+                .toList();
+        ctx.json(procedureService.createForMembers(
+                session.stationId(),
+                req.templateId(),
+                req.name().trim(),
+                req.description(),
+                req.isPublic(),
+                session.member().id(),
+                req.dueAt(),
+                req.party(),
+                req.eventDate() != null ? req.eventId() : null,
+                req.eventId() != null ? req.eventDate() : null,
+                named));
+    }
+
+    /** The name of one member's procedure: the name given, followed by the member's name. */
+    private String nameFor(String name, int memberId) {
+        var identity = memberIdentityFactory.fromMemberId(memberId);
+        var person = identity == null ? null : identity.name();
+        return person == null || person.isBlank() ? name.trim() : name.trim() + ": " + person;
+    }
+
+    /** Refuses a template of another station, and one asking to sign for somebody who generates no documents. */
+    private void requireTemplateToStart(StationSession session, @Nullable Integer templateId) {
+        if (templateId == null) return;
+        procedureService
+                .findTemplateById(templateId)
+                .filter(template -> template.stationId() == session.stationId())
+                .orElseThrow(ProcedureRefusal.PROCEDURE_TEMPLATE_NOT_HERE_TO_START::raise);
+        if (!session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER) && procedureService.asksToSign(templateId)) {
+            throw ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NOT_YOURS.raise();
+        }
     }
 
     @OpenApi(
@@ -732,8 +785,8 @@ public class ProcedureRoutes implements Routes {
      * @param eventId     the appointment the procedure is being prepared for, or {@code null}
      * @param eventDate     the one occurrence of that appointment. Both are recorded only when both are
      *                      given: an appointment without a date names every occurrence it has ever had
-     * @param aboutMemberId the member the procedure is about, whose documents its steps ask to sign, or
-     *                      {@code null} for nobody in particular
+     * @param aboutMemberId the member the procedure is about, whose documents its steps ask to sign; a new
+     *                      procedure has to name one
      */
     public record CreateProcedureRequest(
             @Nullable Integer templateId,
@@ -745,6 +798,29 @@ public class ProcedureRoutes implements Routes {
             @Nullable Integer eventId,
             @Nullable LocalDate eventDate,
             @Nullable Integer aboutMemberId) {}
+
+    /**
+     * One procedure per member from the same template, each about that member.
+     *
+     * @param templateId  the template whose steps every procedure starts with, or {@code null} for none
+     * @param name        the name every procedure starts with, followed by its member's name
+     * @param description what the procedures are about, or {@code null} for nothing
+     * @param dueAt       when they are due, or {@code null} for no date
+     * @param party       the managing party of all of them, or {@code null} for the template's
+     * @param eventId     the appointment they are prepared for, or {@code null}
+     * @param eventDate   the one occurrence of that appointment; both are recorded only when both are given
+     * @param memberIds   the members, one procedure each
+     */
+    public record CreateProceduresRequest(
+            @Nullable Integer templateId,
+            String name,
+            @Nullable String description,
+            boolean isPublic,
+            @Nullable Instant dueAt,
+            @Nullable RestrictionAudience party,
+            @Nullable Integer eventId,
+            @Nullable LocalDate eventDate,
+            @Nullable List<Integer> memberIds) {}
 
     /**
      * @param memberId the member a procedure is to be about

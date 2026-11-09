@@ -160,6 +160,10 @@ public enum ProcedureRefusal implements Refusal {
     PROCEDURE_STEP_DOCUMENT_NOT_YOURS_TO_ASK(
             42, HttpStatus.FORBIDDEN, "Only those who generate documents for members can ask for a step's document"),
 
+    /** Procedures for more members at once than one request starts. */
+    PROCEDURE_TOO_MANY_AT_ONCE(
+            43, HttpStatus.BAD_REQUEST, "That is more people than procedures are started for at once, so none was"),
+
     /** A note on a step written by somebody who does not run the procedure. */
     PROCEDURE_STEP_NOTE_NOT_YOURS(
             29, HttpStatus.FORBIDDEN, "Only whoever runs the procedure can write a note on a step"),

@@ -9,7 +9,7 @@ import { procedures, stationMembers } from '@/api'
 import { StationPermission, type MemberCompletion, type MemberGroup, type ProcedureItemRequest, type ProcedureStepKind, type ProcedureTemplate, type ProcedureTemplateDetail, type StepDocument, type UserTag } from '@/api/generated/schema'
 import type { RestrictionSelection } from '@/api/types'
 import { audienceLists } from '@/components/documents/generation'
-import { emptyRestriction, toRestriction } from '@/components/input/restriction'
+import { emptyRestriction, namesSomebody, toRestriction } from '@/components/input/restriction'
 import { stepDocumentOf, stepKindOf } from '@/components/procedures/stepDocument'
 import type { StepDependency } from '@/api/procedures'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -34,11 +34,6 @@ export interface EditableItem {
     documentMade: boolean
     /** The document the stored step asks to sign, to send what it asks for only when that changed. */
     storedDocumentId?: number | null
-}
-
-/** Whether a party names anybody: a template with an empty one leaves the party picked so far alone. */
-function namesSomebody(party: RestrictionSelection): boolean {
-  return party.userTypes.length + party.groupIds.length + party.tagIds.length + party.memberIds.length > 0
 }
 
 /**
@@ -78,6 +73,8 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
   const savedAbout = ref('')
   /** Whether the procedure is about somebody already, who can be changed but not taken away. */
   const aboutFixed = computed(() => savedAbout.value !== '')
+  /** Whether a new procedure still names nobody it is about, which every new one has to. */
+  const aboutMissing = computed(() => !isEditMode.value && !about.value)
 
   const templates = ref<ProcedureTemplate[]>([])
   const selectedTemplateId = ref<number | null>(null)
@@ -359,6 +356,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     isPublic,
     about,
     aboutFixed,
+    aboutMissing,
     templates,
     selectedTemplateId,
     templateDetail,

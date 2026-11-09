@@ -97,6 +97,7 @@ watch(loaded, (v) => {
             v-model:about="about"
             :members="aboutChoices"
             :about-fixed="form.aboutFixed.value"
+            :about-required="!isEditMode"
         />
 
         <PartySection v-model="party" :members="members" :groups="groups" :tags="tags"/>
@@ -115,12 +116,15 @@ watch(loaded, (v) => {
         <Alert v-if="documentsGone" variant="info" data-testid="procedure-documents-gone">
           {{ t('procedures.stepDocumentsGone') }}
         </Alert>
+        <Alert v-if="form.aboutMissing.value" variant="info" data-testid="procedure-about-required">
+          {{ t('procedures.aboutRequired') }}
+        </Alert>
         <Alert v-if="documentsNeedAbout" variant="info" data-testid="procedure-documents-need-about">
           {{ t('procedures.stepDocumentsNeedAbout') }}
         </Alert>
         <ButtonRow pair align="end">
           <SecondaryButton @click="router.back()">{{ t('common.cancel') }}</SecondaryButton>
-          <PrimaryButton :disabled="!name.trim() || saving || documentsNotYours || documentsGone || documentsNeedAbout" @click="handleSubmit">
+          <PrimaryButton :disabled="!name.trim() || saving || documentsNotYours || documentsGone || documentsNeedAbout || form.aboutMissing.value" @click="handleSubmit">
             {{ isEditMode ? t('common.save') : t('procedures.createProcedure') }}
           </PrimaryButton>
         </ButtonRow>

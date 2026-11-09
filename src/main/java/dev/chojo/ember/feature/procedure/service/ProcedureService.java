@@ -327,6 +327,41 @@ public class ProcedureService {
             @Nullable Integer eventId,
             @Nullable LocalDate eventDate,
             @Nullable Integer aboutMemberId) {
+        var procedure = write(
+                stationId,
+                templateId,
+                name,
+                description,
+                isPublic,
+                assignedBy,
+                dueAt,
+                party,
+                eventId,
+                eventDate,
+                aboutMemberId,
+                true);
+        askUnlocked(procedure.id(), assignedBy);
+        return procedure;
+    }
+
+    /**
+     * Writes a procedure as {@link #createProcedure} describes it, without asking for its document steps.
+     *
+     * @param tell whether the members the party names one by one are told it was handed to them
+     */
+    private Procedure write(
+            int stationId,
+            @Nullable Integer templateId,
+            String name,
+            @Nullable String description,
+            boolean isPublic,
+            int assignedBy,
+            @Nullable Instant dueAt,
+            @Nullable RestrictionAudience party,
+            @Nullable Integer eventId,
+            @Nullable LocalDate eventDate,
+            @Nullable Integer aboutMemberId,
+            boolean tell) {
         var given = ofStation(
                 stationId,
                 party != null ? party : templateId != null ? templatePartyOf(templateId) : RestrictionAudience.empty());
@@ -354,7 +389,7 @@ public class ProcedureService {
 
         restrictions.setAudience(RestrictionType.PROCEDURE, procedure.id(), given);
         var named = given.toSelection().memberIds();
-        if (!named.isEmpty()) {
+        if (tell && !named.isEmpty()) {
             eventBus.publish(new ProcedureAssigned(stationId, procedure.id(), name, named, assignedBy));
         }
 
@@ -364,8 +399,75 @@ public class ProcedureService {
                 stationId,
                 templateId,
                 given.namesNobody());
-        askUnlocked(procedure.id(), assignedBy);
         return procedure;
+    }
+
+    /**
+     * A member a procedure is started for, with the name their procedure goes by.
+     *
+     * @param memberId the member
+     * @param name     the procedure's name
+     */
+    public record NamedMember(int memberId, String name) {}
+
+    /**
+     * Starts one procedure from a template for each member, each about that member, all with the same
+     * managing party. Every member is checked against the template's document steps before any procedure
+     * is written, so nothing is left half made by a member who does not fit. The procedures are written
+     * first and their document steps asked for after, so the slow part comes last.
+     *
+     * <p>The members the party names one by one are told once, about the first procedure under the name
+     * all of them start with, rather than once for every person.
+     *
+     * <p>It is not one transaction: a failure while writing leaves the procedures written so far.
+     *
+     * @param name    the name all the procedures start with, which the members are told of
+     * @param members the members, each with the name their procedure goes by
+     * @return the procedures, in the order of the members
+     */
+    public List<Procedure> createForMembers(
+            int stationId,
+            @Nullable Integer templateId,
+            String name,
+            @Nullable String description,
+            boolean isPublic,
+            int assignedBy,
+            @Nullable Instant dueAt,
+            @Nullable RestrictionAudience party,
+            @Nullable Integer eventId,
+            @Nullable LocalDate eventDate,
+            List<NamedMember> members) {
+        var steps = templateId == null ? List.<ProcedureTemplateItem>of() : repository.findTemplateItems(templateId);
+        for (var member : members) {
+            requireAboutOf(stationId, member.memberId());
+            for (var step : steps) {
+                requireDocumentFits(stationId, member.memberId(), step.title(), StepKindChoice.of(step));
+            }
+        }
+        var created = members.stream()
+                .map(member -> write(
+                        stationId,
+                        templateId,
+                        member.name(),
+                        description,
+                        isPublic,
+                        assignedBy,
+                        dueAt,
+                        party,
+                        eventId,
+                        eventDate,
+                        member.memberId(),
+                        false))
+                .toList();
+        if (!created.isEmpty()) {
+            var named = partyOf(created.getFirst().id()).toSelection().memberIds();
+            if (!named.isEmpty()) {
+                eventBus.publish(
+                        new ProcedureAssigned(stationId, created.getFirst().id(), name, named, assignedBy));
+            }
+        }
+        created.forEach(procedure -> askUnlocked(procedure.id(), assignedBy));
+        return created;
     }
 
     public boolean updateProcedure(

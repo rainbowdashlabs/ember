@@ -13,7 +13,10 @@ import MutedText from '@/components/typography/MutedText.vue'
 import SignupChecklistDialog from './SignupChecklistDialog.vue'
 import SignupProcedureDialog from './SignupProcedureDialog.vue'
 import SignupSurveyDialog from './SignupSurveyDialog.vue'
-import {checklists, forms, procedures} from '@/api'
+import {noPartyChoices, type PartyChoices} from './partyChoices'
+import {checklists, forms, procedures, stationMembers} from '@/api'
+import {audienceLists} from '@/components/documents/generation'
+import type {RestrictionSelection} from '@/api/types'
 import {
   FormPurpose,
   StationModule,
@@ -83,8 +86,10 @@ const showSurvey = ref(false)
 const showProcedure = ref(false)
 
 const procedureTemplates = ref<ProcedureTemplate[]>([])
-/** What has already been prepared for this date, so a second press does not make a second list. */
-const existingProcedure = ref<Procedure | null>(null)
+/** What has already been prepared for this date, so a second press does not make a second set. */
+const existingProcedures = ref<Procedure[]>([])
+/** Whom a party can name, read as the procedure dialog opens. */
+const partyChoices = ref<PartyChoices>(noPartyChoices())
 
 /**
  * Makes the list, either as a copy of the names as they stand or as one tied to this date.
@@ -149,19 +154,22 @@ const {running: creatingSurvey, failure: surveyFailure, run: runCreateSurvey} = 
  */
 const {running: loadingProcedure, failure: procedureLoadFailure, run: runLoadProcedure} = useAsyncAction(
     async () => {
-      const [templates, prepared] = await Promise.all([
+      const [templates, prepared, members, lists] = await Promise.all([
         procedures.getTemplates(),
         procedures.getProceduresForEvent(props.event.id, props.effectiveDate!),
+        stationMembers.listCompletions(),
+        audienceLists(),
       ])
       procedureTemplates.value = templates.filter(template => !template.archived)
-      existingProcedure.value = prepared[0] ?? null
+      existingProcedures.value = prepared
+      partyChoices.value = {members, groups: lists.groups, tags: lists.tags}
     },
     {formatError: (e) => describeFailure(e, t).message},
 )
 
 async function openProcedure() {
   procedureTemplates.value = []
-  existingProcedure.value = null
+  existingProcedures.value = []
   showProcedure.value = true
   await runLoadProcedure()
 }
@@ -172,40 +180,27 @@ function openExistingProcedure(procedure: Procedure) {
 }
 
 /**
- * Writes the preparation list and hands it to the people who hold a place.
- *
- * <p>Two things are set that the ordinary create form leaves alone, and without either of them the
- * people on the list can look at it and do nothing else. The list itself is public, because a
- * private one is closed to a member of its party who may not read every procedure of the station. The
- * people coming make up its party, named one by one. Its steps are marked as assigned to the user,
- * because that is the mark a non-manager is allowed to tick.
+ * Starts one procedure for each person who holds a place, each about that person, all run by the one
+ * party chosen in the dialog, which starts as the template's; where the template's could not be read yet
+ * none is sent, so the server takes it. The procedures keep the template's steps as
+ * they are: the party ticks them, and the person each one is about reads it.
  */
 const {running: creatingProcedure, failure: procedureFailure, run: runCreateProcedure} = useAsyncAction(
-    async (payload: {templateId: number; name: string; description: string; dueAt: string}) => {
-      const created = await procedures.createProcedure({
+    async (payload: {templateId: number; name: string; description: string; dueAt: string; party: RestrictionSelection | null}) => {
+      const created = await procedures.createProceduresForMembers({
         templateId: payload.templateId,
         name: payload.name,
         description: payload.description || undefined,
         dueAt: dateToInstant(payload.dueAt) ?? undefined,
         isPublic: true,
-        party: {userTypes: [], groupIds: [], tagIds: [], memberIds: props.memberSet.memberIds, mode: 'AND'},
+        party: payload.party ?? undefined,
         eventId: props.event.id,
         eventDate: props.effectiveDate ?? undefined,
+        memberIds: props.memberSet.memberIds,
       })
-      const detail = await procedures.getProcedure(created.id)
-      for (const item of detail.items) {
-        if (item.isPublic && item.userAssigned) continue
-        await procedures.editItem(created.id, item.id, {
-          title: item.title,
-          description: item.description ?? undefined,
-          isPublic: true,
-          userAssigned: true,
-          position: item.position,
-        })
-      }
       showProcedure.value = false
-      showToast(t('signupLists.procedureCreated', {count: props.memberSet.count}), 'success')
-      await router.push({name: 'procedure-detail', params: {id: created.id}})
+      showToast(t('signupLists.procedureCreated', {count: created.length}), 'success')
+      await router.push({name: 'procedure-list'})
     },
     {formatError: (e) => describeFailure(e, t).message},
 )
@@ -275,7 +270,8 @@ const {running: creatingProcedure, failure: procedureFailure, run: runCreateProc
       :suggested-name="suggestedName"
       :occurrence-date="effectiveDate"
       :templates="procedureTemplates"
-      :existing="existingProcedure"
+      :existing="existingProcedures"
+      :party-choices="partyChoices"
       @submit="runCreateProcedure"
       @open="openExistingProcedure"
   />
