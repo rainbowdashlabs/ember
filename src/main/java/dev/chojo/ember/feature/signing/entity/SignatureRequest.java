@@ -34,6 +34,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING
  * @param createdBy       who asked for them, or null
  * @param closedAt        when it stopped waiting, or null while it is open
  * @param copyAttached    whether the copy each signer gets by mail carries the sealed PDF
+ * @param purpose         what the signatures are asked for beyond the document, such as a procedure, or
+ *                        null where the document alone says it
  */
 public record SignatureRequest(
         int id,
@@ -51,12 +53,13 @@ public record SignatureRequest(
         Instant createdAt,
         @Nullable Integer createdBy,
         @Nullable Instant closedAt,
-        boolean copyAttached) {
+        boolean copyAttached,
+        @Nullable String purpose) {
 
     /** The columns {@link #map()} reads, in a form a query can splice in. */
     public static final String COLUMNS = """
             id, uid, station_id, generation_id, document_id, member_id, member_name, content_sha256, state,
-            superseded_by, retention_months, retain_until, created_at, created_by, closed_at, copy_attached""";
+            superseded_by, retention_months, retain_until, created_at, created_by, closed_at, copy_attached, purpose""";
 
     /** Maps a row of the signing requests. */
     public static RowMapping<SignatureRequest> map() {
@@ -76,7 +79,8 @@ public record SignatureRequest(
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.getObject("created_by", Integer.class),
                 row.get("closed_at", INSTANT_TIMESTAMP),
-                row.getBoolean("copy_attached"));
+                row.getBoolean("copy_attached"),
+                row.getString("purpose"));
     }
 
     /** @return whether a field of it may still be signed or settled */
@@ -95,6 +99,8 @@ public record SignatureRequest(
      * @param memberName    their official name
      * @param contentSha256 SHA-256 of the generated file, lower-case hexadecimal
      * @param createdBy     who asks for the signatures, or null where nobody in particular does
+     * @param purpose       what the signatures are asked for beyond the document, such as a procedure, or
+     *                      null
      */
     public record Draft(
             int stationId,
@@ -104,7 +110,8 @@ public record SignatureRequest(
             int memberId,
             String memberName,
             String contentSha256,
-            @Nullable Integer createdBy) {}
+            @Nullable Integer createdBy,
+            @Nullable String purpose) {}
 
     /**
      * A request for a document a partner station handed out for its appointment, as it is asked for: nobody

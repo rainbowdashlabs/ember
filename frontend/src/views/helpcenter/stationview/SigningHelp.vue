@@ -30,6 +30,7 @@ const exampleField = computed<OpenSignatureResponse>(() => ({
   documentId: 0,
   documentTitle: t('helpCenter.signing.exampleTitle'),
   memberName: t('helpCenter.signing.exampleChild'),
+  purpose: null,
   fieldName: 'guardian1',
   role: FieldRole.GUARDIAN,
   capacity: SignerCapacity.GUARDIAN,

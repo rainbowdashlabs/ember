@@ -295,6 +295,7 @@ import dev.chojo.ember.feature.procedure.handler.ProcedureSignaturesHandlers;
 import dev.chojo.ember.feature.procedure.route.ProcedureRoutes;
 import dev.chojo.ember.feature.procedure.service.DocumentStepSigning;
 import dev.chojo.ember.feature.procedure.service.DocumentStepTemplates;
+import dev.chojo.ember.feature.procedure.service.ProcedureDueReminders;
 import dev.chojo.ember.feature.procedure.service.ProcedureFeedDetails;
 import dev.chojo.ember.feature.protocol.route.FederatedTestProtocolRoutes;
 import dev.chojo.ember.feature.protocol.route.RemoteTestProtocolRoutes;
@@ -875,6 +876,7 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(SigningStateSweeper.class);
         taskSources.addBinding().to(SealedVersionTimestamps.class);
         taskSources.addBinding().to(SignatureReminders.class);
+        taskSources.addBinding().to(ProcedureDueReminders.class);
         taskSources.addBinding().to(PartnerAuthorities.class);
         taskSources.addBinding().to(PartnerAgreements.class);
         taskSources.addBinding().to(PartnerDeliveries.class);

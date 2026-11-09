@@ -321,6 +321,7 @@ class RequirementsServiceTest {
                 title == null ? null : 7,
                 title,
                 memberName,
+                null,
                 new RequestedSignature(
                         fieldId,
                         3,

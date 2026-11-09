@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.content.route.BlockRowRequest;
 import dev.chojo.ember.feature.documents.service.DocumentAccessService;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.service.GeneratorTestBase;
+import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.procedure.service.StepDocumentState;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -117,7 +119,13 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
                 completed -> {},
                 new WitnessReach(stationMemberRepo, restrictionService));
         signatures = new ProcedureSignatures(
-                wiring.generation(), requests, stationMemberRepo, memberPermissionResolver, wiring.log(), requestRepo);
+                wiring.generation(),
+                requests,
+                stationMemberRepo,
+                memberPermissionResolver,
+                wiring.log(),
+                requestRepo,
+                notices);
         withdrawals = new SignatureWithdrawals(
                 requestRepo,
                 requests,
@@ -151,7 +159,7 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
                 row(signature(SignatureRole.PARTICIPANT, "Unterschrift")));
 
         int generationId = signatures.generate(wiring.station().id(), consent, member.id(), manager.id());
-        signatures.request(generationId, manager.id());
+        signatures.request(generationId, manager.id(), "Aufnahme");
 
         var generation = wiring.log().findById(generationId).orElseThrow();
         assertEquals(member.id(), generation.memberId());
@@ -174,7 +182,7 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
     void waivingEveryFieldClosesTheDocumentAsAgreed() {
         int consent = template("Erlaubnis", row(signature(SignatureRole.PARTICIPANT, "Unterschrift")));
         int generationId = signatures.generate(wiring.station().id(), consent, member.id(), manager.id());
-        signatures.request(generationId, manager.id());
+        signatures.request(generationId, manager.id(), "Aufnahme");
         var request = requestRepo.findLiveFor(generationId).orElseThrow();
         var managing =
                 stationSession(manager, StationPermission.DOCUMENT_EDIT_MEMBER, StationPermission.DOCUMENT_READ_MEMBER);
@@ -200,7 +208,7 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
         assertEquals(7, made.itemId());
         assertEquals(wiring.log().findById(generationId).orElseThrow().documentId(), made.documentId());
 
-        signatures.request(generationId, manager.id());
+        signatures.request(generationId, manager.id(), "Aufnahme");
         var asked = signatures.stateOf(7, generationId);
         assertEquals(StepDocumentState.Progress.WAITING, asked.progress());
         assertEquals(1, asked.fields());
@@ -221,7 +229,7 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
     void aStepsDocumentReadsHowItEnded() {
         int consent = template("Ende", row(signature(SignatureRole.PARTICIPANT, "Unterschrift")));
         int dropped = signatures.generate(wiring.station().id(), consent, member.id(), manager.id());
-        signatures.request(dropped, manager.id());
+        signatures.request(dropped, manager.id(), "Aufnahme");
         requests.withdraw(
                 managing(), requestRepo.findLiveFor(dropped).orElseThrow().uid());
         assertEquals(
@@ -229,7 +237,7 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
                 signatures.stateOf(7, dropped).progress());
 
         int revoked = signatures.generate(wiring.station().id(), consent, child.id(), manager.id());
-        signatures.request(revoked, manager.id());
+        signatures.request(revoked, manager.id(), "Aufnahme");
         var request = requestRepo.findLiveFor(revoked).orElseThrow();
         fields.confirmOnPaper(
                 managing(),
@@ -242,6 +250,55 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
                 signatures.stateOf(7, revoked).progress());
     }
 
+    /**
+     * The request names the procedure it is asked for, the mail says so, and the reminder a procedure sends
+     * when it falls due reaches the open fields once more.
+     */
+    @Test
+    void theRequestAndItsMailsNameTheProcedure() {
+        int consent = template("Ablaufbrief", row(signature(SignatureRole.PARTICIPANT, "Unterschrift")));
+        int generationId = signatures.generate(wiring.station().id(), consent, member.id(), manager.id());
+
+        signatures.request(generationId, manager.id(), "Neues Mitglied aufnehmen");
+
+        var request = requestRepo.findLiveFor(generationId).orElseThrow();
+        assertEquals("Neues Mitglied aufnehmen", request.purpose());
+        var asked = latestMailTo(member);
+        assertTrue(asked.body().contains("Neues Mitglied aufnehmen"), asked.body());
+
+        assertEquals(0, signatures.remind(generationId, request.createdAt()), "asked for just now");
+        assertEquals(1, signatures.remind(generationId, Instant.now().plusSeconds(60)));
+        var reminder = latestMailTo(member);
+        assertTrue(reminder.subject().startsWith("Erinnerung"), reminder.subject());
+        assertTrue(reminder.body().contains("Neues Mitglied aufnehmen"));
+
+        fields.waive(
+                managing(),
+                request.uid(),
+                requestRepo.fieldsOf(request.id()).getFirst().fieldName());
+        assertEquals(0, signatures.remind(generationId, Instant.now().plusSeconds(60)), "nothing waits any more");
+    }
+
+    /** A corrected document keeps the procedure its request named, and a request without one says nothing. */
+    @Test
+    void aCorrectionKeepsTheProcedureAndAPlainRequestNamesNone() {
+        int consent = template("Korrigiert", row(signature(SignatureRole.PARTICIPANT, "Unterschrift")));
+        int first = signatures.generate(wiring.station().id(), consent, member.id(), manager.id());
+        signatures.request(first, manager.id(), "Neues Mitglied aufnehmen");
+        int corrected = signatures.generate(wiring.station().id(), consent, member.id(), manager.id());
+
+        var replacement = requests.rectify(
+                managing(), requestRepo.findLiveFor(first).orElseThrow().uid(), corrected);
+
+        assertEquals("Neues Mitglied aufnehmen", replacement.purpose());
+        assertTrue(latestMailTo(member).body().contains("Neues Mitglied aufnehmen"));
+
+        int plain = signatures.generate(wiring.station().id(), consent, member.id(), manager.id());
+        requests.request(managing(), plain);
+        var mail = latestMailTo(member);
+        assertFalse(mail.body().contains("Ablauf"), mail.body());
+    }
+
     /** A field waived beside one withdrawn still lets the document stand as agreed. */
     @Test
     void aWaivedFieldBesideAWithdrawnOneStandsAsAgreed() {
@@ -250,7 +307,7 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
                 row(signature(SignatureRole.PARTICIPANT, "Kind")),
                 row(signature(SignatureRole.GUARDIAN_1, "Eltern")));
         int generationId = signatures.generate(wiring.station().id(), consent, child.id(), manager.id());
-        signatures.request(generationId, manager.id());
+        signatures.request(generationId, manager.id(), "Aufnahme");
         var request = requestRepo.findLiveFor(generationId).orElseThrow();
         var both = requestRepo.fieldsOf(request.id());
         assertEquals(2, both.size());
@@ -268,7 +325,7 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
     void aRequestWithdrawnWholeIsNotAgreed() {
         int consent = template("Zurückgezogen", row(signature(SignatureRole.PARTICIPANT, "Unterschrift")));
         int generationId = signatures.generate(wiring.station().id(), consent, member.id(), manager.id());
-        signatures.request(generationId, manager.id());
+        signatures.request(generationId, manager.id(), "Aufnahme");
         var request = requestRepo.findLiveFor(generationId).orElseThrow();
 
         requests.withdraw(managing(), request.uid());
@@ -284,7 +341,7 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
     void aWithdrawnAgreementNamesItsDocument() {
         int consent = template("Widerruf", row(signature(SignatureRole.PARTICIPANT, "Unterschrift")));
         int generationId = signatures.generate(wiring.station().id(), consent, child.id(), manager.id());
-        signatures.request(generationId, manager.id());
+        signatures.request(generationId, manager.id(), "Aufnahme");
         var request = requestRepo.findLiveFor(generationId).orElseThrow();
         fields.confirmOnPaper(
                 managing(),
@@ -308,7 +365,7 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
     void aCorrectedDocumentNamesTheOneItReplaces() {
         int consent = template("Korrektur", row(signature(SignatureRole.PARTICIPANT, "Unterschrift")));
         int first = signatures.generate(wiring.station().id(), consent, member.id(), manager.id());
-        signatures.request(first, manager.id());
+        signatures.request(first, manager.id(), "Aufnahme");
         int corrected = signatures.generate(wiring.station().id(), consent, member.id(), manager.id());
 
         requests.rectify(
@@ -365,6 +422,14 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
         return wiring.templates()
                 .create(wiring.owner(), letter(name).body(List.of(rows)).build(), manager.id())
                 .id();
+    }
+
+    private static EmailQueueRepository.QueuedEmail latestMailTo(StationMember to) {
+        String email = accountRepo
+                .findById(Objects.requireNonNull(to.accountId()))
+                .orElseThrow()
+                .email();
+        return emailQueueRepo.findLatestFor(email, null, null).orElseThrow();
     }
 
     private static List<SigningRequestClosed> closedFor(int generationId) {

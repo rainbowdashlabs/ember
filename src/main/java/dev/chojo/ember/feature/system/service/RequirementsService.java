@@ -102,7 +102,8 @@ public class RequirementsService {
                 .map(pending -> new SignatureItem(
                         pending.field().id(),
                         pending.documentTitle(),
-                        Objects.equals(pending.field().memberId(), memberId) ? null : pending.memberName()))
+                        Objects.equals(pending.field().memberId(), memberId) ? null : pending.memberName(),
+                        pending.purpose()))
                 .toList();
     }
 
@@ -179,11 +180,14 @@ public class RequirementsService {
      * @param documentTitle the title the document is filed under, or null once it was deleted
      * @param memberName    the official name of the member the document is about, named only where it is
      *                      not the reader's own
+     * @param purpose       what the signatures are asked for beyond the document, such as a procedure, or
+     *                      null
      */
     public record SignatureItem(
             int fieldId,
             @Nullable String documentTitle,
-            @Nullable String memberName) {}
+            @Nullable String memberName,
+            @Nullable String purpose) {}
 
     /**
      * What a member still owes.

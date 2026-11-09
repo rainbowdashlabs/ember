@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,6 +41,7 @@ public class ProcedureSignatures implements DocumentStepSigning {
     private final MemberPermissionResolver permissions;
     private final DocumentGenerationRepository generations;
     private final SignatureRequestRepository requestRepo;
+    private final SignatureNotices notices;
 
     @Inject
     public ProcedureSignatures(
@@ -48,13 +50,15 @@ public class ProcedureSignatures implements DocumentStepSigning {
             StationMemberRepository members,
             MemberPermissionResolver permissions,
             DocumentGenerationRepository generations,
-            SignatureRequestRepository requestRepo) {
+            SignatureRequestRepository requestRepo,
+            SignatureNotices notices) {
         this.generation = generation;
         this.requests = requests;
         this.members = members;
         this.permissions = permissions;
         this.generations = generations;
         this.requestRepo = requestRepo;
+        this.notices = notices;
     }
 
     @Override
@@ -73,13 +77,28 @@ public class ProcedureSignatures implements DocumentStepSigning {
     }
 
     @Override
-    public void request(int generationId, int askedBy) {
-        requests.requestForProcedure(generationId, askedBy);
+    public void request(int generationId, int askedBy, String procedureName) {
+        requests.requestForProcedure(generationId, askedBy, procedureName);
     }
 
     @Override
     public void withdraw(int generationId, int by) {
         requests.withdrawForProcedure(generationId, by);
+    }
+
+    @Override
+    public int remind(int generationId, Instant askedBefore) {
+        var request = requestRepo
+                .findLiveFor(generationId)
+                .filter(SignatureRequest::open)
+                .filter(live -> live.createdAt().isBefore(askedBefore))
+                .orElse(null);
+        if (request == null) return 0;
+        var open = requestRepo.fieldsOf(request.id()).stream()
+                .filter(field -> field.state() == FieldState.OPEN)
+                .toList();
+        if (!open.isEmpty()) notices.reminded(request, open);
+        return open.size();
     }
 
     @Override

@@ -68882,6 +68882,9 @@
           "memberName" : {
             "type" : "string"
           },
+          "purpose" : {
+            "type" : [ "string", "null" ]
+          },
           "fieldName" : {
             "type" : "string"
           },
@@ -68902,7 +68905,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "fieldId", "requestUid", "documentId", "documentTitle", "memberName", "fieldName", "role", "capacity", "memberId", "signerName", "statement" ]
+        "required" : [ "fieldId", "requestUid", "documentId", "documentTitle", "memberName", "purpose", "fieldName", "role", "capacity", "memberId", "signerName", "statement" ]
       },
       "Option" : {
         "type" : "object",
@@ -77976,9 +77979,12 @@
           },
           "memberName" : {
             "type" : [ "string", "null" ]
+          },
+          "purpose" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "fieldId", "documentTitle", "memberName" ]
+        "required" : [ "fieldId", "documentTitle", "memberName", "purpose" ]
       },
       "SignatureRole" : {
         "type" : "string",

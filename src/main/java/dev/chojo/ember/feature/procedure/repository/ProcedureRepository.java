@@ -338,6 +338,56 @@ public class ProcedureRepository {
                 .orElse(0);
     }
 
+    /**
+     * The open procedures about a member that fall due before the given time and whose document steps were
+     * not reminded of for it yet.
+     *
+     * @param now   the time from which they count as falling due
+     * @param until the time they fall due before
+     * @param limit how many to read at most
+     * @return the procedures, soonest due first
+     */
+    public List<Procedure> findFallingDue(Instant now, Instant until, int limit) {
+        return query("""
+                SELECT %s
+                FROM procedure
+                WHERE status = 'OPEN'
+                  AND about_member_id IS NOT NULL
+                  AND due_reminded_at IS NULL
+                  AND due_at > :now
+                  AND due_at <= :until
+                ORDER BY due_at
+                LIMIT :limit;""", PROCEDURE_COLUMNS)
+                .single(call().bind("now", now, INSTANT_TIMESTAMP)
+                        .bind("until", until, INSTANT_TIMESTAMP)
+                        .bind("limit", limit))
+                .map(Procedure.map())
+                .all();
+    }
+
+    /**
+     * Records that a procedure's document steps were reminded of because it falls due, unless that was
+     * recorded already.
+     *
+     * @param id    the procedure
+     * @param dueAt the due date it was read with, which has to stand still
+     * @param now   when
+     * @return whether it was not recorded yet and is still due then
+     */
+    public boolean markDueReminded(int id, Instant dueAt, Instant now) {
+        return query("""
+                UPDATE procedure
+                SET due_reminded_at = :now
+                WHERE id = :id
+                  AND due_reminded_at IS NULL
+                  AND due_at = :due_at;""")
+                .single(call().bind("now", now, INSTANT_TIMESTAMP)
+                        .bind("due_at", dueAt, INSTANT_TIMESTAMP)
+                        .bind("id", id))
+                .update()
+                .changed();
+    }
+
     public Optional<Procedure> findProcedureById(int id) {
         return findById("procedure", PROCEDURE_COLUMNS, id, Procedure.map());
     }
@@ -409,6 +459,7 @@ public class ProcedureRepository {
                     name        = :name,
                     description = :description,
                     public      = :public,
+                    due_reminded_at = CASE WHEN due_at IS DISTINCT FROM :due_at THEN NULL ELSE due_reminded_at END,
                     due_at      = :due_at
                 WHERE id = :id;""")
                 .single(call().bind("name", name)

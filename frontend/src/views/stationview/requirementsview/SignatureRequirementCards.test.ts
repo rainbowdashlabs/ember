@@ -19,19 +19,21 @@ describe('SignatureRequirementCards', () => {
     it('signs every waiting signature in one go where several wait, and each on its own from its card', async () => {
         const cards = await mountSuspended(SignatureRequirementCards, {
             props: {signatures: [
-                {fieldId: 1, documentTitle: 'Zeltlager', memberName: null},
-                {fieldId: 2, documentTitle: 'Fotoerlaubnis', memberName: 'Ben'},
+                {fieldId: 1, documentTitle: 'Zeltlager', memberName: null, purpose: null},
+                {fieldId: 2, documentTitle: 'Fotoerlaubnis', memberName: 'Ben', purpose: 'Neues Mitglied aufnehmen'},
             ]},
         })
 
         await cards.get('[data-testid="requirement-sign-all"]').trigger('click')
         expect(push).toHaveBeenCalledWith({name: 'station-signing-all'})
         expect(cards.findAll('[data-testid="requirement-signature"]')).toHaveLength(2)
+        expect(cards.findAll('[data-testid="requirement-signature"]')[1]?.text()).toContain('Neues Mitglied aufnehmen')
+        expect(cards.findAll('[data-testid="requirement-signature"]')[0]?.text()).not.toContain('Ablauf')
     })
 
     it('offers no action for all where only one waits', async () => {
         const cards = await mountSuspended(SignatureRequirementCards, {
-            props: {signatures: [{fieldId: 1, documentTitle: 'Zeltlager', memberName: null}]},
+            props: {signatures: [{fieldId: 1, documentTitle: 'Zeltlager', memberName: null, purpose: null}]},
         })
 
         expect(cards.find('[data-testid="requirement-sign-all"]').exists()).toBe(false)

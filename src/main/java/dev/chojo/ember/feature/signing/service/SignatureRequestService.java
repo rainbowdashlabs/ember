@@ -145,7 +145,7 @@ public class SignatureRequestService {
      */
     public SignatureRequest request(StationSession session, int generationId) {
         var generation = generationAt(session, generationId);
-        var created = onceForTheDocument(() -> create(session, generation, null));
+        var created = onceForTheDocument(() -> create(session, generation, null, null));
         notices.asked(created, requests.fieldsOf(created.id()));
         return created;
     }
@@ -188,7 +188,7 @@ public class SignatureRequestService {
             if (held.state() == RequestState.SUPERSEDED || held.state() == RequestState.WITHDRAWN) {
                 throw DocumentRefusal.SIGNING_REQUEST_ENDED.raise();
             }
-            var replacement = create(session, generation, old.id());
+            var replacement = create(session, generation, old.id(), old.purpose());
             requests.withdrawOpen(old.id(), by, names.official(by));
             requests.supersede(old.id(), replacement.id());
             return replacement;
@@ -245,7 +245,7 @@ public class SignatureRequestService {
                 generations.findById(generationId).orElseThrow(DocumentRefusal.SIGNING_GENERATION_NOT_FOUND::raise);
         var created = Transactions.call(() -> {
             var plan = planOf(generation, memberOf(generation), filedDocument(generation));
-            return create(generation, plan, null, null);
+            return create(generation, plan, null, null, null);
         });
         if (requests.waitsForScan(created.id())) return created;
         notices.asked(created, requests.fieldsOf(created.id()));
@@ -259,14 +259,15 @@ public class SignatureRequestService {
      *
      * @param generationId the generation log entry of the document
      * @param askedBy      on whose behalf the procedure asks
+     * @param purpose      what the signatures are asked for, named to the signers: the procedure
      * @return the request
      */
-    public SignatureRequest requestForProcedure(int generationId, int askedBy) {
+    public SignatureRequest requestForProcedure(int generationId, int askedBy, String purpose) {
         var generation =
                 generations.findById(generationId).orElseThrow(DocumentRefusal.SIGNING_GENERATION_NOT_FOUND::raise);
         var created = onceForTheDocument(() -> {
             var plan = planOf(generation, memberOf(generation), filedDocument(generation));
-            return create(generation, plan, askedBy, null);
+            return create(generation, plan, askedBy, null, purpose);
         });
         notices.asked(created, requests.fieldsOf(created.id()));
         return created;
@@ -328,7 +329,7 @@ public class SignatureRequestService {
      */
     public SignatureAsk requireOwnedThenRequestInPerson(StationSession session, int generationId) {
         var generation = generationAt(session, generationId);
-        var created = onceForTheDocument(() -> create(session, generation, null));
+        var created = onceForTheDocument(() -> create(session, generation, null, null));
         return SignatureAsk.asked(created, requests.fieldsOf(created.id()));
     }
 
@@ -347,7 +348,7 @@ public class SignatureRequestService {
                 generations.findById(generationId).orElseThrow(DocumentRefusal.SIGNING_GENERATION_NOT_FOUND::raise);
         var created = onceForTheDocument(() -> {
             var plan = planOf(generation, memberOf(generation), filedDocument(generation));
-            return create(generation, plan, witnessId, null);
+            return create(generation, plan, witnessId, null, null);
         });
         return SignatureAsk.asked(created, requests.fieldsOf(created.id()));
     }
@@ -549,12 +550,19 @@ public class SignatureRequestService {
     }
 
     private SignatureRequest create(
-            StationSession session, DocumentGeneration generation, @Nullable Integer replacing) {
-        return create(generation, plan(session, generation), session.member().id(), replacing);
+            StationSession session,
+            DocumentGeneration generation,
+            @Nullable Integer replacing,
+            @Nullable String purpose) {
+        return create(generation, plan(session, generation), session.member().id(), replacing, purpose);
     }
 
     private SignatureRequest create(
-            DocumentGeneration generation, Plan plan, @Nullable Integer askedBy, @Nullable Integer replacing) {
+            DocumentGeneration generation,
+            Plan plan,
+            @Nullable Integer askedBy,
+            @Nullable Integer replacing,
+            @Nullable String purpose) {
         requireNothingLive(generation, replacing);
         if (plan.fields().isEmpty()) throw DocumentRefusal.SIGNING_NO_FIELDS.raise();
         var created = requests.create(
@@ -566,7 +574,8 @@ public class SignatureRequestService {
                         plan.memberId(),
                         plan.memberName(),
                         plan.sha256(),
-                        askedBy),
+                        askedBy,
+                        purpose),
                 plan.fields());
         log.info(
                 "Asked for {} signatures on document {} at station {} ({})",

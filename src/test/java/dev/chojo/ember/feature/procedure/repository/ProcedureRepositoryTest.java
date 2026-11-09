@@ -613,6 +613,61 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
         procedureRepo.deleteProcedure(hidden.id());
     }
 
+    /**
+     * A procedure about a member falling due is found once it is within reach and until it is recorded as
+     * reminded of; a new due date makes it due again.
+     */
+    @Test
+    @Order(75)
+    void aProcedureFallingDueIsFoundUntilRemindedOf() {
+        var now = Instant.now();
+        var due = procedureRepo.createProcedure(
+                station.id(),
+                null,
+                "Bald fällig",
+                null,
+                true,
+                member.id(),
+                now.plus(1, ChronoUnit.DAYS),
+                null,
+                null,
+                member2.id());
+        var later = procedureRepo.createProcedure(
+                station.id(),
+                null,
+                "Später",
+                null,
+                true,
+                member.id(),
+                now.plus(5, ChronoUnit.DAYS),
+                null,
+                null,
+                member2.id());
+        var until = now.plus(2, ChronoUnit.DAYS);
+
+        var found = procedureRepo.findFallingDue(now, until, 100).stream()
+                .map(Procedure::id)
+                .toList();
+        assertTrue(found.contains(due.id()));
+        assertFalse(found.contains(later.id()));
+
+        var dueAt = procedureRepo.findProcedureById(due.id()).orElseThrow().dueAt();
+        assertFalse(procedureRepo.markDueReminded(due.id(), now.plus(9, ChronoUnit.DAYS), now), "another due date");
+        assertTrue(procedureRepo.markDueReminded(due.id(), dueAt, now));
+        assertFalse(procedureRepo.markDueReminded(due.id(), dueAt, now), "recorded once");
+        procedureRepo.updateProcedure(due.id(), "Umbenannt", null, true, dueAt);
+        assertFalse(
+                procedureRepo.findFallingDue(now, until, 100).stream().anyMatch(p -> p.id() == due.id()),
+                "a change that keeps the due date keeps the reminder recorded");
+        assertFalse(procedureRepo.findFallingDue(now, until, 100).stream().anyMatch(p -> p.id() == due.id()));
+
+        procedureRepo.updateProcedure(due.id(), "Bald fällig", null, true, now.plus(36, ChronoUnit.HOURS));
+        assertTrue(procedureRepo.findFallingDue(now, until, 100).stream().anyMatch(p -> p.id() == due.id()));
+
+        procedureRepo.deleteProcedure(due.id());
+        procedureRepo.deleteProcedure(later.id());
+    }
+
     @Test
     @Order(80)
     void resolveProcedure() {

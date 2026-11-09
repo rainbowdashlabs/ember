@@ -54,6 +54,7 @@ function field(fieldId: number, overrides: Partial<OpenSignatureResponse>): Open
         documentId: 3,
         documentTitle: 'Zeltlager',
         memberName: 'Ben Beispiel',
+        purpose: null,
         fieldName: 'guardian1',
         role: 'GUARDIAN',
         capacity: 'GUARDIAN',

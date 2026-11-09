@@ -316,7 +316,8 @@ public class SignatureNotices {
                 send(
                         kind,
                         mail,
-                        new SignatureInvitation(station.name(), title, request.memberName(), mail.url),
+                        new SignatureInvitation(
+                                station.name(), title, request.memberName(), mail.url, request.purpose()),
                         locale);
             }
         } catch (RuntimeException e) {

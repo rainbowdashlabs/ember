@@ -8670,6 +8670,7 @@ export default {
         signatureTitle: 'Dokument unterschreiben',
         signatureText: 'Dieses Dokument wartet auf deine Unterschrift.',
         signatureTextFor: 'Ein Dokument für {name} wartet auf eine Unterschrift über dein Konto.',
+        signatureForProcedure: 'Es gehört zum Ablauf {procedure}.',
         sign: 'Unterschreiben',
         signAll: 'Alle auf einmal unterschreiben',
     },
@@ -11399,6 +11400,7 @@ export default {
                 themselves: '{name} unterschreibt selbst. Gib {name} das Gerät zum Lesen und Ankreuzen.',
             },
             overview: {
+                purpose: 'Für den Ablauf {procedure}',
                 heading: 'Diese Unterschriften fehlen noch',
                 hint: 'Alle sind ausgewählt. Wenn du eine später machen willst, nimm den Haken weg.',
                 line: '{document}: {who}',

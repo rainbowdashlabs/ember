@@ -70311,6 +70311,7 @@ export interface components {
             /** Format: int32 */
             memberId: number | null;
             memberName: string;
+            purpose: string | null;
             /** Format: uuid */
             requestUid: string;
             role: components["schemas"]["FieldRole"];
@@ -73340,6 +73341,7 @@ export interface components {
             /** Format: int32 */
             fieldId: number;
             memberName: string | null;
+            purpose: string | null;
         };
         /** @enum {string} */
         SignatureRole: "PARTICIPANT" | "GUARDIAN_1" | "GUARDIAN_2" | "EACH_GUARDIAN" | "ANY_GUARDIAN" | "ISSUER";

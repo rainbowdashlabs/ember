@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.procedure.service;
 
+import java.time.Instant;
+
 /**
  * Generating the document a step of a procedure asks to sign and asking for its signatures, as the
  * documents and signing features do it, so the procedures feature does not need to know how.
@@ -36,11 +38,12 @@ public interface DocumentStepSigning {
     /**
      * Asks the member a step's document is about, or their guardians, to sign it.
      *
-     * @param generationId the generation log entry of the document
-     * @param askedBy      on whose behalf it is asked for, as {@link #mayAsk} allows
+     * @param generationId  the generation log entry of the document
+     * @param askedBy       on whose behalf it is asked for, as {@link #mayAsk} allows
+     * @param procedureName the procedure it is asked for, named to the signers
      * @throws dev.chojo.ember.api.refusal.RefusalResponse where it cannot be asked for
      */
-    void request(int generationId, int askedBy);
+    void request(int generationId, int askedBy, String procedureName);
 
     /**
      * Withdraws the signatures a step's document still waits for. What was signed stays.
@@ -58,4 +61,15 @@ public interface DocumentStepSigning {
      * @return its state
      */
     StepDocumentState stateOf(int itemId, int generationId);
+
+    /**
+     * Reminds everybody of the signatures a step's document still waits for, once and beyond the regular
+     * reminders, as a procedure does when it falls due. A request asked for only just now is left alone,
+     * since its own mail is still fresh.
+     *
+     * @param generationId the generation log entry of the document
+     * @param askedBefore  only a request asked for before this is reminded of
+     * @return how many fields were reminded of
+     */
+    int remind(int generationId, Instant askedBefore);
 }

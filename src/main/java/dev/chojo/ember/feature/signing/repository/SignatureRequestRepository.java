@@ -105,12 +105,13 @@ public class SignatureRequestRepository {
         var created = SqlSupport.insertReturning(
                 """
                         INSERT INTO signing_request(station_id, generation_id, document_id, member_id, member_name,
-                                                    content_sha256, retention_months, copy_attached, created_by)
+                                                    content_sha256, retention_months, copy_attached, created_by,
+                                                    purpose)
                         VALUES (:station_id, :generation_id, :document_id, :member_id, :member_name, :content_hash,
                                 (SELECT signature_retention_months FROM document_template WHERE id = :template_id),
                                 coalesce((SELECT signed_copy_attached FROM document_template WHERE id = :template_id),
                                          FALSE),
-                                :created_by)
+                                :created_by, :purpose)
                         RETURNING %s;""",
                 call().bind("station_id", request.stationId())
                         .bind("generation_id", request.generationId())
@@ -119,7 +120,8 @@ public class SignatureRequestRepository {
                         .bind("member_name", request.memberName())
                         .bind("content_hash", request.contentSha256())
                         .bind("template_id", request.templateId())
-                        .bind("created_by", request.createdBy()),
+                        .bind("created_by", request.createdBy())
+                        .bind("purpose", request.purpose()),
                 SignatureRequest.map(),
                 SignatureRequest.COLUMNS);
         addFields(created.id(), request.memberId(), fields);
@@ -568,6 +570,7 @@ public class SignatureRequestRepository {
     public List<DueReminder> dueForReminder(Instant now, Duration interval, int maxReminders, int limit) {
         return query("""
                         SELECT %s, r.uid AS request_uid, r.document_id, r.member_name AS request_member_name,
+                               r.purpose AS request_purpose,
                                d.title AS document_title, r.station_id AS request_station_id,
                                f.reminders_sent AS field_reminders_sent
                         FROM signing_request_field f
@@ -648,6 +651,7 @@ public class SignatureRequestRepository {
     public List<PendingSignature> pendingFor(int stationId, int memberId, List<Integer> wardIds) {
         return query("""
                         SELECT %s, r.uid AS request_uid, r.document_id, r.member_name AS request_member_name,
+                               r.purpose AS request_purpose,
                                d.title AS document_title
                         FROM signing_request_field f
                                  JOIN signing_request r ON r.id = f.request_id
@@ -677,6 +681,7 @@ public class SignatureRequestRepository {
     public List<PendingSignature> openAbout(int stationId, int memberId) {
         return query("""
                         SELECT %s, r.uid AS request_uid, r.document_id, r.member_name AS request_member_name,
+                               r.purpose AS request_purpose,
                                d.title AS document_title
                         FROM signing_request_field f
                                  JOIN signing_request r ON r.id = f.request_id
@@ -705,6 +710,7 @@ public class SignatureRequestRepository {
         var open = new LinkedHashMap<Integer, List<PendingSignature>>();
         query("""
                         SELECT %s, r.uid AS request_uid, r.document_id, r.member_name AS request_member_name,
+                               r.purpose AS request_purpose,
                                r.member_id AS request_member_id, d.title AS document_title
                         FROM signing_request_field f
                                  JOIN signing_request r ON r.id = f.request_id
@@ -773,6 +779,7 @@ public class SignatureRequestRepository {
     public Optional<PendingSignature> findField(int stationId, int fieldId) {
         return query("""
                         SELECT %s, r.uid AS request_uid, r.document_id, r.member_name AS request_member_name,
+                               r.purpose AS request_purpose,
                                d.title AS document_title
                         FROM signing_request_field f
                                  JOIN signing_request r ON r.id = f.request_id

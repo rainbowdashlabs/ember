@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:e3e67d1804de0a4703f960c1a721a6190dd7a1e3edcb383eea82b511f3c1d789",
-  "generatedAt": "2026-11-08T22:31:45Z",
+  "schemaHash": "sha256:431ef6b6afbd55036bdfa5f68a00dc040d79f80e5a0f48cb6ff8c51c9701c28e",
+  "generatedAt": "2026-11-09T09:29:16Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -22568,7 +22568,7 @@
     "procedure": {
       "feature": "procedure",
       "scope": "STATION",
-      "tableHash": "sha256:5a5ae57cd836ebbf1ec9e5b36627acc65e74094b962a494aa434a2b0eca31214",
+      "tableHash": "sha256:68ec3aa13cf7d77836defcdf5789193a5947ca4669786f004c69563cf8ef2859",
       "columns": [
         {
           "name": "id",
@@ -22670,6 +22670,13 @@
           "nullable": true,
           "verified": true,
           "description": "The member who resolved the procedure, told when a signature one of its document steps rests on is withdrawn afterwards. NULL while it is open, for procedures resolved before it was recorded, and once that member was deleted."
+        },
+        {
+          "name": "due_reminded_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the signatures its document steps still waited for were reminded of because the procedure falls due within two days. NULL while that reminder has not been sent; cleared when the due date changes."
         }
       ],
       "foreignKeys": [
@@ -25850,7 +25857,7 @@
     "signing_request": {
       "feature": "signing",
       "scope": "STATION",
-      "tableHash": "sha256:5837ea94b6885ea16722e213d54627051fdf4ae002a9f2feb9c61fbcf92fcf85",
+      "tableHash": "sha256:eb7a7f235568750a2ba7f53fa7d39f2f2f56fcb3ba9a97c2004a0b726185958a",
       "columns": [
         {
           "name": "id",
@@ -25970,6 +25977,13 @@
           "nullable": true,
           "verified": true,
           "description": "When the sweep that seals the newest state of requests last failed to seal this one. The sweep takes the requests that never failed first and the others in the order they last failed, so a request that keeps failing holds back no other. NULL once a version was filed, and for a request whose sealing never failed in the sweep."
+        },
+        {
+          "name": "purpose",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the signatures are asked for, named to the signers, such as the procedure a document step belongs to. NULL where the document alone says it."
         }
       ],
       "foreignKeys": [

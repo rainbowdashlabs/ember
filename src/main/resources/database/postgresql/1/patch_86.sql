@@ -225,6 +225,18 @@ ALTER TABLE ember_schema.procedure
 COMMENT ON COLUMN ember_schema.procedure.resolved_by IS
     'The member who resolved the procedure, told when a signature one of its document steps rests on is withdrawn afterwards. NULL while it is open, for procedures resolved before it was recorded, and once that member was deleted.';
 
+ALTER TABLE ember_schema.procedure
+    ADD COLUMN IF NOT EXISTS due_reminded_at TIMESTAMPTZ NULL;
+
+COMMENT ON COLUMN ember_schema.procedure.due_reminded_at IS
+    'When the signatures its document steps still waited for were reminded of because the procedure falls due within two days. NULL while that reminder has not been sent; cleared when the due date changes.';
+
+ALTER TABLE ember_schema.signing_request
+    ADD COLUMN IF NOT EXISTS purpose TEXT NULL;
+
+COMMENT ON COLUMN ember_schema.signing_request.purpose IS
+    'What the signatures are asked for, named to the signers, such as the procedure a document step belongs to. NULL where the document alone says it.';
+
 CREATE TABLE IF NOT EXISTS ember_schema.procedure_restriction
 (
     id           SERIAL PRIMARY KEY,

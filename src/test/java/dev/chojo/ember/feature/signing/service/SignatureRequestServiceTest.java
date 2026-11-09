@@ -570,7 +570,8 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                 Instant.now(),
                 null,
                 null,
-                false);
+                false,
+                null);
         assertRefused(
                 DocumentRefusal.SIGNING_REQUEST_NOT_FOUND,
                 () -> fields.record(at(guardian), signed(unknown, "guardian1", asGuardian, STATEMENTS.guardian())));

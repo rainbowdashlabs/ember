@@ -693,7 +693,7 @@ class ProcedureServiceTest {
         service.askUnlocked(PROCEDURE_ID, MEMBER_ID_2);
 
         verify(repository).linkGeneration(ITEM_ID, GENERATION_ID);
-        verify(signing).request(GENERATION_ID, MEMBER_ID_2);
+        verify(signing).request(GENERATION_ID, MEMBER_ID_2, "Aufnahme");
     }
 
     /**
@@ -785,7 +785,9 @@ class ProcedureServiceTest {
         when(signing.mayAsk(anyInt(), anyInt())).thenReturn(true);
         when(signing.generate(anyInt(), anyInt(), anyInt(), anyInt())).thenReturn(GENERATION_ID);
         when(repository.linkGeneration(ITEM_ID, GENERATION_ID)).thenReturn(true);
-        doThrow(DocumentRefusal.SIGNING_MEMBER_GONE.raise()).when(signing).request(GENERATION_ID, MEMBER_ID);
+        doThrow(DocumentRefusal.SIGNING_MEMBER_GONE.raise())
+                .when(signing)
+                .request(GENERATION_ID, MEMBER_ID, "Aufnahme");
 
         assertDoesNotThrow(() -> service.askUnlocked(PROCEDURE_ID, MEMBER_ID));
         verify(repository).linkGeneration(ITEM_ID, GENERATION_ID);
@@ -801,7 +803,7 @@ class ProcedureServiceTest {
 
         service.askUnlocked(PROCEDURE_ID, MEMBER_ID);
 
-        verify(signing, never()).request(anyInt(), anyInt());
+        verify(signing, never()).request(anyInt(), anyInt(), any());
     }
 
     /** Ticking the step a document step waits for asks for that document, after the tick is told. */
@@ -1051,7 +1053,7 @@ class ProcedureServiceTest {
 
         service.askAgain(about(ABOUT_ID), documentStep(ITEM_ID, SUITABLE_DOCUMENT, GENERATION_ID, false), MEMBER_ID);
 
-        verify(signing).request(GENERATION_ID, MEMBER_ID);
+        verify(signing).request(GENERATION_ID, MEMBER_ID, "Aufnahme");
         verify(signing, never()).generate(anyInt(), anyInt(), anyInt(), anyInt());
     }
 
@@ -1071,7 +1073,7 @@ class ProcedureServiceTest {
         service.askAgain(about(ABOUT_ID), documentStep(ITEM_ID, SUITABLE_DOCUMENT, GENERATION_ID, false), MEMBER_ID);
 
         verify(repository, never()).unlinkGeneration(anyInt(), anyInt());
-        verify(signing).request(GENERATION_ID + 1, MEMBER_ID);
+        verify(signing).request(GENERATION_ID + 1, MEMBER_ID, "Aufnahme");
     }
 
     /**
@@ -1103,7 +1105,7 @@ class ProcedureServiceTest {
         assertRefused(ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NOT_YOURS_TO_ASK, locked, MEMBER_ID_2);
 
         verify(signing, never()).generate(anyInt(), anyInt(), anyInt(), anyInt());
-        verify(signing, never()).request(anyInt(), anyInt());
+        verify(signing, never()).request(anyInt(), anyInt(), any());
     }
 
     /** A refused document leaves the step holding its old one; nothing is relinked or asked for. */
@@ -1122,7 +1124,7 @@ class ProcedureServiceTest {
 
         verify(repository, never()).relinkGeneration(anyInt(), anyInt());
         verify(repository, never()).unlinkGeneration(anyInt(), anyInt());
-        verify(signing, never()).request(anyInt(), anyInt());
+        verify(signing, never()).request(anyInt(), anyInt(), any());
     }
 
     /** A document made but since deleted is made anew rather than asked for. */
@@ -1142,7 +1144,7 @@ class ProcedureServiceTest {
         assertRefused(ProcedureRefusal.PROCEDURE_STEP_NOT_TO_ASK_AGAIN, step, MEMBER_ID);
 
         verify(signing).generate(STATION_ID, SUITABLE_DOCUMENT, ABOUT_ID, MEMBER_ID);
-        verify(signing, never()).request(anyInt(), anyInt());
+        verify(signing, never()).request(anyInt(), anyInt(), any());
     }
 
     /** The procedure is read under the lock: one resolved meanwhile, or about nobody now, is refused. */

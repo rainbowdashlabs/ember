@@ -611,7 +611,7 @@ public class ProcedureService {
                 switch (state.progress()) {
                     case NOT_ASKED -> {
                         if (state.documentId() != null) {
-                            signing.request(generationId, by);
+                            signing.request(generationId, by, current.name());
                             return;
                         }
                     }
@@ -624,7 +624,7 @@ public class ProcedureService {
                     ? repository.linkGeneration(held.id(), made)
                     : repository.relinkGeneration(generationId, made);
             if (!linked) throw ProcedureRefusal.PROCEDURE_STEP_NOT_TO_ASK_AGAIN.raise();
-            signing.request(made, by);
+            signing.request(made, by, current.name());
             log.info("Document step {} of procedure {} asked again by member {}", held.id(), current.id(), by);
         }
     }
@@ -676,7 +676,7 @@ public class ProcedureService {
             return;
         }
         try {
-            signing.request(generationId, asker);
+            signing.request(generationId, asker, procedure.name());
         } catch (RuntimeException failed) {
             log.warn(
                     "Document step {} of procedure {} generated {}, but its signatures were not asked for",
