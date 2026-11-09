@@ -389,6 +389,7 @@ import dev.chojo.ember.feature.system.route.UpdateRoutes;
 import dev.chojo.ember.feature.system.route.UtilRoutes;
 import dev.chojo.ember.feature.system.service.ApiRequestLogger;
 import dev.chojo.ember.feature.system.service.ApplicationLogWriter;
+import dev.chojo.ember.feature.system.service.DemoAdmissionSeeder;
 import dev.chojo.ember.feature.system.service.DemoAttendanceSeeder;
 import dev.chojo.ember.feature.system.service.DemoAvatarSeeder;
 import dev.chojo.ember.feature.system.service.DemoBoardSeeder;
@@ -726,6 +727,7 @@ public class EmberModule extends AbstractModule {
         demoSeederBinder.addBinding().to(DemoChecklistSeeder.class);
         demoSeederBinder.addBinding().to(DemoDocumentTemplateSeeder.class);
         demoSeederBinder.addBinding().to(DemoPhotoConsentSeeder.class);
+        demoSeederBinder.addBinding().to(DemoAdmissionSeeder.class);
         demoSeederBinder.addBinding().to(DemoBoardSeeder.class);
         demoSeederBinder.addBinding().to(DemoPageSeeder.class);
         demoSeederBinder.addBinding().to(DemoLendingSeeder.class);

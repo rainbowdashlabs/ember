@@ -101,7 +101,7 @@ test.describe('Procedures', () => {
 
         await page.goto('/station/procedures/create')
 
-        await page.locator('select').first().selectOption({index: 1})
+        await page.locator('select').first().selectOption({label: 'Einführung neues Mitglied'})
 
         const firstStep = page.getByPlaceholder('Titel').first()
         await expect(firstStep).toBeVisible()
@@ -172,7 +172,7 @@ test.describe('Procedures', () => {
 
         const template = page.getByTestId('signup-procedure-template')
         await expect(template).toBeVisible()
-        await template.selectOption({index: 1})
+        await template.selectOption({label: 'Einführung neues Mitglied'})
         await expect(page.getByTestId('signup-procedure-name'), 'the appointment names the list')
             .toHaveValue(new RegExp(appointment))
 
