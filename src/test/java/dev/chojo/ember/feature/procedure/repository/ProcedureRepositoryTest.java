@@ -7,7 +7,9 @@ package dev.chojo.ember.feature.procedure.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.generator.entity.DocumentGeneration;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
+import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.service.GeneratorTestBase;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
@@ -559,12 +561,8 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
                                 .build(),
                         member.id())
                 .id();
-        int first = wiring.generation()
-                .generateForProcedure(station.id(), document, member2.id(), member.id())
-                .generationId();
-        int corrected = wiring.generation()
-                .generateForProcedure(station.id(), document, member2.id(), member.id())
-                .generationId();
+        int first = logged(document, member2.id());
+        int corrected = logged(document, member2.id());
         var step = procedureRepo.createItem(
                 adHocProcedureId, "Einverständnis", null, true, true, 9, StepKindChoice.document(document));
         assertTrue(procedureRepo.linkGeneration(step.id(), first));
@@ -692,9 +690,7 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
                                 .build(),
                         member.id())
                 .id();
-        int generation = wiring.generation()
-                .generateForProcedure(station.id(), document, member2.id(), member.id())
-                .generationId();
+        int generation = logged(document, member2.id());
         var signed = procedureRepo.createItem(
                 procedure.id(), "Brief", null, true, true, 0, StepKindChoice.document(document));
         var after = procedureRepo.createItem(procedure.id(), "Danach", null, true, true, 1);
@@ -802,5 +798,34 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     @Order(111)
     void deleteProcedureNotFound() {
         assertFalse(procedureRepo.deleteProcedure(99999));
+    }
+
+    /**
+     * A document of a template logged as generated for a member, without drawing it: drawing a letter takes
+     * Pandoc, which the repository suite runs without.
+     */
+    private static int logged(int templateId, int memberId) {
+        return new DocumentGenerationRepository()
+                .log(
+                        new DocumentGeneration(
+                                0,
+                                station.id(),
+                                templateId,
+                                1,
+                                memberId,
+                                member.id(),
+                                Instant.now(),
+                                false,
+                                null,
+                                "0".repeat(64),
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                false,
+                                false),
+                        List.of())
+                .id();
     }
 }
