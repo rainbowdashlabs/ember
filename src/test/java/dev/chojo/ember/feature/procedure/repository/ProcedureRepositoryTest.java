@@ -668,6 +668,49 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
         procedureRepo.deleteProcedure(later.id());
     }
 
+    /**
+     * A procedure is made about another member; a step lets go of its document only where it holds that
+     * one; and the dependencies of a procedure are replaced as a whole.
+     */
+    @Test
+    @Order(76)
+    void aboutDocumentsAndDependenciesAreReplaced() {
+        var procedure = procedureRepo.createProcedure(
+                station.id(), null, "Wechsel", null, true, member.id(), null, null, null, member.id());
+        assertTrue(procedureRepo.setAbout(procedure.id(), member2.id()));
+        assertEquals(
+                member2.id(),
+                procedureRepo.findProcedureById(procedure.id()).orElseThrow().aboutMemberId());
+        assertFalse(procedureRepo.setAbout(-1, member2.id()));
+
+        var wiring = GeneratorTestBase.wire(station);
+        int document = wiring.templates()
+                .create(
+                        wiring.owner(),
+                        letter("Wechselbrief")
+                                .body(List.of(row(signature(SignatureRole.PARTICIPANT, "Unterschrift"))))
+                                .build(),
+                        member.id())
+                .id();
+        int generation = wiring.generation()
+                .generateForProcedure(station.id(), document, member2.id(), member.id())
+                .generationId();
+        var signed = procedureRepo.createItem(
+                procedure.id(), "Brief", null, true, true, 0, StepKindChoice.document(document));
+        var after = procedureRepo.createItem(procedure.id(), "Danach", null, true, true, 1);
+        assertTrue(procedureRepo.linkGeneration(signed.id(), generation));
+        assertFalse(procedureRepo.unlinkGeneration(signed.id(), generation + 1), "only the document it holds");
+        assertTrue(procedureRepo.unlinkGeneration(signed.id(), generation));
+        assertNull(procedureRepo.findItemById(signed.id()).orElseThrow().generationId());
+
+        procedureRepo.setItemDependencies(procedure.id(), List.of(new int[] {after.id(), signed.id()}));
+        assertEquals(1, procedureRepo.findItemDependencies(procedure.id()).size());
+        procedureRepo.setItemDependencies(procedure.id(), List.of());
+        assertTrue(procedureRepo.findItemDependencies(procedure.id()).isEmpty());
+
+        procedureRepo.deleteProcedure(procedure.id());
+    }
+
     @Test
     @Order(80)
     void resolveProcedure() {
