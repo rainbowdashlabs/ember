@@ -157,13 +157,14 @@ public class ProcedureRoutes implements Routes {
         var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(ProcedureTemplateRequest.class);
         if (req.name() == null || req.name().isBlank()) throw ProcedureRefusal.PROCEDURE_TEMPLATE_NEEDS_A_NAME.raise();
-        if (req.party() != null) procedureService.requirePartyOf(session.stationId(), req.party());
+        var party = req.party();
+        if (party != null) procedureService.requirePartyOf(session.stationId(), party);
         var template = procedureService.createTemplate(
                 session.stationId(),
                 req.name(),
                 req.description(),
                 session.member().id());
-        if (req.party() != null) procedureService.setTemplateParty(template.id(), req.party());
+        if (party != null) procedureService.setTemplateParty(template.id(), party);
         ctx.json(template);
     }
 
@@ -181,7 +182,8 @@ public class ProcedureRoutes implements Routes {
         var updated = procedureService
                 .updateTemplate(tid, req.name(), req.description())
                 .orElseThrow(ProcedureRefusal.PROCEDURE_TEMPLATE_NOT_HERE_TO_CHANGE::raise);
-        if (req.party() != null) procedureService.setTemplateParty(tid, req.party());
+        var party = req.party();
+        if (party != null) procedureService.setTemplateParty(tid, party);
         ctx.json(updated);
     }
 
@@ -420,9 +422,10 @@ public class ProcedureRoutes implements Routes {
         var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(CreateProceduresRequest.class);
         if (req.name() == null || req.name().isBlank()) throw ProcedureRefusal.PROCEDURE_NEEDS_A_NAME.raise();
-        var memberIds = req.memberIds() == null
+        var asked = req.memberIds();
+        var memberIds = asked == null
                 ? List.<Integer>of()
-                : req.memberIds().stream().filter(Objects::nonNull).distinct().toList();
+                : asked.stream().filter(Objects::nonNull).distinct().toList();
         if (memberIds.isEmpty()) throw ProcedureRefusal.PROCEDURE_ABOUT_MISSING.raise();
         if (memberIds.size() > MAX_MEMBERS_AT_ONCE) throw ProcedureRefusal.PROCEDURE_TOO_MANY_AT_ONCE.raise();
         requireTemplateToStart(session, req.templateId());
@@ -532,10 +535,11 @@ public class ProcedureRoutes implements Routes {
         int rid = pathInt(ctx, "rid");
         var procedure = requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         var req = ctx.bodyAsClass(AboutRequest.class);
-        if (req == null || req.memberId() == null) throw ProcedureRefusal.PROCEDURE_ABOUT_MISSING.raise();
+        var memberId = req == null ? null : req.memberId();
+        if (memberId == null) throw ProcedureRefusal.PROCEDURE_ABOUT_MISSING.raise();
         procedureService.setAbout(
                 procedure,
-                req.memberId(),
+                memberId,
                 session.member().id(),
                 session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER),
                 !Boolean.FALSE.equals(req.ask()));
@@ -649,18 +653,7 @@ public class ProcedureRoutes implements Routes {
                 throw ProcedureRefusal.PROCEDURE_STEP_SETTLED_BY_SIGNATURES.raise();
             }
             if (req.checked()) {
-                if (!hasEdit) {
-                    var procedure = procedureService
-                            .findProcedureById(rid)
-                            .orElseThrow(ProcedureRefusal.PROCEDURE_STEP_NOT_IN_PROCEDURE::raise);
-                    if (!procedure.isPublic()) throw ProcedureRefusal.PROCEDURE_NOT_PUBLIC.raise();
-                    if (!item.isPublic() || !item.userAssigned()) {
-                        throw ProcedureRefusal.PROCEDURE_STEP_NOT_YOURS_TO_TICK.raise();
-                    }
-                    if (!procedureService.runBy(rid, session.member().id())) {
-                        throw ProcedureRefusal.PROCEDURE_NOT_HANDED_TO_YOU.raise();
-                    }
-                }
+                if (!hasEdit) requireTickableByParty(session, item);
                 if (!procedureService.checkItem(iid, session.member().id())) {
                     throw ProcedureRefusal.PROCEDURE_STEP_NOT_READY_TO_TICK.raise();
                 }
@@ -675,6 +668,22 @@ public class ProcedureRoutes implements Routes {
             procedureService.updateItemNote(iid, note);
         }
         ctx.json(procedureService.findItems(rid));
+    }
+
+    /**
+     * Refuses a tick by a member who does not edit procedures, unless the procedure is public, the step is
+     * public and marked for the party, and the member belongs to the party.
+     */
+    private void requireTickableByParty(StationSession session, ProcedureItem item) {
+        int rid = item.procedureId();
+        var procedure = procedureService
+                .findProcedureById(rid)
+                .orElseThrow(ProcedureRefusal.PROCEDURE_STEP_NOT_IN_PROCEDURE::raise);
+        if (!procedure.isPublic()) throw ProcedureRefusal.PROCEDURE_NOT_PUBLIC.raise();
+        if (!item.isPublic() || !item.userAssigned()) throw ProcedureRefusal.PROCEDURE_STEP_NOT_YOURS_TO_TICK.raise();
+        if (!procedureService.runBy(rid, session.member().id())) {
+            throw ProcedureRefusal.PROCEDURE_NOT_HANDED_TO_YOU.raise();
+        }
     }
 
     /**

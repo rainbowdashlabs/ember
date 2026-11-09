@@ -84,8 +84,10 @@ public class ProcedureDueReminders implements TaskSource {
             var dueAt = procedure.dueAt();
             if (dueAt == null || !repository.markDueReminded(procedure.id(), dueAt, now)) continue;
             for (var step : openDocumentSteps(procedure.id())) {
+                var generationId = step.generationId();
+                if (generationId == null) continue;
                 try {
-                    reminded += signing.remind(step.generationId(), now.minus(SETTLED));
+                    reminded += signing.remind(generationId, now.minus(SETTLED));
                 } catch (RuntimeException e) {
                     log.warn("Could not remind of document step {} of procedure {}", step.id(), procedure.id(), e);
                 }

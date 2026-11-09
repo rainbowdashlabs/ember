@@ -41,8 +41,9 @@ public final class ProcedureSignaturesHandlers {
 
         @Override
         public void handle(SigningRequestClosed event) {
-            if (event.generationId() == null) return;
-            procedures.get().documentClosed(event.generationId(), event.agreed(), event.settledBy());
+            var generationId = event.generationId();
+            if (generationId == null) return;
+            procedures.get().documentClosed(generationId, event.agreed(), event.settledBy());
         }
     }
 
@@ -63,8 +64,9 @@ public final class ProcedureSignaturesHandlers {
 
         @Override
         public void handle(SigningAgreementWithdrawn event) {
-            if (event.generationId() == null) return;
-            procedures.get().agreementWithdrawn(event.generationId(), event.withdrawnBy());
+            var generationId = event.generationId();
+            if (generationId == null) return;
+            procedures.get().agreementWithdrawn(generationId, event.withdrawnBy());
         }
     }
 
@@ -85,8 +87,10 @@ public final class ProcedureSignaturesHandlers {
 
         @Override
         public void handle(SigningRequestReplaced event) {
-            if (event.replacedGenerationId() == null || event.generationId() == null) return;
-            procedures.get().documentReplaced(event.replacedGenerationId(), event.generationId());
+            var replaced = event.replacedGenerationId();
+            var generationId = event.generationId();
+            if (replaced == null || generationId == null) return;
+            procedures.get().documentReplaced(replaced, generationId);
         }
     }
 }

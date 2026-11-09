@@ -530,7 +530,8 @@ public class ProcedureService {
         boolean deleted;
         synchronized (lockOf(id)) {
             for (var step : repository.findItems(id)) {
-                if (step.generationId() != null && !step.checked()) signing.withdraw(step.generationId(), by);
+                var generationId = step.generationId();
+                if (generationId != null && !step.checked()) signing.withdraw(generationId, by);
             }
             deleted = repository.deleteProcedure(id);
         }
@@ -634,8 +635,8 @@ public class ProcedureService {
     public void askUnlocked(int procedureId, @Nullable Integer actor) {
         synchronized (lockOf(procedureId)) {
             var procedure = repository.findProcedureById(procedureId).orElse(null);
-            if (procedure == null || procedure.status() != ProcedureStatus.OPEN || procedure.aboutMemberId() == null)
-                return;
+            var aboutMemberId = procedure == null ? null : procedure.aboutMemberId();
+            if (procedure == null || procedure.status() != ProcedureStatus.OPEN || aboutMemberId == null) return;
             var unlocked = unlockedWithoutDocument(procedureId);
             if (unlocked.isEmpty()) return;
             var asker = askerOf(procedure, actor);
@@ -645,7 +646,7 @@ public class ProcedureService {
                         procedureId);
                 return;
             }
-            for (var step : unlocked) ask(procedure, step, procedure.aboutMemberId(), asker);
+            for (var step : unlocked) ask(procedure, step, aboutMemberId, asker);
         }
     }
 
@@ -1041,7 +1042,8 @@ public class ProcedureService {
         boolean deleted;
         synchronized (lockOf(step.procedureId())) {
             var current = repository.findItemById(id).orElse(step);
-            if (current.generationId() != null && !current.checked()) signing.withdraw(current.generationId(), by);
+            var generationId = current.generationId();
+            if (generationId != null && !current.checked()) signing.withdraw(generationId, by);
             deleted = repository.deleteItem(id);
         }
         if (deleted) {

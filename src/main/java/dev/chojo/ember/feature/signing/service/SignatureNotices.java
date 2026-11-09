@@ -179,8 +179,11 @@ public class SignatureNotices {
      * @param eventId    the appointment that asked for the document, or null where none did
      */
     public void withdrawn(SignatureRequest request, SignatureWithdrawal withdrawal, @Nullable Integer eventId) {
-        eventBus.publish(new SigningAgreementWithdrawn(
-                request.stationId(), request.id(), request.generationId(), withdrawal.withdrawnBy()));
+        var withdrawnBy = withdrawal.withdrawnBy();
+        if (withdrawnBy != null) {
+            eventBus.publish(new SigningAgreementWithdrawn(
+                    request.stationId(), request.id(), request.generationId(), withdrawnBy));
+        }
         try {
             var params = new NotificationParams.SignatureWithdrawn(
                     titleOf(request), withdrawal.withdrawnByName(), request.memberName());
