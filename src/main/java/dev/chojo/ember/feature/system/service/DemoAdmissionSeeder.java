@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.procedure.entity.StepKindChoice;
 import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
 import dev.chojo.ember.feature.procedure.service.ProcedureDraft;
@@ -18,6 +19,7 @@ import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.owner.Owner;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,17 +56,20 @@ public class DemoAdmissionSeeder implements DemoPerStationSeeder {
     private final ProcedureRepository repo;
     private final ProcedureService procedures;
     private final RestrictionService restrictions;
+    private final MemberIdentityFactory identities;
 
     @Inject
     public DemoAdmissionSeeder(
             DocumentTemplateService documentTemplates,
             ProcedureRepository repo,
             ProcedureService procedures,
-            RestrictionService restrictions) {
+            RestrictionService restrictions,
+            MemberIdentityFactory identities) {
         this.documentTemplates = documentTemplates;
         this.repo = repo;
         this.procedures = procedures;
         this.restrictions = restrictions;
+        this.identities = identities;
     }
 
     @Override
@@ -134,7 +139,7 @@ public class DemoAdmissionSeeder implements DemoPerStationSeeder {
                 new ProcedureDraft(
                         stationId,
                         template.id(),
-                        NAME + ": " + newcomer.displayName(),
+                        ProcedureService.namedAfter(NAME, nameOf(newcomer.id())),
                         null,
                         true,
                         admin.id(),
@@ -143,5 +148,10 @@ public class DemoAdmissionSeeder implements DemoPerStationSeeder {
                         null,
                         null),
                 newcomer.id());
+    }
+
+    private @Nullable String nameOf(int memberId) {
+        var identity = identities.fromMemberId(memberId);
+        return identity == null ? null : identity.name();
     }
 }

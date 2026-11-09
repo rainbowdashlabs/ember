@@ -446,8 +446,7 @@ public class ProcedureRoutes implements Routes {
     /** The name of one member's procedure: the name given, followed by the member's name. */
     private String nameFor(String name, int memberId) {
         var identity = memberIdentityFactory.fromMemberId(memberId);
-        var person = identity == null ? null : identity.name();
-        return person == null || person.isBlank() ? name.trim() : name.trim() + ": " + person;
+        return ProcedureService.namedAfter(name, identity == null ? null : identity.name());
     }
 
     /** Refuses a template of another station, and one asking to sign for somebody who generates no documents. */

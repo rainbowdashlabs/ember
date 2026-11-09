@@ -381,6 +381,18 @@ public class ProcedureService {
     public record NamedMember(int memberId, String name) {}
 
     /**
+     * The name of a procedure about one person: the name given, followed by the person's name, or the name
+     * given alone where the person has none.
+     *
+     * @param name   the name given, usually the template's
+     * @param person the name of the person the procedure is about, or null
+     * @return the procedure's name
+     */
+    public static String namedAfter(String name, @Nullable String person) {
+        return person == null || person.isBlank() ? name.trim() : name.trim() + ": " + person;
+    }
+
+    /**
      * Starts one procedure from a template for each member, each about that member, all with the same
      * managing party. Every member is checked against the template's document steps before any procedure
      * is written, so nothing is left half made by a member who does not fit. The procedures are written

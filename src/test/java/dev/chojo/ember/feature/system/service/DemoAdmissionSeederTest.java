@@ -54,7 +54,8 @@ class DemoAdmissionSeederTest extends DemoTestBase {
                 documentSteps,
                 signing.procedures(),
                 stationMemberRepo);
-        seeder = new DemoAdmissionSeeder(wiring.templates(), procedureRepo, procedures, restrictionService);
+        seeder = new DemoAdmissionSeeder(
+                wiring.templates(), procedureRepo, procedures, restrictionService, memberIdentityFactory);
         seeder.seedStation(run, run.primaryStation());
     }
 
@@ -105,6 +106,10 @@ class DemoAdmissionSeederTest extends DemoTestBase {
 
         assertEquals(1, started.size());
         assertEquals(newcomer.id(), started.getFirst().aboutMemberId());
+        assertEquals(
+                DemoAdmissionSeeder.NAME + ": "
+                        + memberIdentityFactory.fromMemberId(newcomer.id()).name(),
+                started.getFirst().name());
         var sign = procedureRepo.findItems(started.getFirst().id()).stream()
                 .filter(step -> step.kind() == ProcedureStepKind.DOCUMENT)
                 .findFirst()
