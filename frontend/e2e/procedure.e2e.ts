@@ -19,6 +19,8 @@ async function createProcedureWithStep(page: Page): Promise<string> {
     await page.goto('/station/procedures')
     await page.getByRole('button', {name: 'Neuer Ablauf'}).click()
     await page.waitForURL(/\/station\/procedures\/create/)
+    await page.getByTestId('procedure-start-blank').click()
+    await page.waitForURL(/blank=1/)
 
     await page.getByRole('textbox').first().fill(procedure)
     await chooseAbout(page)
@@ -99,7 +101,7 @@ test.describe('Procedures', () => {
     test('a template brings its steps into a new procedure', async ({managerPage: page}) => {
         const procedure = unique('Ablauf')
 
-        await page.goto('/station/procedures/create')
+        await page.goto('/station/procedures/create?blank=1')
 
         await page.locator('select').first().selectOption({label: 'Einführung neues Mitglied'})
 
@@ -114,6 +116,34 @@ test.describe('Procedures', () => {
 
         await page.waitForURL(/\/station\/procedures\/\d+$/)
         await expect(page.getByText(stepTitle).first()).toBeVisible()
+    })
+
+    /**
+     * Starting from a template asks only whom the procedure is about and when it is due: the template
+     * brings the steps, and the procedure is named after the template and the person.
+     */
+    test('a procedure is started from a template', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        await page.goto('/station/procedures/create')
+
+        await page.locator('[data-testid^="procedure-start-template-"]')
+            .filter({hasText: 'Einführung neues Mitglied'}).first().click()
+        const dialog = page.getByTestId('procedure-from-template')
+        await expect(dialog).toBeVisible()
+        await dialog.getByTestId('procedure-from-template-about').getByTestId('member-select-trigger').click()
+        await page.keyboard.press('Enter')
+        await expect(dialog.getByTestId('procedure-from-template-name'), 'the name follows the person')
+            .toContainText('Einführung neues Mitglied: ')
+        await dialog.getByTestId('procedure-from-template-submit').click()
+
+        await page.waitForURL(/\/station\/procedures\/\d+$/)
+        await expect(page.getByTestId('procedure-about'), 'the page names whom it is about').toBeVisible()
+        const procedureId = page.url().match(/procedures\/(\d+)/)?.[1]
+        const detail = await (await page.request.get(`/api/v1/procedures/${procedureId}`, {headers})).json()
+        expect(detail.items.length, 'the template brought its steps along').toBeGreaterThan(0)
+        expect(detail.procedure.name).toContain('Einführung neues Mitglied: ')
+
+        await page.request.delete(`/api/v1/procedures/${procedureId}`, {headers})
     })
 
     test('the procedure templates are reachable', async ({managerPage: page}) => {

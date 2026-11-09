@@ -18,10 +18,12 @@ import TemplateSelectorSection from '@/views/stationview/procedure/procedurecrea
 import BasicInfoSection from '@/views/stationview/procedure/procedurecreateview/BasicInfoSection.vue'
 import PartySection from '@/views/stationview/procedure/procedurecreateview/PartySection.vue'
 import ItemsSection from '@/views/stationview/procedure/procedurecreateview/ItemsSection.vue'
+import ProcedureStartChooser from '@/views/stationview/procedure/procedurecreateview/ProcedureStartChooser.vue'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useProcedureForm} from '@/composables/useProcedureForm'
 import {fromCompletion} from '@/components/input/select/memberOption'
+import {startsWithChoice} from '@/views/stationview/procedure/procedurecreateview/startChoice'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -57,6 +59,13 @@ const pageSubtitle = computed(() => isEditMode.value
 
 const aboutChoices = computed(() => members.value.map(fromCompletion))
 
+const choosing = computed(() => startsWithChoice(isEditMode.value, presetTemplateId.value, route.query))
+
+/** Opens the empty form as its own page, so going back returns to the templates. */
+function startBlank() {
+  return router.push({query: {...route.query, blank: '1'}})
+}
+
 const {running: saving, failure: saveFailure, run: runSubmit} = useAsyncAction(
     async () => router.push({name: 'procedure-detail', params: {id: await form.submit()}}),
 )
@@ -80,7 +89,9 @@ watch(loaded, (v) => {
     <Spinner v-if="loading"/>
     <FailureAlert :failure="failure ?? saveFailure" class="mb-4"/>
 
-    <template v-if="!loading">
+    <ProcedureStartChooser v-if="!loading && choosing" :templates="templates" :members="members"
+                           @blank="startBlank"/>
+    <template v-else-if="!loading">
       <div class="space-y-6">
         <TemplateSelectorSection
             v-if="!isEditMode"

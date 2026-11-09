@@ -10544,6 +10544,16 @@ export default {
         about: 'Um wen es geht',
         aboutNobody: 'Um niemanden im Besonderen',
         aboutHint: 'Dokumente, die Schritte unterschreiben lassen, werden für diese Person erstellt. Sie oder ihre Erziehungsberechtigten unterschreiben sie.',
+        start: {
+            fromTemplate: 'Aus Vorlage erstellen',
+            noTemplates: 'Noch keine Ablaufvorlagen. Lege eine unter Abläufe > Vorlagen an oder starte einen leeren Ablauf.',
+            withoutTemplate: 'Ohne passende Vorlage',
+            blankTitle: 'Leerer Ablauf',
+            blankHint: 'Name, Betreuung und Schritte schreibst du selbst. Eine Vorlage lässt sich dort auch laden und anpassen.',
+            create: 'Erstellen',
+            dialogHint: 'Schritte, Beschreibung und Betreuung kommen aus der Vorlage. Wähle nur, um wen es geht und bis wann.',
+            named: 'Der Ablauf heißt „{name}“.',
+        },
         aboutMe: 'Über mich',
         aboutMeHint: 'Abläufe, in denen es um dich oder eine Person geht, für die du sorgst.',
         document: {

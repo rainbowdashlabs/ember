@@ -20,6 +20,7 @@ Attendance can credit time spent before and after an appointment, and the report
 - **Appointments that need a sign-up can be declined.** The appointment page, the upcoming list and the dashboard offer "Sign off" while registration is open. Whoever signs off or gives up a place gets no more reminders that registration is closing, and can sign up again while it is open.
 - **Tabs can be linked.** The address names the open tab on member, appointment, test, template and form evaluation pages, so a link or a bookmark opens the same tab, such as `/station/members/detail/12#inventory`.
 - **Member pages open with the tabs a reader may see.** Each tab of a member's page appears for those allowed to see its content, and the page opens as long as one is left. Someone who may see the inventory but not member profiles opens a member's page with its Inventory tab.
+- **Procedures start from a template.** Creating a procedure first offers the station's templates, and a template asks only whom the procedure is about and when it is due. An empty procedure still opens the full form, which can load a template and change it.
 - **Signature requests name the procedure.** Requests, reminders and open signatures say which procedure a document belongs to. Two days before a procedure is due, everybody who still has to sign one of its documents gets one more reminder.
 - **Pages show their loading indicator in the middle.** While a page or a section loads, its spinning wheel stands centred on a line of its own instead of in the top left corner.
 
