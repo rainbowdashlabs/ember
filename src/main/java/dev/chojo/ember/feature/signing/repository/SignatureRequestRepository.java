@@ -285,6 +285,23 @@ public class SignatureRequestRepository {
                 .first();
     }
 
+    /**
+     * The newest request of a generated document, whatever state it is in.
+     *
+     * @param generationId the generation log entry
+     * @return the request, or empty where none was ever made
+     */
+    public Optional<SignatureRequest> findLatestFor(int generationId) {
+        return query("""
+                        SELECT %s FROM signing_request
+                        WHERE generation_id = :generation_id
+                        ORDER BY id DESC
+                        LIMIT 1;""", SignatureRequest.COLUMNS)
+                .single(call().bind("generation_id", generationId))
+                .map(SignatureRequest.map())
+                .first();
+    }
+
     /** @return the fields of a request, in the order they were asked for */
     public List<RequestedSignature> fieldsOf(int requestId) {
         return query("""

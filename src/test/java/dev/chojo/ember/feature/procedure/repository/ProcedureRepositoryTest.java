@@ -587,6 +587,32 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
         procedureRepo.deleteItem(step.id());
     }
 
+    /** A member reads the public procedures about them and their wards; a private one stays with the station. */
+    @Test
+    @Order(74)
+    void theProceduresAboutAMemberAreTheirPublicOnes() {
+        var open = procedureRepo.createProcedure(
+                station.id(), null, "Aufnahme", null, true, member.id(), null, null, null, member2.id());
+        var hidden = procedureRepo.createProcedure(
+                station.id(), null, "Intern", null, false, member.id(), null, null, null, member2.id());
+
+        var about = procedureRepo.findPublicAbout(station.id(), List.of(member2.id()), null).stream()
+                .map(Procedure::id)
+                .toList();
+        assertEquals(List.of(open.id()), about);
+        assertEquals(
+                1,
+                procedureRepo.countOpenPublicAboutNotRunBy(
+                        station.id(), member.id(), List.of(member.id(), member2.id())));
+        assertTrue(procedureRepo
+                .findPublicAbout(station.id(), List.of(member2.id()), ProcedureStatus.RESOLVED)
+                .isEmpty());
+        assertTrue(procedureRepo.findPublicAbout(station.id(), List.of(), null).isEmpty());
+
+        procedureRepo.deleteProcedure(open.id());
+        procedureRepo.deleteProcedure(hidden.id());
+    }
+
     @Test
     @Order(80)
     void resolveProcedure() {

@@ -10,6 +10,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.ProcedureRefusal;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
@@ -20,6 +21,7 @@ import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
 import dev.chojo.ember.feature.procedure.entity.StepKindChoice;
 import dev.chojo.ember.feature.procedure.service.DocumentStepTemplates.StepDocument;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
+import dev.chojo.ember.feature.procedure.service.StepDocumentState;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
@@ -46,11 +48,14 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 public class ProcedureRoutes implements Routes {
     private final ProcedureService procedureService;
     private final MemberIdentityFactory memberIdentityFactory;
+    private final GuardianPolicy guardians;
 
     @Inject
-    public ProcedureRoutes(ProcedureService procedureService, MemberIdentityFactory memberIdentityFactory) {
+    public ProcedureRoutes(
+            ProcedureService procedureService, MemberIdentityFactory memberIdentityFactory, GuardianPolicy guardians) {
         this.procedureService = procedureService;
         this.memberIdentityFactory = memberIdentityFactory;
+        this.guardians = guardians;
     }
 
     @Override
@@ -84,6 +89,7 @@ public class ProcedureRoutes implements Routes {
                 this::listProceduresForOccurrence,
                 StationPermission.PROCEDURE_EDIT);
         routes.post(prefix + "/procedures", this::createProcedure, StationPermission.PROCEDURE_EDIT);
+        routes.get(prefix + "/procedures/about-me", this::listProceduresAboutMe, StationPermission.USER);
         routes.get(prefix + "/procedures/{rid}", this::getProcedure, StationPermission.USER);
         routes.put(prefix + "/procedures/{rid}", this::updateProcedure, StationPermission.PROCEDURE_EDIT);
         routes.delete(prefix + "/procedures/{rid}", this::deleteProcedure, StationPermission.PROCEDURE_EDIT);
@@ -97,6 +103,7 @@ public class ProcedureRoutes implements Routes {
         routes.put(prefix + "/procedures/{rid}/items/{iid}", this::editItem, StationPermission.PROCEDURE_EDIT);
         routes.delete(prefix + "/procedures/{rid}/items/{iid}", this::deleteItem, StationPermission.PROCEDURE_EDIT);
         routes.patch(prefix + "/procedures/{rid}/items/{iid}", this::patchItem, StationPermission.USER);
+        routes.post(prefix + "/procedures/{rid}/items/{iid}/ask", this::askAgain, StationPermission.PROCEDURE_EDIT);
         routes.put(
                 prefix + "/procedures/{rid}/dependencies",
                 this::setProcedureDependencies,
@@ -307,6 +314,23 @@ public class ProcedureRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/procedures/about-me",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Procedure[].class)))
+    private void listProceduresAboutMe(Context ctx) {
+        var session = StationSession.from(ctx);
+        String statusParam = ctx.queryParam("status");
+        ProcedureStatus status = statusParam != null ? ProcedureStatus.valueOf(statusParam) : null;
+        ctx.json(procedureService.findPublicAbout(session.stationId(), guardians.household(session.user()), status));
+    }
+
+    /** Whether the reader is the member a procedure is about, or looks after them. */
+    private boolean readsAbout(StationSession session, Procedure procedure) {
+        var aboutMemberId = procedure.aboutMemberId();
+        return aboutMemberId != null && guardians.mayActFor(session.user(), aboutMemberId);
+    }
+
+    @OpenApi(
             path = "/api/v1/procedures/{rid}",
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcedureDetail.class)))
@@ -315,9 +339,12 @@ public class ProcedureRoutes implements Routes {
         int rid = pathInt(ctx, "rid");
         var procedure = requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
 
-        if (!session.hasPermission(StationPermission.PROCEDURE_EDIT)) {
+        boolean edits = session.hasPermission(StationPermission.PROCEDURE_EDIT);
+        boolean runs = edits || procedureService.runBy(rid, session.member().id());
+        boolean readsAbout = readsAbout(session, procedure);
+        if (!edits) {
             if (!procedure.isPublic()) throw ProcedureRefusal.PROCEDURE_NOT_PUBLIC.raise();
-            if (!procedureService.runBy(rid, session.member().id())) throw ProcedureRefusal.PROCEDURE_NOT_YOURS.raise();
+            if (!runs && !readsAbout) throw ProcedureRefusal.PROCEDURE_NOT_YOURS.raise();
         }
 
         var items = procedureService.findItems(rid);
@@ -328,16 +355,21 @@ public class ProcedureRoutes implements Routes {
                 .filter(Objects::nonNull)
                 .toList();
 
-        if (!session.hasPermission(StationPermission.PROCEDURE_EDIT)) {
-            items = items.stream().filter(ProcedureItem::isPublic).toList();
-        }
+        if (!edits) items = items.stream().filter(ProcedureItem::isPublic).toList();
+        if (!runs) items = items.stream().map(ProcedureItem::withoutNote).toList();
 
+        var aboutMemberId = procedure.aboutMemberId();
+        var about = aboutMemberId == null ? null : memberIdentityFactory.fromMemberId(aboutMemberId);
         ctx.json(new ProcedureDetail(
                 procedure,
                 items,
                 deps,
                 party,
                 named,
+                about,
+                procedureService.documentStates(items),
+                runs,
+                readsAbout,
                 procedureService.stepDocuments(
                         procedure.stationId(),
                         items.stream().map(ProcedureItem::documentTemplateId).toList())));
@@ -515,6 +547,20 @@ public class ProcedureRoutes implements Routes {
                 iid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position())) {
             throw ProcedureRefusal.PROCEDURE_STEP_NOT_HERE_TO_CHANGE.raise();
         }
+        ctx.status(204);
+    }
+
+    @OpenApi(
+            path = "/api/v1/procedures/{rid}/items/{iid}/ask",
+            methods = HttpMethod.POST,
+            responses = @OpenApiResponse(status = "204"))
+    private void askAgain(Context ctx) {
+        var step = requireProcedureStep(ctx);
+        var procedure = procedureService
+                .findProcedureById(step.procedureId())
+                .orElseThrow(ProcedureRefusal.PROCEDURE_STEP_NOT_IN_PROCEDURE::raise);
+        procedureService.askAgain(
+                procedure, step, StationSession.from(ctx).member().id());
         ctx.status(204);
     }
 
@@ -731,8 +777,14 @@ public class ProcedureRoutes implements Routes {
      * A procedure with its steps, the order they depend on each other in and its managing party.
      *
      * @param party the managing party; one naming nobody where only those who edit procedures run it
-     * @param named     the members the party names one by one, as their names are shown
-     * @param documents the document templates its steps ask to sign
+     * @param named          the members the party names one by one, as their names are shown
+     * @param about          the member the procedure is about, as their name is shown, or null for nobody
+     * @param documentStates where the documents of its document steps stand with their signatures
+     * @param mayTick        whether the reader runs the procedure and so ticks steps; the member it is
+     *                       about and their guardians only read it, without the notes of those who run it
+     * @param readsAbout     whether the reader is the member it is about or looks after them, who sign its
+     *                       documents
+     * @param documents      the document templates its steps ask to sign
      */
     public record ProcedureDetail(
             Procedure procedure,
@@ -740,5 +792,9 @@ public class ProcedureRoutes implements Routes {
             List<int[]> dependencies,
             RestrictionAudience party,
             List<MemberIdentity> named,
+            @Nullable MemberIdentity about,
+            List<StepDocumentState> documentStates,
+            boolean mayTick,
+            boolean readsAbout,
             List<StepDocument> documents) {}
 }

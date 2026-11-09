@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.procedure.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.ProcedureRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
@@ -1036,6 +1037,150 @@ class ProcedureServiceTest {
     void aCorrectedDocumentTakesThePlaceOfTheOld() {
         service.documentReplaced(GENERATION_ID, GENERATION_ID + 1);
         verify(repository).relinkGeneration(GENERATION_ID, GENERATION_ID + 1);
+    }
+
+    /** A document made but never asked for is asked for, and nothing is made again. */
+    @Test
+    void askingAgainAsksForADocumentNeverAskedFor() {
+        when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(about(ABOUT_ID)));
+        when(repository.findItems(PROCEDURE_ID))
+                .thenReturn(List.of(documentStep(ITEM_ID, SUITABLE_DOCUMENT, GENERATION_ID, false)));
+        when(repository.findItemDependencies(PROCEDURE_ID)).thenReturn(List.of());
+        when(signing.mayAsk(STATION_ID, MEMBER_ID)).thenReturn(true);
+        when(signing.stateOf(ITEM_ID, GENERATION_ID)).thenReturn(state(StepDocumentState.Progress.NOT_ASKED));
+
+        service.askAgain(about(ABOUT_ID), documentStep(ITEM_ID, SUITABLE_DOCUMENT, GENERATION_ID, false), MEMBER_ID);
+
+        verify(signing).request(GENERATION_ID, MEMBER_ID);
+        verify(signing, never()).generate(anyInt(), anyInt(), anyInt(), anyInt());
+    }
+
+    /** A document whose agreement was withdrawn is made anew, linked and asked for. */
+    @Test
+    void askingAgainMakesAWithdrawnDocumentAnew() {
+        when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(about(ABOUT_ID)));
+        when(repository.findItems(PROCEDURE_ID))
+                .thenReturn(List.of(documentStep(ITEM_ID, SUITABLE_DOCUMENT, GENERATION_ID, false)));
+        when(repository.findItemDependencies(PROCEDURE_ID)).thenReturn(List.of());
+        when(signing.mayAsk(STATION_ID, MEMBER_ID)).thenReturn(true);
+        when(signing.stateOf(ITEM_ID, GENERATION_ID)).thenReturn(state(StepDocumentState.Progress.WITHDRAWN));
+        when(signing.generate(STATION_ID, SUITABLE_DOCUMENT, ABOUT_ID, MEMBER_ID))
+                .thenReturn(GENERATION_ID + 1);
+        when(repository.relinkGeneration(GENERATION_ID, GENERATION_ID + 1)).thenReturn(true);
+
+        service.askAgain(about(ABOUT_ID), documentStep(ITEM_ID, SUITABLE_DOCUMENT, GENERATION_ID, false), MEMBER_ID);
+
+        verify(repository, never()).unlinkGeneration(anyInt(), anyInt());
+        verify(signing).request(GENERATION_ID + 1, MEMBER_ID);
+    }
+
+    /**
+     * A step still waiting, ticked or locked is not asked again, and nobody without the right to generate
+     * documents asks.
+     */
+    @Test
+    void askingAgainIsRefusedWhereNothingWaitsForIt() {
+        when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(about(ABOUT_ID)));
+        var waiting = documentStep(ITEM_ID, SUITABLE_DOCUMENT, GENERATION_ID, false);
+        when(repository.findItems(PROCEDURE_ID)).thenReturn(List.of(waiting));
+        when(repository.findItemDependencies(PROCEDURE_ID)).thenReturn(List.of());
+        when(signing.mayAsk(STATION_ID, MEMBER_ID)).thenReturn(true);
+        when(signing.stateOf(ITEM_ID, GENERATION_ID)).thenReturn(state(StepDocumentState.Progress.WAITING));
+        assertRefused(ProcedureRefusal.PROCEDURE_STEP_NOT_TO_ASK_AGAIN, waiting, MEMBER_ID);
+
+        var ticked = documentStep(ITEM_ID, SUITABLE_DOCUMENT, GENERATION_ID, true);
+        when(repository.findItems(PROCEDURE_ID)).thenReturn(List.of(ticked));
+        assertRefused(ProcedureRefusal.PROCEDURE_STEP_NOT_TO_ASK_AGAIN, ticked, MEMBER_ID);
+
+        var first = new ProcedureItem(1, PROCEDURE_ID, "Packen", null, null, true, true, 0, false, null, null);
+        var locked = documentStep(ITEM_ID, SUITABLE_DOCUMENT, null, false);
+        when(repository.findItems(PROCEDURE_ID)).thenReturn(List.of(first, locked));
+        when(repository.findItemDependencies(PROCEDURE_ID)).thenReturn(List.<int[]>of(new int[] {ITEM_ID, 1}));
+        assertRefused(ProcedureRefusal.PROCEDURE_STEP_NOT_TO_ASK_AGAIN, locked, MEMBER_ID);
+
+        when(repository.findItems(PROCEDURE_ID)).thenReturn(List.of(locked));
+        when(repository.findItemDependencies(PROCEDURE_ID)).thenReturn(List.of());
+        assertRefused(ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NOT_YOURS_TO_ASK, locked, MEMBER_ID_2);
+
+        verify(signing, never()).generate(anyInt(), anyInt(), anyInt(), anyInt());
+        verify(signing, never()).request(anyInt(), anyInt());
+    }
+
+    /** A refused document leaves the step holding its old one; nothing is relinked or asked for. */
+    @Test
+    void askingAgainKeepsTheStepWhereItStoodWhenRefused() {
+        var step = documentStep(ITEM_ID, SUITABLE_DOCUMENT, GENERATION_ID, false);
+        when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(about(ABOUT_ID)));
+        when(repository.findItems(PROCEDURE_ID)).thenReturn(List.of(step));
+        when(repository.findItemDependencies(PROCEDURE_ID)).thenReturn(List.of());
+        when(signing.mayAsk(STATION_ID, MEMBER_ID)).thenReturn(true);
+        when(signing.stateOf(ITEM_ID, GENERATION_ID)).thenReturn(state(StepDocumentState.Progress.WITHDRAWN));
+        when(signing.generate(anyInt(), anyInt(), anyInt(), anyInt()))
+                .thenThrow(DocumentRefusal.DOCUMENT_TEMPLATE_ARCHIVED.raise());
+
+        assertThrows(RefusalResponse.class, () -> service.askAgain(about(ABOUT_ID), step, MEMBER_ID));
+
+        verify(repository, never()).relinkGeneration(anyInt(), anyInt());
+        verify(repository, never()).unlinkGeneration(anyInt(), anyInt());
+        verify(signing, never()).request(anyInt(), anyInt());
+    }
+
+    /** A document made but since deleted is made anew rather than asked for. */
+    @Test
+    void askingAgainMakesADeletedDocumentAnew() {
+        var step = documentStep(ITEM_ID, SUITABLE_DOCUMENT, GENERATION_ID, false);
+        when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(about(ABOUT_ID)));
+        when(repository.findItems(PROCEDURE_ID)).thenReturn(List.of(step));
+        when(repository.findItemDependencies(PROCEDURE_ID)).thenReturn(List.of());
+        when(signing.mayAsk(STATION_ID, MEMBER_ID)).thenReturn(true);
+        when(signing.stateOf(ITEM_ID, GENERATION_ID))
+                .thenReturn(new StepDocumentState(ITEM_ID, null, StepDocumentState.Progress.NOT_ASKED, 0, 0, null));
+        when(signing.generate(STATION_ID, SUITABLE_DOCUMENT, ABOUT_ID, MEMBER_ID))
+                .thenReturn(GENERATION_ID + 2);
+        when(repository.relinkGeneration(GENERATION_ID, GENERATION_ID + 2)).thenReturn(false);
+
+        assertRefused(ProcedureRefusal.PROCEDURE_STEP_NOT_TO_ASK_AGAIN, step, MEMBER_ID);
+
+        verify(signing).generate(STATION_ID, SUITABLE_DOCUMENT, ABOUT_ID, MEMBER_ID);
+        verify(signing, never()).request(anyInt(), anyInt());
+    }
+
+    /** The procedure is read under the lock: one resolved meanwhile, or about nobody now, is refused. */
+    @Test
+    void askingAgainReadsTheProcedureAsItStandsNow() {
+        var step = documentStep(ITEM_ID, SUITABLE_DOCUMENT, null, false);
+        when(repository.findItems(PROCEDURE_ID)).thenReturn(List.of(step));
+        when(repository.findItemDependencies(PROCEDURE_ID)).thenReturn(List.of());
+        when(signing.mayAsk(STATION_ID, MEMBER_ID)).thenReturn(true);
+        when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(procedure(PROCEDURE_ID, null)));
+
+        assertRefused(ProcedureRefusal.PROCEDURE_STEP_NOT_TO_ASK_AGAIN, step, MEMBER_ID);
+
+        verify(signing, never()).generate(anyInt(), anyInt(), anyInt(), anyInt());
+    }
+
+    /** Only the document steps that made a document read where it stands. */
+    @Test
+    void onlyStepsWithADocumentReadTheirState() {
+        when(signing.stateOf(ITEM_ID, GENERATION_ID)).thenReturn(state(StepDocumentState.Progress.AGREED));
+
+        var states = service.documentStates(List.of(
+                documentStep(ITEM_ID, SUITABLE_DOCUMENT, GENERATION_ID, true),
+                documentStep(ITEM_ID + 1, SUITABLE_DOCUMENT, null, false),
+                procedureItem(ITEM_ID + 2, false)));
+
+        assertEquals(List.of(state(StepDocumentState.Progress.AGREED)), states);
+    }
+
+    private void assertRefused(Refusal refusal, ProcedureItem step, int by) {
+        assertEquals(
+                refusal,
+                assertThrows(RefusalResponse.class, () -> service.askAgain(about(ABOUT_ID), step, by))
+                        .refusal());
+    }
+
+    private static StepDocumentState state(StepDocumentState.Progress progress) {
+        return new StepDocumentState(ITEM_ID, 55, progress, 0, 1, null);
     }
 
     /** The service with every template refused for every member, so only a step not asked anew passes. */

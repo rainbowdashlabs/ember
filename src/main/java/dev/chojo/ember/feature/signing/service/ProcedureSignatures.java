@@ -7,14 +7,25 @@ package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.feature.generator.entity.DocumentGeneration;
+import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberPermissionResolver;
 import dev.chojo.ember.feature.procedure.service.DocumentStepSigning;
+import dev.chojo.ember.feature.procedure.service.StepDocumentState;
+import dev.chojo.ember.feature.procedure.service.StepDocumentState.Progress;
+import dev.chojo.ember.feature.signing.entity.FieldRole;
+import dev.chojo.ember.feature.signing.entity.FieldState;
+import dev.chojo.ember.feature.signing.entity.RequestState;
+import dev.chojo.ember.feature.signing.entity.RequestedSignature;
+import dev.chojo.ember.feature.signing.entity.SignatureRequest;
+import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -27,17 +38,23 @@ public class ProcedureSignatures implements DocumentStepSigning {
     private final SignatureRequestService requests;
     private final StationMemberRepository members;
     private final MemberPermissionResolver permissions;
+    private final DocumentGenerationRepository generations;
+    private final SignatureRequestRepository requestRepo;
 
     @Inject
     public ProcedureSignatures(
             DocumentGenerationService generation,
             SignatureRequestService requests,
             StationMemberRepository members,
-            MemberPermissionResolver permissions) {
+            MemberPermissionResolver permissions,
+            DocumentGenerationRepository generations,
+            SignatureRequestRepository requestRepo) {
         this.generation = generation;
         this.requests = requests;
         this.members = members;
         this.permissions = permissions;
+        this.generations = generations;
+        this.requestRepo = requestRepo;
     }
 
     @Override
@@ -63,6 +80,39 @@ public class ProcedureSignatures implements DocumentStepSigning {
     @Override
     public void withdraw(int generationId, int by) {
         requests.withdrawForProcedure(generationId, by);
+    }
+
+    @Override
+    public StepDocumentState stateOf(int itemId, int generationId) {
+        Integer documentId = generations
+                .findById(generationId)
+                .map(DocumentGeneration::documentId)
+                .orElse(null);
+        var request = requestRepo.findLatestFor(generationId).orElse(null);
+        if (request == null) return new StepDocumentState(itemId, documentId, Progress.NOT_ASKED, 0, 0, null);
+        var fields = requestRepo.fieldsOf(request.id());
+        int settled = (int) fields.stream()
+                .filter(field -> field.state() != FieldState.OPEN)
+                .count();
+        Integer openFieldId = request.open()
+                ? fields.stream()
+                        .filter(field -> field.state() == FieldState.OPEN && field.role() != FieldRole.ISSUER)
+                        .map(RequestedSignature::id)
+                        .findFirst()
+                        .orElse(null)
+                : null;
+        return new StepDocumentState(
+                itemId, documentId, progressOf(request, fields), settled, fields.size(), openFieldId);
+    }
+
+    private static Progress progressOf(SignatureRequest request, List<RequestedSignature> fields) {
+        if (request.open()) return Progress.WAITING;
+        if (request.state() == RequestState.REVOKED) return Progress.WITHDRAWN;
+        boolean agreed = fields.stream()
+                .anyMatch(field -> field.state() == FieldState.SIGNED
+                        || field.state() == FieldState.PAPER_CONFIRMED
+                        || field.state() == FieldState.WAIVED);
+        return agreed ? Progress.AGREED : Progress.NOT_AGREED;
     }
 
     private Optional<StationMember> currentAt(int stationId, int memberId) {

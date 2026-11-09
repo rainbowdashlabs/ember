@@ -77,4 +77,23 @@ public record ProcedureItem(
                 row.getObject("document_template_id", Integer.class),
                 row.getObject("generation_id", Integer.class));
     }
+
+    /** @return the step without the note of those who run it, as the member it is about reads it */
+    public ProcedureItem withoutNote() {
+        return new ProcedureItem(
+                id,
+                procedureId,
+                title,
+                description,
+                null,
+                isPublic,
+                userAssigned,
+                position,
+                checked,
+                checkedAt,
+                checkedBy,
+                kind,
+                documentTemplateId,
+                generationId);
+    }
 }

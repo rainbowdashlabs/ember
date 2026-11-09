@@ -150,6 +150,16 @@ public enum ProcedureRefusal implements Refusal {
             HttpStatus.CONFLICT,
             "This step is done once its document is signed, confirmed on paper or waived, so it is not ticked by hand"),
 
+    /** Asking again for a document step that is ticked, locked, still waiting or not a document step. */
+    PROCEDURE_STEP_NOT_TO_ASK_AGAIN(
+            41,
+            HttpStatus.CONFLICT,
+            "This step does not wait to be asked again: it is done, locked, still waiting for signatures or asks for no document"),
+
+    /** Asking again for a step's document by somebody who may not generate documents for members. */
+    PROCEDURE_STEP_DOCUMENT_NOT_YOURS_TO_ASK(
+            42, HttpStatus.FORBIDDEN, "Only those who generate documents for members can ask for a step's document"),
+
     /** A note on a step written by somebody who does not run the procedure. */
     PROCEDURE_STEP_NOTE_NOT_YOURS(
             29, HttpStatus.FORBIDDEN, "Only whoever runs the procedure can write a note on a step"),

@@ -549,14 +549,7 @@ public class ProcedureService {
 
     private List<ProcedureItem> unlockedWithoutDocument(int procedureId) {
         var steps = repository.findItems(procedureId);
-        var ticked = steps.stream()
-                .filter(ProcedureItem::checked)
-                .map(ProcedureItem::id)
-                .collect(Collectors.toSet());
-        var waiting = repository.findItemDependencies(procedureId).stream()
-                .filter(pair -> !ticked.contains(pair[1]))
-                .map(pair -> pair[0])
-                .collect(Collectors.toSet());
+        var waiting = waitingOf(procedureId, steps);
         return steps.stream()
                 .filter(step -> step.kind() == ProcedureStepKind.DOCUMENT
                         && step.documentTemplateId() != null
@@ -564,6 +557,103 @@ public class ProcedureService {
                         && !step.checked()
                         && !waiting.contains(step.id()))
                 .toList();
+    }
+
+    /** The steps of a procedure that wait for a step not ticked yet. */
+    private Set<Integer> waitingOf(int procedureId, List<ProcedureItem> steps) {
+        var ticked = steps.stream()
+                .filter(ProcedureItem::checked)
+                .map(ProcedureItem::id)
+                .collect(Collectors.toSet());
+        return repository.findItemDependencies(procedureId).stream()
+                .filter(pair -> !ticked.contains(pair[1]))
+                .map(pair -> pair[0])
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Asks again for the document of one unlocked document step that is not ticked: its signatures, where
+     * its document was made but never asked for and is still kept, else a document made anew, where it has
+     * none or its signatures were withdrawn. A new document takes the place of the old one only once it
+     * was made, so a refusal leaves the step as it stood. Unlike the asking when a procedure changes,
+     * whatever stands in the way is refused, so the person asking learns of it.
+     *
+     * @param procedure the procedure, open and about a member
+     * @param step      the step
+     * @param by        who asks, who has to generate documents for members
+     */
+    public void askAgain(Procedure procedure, ProcedureItem step, int by) {
+        synchronized (lockOf(procedure.id())) {
+            var current = repository
+                    .findProcedureById(procedure.id())
+                    .orElseThrow(ProcedureRefusal.PROCEDURE_STEP_NOT_IN_PROCEDURE::raise);
+            var steps = repository.findItems(current.id());
+            var held = steps.stream()
+                    .filter(candidate -> candidate.id() == step.id())
+                    .findFirst()
+                    .orElseThrow(ProcedureRefusal.PROCEDURE_STEP_NOT_IN_PROCEDURE::raise);
+            var templateId = held.documentTemplateId();
+            var aboutMemberId = current.aboutMemberId();
+            if (held.kind() != ProcedureStepKind.DOCUMENT
+                    || templateId == null
+                    || held.checked()
+                    || current.status() != ProcedureStatus.OPEN
+                    || aboutMemberId == null
+                    || waitingOf(current.id(), steps).contains(held.id())) {
+                throw ProcedureRefusal.PROCEDURE_STEP_NOT_TO_ASK_AGAIN.raise();
+            }
+            if (!signing.mayAsk(current.stationId(), by)) {
+                throw ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NOT_YOURS_TO_ASK.raise();
+            }
+            var generationId = held.generationId();
+            if (generationId != null) {
+                var state = signing.stateOf(held.id(), generationId);
+                switch (state.progress()) {
+                    case NOT_ASKED -> {
+                        if (state.documentId() != null) {
+                            signing.request(generationId, by);
+                            return;
+                        }
+                    }
+                    case WAITING, AGREED -> throw ProcedureRefusal.PROCEDURE_STEP_NOT_TO_ASK_AGAIN.raise();
+                    case NOT_AGREED, WITHDRAWN -> {}
+                }
+            }
+            int made = signing.generate(current.stationId(), templateId, aboutMemberId, by);
+            boolean linked = generationId == null
+                    ? repository.linkGeneration(held.id(), made)
+                    : repository.relinkGeneration(generationId, made);
+            if (!linked) throw ProcedureRefusal.PROCEDURE_STEP_NOT_TO_ASK_AGAIN.raise();
+            signing.request(made, by);
+            log.info("Document step {} of procedure {} asked again by member {}", held.id(), current.id(), by);
+        }
+    }
+
+    /**
+     * Where the documents of the given steps stand with their signatures, for every document step that
+     * made one.
+     *
+     * @param steps the steps
+     * @return one per step holding a document
+     */
+    public List<StepDocumentState> documentStates(List<ProcedureItem> steps) {
+        return steps.stream()
+                .filter(step -> step.kind() == ProcedureStepKind.DOCUMENT && step.generationId() != null)
+                .map(step -> signing.stateOf(step.id(), Objects.requireNonNull(step.generationId())))
+                .toList();
+    }
+
+    /**
+     * The public procedures about any of the given members, as they and their guardians read them.
+     *
+     * @param stationId the station
+     * @param memberIds the reader and those in their care
+     * @param status    only procedures in this state, or null for all
+     * @return the procedures, newest first
+     */
+    public List<Procedure> findPublicAbout(
+            int stationId, Collection<Integer> memberIds, @Nullable ProcedureStatus status) {
+        return repository.findPublicAbout(stationId, memberIds, status);
     }
 
     private @Nullable Integer askerOf(Procedure procedure, @Nullable Integer actor) {
@@ -952,6 +1042,19 @@ public class ProcedureService {
 
     public int countOpenRunByWithAvailableItems(int stationId, int memberId) {
         return repository.countOpenRunByWithAvailableItems(stationId, memberId);
+    }
+
+    /**
+     * How many open public procedures are about any of the given members, which they and their guardians
+     * read among their own tasks, leaving out those the reader runs and counts already.
+     *
+     * @param stationId the station
+     * @param memberId  the reader
+     * @param memberIds the reader and those in their care
+     * @return the count
+     */
+    public int countOpenPublicAboutNotRunBy(int stationId, int memberId, Collection<Integer> memberIds) {
+        return repository.countOpenPublicAboutNotRunBy(stationId, memberId, memberIds);
     }
 
     public int countOpenByStation(int stationId) {

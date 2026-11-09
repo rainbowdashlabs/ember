@@ -55,6 +55,8 @@ export default {
     'R-038': 'Wähle zuerst, um wen es im Ablauf geht, bevor ein Schritt ein Dokument unterschreiben lässt, es wurde nichts gespeichert',
     'R-039': 'Wähle, um wen es im Ablauf geht, es wurde nichts geändert',
     'R-040': 'Dieser Schritt ist erledigt, sobald sein Dokument unterschrieben, auf Papier bestätigt oder erlassen ist, er wird deshalb nicht von Hand abgehakt',
+    'R-042': 'Nur wer Dokumente für Mitglieder erstellen darf, kann das Dokument eines Schritts anfragen',
+    'R-041': 'Dieser Schritt wartet nicht darauf, erneut angefragt zu werden: Er ist erledigt, gesperrt, wartet noch auf Unterschriften oder lässt kein Dokument unterschreiben',
 
     'R-001': PROCEDURE_NOT_YOURS,
     'R-002': PROCEDURE_NOT_YOURS,

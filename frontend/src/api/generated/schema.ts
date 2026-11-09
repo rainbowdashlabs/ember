@@ -45500,6 +45500,39 @@ export interface paths {
         };
         trace?: never;
     };
+    "/api/v1/procedures/{rid}/items/{iid}/ask": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/procedures/{rid}/party": {
         parameters: {
             query?: never;
@@ -45603,6 +45636,41 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/procedures/about-me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Procedure"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -70895,12 +70963,16 @@ export interface components {
             templateId: number | null;
         };
         ProcedureDetail: {
+            about: components["schemas"]["MemberIdentity"] | null;
             dependencies: number[][];
             documents: components["schemas"]["StepDocument"][];
+            documentStates: components["schemas"]["StepDocumentState"][];
             items: components["schemas"]["ProcedureItem"][];
+            mayTick: boolean;
             named: components["schemas"]["MemberIdentity"][];
             party: components["schemas"]["RestrictionAudience"];
             procedure: components["schemas"]["Procedure"];
+            readsAbout: boolean;
         };
         ProcedureItem: {
             checked: boolean;
@@ -71111,6 +71183,8 @@ export interface components {
             memberId: number;
             value: string;
         };
+        /** @enum {string} */
+        Progress: "NOT_ASKED" | "WAITING" | "AGREED" | "NOT_AGREED" | "WITHDRAWN";
         PronounLanguage: {
             code: string;
             female: components["schemas"]["PronounSet"];
@@ -73851,6 +73925,19 @@ export interface components {
             id: number;
             name: string;
         };
+        StepDocumentState: {
+            /** Format: int32 */
+            documentId: number | null;
+            /** Format: int32 */
+            fields: number;
+            /** Format: int32 */
+            itemId: number;
+            /** Format: int32 */
+            openFieldId: number | null;
+            progress: components["schemas"]["Progress"];
+            /** Format: int32 */
+            settled: number;
+        };
         StepOrderRequest: {
             stepIds?: number[];
         };
@@ -76389,6 +76476,7 @@ export type ProfileFieldRequest = components['schemas']['ProfileFieldRequest'];
 export type ProfileFieldScope = components['schemas']['ProfileFieldScope'];
 export type ProfileFieldTarget = components['schemas']['ProfileFieldTarget'];
 export type ProfileFieldValue = components['schemas']['ProfileFieldValue'];
+export type Progress = components['schemas']['Progress'];
 export type PronounLanguage = components['schemas']['PronounLanguage'];
 export type PronounRole = components['schemas']['PronounRole'];
 export type PronounSet = components['schemas']['PronounSet'];
@@ -76757,6 +76845,7 @@ export type StatusResponse = components['schemas']['StatusResponse'];
 export type StatusUpdateRequest = components['schemas']['StatusUpdateRequest'];
 export type StepActor = components['schemas']['StepActor'];
 export type StepDocument = components['schemas']['StepDocument'];
+export type StepDocumentState = components['schemas']['StepDocumentState'];
 export type StepOrderRequest = components['schemas']['StepOrderRequest'];
 export type StepRequest = components['schemas']['StepRequest'];
 export type StepResponse = components['schemas']['StepResponse'];
@@ -77936,6 +78025,14 @@ export const ProfileFieldScope = {
 export const ProfileFieldTarget = {
     GROUP: "GROUP",
     ROLE: "ROLE",
+} as const;
+
+export const Progress = {
+    AGREED: "AGREED",
+    NOT_AGREED: "NOT_AGREED",
+    NOT_ASKED: "NOT_ASKED",
+    WAITING: "WAITING",
+    WITHDRAWN: "WITHDRAWN",
 } as const;
 
 export const PronounRole = {

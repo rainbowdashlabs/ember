@@ -7,9 +7,10 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
-import IconButton from '@/components/button/IconButton.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import type {ProcedureItem} from '@/api/generated/schema'
+import ProcedureStepDocument from './ProcedureStepDocument.vue'
+import ProcedureStepMark from './ProcedureStepMark.vue'
+import type {ProcedureItem, StepDocumentState} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 
 const {t} = useI18n()
@@ -20,11 +21,24 @@ defineProps<{
   canCheck: boolean
   dependencyMet: boolean
   dependencyNames: string[]
+  /** The name of the document a document step asks to sign. */
+  documentName?: string
+  /** Where the document it made stands with its signatures, or nothing where it made none yet. */
+  documentState?: StepDocumentState | null
+  /** Where the reader opens the document, or nothing where they may not. */
+  documentHref?: string | null
+  /** Where the reader has it signed in front of them, or signs it themselves, or nothing. */
+  signHref?: string | null
+  /** What the sign link says: signing in front of a witness, or signing oneself. */
+  signLabel?: string
+  /** Whether the reader may ask for the document again. */
+  canAskAgain?: boolean
 }>()
 
 const emit = defineEmits<{
   toggle: []
   'update-note': [note: string]
+  'ask-again': []
 }>()
 
 function onNoteBlur(e: Event) {
@@ -35,29 +49,23 @@ function onNoteBlur(e: Event) {
 <template>
   <component :is="item.checked ? SuccessContainer : NeutralContainer">
     <div class="flex items-start gap-3">
-      <div class="pt-0.5 shrink-0">
-        <IconButton
-            v-if="canCheck"
-            :icon="item.checked ? ['fas', 'square-check'] : ['fas', 'square']"
-            :label="item.checked ? t('procedures.uncheck') : t('procedures.check')"
-            :class="item.checked ? 'text-[var(--color-success)]' : 'text-[var(--text-muted)]'"
-            @click="emit('toggle')"
-        />
-        <font-awesome-icon
-            v-else-if="item.checked"
-            :icon="['fas', 'square-check']"
-            class="w-4 h-4 text-[var(--color-success)] mt-1 ml-2"
-        />
-        <font-awesome-icon
-            v-else
-            :icon="['fas', 'lock']"
-            class="w-4 h-4 text-[var(--text-muted)] opacity-50 mt-1 ml-2"
-            :title="!dependencyMet ? t('procedures.locked') + ': ' + dependencyNames.join(', ') : t('procedures.editOnly')"
-        />
-      </div>
+      <ProcedureStepMark :item="item" :can-check="canCheck" :dependency-met="dependencyMet"
+                         :dependency-names="dependencyNames" @toggle="emit('toggle')"/>
       <div class="flex-1 min-w-0">
         <div class="font-medium" :class="{ 'line-through opacity-60': item.checked }">{{ item.title }}</div>
         <div v-if="item.description" class="text-sm text-[var(--text-muted)]">{{ item.description }}</div>
+        <ProcedureStepDocument
+            v-if="item.kind === 'DOCUMENT'"
+            :item="item"
+            :dependency-met="dependencyMet"
+            :document-name="documentName"
+            :document-state="documentState"
+            :document-href="documentHref"
+            :sign-href="signHref"
+            :sign-label="signLabel"
+            :can-ask-again="canAskAgain"
+            @ask-again="emit('ask-again')"
+        />
         <div v-if="!dependencyMet && !item.checked"
              class="text-xs text-[var(--text-muted)] mt-1 flex items-center gap-1">
           <font-awesome-icon :icon="['fas', 'lock']" class="w-3 h-3"/>

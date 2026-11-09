@@ -49,4 +49,13 @@ public interface DocumentStepSigning {
      * @param by           who withdraws
      */
     void withdraw(int generationId, int by);
+
+    /**
+     * Where the document a step made stands with its signatures.
+     *
+     * @param itemId       the step
+     * @param generationId the generation log entry of its document
+     * @return its state
+     */
+    StepDocumentState stateOf(int itemId, int generationId);
 }

@@ -35,6 +35,8 @@ const { hasPermission, loaded } = useSession()
 const canEdit = computed(() => hasPermission(StationPermission.PROCEDURE_EDIT))
 
 const items = ref<Procedure[]>([])
+/** The public procedures about the reader or somebody in their care, which they read among their own tasks. */
+const aboutMe = ref<Procedure[]>([])
 
 const searchQuery = ref('')
 const statusFilter = ref<ProcedureStatus | ''>(ProcedureStatus.OPEN)
@@ -44,9 +46,13 @@ const {loading, failure, reload} = useAsyncLoader(async (isCurrent) => {
   const params: ProcedureListParams = {}
   if (statusFilter.value) params.status = statusFilter.value
   if (assigneeFilter.value === 'me') params.assignee = 'me'
-  const found = await procedures.getProcedures(params)
+  const [found, concerning] = await Promise.all([
+    procedures.getProcedures(params),
+    procedures.listAboutMe(statusFilter.value || undefined),
+  ])
   if (!isCurrent()) return
   items.value = found
+  aboutMe.value = concerning
 }, {autoLoad: false})
 
 const {
@@ -58,6 +64,15 @@ const {
   onConfirm: p => procedures.deleteProcedure(p.id),
   onSuccess: () => reload(),
   failure,
+})
+
+/** The procedures about the reader that the main list does not show already, narrowed by the search. */
+const filteredAboutMe = computed(() => {
+  const shown = new Set(items.value.map(p => p.id))
+  const q = searchQuery.value.trim().toLowerCase()
+  return aboutMe.value
+      .filter(p => !shown.has(p.id))
+      .filter(p => !q || p.name.toLowerCase().includes(q) || (p.description?.toLowerCase().includes(q) ?? false))
 })
 
 const filteredItems = computed(() => {
@@ -110,6 +125,25 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
         {{ t('procedures.filterAll') }}
       </SelectionToggleButton>
     </div>
+
+    <section v-if="filteredAboutMe.length > 0" class="mb-6" data-testid="procedures-about-me">
+      <SubHeader class="mb-1">{{ t('procedures.aboutMe') }}</SubHeader>
+      <p class="text-sm text-[var(--text-muted)] mb-2">{{ t('procedures.aboutMeHint') }}</p>
+      <div class="space-y-2">
+        <RowLink v-for="p in filteredAboutMe" :key="p.id" :to="procedurePage(p)">
+          <NeutralContainer class="flex items-center gap-3 cursor-pointer hover:border-[var(--color-primary)] transition-colors">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="font-medium">{{ p.name }}</span>
+                <SuccessBadge v-if="p.status === ProcedureStatus.RESOLVED">{{ t('procedures.resolved') }}</SuccessBadge>
+                <PrimaryBadge v-else>{{ t('procedures.open') }}</PrimaryBadge>
+              </div>
+              <div v-if="p.description" class="text-sm text-[var(--text-muted)] truncate">{{ p.description }}</div>
+            </div>
+          </NeutralContainer>
+        </RowLink>
+      </div>
+    </section>
 
     <AsyncSection
       :empty="filteredItems.length === 0"

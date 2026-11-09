@@ -146,6 +146,17 @@ export async function setAbout(id: number, memberId: number, ask = true): Promis
     return res.data
 }
 
+/** Asks again for the document of a document step whose document is missing or ended without agreement. */
+export async function askAgain(procedureId: number, itemId: number): Promise<void> {
+    await client.post(`/procedures/${procedureId}/items/${itemId}/ask`)
+}
+
+/** The public procedures about the reader and the members in their care. */
+export async function listAboutMe(status?: ProcedureStatus): Promise<Procedure[]> {
+    const res = await client.get<Procedure[]>('/procedures/about-me', {params: status ? {status} : {}})
+    return res.data
+}
+
 export const addItem = procedureItems.create
 export const editItem = procedureItems.update
 export const deleteItem = procedureItems.remove

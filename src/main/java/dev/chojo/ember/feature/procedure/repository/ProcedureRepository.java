@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.procedure.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
@@ -20,6 +21,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -280,6 +282,60 @@ public class ProcedureRepository {
                 .single(where.apply(call().bind("station_id", stationId).bind("member_id", memberId)))
                 .map(Procedure.map())
                 .all();
+    }
+
+    /**
+     * The public procedures of a station about any of the given members, as the member and their
+     * guardians read them among their own tasks.
+     *
+     * @param stationId the station
+     * @param memberIds the members, the reader and those in their care
+     * @param status    only procedures in this state, or null for all
+     * @return the procedures, newest first
+     */
+    public List<Procedure> findPublicAbout(
+            int stationId, Collection<Integer> memberIds, @Nullable ProcedureStatus status) {
+        if (memberIds.isEmpty()) return List.of();
+        var where = WhereBuilder.create().add("AND status = :status", "status", status);
+        return query("""
+                SELECT %s
+                FROM procedure
+                WHERE station_id = :station_id
+                  AND public
+                  AND about_member_id = ANY(:member_ids)
+                  %s
+                ORDER BY created_at DESC;""", PROCEDURE_COLUMNS, where.fragment())
+                .single(where.apply(call().bind("station_id", stationId)
+                        .bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER)))
+                .map(Procedure.map())
+                .all();
+    }
+
+    /**
+     * How many open public procedures of a station are about any of the given members and are not run by
+     * the reader, who counts those among the procedures they run.
+     *
+     * @param stationId the station
+     * @param memberId  the reader
+     * @param memberIds the members, the reader and those in their care
+     * @return the count
+     */
+    public int countOpenPublicAboutNotRunBy(int stationId, int memberId, Collection<Integer> memberIds) {
+        if (memberIds.isEmpty()) return 0;
+        return query("""
+                SELECT count(*) AS count
+                FROM procedure p
+                WHERE p.station_id = :station_id
+                  AND p.public
+                  AND p.status = 'OPEN'
+                  AND p.about_member_id = ANY(:member_ids)
+                  AND NOT %s;""", PARTY_ADMITS)
+                .single(call().bind("station_id", stationId)
+                        .bind("member_id", memberId)
+                        .bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
+                .map(row -> row.getInt("count"))
+                .first()
+                .orElse(0);
     }
 
     public Optional<Procedure> findProcedureById(int id) {

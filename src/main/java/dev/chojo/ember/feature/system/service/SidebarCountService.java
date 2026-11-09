@@ -23,6 +23,9 @@ import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Singleton
 public class SidebarCountService {
     private final NotificationInbox notificationInbox;
@@ -124,7 +127,8 @@ public class SidebarCountService {
         if (roles.contains(StationPermission.PROCEDURE_EDIT)) {
             procedureCount = procedureService.countOpenByStation(stationId);
         } else {
-            procedureCount = procedureService.countOpenRunByWithAvailableItems(stationId, memberId);
+            procedureCount = procedureService.countOpenRunByWithAvailableItems(stationId, memberId)
+                    + procedureService.countOpenPublicAboutNotRunBy(stationId, memberId, household(memberId));
         }
 
         return new SidebarCounts(
@@ -140,6 +144,14 @@ public class SidebarCountService {
                 myInventoryCount,
                 openMovements,
                 procedureCount);
+    }
+
+    /** The member and the members in their care, whom the relation alone decides. */
+    private List<Integer> household(int memberId) {
+        var ids = new ArrayList<Integer>();
+        ids.add(memberId);
+        stationMemberService.findManaged(memberId).forEach(managed -> ids.add(managed.id()));
+        return ids;
     }
 
     /**

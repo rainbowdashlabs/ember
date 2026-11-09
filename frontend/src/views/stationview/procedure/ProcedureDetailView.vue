@@ -24,11 +24,12 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import ProcedureItemRow from './proceduredetailview/ProcedureItemRow.vue'
 import PartySummary from './proceduredetailview/PartySummary.vue'
+import MemberName from '@/components/avatar/MemberName.vue'
 import {audienceLists, type AudienceLists} from '@/components/documents/generation'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {procedures} from '@/api'
-import {ProcedureStatus, StationPermission, type ProcedureDetail, type ProcedureItem} from '@/api/generated/schema'
+import {ProcedureStatus, StationPermission, type ProcedureDetail, type ProcedureItem, type StepDocumentState} from '@/api/generated/schema'
 import {formatDate, formatDateTime} from '@/util/format'
 import {reportCaughtError} from '@/util/devErrorReporter'
 
@@ -151,11 +152,73 @@ async function refreshSilently() {
 
 /** Whether the reader ticks or unticks a step by hand; a document step is settled by its signatures. */
 function canCheckItem(item: ProcedureItem): boolean {
-  if (item.kind === 'DOCUMENT') return false
+  if (item.kind === 'DOCUMENT' || !detail.value?.mayTick) return false
   if (item.checked) return canEdit.value
   if (!isDependencyMet(item)) return false
   if (!item.userAssigned && !canEdit.value) return false
   return true
+}
+
+/** Where the document a step made stands, or nothing where it made none yet. */
+function documentStateOf(item: ProcedureItem): StepDocumentState | null {
+  return detail.value?.documentStates.find(state => state.itemId === item.id) ?? null
+}
+
+/** The name of the document a step asks to sign. */
+function documentNameOf(item: ProcedureItem): string | undefined {
+  return detail.value?.documents.find(document => document.id === item.documentTemplateId)?.name
+}
+
+/**
+ * Where the reader opens the document a step made: the documents of the member it is about for whoever
+ * reads members' documents, else the reader's own documents, which hold it for the member and their
+ * guardians, whether or not they run the procedure too.
+ */
+function documentHrefOf(item: ProcedureItem): string | null {
+  const state = documentStateOf(item)
+  const about = detail.value?.procedure.aboutMemberId
+  if (!state?.documentId || about == null) return null
+  if (hasPermission(StationPermission.DOCUMENT_READ_MEMBER)) {
+    return router.resolve({name: 'members-detail', params: {id: about}}).href
+  }
+  if (detail.value?.readsAbout) return router.resolve({name: 'documents-own', query: {document: state.documentId}}).href
+  return null
+}
+
+/**
+ * Where the document's open fields are signed: the next one in front of the reader as a witness, for
+ * whoever collects signatures in person, else the reader's own open signatures, for the member and their
+ * guardians, which hold just the fields that are theirs.
+ */
+function signHrefOf(item: ProcedureItem): string | null {
+  const field = documentStateOf(item)?.openFieldId
+  if (field == null) return null
+  if (hasPermission(StationPermission.DOCUMENT_SIGN_OTHERS)) return `/station/signing/witness?field=${field}`
+  if (detail.value?.readsAbout) return router.resolve({name: 'station-signing-all'}).href
+  return null
+}
+
+function signLabelOf(): string {
+  return hasPermission(StationPermission.DOCUMENT_SIGN_OTHERS) ? t('signing.witness.fromTile') : t('procedures.document.sign')
+}
+
+/** Whether the reader may ask again for the document of a step whose document is missing or ended without agreement. */
+function canAskAgain(item: ProcedureItem): boolean {
+  if (item.kind !== 'DOCUMENT' || item.checked || !isDependencyMet(item)) return false
+  if (!canEdit.value || !hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) return false
+  if (detail.value?.procedure.status !== ProcedureStatus.OPEN || detail.value.procedure.aboutMemberId == null) return false
+  const progress = documentStateOf(item)?.progress
+  return progress == null || progress === 'NOT_ASKED' || progress === 'NOT_AGREED' || progress === 'WITHDRAWN'
+}
+
+async function askAgain(item: ProcedureItem) {
+  failure.value = null
+  try {
+    await procedures.askAgain(procedureId.value, item.id)
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+  }
+  await refreshSilently()
 }
 
 async function toggleItem(item: ProcedureItem) {
@@ -239,6 +302,10 @@ watch(loaded, (v) => {
               <font-awesome-icon :icon="['fas', 'check-circle']" class="w-3 h-3"/>
               {{ formatDateTime(detail.procedure.resolvedAt) }}
             </span>
+            <span v-if="detail.about" class="flex items-center gap-1" data-testid="procedure-about">
+              {{ t('procedures.about') }}:
+              <MemberName :identity="detail.about" size="sm"/>
+            </span>
             <NuxtLink
                 v-if="appointmentPage"
                 :to="appointmentPage"
@@ -286,7 +353,14 @@ watch(loaded, (v) => {
             :can-check="canCheckItem(item)"
             :dependency-met="isDependencyMet(item)"
             :dependency-names="getDependencyNames(item)"
+            :document-name="documentNameOf(item)"
+            :document-state="documentStateOf(item)"
+            :document-href="documentHrefOf(item)"
+            :sign-href="signHrefOf(item)"
+            :sign-label="signLabelOf()"
+            :can-ask-again="canAskAgain(item)"
             @toggle="toggleItem(item)"
+            @ask-again="askAgain(item)"
             @update-note="(note) => updateNote(item, note)"
         />
       </div>

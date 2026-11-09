@@ -31,6 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -56,6 +57,9 @@ class SidebarCountServiceTest {
     private static final int MEMBER_ID = 42;
     private static final UUID STATION_UID = UUID.randomUUID();
 
+    private ProcedureService procedureService;
+    private StationMemberService stationMemberService;
+
     @BeforeEach
     void setup() {
         notificationInbox = mock(NotificationInbox.class);
@@ -69,8 +73,8 @@ class SidebarCountServiceTest {
         StationRepository stationRepository = mock(StationRepository.class);
         inventoryService = mock(InventoryService.class);
         movementService = mock(ItemMovementService.class);
-        ProcedureService procedureService = mock(ProcedureService.class);
-        StationMemberService stationMemberService = mock(StationMemberService.class);
+        procedureService = mock(ProcedureService.class);
+        stationMemberService = mock(StationMemberService.class);
         when(stationRepository.requireUid(STATION_ID)).thenReturn(STATION_UID);
 
         service = new SidebarCountService(
@@ -230,6 +234,24 @@ class SidebarCountServiceTest {
         assertEquals(0, counts.lendingRequests());
         assertEquals(2, counts.federationRequests());
         verifyNoInteractions(lendingRepository);
+    }
+
+    /**
+     * A member who runs no procedure of the station still counts the open procedures about them and the
+     * members in their care, decided by the relation alone, and those they run are not counted twice.
+     */
+    @Test
+    void procedureCountTakesInWhatIsAboutTheMemberAndTheirWards() {
+        var session = sessionWithPermissions(Set.of(StationPermission.LOGIN));
+        var ward = new StationMember(
+                99, STATION_ID, UUID.randomUUID(), null, false, null, "Kind", StationUserType.MEMBER, null);
+        when(stationMemberService.findManaged(MEMBER_ID)).thenReturn(List.of(ward));
+        when(procedureService.countOpenRunByWithAvailableItems(STATION_ID, MEMBER_ID))
+                .thenReturn(2);
+        when(procedureService.countOpenPublicAboutNotRunBy(STATION_ID, MEMBER_ID, List.of(MEMBER_ID, 99)))
+                .thenReturn(1);
+
+        assertEquals(3, service.getCounts(session).procedureCount());
     }
 
     @Test

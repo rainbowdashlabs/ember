@@ -35470,6 +35470,25 @@
         }
       }
     },
+    "/api/v1/procedures/about-me" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Procedure"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/procedures/for-event/{eid}" : {
       "get" : {
         "responses" : {
@@ -35647,6 +35666,15 @@
         }
       },
       "delete" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/procedures/{rid}/items/{iid}/ask" : {
+      "post" : {
         "responses" : {
           "204" : {
             "description" : "No Content"
@@ -70818,6 +70846,25 @@
               "$ref" : "#/components/schemas/MemberIdentity"
             }
           },
+          "about" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "documentStates" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StepDocumentState"
+            }
+          },
+          "mayTick" : {
+            "type" : "boolean"
+          },
+          "readsAbout" : {
+            "type" : "boolean"
+          },
           "documents" : {
             "type" : "array",
             "items" : {
@@ -70825,7 +70872,7 @@
             }
           }
         },
-        "required" : [ "procedure", "items", "dependencies", "party", "named", "documents" ]
+        "required" : [ "procedure", "items", "dependencies", "party", "named", "about", "documentStates", "mayTick", "readsAbout", "documents" ]
       },
       "ProcedureItem" : {
         "type" : "object",
@@ -71398,6 +71445,10 @@
           }
         },
         "required" : [ "memberId", "fieldId", "value" ]
+      },
+      "Progress" : {
+        "type" : "string",
+        "enum" : [ "NOT_ASKED", "WAITING", "AGREED", "NOT_AGREED", "WITHDRAWN" ]
       },
       "PronounLanguage" : {
         "type" : "object",
@@ -79512,6 +79563,35 @@
           }
         },
         "required" : [ "id", "name" ]
+      },
+      "StepDocumentState" : {
+        "type" : "object",
+        "properties" : {
+          "itemId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "documentId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "progress" : {
+            "$ref" : "#/components/schemas/Progress"
+          },
+          "settled" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "fields" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "openFieldId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        },
+        "required" : [ "itemId", "documentId", "progress", "settled", "fields", "openFieldId" ]
       },
       "StepOrderRequest" : {
         "type" : "object",

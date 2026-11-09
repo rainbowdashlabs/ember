@@ -57,6 +57,10 @@ function detail(items: ProcedureItem[]): ProcedureDetail {
         dependencies: [],
         party: {userTypes: [], groupIds: [], tagIds: [], memberIds: [], mode: 'AND'},
         named: [],
+        about: null,
+        documentStates: [],
+        mayTick: true,
+        readsAbout: false,
         documents: [{id: 7, name: 'Aufnahmeantrag'}],
     }
 }

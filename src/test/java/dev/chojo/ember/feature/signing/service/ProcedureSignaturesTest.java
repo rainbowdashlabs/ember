@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.service.GeneratorTestBase;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
+import dev.chojo.ember.feature.procedure.service.StepDocumentState;
 import dev.chojo.ember.feature.signing.entity.RequestState;
 import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
@@ -41,6 +42,7 @@ import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.s
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.text;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -114,8 +116,8 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
                 notices,
                 completed -> {},
                 new WitnessReach(stationMemberRepo, restrictionService));
-        signatures =
-                new ProcedureSignatures(wiring.generation(), requests, stationMemberRepo, memberPermissionResolver);
+        signatures = new ProcedureSignatures(
+                wiring.generation(), requests, stationMemberRepo, memberPermissionResolver, wiring.log(), requestRepo);
         withdrawals = new SignatureWithdrawals(
                 requestRepo,
                 requests,
@@ -185,6 +187,59 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
         assertEquals(1, closed.size());
         assertTrue(closed.getFirst().agreed());
         assertEquals(manager.id(), closed.getFirst().settledBy());
+    }
+
+    /** A step's document reads as not asked, then waiting with an open field, then agreed. */
+    @Test
+    void aStepsDocumentReadsWhereItStands() {
+        int consent = template("Stand", row(signature(SignatureRole.PARTICIPANT, "Unterschrift")));
+        int generationId = signatures.generate(wiring.station().id(), consent, member.id(), manager.id());
+
+        var made = signatures.stateOf(7, generationId);
+        assertEquals(StepDocumentState.Progress.NOT_ASKED, made.progress());
+        assertEquals(7, made.itemId());
+        assertEquals(wiring.log().findById(generationId).orElseThrow().documentId(), made.documentId());
+
+        signatures.request(generationId, manager.id());
+        var asked = signatures.stateOf(7, generationId);
+        assertEquals(StepDocumentState.Progress.WAITING, asked.progress());
+        assertEquals(1, asked.fields());
+        assertEquals(0, asked.settled());
+        var request = requestRepo.findLiveFor(generationId).orElseThrow();
+        var field = requestRepo.fieldsOf(request.id()).getFirst();
+        assertEquals(field.id(), asked.openFieldId());
+
+        fields.waive(managing(), request.uid(), field.fieldName());
+        var agreed = signatures.stateOf(7, generationId);
+        assertEquals(StepDocumentState.Progress.AGREED, agreed.progress());
+        assertEquals(1, agreed.settled());
+        assertNull(agreed.openFieldId());
+    }
+
+    /** A document withdrawn whole reads as not agreed; one whose agreement was withdrawn reads as withdrawn. */
+    @Test
+    void aStepsDocumentReadsHowItEnded() {
+        int consent = template("Ende", row(signature(SignatureRole.PARTICIPANT, "Unterschrift")));
+        int dropped = signatures.generate(wiring.station().id(), consent, member.id(), manager.id());
+        signatures.request(dropped, manager.id());
+        requests.withdraw(
+                managing(), requestRepo.findLiveFor(dropped).orElseThrow().uid());
+        assertEquals(
+                StepDocumentState.Progress.NOT_AGREED,
+                signatures.stateOf(7, dropped).progress());
+
+        int revoked = signatures.generate(wiring.station().id(), consent, child.id(), manager.id());
+        signatures.request(revoked, manager.id());
+        var request = requestRepo.findLiveFor(revoked).orElseThrow();
+        fields.confirmOnPaper(
+                managing(),
+                request.uid(),
+                requestRepo.fieldsOf(request.id()).getFirst().fieldName());
+        withdrawals.requireOwnedThenWithdraw(
+                stationSession(guardian), request.uid(), null, new SigningCircumstances(null, null));
+        assertEquals(
+                StepDocumentState.Progress.WITHDRAWN,
+                signatures.stateOf(7, revoked).progress());
     }
 
     /** A field waived beside one withdrawn still lets the document stand as agreed. */

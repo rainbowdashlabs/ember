@@ -10,6 +10,7 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.ProcedureRefusal;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
@@ -37,6 +38,8 @@ import static dev.chojo.ember.api.RouteHarness.PREFIX;
 import static dev.chojo.ember.api.RouteHarness.body;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -67,10 +70,12 @@ class ProcedureRoutesTest {
     private ProcedureRepository repository;
     private RestrictionService restrictions;
     private RouteHarness harness;
+    private GuardianPolicy guardians;
 
     @BeforeEach
     void setup() {
         repository = mock(ProcedureRepository.class);
+        guardians = mock(GuardianPolicy.class);
         when(repository.findProcedureById(PROCEDURE)).thenReturn(Optional.of(procedure()));
         when(repository.findItemById(OWN_STEP)).thenReturn(Optional.of(step(OWN_STEP, PROCEDURE)));
         when(repository.findItemById(FOREIGN_STEP)).thenReturn(Optional.of(step(FOREIGN_STEP, OTHER_PROCEDURE)));
@@ -89,7 +94,7 @@ class ProcedureRoutesTest {
                 restrictions,
                 new SuitableDocuments(template -> template == SUITABLE_DOCUMENT),
                 mock(DocumentStepSigning.class));
-        harness = RouteHarness.serving(new ProcedureRoutes(service, mock(MemberIdentityFactory.class)));
+        harness = RouteHarness.serving(new ProcedureRoutes(service, mock(MemberIdentityFactory.class), guardians));
     }
 
     @Test
@@ -435,6 +440,134 @@ class ProcedureRoutesTest {
         verify(repository, never()).checkItem(anyInt(), anyInt());
     }
 
+    /**
+     * The member a public procedure is about, and whoever looks after them, read it without running it;
+     * they tick nothing.
+     */
+    @Test
+    void theMemberItIsAboutReadsItWithoutRunningIt() throws Exception {
+        when(repository.findProcedureById(PROCEDURE)).thenReturn(Optional.of(about(77)));
+        when(restrictions.includes(RestrictionType.PROCEDURE, PROCEDURE, TestSessions.MEMBER_ID))
+                .thenReturn(false);
+        when(guardians.mayActFor(any(), eq(77))).thenReturn(true);
+        when(repository.findItems(PROCEDURE))
+                .thenReturn(List.of(
+                        new ProcedureItem(
+                                OWN_STEP, PROCEDURE, "Packen", null, "Jacke fehlt", true, true, 0, false, null, null),
+                        new ProcedureItem(
+                                FOREIGN_STEP,
+                                PROCEDURE,
+                                "Intern besprechen",
+                                null,
+                                null,
+                                false,
+                                false,
+                                1,
+                                false,
+                                null,
+                                null)));
+
+        harness.run((server, client) -> {
+            var reader = harness.as(TestSessions.member(STATION, StationPermission.USER));
+
+            var answer = client.get(PREFIX + "/procedures/" + PROCEDURE, reader);
+            assertEquals(200, answer.code());
+            String body = answer.body().string();
+            assertTrue(body.contains("\"mayTick\":false"));
+            assertTrue(body.contains("\"readsAbout\":true"));
+            assertFalse(body.contains("Intern besprechen"), "private steps stay with those who run it");
+            assertFalse(body.contains("Jacke fehlt"), "notes stay with those who run it");
+            assertEquals(
+                    ProcedureRefusal.PROCEDURE_NOT_HANDED_TO_YOU,
+                    refusalOf(client.patch(
+                            PREFIX + "/procedures/" + PROCEDURE + "/items/" + OWN_STEP,
+                            body("{\"checked\": true}"),
+                            reader)));
+        });
+        verify(repository, never()).checkItem(anyInt(), anyInt());
+    }
+
+    /** The procedures about the reader and those in their care are listed for them, not taken for a procedure id. */
+    @Test
+    void theProceduresAboutTheReaderAndTheirWardsAreListed() {
+        when(guardians.household(any())).thenReturn(List.of(TestSessions.MEMBER_ID, 77));
+        when(repository.findPublicAbout(STATION, List.of(TestSessions.MEMBER_ID, 77), null))
+                .thenReturn(List.of(about(77)));
+
+        var answer = harness.request(client -> client.get(
+                PREFIX + "/procedures/about-me", harness.as(TestSessions.member(STATION, StationPermission.USER))));
+
+        assertEquals(200, answer.code());
+        verify(repository).findPublicAbout(STATION, List.of(TestSessions.MEMBER_ID, 77), null);
+    }
+
+    /** Somebody neither running a procedure nor looking after the member it is about does not read it. */
+    @Test
+    void somebodyElseDoesNotReadAProcedureAboutAMember() {
+        when(repository.findProcedureById(PROCEDURE)).thenReturn(Optional.of(about(77)));
+        when(restrictions.includes(RestrictionType.PROCEDURE, PROCEDURE, TestSessions.MEMBER_ID))
+                .thenReturn(false);
+        when(guardians.mayActFor(any(), eq(77))).thenReturn(false);
+
+        var answer = harness.request(client -> client.get(
+                PREFIX + "/procedures/" + PROCEDURE, harness.as(TestSessions.member(STATION, StationPermission.USER))));
+
+        assertEquals(ProcedureRefusal.PROCEDURE_NOT_YOURS, refusalOf(answer));
+    }
+
+    /** Somebody else's private procedure is not read for being about them. */
+    @Test
+    void aPrivateProcedureIsNotReadForBeingAboutSomebody() {
+        when(repository.findProcedureById(PROCEDURE))
+                .thenReturn(Optional.of(new Procedure(
+                        PROCEDURE,
+                        STATION,
+                        null,
+                        "Zeltlager",
+                        null,
+                        false,
+                        ProcedureStatus.OPEN,
+                        TestSessions.MEMBER_ID,
+                        null,
+                        Instant.EPOCH,
+                        null,
+                        null,
+                        null,
+                        77,
+                        null)));
+        when(guardians.mayActFor(any(), eq(77))).thenReturn(true);
+
+        var answer = harness.request(client -> client.get(
+                PREFIX + "/procedures/" + PROCEDURE, harness.as(TestSessions.member(STATION, StationPermission.USER))));
+
+        assertEquals(ProcedureRefusal.PROCEDURE_NOT_PUBLIC, refusalOf(answer));
+    }
+
+    /** Asking again takes editing procedures; one who only reads it is not let in. */
+    @Test
+    void askingAgainTakesEditingProcedures() {
+        var answer = harness.request(client -> client.post(
+                PREFIX + "/procedures/" + PROCEDURE + "/items/" + OWN_STEP + "/ask",
+                body("{}"),
+                harness.as(TestSessions.member(STATION, StationPermission.USER))));
+
+        assertEquals(403, answer.code());
+    }
+
+    /** A check step is not asked for, which tells the editor so. */
+    @Test
+    void aCheckStepIsNotAskedAgain() {
+        when(repository.findItemDependencies(PROCEDURE)).thenReturn(List.of());
+
+        var answer = harness.request(client -> client.post(
+                PREFIX + "/procedures/" + PROCEDURE + "/items/" + OWN_STEP + "/ask",
+                body("{}"),
+                harness.as(TestSessions.member(
+                        STATION, StationPermission.PROCEDURE_EDIT, StationPermission.DOCUMENT_EDIT_MEMBER))));
+
+        assertEquals(ProcedureRefusal.PROCEDURE_STEP_NOT_TO_ASK_AGAIN, refusalOf(answer));
+    }
+
     /** A procedure without a party is run by nobody but those who edit procedures. */
     @Test
     void aProcedureWithoutAPartyIsTickedByNobodyButEditors() {
@@ -483,6 +616,10 @@ class ProcedureRoutesTest {
     }
 
     private static Procedure procedure() {
+        return about(null);
+    }
+
+    private static Procedure about(@Nullable Integer aboutMemberId) {
         return new Procedure(
                 PROCEDURE,
                 STATION,
@@ -497,7 +634,7 @@ class ProcedureRoutesTest {
                 null,
                 null,
                 null,
-                null,
+                aboutMemberId,
                 null);
     }
 
