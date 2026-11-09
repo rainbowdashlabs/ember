@@ -46,8 +46,8 @@ const MEMBERS: MemberCompletion[] = [
 const ITEMS: EditableItem[] = [
   {
     tempId: 1,
-    title: 'Aufnahmeantrag unterschreiben lassen',
-    description: 'Von der Person und bei Minderjährigen von den Erziehungsberechtigten.',
+    title: 'Notfallkontakt eintragen',
+    description: 'Telefonnummer der Erziehungsberechtigten für Übungen und Fahrten.',
     isPublic: true,
     userAssigned: false,
     position: 0,
@@ -100,6 +100,10 @@ const ITEMS: EditableItem[] = [
 
     <HelpSection :title="t('helpCenter.procedureCreate.itemsTitle')">
       <p>{{ t('helpCenter.procedureCreate.itemsText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.procedureCreate.documentTitle')">
+      <p>{{ t('helpCenter.procedureCreate.documentText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.procedureCreate.fromSignupsTitle')">
