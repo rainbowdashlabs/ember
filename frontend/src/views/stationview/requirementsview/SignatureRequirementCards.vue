@@ -20,9 +20,14 @@ defineProps<{signatures: SignatureItem[]}>()
 const {t} = useI18n()
 const router = useRouter()
 
+/**
+ * Who is asked to sign, and for whom. A guardian can meet the same document twice: once for a member in
+ * their care who signs through the guardian's account, once for their own consent as guardian.
+ */
 function textOf(signature: SignatureItem): string {
   const text = signature.memberName
-      ? t('requirements.signatureTextFor', {name: signature.memberName})
+      ? t(signature.capacity === 'GUARDIAN' ? 'requirements.signatureTextAsGuardian' : 'requirements.signatureTextFor',
+          {name: signature.memberName})
       : t('requirements.signatureText')
   return signature.purpose ? `${text} ${t('requirements.signatureForProcedure', {procedure: signature.purpose})}` : text
 }

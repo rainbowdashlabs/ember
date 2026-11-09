@@ -73389,6 +73389,7 @@ export interface components {
         /** @enum {string} */
         SignatureImageSource: "DRAWN" | "TYPED" | "UPLOADED";
         SignatureItem: {
+            capacity: components["schemas"]["SignerCapacity"];
             documentTitle: string | null;
             /** Format: int32 */
             fieldId: number;

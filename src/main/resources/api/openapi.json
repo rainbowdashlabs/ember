@@ -78060,9 +78060,12 @@
           },
           "purpose" : {
             "type" : [ "string", "null" ]
+          },
+          "capacity" : {
+            "$ref" : "#/components/schemas/SignerCapacity"
           }
         },
-        "required" : [ "fieldId", "documentTitle", "memberName", "purpose" ]
+        "required" : [ "fieldId", "documentTitle", "memberName", "purpose", "capacity" ]
       },
       "SignatureRole" : {
         "type" : "string",

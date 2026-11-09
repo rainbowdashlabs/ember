@@ -33,6 +33,10 @@ Die Anwesenheit kann Zeit vor und nach einem Termin gutschreiben, und der Berich
 - **Abläufe aus den Anmeldungen gibt es pro Person.** „Ablauf aus den Anmeldungen“ legt für jede Person mit Platz einen eigenen Ablauf an, in dem es um sie geht, alle mit derselben Betreuung. Bisher teilten sich alle eine Liste von Schritten.
 - **Vorlagen sagen, für wen sie gedacht sind.** „Für wen“ gehört nicht mehr nur zum Selbst-Erstellen, sondern gilt überall, wo ein Dokument aus der Vorlage entsteht: bei der Verwaltung, für mehrere Mitglieder auf einmal, vor Ort, bei Terminen und für die Mitglieder selbst. Angeboten werden nur passende Vorlagen, und beim Erstellen für mehrere Mitglieder stehen die, für die eine Vorlage nicht gedacht ist, als nicht erstellt in der Liste.
 
+### Fehlerbehebungen
+
+- **Erziehungsberechtigte sehen, welche Unterschrift ihre ist.** Unterschreibt ein Kind über das Konto der erziehungsberechtigten Person, stand dasselbe Dokument bei den offenen Aufgaben zweimal mit gleichem Text. Die beiden Karten sagen jetzt, welche das Kind unterschreibt und welche die erziehungsberechtigte Person.
+
 ## v26.23.5
 
 Wiederkehrende Termine behalten ihre Uhrzeit, wenn die Uhren umgestellt werden.

@@ -33,6 +33,10 @@ Attendance can credit time spent before and after an appointment, and the report
 - **Procedures from sign-ups are made per person.** Making a procedure from an appointment's sign-ups starts one for each person who holds a place, about that person, all run by the same managing party. Before, everybody shared one list of steps.
 - **Templates say for whom they are meant.** "For whom" no longer belongs to self service alone and applies wherever a document is made from the template: by managers, for several members at once, in person, for appointments and by members themselves. Only fitting templates are offered for a member, and documents made for several members list those a template is not meant for as not made.
 
+### Fixes
+
+- **Guardians see which signature is theirs.** A guardian whose child signs through the guardian's account saw the same document twice on the open tasks page, with the same text. The two cards now say which one the child signs and which one the guardian signs as guardian.
+
 ## v26.23.5
 
 Repeating appointments keep their time of day after the clocks change.

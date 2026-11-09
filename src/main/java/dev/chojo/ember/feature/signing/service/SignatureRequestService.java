@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.signing.entity.SignatureAsk;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.entity.SignatureRequestView;
 import dev.chojo.ember.feature.signing.entity.Signer;
+import dev.chojo.ember.feature.signing.entity.SignerCapacity;
 import dev.chojo.ember.feature.signing.entity.SigningStatements;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
@@ -665,16 +666,33 @@ public class SignatureRequestService {
 
     private static Signer signerFor(PendingSignature pending, int me, int accountId) {
         var field = pending.field();
+        return switch (capacityOf(field, me)) {
+            case ACCOUNT_HOLDER, WITNESSED -> Signer.accountHolder(accountId);
+            case MEMBER_THROUGH_ACCOUNT ->
+                Signer.memberThroughAccount(
+                        accountId, Objects.requireNonNull(field.signerId(), "a ward's field names the ward"));
+            case GUARDIAN ->
+                Signer.guardian(
+                        accountId, Objects.requireNonNull(field.memberId(), "a ward's document names the ward"));
+        };
+    }
+
+    /**
+     * In which capacity a member signs one of the fields pending for them: their own, a ward's own through
+     * the member's account, or as guardian on a ward's behalf.
+     *
+     * @param field the field, pending for the member
+     * @param me    the member
+     * @return the capacity, never {@link SignerCapacity#WITNESSED}
+     */
+    public static SignerCapacity capacityOf(RequestedSignature field, int me) {
         return switch (field.role()) {
             case PARTICIPANT ->
                 Objects.equals(field.signerId(), me)
-                        ? Signer.accountHolder(accountId)
-                        : Signer.memberThroughAccount(
-                                accountId, Objects.requireNonNull(field.signerId(), "a ward's field names the ward"));
-            case ISSUER -> Signer.accountHolder(accountId);
-            case GUARDIAN, ANY_GUARDIAN ->
-                Signer.guardian(
-                        accountId, Objects.requireNonNull(field.memberId(), "a ward's document names the ward"));
+                        ? SignerCapacity.ACCOUNT_HOLDER
+                        : SignerCapacity.MEMBER_THROUGH_ACCOUNT;
+            case ISSUER -> SignerCapacity.ACCOUNT_HOLDER;
+            case GUARDIAN, ANY_GUARDIAN -> SignerCapacity.GUARDIAN;
         };
     }
 }

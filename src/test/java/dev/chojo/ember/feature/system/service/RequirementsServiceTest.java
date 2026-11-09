@@ -310,12 +310,42 @@ class RequirementsServiceTest {
         assertEquals(32, ward.fieldId());
         assertNull(ward.documentTitle());
         assertEquals("Kim Muster", ward.memberName());
+        assertEquals(SignerCapacity.ACCOUNT_HOLDER, own.capacity());
+        assertEquals(SignerCapacity.MEMBER_THROUGH_ACCOUNT, ward.capacity());
         assertFalse(result.profileIncomplete());
         assertTrue(result.forcedForms().isEmpty());
         assertEquals(2, requirementsService.countPending(10, 1, List.of("USER")));
     }
 
+    /**
+     * A document asking a ward to sign through the guardian's account and the guardian to consent lists
+     * both fields for the guardian, told apart by who signs.
+     */
+    @Test
+    void aWardsOwnFieldAndTheGuardiansConsentAreToldApart() {
+        when(formService.findForcedPending(1, List.of(10))).thenReturn(List.of());
+        when(quizService.findForcedPending(1, 10)).thenReturn(List.of());
+        when(profileFieldService.isProfileComplete(10)).thenReturn(true);
+        when(signatureRequests.pendingFor(1, 10))
+                .thenReturn(List.of(
+                        waiting(41, 11, "Aufnahmeantrag", "Kim Muster"),
+                        waiting(42, FieldRole.ANY_GUARDIAN, 11, null, "Aufnahmeantrag", "Kim Muster")));
+
+        var signatures =
+                requirementsService.getRequirements(10, 1, List.of("USER")).pendingSignatures();
+
+        assertEquals(
+                SignerCapacity.MEMBER_THROUGH_ACCOUNT, signatures.getFirst().capacity());
+        assertEquals(SignerCapacity.GUARDIAN, signatures.get(1).capacity());
+        assertEquals("Kim Muster", signatures.get(1).memberName());
+    }
+
     private static PendingSignature waiting(int fieldId, int memberId, String title, String memberName) {
+        return waiting(fieldId, FieldRole.PARTICIPANT, memberId, memberId, title, memberName);
+    }
+
+    private static PendingSignature waiting(
+            int fieldId, FieldRole role, int memberId, Integer signerId, String title, String memberName) {
         return new PendingSignature(
                 UUID.randomUUID(),
                 title == null ? null : 7,
@@ -326,9 +356,9 @@ class RequirementsServiceTest {
                         fieldId,
                         3,
                         "participant",
-                        FieldRole.PARTICIPANT,
+                        role,
                         memberId,
-                        memberId,
+                        signerId,
                         memberName,
                         SignerCapacity.ACCOUNT_HOLDER,
                         "Ich stimme zu.",

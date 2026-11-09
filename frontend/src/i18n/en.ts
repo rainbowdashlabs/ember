@@ -109,7 +109,8 @@ export default {
     requirements: {
         signatureTitle: 'Sign a document',
         signatureText: 'This document is waiting for your signature.',
-        signatureTextFor: 'A document for {name} is waiting for a signature through your account.',
+        signatureTextFor: '{name} signs this document themselves, through your account.',
+        signatureTextAsGuardian: 'This document for {name} is waiting for your signature as their guardian.',
         signatureForProcedure: 'It is part of the procedure {procedure}.',
         sign: 'Sign',
         signAll: 'Sign all at once',

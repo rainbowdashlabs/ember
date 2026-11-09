@@ -13,6 +13,8 @@ import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
+import dev.chojo.ember.feature.signing.entity.PendingSignature;
+import dev.chojo.ember.feature.signing.entity.SignerCapacity;
 import dev.chojo.ember.feature.signing.service.SignatureRequestService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -21,7 +23,6 @@ import org.jspecify.annotations.Nullable;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * The work a member still owes the station.
@@ -99,12 +100,18 @@ public class RequirementsService {
      */
     private List<SignatureItem> pendingSignatures(int memberId, int stationId) {
         return signatureRequests.pendingFor(stationId, memberId).stream()
-                .map(pending -> new SignatureItem(
-                        pending.field().id(),
-                        pending.documentTitle(),
-                        Objects.equals(pending.field().memberId(), memberId) ? null : pending.memberName(),
-                        pending.purpose()))
+                .map(pending -> signatureItem(pending, memberId))
                 .toList();
+    }
+
+    private static SignatureItem signatureItem(PendingSignature pending, int memberId) {
+        var capacity = SignatureRequestService.capacityOf(pending.field(), memberId);
+        return new SignatureItem(
+                pending.field().id(),
+                pending.documentTitle(),
+                capacity == SignerCapacity.ACCOUNT_HOLDER ? null : pending.memberName(),
+                pending.purpose(),
+                capacity);
     }
 
     /**
@@ -182,12 +189,16 @@ public class RequirementsService {
      *                      not the reader's own
      * @param purpose       what the signatures are asked for beyond the document, such as a procedure, or
      *                      null
+     * @param capacity      who signs: the reader, a member in their care through the reader's account, or
+     *                      the reader as guardian on that member's behalf. One document can ask a guardian
+     *                      for both of the latter, and this is what tells the two apart.
      */
     public record SignatureItem(
             int fieldId,
             @Nullable String documentTitle,
             @Nullable String memberName,
-            @Nullable String purpose) {}
+            @Nullable String purpose,
+            SignerCapacity capacity) {}
 
     /**
      * What a member still owes.
