@@ -164,6 +164,9 @@ public enum ProcedureRefusal implements Refusal {
     PROCEDURE_TOO_MANY_AT_ONCE(
             43, HttpStatus.BAD_REQUEST, "That is more people than procedures are started for at once, so none was"),
 
+    /** A list of procedures narrowed to a state there is none of. */
+    PROCEDURE_STATUS_UNKNOWN(44, HttpStatus.BAD_REQUEST, "Procedures are either open or resolved, so none were listed"),
+
     /** A note on a step written by somebody who does not run the procedure. */
     PROCEDURE_STEP_NOTE_NOT_YOURS(
             29, HttpStatus.FORBIDDEN, "Only whoever runs the procedure can write a note on a step"),

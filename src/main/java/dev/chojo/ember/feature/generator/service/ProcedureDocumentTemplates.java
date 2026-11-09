@@ -37,13 +37,23 @@ public class ProcedureDocumentTemplates implements DocumentStepTemplates {
 
     @Override
     public boolean suitable(int stationId, int templateId) {
-        try {
-            var template = templates.requireInUse(stationId, templateId);
-            return !template.forAppointments()
-                    && generator.sourceOf(template).asksMemberSideToSign(MemberView.EVERYBODY);
-        } catch (RefusalResponse refused) {
-            return false;
-        }
+        return usableAt(stationId, templateId)
+                .filter(template -> !template.archived())
+                .filter(ProcedureDocumentTemplates::mayBeAStep)
+                .filter(template -> generator.sourceOf(template).asksMemberSideToSign(MemberView.EVERYBODY))
+                .isPresent();
+    }
+
+    /**
+     * Whether a template may be the document of a step at all: one meant for appointments is not, since it
+     * is drawn for an appointment a procedure does not have. Choosing a step's document and generating it
+     * both ask this.
+     *
+     * @param template the template
+     * @return whether a step may name it
+     */
+    static boolean mayBeAStep(DocumentTemplate template) {
+        return !template.forAppointments();
     }
 
     @Override

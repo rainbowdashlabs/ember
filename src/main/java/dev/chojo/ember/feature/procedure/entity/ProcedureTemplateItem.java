@@ -20,18 +20,6 @@ public record ProcedureTemplateItem(
         ProcedureStepKind kind,
         @Nullable Integer documentTemplateId) {
 
-    /** A step ticked by hand. */
-    public ProcedureTemplateItem(
-            int id,
-            int templateId,
-            String title,
-            @Nullable String description,
-            boolean isPublic,
-            boolean userAssigned,
-            int position) {
-        this(id, templateId, title, description, isPublic, userAssigned, position, ProcedureStepKind.CHECK, null);
-    }
-
     @MappingProvider("")
     public static RowMapping<ProcedureTemplateItem> map() {
         return row -> new ProcedureTemplateItem(
@@ -44,5 +32,10 @@ public record ProcedureTemplateItem(
                 row.getInt("position"),
                 ProcedureStepKind.valueOf(row.getString("kind")),
                 row.getObject("document_template_id", Integer.class));
+    }
+
+    /** @return whether the step asks to sign a document rather than to be ticked by hand */
+    public boolean asksToSign() {
+        return kind == ProcedureStepKind.DOCUMENT;
     }
 }

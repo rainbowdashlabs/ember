@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.procedure.handler;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.ProcedureAssigned;
-import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
@@ -38,10 +37,7 @@ public class ProcedureAssignedHandler implements DomainEventHandler<ProcedureAss
 
     @Override
     public void handle(ProcedureAssigned event) {
-        String assignedByName = stationMemberRepository
-                .findById(event.assignedByMemberId())
-                .map(StationMember::displayName)
-                .orElse("?");
+        String assignedByName = stationMemberRepository.displayNameOr(event.assignedByMemberId(), "?");
         var data = NotificationData.of(
                 new NotificationParams.ProcedureAssigned(event.procedureName(), assignedByName),
                 new NotificationData.NotificationLink("procedure-detail", Map.of("id", event.procedureId())));

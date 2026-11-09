@@ -29,36 +29,6 @@ public record ProcedureItem(
         @Nullable Integer documentTemplateId,
         @Nullable Integer generationId) {
 
-    /** A step ticked by hand. */
-    public ProcedureItem(
-            int id,
-            int procedureId,
-            String title,
-            @Nullable String description,
-            @Nullable String note,
-            boolean isPublic,
-            boolean userAssigned,
-            int position,
-            boolean checked,
-            @Nullable Instant checkedAt,
-            @Nullable Integer checkedBy) {
-        this(
-                id,
-                procedureId,
-                title,
-                description,
-                note,
-                isPublic,
-                userAssigned,
-                position,
-                checked,
-                checkedAt,
-                checkedBy,
-                ProcedureStepKind.CHECK,
-                null,
-                null);
-    }
-
     @MappingProvider("")
     public static RowMapping<ProcedureItem> map() {
         return row -> new ProcedureItem(
@@ -76,6 +46,16 @@ public record ProcedureItem(
                 ProcedureStepKind.valueOf(row.getString("kind")),
                 row.getObject("document_template_id", Integer.class),
                 row.getObject("generation_id", Integer.class));
+    }
+
+    /** @return whether the step asks to sign a document rather than to be ticked by hand */
+    public boolean asksToSign() {
+        return kind == ProcedureStepKind.DOCUMENT;
+    }
+
+    /** @return whether the step made its document and waits for its signatures, not ticked yet */
+    public boolean awaitsSignatures() {
+        return asksToSign() && generationId != null && !checked;
     }
 
     /** @return the step without the note of those who run it, as the member it is about reads it */

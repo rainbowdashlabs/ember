@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentCell;
@@ -16,10 +15,7 @@ import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateSummary;
 import dev.chojo.ember.feature.generator.service.GeneratorTestBase;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
-import dev.chojo.ember.feature.members.repository.StationFieldSetRepository;
 import dev.chojo.ember.owner.Owner;
-import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -35,27 +31,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * the checks a manager's template passes, and printed for a seeded member with invented data only, but for
  * the carer of the station who issues it.
  */
-class DemoDocumentTemplateSeederTest extends RepositoryTestBase {
+class DemoDocumentTemplateSeederTest extends DemoTestBase {
     private static DemoRunContext run;
     private static GeneratorTestBase.Wiring wiring;
     private static DemoDocumentTemplateSeeder seeder;
 
     @BeforeAll
     static void seedTheDemoStations() {
-        run = new DemoRunContext(new PasswordHasher().hash(DemoSeeder.PASSWORD));
-        new DemoStationSeeder(accountRepo, stationRepo).seed(run);
-        new DemoMemberSeeder(
-                        accountRepo,
-                        stationMemberRepo,
-                        memberLookupService,
-                        memberGroupRepo,
-                        new MemberGroupSetRepository(),
-                        profileFieldRepo,
-                        profileFieldChangeRepo,
-                        userTagRepo,
-                        stationRepo,
-                        new StationFieldSetRepository())
-                .seed(run);
+        run = seedDemoStations();
         wiring = GeneratorTestBase.wire(run.primaryStation().station());
         seeder = new DemoDocumentTemplateSeeder(wiring.templates(), memberGroupRepo);
         seeder.seed(run);

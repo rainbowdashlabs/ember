@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.generator.service;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.api.refusal.ProcedureRefusal;
 import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.documents.service.DocumentDoor;
 import dev.chojo.ember.feature.documents.service.DocumentIntake;
@@ -378,11 +379,7 @@ public class DocumentGenerationService {
      * @return the filed document
      */
     public GeneratedDocumentResponse generateForWitness(StationSession session, int templateId, int memberId) {
-        var template = templates.requireInUse(session.stationId(), templateId);
-        templates.requireMeantFor(template, session.stationId(), memberId);
-        if (!generator.sourceOf(template).asksMemberSideToSign(MemberView.EVERYBODY)) {
-            throw DocumentRefusal.SIGNING_NO_FIELDS.raise();
-        }
+        var template = requireSignableFor(session.stationId(), templateId, memberId);
         var context = GenerationContext.by(session.member().id(), issuers.ofTemplate(template, session.stationId()));
         var prepared = generator.prepare(template, memberId, context);
         generator.requireComplete(prepared, DocumentRefusal.DOCUMENT_SELF_SERVICE_VALUES_MISSING);
@@ -403,14 +400,31 @@ public class DocumentGenerationService {
      */
     public GeneratedDocumentResponse generateForProcedure(
             int stationId, int templateId, int memberId, int generatedBy) {
+        var template = requireSignableFor(stationId, templateId, memberId);
+        if (!ProcedureDocumentTemplates.mayBeAStep(template)) {
+            throw ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_UNSUITABLE.raise();
+        }
+        var context = GenerationContext.by(generatedBy, issuers.ofTemplate(template, stationId));
+        var prepared = generator.prepare(template, memberId, context);
+        return file(template, memberId, generatedBy, GenerationOrigin.PROCEDURE, prepared);
+    }
+
+    /**
+     * A template in use at the station, meant for the member, whose document asks the member or a guardian
+     * to sign, as a document generated to be signed right away has to be.
+     *
+     * @param stationId  the station the document is filed at
+     * @param templateId the template
+     * @param memberId   the member it is about
+     * @return the template
+     */
+    private DocumentTemplate requireSignableFor(int stationId, int templateId, int memberId) {
         var template = templates.requireInUse(stationId, templateId);
         templates.requireMeantFor(template, stationId, memberId);
         if (!generator.sourceOf(template).asksMemberSideToSign(MemberView.EVERYBODY)) {
             throw DocumentRefusal.SIGNING_NO_FIELDS.raise();
         }
-        var context = GenerationContext.by(generatedBy, issuers.ofTemplate(template, stationId));
-        var prepared = generator.prepare(template, memberId, context);
-        return file(template, memberId, generatedBy, GenerationOrigin.PROCEDURE, prepared);
+        return template;
     }
 
     /**

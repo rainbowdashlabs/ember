@@ -211,33 +211,27 @@ COMMENT ON TABLE ember_schema.document_template_station_use_restriction IS
     'For whom of a station a template of its association is meant: the members its documents are generated for there, by managers, runs, witnesses, appointments and self service. Empty means every member. Shaped like event_restriction.';
 
 ALTER TABLE ember_schema.procedure
-    ADD COLUMN IF NOT EXISTS about_member_id  INT NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
-    ADD COLUMN IF NOT EXISTS restriction_mode TEXT NOT NULL DEFAULT 'AND' CHECK (restriction_mode IN ('AND', 'OR'));
+    ADD COLUMN about_member_id  INT NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    ADD COLUMN restriction_mode TEXT NOT NULL DEFAULT 'AND' CHECK (restriction_mode IN ('AND', 'OR')),
+    ADD COLUMN resolved_by      INT NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    ADD COLUMN due_reminded_at  TIMESTAMPTZ NULL;
 
 COMMENT ON COLUMN ember_schema.procedure.about_member_id IS
     'The member the procedure is about, whose documents its document steps generate. NULL for procedures from before it was asked for, and once that member was deleted.';
 COMMENT ON COLUMN ember_schema.procedure.restriction_mode IS
     'AND or OR, how the parts of procedure_restriction combine.';
-
-ALTER TABLE ember_schema.procedure
-    ADD COLUMN IF NOT EXISTS resolved_by INT NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL;
-
 COMMENT ON COLUMN ember_schema.procedure.resolved_by IS
     'The member who resolved the procedure, told when a signature one of its document steps rests on is withdrawn afterwards. NULL while it is open, for procedures resolved before it was recorded, and once that member was deleted.';
-
-ALTER TABLE ember_schema.procedure
-    ADD COLUMN IF NOT EXISTS due_reminded_at TIMESTAMPTZ NULL;
-
 COMMENT ON COLUMN ember_schema.procedure.due_reminded_at IS
     'When the signatures its document steps still waited for were reminded of because the procedure falls due within two days. NULL while that reminder has not been sent; cleared when the due date changes.';
 
 ALTER TABLE ember_schema.signing_request
-    ADD COLUMN IF NOT EXISTS purpose TEXT NULL;
+    ADD COLUMN purpose TEXT NULL;
 
 COMMENT ON COLUMN ember_schema.signing_request.purpose IS
     'What the signatures are asked for, named to the signers, such as the procedure a document step belongs to. NULL where the document alone says it.';
 
-CREATE TABLE IF NOT EXISTS ember_schema.procedure_restriction
+CREATE TABLE ember_schema.procedure_restriction
 (
     id           SERIAL PRIMARY KEY,
     procedure_id INT NOT NULL REFERENCES ember_schema.procedure (id) ON DELETE CASCADE,
@@ -248,9 +242,9 @@ CREATE TABLE IF NOT EXISTS ember_schema.procedure_restriction
     CHECK (num_nonnulls(user_type, group_id, tag_id, member_id) = 1)
 );
 
-CREATE INDEX IF NOT EXISTS idx_procedure_restriction_procedure
+CREATE INDEX idx_procedure_restriction_procedure
     ON ember_schema.procedure_restriction (procedure_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_procedure_restriction_member
+CREATE INDEX idx_procedure_restriction_member
     ON ember_schema.procedure_restriction (member_id, procedure_id) WHERE member_id IS NOT NULL;
 
 COMMENT ON TABLE ember_schema.procedure_restriction IS
@@ -268,15 +262,15 @@ INSERT INTO ember_schema.procedure_restriction (procedure_id, member_id)
 SELECT procedure_id, member_id
 FROM ember_schema.procedure_assignee;
 
-DROP TABLE IF EXISTS ember_schema.procedure_assignee;
+DROP TABLE ember_schema.procedure_assignee;
 
 ALTER TABLE ember_schema.procedure_template
-    ADD COLUMN IF NOT EXISTS restriction_mode TEXT NOT NULL DEFAULT 'AND' CHECK (restriction_mode IN ('AND', 'OR'));
+    ADD COLUMN restriction_mode TEXT NOT NULL DEFAULT 'AND' CHECK (restriction_mode IN ('AND', 'OR'));
 
 COMMENT ON COLUMN ember_schema.procedure_template.restriction_mode IS
     'AND or OR, how the parts of procedure_template_restriction combine.';
 
-CREATE TABLE IF NOT EXISTS ember_schema.procedure_template_restriction
+CREATE TABLE ember_schema.procedure_template_restriction
 (
     id          SERIAL PRIMARY KEY,
     template_id INT NOT NULL REFERENCES ember_schema.procedure_template (id) ON DELETE CASCADE,
@@ -287,7 +281,7 @@ CREATE TABLE IF NOT EXISTS ember_schema.procedure_template_restriction
     CHECK (num_nonnulls(user_type, group_id, tag_id, member_id) = 1)
 );
 
-CREATE INDEX IF NOT EXISTS idx_procedure_template_restriction_template
+CREATE INDEX idx_procedure_template_restriction_template
     ON ember_schema.procedure_template_restriction (template_id);
 
 COMMENT ON TABLE ember_schema.procedure_template_restriction IS
@@ -302,8 +296,8 @@ COMMENT ON COLUMN ember_schema.procedure_template_restriction.member_id IS
     'Specific member (always OR-connected, bypasses AND/OR mode).';
 
 ALTER TABLE ember_schema.procedure_template_item
-    ADD COLUMN IF NOT EXISTS kind                 TEXT NOT NULL DEFAULT 'CHECK' CHECK (kind IN ('CHECK', 'DOCUMENT')),
-    ADD COLUMN IF NOT EXISTS document_template_id INT NULL REFERENCES ember_schema.document_template (id) ON DELETE SET NULL,
+    ADD COLUMN kind                 TEXT NOT NULL DEFAULT 'CHECK' CHECK (kind IN ('CHECK', 'DOCUMENT')),
+    ADD COLUMN document_template_id INT NULL REFERENCES ember_schema.document_template (id) ON DELETE SET NULL,
     ADD CONSTRAINT procedure_template_item_document_check CHECK (kind = 'DOCUMENT' OR document_template_id IS NULL);
 
 COMMENT ON COLUMN ember_schema.procedure_template_item.kind IS
@@ -312,13 +306,13 @@ COMMENT ON COLUMN ember_schema.procedure_template_item.document_template_id IS
     'The document template a DOCUMENT step generates. NULL for a CHECK step, and once the template was deleted.';
 
 ALTER TABLE ember_schema.procedure_item
-    ADD COLUMN IF NOT EXISTS kind                 TEXT NOT NULL DEFAULT 'CHECK' CHECK (kind IN ('CHECK', 'DOCUMENT')),
-    ADD COLUMN IF NOT EXISTS document_template_id INT NULL REFERENCES ember_schema.document_template (id) ON DELETE SET NULL,
-    ADD COLUMN IF NOT EXISTS generation_id        INT NULL REFERENCES ember_schema.document_generation (id) ON DELETE SET NULL,
+    ADD COLUMN kind                 TEXT NOT NULL DEFAULT 'CHECK' CHECK (kind IN ('CHECK', 'DOCUMENT')),
+    ADD COLUMN document_template_id INT NULL REFERENCES ember_schema.document_template (id) ON DELETE SET NULL,
+    ADD COLUMN generation_id        INT NULL REFERENCES ember_schema.document_generation (id) ON DELETE SET NULL,
     ADD CONSTRAINT procedure_item_document_check
         CHECK (kind = 'DOCUMENT' OR (document_template_id IS NULL AND generation_id IS NULL));
 
-CREATE INDEX IF NOT EXISTS idx_procedure_item_generation
+CREATE INDEX idx_procedure_item_generation
     ON ember_schema.procedure_item (generation_id) WHERE generation_id IS NOT NULL;
 
 COMMENT ON COLUMN ember_schema.procedure_item.kind IS

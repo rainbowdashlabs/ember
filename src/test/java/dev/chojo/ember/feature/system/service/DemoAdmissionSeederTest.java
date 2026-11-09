@@ -5,14 +5,9 @@
  */
 package dev.chojo.ember.feature.system.service;
 
-import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.feature.documents.service.DocumentAccessService;
 import dev.chojo.ember.feature.generator.service.GeneratorTestBase;
 import dev.chojo.ember.feature.generator.service.ProcedureDocumentTemplates;
-import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
-import dev.chojo.ember.feature.members.repository.StationFieldSetRepository;
-import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStepKind;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
@@ -20,15 +15,7 @@ import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.signing.entity.FieldRole;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
-import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
-import dev.chojo.ember.feature.signing.service.ProcedureSignatures;
-import dev.chojo.ember.feature.signing.service.SignatureRequestService;
-import dev.chojo.ember.feature.signing.service.SignerResolver;
-import dev.chojo.ember.feature.signing.service.SigningGuards;
-import dev.chojo.ember.feature.signing.service.TemplateDocumentStatements;
-import dev.chojo.ember.feature.signing.service.TestNotices;
 import dev.chojo.ember.owner.Owner;
-import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -46,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * procedure about the last beginner seeded, whose application is asked for. Seeding twice leaves one
  * template and one application.
  */
-class DemoAdmissionSeederTest extends RepositoryTestBase {
+class DemoAdmissionSeederTest extends DemoTestBase {
     private static DemoRunContext run;
     private static GeneratorTestBase.Wiring wiring;
     private static ProcedureDocumentTemplates documentSteps;
@@ -56,54 +43,18 @@ class DemoAdmissionSeederTest extends RepositoryTestBase {
 
     @BeforeAll
     static void seedTheDemoStations() {
-        run = new DemoRunContext(new PasswordHasher().hash(DemoSeeder.PASSWORD));
-        new DemoStationSeeder(accountRepo, stationRepo).seed(run);
-        new DemoMemberSeeder(
-                        accountRepo,
-                        stationMemberRepo,
-                        memberLookupService,
-                        memberGroupRepo,
-                        new MemberGroupSetRepository(),
-                        profileFieldRepo,
-                        profileFieldChangeRepo,
-                        userTagRepo,
-                        stationRepo,
-                        new StationFieldSetRepository())
-                .seed(run);
+        run = seedDemoStations();
         wiring = GeneratorTestBase.wire(run.primaryStation().station());
         documentSteps = new ProcedureDocumentTemplates(wiring.templates(), wiring.generator());
-        var guardianPolicy = new GuardianPolicy(stationMemberRepo);
-        var guards = new SigningGuards(
-                new DocumentAccessService(memberDocumentRepo, wiring.documents(), guardianPolicy),
-                memberDocumentRepo,
-                guardianPolicy);
-        var notices = TestNotices.notices(
-                newNotifier(), emailQueueRepo, stationRepo, stationMemberRepo, accountRepo, memberDocumentRepo);
-        var requests = new SignatureRequestService(
-                requestRepo,
-                new SigningEvidenceRepository(),
-                wiring.log(),
-                memberDocumentRepo,
-                wiring.documents(),
-                stationMemberRepo,
-                memberNameResolver,
-                guardianPolicy,
-                new SignerResolver(stationMemberRepo, memberNameResolver, memberPermissionResolver),
-                guards,
-                notices,
-                new TemplateDocumentStatements(wiring.generator()));
-        var signing = new ProcedureSignatures(
-                wiring.generation(),
-                requests,
-                stationMemberRepo,
-                memberPermissionResolver,
-                wiring.log(),
-                requestRepo,
-                notices);
+        var signing = GeneratorTestBase.signing(wiring, requestRepo, new DomainEventBus(Set.of()));
         var procedures = new ProcedureService(
-                procedureRepo, new DomainEventBus(Set.of()), restrictionService, documentSteps, signing);
-        seeder = new DemoAdmissionSeeder(
-                wiring.templates(), procedureRepo, procedures, restrictionService, memberGroupRepo);
+                procedureRepo,
+                new DomainEventBus(Set.of()),
+                restrictionService,
+                documentSteps,
+                signing.procedures(),
+                stationMemberRepo);
+        seeder = new DemoAdmissionSeeder(wiring.templates(), procedureRepo, procedures, restrictionService);
         seeder.seedStation(run, run.primaryStation());
     }
 

@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.procedure.handler;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.ProcedureDocumentWithdrawn;
-import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
@@ -42,10 +41,7 @@ public class ProcedureDocumentWithdrawnHandler implements DomainEventHandler<Pro
 
     @Override
     public void handle(ProcedureDocumentWithdrawn event) {
-        String withdrawnByName = stationMemberRepository
-                .findById(event.withdrawnBy())
-                .map(StationMember::displayName)
-                .orElse("?");
+        String withdrawnByName = stationMemberRepository.displayNameOr(event.withdrawnBy(), "?");
         var data = NotificationData.of(
                 new NotificationParams.ProcedureDocumentWithdrawnParams(
                         event.procedureName(), event.itemTitle(), withdrawnByName),

@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.service.NotificationInbox;
@@ -22,9 +23,6 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Singleton
 public class SidebarCountService {
@@ -41,6 +39,7 @@ public class SidebarCountService {
     private final ItemMovementService movementService;
     private final ProcedureService procedureService;
     private final StationMemberService stationMemberService;
+    private final GuardianPolicy guardians;
 
     @Inject
     public SidebarCountService(
@@ -56,7 +55,8 @@ public class SidebarCountService {
             InventoryService inventoryService,
             ItemMovementService movementService,
             ProcedureService procedureService,
-            StationMemberService stationMemberService) {
+            StationMemberService stationMemberService,
+            GuardianPolicy guardians) {
         this.notificationInbox = notificationInbox;
         this.requirementsService = requirementsService;
         this.profileFieldChangeRepository = profileFieldChangeRepository;
@@ -70,6 +70,7 @@ public class SidebarCountService {
         this.movementService = movementService;
         this.procedureService = procedureService;
         this.stationMemberService = stationMemberService;
+        this.guardians = guardians;
     }
 
     public SidebarCounts getCounts(StationSession session) {
@@ -128,7 +129,8 @@ public class SidebarCountService {
             procedureCount = procedureService.countOpenByStation(stationId);
         } else {
             procedureCount = procedureService.countOpenRunByWithAvailableItems(stationId, memberId)
-                    + procedureService.countOpenPublicAboutNotRunBy(stationId, memberId, household(memberId));
+                    + procedureService.countOpenPublicAboutNotRunBy(
+                            stationId, memberId, guardians.householdOf(memberId));
         }
 
         return new SidebarCounts(
@@ -144,14 +146,6 @@ public class SidebarCountService {
                 myInventoryCount,
                 openMovements,
                 procedureCount);
-    }
-
-    /** The member and the members in their care, whom the relation alone decides. */
-    private List<Integer> household(int memberId) {
-        var ids = new ArrayList<Integer>();
-        ids.add(memberId);
-        stationMemberService.findManaged(memberId).forEach(managed -> ids.add(managed.id()));
-        return ids;
     }
 
     /**

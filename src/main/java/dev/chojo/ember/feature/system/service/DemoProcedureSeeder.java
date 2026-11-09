@@ -6,23 +6,22 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.procedure.entity.Procedure;
-import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
-import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
+import dev.chojo.ember.feature.procedure.entity.StepKindChoice;
 import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
+import dev.chojo.ember.feature.procedure.service.ProcedureDraft;
+import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 
@@ -32,11 +31,13 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
 
     private final ProcedureRepository repo;
     private final RestrictionService restrictions;
+    private final ProcedureService procedures;
 
     @Inject
-    public DemoProcedureSeeder(ProcedureRepository repo, RestrictionService restrictions) {
+    public DemoProcedureSeeder(ProcedureRepository repo, RestrictionService restrictions, ProcedureService procedures) {
         this.repo = repo;
         this.restrictions = restrictions;
+        this.procedures = procedures;
     }
 
     @Override
@@ -69,44 +70,56 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
                 "Eltern müssen das Anmeldeformular unterschrieben abgeben.",
                 true,
                 true,
-                0);
+                0,
+                StepKindChoice.CHECK);
         var ob2 = repo.createTemplateItem(
                 onboarding.id(),
                 "Mitgliedsbeitrag überweisen",
                 "Jahresbeitrag muss auf das Vereinskonto eingehen.",
                 true,
                 true,
-                1);
+                1,
+                StepKindChoice.CHECK);
         repo.createTemplateItem(
                 onboarding.id(),
                 "Ärztliches Attest vorlegen",
                 "Sporttauglichkeitsbescheinigung vom Arzt.",
                 true,
                 true,
-                2);
+                2,
+                StepKindChoice.CHECK);
         var ob4 = repo.createTemplateItem(
                 onboarding.id(),
                 "Kleidung ausgeben",
                 "Einsatzjacke, Hose und Helm aus dem Lager ausgeben.",
                 true,
                 false,
-                3);
+                3,
+                StepKindChoice.CHECK);
         var ob5 = repo.createTemplateItem(
                 onboarding.id(),
                 "Sicherheitseinweisung durchführen",
                 "Einweisung in Gerätehaus, Sammelplatz und Verhalten im Notfall.",
                 true,
                 false,
-                4);
+                4,
+                StepKindChoice.CHECK);
         var ob6 = repo.createTemplateItem(
-                onboarding.id(), "In Gruppe einteilen", "Mitglied einer Übungsgruppe zuweisen.", true, false, 5);
+                onboarding.id(),
+                "In Gruppe einteilen",
+                "Mitglied einer Übungsgruppe zuweisen.",
+                true,
+                false,
+                5,
+                StepKindChoice.CHECK);
         var ob7 = repo.createTemplateItem(
                 onboarding.id(),
                 "Probezeit abschließen",
                 "Nach 3 Monaten Probezeit: Endgültige Aufnahme bestätigen.",
                 true,
                 false,
-                6);
+                6,
+                StepKindChoice.CHECK);
 
         repo.setTemplateItemDependencies(
                 onboarding.id(),
@@ -124,39 +137,75 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
                 admin.id());
 
         repo.createTemplateItem(
-                equipment.id(), "Größe ermitteln", "Körpergröße und Konfektionsgröße aufnehmen.", true, false, 0);
+                equipment.id(),
+                "Größe ermitteln",
+                "Körpergröße und Konfektionsgröße aufnehmen.",
+                true,
+                false,
+                0,
+                StepKindChoice.CHECK);
         repo.createTemplateItem(
-                equipment.id(), "Helm anpassen", "Passenden Helm auswählen und Größe einstellen.", true, false, 1);
+                equipment.id(),
+                "Helm anpassen",
+                "Passenden Helm auswählen und Größe einstellen.",
+                true,
+                false,
+                1,
+                StepKindChoice.CHECK);
         repo.createTemplateItem(
-                equipment.id(), "Jacke ausgeben", "Einsatzjacke in passender Größe ausgeben.", true, false, 2);
+                equipment.id(),
+                "Jacke ausgeben",
+                "Einsatzjacke in passender Größe ausgeben.",
+                true,
+                false,
+                2,
+                StepKindChoice.CHECK);
         repo.createTemplateItem(
-                equipment.id(), "Hose ausgeben", "Einsatzhose in passender Größe ausgeben.", true, false, 3);
+                equipment.id(),
+                "Hose ausgeben",
+                "Einsatzhose in passender Größe ausgeben.",
+                true,
+                false,
+                3,
+                StepKindChoice.CHECK);
         repo.createTemplateItem(
-                equipment.id(), "Handschuhe ausgeben", "Passende Schutzhandschuhe ausgeben.", true, false, 4);
+                equipment.id(),
+                "Handschuhe ausgeben",
+                "Passende Schutzhandschuhe ausgeben.",
+                true,
+                false,
+                4,
+                StepKindChoice.CHECK);
         repo.createTemplateItem(
                 equipment.id(),
                 "Inventar dokumentieren",
                 "Alle ausgegebenen Gegenstände im Inventarsystem erfassen.",
                 true,
                 false,
-                5);
+                5,
+                StepKindChoice.CHECK);
         repo.createTemplateItem(
                 equipment.id(),
                 "Bestätigung unterschreiben",
                 "Mitglied/Erziehungsberechtigte unterschreibt Empfangsbestätigung.",
                 true,
                 true,
-                6);
+                6,
+                StepKindChoice.CHECK);
 
-        var completedProc = createFromTemplate(
-                stationId,
-                onboarding.id(),
-                "Einführung: " + anfaenger.getFirst().displayName(),
-                null,
-                true,
-                admin.id(),
+        var completedProc = procedures.createUnannounced(
+                new ProcedureDraft(
+                        stationId,
+                        onboarding.id(),
+                        "Einführung: " + anfaenger.getFirst().displayName(),
+                        null,
+                        true,
+                        admin.id(),
+                        null,
+                        partyOf(List.of(anfaenger.getFirst().id())),
+                        null,
+                        null),
                 null);
-        addToParty(completedProc.id(), anfaenger.getFirst().id());
         var items1 = repo.findItems(completedProc.id());
         for (var item : items1) {
             repo.checkItem(
@@ -167,18 +216,21 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
         }
         repo.resolveProcedure(completedProc.id(), betreuer.getFirst().id());
 
-        var inProgressProc = createFromTemplate(
-                stationId,
-                onboarding.id(),
-                "Einführung: " + anfaenger.get(1).displayName(),
-                null,
-                true,
-                admin.id(),
-                Instant.now().plus(14, ChronoUnit.DAYS));
-        addToParty(inProgressProc.id(), anfaenger.get(1).id());
-        if (!betreuer.isEmpty()) {
-            addToParty(inProgressProc.id(), betreuer.getFirst().id());
-        }
+        var inProgressParty = new ArrayList<>(List.of(anfaenger.get(1).id()));
+        if (!betreuer.isEmpty()) inProgressParty.add(betreuer.getFirst().id());
+        var inProgressProc = procedures.createUnannounced(
+                new ProcedureDraft(
+                        stationId,
+                        onboarding.id(),
+                        "Einführung: " + anfaenger.get(1).displayName(),
+                        null,
+                        true,
+                        admin.id(),
+                        Instant.now().plus(14, ChronoUnit.DAYS),
+                        partyOf(inProgressParty),
+                        null,
+                        null),
+                null);
         var items2 = repo.findItems(inProgressProc.id());
         for (int i = 0; i < Math.min(3, items2.size()); i++) {
             repo.checkItem(items2.get(i).id(), anfaenger.get(1).id());
@@ -198,16 +250,41 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
                 null,
                 null,
                 null);
-        addToParty(overdueProc.id(), betreuer.get(0).id());
-        if (betreuer.size() > 1) {
-            addToParty(overdueProc.id(), betreuer.get(1).id());
-        }
+        setParty(
+                overdueProc.id(),
+                betreuer.stream().limit(2).map(StationMember::id).toList());
         var adHocItem1 = repo.createItem(
-                overdueProc.id(), "Anbieter kontaktieren", "DRK oder Malteser wegen Termin anfragen.", true, true, 0);
-        repo.createItem(overdueProc.id(), "Termin festlegen", "Termin mit der Gruppe abstimmen.", true, true, 1);
-        repo.createItem(overdueProc.id(), "Teilnehmer anmelden", "Alle Mitglieder zum Kurs anmelden.", true, true, 2);
+                overdueProc.id(),
+                "Anbieter kontaktieren",
+                "DRK oder Malteser wegen Termin anfragen.",
+                true,
+                true,
+                0,
+                StepKindChoice.CHECK);
         repo.createItem(
-                overdueProc.id(), "Kosten abrechnen", "Rechnung an den Förderverein weiterleiten.", true, false, 3);
+                overdueProc.id(),
+                "Termin festlegen",
+                "Termin mit der Gruppe abstimmen.",
+                true,
+                true,
+                1,
+                StepKindChoice.CHECK);
+        repo.createItem(
+                overdueProc.id(),
+                "Teilnehmer anmelden",
+                "Alle Mitglieder zum Kurs anmelden.",
+                true,
+                true,
+                2,
+                StepKindChoice.CHECK);
+        repo.createItem(
+                overdueProc.id(),
+                "Kosten abrechnen",
+                "Rechnung an den Förderverein weiterleiten.",
+                true,
+                false,
+                3,
+                StepKindChoice.CHECK);
         repo.checkItem(adHocItem1.id(), betreuer.getFirst().id());
 
         var privateProc = repo.createProcedure(
@@ -221,55 +298,21 @@ public class DemoProcedureSeeder implements DemoPerStationSeeder {
                 null,
                 null,
                 null);
-        addToParty(privateProc.id(), admin.id());
-        repo.createItem(privateProc.id(), "Mitgliederzahlen zusammenstellen", null, false, false, 0);
-        repo.createItem(privateProc.id(), "Übungsstunden auswerten", null, false, false, 1);
-        repo.createItem(privateProc.id(), "Veranstaltungen dokumentieren", null, false, false, 2);
-        repo.createItem(privateProc.id(), "Bericht schreiben", null, false, false, 3);
-        repo.createItem(privateProc.id(), "Bericht an KFV senden", null, false, false, 4);
+        setParty(privateProc.id(), List.of(admin.id()));
+        repo.createItem(
+                privateProc.id(), "Mitgliederzahlen zusammenstellen", null, false, false, 0, StepKindChoice.CHECK);
+        repo.createItem(privateProc.id(), "Übungsstunden auswerten", null, false, false, 1, StepKindChoice.CHECK);
+        repo.createItem(privateProc.id(), "Veranstaltungen dokumentieren", null, false, false, 2, StepKindChoice.CHECK);
+        repo.createItem(privateProc.id(), "Bericht schreiben", null, false, false, 3, StepKindChoice.CHECK);
+        repo.createItem(privateProc.id(), "Bericht an KFV senden", null, false, false, 4, StepKindChoice.CHECK);
     }
 
-    private Procedure createFromTemplate(
-            int stationId,
-            int templateId,
-            String name,
-            @Nullable String description,
-            boolean isPublic,
-            int assignedBy,
-            @Nullable Instant dueAt) {
-        var procedure = repo.createProcedure(
-                stationId, templateId, name, description, isPublic, assignedBy, dueAt, null, null, null);
-
-        var templateItems = repo.findTemplateItems(templateId);
-        var templateDeps = repo.findTemplateItemDependencies(templateId);
-
-        var idMapping = new HashMap<Integer, Integer>();
-        for (ProcedureTemplateItem item : templateItems) {
-            ProcedureItem created = repo.snapshotTemplateItem(procedure.id(), item);
-            idMapping.put(item.id(), created.id());
-        }
-
-        for (int[] dep : templateDeps) {
-            Integer newItemId = idMapping.get(dep[0]);
-            Integer newDependsOnId = idMapping.get(dep[1]);
-            if (newItemId != null && newDependsOnId != null) {
-                repo.addItemDependency(newItemId, newDependsOnId);
-            }
-        }
-
-        return procedure;
+    /** Gives a procedure a managing party naming the given members, all at once. */
+    private void setParty(int procedureId, List<Integer> memberIds) {
+        restrictions.setAudience(RestrictionType.PROCEDURE, procedureId, partyOf(memberIds));
     }
 
-    /** Names one more member in a procedure's managing party. */
-    private void addToParty(int procedureId, int memberId) {
-        var selection =
-                restrictions.audienceOf(RestrictionType.PROCEDURE, procedureId).toSelection();
-        var members = new ArrayList<>(selection.memberIds());
-        members.add(memberId);
-        restrictions.setAudience(
-                RestrictionType.PROCEDURE,
-                procedureId,
-                new RestrictionAudience(
-                        selection.userTypes(), selection.groupIds(), selection.tagIds(), members, selection.mode()));
+    private static RestrictionAudience partyOf(List<Integer> memberIds) {
+        return new RestrictionAudience(List.of(), List.of(), List.of(), memberIds, RestrictionMode.AND);
     }
 }

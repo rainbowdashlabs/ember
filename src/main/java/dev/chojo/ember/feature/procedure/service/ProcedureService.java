@@ -15,6 +15,7 @@ import dev.chojo.ember.event.events.ProcedureDocumentWithdrawn;
 import dev.chojo.ember.event.events.ProcedureItemChecked;
 import dev.chojo.ember.event.events.ProcedureReopened;
 import dev.chojo.ember.event.events.ProcedureResolved;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
@@ -26,6 +27,7 @@ import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -53,6 +55,7 @@ public class ProcedureService {
     private final RestrictionService restrictions;
     private final DocumentStepTemplates documentSteps;
     private final DocumentStepSigning signing;
+    private final StationMemberRepository members;
     /** Held while the document steps of a procedure are asked for, so a step never generates twice at once. */
     private final Object[] asking = new Object[64];
 
@@ -62,12 +65,14 @@ public class ProcedureService {
             DomainEventBus eventBus,
             RestrictionService restrictions,
             DocumentStepTemplates documentSteps,
-            DocumentStepSigning signing) {
+            DocumentStepSigning signing,
+            StationMemberRepository members) {
         this.repository = repository;
         this.eventBus = eventBus;
         this.restrictions = restrictions;
         this.documentSteps = documentSteps;
         this.signing = signing;
+        this.members = members;
         Arrays.setAll(asking, index -> new Object());
     }
 
@@ -79,14 +84,47 @@ public class ProcedureService {
         return repository.findTemplateById(id);
     }
 
-    public ProcedureTemplate createTemplate(int stationId, String name, @Nullable String description, int createdBy) {
-        var template = repository.createTemplate(stationId, name, description, createdBy);
+    /**
+     * Writes a procedure template together with the managing party it hands to every procedure started
+     * from it. The party is checked before anything is written, and both are written in one transaction.
+     *
+     * @param party the party, or null to hand none
+     * @return the template
+     */
+    public ProcedureTemplate createTemplate(
+            int stationId,
+            String name,
+            @Nullable String description,
+            int createdBy,
+            @Nullable RestrictionAudience party) {
+        var checked = party == null ? null : ofStation(stationId, party);
+        var template = Transactions.call(() -> {
+            var created = repository.createTemplate(stationId, name, description, createdBy);
+            if (checked != null) setTemplateParty(created.id(), checked);
+            return created;
+        });
         log.info("Created procedure template {} on station {} by member {}", template.id(), stationId, createdBy);
         return template;
     }
 
-    public Optional<ProcedureTemplate> updateTemplate(int id, String name, @Nullable String description) {
-        if (repository.updateTemplate(id, name, description)) {
+    /**
+     * Renames a procedure template and, where one is given, gives it another managing party. The party is
+     * checked before anything is written, and both are written in one transaction, so a refused party leaves
+     * the name as it was.
+     *
+     * @param stationId the template's station
+     * @param party     the party, or null to leave it as it is
+     * @return the template as it now stands, empty where it is gone
+     */
+    public Optional<ProcedureTemplate> updateTemplate(
+            int stationId, int id, String name, @Nullable String description, @Nullable RestrictionAudience party) {
+        var checked = party == null ? null : ofStation(stationId, party);
+        boolean updated = Transactions.call(() -> {
+            if (!repository.updateTemplate(id, name, description)) return false;
+            if (checked != null) setTemplateParty(id, checked);
+            return true;
+        });
+        if (updated) {
             log.info("Updated procedure template {}", id);
             return repository.findTemplateById(id);
         }
@@ -109,32 +147,50 @@ public class ProcedureService {
     }
 
     /**
-     * Adds a step to a template, asking for what it is given in the same write.
+     * Adds a step to a template, asking for what it is given in the same write. A template is about nobody,
+     * so a document step is checked against the member a procedure is about only once one is started from
+     * it.
      *
-     * @param kind what the step asks for, as {@link #kindChange} decided it
+     * @param template           the template
+     * @param step               the step
+     * @param generatesDocuments whether the caller may generate documents for members
      * @return the step
      */
-    public ProcedureTemplateItem createTemplateItem(
-            int templateId,
-            String title,
-            @Nullable String description,
-            boolean isPublic,
-            boolean userAssigned,
-            int position,
-            StepKindChoice kind) {
-        var item =
-                repository.createTemplateItem(templateId, title, description, isPublic, userAssigned, position, kind);
-        log.info("Created procedure template item {} on template {} asking for {}", item.id(), templateId, kind);
+    public ProcedureTemplateItem addTemplateStep(
+            ProcedureTemplate template, StepDraft step, boolean generatesDocuments) {
+        var kind = kindOf(template.stationId(), StepKindChoice.CHECK, step, generatesDocuments)
+                .orElse(StepKindChoice.CHECK);
+        var item = repository.createTemplateItem(
+                template.id(),
+                step.title(),
+                step.description(),
+                step.isPublic(),
+                step.userAssigned(),
+                step.position(),
+                kind);
+        log.info("Created procedure template item {} on template {} asking for {}", item.id(), template.id(), kind);
         return item;
     }
 
-    public boolean updateTemplateItem(
-            int id, String title, @Nullable String description, boolean isPublic, boolean userAssigned, int position) {
-        boolean updated = repository.updateTemplateItem(id, title, description, isPublic, userAssigned, position);
+    /**
+     * Changes a step of a template, and what it asks for where the request names something else.
+     *
+     * @param stationId          the template's station
+     * @param current            the step as it stands
+     * @param step               the step as it is to be
+     * @param generatesDocuments whether the caller may generate documents for members
+     * @return whether the step was there
+     */
+    public boolean editTemplateStep(
+            int stationId, ProcedureTemplateItem current, StepDraft step, boolean generatesDocuments) {
+        kindOf(stationId, StepKindChoice.of(current), step, generatesDocuments)
+                .ifPresent(kind -> repository.setTemplateItemKind(current.id(), kind));
+        boolean updated = repository.updateTemplateItem(
+                current.id(), step.title(), step.description(), step.isPublic(), step.userAssigned(), step.position());
         if (updated) {
-            log.info("Updated procedure template item {}", id);
+            log.info("Updated procedure template item {}", current.id());
         } else {
-            log.warn("Update for procedure template item {} affected zero rows", id);
+            log.warn("Update for procedure template item {} affected zero rows", current.id());
         }
         return updated;
     }
@@ -147,31 +203,7 @@ public class ProcedureService {
      * @return whether any of its steps asks to sign a document
      */
     public boolean asksToSign(int templateId) {
-        return repository.findTemplateItems(templateId).stream()
-                .anyMatch(item -> item.kind() == ProcedureStepKind.DOCUMENT);
-    }
-
-    /**
-     * Makes a template step a step ticked by hand or a document to sign.
-     *
-     * @param itemId the step
-     * @param kind   what the step asks for, as {@link #kindChange} decided it
-     */
-    public void setTemplateStepKind(int itemId, StepKindChoice kind) {
-        repository.setTemplateItemKind(itemId, kind);
-    }
-
-    /**
-     * Makes a step of a procedure a step ticked by hand or a document to sign, refused once it made its
-     * document.
-     *
-     * @param item the step as it stands
-     * @param kind what the step asks for, as {@link #kindChange} decided it
-     */
-    public void setStepKind(ProcedureItem item, StepKindChoice kind) {
-        if (!repository.setItemKind(item.id(), kind)) {
-            throw ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_ALREADY_MADE.raise();
-        }
+        return repository.findTemplateItems(templateId).stream().anyMatch(ProcedureTemplateItem::asksToSign);
     }
 
     /**
@@ -184,17 +216,14 @@ public class ProcedureService {
      *
      * @param stationId          the station whose document templates a step may generate
      * @param current            what the step asks for now; a step ticked by hand for a new one
-     * @param kind               what the request asks for, null to leave it
-     * @param documentTemplateId the document template of a document step
+     * @param step               the request, naming the kind and the document template of a document step
      * @param generatesDocuments whether the caller may generate documents for members
      * @return what the step is to ask for, empty where nothing changes
      */
-    public Optional<StepKindChoice> kindChange(
-            int stationId,
-            StepKindChoice current,
-            @Nullable ProcedureStepKind kind,
-            @Nullable Integer documentTemplateId,
-            boolean generatesDocuments) {
+    private Optional<StepKindChoice> kindOf(
+            int stationId, StepKindChoice current, StepDraft step, boolean generatesDocuments) {
+        var kind = step.kind();
+        var documentTemplateId = step.documentTemplateId();
         if (kind == null) return Optional.empty();
         if (kind == ProcedureStepKind.CHECK) {
             return current.equals(StepKindChoice.CHECK) ? Optional.empty() : Optional.of(StepKindChoice.CHECK);
@@ -309,97 +338,38 @@ public class ProcedureService {
      * anything is written, and those that are unlocked right away are generated and asked for once it
      * stands.
      *
-     * @param eventId       the appointment this was prepared for, or {@code null} for a procedure that
-     *                      stands on its own
-     * @param eventDate     the one occurrence of that appointment, {@code null} exactly when the
-     *                      appointment is
+     * @param draft         what the procedure starts with
      * @param aboutMemberId the member the procedure is about, or {@code null} for nobody in particular
+     * @return the procedure
      */
-    public Procedure createProcedure(
-            int stationId,
-            @Nullable Integer templateId,
-            String name,
-            @Nullable String description,
-            boolean isPublic,
-            int assignedBy,
-            @Nullable Instant dueAt,
-            @Nullable RestrictionAudience party,
-            @Nullable Integer eventId,
-            @Nullable LocalDate eventDate,
-            @Nullable Integer aboutMemberId) {
-        var procedure = write(
-                stationId,
-                templateId,
-                name,
-                description,
-                isPublic,
-                assignedBy,
-                dueAt,
-                party,
-                eventId,
-                eventDate,
-                aboutMemberId,
-                true);
-        askUnlocked(procedure.id(), assignedBy);
+    public Procedure createProcedure(ProcedureDraft draft, @Nullable Integer aboutMemberId) {
+        var plan = planOf(draft);
+        var procedure = persistChecked(plan, aboutMemberId);
+        tellNamed(plan, procedure);
+        askUnlocked(procedure.id(), draft.assignedBy());
         return procedure;
     }
 
     /**
-     * Writes a procedure as {@link #createProcedure} describes it, without asking for its document steps.
+     * Starts a procedure as {@link #createProcedure} does, except that nobody is told it was handed to
+     * them. Only for procedures seeded as demo data, which nobody handed to anybody.
      *
-     * @param tell whether the members the party names one by one are told it was handed to them
+     * @param draft         what the procedure starts with
+     * @param aboutMemberId the member the procedure is about, or {@code null} for nobody in particular
+     * @return the procedure
      */
-    private Procedure write(
-            int stationId,
-            @Nullable Integer templateId,
-            String name,
-            @Nullable String description,
-            boolean isPublic,
-            int assignedBy,
-            @Nullable Instant dueAt,
-            @Nullable RestrictionAudience party,
-            @Nullable Integer eventId,
-            @Nullable LocalDate eventDate,
-            @Nullable Integer aboutMemberId,
-            boolean tell) {
-        var given = ofStation(
-                stationId,
-                party != null ? party : templateId != null ? templatePartyOf(templateId) : RestrictionAudience.empty());
-        if (aboutMemberId != null) requireAboutOf(stationId, aboutMemberId);
-        if (templateId != null) {
-            for (var step : repository.findTemplateItems(templateId)) {
-                requireDocumentFits(stationId, aboutMemberId, step.title(), StepKindChoice.of(step));
-            }
-        }
-        var procedure = repository.createProcedure(
-                stationId,
-                templateId,
-                name,
-                description,
-                isPublic,
-                assignedBy,
-                dueAt,
-                eventId,
-                eventDate,
-                aboutMemberId);
-
-        if (templateId != null) {
-            snapshotTemplate(procedure.id(), templateId);
-        }
-
-        restrictions.setAudience(RestrictionType.PROCEDURE, procedure.id(), given);
-        var named = given.toSelection().memberIds();
-        if (tell && !named.isEmpty()) {
-            eventBus.publish(new ProcedureAssigned(stationId, procedure.id(), name, named, assignedBy));
-        }
-
-        log.info(
-                "Created procedure {} on station {} (template {}, party naming nobody: {})",
-                procedure.id(),
-                stationId,
-                templateId,
-                given.namesNobody());
+    public Procedure createUnannounced(ProcedureDraft draft, @Nullable Integer aboutMemberId) {
+        var procedure = persistChecked(planOf(draft), aboutMemberId);
+        askUnlocked(procedure.id(), draft.assignedBy());
         return procedure;
+    }
+
+    /** Checks the member and the document steps of one procedure, then writes it under the draft's name. */
+    private Procedure persistChecked(Plan plan, @Nullable Integer aboutMemberId) {
+        var draft = plan.draft();
+        if (aboutMemberId != null) requireAboutOf(draft.stationId(), aboutMemberId);
+        requireStepsFit(plan, aboutMemberId);
+        return persist(plan, draft.name(), aboutMemberId);
     }
 
     /**
@@ -416,58 +386,94 @@ public class ProcedureService {
      * is written, so nothing is left half made by a member who does not fit. The procedures are written
      * first and their document steps asked for after, so the slow part comes last.
      *
-     * <p>The members the party names one by one are told once, about the first procedure under the name
-     * all of them start with, rather than once for every person.
+     * <p>The members the party names one by one are told once, about the first procedure under the name it
+     * is stored with, rather than once for every person.
      *
      * <p>It is not one transaction: a failure while writing leaves the procedures written so far.
      *
-     * @param name    the name all the procedures start with, which the members are told of
+     * @param draft   what every procedure starts with
      * @param members the members, each with the name their procedure goes by
      * @return the procedures, in the order of the members
      */
-    public List<Procedure> createForMembers(
-            int stationId,
-            @Nullable Integer templateId,
-            String name,
-            @Nullable String description,
-            boolean isPublic,
-            int assignedBy,
-            @Nullable Instant dueAt,
-            @Nullable RestrictionAudience party,
-            @Nullable Integer eventId,
-            @Nullable LocalDate eventDate,
-            List<NamedMember> members) {
-        var steps = templateId == null ? List.<ProcedureTemplateItem>of() : repository.findTemplateItems(templateId);
+    public List<Procedure> createForMembers(ProcedureDraft draft, List<NamedMember> members) {
+        var plan = planOf(draft);
         for (var member : members) {
-            requireAboutOf(stationId, member.memberId());
-            for (var step : steps) {
-                requireDocumentFits(stationId, member.memberId(), step.title(), StepKindChoice.of(step));
-            }
+            requireAboutOf(draft.stationId(), member.memberId());
+            requireStepsFit(plan, member.memberId());
         }
         var created = members.stream()
-                .map(member -> write(
-                        stationId,
-                        templateId,
-                        member.name(),
-                        description,
-                        isPublic,
-                        assignedBy,
-                        dueAt,
-                        party,
-                        eventId,
-                        eventDate,
-                        member.memberId(),
-                        false))
+                .map(member -> persist(plan, member.name(), member.memberId()))
                 .toList();
-        if (!created.isEmpty()) {
-            var named = partyOf(created.getFirst().id()).toSelection().memberIds();
-            if (!named.isEmpty()) {
-                eventBus.publish(
-                        new ProcedureAssigned(stationId, created.getFirst().id(), name, named, assignedBy));
-            }
-        }
-        created.forEach(procedure -> askUnlocked(procedure.id(), assignedBy));
+        if (!created.isEmpty()) tellNamed(plan, created.getFirst());
+        created.forEach(procedure -> askUnlocked(procedure.id(), draft.assignedBy()));
         return created;
+    }
+
+    /**
+     * What procedures are written from, read once however many are started: the draft, the managing party
+     * as it is stored, and the steps of the template with the order they wait on each other in.
+     */
+    private record Plan(
+            ProcedureDraft draft,
+            RestrictionAudience party,
+            List<ProcedureTemplateItem> steps,
+            List<int[]> dependencies) {}
+
+    private Plan planOf(ProcedureDraft draft) {
+        var templateId = draft.templateId();
+        var party = draft.party();
+        var given =
+                party != null ? party : templateId != null ? templatePartyOf(templateId) : RestrictionAudience.empty();
+        var checked = ofStation(draft.stationId(), given);
+        if (templateId == null) return new Plan(draft, checked, List.of(), List.of());
+        return new Plan(
+                draft,
+                checked,
+                repository.findTemplateItems(templateId),
+                repository.findTemplateItemDependencies(templateId));
+    }
+
+    private void requireStepsFit(Plan plan, @Nullable Integer aboutMemberId) {
+        for (var step : plan.steps()) {
+            requireDocumentFits(plan.draft().stationId(), aboutMemberId, step.title(), StepKindChoice.of(step));
+        }
+    }
+
+    /** Writes one procedure as planned, under its own name and about its own member, without telling anybody. */
+    private Procedure persist(Plan plan, String name, @Nullable Integer aboutMemberId) {
+        var draft = plan.draft();
+        var procedure = repository.createProcedure(
+                draft.stationId(),
+                draft.templateId(),
+                name,
+                draft.description(),
+                draft.isPublic(),
+                draft.assignedBy(),
+                draft.dueAt(),
+                draft.eventId(),
+                draft.eventDate(),
+                aboutMemberId);
+        snapshotSteps(procedure.id(), plan);
+        restrictions.setAudience(RestrictionType.PROCEDURE, procedure.id(), plan.party());
+        log.info(
+                "Created procedure {} on station {} (template {}, party naming nobody: {})",
+                procedure.id(),
+                draft.stationId(),
+                draft.templateId(),
+                plan.party().namesNobody());
+        return procedure;
+    }
+
+    /**
+     * Tells the members the planned party names one by one that a procedure was handed to them, under the
+     * name the procedure is stored with.
+     */
+    private void tellNamed(Plan plan, Procedure procedure) {
+        var named = plan.party().toSelection().memberIds();
+        if (named.isEmpty()) return;
+        var draft = plan.draft();
+        eventBus.publish(
+                new ProcedureAssigned(draft.stationId(), procedure.id(), procedure.name(), named, draft.assignedBy()));
     }
 
     public boolean updateProcedure(
@@ -529,10 +535,7 @@ public class ProcedureService {
     public boolean deleteProcedure(int id, int by) {
         boolean deleted;
         synchronized (lockOf(id)) {
-            for (var step : repository.findItems(id)) {
-                var generationId = step.generationId();
-                if (generationId != null && !step.checked()) signing.withdraw(generationId, by);
-            }
+            repository.findItems(id).forEach(step -> withdrawAwaited(step, by));
             deleted = repository.deleteProcedure(id);
         }
         if (deleted) {
@@ -565,7 +568,7 @@ public class ProcedureService {
         synchronized (lockOf(procedure.id())) {
             requireAboutOf(procedure.stationId(), aboutMemberId);
             var anew = repository.findItems(procedure.id()).stream()
-                    .filter(step -> step.kind() == ProcedureStepKind.DOCUMENT && !step.checked())
+                    .filter(step -> step.asksToSign() && !step.checked())
                     .toList();
             if (!anew.isEmpty() && !generatesDocuments) {
                 throw ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NOT_YOURS.raise();
@@ -596,9 +599,10 @@ public class ProcedureService {
      * @param title         the step's title
      * @param kind          what the step asks for
      */
-    public void requireDocumentFits(int stationId, @Nullable Integer aboutMemberId, String title, StepKindChoice kind) {
+    private void requireDocumentFits(
+            int stationId, @Nullable Integer aboutMemberId, String title, StepKindChoice kind) {
         var templateId = kind.documentTemplateId();
-        if (kind.kind() != ProcedureStepKind.DOCUMENT || templateId == null) return;
+        if (!kind.asksToSign() || templateId == null) return;
         if (aboutMemberId == null) throw ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NEEDS_ABOUT.raise();
         if (documentSteps.meantFor(stationId, templateId, aboutMemberId)) return;
         var template = documentSteps.named(stationId, List.of(templateId)).stream()
@@ -609,9 +613,15 @@ public class ProcedureService {
     }
 
     private void requireAboutOf(int stationId, int memberId) {
-        if (!restrictions.currentMemberAt(stationId, memberId)) {
+        if (members.findCurrentAt(stationId, memberId).isEmpty()) {
             throw ProcedureRefusal.PROCEDURE_ABOUT_NOT_OF_STATION.raise();
         }
+    }
+
+    /** Withdraws the signatures a step's document still waits for, where it made one and is not ticked. */
+    private void withdrawAwaited(ProcedureItem step, int by) {
+        var generationId = step.generationId();
+        if (step.awaitsSignatures() && generationId != null) signing.withdraw(generationId, by);
     }
 
     private Object lockOf(int procedureId) {
@@ -654,7 +664,7 @@ public class ProcedureService {
         var steps = repository.findItems(procedureId);
         var waiting = waitingOf(procedureId, steps);
         return steps.stream()
-                .filter(step -> step.kind() == ProcedureStepKind.DOCUMENT
+                .filter(step -> step.asksToSign()
                         && step.documentTemplateId() != null
                         && step.generationId() == null
                         && !step.checked()
@@ -681,23 +691,23 @@ public class ProcedureService {
      * was made, so a refusal leaves the step as it stood. Unlike the asking when a procedure changes,
      * whatever stands in the way is refused, so the person asking learns of it.
      *
-     * @param procedure the procedure, open and about a member
-     * @param step      the step
-     * @param by        who asks, who has to generate documents for members
+     * @param procedureId the procedure, open and about a member, read again under its lock
+     * @param stepId      the step
+     * @param by          who asks, who has to generate documents for members
      */
-    public void askAgain(Procedure procedure, ProcedureItem step, int by) {
-        synchronized (lockOf(procedure.id())) {
+    public void askAgain(int procedureId, int stepId, int by) {
+        synchronized (lockOf(procedureId)) {
             var current = repository
-                    .findProcedureById(procedure.id())
+                    .findProcedureById(procedureId)
                     .orElseThrow(ProcedureRefusal.PROCEDURE_STEP_NOT_IN_PROCEDURE::raise);
             var steps = repository.findItems(current.id());
             var held = steps.stream()
-                    .filter(candidate -> candidate.id() == step.id())
+                    .filter(candidate -> candidate.id() == stepId)
                     .findFirst()
                     .orElseThrow(ProcedureRefusal.PROCEDURE_STEP_NOT_IN_PROCEDURE::raise);
             var templateId = held.documentTemplateId();
             var aboutMemberId = current.aboutMemberId();
-            if (held.kind() != ProcedureStepKind.DOCUMENT
+            if (!held.asksToSign()
                     || templateId == null
                     || held.checked()
                     || current.status() != ProcedureStatus.OPEN
@@ -741,7 +751,7 @@ public class ProcedureService {
      */
     public List<StepDocumentState> documentStates(List<ProcedureItem> steps) {
         return steps.stream()
-                .filter(step -> step.kind() == ProcedureStepKind.DOCUMENT && step.generationId() != null)
+                .filter(step -> step.asksToSign() && step.generationId() != null)
                 .map(step -> signing.stateOf(step.id(), Objects.requireNonNull(step.generationId())))
                 .toList();
     }
@@ -879,8 +889,7 @@ public class ProcedureService {
      * @return whether the member belongs to the party
      */
     public boolean runBy(int procedureId, int memberId) {
-        return restrictions.hasRestrictions(RestrictionType.PROCEDURE, procedureId)
-                && restrictions.includes(RestrictionType.PROCEDURE, procedureId, memberId);
+        return restrictions.restrictedTo(RestrictionType.PROCEDURE, procedureId, memberId);
     }
 
     /**
@@ -937,25 +946,9 @@ public class ProcedureService {
      * station.
      */
     private RestrictionAudience ofStation(int stationId, RestrictionAudience party) {
-        var selection = party.toSelection();
-        var distinct = new RestrictionAudience(
-                selection.userTypes().stream().distinct().toList(),
-                selection.groupIds().stream().distinct().toList(),
-                selection.tagIds().stream().distinct().toList(),
-                selection.memberIds().stream().distinct().toList(),
-                party.mode());
+        var distinct = party.distinct();
         if (!restrictions.ofStation(stationId, distinct)) throw ProcedureRefusal.PROCEDURE_PARTY_NOT_OF_STATION.raise();
         return distinct;
-    }
-
-    /**
-     * Refuses a party naming a group, tag or member that is not of the station, before anything is written.
-     *
-     * @param stationId the station
-     * @param party     the party
-     */
-    public void requirePartyOf(int stationId, RestrictionAudience party) {
-        ofStation(stationId, party);
     }
 
     /**
@@ -968,19 +961,9 @@ public class ProcedureService {
         return restrictions.audienceOf(RestrictionType.PROCEDURE_TEMPLATE, templateId);
     }
 
-    /**
-     * Sets the managing party a procedure template hands to every procedure started from it.
-     *
-     * @param templateId the template
-     * @param party      the party; one naming nobody hands none
-     */
-    public void setTemplateParty(int templateId, RestrictionAudience party) {
-        var template = repository.findTemplateById(templateId);
-        if (template.isEmpty()) return;
-        restrictions.setAudience(
-                RestrictionType.PROCEDURE_TEMPLATE,
-                templateId,
-                ofStation(template.get().stationId(), party));
+    /** Sets the managing party a procedure template hands on, checked against its station already. */
+    private void setTemplateParty(int templateId, RestrictionAudience checked) {
+        restrictions.setAudience(RestrictionType.PROCEDURE_TEMPLATE, templateId, checked);
         log.info("Changed the default party of procedure template {}", templateId);
     }
 
@@ -1000,31 +983,56 @@ public class ProcedureService {
     }
 
     /**
-     * Adds a step to a procedure, asking for what it is given in the same write.
+     * Adds a step to a procedure, asking for what it is given in the same write. A document step is
+     * refused where the procedure is about nobody, or its document template is not meant for the member it
+     * is about.
      *
-     * @param kind what the step asks for, as {@link #kindChange} decided it
+     * @param procedure          the procedure
+     * @param step               the step
+     * @param generatesDocuments whether the caller may generate documents for members
      * @return the step
      */
-    public ProcedureItem createItem(
-            int procedureId,
-            String title,
-            @Nullable String description,
-            boolean isPublic,
-            boolean userAssigned,
-            int position,
-            StepKindChoice kind) {
-        var item = repository.createItem(procedureId, title, description, isPublic, userAssigned, position, kind);
-        log.info("Created procedure item {} on procedure {} asking for {}", item.id(), procedureId, kind);
+    public ProcedureItem addStep(Procedure procedure, StepDraft step, boolean generatesDocuments) {
+        var kind = kindOf(procedure.stationId(), StepKindChoice.CHECK, step, generatesDocuments)
+                .orElse(StepKindChoice.CHECK);
+        requireDocumentFits(procedure.stationId(), procedure.aboutMemberId(), step.title(), kind);
+        var item = repository.createItem(
+                procedure.id(),
+                step.title(),
+                step.description(),
+                step.isPublic(),
+                step.userAssigned(),
+                step.position(),
+                kind);
+        log.info("Created procedure item {} on procedure {} asking for {}", item.id(), procedure.id(), kind);
         return item;
     }
 
-    public boolean updateItem(
-            int id, String title, @Nullable String description, boolean isPublic, boolean userAssigned, int position) {
-        boolean updated = repository.updateItem(id, title, description, isPublic, userAssigned, position);
+    /**
+     * Changes a step of a procedure, and what it asks for where the request names something else: checked
+     * as {@link #addStep} checks it, and refused once the step made its document.
+     *
+     * @param procedure          the procedure
+     * @param current            the step as it stands
+     * @param step               the step as it is to be
+     * @param generatesDocuments whether the caller may generate documents for members
+     * @return whether the step was there
+     */
+    public boolean editStep(Procedure procedure, ProcedureItem current, StepDraft step, boolean generatesDocuments) {
+        var change = kindOf(procedure.stationId(), StepKindChoice.of(current), step, generatesDocuments);
+        if (change.isPresent()) {
+            var title = Objects.requireNonNullElse(step.title(), current.title());
+            requireDocumentFits(procedure.stationId(), procedure.aboutMemberId(), title, change.get());
+            if (!repository.setItemKind(current.id(), change.get())) {
+                throw ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_ALREADY_MADE.raise();
+            }
+        }
+        boolean updated = repository.updateItem(
+                current.id(), step.title(), step.description(), step.isPublic(), step.userAssigned(), step.position());
         if (updated) {
-            log.info("Updated procedure item {}", id);
+            log.info("Updated procedure item {}", current.id());
         } else {
-            log.warn("Update for procedure item {} affected zero rows", id);
+            log.warn("Update for procedure item {} affected zero rows", current.id());
         }
         return updated;
     }
@@ -1041,9 +1049,7 @@ public class ProcedureService {
         int id = step.id();
         boolean deleted;
         synchronized (lockOf(step.procedureId())) {
-            var current = repository.findItemById(id).orElse(step);
-            var generationId = current.generationId();
-            if (generationId != null && !current.checked()) signing.withdraw(generationId, by);
+            withdrawAwaited(repository.findItemById(id).orElse(step), by);
             deleted = repository.deleteItem(id);
         }
         if (deleted) {
@@ -1061,18 +1067,10 @@ public class ProcedureService {
             return false;
         }
 
-        var deps = repository.findItemDependencies(item.get().procedureId());
-        var allItems = repository.findItems(item.get().procedureId());
-        var checkedIds = allItems.stream()
-                .filter(ProcedureItem::checked)
-                .map(ProcedureItem::id)
-                .collect(Collectors.toSet());
-
-        for (int[] dep : deps) {
-            if (dep[0] == itemId && !checkedIds.contains(dep[1])) {
-                log.warn("Check for procedure item {} blocked: dependency {} not yet checked", itemId, dep[1]);
-                return false;
-            }
+        int procedureId = item.get().procedureId();
+        if (waitingOf(procedureId, repository.findItems(procedureId)).contains(itemId)) {
+            log.warn("Check for procedure item {} blocked: a step it waits for is not yet checked", itemId);
+            return false;
         }
 
         if (!repository.checkItem(itemId, checkedByMemberId)) {
@@ -1165,17 +1163,14 @@ public class ProcedureService {
         return repository.countOpenByStation(stationId);
     }
 
-    private void snapshotTemplate(int procedureId, int templateId) {
-        var templateItems = repository.findTemplateItems(templateId);
-        var templateDeps = repository.findTemplateItemDependencies(templateId);
-
+    private void snapshotSteps(int procedureId, Plan plan) {
         Map<Integer, Integer> procedureItemIdByTemplateItemId = new HashMap<>();
-        for (ProcedureTemplateItem item : templateItems) {
+        for (ProcedureTemplateItem item : plan.steps()) {
             ProcedureItem created = repository.snapshotTemplateItem(procedureId, item);
             procedureItemIdByTemplateItemId.put(item.id(), created.id());
         }
 
-        for (int[] dep : templateDeps) {
+        for (int[] dep : plan.dependencies()) {
             Integer newItemId = procedureItemIdByTemplateItemId.get(dep[0]);
             Integer newDependsOnId = procedureItemIdByTemplateItemId.get(dep[1]);
             if (newItemId != null && newDependsOnId != null) {

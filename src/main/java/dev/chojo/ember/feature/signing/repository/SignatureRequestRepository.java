@@ -276,15 +276,7 @@ public class SignatureRequestRepository {
      * @return the request, or empty where none is
      */
     public Optional<SignatureRequest> findLiveFor(int generationId) {
-        return query("""
-                        SELECT %s FROM signing_request
-                        WHERE generation_id = :generation_id
-                          AND state IN ('OPEN', 'COMPLETE')
-                        ORDER BY id DESC
-                        LIMIT 1;""", SignatureRequest.COLUMNS)
-                .single(call().bind("generation_id", generationId))
-                .map(SignatureRequest.map())
-                .first();
+        return newestFor(generationId, "AND state IN ('OPEN', 'COMPLETE')");
     }
 
     /**
@@ -294,11 +286,23 @@ public class SignatureRequestRepository {
      * @return the request, or empty where none was ever made
      */
     public Optional<SignatureRequest> findLatestFor(int generationId) {
+        return newestFor(generationId, "");
+    }
+
+    /**
+     * The newest request of a generated document among those a fixed filter lets through.
+     *
+     * @param generationId the generation log entry
+     * @param stateFilter  a compile-time SQL fragment narrowing the states, empty for every state
+     * @return the request, or empty where none is
+     */
+    private static Optional<SignatureRequest> newestFor(int generationId, String stateFilter) {
         return query("""
                         SELECT %s FROM signing_request
                         WHERE generation_id = :generation_id
+                          %s
                         ORDER BY id DESC
-                        LIMIT 1;""", SignatureRequest.COLUMNS)
+                        LIMIT 1;""", SignatureRequest.COLUMNS, stateFilter)
                 .single(call().bind("generation_id", generationId))
                 .map(SignatureRequest.map())
                 .first();

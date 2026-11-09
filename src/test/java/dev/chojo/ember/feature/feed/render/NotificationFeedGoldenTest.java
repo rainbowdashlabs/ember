@@ -37,7 +37,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
-import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
+import dev.chojo.ember.feature.procedure.entity.ProcedureSteps;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -278,8 +278,8 @@ class NotificationFeedGoldenTest {
         when(procedureService.findItems(anyInt())).thenReturn(List.of());
         when(procedureService.findItems(80))
                 .thenReturn(List.of(
-                        new ProcedureItem(1, 80, "A", "", "", true, false, 0, true, CREATED, null),
-                        new ProcedureItem(2, 80, "B", "", "", true, false, 0, false, null, null)));
+                        ProcedureSteps.check(1, 80, "A", "", "", true, false, 0, true, CREATED, null),
+                        ProcedureSteps.check(2, 80, "B", "", "", true, false, 0, false, null, null)));
     }
 
     /** One notification of every kind, each with what its details and enrichment read. */

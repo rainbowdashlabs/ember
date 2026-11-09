@@ -34,6 +34,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
+import dev.chojo.ember.feature.procedure.entity.ProcedureSteps;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -461,7 +462,7 @@ class NotificationFeedRendererTest {
     }
 
     private static ProcedureItem procedureItem(int id, int procedureId, String title, boolean checked) {
-        return new ProcedureItem(
+        return ProcedureSteps.check(
                 id, procedureId, title, "", "", true, false, 0, checked, checked ? Instant.now() : null, null);
     }
 

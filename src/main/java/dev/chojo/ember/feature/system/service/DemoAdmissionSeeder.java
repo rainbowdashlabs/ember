@@ -7,9 +7,9 @@ package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.procedure.entity.StepKindChoice;
 import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
+import dev.chojo.ember.feature.procedure.service.ProcedureDraft;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -34,7 +34,7 @@ import java.util.Objects;
  * <p>The template's first step asks the new member, and their guardians, to sign the application; handing
  * out the gear and the introduction to the vehicle hall wait for it. The carers run it. The procedure is
  * started through the procedure service like one a manager starts, so its application is generated and
- * asked for.
+ * asked for, except that nobody is told it was handed to them.
  *
  * <p>It runs after the modules, so the outcome is the same on every seeding: at the first station the youth
  * warden has agreed to sign letters for the station by then, so the application comes out signed for its
@@ -50,27 +50,21 @@ public class DemoAdmissionSeeder implements DemoPerStationSeeder {
     /** What the procedure template is called. */
     static final String NAME = "Neues Mitglied aufnehmen";
 
-    /** The group of carers who run it. */
-    private static final String CARERS = "Betreuer";
-
     private final DocumentTemplateService documentTemplates;
     private final ProcedureRepository repo;
     private final ProcedureService procedures;
     private final RestrictionService restrictions;
-    private final MemberGroupRepository groups;
 
     @Inject
     public DemoAdmissionSeeder(
             DocumentTemplateService documentTemplates,
             ProcedureRepository repo,
             ProcedureService procedures,
-            RestrictionService restrictions,
-            MemberGroupRepository groups) {
+            RestrictionService restrictions) {
         this.documentTemplates = documentTemplates;
         this.repo = repo;
         this.procedures = procedures;
         this.restrictions = restrictions;
-        this.groups = groups;
     }
 
     @Override
@@ -84,14 +78,13 @@ public class DemoAdmissionSeeder implements DemoPerStationSeeder {
         boolean present = repo.findTemplatesByStation(stationId, true).stream()
                 .anyMatch(template -> NAME.equals(template.name()));
         if (present) return;
-        var members = station.members();
-        seed(stationId, station.adminMember(), members.betreuer(), members.anfaenger());
+        seed(stationId, station.adminMember(), station.members());
         log.info("Demo: Created the admission procedure for station {}", stationId);
     }
 
-    private void seed(int stationId, StationMember admin, List<StationMember> betreuer, List<StationMember> anfaenger) {
+    private void seed(int stationId, StationMember admin, DemoMemberSeeder.SeedResult members) {
         int author = Objects.requireNonNull(admin.accountId(), "the station administrator is seeded with an account");
-        var warden = betreuer.get(DemoDocumentTemplateSeeder.WARDEN_PLACE);
+        var warden = members.betreuer().get(DemoDocumentTemplateSeeder.WARDEN_PLACE);
         var owner = new Owner.Station(stationId);
         int application = documentTemplates.list(owner, false).stream()
                 .filter(template -> DemoAdmissionTemplate.NAME.equals(template.name()))
@@ -112,38 +105,43 @@ public class DemoAdmissionSeeder implements DemoPerStationSeeder {
                 0,
                 StepKindChoice.document(application));
         var gear = repo.createTemplateItem(
-                template.id(), "Ausrüstung ausgeben", "Einsatzjacke, Hose und Helm ausgeben.", true, true, 1);
+                template.id(),
+                "Ausrüstung ausgeben",
+                "Einsatzjacke, Hose und Helm ausgeben.",
+                true,
+                true,
+                1,
+                StepKindChoice.CHECK);
         var hall = repo.createTemplateItem(
                 template.id(),
                 "Einweisung Fahrzeughalle",
                 "Verhalten in der Fahrzeughalle und am Fahrzeug erklären.",
                 true,
                 true,
-                2);
+                2,
+                StepKindChoice.CHECK);
         repo.setTemplateItemDependencies(
                 template.id(), List.of(new int[] {gear.id(), sign.id()}, new int[] {hall.id(), sign.id()}));
-        var carers = groups.findByStation(stationId).stream()
-                .filter(group -> CARERS.equals(group.name()))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("the member band seeds the group " + CARERS));
         restrictions.setAudience(
                 RestrictionType.PROCEDURE_TEMPLATE,
                 template.id(),
-                new RestrictionAudience(List.of(), List.of(carers.id()), List.of(), List.of(), RestrictionMode.AND));
+                new RestrictionAudience(
+                        List.of(), List.of(members.groupBetreuer().id()), List.of(), List.of(), RestrictionMode.AND));
 
-        if (anfaenger.isEmpty()) return;
-        var newcomer = anfaenger.getLast();
-        procedures.createProcedure(
-                stationId,
-                template.id(),
-                NAME + ": " + newcomer.displayName(),
-                null,
-                true,
-                admin.id(),
-                Instant.now().plus(14, ChronoUnit.DAYS),
-                null,
-                null,
-                null,
+        if (members.anfaenger().isEmpty()) return;
+        var newcomer = members.anfaenger().getLast();
+        procedures.createUnannounced(
+                new ProcedureDraft(
+                        stationId,
+                        template.id(),
+                        NAME + ": " + newcomer.displayName(),
+                        null,
+                        true,
+                        admin.id(),
+                        Instant.now().plus(14, ChronoUnit.DAYS),
+                        null,
+                        null,
+                        null),
                 newcomer.id());
     }
 }

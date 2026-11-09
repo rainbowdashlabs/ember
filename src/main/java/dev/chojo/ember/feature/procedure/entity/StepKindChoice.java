@@ -41,4 +41,9 @@ public record StepKindChoice(
     public static StepKindChoice of(ProcedureItem item) {
         return new StepKindChoice(item.kind(), item.documentTemplateId());
     }
+
+    /** @return whether the step asks to sign a document rather than to be ticked by hand */
+    public boolean asksToSign() {
+        return kind == ProcedureStepKind.DOCUMENT;
+    }
 }

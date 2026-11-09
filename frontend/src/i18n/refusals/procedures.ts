@@ -58,6 +58,7 @@ export default {
     'R-042': 'Nur wer Dokumente für Mitglieder erstellen darf, kann das Dokument eines Schritts anfragen',
     'R-043': 'Das sind mehr Personen, als auf einmal Abläufe bekommen können, es wurde keiner angelegt',
     'R-041': 'Dieser Schritt wartet nicht darauf, erneut angefragt zu werden: Er ist erledigt, gesperrt, wartet noch auf Unterschriften oder lässt kein Dokument unterschreiben',
+    'R-044': 'Diesen Status gibt es für Abläufe nicht',
 
     'R-001': PROCEDURE_NOT_YOURS,
     'R-002': PROCEDURE_NOT_YOURS,

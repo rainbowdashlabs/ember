@@ -18,10 +18,11 @@ import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStepKind;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
-import dev.chojo.ember.feature.procedure.entity.StepKindChoice;
 import dev.chojo.ember.feature.procedure.service.DocumentStepTemplates.StepDocument;
+import dev.chojo.ember.feature.procedure.service.ProcedureDraft;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.procedure.service.StepDocumentState;
+import dev.chojo.ember.feature.procedure.service.StepDraft;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
@@ -39,7 +40,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
@@ -157,15 +157,12 @@ public class ProcedureRoutes implements Routes {
         var session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(ProcedureTemplateRequest.class);
         if (req.name() == null || req.name().isBlank()) throw ProcedureRefusal.PROCEDURE_TEMPLATE_NEEDS_A_NAME.raise();
-        var party = req.party();
-        if (party != null) procedureService.requirePartyOf(session.stationId(), party);
-        var template = procedureService.createTemplate(
+        ctx.json(procedureService.createTemplate(
                 session.stationId(),
                 req.name(),
                 req.description(),
-                session.member().id());
-        if (party != null) procedureService.setTemplateParty(template.id(), party);
-        ctx.json(template);
+                session.member().id(),
+                req.party()));
     }
 
     @OpenApi(
@@ -175,16 +172,14 @@ public class ProcedureRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcedureTemplate.class)))
     private void updateTemplate(Context ctx) {
         int tid = pathInt(ctx, "tid");
-        requireOwnedOrNotFound(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
+        var template =
+                requireOwnedOrNotFound(ctx, tid, procedureService::findTemplateById, ProcedureTemplate::stationId);
         var req = ctx.bodyAsClass(ProcedureTemplateRequest.class);
         if (req.name() == null || req.name().isBlank())
             throw ProcedureRefusal.PROCEDURE_TEMPLATE_RENAME_NEEDS_A_NAME.raise();
-        var updated = procedureService
-                .updateTemplate(tid, req.name(), req.description())
-                .orElseThrow(ProcedureRefusal.PROCEDURE_TEMPLATE_NOT_HERE_TO_CHANGE::raise);
-        var party = req.party();
-        if (party != null) procedureService.setTemplateParty(tid, party);
-        ctx.json(updated);
+        ctx.json(procedureService
+                .updateTemplate(template.stationId(), tid, req.name(), req.description(), req.party())
+                .orElseThrow(ProcedureRefusal.PROCEDURE_TEMPLATE_NOT_HERE_TO_CHANGE::raise));
     }
 
     @OpenApi(
@@ -210,10 +205,7 @@ public class ProcedureRoutes implements Routes {
         var req = ctx.bodyAsClass(ProcedureItemRequest.class);
         if (req.title() == null || req.title().isBlank())
             throw ProcedureRefusal.PROCEDURE_TEMPLATE_STEP_NEEDS_A_TITLE.raise();
-        var kind = kindOf(ctx, template.stationId(), StepKindChoice.CHECK, req).orElse(StepKindChoice.CHECK);
-        var item = procedureService.createTemplateItem(
-                tid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position(), kind);
-        ctx.json(item);
+        ctx.json(procedureService.addTemplateStep(template, req.draft(), generatesDocuments(ctx)));
     }
 
     @OpenApi(
@@ -223,12 +215,9 @@ public class ProcedureRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void updateTemplateItem(Context ctx) {
         var step = requireTemplateStep(ctx);
-        int iid = step.id();
         var req = ctx.bodyAsClass(ProcedureItemRequest.class);
-        var change = kindOf(ctx, StationSession.from(ctx).stationId(), StepKindChoice.of(step), req);
-        change.ifPresent(kind -> procedureService.setTemplateStepKind(iid, kind));
-        if (!procedureService.updateTemplateItem(
-                iid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position())) {
+        if (!procedureService.editTemplateStep(
+                StationSession.from(ctx).stationId(), step, req.draft(), generatesDocuments(ctx))) {
             throw ProcedureRefusal.PROCEDURE_TEMPLATE_STEP_NOT_HERE_TO_CHANGE.raise();
         }
         ctx.status(204);
@@ -284,8 +273,7 @@ public class ProcedureRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Procedure[].class)))
     private void listProcedures(Context ctx) {
         var session = StationSession.from(ctx);
-        String statusParam = ctx.queryParam("status");
-        ProcedureStatus status = statusParam != null ? ProcedureStatus.valueOf(statusParam) : null;
+        var status = statusParam(ctx);
         String assigneeParam = ctx.queryParam("assignee");
 
         boolean canEdit = session.hasPermission(StationPermission.PROCEDURE_EDIT);
@@ -326,9 +314,19 @@ public class ProcedureRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = Procedure[].class)))
     private void listProceduresAboutMe(Context ctx) {
         var session = StationSession.from(ctx);
-        String statusParam = ctx.queryParam("status");
-        ProcedureStatus status = statusParam != null ? ProcedureStatus.valueOf(statusParam) : null;
-        ctx.json(procedureService.findPublicAbout(session.stationId(), guardians.household(session.user()), status));
+        ctx.json(procedureService.findPublicAbout(
+                session.stationId(), guardians.household(session.user()), statusParam(ctx)));
+    }
+
+    /** The state a list is narrowed to, refused where it names none there is; null for every state. */
+    private static @Nullable ProcedureStatus statusParam(Context ctx) {
+        String raw = ctx.queryParam("status");
+        if (raw == null) return null;
+        try {
+            return ProcedureStatus.valueOf(raw);
+        } catch (IllegalArgumentException e) {
+            throw ProcedureRefusal.PROCEDURE_STATUS_UNKNOWN.raise();
+        }
     }
 
     /** Whether the reader is the member a procedure is about, or looks after them. */
@@ -393,7 +391,7 @@ public class ProcedureRoutes implements Routes {
         if (req.name() == null || req.name().isBlank()) throw ProcedureRefusal.PROCEDURE_NEEDS_A_NAME.raise();
         if (req.aboutMemberId() == null) throw ProcedureRefusal.PROCEDURE_ABOUT_MISSING.raise();
         requireTemplateToStart(session, req.templateId());
-        var procedure = procedureService.createProcedure(
+        var draft = new ProcedureDraft(
                 session.stationId(),
                 req.templateId(),
                 req.name(),
@@ -403,9 +401,8 @@ public class ProcedureRoutes implements Routes {
                 req.dueAt(),
                 req.party(),
                 req.eventDate() != null ? req.eventId() : null,
-                req.eventId() != null ? req.eventDate() : null,
-                req.aboutMemberId());
-        ctx.json(procedure);
+                req.eventId() != null ? req.eventDate() : null);
+        ctx.json(procedureService.createProcedure(draft, req.aboutMemberId()));
     }
 
     /**
@@ -432,7 +429,7 @@ public class ProcedureRoutes implements Routes {
         var named = memberIds.stream()
                 .map(memberId -> new ProcedureService.NamedMember(memberId, nameFor(req.name(), memberId)))
                 .toList();
-        ctx.json(procedureService.createForMembers(
+        var draft = new ProcedureDraft(
                 session.stationId(),
                 req.templateId(),
                 req.name().trim(),
@@ -442,8 +439,8 @@ public class ProcedureRoutes implements Routes {
                 req.dueAt(),
                 req.party(),
                 req.eventDate() != null ? req.eventId() : null,
-                req.eventId() != null ? req.eventDate() : null,
-                named));
+                req.eventId() != null ? req.eventDate() : null);
+        ctx.json(procedureService.createForMembers(draft, named));
     }
 
     /** The name of one member's procedure: the name given, followed by the member's name. */
@@ -573,11 +570,7 @@ public class ProcedureRoutes implements Routes {
         var procedure = requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
         var req = ctx.bodyAsClass(ProcedureItemRequest.class);
         if (req.title() == null || req.title().isBlank()) throw ProcedureRefusal.PROCEDURE_STEP_NEEDS_A_TITLE.raise();
-        var kind = kindOf(ctx, procedure.stationId(), StepKindChoice.CHECK, req).orElse(StepKindChoice.CHECK);
-        procedureService.requireDocumentFits(procedure.stationId(), procedure.aboutMemberId(), req.title(), kind);
-        var item = procedureService.createItem(
-                rid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position(), kind);
-        ctx.json(item);
+        ctx.json(procedureService.addStep(procedure, req.draft(), generatesDocuments(ctx)));
     }
 
     @OpenApi(
@@ -586,22 +579,9 @@ public class ProcedureRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProcedureItemRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void editItem(Context ctx) {
-        var step = requireProcedureStep(ctx);
-        int iid = step.id();
+        var owned = requireProcedureStep(ctx);
         var req = ctx.bodyAsClass(ProcedureItemRequest.class);
-        var stationId = StationSession.from(ctx).stationId();
-        var change = kindOf(ctx, stationId, StepKindChoice.of(step), req);
-        if (change.isPresent()) {
-            var about = procedureService
-                    .findProcedureById(step.procedureId())
-                    .map(Procedure::aboutMemberId)
-                    .orElse(null);
-            procedureService.requireDocumentFits(
-                    stationId, about, Objects.requireNonNullElse(req.title(), step.title()), change.get());
-            procedureService.setStepKind(step, change.get());
-        }
-        if (!procedureService.updateItem(
-                iid, req.title(), req.description(), req.isPublic(), req.userAssigned(), req.position())) {
+        if (!procedureService.editStep(owned.procedure(), owned.step(), req.draft(), generatesDocuments(ctx))) {
             throw ProcedureRefusal.PROCEDURE_STEP_NOT_HERE_TO_CHANGE.raise();
         }
         ctx.status(204);
@@ -612,12 +592,9 @@ public class ProcedureRoutes implements Routes {
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "204"))
     private void askAgain(Context ctx) {
-        var step = requireProcedureStep(ctx);
-        var procedure = procedureService
-                .findProcedureById(step.procedureId())
-                .orElseThrow(ProcedureRefusal.PROCEDURE_STEP_NOT_IN_PROCEDURE::raise);
+        var step = requireProcedureStep(ctx).step();
         procedureService.askAgain(
-                procedure, step, StationSession.from(ctx).member().id());
+                step.procedureId(), step.id(), StationSession.from(ctx).member().id());
         ctx.status(204);
     }
 
@@ -626,7 +603,7 @@ public class ProcedureRoutes implements Routes {
             methods = HttpMethod.DELETE,
             responses = @OpenApiResponse(status = "204"))
     private void deleteItem(Context ctx) {
-        var step = requireProcedureStep(ctx);
+        var step = requireProcedureStep(ctx).step();
         if (!procedureService.deleteItem(step, StationSession.from(ctx).member().id())) {
             throw ProcedureRefusal.PROCEDURE_STEP_NOT_HERE_TO_DELETE.raise();
         }
@@ -640,7 +617,8 @@ public class ProcedureRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProcedureItem[].class)))
     private void patchItem(Context ctx) {
         var session = StationSession.from(ctx);
-        var item = requireProcedureStep(ctx);
+        var owned = requireProcedureStep(ctx);
+        var item = owned.step();
         int rid = item.procedureId();
         int iid = item.id();
         var req = ctx.bodyAsClass(PatchItemRequest.class);
@@ -649,11 +627,11 @@ public class ProcedureRoutes implements Routes {
         if (note != null && !hasEdit) throw ProcedureRefusal.PROCEDURE_STEP_NOTE_NOT_YOURS.raise();
 
         if (req.checked() != null) {
-            if (item.kind() == ProcedureStepKind.DOCUMENT) {
+            if (item.asksToSign()) {
                 throw ProcedureRefusal.PROCEDURE_STEP_SETTLED_BY_SIGNATURES.raise();
             }
             if (req.checked()) {
-                if (!hasEdit) requireTickableByParty(session, item);
+                if (!hasEdit) requireTickableByParty(session, owned);
                 if (!procedureService.checkItem(iid, session.member().id())) {
                     throw ProcedureRefusal.PROCEDURE_STEP_NOT_READY_TO_TICK.raise();
                 }
@@ -674,14 +652,11 @@ public class ProcedureRoutes implements Routes {
      * Refuses a tick by a member who does not edit procedures, unless the procedure is public, the step is
      * public and marked for the party, and the member belongs to the party.
      */
-    private void requireTickableByParty(StationSession session, ProcedureItem item) {
-        int rid = item.procedureId();
-        var procedure = procedureService
-                .findProcedureById(rid)
-                .orElseThrow(ProcedureRefusal.PROCEDURE_STEP_NOT_IN_PROCEDURE::raise);
-        if (!procedure.isPublic()) throw ProcedureRefusal.PROCEDURE_NOT_PUBLIC.raise();
+    private void requireTickableByParty(StationSession session, OwnedStep owned) {
+        var item = owned.step();
+        if (!owned.procedure().isPublic()) throw ProcedureRefusal.PROCEDURE_NOT_PUBLIC.raise();
         if (!item.isPublic() || !item.userAssigned()) throw ProcedureRefusal.PROCEDURE_STEP_NOT_YOURS_TO_TICK.raise();
-        if (!procedureService.runBy(rid, session.member().id())) {
+        if (!procedureService.runBy(item.procedureId(), session.member().id())) {
             throw ProcedureRefusal.PROCEDURE_NOT_HANDED_TO_YOU.raise();
         }
     }
@@ -689,16 +664,25 @@ public class ProcedureRoutes implements Routes {
     /**
      * The step a request names under a procedure of the caller's station.
      *
-     * @return the step, refused as not here when the procedure is another station's or the step is
-     *         another procedure's
+     * @return the procedure and the step, refused as not here when the procedure is another station's or the
+     *         step is another procedure's
      */
-    private ProcedureItem requireProcedureStep(Context ctx) {
+    private OwnedStep requireProcedureStep(Context ctx) {
         int rid = pathInt(ctx, "rid");
-        requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
-        return procedureService
+        var procedure = requireOwnedOrNotFound(ctx, rid, procedureService::findProcedureById, Procedure::stationId);
+        var step = procedureService
                 .findItemIn(rid, pathInt(ctx, "iid"))
                 .orElseThrow(ProcedureRefusal.PROCEDURE_STEP_NOT_IN_PROCEDURE::raise);
+        return new OwnedStep(procedure, step);
     }
+
+    /**
+     * A step a request names, with the procedure of the caller's station it belongs to.
+     *
+     * @param procedure the procedure
+     * @param step      the step
+     */
+    private record OwnedStep(Procedure procedure, ProcedureItem step) {}
 
     /**
      * The step a request names under a procedure template of the caller's station.
@@ -740,24 +724,9 @@ public class ProcedureRoutes implements Routes {
             RestrictionAudience party,
             List<StepDocument> documents) {}
 
-    /**
-     * What a step is to ask for after the request, as {@link ProcedureService#kindChange} decides it for the
-     * caller of this request.
-     *
-     * @param stationId the station whose document templates the step may generate
-     * @param ctx       the request's context, naming the caller
-     * @param current   what the step asks for now; a step ticked by hand for a new one
-     * @param req       the request
-     * @return what the step is to ask for, empty where nothing changes
-     */
-    private Optional<StepKindChoice> kindOf(
-            Context ctx, int stationId, StepKindChoice current, ProcedureItemRequest req) {
-        return procedureService.kindChange(
-                stationId,
-                current,
-                req.kind(),
-                req.documentTemplateId(),
-                StationSession.from(ctx).hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER));
+    /** Whether the caller may generate documents for members, which a step asking to sign one needs. */
+    private static boolean generatesDocuments(Context ctx) {
+        return StationSession.from(ctx).hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER);
     }
 
     /**
@@ -775,7 +744,12 @@ public class ProcedureRoutes implements Routes {
             boolean userAssigned,
             int position,
             @Nullable ProcedureStepKind kind,
-            @Nullable Integer documentTemplateId) {}
+            @Nullable Integer documentTemplateId) {
+        /** @return the step as the procedure service takes it */
+        StepDraft draft() {
+            return new StepDraft(title, description, isPublic, userAssigned, position, kind, documentTemplateId);
+        }
+    }
 
     public record DependencyEntry(int itemId, int dependsOnItemId) {}
 

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.procedure.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.ProcedureRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
@@ -16,10 +17,13 @@ import dev.chojo.ember.event.events.ProcedureDocumentWithdrawn;
 import dev.chojo.ember.event.events.ProcedureItemChecked;
 import dev.chojo.ember.event.events.ProcedureReopened;
 import dev.chojo.ember.event.events.ProcedureResolved;
+import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStepKind;
+import dev.chojo.ember.feature.procedure.entity.ProcedureSteps;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
 import dev.chojo.ember.feature.procedure.entity.StepKindChoice;
@@ -32,12 +36,14 @@ import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.stubbing.Answer;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -47,6 +53,7 @@ class ProcedureServiceTest {
     private ProcedureRepository repository;
     private DomainEventBus eventBus;
     private RestrictionService restrictions;
+    private StationMemberRepository members;
     private DocumentStepSigning signing;
     private ProcedureService service;
 
@@ -67,6 +74,8 @@ class ProcedureServiceTest {
         repository = mock(ProcedureRepository.class);
         eventBus = mock(DomainEventBus.class);
         restrictions = mock(RestrictionService.class);
+        when(restrictions.restrictedTo(any(), anyInt(), anyInt())).thenCallRealMethod();
+        members = mock(StationMemberRepository.class);
         when(restrictions.audienceOf(any(), anyInt())).thenReturn(RestrictionAudience.empty());
         when(restrictions.ofStation(anyInt(), any())).thenReturn(true);
         signing = mock(DocumentStepSigning.class);
@@ -75,7 +84,8 @@ class ProcedureServiceTest {
                 eventBus,
                 restrictions,
                 new SuitableDocuments(template -> template == SUITABLE_DOCUMENT),
-                signing);
+                signing,
+                members);
     }
 
     private static RestrictionAudience named(Integer... memberIds) {
@@ -108,27 +118,26 @@ class ProcedureServiceTest {
         assertTrue(service.findTemplateById(99).isEmpty());
     }
 
+    /** A party of another station refuses a new template and a renamed one before anything is written. */
     @Test
-    void createTemplate() {
-        var t = new ProcedureTemplate(TEMPLATE_ID, STATION_ID, "T", "D", false, MEMBER_ID, Instant.now());
-        when(repository.createTemplate(STATION_ID, "T", "D", MEMBER_ID)).thenReturn(t);
-        assertEquals(t, service.createTemplate(STATION_ID, "T", "D", MEMBER_ID));
-    }
+    void aTemplatePartyOfAnotherStationWritesNothing() {
+        when(restrictions.ofStation(STATION_ID, named(MEMBER_ID_2))).thenReturn(false);
 
-    @Test
-    void updateTemplateSuccess() {
-        var t = new ProcedureTemplate(TEMPLATE_ID, STATION_ID, "New", "New", false, MEMBER_ID, Instant.now());
-        when(repository.updateTemplate(TEMPLATE_ID, "New", "New")).thenReturn(true);
-        when(repository.findTemplateById(TEMPLATE_ID)).thenReturn(Optional.of(t));
-        var result = service.updateTemplate(TEMPLATE_ID, "New", "New");
-        assertTrue(result.isPresent());
-        assertEquals("New", result.get().name());
-    }
-
-    @Test
-    void updateTemplateNotFound() {
-        when(repository.updateTemplate(99, "X", "X")).thenReturn(false);
-        assertTrue(service.updateTemplate(99, "X", "X").isEmpty());
+        assertEquals(
+                ProcedureRefusal.PROCEDURE_PARTY_NOT_OF_STATION,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.createTemplate(STATION_ID, "T", "D", MEMBER_ID, named(MEMBER_ID_2)))
+                        .refusal());
+        assertEquals(
+                ProcedureRefusal.PROCEDURE_PARTY_NOT_OF_STATION,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.updateTemplate(STATION_ID, TEMPLATE_ID, "Neu", "D", named(MEMBER_ID_2)))
+                        .refusal());
+        verify(repository, never()).createTemplate(anyInt(), anyString(), any(), anyInt());
+        verify(repository, never()).updateTemplate(anyInt(), anyString(), any());
+        verify(restrictions, never()).setAudience(any(), anyInt(), any());
     }
 
     @Test
@@ -145,69 +154,64 @@ class ProcedureServiceTest {
 
     @Test
     void createTemplateItem() {
-        var item = new ProcedureTemplateItem(1, TEMPLATE_ID, "Step", "Desc", true, true, 1);
+        var item = ProcedureSteps.templateCheck(1, TEMPLATE_ID, "Step", "Desc", true, true, 1);
         when(repository.createTemplateItem(TEMPLATE_ID, "Step", "Desc", true, true, 1, StepKindChoice.CHECK))
                 .thenReturn(item);
-        assertEquals(
-                item, service.createTemplateItem(TEMPLATE_ID, "Step", "Desc", true, true, 1, StepKindChoice.CHECK));
+        var template = new ProcedureTemplate(TEMPLATE_ID, STATION_ID, "T", "D", false, MEMBER_ID, Instant.now());
+        assertEquals(item, service.addTemplateStep(template, draft("Step", "Desc", null, null), false));
     }
 
     @Test
     void updateTemplateItem() {
+        var step = ProcedureSteps.templateCheck(1, TEMPLATE_ID, "S", "D", true, true, 1);
         when(repository.updateTemplateItem(1, "S", "D", true, true, 1)).thenReturn(true);
-        assertTrue(service.updateTemplateItem(1, "S", "D", true, true, 1));
+        assertTrue(service.editTemplateStep(STATION_ID, step, draft("S", "D", null, null), false));
+        verify(repository, never()).setTemplateItemKind(anyInt(), any());
+
+        assertFalse(service.editTemplateStep(STATION_ID, step, draft("S", "X", null, null), false));
     }
 
     @Test
     void aRequestWithoutAKindLeavesTheStepAsItIs() {
         var current = StepKindChoice.document(7);
-        assertEquals(Optional.empty(), service.kindChange(STATION_ID, current, null, null, false));
+        assertEquals(Optional.empty(), kindChange(current, null, null, false));
         assertEquals(
                 Optional.empty(),
-                service.kindChange(STATION_ID, current, ProcedureStepKind.DOCUMENT, 7, false),
+                kindChange(current, ProcedureStepKind.DOCUMENT, 7, false),
                 "an unchanged step is not checked again, even where its template is no longer suitable");
-        assertEquals(
-                Optional.empty(),
-                service.kindChange(STATION_ID, StepKindChoice.CHECK, ProcedureStepKind.CHECK, null, false));
+        assertEquals(Optional.empty(), kindChange(StepKindChoice.CHECK, ProcedureStepKind.CHECK, null, false));
     }
 
     @Test
     void aStepBecomesOneTickedByHand() {
         assertEquals(
                 Optional.of(StepKindChoice.CHECK),
-                service.kindChange(STATION_ID, StepKindChoice.document(7), ProcedureStepKind.CHECK, 7, false));
+                kindChange(StepKindChoice.document(7), ProcedureStepKind.CHECK, 7, false));
     }
 
     @Test
     void aDocumentStepNamesASuitableDocumentItsCallerMayGenerate() {
         assertEquals(
                 Optional.of(StepKindChoice.document(SUITABLE_DOCUMENT)),
-                service.kindChange(
-                        STATION_ID, StepKindChoice.CHECK, ProcedureStepKind.DOCUMENT, SUITABLE_DOCUMENT, true));
+                kindChange(StepKindChoice.CHECK, ProcedureStepKind.DOCUMENT, SUITABLE_DOCUMENT, true));
         assertEquals(
                 ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_MISSING,
                 assertThrows(
                                 RefusalResponse.class,
-                                () -> service.kindChange(
-                                        STATION_ID, StepKindChoice.CHECK, ProcedureStepKind.DOCUMENT, null, true))
+                                () -> kindChange(StepKindChoice.CHECK, ProcedureStepKind.DOCUMENT, null, true))
                         .refusal());
         assertEquals(
                 ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NOT_YOURS,
                 assertThrows(
                                 RefusalResponse.class,
-                                () -> service.kindChange(
-                                        STATION_ID,
-                                        StepKindChoice.CHECK,
-                                        ProcedureStepKind.DOCUMENT,
-                                        SUITABLE_DOCUMENT,
-                                        false))
+                                () -> kindChange(
+                                        StepKindChoice.CHECK, ProcedureStepKind.DOCUMENT, SUITABLE_DOCUMENT, false))
                         .refusal());
         assertEquals(
                 ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_UNSUITABLE,
                 assertThrows(
                                 RefusalResponse.class,
-                                () -> service.kindChange(
-                                        STATION_ID, StepKindChoice.CHECK, ProcedureStepKind.DOCUMENT, 7, true))
+                                () -> kindChange(StepKindChoice.CHECK, ProcedureStepKind.DOCUMENT, 7, true))
                         .refusal());
     }
 
@@ -218,7 +222,11 @@ class ProcedureServiceTest {
                 ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_ALREADY_MADE,
                 assertThrows(
                                 RefusalResponse.class,
-                                () -> service.setStepKind(documentStep(SUITABLE_DOCUMENT), StepKindChoice.CHECK))
+                                () -> service.editStep(
+                                        about(ABOUT_ID),
+                                        documentStep(SUITABLE_DOCUMENT),
+                                        draft("Sign", null, ProcedureStepKind.CHECK, null),
+                                        true))
                         .refusal());
     }
 
@@ -265,8 +273,8 @@ class ProcedureServiceTest {
     void setTemplateItemDependencies() {
         when(repository.findTemplateItems(TEMPLATE_ID))
                 .thenReturn(List.of(
-                        new ProcedureTemplateItem(1, TEMPLATE_ID, "A", null, true, true, 0),
-                        new ProcedureTemplateItem(2, TEMPLATE_ID, "B", null, true, true, 1)));
+                        ProcedureSteps.templateCheck(1, TEMPLATE_ID, "A", null, true, true, 0),
+                        ProcedureSteps.templateCheck(2, TEMPLATE_ID, "B", null, true, true, 1)));
         var deps = List.of(new int[] {1, 2});
         service.setTemplateItemDependencies(TEMPLATE_ID, deps);
         verify(repository).setTemplateItemDependencies(TEMPLATE_ID, deps);
@@ -274,7 +282,7 @@ class ProcedureServiceTest {
 
     @Test
     void findTemplateItemInKnowsOnlyTheStepsOfThatTemplate() {
-        var step = new ProcedureTemplateItem(1, TEMPLATE_ID, "A", null, true, true, 0);
+        var step = ProcedureSteps.templateCheck(1, TEMPLATE_ID, "A", null, true, true, 0);
         when(repository.findTemplateItems(TEMPLATE_ID)).thenReturn(List.of(step));
         assertEquals(Optional.of(step), service.findTemplateItemIn(TEMPLATE_ID, 1));
         assertTrue(service.findTemplateItemIn(TEMPLATE_ID, 2).isEmpty());
@@ -313,7 +321,9 @@ class ProcedureServiceTest {
                 .thenReturn(proc);
 
         var result = service.createProcedure(
-                STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, named(MEMBER_ID_2), null, null, null);
+                new ProcedureDraft(
+                        STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, named(MEMBER_ID_2), null, null),
+                null);
 
         assertEquals(proc, result);
         verify(restrictions).setAudience(RestrictionType.PROCEDURE, PROCEDURE_ID, named(MEMBER_ID_2));
@@ -327,7 +337,8 @@ class ProcedureServiceTest {
         when(repository.createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, null, null, null))
                 .thenReturn(proc);
 
-        service.createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, null, null, null, null);
+        service.createProcedure(
+                new ProcedureDraft(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, null, null, null), null);
 
         verify(eventBus, never()).publish(any());
     }
@@ -344,7 +355,9 @@ class ProcedureServiceTest {
                 .thenReturn(proc);
 
         service.createProcedure(
-                STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, named(MEMBER_ID_2), EVENT_ID, date, null);
+                new ProcedureDraft(
+                        STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, named(MEMBER_ID_2), EVENT_ID, date),
+                null);
 
         verify(repository)
                 .createProcedure(STATION_ID, null, "Task", "Desc", true, MEMBER_ID, null, EVENT_ID, date, null);
@@ -366,8 +379,8 @@ class ProcedureServiceTest {
                         STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, null, null, null))
                 .thenReturn(proc);
 
-        var ti1 = new ProcedureTemplateItem(10, TEMPLATE_ID, "S1", "D1", true, true, 1);
-        var ti2 = new ProcedureTemplateItem(11, TEMPLATE_ID, "S2", "D2", true, true, 2);
+        var ti1 = ProcedureSteps.templateCheck(10, TEMPLATE_ID, "S1", "D1", true, true, 1);
+        var ti2 = ProcedureSteps.templateCheck(11, TEMPLATE_ID, "S2", "D2", true, true, 2);
         when(repository.findTemplateItems(TEMPLATE_ID)).thenReturn(List.of(ti1, ti2));
         when(repository.findTemplateItemDependencies(TEMPLATE_ID)).thenReturn(List.of(new int[] {11, 10}));
 
@@ -377,7 +390,9 @@ class ProcedureServiceTest {
         when(repository.snapshotTemplateItem(PROCEDURE_ID, ti2)).thenReturn(pi2);
 
         var result = service.createProcedure(
-                STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, named(MEMBER_ID), null, null, null);
+                new ProcedureDraft(
+                        STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, named(MEMBER_ID), null, null),
+                null);
 
         assertEquals(proc, result);
         verify(repository).snapshotTemplateItem(PROCEDURE_ID, ti1);
@@ -393,7 +408,7 @@ class ProcedureServiceTest {
                         STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, null, null, null))
                 .thenReturn(proc);
 
-        var ti1 = new ProcedureTemplateItem(10, TEMPLATE_ID, "S1", "D1", true, true, 1);
+        var ti1 = ProcedureSteps.templateCheck(10, TEMPLATE_ID, "S1", "D1", true, true, 1);
         when(repository.findTemplateItems(TEMPLATE_ID)).thenReturn(List.of(ti1));
         int templateItemOutsideSnapshot = 99;
         when(repository.findTemplateItemDependencies(TEMPLATE_ID))
@@ -402,7 +417,9 @@ class ProcedureServiceTest {
         var pi1 = procedureItem(501, false);
         when(repository.snapshotTemplateItem(PROCEDURE_ID, ti1)).thenReturn(pi1);
 
-        service.createProcedure(STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, null, null, null, null);
+        service.createProcedure(
+                new ProcedureDraft(STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, null, null, null),
+                null);
 
         verify(repository, never()).addItemDependency(anyInt(), anyInt());
     }
@@ -483,7 +500,9 @@ class ProcedureServiceTest {
         when(restrictions.audienceOf(RestrictionType.PROCEDURE_TEMPLATE, TEMPLATE_ID))
                 .thenReturn(named(MEMBER_ID_2));
 
-        service.createProcedure(STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, null, null, null, null);
+        service.createProcedure(
+                new ProcedureDraft(STATION_ID, TEMPLATE_ID, "Task", "Desc", true, MEMBER_ID, null, null, null, null),
+                null);
 
         verify(restrictions).setAudience(RestrictionType.PROCEDURE, PROCEDURE_ID, named(MEMBER_ID_2));
         verify(eventBus).publish(any(ProcedureAssigned.class));
@@ -541,13 +560,42 @@ class ProcedureServiceTest {
         var item = procedureItem(ITEM_ID, false);
         when(repository.createItem(PROCEDURE_ID, "T", "D", true, true, 1, StepKindChoice.CHECK))
                 .thenReturn(item);
-        assertEquals(item, service.createItem(PROCEDURE_ID, "T", "D", true, true, 1, StepKindChoice.CHECK));
+        assertEquals(item, service.addStep(procedure(PROCEDURE_ID, null), draft("T", "D", null, null), false));
     }
 
     @Test
     void updateItem() {
         when(repository.updateItem(ITEM_ID, "T", "D", true, true, 1)).thenReturn(true);
-        assertTrue(service.updateItem(ITEM_ID, "T", "D", true, true, 1));
+        assertTrue(service.editStep(
+                procedure(PROCEDURE_ID, null), procedureItem(ITEM_ID, false), draft("T", "D", null, null), false));
+        assertFalse(service.editStep(
+                procedure(PROCEDURE_ID, null), procedureItem(ITEM_ID, false), draft("T", "X", null, null), false));
+    }
+
+    /** A step that makes no document stays as it is when only its fields change, and is checked when it does. */
+    @Test
+    void aStepTurnedIntoADocumentStepIsCheckedAgainstWhomItIsAbout() {
+        when(repository.setItemKind(ITEM_ID, StepKindChoice.document(SUITABLE_DOCUMENT)))
+                .thenReturn(true);
+        when(repository.updateItem(ITEM_ID, "T", null, true, true, 1)).thenReturn(true);
+
+        assertTrue(service.editStep(
+                about(ABOUT_ID),
+                procedureItem(ITEM_ID, false),
+                draft("T", null, ProcedureStepKind.DOCUMENT, SUITABLE_DOCUMENT),
+                true));
+        verify(repository).setItemKind(ITEM_ID, StepKindChoice.document(SUITABLE_DOCUMENT));
+
+        assertEquals(
+                ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NEEDS_ABOUT,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.editStep(
+                                        procedure(PROCEDURE_ID, null),
+                                        procedureItem(ITEM_ID, false),
+                                        draft("T", null, ProcedureStepKind.DOCUMENT, SUITABLE_DOCUMENT),
+                                        true))
+                        .refusal());
     }
 
     @Test
@@ -594,7 +642,7 @@ class ProcedureServiceTest {
     @Test
     void checkItemDependencyMet() {
         var item = procedureItem(ITEM_ID, false);
-        var depItem = new ProcedureItem(
+        var depItem = ProcedureSteps.check(
                 ITEM_ID + 1, PROCEDURE_ID, "Dep", "D", null, true, true, 1, true, Instant.now(), MEMBER_ID);
         when(repository.findItemById(ITEM_ID)).thenReturn(Optional.of(item));
         when(repository.findItemDependencies(PROCEDURE_ID)).thenReturn(List.of(new int[] {ITEM_ID, ITEM_ID + 1}));
@@ -654,8 +702,8 @@ class ProcedureServiceTest {
     void setItemDependenciesBetweenStepsOfTheProcedure() {
         when(repository.findItems(PROCEDURE_ID))
                 .thenReturn(List.of(
-                        new ProcedureItem(1, PROCEDURE_ID, "A", null, null, true, true, 0, false, null, null),
-                        new ProcedureItem(2, PROCEDURE_ID, "B", null, null, true, true, 1, false, null, null)));
+                        ProcedureSteps.check(1, PROCEDURE_ID, "A", null, null, true, true, 0, false, null, null),
+                        ProcedureSteps.check(2, PROCEDURE_ID, "B", null, null, true, true, 1, false, null, null)));
         var deps = List.of(new int[] {2, 1});
         service.setItemDependencies(PROCEDURE_ID, deps, MEMBER_ID);
         verify(repository).setItemDependencies(PROCEDURE_ID, deps);
@@ -663,7 +711,7 @@ class ProcedureServiceTest {
 
     @Test
     void findItemInKnowsOnlyTheStepsOfThatProcedure() {
-        var step = new ProcedureItem(ITEM_ID, PROCEDURE_ID, "A", null, null, true, true, 0, false, null, null);
+        var step = ProcedureSteps.check(ITEM_ID, PROCEDURE_ID, "A", null, null, true, true, 0, false, null, null);
         when(repository.findItemById(ITEM_ID)).thenReturn(Optional.of(step));
         assertEquals(Optional.of(step), service.findItemIn(PROCEDURE_ID, ITEM_ID));
         assertTrue(service.findItemIn(PROCEDURE_ID + 1, ITEM_ID).isEmpty());
@@ -719,7 +767,7 @@ class ProcedureServiceTest {
     @Test
     void onlyUnlockedStepsWithoutADocumentAreAskedFor() {
         when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(about(ABOUT_ID)));
-        var first = new ProcedureItem(1, PROCEDURE_ID, "Packen", null, null, true, true, 0, false, null, null);
+        var first = ProcedureSteps.check(1, PROCEDURE_ID, "Packen", null, null, true, true, 0, false, null, null);
         when(repository.findItems(PROCEDURE_ID))
                 .thenReturn(List.of(
                         first,
@@ -809,9 +857,9 @@ class ProcedureServiceTest {
     /** Ticking the step a document step waits for asks for that document, after the tick is told. */
     @Test
     void tickingTheLastDependencyAsksForTheDocument() {
-        var first = new ProcedureItem(1, PROCEDURE_ID, "Packen", null, null, true, true, 0, false, null, null);
-        var ticked =
-                new ProcedureItem(1, PROCEDURE_ID, "Packen", null, null, true, true, 0, true, Instant.now(), MEMBER_ID);
+        var first = ProcedureSteps.check(1, PROCEDURE_ID, "Packen", null, null, true, true, 0, false, null, null);
+        var ticked = ProcedureSteps.check(
+                1, PROCEDURE_ID, "Packen", null, null, true, true, 0, true, Instant.now(), MEMBER_ID);
         when(repository.findItemById(1)).thenReturn(Optional.of(first));
         when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.of(about(ABOUT_ID)));
         when(repository.findItems(PROCEDURE_ID))
@@ -837,7 +885,7 @@ class ProcedureServiceTest {
      */
     @Test
     void anotherMemberGetsTheirOwnDocument() {
-        when(restrictions.currentMemberAt(STATION_ID, OTHER_ABOUT_ID)).thenReturn(true);
+        when(members.findCurrentAt(STATION_ID, OTHER_ABOUT_ID)).thenAnswer(current());
         when(repository.findItems(PROCEDURE_ID))
                 .thenReturn(List.of(documentStep(1, SUITABLE_DOCUMENT, 70, false), documentStep(2, 7, 71, true)));
         when(repository.setAbout(PROCEDURE_ID, OTHER_ABOUT_ID)).thenReturn(true);
@@ -853,7 +901,7 @@ class ProcedureServiceTest {
     /** A step already signed never asks again, so its template does not hold back another member. */
     @Test
     void aSignedStepDoesNotHoldBackAnotherMember() {
-        when(restrictions.currentMemberAt(STATION_ID, OTHER_ABOUT_ID)).thenReturn(true);
+        when(members.findCurrentAt(STATION_ID, OTHER_ABOUT_ID)).thenAnswer(current());
         when(repository.findItems(PROCEDURE_ID)).thenReturn(List.of(documentStep(2, 7, 71, true)));
         when(repository.setAbout(PROCEDURE_ID, OTHER_ABOUT_ID)).thenReturn(true);
 
@@ -864,7 +912,7 @@ class ProcedureServiceTest {
     /** Pointing document steps at another member takes the right to generate documents for members. */
     @Test
     void onlySomebodyWhoGeneratesDocumentsRetargetsThem() {
-        when(restrictions.currentMemberAt(STATION_ID, OTHER_ABOUT_ID)).thenReturn(true);
+        when(members.findCurrentAt(STATION_ID, OTHER_ABOUT_ID)).thenAnswer(current());
         when(repository.findItems(PROCEDURE_ID)).thenReturn(List.of(documentStep(1, SUITABLE_DOCUMENT, 70, false)));
 
         assertEquals(
@@ -879,7 +927,7 @@ class ProcedureServiceTest {
     /** A procedure is about a current member of its own station only. */
     @Test
     void aProcedureIsAboutACurrentMemberOfItsStation() {
-        when(restrictions.currentMemberAt(STATION_ID, OTHER_ABOUT_ID)).thenReturn(false);
+        when(members.findCurrentAt(STATION_ID, OTHER_ABOUT_ID)).thenReturn(Optional.empty());
 
         assertEquals(
                 ProcedureRefusal.PROCEDURE_ABOUT_NOT_OF_STATION,
@@ -893,15 +941,17 @@ class ProcedureServiceTest {
     /** A document step needs somebody to be about, and a template meant for them, named in the refusal. */
     @Test
     void aDocumentStepFitsTheMemberItIsAbout() {
-        var kind = StepKindChoice.document(SUITABLE_DOCUMENT);
+        var sign = draft("Antrag", null, ProcedureStepKind.DOCUMENT, SUITABLE_DOCUMENT);
+        var nobody = procedure(PROCEDURE_ID, null);
+        when(repository.createItem(anyInt(), anyString(), any(), anyBoolean(), anyBoolean(), anyInt(), any()))
+                .thenReturn(procedureItem(ITEM_ID, false));
         assertEquals(
                 ProcedureRefusal.PROCEDURE_STEP_DOCUMENT_NEEDS_ABOUT,
-                assertThrows(RefusalResponse.class, () -> service.requireDocumentFits(STATION_ID, null, "Antrag", kind))
+                assertThrows(RefusalResponse.class, () -> service.addStep(nobody, sign, true))
                         .refusal());
-        assertDoesNotThrow(() -> service.requireDocumentFits(STATION_ID, null, "Packen", StepKindChoice.CHECK));
+        assertDoesNotThrow(() -> service.addStep(nobody, draft("Packen", null, ProcedureStepKind.CHECK, null), true));
 
-        var refused = assertThrows(
-                RefusalResponse.class, () -> picky().requireDocumentFits(STATION_ID, ABOUT_ID, "Antrag", kind));
+        var refused = assertThrows(RefusalResponse.class, () -> picky().addStep(about(ABOUT_ID), sign, true));
         assertEquals(DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_MEMBER, refused.refusal());
         assertEquals(RefusalDetail.text("Antrag: Dokument " + SUITABLE_DOCUMENT), refused.detail());
     }
@@ -918,16 +968,17 @@ class ProcedureServiceTest {
                 assertThrows(
                                 RefusalResponse.class,
                                 () -> service.createProcedure(
-                                        STATION_ID,
-                                        TEMPLATE_ID,
-                                        "Aufnahme",
-                                        null,
-                                        true,
-                                        MEMBER_ID,
-                                        null,
-                                        null,
-                                        null,
-                                        null,
+                                        new ProcedureDraft(
+                                                STATION_ID,
+                                                TEMPLATE_ID,
+                                                "Aufnahme",
+                                                null,
+                                                true,
+                                                MEMBER_ID,
+                                                null,
+                                                null,
+                                                null,
+                                                null),
                                         null))
                         .refusal());
         verify(repository, never())
@@ -1051,7 +1102,10 @@ class ProcedureServiceTest {
         when(signing.mayAsk(STATION_ID, MEMBER_ID)).thenReturn(true);
         when(signing.stateOf(ITEM_ID, GENERATION_ID)).thenReturn(state(StepDocumentState.Progress.NOT_ASKED));
 
-        service.askAgain(about(ABOUT_ID), documentStep(ITEM_ID, SUITABLE_DOCUMENT, GENERATION_ID, false), MEMBER_ID);
+        service.askAgain(
+                about(ABOUT_ID).id(),
+                documentStep(ITEM_ID, SUITABLE_DOCUMENT, GENERATION_ID, false).id(),
+                MEMBER_ID);
 
         verify(signing).request(GENERATION_ID, MEMBER_ID, "Aufnahme");
         verify(signing, never()).generate(anyInt(), anyInt(), anyInt(), anyInt());
@@ -1070,7 +1124,10 @@ class ProcedureServiceTest {
                 .thenReturn(GENERATION_ID + 1);
         when(repository.relinkGeneration(GENERATION_ID, GENERATION_ID + 1)).thenReturn(true);
 
-        service.askAgain(about(ABOUT_ID), documentStep(ITEM_ID, SUITABLE_DOCUMENT, GENERATION_ID, false), MEMBER_ID);
+        service.askAgain(
+                about(ABOUT_ID).id(),
+                documentStep(ITEM_ID, SUITABLE_DOCUMENT, GENERATION_ID, false).id(),
+                MEMBER_ID);
 
         verify(repository, never()).unlinkGeneration(anyInt(), anyInt());
         verify(signing).request(GENERATION_ID + 1, MEMBER_ID, "Aufnahme");
@@ -1094,7 +1151,7 @@ class ProcedureServiceTest {
         when(repository.findItems(PROCEDURE_ID)).thenReturn(List.of(ticked));
         assertRefused(ProcedureRefusal.PROCEDURE_STEP_NOT_TO_ASK_AGAIN, ticked, MEMBER_ID);
 
-        var first = new ProcedureItem(1, PROCEDURE_ID, "Packen", null, null, true, true, 0, false, null, null);
+        var first = ProcedureSteps.check(1, PROCEDURE_ID, "Packen", null, null, true, true, 0, false, null, null);
         var locked = documentStep(ITEM_ID, SUITABLE_DOCUMENT, null, false);
         when(repository.findItems(PROCEDURE_ID)).thenReturn(List.of(first, locked));
         when(repository.findItemDependencies(PROCEDURE_ID)).thenReturn(List.<int[]>of(new int[] {ITEM_ID, 1}));
@@ -1120,7 +1177,8 @@ class ProcedureServiceTest {
         when(signing.generate(anyInt(), anyInt(), anyInt(), anyInt()))
                 .thenThrow(DocumentRefusal.DOCUMENT_TEMPLATE_ARCHIVED.raise());
 
-        assertThrows(RefusalResponse.class, () -> service.askAgain(about(ABOUT_ID), step, MEMBER_ID));
+        assertThrows(
+                RefusalResponse.class, () -> service.askAgain(about(ABOUT_ID).id(), step.id(), MEMBER_ID));
 
         verify(repository, never()).relinkGeneration(anyInt(), anyInt());
         verify(repository, never()).unlinkGeneration(anyInt(), anyInt());
@@ -1177,7 +1235,9 @@ class ProcedureServiceTest {
     private void assertRefused(Refusal refusal, ProcedureItem step, int by) {
         assertEquals(
                 refusal,
-                assertThrows(RefusalResponse.class, () -> service.askAgain(about(ABOUT_ID), step, by))
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.askAgain(about(ABOUT_ID).id(), step.id(), by))
                         .refusal());
     }
 
@@ -1191,11 +1251,11 @@ class ProcedureServiceTest {
      */
     @Test
     void proceduresForMembersAreCheckedBeforeAnyIsWritten() {
-        when(restrictions.currentMemberAt(eq(STATION_ID), anyInt())).thenReturn(true);
+        when(members.findCurrentAt(eq(STATION_ID), anyInt())).thenAnswer(current());
         when(repository.findTemplateItems(TEMPLATE_ID))
                 .thenReturn(List.of(new ProcedureTemplateItem(
                         1, TEMPLATE_ID, "Antrag", null, true, true, 0, ProcedureStepKind.DOCUMENT, SUITABLE_DOCUMENT)));
-        var members = List.of(
+        var named = List.of(
                 new ProcedureService.NamedMember(ABOUT_ID, "Zeltlager: Lena"),
                 new ProcedureService.NamedMember(OTHER_ABOUT_ID, "Zeltlager: Max"));
         var onlyLena = new ProcedureService(
@@ -1203,24 +1263,26 @@ class ProcedureServiceTest {
                 eventBus,
                 restrictions,
                 new SuitableDocuments(template -> true, member -> member == ABOUT_ID),
-                signing);
+                signing,
+                members);
 
         assertEquals(
                 DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_MEMBER,
                 assertThrows(
                                 RefusalResponse.class,
                                 () -> onlyLena.createForMembers(
-                                        STATION_ID,
-                                        TEMPLATE_ID,
-                                        "Zeltlager",
-                                        null,
-                                        true,
-                                        MEMBER_ID,
-                                        null,
-                                        null,
-                                        null,
-                                        null,
-                                        members))
+                                        new ProcedureDraft(
+                                                STATION_ID,
+                                                TEMPLATE_ID,
+                                                "Zeltlager",
+                                                null,
+                                                true,
+                                                MEMBER_ID,
+                                                null,
+                                                null,
+                                                null,
+                                                null),
+                                        named))
                         .refusal());
         verify(repository, never())
                 .createProcedure(
@@ -1228,12 +1290,13 @@ class ProcedureServiceTest {
     }
 
     /**
-     * Every member gets a procedure of their own; the members the party names are told once, and the
-     * document steps are asked for only after every procedure is written.
+     * Every member gets a procedure of their own; the members the party names are told once, under the name
+     * the first procedure is stored with, and the document steps are asked for only after every procedure is
+     * written.
      */
     @Test
     void proceduresForMembersTellThePartyOnce() {
-        when(restrictions.currentMemberAt(eq(STATION_ID), anyInt())).thenReturn(true);
+        when(members.findCurrentAt(eq(STATION_ID), anyInt())).thenAnswer(current());
         when(restrictions.audienceOf(RestrictionType.PROCEDURE, PROCEDURE_ID)).thenReturn(named(MEMBER_ID_2));
         when(repository.findTemplateItems(TEMPLATE_ID)).thenReturn(List.of());
         when(repository.findTemplateItemDependencies(TEMPLATE_ID)).thenReturn(List.of());
@@ -1248,24 +1311,25 @@ class ProcedureServiceTest {
                         any(),
                         any(),
                         anyInt()))
-                .thenReturn(about(ABOUT_ID));
+                .thenAnswer(invocation -> named(about(ABOUT_ID), invocation.getArgument(2)));
         when(repository.findProcedureById(PROCEDURE_ID)).thenReturn(Optional.empty());
-        var members = List.of(
+        var named = List.of(
                 new ProcedureService.NamedMember(ABOUT_ID, "Zeltlager: Lena"),
                 new ProcedureService.NamedMember(OTHER_ABOUT_ID, "Zeltlager: Max"));
 
         var created = service.createForMembers(
-                STATION_ID,
-                TEMPLATE_ID,
-                "Zeltlager",
-                null,
-                true,
-                MEMBER_ID,
-                null,
-                named(MEMBER_ID_2),
-                null,
-                null,
-                members);
+                new ProcedureDraft(
+                        STATION_ID,
+                        TEMPLATE_ID,
+                        "Zeltlager",
+                        null,
+                        true,
+                        MEMBER_ID,
+                        null,
+                        named(MEMBER_ID_2),
+                        null,
+                        null),
+                named);
 
         assertEquals(2, created.size());
         verify(repository)
@@ -1282,13 +1346,18 @@ class ProcedureServiceTest {
                         OTHER_ABOUT_ID);
         var told = ArgumentCaptor.forClass(ProcedureAssigned.class);
         verify(eventBus, times(1)).publish(told.capture());
-        assertEquals("Zeltlager", told.getValue().procedureName());
+        assertEquals("Zeltlager: Lena", told.getValue().procedureName());
     }
 
     /** The service with every template refused for every member, so only a step not asked anew passes. */
     private ProcedureService picky() {
         return new ProcedureService(
-                repository, eventBus, restrictions, new SuitableDocuments(template -> true, member -> false), signing);
+                repository,
+                eventBus,
+                restrictions,
+                new SuitableDocuments(template -> true, member -> false),
+                signing,
+                members);
     }
 
     private void unlockedStep() {
@@ -1356,7 +1425,7 @@ class ProcedureServiceTest {
     }
 
     private ProcedureItem procedureItem(int id, boolean checked) {
-        return new ProcedureItem(
+        return ProcedureSteps.check(
                 id,
                 PROCEDURE_ID,
                 "Item",
@@ -1368,5 +1437,65 @@ class ProcedureServiceTest {
                 checked,
                 checked ? Instant.now() : null,
                 checked ? MEMBER_ID : null);
+    }
+
+    /** Answers a lookup of a current member with one of the station asked about. */
+    private static Answer<Optional<StationMember>> current() {
+        return invocation -> Optional.of(new StationMember(
+                invocation.getArgument(1),
+                invocation.getArgument(0),
+                UUID.randomUUID(),
+                null,
+                false,
+                null,
+                "Mitglied",
+                StationUserType.MEMBER,
+                LocalDate.now()));
+    }
+
+    private static StepDraft draft(
+            String title,
+            @Nullable String description,
+            @Nullable ProcedureStepKind kind,
+            @Nullable Integer documentTemplateId) {
+        return new StepDraft(title, description, true, true, 1, kind, documentTemplateId);
+    }
+
+    /**
+     * What a template step asking for one thing is made to ask for by a request, as changing it decides:
+     * empty where it is left as it is.
+     */
+    private Optional<StepKindChoice> kindChange(
+            StepKindChoice current,
+            @Nullable ProcedureStepKind kind,
+            @Nullable Integer documentTemplateId,
+            boolean generatesDocuments) {
+        var step = new ProcedureTemplateItem(
+                1, TEMPLATE_ID, "S", null, true, true, 1, current.kind(), current.documentTemplateId());
+        clearInvocations(repository);
+        service.editTemplateStep(STATION_ID, step, draft("S", null, kind, documentTemplateId), generatesDocuments);
+        var chosen = ArgumentCaptor.forClass(StepKindChoice.class);
+        verify(repository, atMost(1)).setTemplateItemKind(eq(1), chosen.capture());
+        return chosen.getAllValues().stream().findFirst();
+    }
+
+    /** The procedure under another name, as the repository returns one it stored under that name. */
+    private static Procedure named(Procedure procedure, String name) {
+        return new Procedure(
+                procedure.id(),
+                procedure.stationId(),
+                procedure.templateId(),
+                name,
+                procedure.description(),
+                procedure.isPublic(),
+                procedure.status(),
+                procedure.assignedBy(),
+                procedure.dueAt(),
+                procedure.createdAt(),
+                procedure.resolvedAt(),
+                procedure.eventId(),
+                procedure.eventDate(),
+                procedure.aboutMemberId(),
+                procedure.resolvedBy());
     }
 }

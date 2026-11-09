@@ -157,6 +157,20 @@ public class RestrictionService {
     }
 
     /**
+     * Whether an entity's restrictions name anybody and take the member in. Unlike {@link
+     * #includes(RestrictionType, int, int)}, an entity without restrictions takes in nobody, for an audience
+     * that names who runs something rather than who may see it.
+     *
+     * @param type     the restricted entity type
+     * @param entityId the entity
+     * @param memberId the member
+     * @return whether the entity carries restrictions and they take the member in
+     */
+    public boolean restrictedTo(RestrictionType type, int entityId, int memberId) {
+        return hasRestrictions(type, entityId) && includes(type, entityId, memberId);
+    }
+
+    /**
      * Whether an entity carries any restriction at all.
      */
     public boolean hasRestrictions(RestrictionType type, int entityId) {
@@ -264,17 +278,6 @@ public class RestrictionService {
      */
     public List<RestrictionMember> membersAt(int stationId, @Nullable Collection<Integer> memberIds) {
         return restrictionRepository.findAtStation(stationId, memberIds);
-    }
-
-    /**
-     * Whether somebody is a current member of a station, as restrictions see members.
-     *
-     * @param stationId the station
-     * @param memberId  the member
-     * @return whether they belong to the station and have not left it
-     */
-    public boolean currentMemberAt(int stationId, int memberId) {
-        return restrictionRepository.isCurrentMember(stationId, memberId);
     }
 
     /**

@@ -111,13 +111,14 @@ public class SignatureFieldService {
      * logging rather than throwing.
      */
     private void tellIfClosed(int requestId, int settledBy) {
+        var now = requests.findById(requestId).orElse(null);
+        if (now == null || now.open()) return;
+        notices.closed(now, requests.fieldsOf(requestId), settledBy);
+        if (now.state() != RequestState.COMPLETE) return;
         try {
-            var now = requests.findById(requestId).orElse(null);
-            if (now == null || now.open()) return;
-            notices.closed(now, requests.fieldsOf(requestId), settledBy);
-            if (now.state() == RequestState.COMPLETE) outcomes.completed(now);
+            outcomes.completed(now);
         } catch (RuntimeException e) {
-            log.warn("Could not carry the closing of signing request {} over", requestId, e);
+            log.warn("Could not carry the completion of signing request {} over", now.uid(), e);
         }
     }
 

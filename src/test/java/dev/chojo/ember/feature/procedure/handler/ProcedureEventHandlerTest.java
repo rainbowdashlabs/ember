@@ -44,6 +44,7 @@ class ProcedureEventHandlerTest {
     void setUp() {
         notificationService = mock(Notifier.class);
         memberRepository = mock(StationMemberRepository.class);
+        when(memberRepository.displayNameOr(anyInt(), anyString())).thenCallRealMethod();
     }
 
     private StationMember member(int id) {

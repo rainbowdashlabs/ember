@@ -213,20 +213,29 @@ public class SignatureRequestService {
         guards.requireMayManage(session, request.documentId());
         if (!request.open()) throw DocumentRefusal.SIGNING_REQUEST_NOT_OPEN.raise();
         int by = session.member().id();
-        Transactions.run(() -> {
-            var held = requests.lockRequest(request.id()).orElseThrow(DocumentRefusal.SIGNING_REQUEST_NOT_FOUND::raise);
-            if (!held.open()) throw DocumentRefusal.SIGNING_REQUEST_NOT_OPEN.raise();
-            requests.withdrawOpen(request.id(), by, names.official(by));
-            requests.closeIfSettled(request.id());
-        });
+        if (!withdrawRemaining(request.id(), by)) throw DocumentRefusal.SIGNING_REQUEST_NOT_OPEN.raise();
         notices.settled(withdrawnFieldsOf(request.id()));
         var now = requests.findById(request.id()).orElse(request);
-        try {
-            notices.closed(now, requests.fieldsOf(request.id()), by);
-        } catch (RuntimeException e) {
-            log.warn("Could not carry the closing of signing request {} over", now.uid(), e);
-        }
+        notices.closed(now, requests.fieldsOf(request.id()), by);
         return now;
+    }
+
+    /**
+     * Withdraws every field of a request that still waits, and closes the request where nothing is left
+     * open, under the request's lock.
+     *
+     * @param requestId the request
+     * @param by        who withdraws
+     * @return whether the request was still open
+     */
+    private boolean withdrawRemaining(int requestId, int by) {
+        return Transactions.call(() -> {
+            var held = requests.lockRequest(requestId).orElse(null);
+            if (held == null || !held.open()) return false;
+            requests.withdrawOpen(requestId, by, names.official(by));
+            requests.closeIfSettled(requestId);
+            return true;
+        });
     }
 
     /**
@@ -277,6 +286,12 @@ public class SignatureRequestService {
      * Withdraws every signature the live request of a generated document still waits for, as a procedure
      * does when it no longer needs the document. What was already signed stays.
      *
+     * <p>Unlike {@link #withdraw}, the closing is not announced. The procedure withdraws because the step
+     * holding the document is deleted, or is about to ask a different member, and the event bus answers in
+     * this very call: a request that closes with some fields signed would stand as agreed and tick that
+     * step, tell its party and ask for the steps it unlocks, of a procedure that is going away or no longer
+     * about that member.
+     *
      * @param generationId the generation log entry of the document
      * @param by           who withdraws
      * @return whether a request was open to withdraw
@@ -284,15 +299,9 @@ public class SignatureRequestService {
     public boolean withdrawForProcedure(int generationId, int by) {
         var live = requests.findLiveFor(generationId).filter(SignatureRequest::open);
         if (live.isEmpty()) return false;
-        var request = live.get();
-        boolean withdrawn = Transactions.call(() -> {
-            var held = requests.lockRequest(request.id()).orElse(null);
-            if (held == null || !held.open()) return false;
-            requests.withdrawOpen(request.id(), by, names.official(by));
-            requests.closeIfSettled(request.id());
-            return true;
-        });
-        if (withdrawn) notices.settled(withdrawnFieldsOf(request.id()));
+        int requestId = live.get().id();
+        boolean withdrawn = withdrawRemaining(requestId, by);
+        if (withdrawn) notices.settled(withdrawnFieldsOf(requestId));
         return withdrawn;
     }
 

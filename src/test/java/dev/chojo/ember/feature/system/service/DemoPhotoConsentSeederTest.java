@@ -48,8 +48,6 @@ import dev.chojo.ember.feature.mail.service.MailConfirmationPolicy;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
-import dev.chojo.ember.feature.members.repository.StationFieldSetRepository;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.signing.entity.AppointmentRequest;
 import dev.chojo.ember.feature.signing.entity.FieldState;
@@ -91,7 +89,6 @@ import dev.chojo.ember.feature.twofactor.service.TrustedDeviceService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import dev.chojo.ember.owner.Owner;
-import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -118,7 +115,7 @@ import static org.mockito.Mockito.when;
  * on paper to open, with a guardian asked for each young member. Nobody is registered twice, a young member
  * with a guardian is left to register, and seeding twice leaves one of each.
  */
-class DemoPhotoConsentSeederTest extends RepositoryTestBase {
+class DemoPhotoConsentSeederTest extends DemoTestBase {
     private static final SignatureRequestRepository requestRepo = new SignatureRequestRepository();
 
     private static DemoRunContext run;
@@ -131,20 +128,7 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
 
     @BeforeAll
     static void seedTheFestival() {
-        run = new DemoRunContext(new PasswordHasher().hash(DemoSeeder.PASSWORD));
-        new DemoStationSeeder(accountRepo, stationRepo).seed(run);
-        new DemoMemberSeeder(
-                        accountRepo,
-                        stationMemberRepo,
-                        memberLookupService,
-                        memberGroupRepo,
-                        new MemberGroupSetRepository(),
-                        profileFieldRepo,
-                        profileFieldChangeRepo,
-                        userTagRepo,
-                        stationRepo,
-                        new StationFieldSetRepository())
-                .seed(run);
+        run = seedDemoStations();
         clock = new DemoClock(Clock.systemUTC());
         eventSeeder().seed(run);
         wiring = GeneratorTestBase.wire(run.primaryStation().station());

@@ -540,18 +540,4 @@ class RestrictionServiceTest extends RepositoryTestBase {
                 new RestrictionAudience(List.of(), List.of(999_999), List.of(), List.of(), RestrictionMode.AND)));
         stationRepo.delete(elsewhere.id());
     }
-
-    /** A current member of the station is one; somebody of another station, or who left, is not. */
-    @Test
-    void onlySomebodyWhoStaysIsACurrentMember() {
-        var leaving = stationMemberRepo.create(
-                station.id(),
-                accountRepo.create("restriction-leaving@test.com", "L", "V").id());
-        assertTrue(restrictionService.currentMemberAt(station.id(), leaving.id()));
-        assertFalse(restrictionService.currentMemberAt(station.id() + 100_000, leaving.id()));
-
-        stationMemberRepo.setFormer(leaving.id(), true);
-
-        assertFalse(restrictionService.currentMemberAt(station.id(), leaving.id()));
-    }
 }

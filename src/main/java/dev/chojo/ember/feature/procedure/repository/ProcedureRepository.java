@@ -9,7 +9,6 @@ import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
-import dev.chojo.ember.feature.procedure.entity.ProcedureStepKind;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
 import dev.chojo.ember.feature.procedure.entity.StepKindChoice;
@@ -40,9 +39,10 @@ public class ProcedureRepository {
      * Whether the managing party of procedure {@code p} takes in {@code :member_id}. Unlike other
      * restrictions, a procedure with no party is run by nobody beyond those who edit procedures.
      */
-    private static final String PARTY_ADMITS =
-            "(EXISTS (SELECT 1 FROM procedure_restriction r WHERE r.procedure_id = p.id)" + " AND "
-                    + RestrictionSql.admits(RestrictionType.PROCEDURE, "p.id", ":member_id") + ")";
+    private static final String PARTY_ADMITS = "(%s AND %s)"
+            .formatted(
+                    RestrictionSql.existsRestriction(RestrictionType.PROCEDURE, "p.id"),
+                    RestrictionSql.admits(RestrictionType.PROCEDURE, "p.id", ":member_id"));
 
     private static final String PROCEDURE_TEMPLATE_COLUMNS =
             "id, station_id, name, description, archived, created_by, created_at";
@@ -113,17 +113,6 @@ public class ProcedureRepository {
                 .single(call().bind("template_id", templateId))
                 .map(ProcedureTemplateItem.map())
                 .all();
-    }
-
-    public ProcedureTemplateItem createTemplateItem(
-            int templateId,
-            String title,
-            @Nullable String description,
-            boolean isPublic,
-            boolean userAssigned,
-            int position) {
-        return createTemplateItem(
-                templateId, title, description, isPublic, userAssigned, position, StepKindChoice.CHECK);
     }
 
     /**
@@ -517,16 +506,6 @@ public class ProcedureRepository {
         return findById("procedure_item", PROCEDURE_ITEM_COLUMNS, id, ProcedureItem.map());
     }
 
-    public ProcedureItem createItem(
-            int procedureId,
-            String title,
-            @Nullable String description,
-            boolean isPublic,
-            boolean userAssigned,
-            int position) {
-        return createItem(procedureId, title, description, isPublic, userAssigned, position, StepKindChoice.CHECK);
-    }
-
     /**
      * Adds a step to a procedure, asking for what it is given in the same write.
      *
@@ -604,7 +583,7 @@ public class ProcedureRepository {
                   AND generation_id IS NULL;""")
                 .single(call().bind("kind", kind.kind().name())
                         .bind("document_template_id", kind.documentTemplateId())
-                        .bind("asks_to_sign", kind.kind() == ProcedureStepKind.DOCUMENT)
+                        .bind("asks_to_sign", kind.asksToSign())
                         .bind("id", id))
                 .update()
                 .changed();
@@ -783,27 +762,22 @@ public class ProcedureRepository {
                 .insert();
     }
 
+    /**
+     * Copies a template step into a procedure, as the procedure's own step.
+     *
+     * @param procedureId the procedure
+     * @param item        the template step
+     * @return the procedure's step
+     */
     public ProcedureItem snapshotTemplateItem(int procedureId, ProcedureTemplateItem item) {
-        return insertReturning(
-                """
-                INSERT
-                INTO
-                    procedure_item(procedure_id, title, description, public, user_assigned, position, kind,
-                                   document_template_id)
-                VALUES
-                    (:procedure_id, :title, :description, :public, :user_assigned, :position, :kind,
-                     :document_template_id)
-                RETURNING %s;""",
-                call().bind("procedure_id", procedureId)
-                        .bind("title", item.title())
-                        .bind("description", item.description())
-                        .bind("public", item.isPublic())
-                        .bind("user_assigned", item.userAssigned())
-                        .bind("position", item.position())
-                        .bind("kind", item.kind().name())
-                        .bind("document_template_id", item.documentTemplateId()),
-                ProcedureItem.map(),
-                PROCEDURE_ITEM_COLUMNS);
+        return createItem(
+                procedureId,
+                item.title(),
+                item.description(),
+                item.isPublic(),
+                item.userAssigned(),
+                item.position(),
+                StepKindChoice.of(item));
     }
 
     /**

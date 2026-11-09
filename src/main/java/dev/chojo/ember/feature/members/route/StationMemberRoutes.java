@@ -272,7 +272,7 @@ public class StationMemberRoutes implements Routes {
             try {
                 var rType = RestrictionType.valueOf(rtParam);
                 int entityId = Integer.parseInt(entityIdParam);
-                var allowedIds = !privateAudience(rType) || session.hasPermission(rType.managerPermission())
+                var allowedIds = !rType.privateAudience() || session.hasPermission(rType.managerPermission())
                         ? restrictionService.findMembersPassingRestriction(rType, entityId, session.stationId())
                         : Optional.<Set<Integer>>empty();
                 if (allowedIds.isPresent()) {
@@ -285,11 +285,6 @@ public class StationMemberRoutes implements Routes {
         }
 
         ctx.json(memberIdentityFactory.enrichCompletions(completions));
-    }
-
-    /** Whether who an entity's restriction takes in is itself kept from those who do not manage it. */
-    private static boolean privateAudience(RestrictionType type) {
-        return type == RestrictionType.PROCEDURE || type == RestrictionType.PROCEDURE_TEMPLATE;
     }
 
     @OpenApi(

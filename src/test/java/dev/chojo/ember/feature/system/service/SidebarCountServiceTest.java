@@ -20,6 +20,8 @@ import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.service.NotificationInbox;
@@ -59,6 +61,7 @@ class SidebarCountServiceTest {
 
     private ProcedureService procedureService;
     private StationMemberService stationMemberService;
+    private StationMemberRepository memberRepository;
 
     @BeforeEach
     void setup() {
@@ -75,6 +78,7 @@ class SidebarCountServiceTest {
         movementService = mock(ItemMovementService.class);
         procedureService = mock(ProcedureService.class);
         stationMemberService = mock(StationMemberService.class);
+        memberRepository = mock(StationMemberRepository.class);
         when(stationRepository.requireUid(STATION_ID)).thenReturn(STATION_UID);
 
         service = new SidebarCountService(
@@ -90,7 +94,8 @@ class SidebarCountServiceTest {
                 inventoryService,
                 movementService,
                 procedureService,
-                stationMemberService);
+                stationMemberService,
+                new GuardianPolicy(memberRepository));
     }
 
     private StationSession sessionWithPermissions(Set<StationPermission> permissions) {
@@ -245,7 +250,7 @@ class SidebarCountServiceTest {
         var session = sessionWithPermissions(Set.of(StationPermission.LOGIN));
         var ward = new StationMember(
                 99, STATION_ID, UUID.randomUUID(), null, false, null, "Kind", StationUserType.MEMBER, null);
-        when(stationMemberService.findManaged(MEMBER_ID)).thenReturn(List.of(ward));
+        when(memberRepository.findManaged(MEMBER_ID)).thenReturn(List.of(ward));
         when(procedureService.countOpenRunByWithAvailableItems(STATION_ID, MEMBER_ID))
                 .thenReturn(2);
         when(procedureService.countOpenPublicAboutNotRunBy(STATION_ID, MEMBER_ID, List.of(MEMBER_ID, 99)))

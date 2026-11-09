@@ -9,14 +9,18 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.ProcedureRefusal;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStepKind;
+import dev.chojo.ember.feature.procedure.entity.ProcedureSteps;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplateItem;
 import dev.chojo.ember.feature.procedure.entity.StepKindChoice;
@@ -30,8 +34,10 @@ import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.stubbing.Answer;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -73,6 +79,7 @@ class ProcedureRoutesTest {
 
     private ProcedureRepository repository;
     private RestrictionService restrictions;
+    private StationMemberRepository members;
     private RouteHarness harness;
     private GuardianPolicy guardians;
 
@@ -87,6 +94,8 @@ class ProcedureRoutesTest {
         when(repository.findTemplateById(TEMPLATE)).thenReturn(Optional.of(template()));
         when(repository.findTemplateItems(TEMPLATE)).thenReturn(List.of(templateStep()));
         restrictions = mock(RestrictionService.class);
+        when(restrictions.restrictedTo(any(), anyInt(), anyInt())).thenCallRealMethod();
+        members = mock(StationMemberRepository.class);
         when(restrictions.ofStation(anyInt(), any())).thenReturn(true);
         when(restrictions.hasRestrictions(RestrictionType.PROCEDURE, PROCEDURE)).thenReturn(true);
         when(restrictions.includes(RestrictionType.PROCEDURE, PROCEDURE, TestSessions.MEMBER_ID))
@@ -97,8 +106,26 @@ class ProcedureRoutesTest {
                 mock(DomainEventBus.class),
                 restrictions,
                 new SuitableDocuments(template -> template == SUITABLE_DOCUMENT),
-                mock(DocumentStepSigning.class));
+                mock(DocumentStepSigning.class),
+                members);
         harness = RouteHarness.serving(new ProcedureRoutes(service, mock(MemberIdentityFactory.class), guardians));
+    }
+
+    /** A list narrowed to a state there is none of is refused by name rather than failing. */
+    @Test
+    void aListOfAStateThereIsNoneOfIsRefused() {
+        harness.run((server, client) -> {
+            var member = harness.as(TestSessions.member(STATION, StationPermission.USER));
+
+            assertEquals(
+                    ProcedureRefusal.PROCEDURE_STATUS_UNKNOWN,
+                    refusalOf(client.get(PREFIX + "/procedures?status=LOST", member)));
+            assertEquals(
+                    ProcedureRefusal.PROCEDURE_STATUS_UNKNOWN,
+                    refusalOf(client.get(PREFIX + "/procedures/about-me?status=LOST", member)));
+            assertEquals(
+                    200, client.get(PREFIX + "/procedures?status=OPEN", member).code());
+        });
     }
 
     @Test
@@ -348,7 +375,7 @@ class ProcedureRoutesTest {
     /** A procedure is made about a current member of the station, who its document steps are then about. */
     @Test
     void aProcedureIsMadeAboutAMember() {
-        when(restrictions.currentMemberAt(STATION, 5)).thenReturn(true);
+        when(members.findCurrentAt(STATION, 5)).thenAnswer(current());
         when(repository.setAbout(PROCEDURE, 5)).thenReturn(true);
 
         var answer = harness.request(client -> client.put(
@@ -417,7 +444,7 @@ class ProcedureRoutesTest {
      */
     @Test
     void oneProcedureIsStartedPerMember() {
-        when(restrictions.currentMemberAt(eq(STATION), anyInt())).thenReturn(true);
+        when(members.findCurrentAt(eq(STATION), anyInt())).thenAnswer(current());
         when(repository.createProcedure(
                         eq(STATION), any(), anyString(), any(), anyBoolean(), anyInt(), any(), any(), any(), any()))
                 .thenReturn(procedure());
@@ -430,7 +457,8 @@ class ProcedureRoutesTest {
                         mock(DomainEventBus.class),
                         restrictions,
                         new SuitableDocuments(template -> false),
-                        mock(DocumentStepSigning.class)),
+                        mock(DocumentStepSigning.class),
+                        members),
                 identities,
                 guardians));
         var editor = routes.as(TestSessions.member(STATION, StationPermission.PROCEDURE_EDIT));
@@ -490,7 +518,7 @@ class ProcedureRoutesTest {
         when(repository.findTemplateItems(TEMPLATE))
                 .thenReturn(List.of(new ProcedureTemplateItem(
                         OWN_TEMPLATE_STEP, TEMPLATE, "Antrag", null, true, true, 0, ProcedureStepKind.DOCUMENT, 7)));
-        when(restrictions.currentMemberAt(STATION, 77)).thenReturn(false);
+        when(members.findCurrentAt(STATION, 77)).thenReturn(Optional.empty());
         String many = IntStream.rangeClosed(1, ProcedureRoutes.MAX_MEMBERS_AT_ONCE + 1)
                 .mapToObj(String::valueOf)
                 .collect(Collectors.joining(", "));
@@ -597,9 +625,9 @@ class ProcedureRoutesTest {
         when(guardians.mayActFor(any(), eq(77))).thenReturn(true);
         when(repository.findItems(PROCEDURE))
                 .thenReturn(List.of(
-                        new ProcedureItem(
+                        ProcedureSteps.check(
                                 OWN_STEP, PROCEDURE, "Packen", null, "Jacke fehlt", true, true, 0, false, null, null),
-                        new ProcedureItem(
+                        ProcedureSteps.check(
                                 FOREIGN_STEP,
                                 PROCEDURE,
                                 "Intern besprechen",
@@ -788,7 +816,7 @@ class ProcedureRoutesTest {
     }
 
     private static ProcedureItem step(int id, int procedureId) {
-        return new ProcedureItem(id, procedureId, "Packen", null, null, true, true, 0, false, null, null);
+        return ProcedureSteps.check(id, procedureId, "Packen", null, null, true, true, 0, false, null, null);
     }
 
     private static ProcedureItem documentStep(int id, int documentTemplateId, @Nullable Integer generationId) {
@@ -815,6 +843,20 @@ class ProcedureRoutesTest {
     }
 
     private static ProcedureTemplateItem templateStep() {
-        return new ProcedureTemplateItem(OWN_TEMPLATE_STEP, TEMPLATE, "Packen", null, true, true, 0);
+        return ProcedureSteps.templateCheck(OWN_TEMPLATE_STEP, TEMPLATE, "Packen", null, true, true, 0);
+    }
+
+    /** Answers a lookup of a current member with one of the station asked about. */
+    private static Answer<Optional<StationMember>> current() {
+        return invocation -> Optional.of(new StationMember(
+                invocation.getArgument(1),
+                invocation.getArgument(0),
+                UUID.randomUUID(),
+                null,
+                false,
+                null,
+                "Mitglied",
+                StationUserType.MEMBER,
+                LocalDate.now()));
     }
 }

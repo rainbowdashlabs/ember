@@ -136,10 +136,10 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     @Order(10)
     void createTemplateItem() {
         templateItemId1 = procedureRepo
-                .createTemplateItem(templateId, "Step 1", "First step", true, true, 1)
+                .createTemplateItem(templateId, "Step 1", "First step", true, true, 1, StepKindChoice.CHECK)
                 .id();
         templateItemId2 = procedureRepo
-                .createTemplateItem(templateId, "Step 2", "Second step", false, false, 2)
+                .createTemplateItem(templateId, "Step 2", "Second step", false, false, 2, StepKindChoice.CHECK)
                 .id();
         var items = procedureRepo.findTemplateItems(templateId);
         assertEquals(2, items.size());
@@ -372,9 +372,12 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(40)
     void createItem() {
-        var i1 = procedureRepo.createItem(procedureId, "Check exits", "Verify all exits clear", true, true, 1);
-        var i2 = procedureRepo.createItem(procedureId, "Sound alarm", "Trigger alarm", true, true, 2);
-        var i3 = procedureRepo.createItem(procedureId, "Evacuate", "Everyone out", true, false, 3);
+        var i1 = procedureRepo.createItem(
+                procedureId, "Check exits", "Verify all exits clear", true, true, 1, StepKindChoice.CHECK);
+        var i2 = procedureRepo.createItem(
+                procedureId, "Sound alarm", "Trigger alarm", true, true, 2, StepKindChoice.CHECK);
+        var i3 =
+                procedureRepo.createItem(procedureId, "Evacuate", "Everyone out", true, false, 3, StepKindChoice.CHECK);
         assertNotNull(i1);
         assertFalse(i1.checked());
         assertNull(i1.checkedAt());
@@ -532,7 +535,7 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
         int document = wiring.templates()
                 .create(wiring.owner(), letter("Aufnahmeantrag", "Text").build(), member.id())
                 .id();
-        var step = procedureRepo.createItem(adHocProcedureId, "Antrag", null, true, true, 9);
+        var step = procedureRepo.createItem(adHocProcedureId, "Antrag", null, true, true, 9, StepKindChoice.CHECK);
         assertTrue(procedureRepo.checkItem(step.id(), member.id()));
 
         assertTrue(procedureRepo.setItemKind(step.id(), StepKindChoice.document(document)));
@@ -693,7 +696,7 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
         int generation = logged(document, member2.id());
         var signed = procedureRepo.createItem(
                 procedure.id(), "Brief", null, true, true, 0, StepKindChoice.document(document));
-        var after = procedureRepo.createItem(procedure.id(), "Danach", null, true, true, 1);
+        var after = procedureRepo.createItem(procedure.id(), "Danach", null, true, true, 1, StepKindChoice.CHECK);
         assertTrue(procedureRepo.linkGeneration(signed.id(), generation));
         assertFalse(procedureRepo.unlinkGeneration(signed.id(), generation + 1), "only the document it holds");
         assertTrue(procedureRepo.unlinkGeneration(signed.id(), generation));
@@ -782,7 +785,7 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(102)
     void deleteTemplateItem() {
-        var temp = procedureRepo.createTemplateItem(templateId, "Temp", "Desc", true, true, 99);
+        var temp = procedureRepo.createTemplateItem(templateId, "Temp", "Desc", true, true, 99, StepKindChoice.CHECK);
         assertTrue(procedureRepo.deleteTemplateItem(temp.id()));
         assertFalse(procedureRepo.deleteTemplateItem(temp.id()));
     }

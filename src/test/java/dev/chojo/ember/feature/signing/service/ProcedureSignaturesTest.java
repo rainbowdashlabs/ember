@@ -16,12 +16,10 @@ import dev.chojo.ember.event.events.SigningAgreementWithdrawn;
 import dev.chojo.ember.event.events.SigningRequestClosed;
 import dev.chojo.ember.event.events.SigningRequestReplaced;
 import dev.chojo.ember.feature.content.route.BlockRowRequest;
-import dev.chojo.ember.feature.documents.service.DocumentAccessService;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.service.GeneratorTestBase;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.procedure.service.StepDocumentState;
 import dev.chojo.ember.feature.signing.entity.RequestState;
 import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
@@ -79,35 +77,18 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
                 .id();
         manager = member("Maria", "Leitung");
         member = member("Alex", "Albers");
-        var guardianPolicy = new GuardianPolicy(stationMemberRepo);
-        var guards = new SigningGuards(
-                new DocumentAccessService(memberDocumentRepo, wiring.documents(), guardianPolicy),
-                memberDocumentRepo,
-                guardianPolicy);
-        var notices = TestNotices.notices(
-                newNotifier(),
-                emailQueueRepo,
-                stationRepo,
-                stationMemberRepo,
-                accountRepo,
-                memberDocumentRepo,
+        var signing = signing(
+                wiring,
+                requestRepo,
                 new DomainEventBus(Set.of(
                         new Recording<>(SigningRequestClosed.class),
                         new Recording<>(SigningAgreementWithdrawn.class),
                         new Recording<>(SigningRequestReplaced.class))));
-        requests = new SignatureRequestService(
-                requestRepo,
-                new SigningEvidenceRepository(),
-                wiring.log(),
-                memberDocumentRepo,
-                wiring.documents(),
-                stationMemberRepo,
-                memberNameResolver,
-                guardianPolicy,
-                new SignerResolver(stationMemberRepo, memberNameResolver, memberPermissionResolver),
-                guards,
-                notices,
-                new TemplateDocumentStatements(wiring.generator()));
+        var guardianPolicy = signing.guardians();
+        var guards = signing.guards();
+        var notices = signing.notices();
+        requests = signing.requests();
+        signatures = signing.procedures();
         fields = new SignatureFieldService(
                 requestRepo,
                 new SigningEvidenceRepository(),
@@ -118,14 +99,6 @@ class ProcedureSignaturesTest extends GeneratorTestBase {
                 notices,
                 completed -> {},
                 new WitnessReach(stationMemberRepo, restrictionService));
-        signatures = new ProcedureSignatures(
-                wiring.generation(),
-                requests,
-                stationMemberRepo,
-                memberPermissionResolver,
-                wiring.log(),
-                requestRepo,
-                notices);
         withdrawals = new SignatureWithdrawals(
                 requestRepo,
                 requests,

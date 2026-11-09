@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.procedure.service;
 
 import dev.chojo.ember.feature.procedure.entity.ProcedureItem;
-import dev.chojo.ember.feature.procedure.entity.ProcedureStepKind;
 import dev.chojo.ember.feature.procedure.repository.ProcedureRepository;
 import dev.chojo.ember.lifecycle.Schedule;
 import dev.chojo.ember.lifecycle.ScheduledTask;
@@ -98,8 +97,7 @@ public class ProcedureDueReminders implements TaskSource {
 
     private List<ProcedureItem> openDocumentSteps(int procedureId) {
         return repository.findItems(procedureId).stream()
-                .filter(step ->
-                        step.kind() == ProcedureStepKind.DOCUMENT && step.generationId() != null && !step.checked())
+                .filter(ProcedureItem::awaitsSignatures)
                 .toList();
     }
 

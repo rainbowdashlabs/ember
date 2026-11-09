@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.SigningAgreementWithdrawn;
 import dev.chojo.ember.event.events.SigningRequestClosed;
@@ -44,13 +45,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * Tells people about signatures: that a document waits for theirs, that it still does, and that it was given.
@@ -95,9 +94,6 @@ public class SignatureNotices {
     private final StationMemberRepository members;
     private final DocumentRepository documents;
     private final DomainEventBus eventBus;
-    /** The states of a field that let the request stand as agreed. */
-    private static final Set<FieldState> AGREED =
-            EnumSet.of(FieldState.SIGNED, FieldState.PAPER_CONFIRMED, FieldState.WAIVED);
 
     @Inject
     public SignatureNotices(
@@ -181,8 +177,10 @@ public class SignatureNotices {
     public void withdrawn(SignatureRequest request, SignatureWithdrawal withdrawal, @Nullable Integer eventId) {
         var withdrawnBy = withdrawal.withdrawnBy();
         if (withdrawnBy != null) {
-            eventBus.publish(new SigningAgreementWithdrawn(
-                    request.stationId(), request.id(), request.generationId(), withdrawnBy));
+            announce(
+                    new SigningAgreementWithdrawn(
+                            request.stationId(), request.id(), request.generationId(), withdrawnBy),
+                    request);
         }
         try {
             var params = new NotificationParams.SignatureWithdrawn(
@@ -210,10 +208,11 @@ public class SignatureNotices {
     }
 
     /**
-     * Tells whatever rests on a request that it no longer waits for anybody. It stands as agreed where
-     * at least one field was signed, confirmed on paper or waived; fields withdrawn beside them do not
-     * change that, the same way a request counts as complete where anything was signed. One whose every
-     * field was withdrawn does not stand as agreed.
+     * Tells whatever rests on a request that it no longer waits for anybody. It stands as agreed where no
+     * field is open and at least one {@linkplain FieldState#agrees() agrees}: was signed, confirmed on paper
+     * or waived. Fields withdrawn beside them do not change that. This is wider than a complete request,
+     * which takes a signature or a paper confirmation: a request whose only settled field was waived stands
+     * as agreed without being complete. One whose every field was withdrawn does not stand as agreed.
      *
      * @param request   the request, as it stands now that it closed
      * @param fields    its fields, as they stand
@@ -222,9 +221,10 @@ public class SignatureNotices {
     public void closed(SignatureRequest request, List<RequestedSignature> fields, int settledBy) {
         if (request.open() || request.state() == RequestState.SUPERSEDED) return;
         boolean agreed = fields.stream().noneMatch(field -> field.state() == FieldState.OPEN)
-                && fields.stream().anyMatch(field -> AGREED.contains(field.state()));
-        eventBus.publish(
-                new SigningRequestClosed(request.stationId(), request.id(), request.generationId(), agreed, settledBy));
+                && fields.stream().anyMatch(field -> field.state().agrees());
+        announce(
+                new SigningRequestClosed(request.stationId(), request.id(), request.generationId(), agreed, settledBy),
+                request);
     }
 
     /**
@@ -234,8 +234,22 @@ public class SignatureNotices {
      * @param created  the request for the corrected document
      */
     public void replaced(SignatureRequest replaced, SignatureRequest created) {
-        eventBus.publish(
-                new SigningRequestReplaced(replaced.stationId(), replaced.generationId(), created.generationId()));
+        announce(
+                new SigningRequestReplaced(replaced.stationId(), replaced.generationId(), created.generationId()),
+                replaced);
+    }
+
+    /** Publishes what happened to a request, logging rather than throwing, as every notice here does. */
+    private void announce(DomainEvent event, SignatureRequest request) {
+        try {
+            eventBus.publish(event);
+        } catch (RuntimeException e) {
+            log.warn(
+                    "Could not carry {} of signing request {} over",
+                    event.getClass().getSimpleName(),
+                    request.uid(),
+                    e);
+        }
     }
 
     /**

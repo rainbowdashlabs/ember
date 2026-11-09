@@ -111,6 +111,33 @@ public class StationMemberRepository {
     }
 
     /**
+     * A current member of a station: one who belongs to it and has not left it.
+     *
+     * @param stationId the station
+     * @param memberId  the member
+     * @return the member, or empty where they are of another station, have left or do not exist
+     */
+    public Optional<StationMember> findCurrentAt(int stationId, int memberId) {
+        return query("""
+                SELECT %s FROM station_member
+                WHERE id = :id AND station_id = :station_id AND NOT former;""", STATION_MEMBER_COLUMNS)
+                .single(call().bind("id", memberId).bind("station_id", stationId))
+                .map(StationMember.map())
+                .first();
+    }
+
+    /**
+     * The name a member is shown by, for a line that names whoever did something.
+     *
+     * @param id       the member
+     * @param fallback what to show where the member no longer exists
+     * @return the member's display name, or the fallback
+     */
+    public String displayNameOr(int id, String fallback) {
+        return findById(id).map(StationMember::displayName).orElse(fallback);
+    }
+
+    /**
      * Finds the station members with the given identifiers in one round trip, for a list that would
      * otherwise read them one row at a time. Identifiers that no longer resolve are simply absent.
      */
