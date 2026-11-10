@@ -1,12 +1,9 @@
 name: Pull Request Stats
 
-# Keeps one comment on every pull request that counts the lines it adds and removes, split into
-# frontend and backend logic, tests, localisation and generated files, and edits that comment on
-# every push instead of adding a new one. The changelog entries the pull request adds to the newest
-# release name what kind of change it is (new features, improvements, security, changes, fixes); the
-# comment lists them and the matching c: labels are set, and taken off again once they no longer
-# apply. Labels outside c: are left alone. It only reads files through the API and never checks out
-# the pull request's code. Pull requests from forks are skipped, because their token may not write.
+# Keeps one comment on every pull request that counts the lines it adds and removes per area and
+# names the kind of change from the changelog entries it adds, and sets the matching c: labels.
+# The logic lives in .github/scripts/pr-stats.cjs. Only that folder is checked out, and pull
+# requests from forks are skipped, because their token may not write and their script is not ours.
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -25,153 +22,14 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
+      - name: Check out the stats script
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
       - name: Post or update the stats comment
         uses: actions/github-script@v8
         with:
           script: |
-            const MARKER = '<!-- pr-stats -->'
-            const AREAS = [
-              ['generated', 'Generated', f => f.startsWith('frontend/src/api/generated/')
-                || f === 'src/main/resources/api/openapi.json'
-                || f === 'src/main/resources/data_tracking.json'],
-              ['feI18n', 'Frontend localisation', f => f.startsWith('frontend/src/i18n/')],
-              ['beI18n', 'Backend localisation', f => f.startsWith('src/main/resources/i18n/')],
-              ['feTests', 'Frontend tests', f => f.startsWith('frontend/e2e/')
-                || (f.startsWith('frontend/') && /\.(test|spec)\.[cm]?[jt]s$/.test(f))],
-              ['feLogic', 'Frontend logic', f => f.startsWith('frontend/src/')],
-              ['feOther', 'Frontend other', f => f.startsWith('frontend/')],
-              ['beTests', 'Backend tests', f => f.startsWith('src/test/')],
-              ['beLogic', 'Backend logic', f => f.startsWith('src/main/java/')],
-              ['beOther', 'Backend other', f => f.startsWith('src/') || f.startsWith('buildSrc/')
-                || f.startsWith('gradle/') || /^(build|settings)\.gradle\.kts$/.test(f)],
-              ['other', 'Other', () => true],
-            ]
-            const GROUPS = [
-              ['Frontend logic', ['feLogic']],
-              ['Backend logic', ['beLogic']],
-              ['Localisation', ['feI18n', 'beI18n']],
-              ['Frontend', ['feLogic', 'feTests', 'feI18n', 'feOther']],
-              ['Backend', ['beLogic', 'beTests', 'beI18n', 'beOther']],
-            ]
-
-            const {owner, repo} = context.repo
-            const number = context.payload.pull_request.number
-            const files = await github.paginate(github.rest.pulls.listFiles,
-              {owner, repo, pull_number: number, per_page: 100})
-
-            const sums = Object.fromEntries(AREAS.map(([key]) => [key, {files: 0, added: 0, removed: 0}]))
-            for (const file of files) {
-              const [key] = AREAS.find(([, , matches]) => matches(file.filename))
-              sums[key].files += 1
-              sums[key].added += file.additions
-              sums[key].removed += file.deletions
-            }
-            const total = keys => keys.reduce((sum, key) => ({
-              files: sum.files + sums[key].files,
-              added: sum.added + sums[key].added,
-              removed: sum.removed + sums[key].removed,
-            }), {files: 0, added: 0, removed: 0})
-
-            const fmt = n => n.toLocaleString('en-US')
-            const net = s => (s.added - s.removed >= 0 ? '+' : '') + fmt(s.added - s.removed)
-            const row = (label, s, bold = false) => {
-              const cells = [label, fmt(s.files), '+' + fmt(s.added), '-' + fmt(s.removed), net(s)]
-              return '| ' + (bold ? cells.map(c => `**${c}**`) : cells).join(' | ') + ' |'
-            }
-            const head = ['| Area | Files | Added | Removed | Net |', '|---|---:|---:|---:|---:|']
-
-            const areas = AREAS.filter(([key]) => sums[key].files > 0)
-                .map(([key, label]) => row(label, sums[key]))
-            const groups = GROUPS.map(([label, keys]) => row(label, total(keys)))
-            const all = row('Total', total(AREAS.map(([key]) => key)), true)
-            const capped = files.length >= 3000
-                ? '\n> The API lists at most 3000 files, so this pull request is counted only in part.\n'
-                : ''
-
-            const KINDS = [
-              ['New Features', 'c:feature', '1d76db'],
-              ['Improvements', 'c:improvement', '0e8a16'],
-              ['Security', 'c:security', 'b60205'],
-              ['Changes', 'c:change', 'fbca04'],
-              ['Fixes', 'c:fix', 'd93f0b'],
-            ]
-            const changelogAt = async ref => {
-              try {
-                const {data} = await github.rest.repos.getContent({owner, repo, path: 'CHANGELOG.md', ref})
-                return Buffer.from(data.content, 'base64').toString('utf8')
-              } catch (e) {
-                if (e.status === 404) return ''
-                throw e
-              }
-            }
-            const entriesOf = text => {
-              const block = text.split(/^## /m)[1] ?? ''
-              const entries = {}
-              let section = null
-              for (const line of block.split('\n')) {
-                const heading = line.match(/^### (.+?)\s*$/)
-                if (heading) section = heading[1]
-                const title = line.match(/^- \*\*(.+?)\*\*/)
-                if (section && title) (entries[section] ??= new Set()).add(title[1].replace(/\.$/, ''))
-              }
-              return entries
-            }
-            const before = entriesOf(await changelogAt(context.payload.pull_request.base.sha))
-            const after = entriesOf(await changelogAt(context.payload.pull_request.head.sha))
-            const added = KINDS.map(([section, label, color]) => ({
-              section, label, color,
-              titles: [...(after[section] ?? [])].filter(title => !(before[section] ?? new Set()).has(title)),
-            }))
-            const kinds = added.filter(kind => kind.titles.length > 0)
-
-            const current = context.payload.pull_request.labels.map(label => label.name)
-            for (const kind of added) {
-              const wanted = kind.titles.length > 0
-              if (wanted && !current.includes(kind.label)) {
-                try {
-                  await github.rest.issues.createLabel({owner, repo, name: kind.label, color: kind.color})
-                } catch (e) {
-                  if (e.status !== 422) throw e
-                }
-                await github.rest.issues.addLabels({owner, repo, issue_number: number, labels: [kind.label]})
-              }
-              if (!wanted && current.includes(kind.label)) {
-                await github.rest.issues.removeLabel({owner, repo, issue_number: number, name: kind.label})
-              }
-            }
-
-            const summary = kinds.length > 0
-                ? '**Kind:** ' + kinds.map(kind => `${kind.section} (${kind.titles.length})`).join(', ')
-                : '**Kind:** no changelog entry'
-            const changelog = kinds.length > 0
-                ? ['', '<details><summary>Changelog entries</summary>', '',
-                   ...kinds.flatMap(kind => [`**${kind.section}**`, ...kind.titles.map(title => `- ${title}`), '']),
-                   '</details>']
-                : []
-
-            const body = [
-              MARKER,
-              '### Pull request stats',
-              '',
-              summary,
-              '',
-              ...head, ...groups, all,
-              '',
-              '<details><summary>By area</summary>',
-              '',
-              ...head, ...areas,
-              '',
-              '</details>',
-              ...changelog,
-              capped,
-              `<sub>Updated for ${context.payload.pull_request.head.sha.slice(0, 9)}.</sub>`,
-            ].join('\n')
-
-            const comments = await github.paginate(github.rest.issues.listComments,
-              {owner, repo, issue_number: number, per_page: 100})
-            const mine = comments.find(c => c.user.type === 'Bot' && c.body.startsWith(MARKER))
-            if (mine) {
-              await github.rest.issues.updateComment({owner, repo, comment_id: mine.id, body})
-            } else {
-              await github.rest.issues.createComment({owner, repo, issue_number: number, body})
-            }
+            const run = require('./.github/scripts/pr-stats.cjs')
+            await run({github, context})
