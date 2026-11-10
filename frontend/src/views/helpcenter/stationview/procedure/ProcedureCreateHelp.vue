@@ -13,10 +13,12 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import TemplateSelectorSection from '@/views/stationview/procedure/procedurecreateview/TemplateSelectorSection.vue'
 import BasicInfoSection from '@/views/stationview/procedure/procedurecreateview/BasicInfoSection.vue'
-import AssigneesSection from '@/views/stationview/procedure/procedurecreateview/AssigneesSection.vue'
+import {fromCompletion} from '@/components/input/select/memberOption'
+import PartySection from '@/views/stationview/procedure/procedurecreateview/PartySection.vue'
 import ItemsSection from '@/views/stationview/procedure/procedurecreateview/ItemsSection.vue'
+import type {RestrictionSelection} from '@/api/types'
 import type {EditableItem} from '@/composables/useProcedureForm'
-import type {MemberCompletion, ProcedureTemplate} from '@/api/generated/schema'
+import type {MemberCompletion, MemberGroup, ProcedureTemplate} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -32,6 +34,10 @@ const TEMPLATES: ProcedureTemplate[] = [
   },
 ]
 
+/** The party of the example: the group of youth leaders, and the member onboarding the newcomer. */
+const PARTY: RestrictionSelection = {userTypes: [], groupIds: [1], tagIds: [], memberIds: [1], mode: 'OR'}
+const GROUPS: MemberGroup[] = [{id: 1, stationId: '00000000-0000-4000-a000-000000000001', name: 'Jugendwarte', color: null, position: 0, groupSetId: null, userTypes: []}]
+
 const MEMBERS: MemberCompletion[] = [
   {id: 1, name: 'Sabine Krüger', stationUid: 'demo', memberUid: 'm-1', stationName: null, nameColor: null, displayTag: null},
   {id: 2, name: 'Jonas Weber', stationUid: 'demo', memberUid: 'm-2', stationName: null, nameColor: null, displayTag: null},
@@ -40,12 +46,14 @@ const MEMBERS: MemberCompletion[] = [
 const ITEMS: EditableItem[] = [
   {
     tempId: 1,
-    title: 'Aufnahmeantrag unterschreiben lassen',
-    description: 'Von der Person und bei Minderjährigen von den Erziehungsberechtigten.',
+    title: 'Notfallkontakt eintragen',
+    description: 'Telefonnummer der Erziehungsberechtigten für Übungen und Fahrten.',
     isPublic: true,
     userAssigned: false,
     position: 0,
     dependsOn: [],
+    document: null,
+    documentMade: false,
   },
   {
     tempId: 2,
@@ -55,6 +63,8 @@ const ITEMS: EditableItem[] = [
     userAssigned: true,
     position: 1,
     dependsOn: [1],
+    document: null,
+    documentMade: false,
   },
 ]
 </script>
@@ -77,8 +87,9 @@ const ITEMS: EditableItem[] = [
         <TemplateSelectorSection :templates="TEMPLATES" :selected-template-id="1"/>
         <BasicInfoSection name="Aufnahme Lena Hoffmann"
                           description="Alle Schritte bis zum ersten Übungsabend."
-                          due-at="2026-06-12" :is-public="true"/>
-        <AssigneesSection :assignee-ids="[1]" :members="MEMBERS"/>
+                          due-at="2026-06-12" :is-public="true" about="2"
+                          :members="MEMBERS.map(fromCompletion)"/>
+        <PartySection :model-value="PARTY" :choices="{members: MEMBERS, groups: GROUPS, tags: []}"/>
         <ItemsSection :items="ITEMS"/>
         <ButtonRow pair align="end">
           <SecondaryButton>{{ t('common.cancel') }}</SecondaryButton>
@@ -89,6 +100,10 @@ const ITEMS: EditableItem[] = [
 
     <HelpSection :title="t('helpCenter.procedureCreate.itemsTitle')">
       <p>{{ t('helpCenter.procedureCreate.itemsText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.procedureCreate.documentTitle')">
+      <p>{{ t('helpCenter.procedureCreate.documentText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.procedureCreate.fromSignupsTitle')">

@@ -16,6 +16,7 @@ function field(fieldId: number, requestUid: string, overrides: Partial<OpenSigna
         documentId: 1,
         documentTitle: requestUid,
         memberName: 'Ben',
+        purpose: null,
         fieldName: 'guardian1',
         role: 'GUARDIAN',
         capacity: 'GUARDIAN',
@@ -38,6 +39,13 @@ describe('batchFlow', () => {
         expect(groupByDocument(FIELDS, '?').map(group => group.title)).toEqual(['camp', 'photos'])
         expect(groupByDocument(FIELDS, '?', 2).map(group => group.title)).toEqual(['photos', 'camp'])
         expect(groupByDocument(FIELDS, '?')[0]?.fields.map(each => each.fieldId)).toEqual([1, 3])
+    })
+
+    it('carries what a document is signed for into its group', () => {
+        const forProcedure = [field(9, 'admission', {purpose: 'Neues Mitglied aufnehmen'})]
+
+        expect(groupByDocument(forProcedure, '?')[0]?.purpose).toBe('Neues Mitglied aufnehmen')
+        expect(groupByDocument(FIELDS, '?')[0]?.purpose).toBeNull()
     })
 
     it('ticks everything unless the address names fields it holds', () => {

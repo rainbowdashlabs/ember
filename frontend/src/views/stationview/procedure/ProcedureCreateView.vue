@@ -12,14 +12,17 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TemplateSelectorSection from '@/views/stationview/procedure/procedurecreateview/TemplateSelectorSection.vue'
 import BasicInfoSection from '@/views/stationview/procedure/procedurecreateview/BasicInfoSection.vue'
-import AssigneesSection from '@/views/stationview/procedure/procedurecreateview/AssigneesSection.vue'
+import PartySection from '@/views/stationview/procedure/procedurecreateview/PartySection.vue'
 import ItemsSection from '@/views/stationview/procedure/procedurecreateview/ItemsSection.vue'
+import ProcedureStartChooser from '@/views/stationview/procedure/procedurecreateview/ProcedureStartChooser.vue'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useProcedureForm} from '@/composables/useProcedureForm'
+import {startsWithChoice} from '@/views/stationview/procedure/procedurecreateview/startChoice'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -35,8 +38,8 @@ const presetTemplateId = computed(() => (route.query.template ? Number(route.que
 
 const form = useProcedureForm(editId, presetTemplateId)
 const {
-  name, savedName, description, dueAt, isPublic,
-  templates, selectedTemplateId, members, selectedAssigneeIds, items,
+  name, savedName, description, dueAt, isPublic, about,
+  templates, selectedTemplateId, partyChoices, aboutChoices, party, items, blockers,
   isEditMode, loading, failure,
 } = form
 
@@ -51,6 +54,13 @@ const pageTitle = computed(() => isEditMode.value
 const pageSubtitle = computed(() => isEditMode.value
     ? t('pages.procedure-edit.subtitle')
     : t('pages.procedure-create.subtitle'))
+
+const choosing = computed(() => startsWithChoice(isEditMode.value, presetTemplateId.value, route.query))
+
+/** Opens the empty form as its own page, so going back returns to the templates. */
+function startBlank() {
+  return router.push({query: {...route.query, blank: '1'}})
+}
 
 const {running: saving, failure: saveFailure, run: runSubmit} = useAsyncAction(
     async () => router.push({name: 'procedure-detail', params: {id: await form.submit()}}),
@@ -75,7 +85,9 @@ watch(loaded, (v) => {
     <Spinner v-if="loading"/>
     <FailureAlert :failure="failure ?? saveFailure" class="mb-4"/>
 
-    <template v-if="!loading">
+    <ProcedureStartChooser v-if="!loading && choosing" :templates="templates" :members="aboutChoices"
+                           @blank="startBlank"/>
+    <template v-else-if="!loading">
       <div class="space-y-6">
         <TemplateSelectorSection
             v-if="!isEditMode"
@@ -89,9 +101,13 @@ watch(loaded, (v) => {
             v-model:description="description"
             v-model:due-at="dueAt"
             v-model:is-public="isPublic"
+            v-model:about="about"
+            :members="aboutChoices"
+            :about-fixed="form.aboutFixed.value"
+            :about-required="form.aboutRequired.value"
         />
 
-        <AssigneesSection v-model:assignee-ids="selectedAssigneeIds" :members="members"/>
+        <PartySection v-model="party" :choices="partyChoices"/>
 
         <ItemsSection
             :items="items"
@@ -101,9 +117,12 @@ watch(loaded, (v) => {
             @update="form.updateItem"
         />
 
+        <Alert v-for="blocker in blockers" :key="blocker" variant="info" data-testid="procedure-blocker">
+          {{ t(blocker) }}
+        </Alert>
         <ButtonRow pair align="end">
           <SecondaryButton @click="router.back()">{{ t('common.cancel') }}</SecondaryButton>
-          <PrimaryButton :disabled="!name.trim() || saving" @click="handleSubmit">
+          <PrimaryButton :disabled="!name.trim() || saving || blockers.length > 0" @click="handleSubmit">
             {{ isEditMode ? t('common.save') : t('procedures.createProcedure') }}
           </PrimaryButton>
         </ButtonRow>

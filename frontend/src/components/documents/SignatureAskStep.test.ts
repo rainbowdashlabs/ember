@@ -57,7 +57,7 @@ describe('SignatureAskStep', () => {
         await flushPromises()
 
         expect(askInPerson).toHaveBeenCalledWith(7)
-        expect(push).toHaveBeenCalledWith({path: '/station/signing/witness', query: {field: '31'}})
+        expect(push).toHaveBeenCalledWith('/station/signing/witness?field=31')
     })
 
     it('offers nothing in person without the permission', async () => {

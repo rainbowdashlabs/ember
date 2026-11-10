@@ -19,6 +19,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING
  * @param documentId    the member document it is on, or null once that was deleted
  * @param documentTitle the title the document is filed under, or null once it was deleted
  * @param memberName    the official name of the member the document is about
+ * @param purpose       what the signatures are asked for beyond the document, or null
  * @param field         the field
  */
 public record PendingSignature(
@@ -26,11 +27,12 @@ public record PendingSignature(
         @Nullable Integer documentId,
         @Nullable String documentTitle,
         String memberName,
+        @Nullable String purpose,
         RequestedSignature field) {
 
     /**
-     * Maps a field row joined with its request's {@code request_uid}, {@code document_id} and
-     * {@code request_member_name}, and its document's {@code document_title}.
+     * Maps a field row joined with its request's {@code request_uid}, {@code document_id},
+     * {@code request_member_name} and {@code request_purpose}, and its document's {@code document_title}.
      */
     public static RowMapping<PendingSignature> map() {
         RowMapping<RequestedSignature> field = RequestedSignature.map();
@@ -39,6 +41,7 @@ public record PendingSignature(
                 row.getObject("document_id", Integer.class),
                 row.getString("document_title"),
                 row.getString("request_member_name"),
+                row.getString("request_purpose"),
                 field.map(row));
     }
 }

@@ -18,6 +18,7 @@ import {useSession} from '@/composables/useSession'
 import {formatDateTime} from '@/util/format'
 import {signerOf} from '../signatureSigner'
 import {proofWords} from './proofWords'
+import {witnessSigningHref} from './witnessSigning'
 
 /**
  * One field of a request for signatures as its document's manager sees it: who is asked, how it stands,
@@ -112,7 +113,7 @@ function settle() {
         {{ t(`signing.manage.action.${settlement}`) }}
       </SecondaryButton>
     </ButtonRow>
-    <AppLink v-if="collectable && !asked" :href="`/station/signing/witness?field=${props.field.fieldId}`" :icon="['fas', 'signature']"
+    <AppLink v-if="collectable && !asked" :href="witnessSigningHref(props.field.fieldId)" :icon="['fas', 'signature']"
              data-testid="signature-field-witness">
       {{ t('signing.witness.fromTile') }}
     </AppLink>

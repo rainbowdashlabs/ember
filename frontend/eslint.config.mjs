@@ -12,6 +12,7 @@ import {
     INLINE_STATE_TYPE,
     MUTABLE_IDENTITY,
     STORY_CASTING,
+    UTC_DAY_CUT,
     restrictSyntax,
 } from './eslint/restrictions.mjs'
 
@@ -380,27 +381,20 @@ export default withNuxt(
     {
         name: 'ember/state-types',
         files: ['src/**/*.{ts,vue}'],
-        rules: restrictSyntax(INLINE_STATE_TYPE),
+        rules: restrictSyntax(INLINE_STATE_TYPE, UTC_DAY_CUT),
     },
     {
         name: 'ember/failures',
         files: ['src/views/**/*.{ts,vue}', 'src/components/**/*.{ts,vue}', 'src/composables/**/*.{ts,vue}'],
         ignores: ['src/components/feedback/FailureAlert.vue'],
-        rules: restrictSyntax(INLINE_STATE_TYPE, GENERIC_FAILURE),
+        rules: restrictSyntax(INLINE_STATE_TYPE, GENERIC_FAILURE, UTC_DAY_CUT),
     },
     {
         name: 'ember/views',
         files: ['src/views/**/*.vue'],
         rules: {
-            ...restrictSyntax(INLINE_STATE_TYPE, GENERIC_FAILURE, INLINE_DATE_FORMAT),
+            ...restrictSyntax(INLINE_STATE_TYPE, GENERIC_FAILURE, INLINE_DATE_FORMAT, UTC_DAY_CUT),
             'max-lines': ['error', {max: 500}],
-        },
-    },
-    {
-        name: 'ember/stories',
-        files: ['e2e/**/*.e2e.ts'],
-        rules: {
-            'no-restricted-syntax': ['error', STORY_CASTING, MUTABLE_IDENTITY],
         },
     },
     {
@@ -408,6 +402,14 @@ export default withNuxt(
         files: ['e2e/**/*.ts'],
         rules: {
             'no-empty-pattern': ['error', {allowObjectPatternsAsParameters: true}],
+            'no-restricted-syntax': ['error', UTC_DAY_CUT],
+        },
+    },
+    {
+        name: 'ember/stories',
+        files: ['e2e/**/*.e2e.ts'],
+        rules: {
+            'no-restricted-syntax': ['error', STORY_CASTING, MUTABLE_IDENTITY, UTC_DAY_CUT],
         },
     },
 ).onResolved(configs => configs.map(keepOffLocales))

@@ -994,6 +994,7 @@ public class EmailService implements TaskSource {
         vars.put("documentTitle", invitation.documentTitle());
         vars.put("memberName", invitation.memberName());
         vars.put("url", invitation.url());
+        vars.put("purpose", invitation.purpose() == null ? "" : invitation.purpose());
         enqueueGlobal(
                 email,
                 subject(template, locale, Map.of("documentTitle", invitation.documentTitle())),

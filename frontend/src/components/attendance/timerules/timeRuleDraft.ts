@@ -5,6 +5,7 @@
  */
 import type {TimeRule, TimeRuleInput} from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/api/types'
+import {namesSomebody} from '@/components/input/restriction'
 
 /**
  * One preparation and follow-up rule as the editor holds it while somebody changes it.
@@ -65,12 +66,6 @@ export function emptyDraft(): TimeRuleDraft {
     }
 }
 
-/** Whether a rule names anybody, which the server requires of every rule it stores. */
-export function namesSomebody(draft: TimeRuleDraft): boolean {
-    const a = draft.audience
-    return a.userTypes.length + a.groupIds.length + a.tagIds.length + a.memberIds.length > 0
-}
-
 /** Whether a number of minutes is one a rule may carry. */
 export function minutesFit(minutes: number | undefined): boolean {
     return minutes !== undefined && Number.isInteger(minutes) && minutes >= 0 && minutes <= MAX_RULE_MINUTES
@@ -78,7 +73,7 @@ export function minutesFit(minutes: number | undefined): boolean {
 
 /** Whether every rule of a list may be saved as it stands. */
 export function savable(drafts: readonly TimeRuleDraft[]): boolean {
-    return drafts.every(draft => namesSomebody(draft)
+    return drafts.every(draft => namesSomebody(draft.audience)
         && minutesFit(draft.preparationMinutes)
         && minutesFit(draft.followUpMinutes))
 }

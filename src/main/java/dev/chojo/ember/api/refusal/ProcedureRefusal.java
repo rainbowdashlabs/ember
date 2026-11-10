@@ -97,6 +97,76 @@ public enum ProcedureRefusal implements Refusal {
     /** A step named under a procedure template it does not belong to. */
     PROCEDURE_TEMPLATE_STEP_NOT_IN_TEMPLATE(28, HttpStatus.NOT_FOUND, Sentences.PROCEDURE_STEP_NOT_HERE_ON_WRITE),
 
+    /** A managing party naming a group, tag or member that is not of the procedure's station. */
+    PROCEDURE_PARTY_NOT_OF_STATION(
+            30,
+            HttpStatus.BAD_REQUEST,
+            "The managing party names a group, tag or member of another station, so nothing was saved"),
+
+    /** A managing party set without saying who it is. */
+    PROCEDURE_PARTY_MISSING(31, HttpStatus.BAD_REQUEST, "Say who runs the procedure, so nothing was saved"),
+
+    /** A procedure started from a template that is not one of the station's own. */
+    PROCEDURE_TEMPLATE_NOT_HERE_TO_START(
+            32, HttpStatus.NOT_FOUND, "That procedure template is not here, so no procedure was started"),
+
+    /** A document step whose document template it may not generate. */
+    PROCEDURE_STEP_DOCUMENT_UNSUITABLE(
+            33,
+            HttpStatus.BAD_REQUEST,
+            "That document cannot be a step: it has to be in use, not meant for appointments, and ask the member"
+                    + " or a guardian to sign, so nothing was saved"),
+
+    /** A document step without a document template. */
+    PROCEDURE_STEP_DOCUMENT_MISSING(
+            34, HttpStatus.BAD_REQUEST, "Choose the document a document step asks to sign, so nothing was saved"),
+
+    /** A step whose kind was changed after it already made its document. */
+    PROCEDURE_STEP_DOCUMENT_ALREADY_MADE(
+            35, HttpStatus.CONFLICT, "This step already made its document, so what it asks for stays as it is"),
+
+    /** A document step set by somebody who may not generate documents for members. */
+    PROCEDURE_STEP_DOCUMENT_NOT_YOURS(
+            36,
+            HttpStatus.FORBIDDEN,
+            "Only those who generate documents for members can make a step ask to sign one, so nothing was saved"),
+
+    /** A procedure made about somebody who is not a member of its station. */
+    PROCEDURE_ABOUT_NOT_OF_STATION(
+            37, HttpStatus.BAD_REQUEST, "That person is not a member here, so the procedure is not about them"),
+
+    /** A document step on a procedure that is about nobody, whose document would be about nobody either. */
+    PROCEDURE_STEP_DOCUMENT_NEEDS_ABOUT(
+            38,
+            HttpStatus.BAD_REQUEST,
+            "Choose whom the procedure is about before a step asks to sign a document, so nothing was saved"),
+
+    /** A procedure made about somebody without naming them. */
+    PROCEDURE_ABOUT_MISSING(39, HttpStatus.BAD_REQUEST, "Choose whom the procedure is about, so nothing was changed"),
+
+    /** A tick by hand on a step that its document's signatures settle. */
+    PROCEDURE_STEP_SETTLED_BY_SIGNATURES(
+            40,
+            HttpStatus.CONFLICT,
+            "This step is done once its document is signed, confirmed on paper or waived, so it is not ticked by hand"),
+
+    /** Asking again for a document step that is ticked, locked, still waiting or not a document step. */
+    PROCEDURE_STEP_NOT_TO_ASK_AGAIN(
+            41,
+            HttpStatus.CONFLICT,
+            "This step does not wait to be asked again: it is done, locked, still waiting for signatures or asks for no document"),
+
+    /** Asking again for a step's document by somebody who may not generate documents for members. */
+    PROCEDURE_STEP_DOCUMENT_NOT_YOURS_TO_ASK(
+            42, HttpStatus.FORBIDDEN, "Only those who generate documents for members can ask for a step's document"),
+
+    /** Procedures for more members at once than one request starts. */
+    PROCEDURE_TOO_MANY_AT_ONCE(
+            43, HttpStatus.BAD_REQUEST, "That is more people than procedures are started for at once, so none was"),
+
+    /** A list of procedures narrowed to a state there is none of. */
+    PROCEDURE_STATUS_UNKNOWN(44, HttpStatus.BAD_REQUEST, "Procedures are either open or resolved, so none were listed"),
+
     /** A note on a step written by somebody who does not run the procedure. */
     PROCEDURE_STEP_NOTE_NOT_YOURS(
             29, HttpStatus.FORBIDDEN, "Only whoever runs the procedure can write a note on a step"),

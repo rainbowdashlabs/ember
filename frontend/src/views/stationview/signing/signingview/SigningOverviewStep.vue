@@ -38,6 +38,9 @@ function toggle(fieldId: number, ticked: boolean) {
     <ul class="space-y-3" data-testid="signing-overview">
       <li v-for="group in groups" :key="group.requestUid" class="space-y-1">
         <p class="font-medium">{{ group.title }}</p>
+        <p v-if="group.purpose" class="text-sm text-[var(--text-muted)]" data-testid="signing-overview-purpose">
+          {{ t('signing.flow.overview.purpose', {procedure: group.purpose}) }}
+        </p>
         <FieldLabel v-for="field in group.fields" :key="field.fieldId" inline class="cursor-pointer">
           <CheckboxInput
               :model-value="chosen.includes(field.fieldId)"

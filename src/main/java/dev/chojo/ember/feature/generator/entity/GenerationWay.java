@@ -16,5 +16,7 @@ public enum GenerationWay {
     /** A participant of an appointment or their guardian, as a document the appointment asks to bring. */
     APPOINTMENT,
     /** A witness, for the person in front of them, who signs it on the spot. */
-    WITNESS
+    WITNESS,
+    /** A procedure, for the member it is about, as one of its steps asks it to be signed. */
+    PROCEDURE
 }

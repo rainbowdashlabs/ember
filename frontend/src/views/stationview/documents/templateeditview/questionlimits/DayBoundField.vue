@@ -11,7 +11,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import type {DayBound} from '@/api/generated/schema'
-import {todayIso} from '@/components/documents/questionLimits'
+import {todayIsoDate} from '@/util/format'
 
 /**
  * One bound of a date question: none, a fixed day, or a number of days from the day a document is
@@ -37,7 +37,7 @@ const sort = computed<Sort>(() => {
 })
 
 function setSort(value: string | number | null | undefined) {
-  if (value === 'day') setDay(todayIso())
+  if (value === 'day') setDay(todayIsoDate())
   else if (value === 'fromToday') bound.value = {day: null, fromToday: 0}
   else bound.value = null
 }

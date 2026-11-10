@@ -38,7 +38,7 @@ public class ProcedureReopenedHandler implements DomainEventHandler<ProcedureReo
                 new NotificationParams.ProcedureReopenedParams(event.procedureName()),
                 new NotificationData.NotificationLink("procedure-detail", Map.of("id", event.procedureId())));
         notifier.notify(
-                StationAudience.members(event.assigneeMemberIds()).except(event.reopenedByMemberId()),
+                StationAudience.members(event.partyMemberIds()).except(event.reopenedByMemberId()),
                 NotificationType.PROCEDURE_REOPENED,
                 data,
                 Delivery.ONCE_WHILE_UNREAD);

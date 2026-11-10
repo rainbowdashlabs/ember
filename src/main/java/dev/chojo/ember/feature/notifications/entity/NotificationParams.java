@@ -286,6 +286,16 @@ public sealed interface NotificationParams {
             implements NotificationParams {}
 
     /**
+     * A signature a document step of a resolved procedure rested on was withdrawn.
+     *
+     * @param procedureName   the procedure
+     * @param itemTitle       the step, open again
+     * @param withdrawnByName who withdrew it
+     */
+    record ProcedureDocumentWithdrawnParams(String procedureName, String itemTitle, String withdrawnByName)
+            implements NotificationParams {}
+
+    /**
      * A member has been asked to answer for the gear recorded against their name.
      *
      * @param memberName  whose gear it is about, which is the reader or somebody they look after

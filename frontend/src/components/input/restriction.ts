@@ -98,3 +98,46 @@ export function restrictionLabels(
         tags: restriction.tagIds.map(id => nameOf(tags, id)),
     }
 }
+
+/** The parts of a selection that say who is named, without how they combine. */
+type NamedParts = Pick<RestrictionSelection, 'userTypes' | 'groupIds' | 'tagIds' | 'memberIds'>
+
+/**
+ * Whether a selection names anybody at all, by member type, group, tag or by name.
+ *
+ * @param selection the selection
+ */
+export function namesSomebody(selection: NamedParts): boolean {
+    return selection.userTypes.length + selection.groupIds.length + selection.tagIds.length
+        + selection.memberIds.length > 0
+}
+
+function sortedCopy(values: readonly number[] | undefined): number[] {
+    return [...(values ?? [])].sort((a, b) => a - b)
+}
+
+/**
+ * Who a selection names, each part sorted, so two selections naming the same people in another order
+ * compare equal. A missing selection or part names nobody.
+ *
+ * @param selection the selection, as the server sent it or as an editor holds it
+ */
+export function normalizedRestriction(selection: Partial<NamedParts> | null | undefined): NamedParts {
+    return {
+        userTypes: [...(selection?.userTypes ?? [])].sort(),
+        groupIds: sortedCopy(selection?.groupIds),
+        tagIds: sortedCopy(selection?.tagIds),
+        memberIds: sortedCopy(selection?.memberIds),
+    }
+}
+
+/**
+ * Whether two selections name the same people, in any order, and combine them the same way.
+ *
+ * @param a one selection
+ * @param b the other
+ */
+export function sameRestriction(a: RestrictionSelection, b: RestrictionSelection): boolean {
+    return a.mode === b.mode
+        && JSON.stringify(normalizedRestriction(a)) === JSON.stringify(normalizedRestriction(b))
+}

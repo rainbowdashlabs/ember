@@ -21,7 +21,8 @@ function step(id: number, title: string, description: string,
               rest: Partial<ProcedureItem> = {}): ProcedureItem {
     return {
         id, procedureId: 1, title, description, note: null, isPublic: true, userAssigned: false,
-        position: id, checked: false, checkedAt: null, checkedBy: null, ...rest,
+        position: id, checked: false, checkedAt: null, checkedBy: null, kind: 'CHECK',
+        documentTemplateId: null, generationId: null, ...rest,
     }
 }
 
@@ -48,7 +49,10 @@ export const PROCEDURE_INTAKE: PitchProcedure = {
 
 function templateStep(id: number, title: string, description: string,
                       rest: Partial<ProcedureTemplateItem> = {}): ProcedureTemplateItem {
-    return {id, templateId: 1, title, description, isPublic: true, userAssigned: false, position: id, ...rest}
+    return {
+        id, templateId: 1, title, description, isPublic: true, userAssigned: false, position: id, kind: 'CHECK',
+        documentTemplateId: null, ...rest,
+    }
 }
 
 const TEMPLATE_ITEMS: ProcedureTemplateItem[] = [

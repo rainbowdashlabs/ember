@@ -78,6 +78,10 @@ const PROCEDURES = [
       <p>{{ t('helpCenter.procedureList.badgeText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.procedureList.aboutMeTitle')">
+      <p>{{ t('helpCenter.procedureList.aboutMeText') }}</p>
+    </HelpSection>
+
     <HelpPermissionGuard :permissions="[StationPermission.PROCEDURE_EDIT]"
                          :label="t('helpCenter.permissionLabel.procedureEdit')">
       <HelpSection :title="t('helpCenter.procedureList.deleteTitle')">

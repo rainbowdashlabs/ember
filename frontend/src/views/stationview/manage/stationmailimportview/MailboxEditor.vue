@@ -15,6 +15,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import MailboxConnectionFields from './MailboxConnectionFields.vue'
 import type {MailboxDraft} from '@/api/mailImport'
 import {MailSecurity, type MailboxResponse} from '@/api/generated/schema'
+import {instantToDate, todayIsoDate} from '@/util/format'
 
 /**
  * Adding a mailbox or changing one.
@@ -46,7 +47,7 @@ const folder = ref('INBOX')
 const enabled = ref(false)
 const verifyDkim = ref(false)
 const intervalMinutes = ref(props.minimumInterval)
-const importFrom = ref(today())
+const importFrom = ref(todayIsoDate())
 
 const isNew = computed(() => props.mailbox === null)
 const canSave = computed(() =>
@@ -54,10 +55,6 @@ const canSave = computed(() =>
     && host.value.trim() !== ''
     && username.value.trim() !== ''
     && (!isNew.value || password.value !== ''))
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10)
-}
 
 watch(() => props.mailbox, (mailbox) => {
   name.value = mailbox?.name ?? ''
@@ -69,7 +66,7 @@ watch(() => props.mailbox, (mailbox) => {
   enabled.value = mailbox?.enabled ?? false
   verifyDkim.value = mailbox?.verifyDkim ?? false
   intervalMinutes.value = mailbox?.intervalMinutes ?? props.minimumInterval
-  importFrom.value = mailbox ? mailbox.importFrom.slice(0, 10) : today()
+  importFrom.value = mailbox ? instantToDate(mailbox.importFrom) : todayIsoDate()
   password.value = ''
 }, {immediate: true})
 

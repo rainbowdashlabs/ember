@@ -6,6 +6,11 @@
 package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.event.DomainEvent;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.SigningAgreementWithdrawn;
+import dev.chojo.ember.event.events.SigningRequestClosed;
+import dev.chojo.ember.event.events.SigningRequestReplaced;
 import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.mail.entity.SignatureInvitation;
@@ -24,6 +29,8 @@ import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.signing.entity.FieldRole;
+import dev.chojo.ember.feature.signing.entity.FieldState;
+import dev.chojo.ember.feature.signing.entity.RequestState;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.entity.SignatureWithdrawal;
@@ -86,6 +93,7 @@ public class SignatureNotices {
     private final StationRepository stations;
     private final StationMemberRepository members;
     private final DocumentRepository documents;
+    private final DomainEventBus eventBus;
 
     @Inject
     public SignatureNotices(
@@ -95,7 +103,8 @@ public class SignatureNotices {
             MailRecipientService mailRecipients,
             StationRepository stations,
             StationMemberRepository members,
-            DocumentRepository documents) {
+            DocumentRepository documents,
+            DomainEventBus eventBus) {
         this.notifier = notifier;
         this.text = text;
         this.email = email;
@@ -103,6 +112,7 @@ public class SignatureNotices {
         this.stations = stations;
         this.members = members;
         this.documents = documents;
+        this.eventBus = eventBus;
     }
 
     /**
@@ -165,6 +175,13 @@ public class SignatureNotices {
      * @param eventId    the appointment that asked for the document, or null where none did
      */
     public void withdrawn(SignatureRequest request, SignatureWithdrawal withdrawal, @Nullable Integer eventId) {
+        var withdrawnBy = withdrawal.withdrawnBy();
+        if (withdrawnBy != null) {
+            announce(
+                    new SigningAgreementWithdrawn(
+                            request.stationId(), request.id(), request.generationId(), withdrawnBy),
+                    request);
+        }
         try {
             var params = new NotificationParams.SignatureWithdrawn(
                     titleOf(request), withdrawal.withdrawnByName(), request.memberName());
@@ -187,6 +204,51 @@ public class SignatureNotices {
                     Delivery.EVERY_TIME);
         } catch (RuntimeException e) {
             log.warn("Could not tell that the agreement of signing request {} was withdrawn", request.uid(), e);
+        }
+    }
+
+    /**
+     * Tells whatever rests on a request that it no longer waits for anybody. It stands as agreed where no
+     * field is open and at least one {@linkplain FieldState#agrees() agrees}: was signed, confirmed on paper
+     * or waived. Fields withdrawn beside them do not change that. This is wider than a complete request,
+     * which takes a signature or a paper confirmation: a request whose only settled field was waived stands
+     * as agreed without being complete. One whose every field was withdrawn does not stand as agreed.
+     *
+     * @param request   the request, as it stands now that it closed
+     * @param fields    its fields, as they stand
+     * @param settledBy the member who settled the last field or withdrew the rest
+     */
+    public void closed(SignatureRequest request, List<RequestedSignature> fields, int settledBy) {
+        if (request.open() || request.state() == RequestState.SUPERSEDED) return;
+        boolean agreed = fields.stream().noneMatch(field -> field.state() == FieldState.OPEN)
+                && fields.stream().anyMatch(field -> field.state().agrees());
+        announce(
+                new SigningRequestClosed(request.stationId(), request.id(), request.generationId(), agreed, settledBy),
+                request);
+    }
+
+    /**
+     * Tells whatever rests on a request that it was replaced by one for a corrected document.
+     *
+     * @param replaced the request replaced
+     * @param created  the request for the corrected document
+     */
+    public void replaced(SignatureRequest replaced, SignatureRequest created) {
+        announce(
+                new SigningRequestReplaced(replaced.stationId(), replaced.generationId(), created.generationId()),
+                replaced);
+    }
+
+    /** Publishes what happened to a request, logging rather than throwing, as every notice here does. */
+    private void announce(DomainEvent event, SignatureRequest request) {
+        try {
+            eventBus.publish(event);
+        } catch (RuntimeException e) {
+            log.warn(
+                    "Could not carry {} of signing request {} over",
+                    event.getClass().getSimpleName(),
+                    request.uid(),
+                    e);
         }
     }
 
@@ -271,7 +333,8 @@ public class SignatureNotices {
                 send(
                         kind,
                         mail,
-                        new SignatureInvitation(station.name(), title, request.memberName(), mail.url),
+                        new SignatureInvitation(
+                                station.name(), title, request.memberName(), mail.url, request.purpose()),
                         locale);
             }
         } catch (RuntimeException e) {

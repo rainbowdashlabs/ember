@@ -29,6 +29,18 @@ export const INLINE_DATE_FORMAT = {
 }
 
 /**
+ * A day or a clock cut off `toISOString()`, by `slice`, `substring`, `substr` or `split('T')`.
+ *
+ * <p>That string is UTC, while the application counts days on the station's clock. Between ten and
+ * midnight UTC the two are a day apart, which is how pages showed the day before and stories failed
+ * at night. The helpers in `util/format.ts` name which day is meant.
+ */
+export const UTC_DAY_CUT = {
+    selector: "CallExpression[callee.property.name=/^(slice|substring|substr|split)$/][callee.object.type='CallExpression'][callee.object.callee.property.name='toISOString']",
+    message: 'Cuts the UTC day off toISOString(), which is not the station\'s day. Use the helpers in util/format.ts: stationDayOf or stationToday for the station\'s day, toIsoDate or todayIsoDate for the reader\'s, utcDayOf or shiftIsoDate for calendar arithmetic (stationDay from e2e/fixtures/stationDay.ts in the stories).',
+}
+
+/**
  * A story working out who to act as. Who a story acts as is settled once, at global setup, and
  * written down by id; a story asking the instance itself gets the first account matching a
  * description, which is the same person in every worker.

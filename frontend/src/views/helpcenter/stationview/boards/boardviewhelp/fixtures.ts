@@ -5,6 +5,7 @@
  */
 import type {BoardLabel, BoardLane, MemberCompletion, MemberIdentity, TicketSummary} from '@/api/generated/schema'
 import type {KanbanBoardSettings} from '@/components/kanban/kanbanLanes'
+import {toIsoDate} from '@/util/format'
 
 /** The demo board's short key, which every ticket number carries. */
 export const demoBoard: KanbanBoardSettings = {shortKey: 'PLAN', backlogLaneId: null, hideDoneAfterDays: 14}
@@ -39,7 +40,7 @@ function daysAgo(days: number): string {
 }
 
 function dateIn(days: number): string {
-    return daysAgo(-days).slice(0, 10)
+    return toIsoDate(new Date(daysAgo(-days)))
 }
 
 function ticket(fields: Partial<TicketSummary> & Pick<TicketSummary, 'id' | 'laneId' | 'title'>): TicketSummary {

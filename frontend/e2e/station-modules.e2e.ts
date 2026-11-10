@@ -6,6 +6,7 @@
 import type {Page} from '@playwright/test'
 import {test, expect, apiHeaders} from './fixtures/auth'
 import {allSections, sidebar, sidebarEntry} from './fixtures/sidebar'
+import {stationDay} from './fixtures/stationDay'
 
 /**
  * What switching a module off actually does to the person using the station: the part of the
@@ -153,7 +154,7 @@ test.describe('Station modules', () => {
             })
             expect(created.ok(), `the manager made an appointment (${await created.text()})`).toBeTruthy()
             const eventId = (await created.json()).id
-            const detail = `/station/events/${eventId}/${start.slice(0, 10)}`
+            const detail = `/station/events/${eventId}/${stationDay(new Date(start))}`
 
             await page.goto(detail)
             await expect(page.getByRole('tab', {name: 'Ausrüstung'})).toBeVisible()

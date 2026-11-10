@@ -151,10 +151,7 @@ public class InventoryIntakeService {
     }
 
     private String nameOf(int memberId) {
-        return memberRepository
-                .findById(memberId)
-                .map(StationMember::displayName)
-                .orElse("");
+        return memberRepository.displayNameOr(memberId, "");
     }
 
     private static RefusalResponse refusal(Refusal refusal, int line, @Nullable String number) {

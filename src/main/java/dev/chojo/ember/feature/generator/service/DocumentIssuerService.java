@@ -112,10 +112,8 @@ public class DocumentIssuerService {
     }
 
     private void requireCurrentMember(int stationId, int memberId) {
-        boolean current = members.findById(memberId)
-                .filter(member -> member.stationId() == stationId && !member.former())
-                .isPresent();
-        if (!current) throw DocumentRefusal.DOCUMENT_ISSUER_NOT_HERE.raise();
+        if (members.findCurrentAt(stationId, memberId).isEmpty())
+            throw DocumentRefusal.DOCUMENT_ISSUER_NOT_HERE.raise();
     }
 
     private static @Nullable String function(@Nullable String raw) {

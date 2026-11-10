@@ -24,6 +24,7 @@ import {events} from '@/api'
 import {UNDO_WINDOW_MS} from '@/api/events'
 import {showToast} from '@/util/toast'
 import {useSession} from '@/composables/useSession'
+import {stationDayOf, stationToday} from '@/util/format'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import AttachmentsCard from './federatedeventdetailview/AttachmentsCard.vue'
@@ -37,7 +38,7 @@ import PartnerSigningStep from './eventshared/PartnerSigningStep.vue'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {sessionInfo, hasPermission} = useSession()
+const {sessionInfo, hasPermission, stationTimezone} = useSession()
 
 const stationUid = ref(route.params.stationUid as string)
 const eventId = ref(Number(route.params.eventId))
@@ -131,9 +132,16 @@ async function refreshMyRegistrations() {
   }
 }
 
+/**
+ * The day the partner's appointment falls on, which is the day a registration is filed under.
+ *
+ * <p>Read on this station's clock, because the partner's own is not handed over: stations that work
+ * together keep the same one. The day of the stored moment in UTC is the day before for an
+ * appointment that starts in the first hours after midnight.
+ */
 function getEventDate(): string {
-  if (eventData.value?.startTime) return new Date(eventData.value.startTime).toISOString().slice(0, 10)
-  return new Date().toISOString().slice(0, 10)
+  const start = eventData.value?.startTime
+  return start ? stationDayOf(new Date(start), stationTimezone.value) : stationToday(stationTimezone.value)
 }
 
 function selectedUidForRegister(): string | null {

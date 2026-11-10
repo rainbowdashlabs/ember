@@ -18,21 +18,35 @@ import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import ProcedureItemRow from '@/views/stationview/procedure/proceduredetailview/ProcedureItemRow.vue'
 import {StationPermission, type ProcedureItem} from '@/api/generated/schema'
+import type {StepDocumentView} from '@/views/stationview/procedure/proceduredetailview/stepDocumentView'
 
 const {t} = useI18n()
 
 const DONE_ITEM: ProcedureItem = {
   id: 1,
   procedureId: 1,
-  title: 'Aufnahmeantrag unterschreiben lassen',
+  title: 'Aufnahmeantrag unterschreiben',
   description: 'Von der Person und bei Minderjährigen von den Erziehungsberechtigten.',
-  note: 'Antrag liegt im Ordner „Aufnahmen".',
+  note: null,
   isPublic: true,
   userAssigned: false,
   position: 0,
   checked: true,
   checkedAt: '2026-05-02T17:40:00Z',
   checkedBy: 1,
+  kind: 'DOCUMENT',
+  documentTemplateId: 1,
+  generationId: 1,
+}
+
+/** The signed application of the first step and where it stands. */
+const DONE_DOCUMENT: StepDocumentView = {
+  name: 'Aufnahmeantrag',
+  state: {itemId: 1, documentId: null, progress: 'AGREED', settled: 2, fields: 2, openFieldId: null},
+  href: null,
+  signHref: null,
+  signLabel: '',
+  canAskAgain: false,
 }
 
 const LOCKED_ITEM: ProcedureItem = {
@@ -47,6 +61,9 @@ const LOCKED_ITEM: ProcedureItem = {
   checked: false,
   checkedAt: null,
   checkedBy: null,
+  kind: 'CHECK',
+  documentTemplateId: null,
+  generationId: null,
 }
 </script>
 
@@ -88,8 +105,8 @@ const LOCKED_ITEM: ProcedureItem = {
       </NeutralContainer>
       <SubHeader class="mb-3">{{ t('procedures.items') }}</SubHeader>
       <div class="space-y-2">
-        <ProcedureItemRow :item="DONE_ITEM" :can-edit="true" :can-check="true"
-                          :dependency-met="true" :dependency-names="[]"/>
+        <ProcedureItemRow :item="DONE_ITEM" :can-edit="true" :can-check="false"
+                          :dependency-met="true" :dependency-names="[]" :document="DONE_DOCUMENT"/>
         <ProcedureItemRow :item="LOCKED_ITEM" :can-edit="true" :can-check="false"
                           :dependency-met="false" :dependency-names="[DONE_ITEM.title]"/>
       </div>
@@ -97,6 +114,14 @@ const LOCKED_ITEM: ProcedureItem = {
 
     <HelpSection :title="t('helpCenter.procedureDetail.lockedTitle')">
       <p>{{ t('helpCenter.procedureDetail.lockedText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.procedureDetail.documentTitle')">
+      <p>{{ t('helpCenter.procedureDetail.documentText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.procedureDetail.aboutTitle')">
+      <p>{{ t('helpCenter.procedureDetail.aboutText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.procedureDetail.fromEventTitle')">

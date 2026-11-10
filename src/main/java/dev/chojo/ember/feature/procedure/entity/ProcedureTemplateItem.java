@@ -16,7 +16,9 @@ public record ProcedureTemplateItem(
         @Nullable String description,
         boolean isPublic,
         boolean userAssigned,
-        int position) {
+        int position,
+        ProcedureStepKind kind,
+        @Nullable Integer documentTemplateId) {
 
     @MappingProvider("")
     public static RowMapping<ProcedureTemplateItem> map() {
@@ -27,6 +29,13 @@ public record ProcedureTemplateItem(
                 row.getString("description"),
                 row.getBoolean("public"),
                 row.getBoolean("user_assigned"),
-                row.getInt("position"));
+                row.getInt("position"),
+                ProcedureStepKind.valueOf(row.getString("kind")),
+                row.getObject("document_template_id", Integer.class));
+    }
+
+    /** @return whether the step asks to sign a document rather than to be ticked by hand */
+    public boolean asksToSign() {
+        return kind == ProcedureStepKind.DOCUMENT;
     }
 }

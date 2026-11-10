@@ -89,7 +89,30 @@ public enum RestrictionType {
             "id",
             "restriction_mode",
             StationPermission.ATTENDANCE_EDIT,
-            false);
+            false),
+    /** The managing party of a procedure: who sees its public steps, ticks the steps marked for them and is told. */
+    PROCEDURE(
+            "procedure_restriction",
+            "procedure_id",
+            "procedure",
+            "id",
+            "restriction_mode",
+            StationPermission.PROCEDURE_EDIT,
+            true,
+            true),
+    /**
+     * The managing party a procedure template hands to every procedure started from it. It guards
+     * nothing itself: the procedure gets a copy, which is what decides.
+     */
+    PROCEDURE_TEMPLATE(
+            "procedure_template_restriction",
+            "template_id",
+            "procedure_template",
+            "id",
+            "restriction_mode",
+            StationPermission.PROCEDURE_MANAGER,
+            false,
+            true);
 
     private final String table;
     private final String fkColumn;
@@ -98,6 +121,7 @@ public enum RestrictionType {
     private final String modeColumn;
     private final StationPermission managerPermission;
     private final boolean guardsVisibility;
+    private final boolean privateAudience;
 
     RestrictionType(
             String table,
@@ -117,7 +141,20 @@ public enum RestrictionType {
             String modeColumn,
             StationPermission managerPermission,
             boolean guardsVisibility) {
+        this(table, fkColumn, entityTable, entityIdColumn, modeColumn, managerPermission, guardsVisibility, false);
+    }
+
+    RestrictionType(
+            String table,
+            String fkColumn,
+            String entityTable,
+            String entityIdColumn,
+            String modeColumn,
+            StationPermission managerPermission,
+            boolean guardsVisibility,
+            boolean privateAudience) {
         this.guardsVisibility = guardsVisibility;
+        this.privateAudience = privateAudience;
         this.table = table;
         this.fkColumn = fkColumn;
         this.entityTable = entityTable;
@@ -162,5 +199,15 @@ public enum RestrictionType {
      */
     public boolean guardsVisibility() {
         return guardsVisibility;
+    }
+
+    /**
+     * Whether who the restriction takes in is itself kept from those who do not manage it. A procedure's
+     * managing party is: a member picker narrowed to it would show a member who runs nothing who does.
+     *
+     * @return true where only those holding the manager permission may see who passes
+     */
+    public boolean privateAudience() {
+        return privateAudience;
     }
 }

@@ -7,10 +7,19 @@ package dev.chojo.ember.feature.procedure.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.generator.entity.DocumentGeneration;
+import dev.chojo.ember.feature.generator.entity.SignatureRole;
+import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
+import dev.chojo.ember.feature.generator.service.GeneratorTestBase;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.procedure.entity.Procedure;
 import dev.chojo.ember.feature.procedure.entity.ProcedureStatus;
+import dev.chojo.ember.feature.procedure.entity.ProcedureStepKind;
 import dev.chojo.ember.feature.procedure.entity.ProcedureTemplate;
+import dev.chojo.ember.feature.procedure.entity.StepKindChoice;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -23,8 +32,12 @@ import org.junit.jupiter.api.TestMethodOrder;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.List;
 
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.letter;
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.row;
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.signature;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -123,10 +136,10 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     @Order(10)
     void createTemplateItem() {
         templateItemId1 = procedureRepo
-                .createTemplateItem(templateId, "Step 1", "First step", true, true, 1)
+                .createTemplateItem(templateId, "Step 1", "First step", true, true, 1, StepKindChoice.CHECK)
                 .id();
         templateItemId2 = procedureRepo
-                .createTemplateItem(templateId, "Step 2", "Second step", false, false, 2)
+                .createTemplateItem(templateId, "Step 2", "Second step", false, false, 2, StepKindChoice.CHECK)
                 .id();
         var items = procedureRepo.findTemplateItems(templateId);
         assertEquals(2, items.size());
@@ -174,7 +187,16 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     void createProcedure() {
         Instant dueAt = Instant.now().plus(7, ChronoUnit.DAYS);
         Procedure p = procedureRepo.createProcedure(
-                station.id(), templateId, "Drill Instance", "Run the drill", true, member.id(), dueAt, null, null);
+                station.id(),
+                templateId,
+                "Drill Instance",
+                "Run the drill",
+                true,
+                member.id(),
+                dueAt,
+                null,
+                null,
+                null);
         assertNotNull(p);
         assertEquals("Drill Instance", p.name());
         assertEquals(ProcedureStatus.OPEN, p.status());
@@ -214,7 +236,7 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
                 null);
 
         Procedure p = procedureRepo.createProcedure(
-                station.id(), null, "Vorbereitung", null, true, member.id(), null, event.id(), date);
+                station.id(), null, "Vorbereitung", null, true, member.id(), null, event.id(), date, null);
 
         assertEquals(event.id(), p.eventId());
         assertEquals(date, p.eventDate());
@@ -235,7 +257,7 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     @Order(21)
     void createAdHocProcedure() {
         Procedure p = procedureRepo.createProcedure(
-                station.id(), null, "Ad Hoc Task", "No template", false, member.id(), null, null, null);
+                station.id(), null, "Ad Hoc Task", "No template", false, member.id(), null, null, null, null);
         assertNotNull(p);
         assertNull(p.templateId());
         assertNull(p.dueAt());
@@ -282,61 +304,80 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
         assertFalse(procedureRepo.updateProcedure(99999, "No", "No", false, null));
     }
 
+    private static RestrictionAudience named(StationMember... members) {
+        return new RestrictionAudience(
+                List.of(),
+                List.of(),
+                List.of(),
+                Arrays.stream(members).map(StationMember::id).toList(),
+                RestrictionMode.AND);
+    }
+
+    private static List<Integer> runBy(StationMember member) {
+        return procedureRepo.findProceduresRunBy(station.id(), member.id(), null, false).stream()
+                .map(Procedure::id)
+                .toList();
+    }
+
+    /** A procedure with no party is run by nobody beyond those who edit procedures. */
     @Test
     @Order(30)
-    void addAndFindAssignees() {
-        procedureRepo.addAssignee(procedureId, member.id());
-        procedureRepo.addAssignee(procedureId, member2.id());
-        var ids = procedureRepo.findAssigneeIds(procedureId);
-        assertEquals(2, ids.size());
-        assertTrue(ids.contains(member.id()));
-        assertTrue(ids.contains(member2.id()));
+    void aProcedureWithoutAPartyIsRunByNobody() {
+        assertFalse(runBy(member).contains(procedureId));
     }
 
     @Test
     @Order(31)
-    void addAssigneeDuplicate() {
-        procedureRepo.addAssignee(procedureId, member.id());
-        assertEquals(2, procedureRepo.findAssigneeIds(procedureId).size());
+    void theMembersAPartyNamesRunIt() {
+        restrictionService.setAudience(RestrictionType.PROCEDURE, procedureId, named(member, member2));
+        assertTrue(runBy(member).contains(procedureId));
+        assertTrue(runBy(member2).contains(procedureId));
     }
 
+    /** A party naming a group takes in its members only, and a party narrowed again lets the others go. */
     @Test
     @Order(32)
-    void removeAssignee() {
-        assertTrue(procedureRepo.removeAssignee(procedureId, member2.id()));
-        assertEquals(1, procedureRepo.findAssigneeIds(procedureId).size());
-    }
+    void aPartyOfAGroupTakesInItsMembers() {
+        int group = memberGroupRepo.create(station.id(), "Ablauf Gruppe").id();
+        memberGroupRepo.addMember(group, member2.id());
+        restrictionService.setAudience(
+                RestrictionType.PROCEDURE,
+                procedureId,
+                new RestrictionAudience(List.of(), List.of(group), List.of(), List.of(), RestrictionMode.AND));
+        assertTrue(runBy(member2).contains(procedureId));
+        assertFalse(runBy(member).contains(procedureId));
 
-    @Test
-    @Order(33)
-    void removeAssigneeNotFound() {
-        assertFalse(procedureRepo.removeAssignee(procedureId, 99999));
+        restrictionService.setAudience(RestrictionType.PROCEDURE, procedureId, named(member));
+        assertTrue(runBy(member).contains(procedureId));
+        assertFalse(runBy(member2).contains(procedureId));
     }
 
     @Test
     @Order(34)
-    void findProceduresByAssigneeNoFilter() {
-        var list = procedureRepo.findProceduresByAssignee(station.id(), member.id(), null, false);
+    void findProceduresRunByNoFilter() {
+        var list = procedureRepo.findProceduresRunBy(station.id(), member.id(), null, false);
         assertEquals(1, list.size());
         assertEquals(procedureId, list.getFirst().id());
     }
 
     @Test
     @Order(35)
-    void findProceduresByAssigneeWithFilter() {
-        var open = procedureRepo.findProceduresByAssignee(station.id(), member.id(), ProcedureStatus.OPEN, false);
+    void findProceduresRunByWithFilter() {
+        var open = procedureRepo.findProceduresRunBy(station.id(), member.id(), ProcedureStatus.OPEN, false);
         assertEquals(1, open.size());
-        var resolved =
-                procedureRepo.findProceduresByAssignee(station.id(), member.id(), ProcedureStatus.RESOLVED, false);
+        var resolved = procedureRepo.findProceduresRunBy(station.id(), member.id(), ProcedureStatus.RESOLVED, false);
         assertTrue(resolved.isEmpty());
     }
 
     @Test
     @Order(40)
     void createItem() {
-        var i1 = procedureRepo.createItem(procedureId, "Check exits", "Verify all exits clear", true, true, 1);
-        var i2 = procedureRepo.createItem(procedureId, "Sound alarm", "Trigger alarm", true, true, 2);
-        var i3 = procedureRepo.createItem(procedureId, "Evacuate", "Everyone out", true, false, 3);
+        var i1 = procedureRepo.createItem(
+                procedureId, "Check exits", "Verify all exits clear", true, true, 1, StepKindChoice.CHECK);
+        var i2 = procedureRepo.createItem(
+                procedureId, "Sound alarm", "Trigger alarm", true, true, 2, StepKindChoice.CHECK);
+        var i3 =
+                procedureRepo.createItem(procedureId, "Evacuate", "Everyone out", true, false, 3, StepKindChoice.CHECK);
         assertNotNull(i1);
         assertFalse(i1.checked());
         assertNull(i1.checkedAt());
@@ -447,10 +488,234 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(71)
+    void aDocumentStepCarriesItsTemplateIntoTheProcedure() {
+        var wiring = GeneratorTestBase.wire(station);
+        int document = wiring.templates()
+                .create(wiring.owner(), letter("Fotoerlaubnis", "Text").build(), member.id())
+                .id();
+        var templateItem = procedureRepo.createTemplateItem(
+                templateId, "Sign", null, true, true, 9, StepKindChoice.document(document));
+
+        var stored = procedureRepo.findTemplateItems(templateId).stream()
+                .filter(item -> item.id() == templateItem.id())
+                .findFirst()
+                .orElseThrow();
+        assertEquals(ProcedureStepKind.DOCUMENT, stored.kind());
+        assertEquals(document, stored.documentTemplateId());
+
+        var snapped = procedureRepo.snapshotTemplateItem(adHocProcedureId, stored);
+        assertEquals(ProcedureStepKind.DOCUMENT, snapped.kind());
+        assertEquals(document, snapped.documentTemplateId());
+        assertNull(snapped.generationId());
+
+        assertTrue(procedureRepo.setItemKind(snapped.id(), StepKindChoice.CHECK));
+        var byHand = procedureRepo.findItemById(snapped.id()).orElseThrow();
+        assertEquals(ProcedureStepKind.CHECK, byHand.kind());
+        assertNull(byHand.documentTemplateId());
+
+        assertTrue(procedureRepo.setTemplateItemKind(templateItem.id(), StepKindChoice.CHECK));
+        assertEquals(
+                ProcedureStepKind.CHECK,
+                procedureRepo.findTemplateItems(templateId).stream()
+                        .filter(item -> item.id() == templateItem.id())
+                        .findFirst()
+                        .orElseThrow()
+                        .kind());
+
+        procedureRepo.deleteItem(snapped.id());
+        procedureRepo.deleteTemplateItem(templateItem.id());
+    }
+
+    /** Only the signatures settle a document step, so one made from a ticked step starts unticked. */
+    @Test
+    @Order(72)
+    void aTickedStepLosesItsTickWhenItAsksToSign() {
+        var wiring = GeneratorTestBase.wire(station);
+        int document = wiring.templates()
+                .create(wiring.owner(), letter("Aufnahmeantrag", "Text").build(), member.id())
+                .id();
+        var step = procedureRepo.createItem(adHocProcedureId, "Antrag", null, true, true, 9, StepKindChoice.CHECK);
+        assertTrue(procedureRepo.checkItem(step.id(), member.id()));
+
+        assertTrue(procedureRepo.setItemKind(step.id(), StepKindChoice.document(document)));
+
+        var asking = procedureRepo.findItemById(step.id()).orElseThrow();
+        assertEquals(ProcedureStepKind.DOCUMENT, asking.kind());
+        assertFalse(asking.checked());
+        assertNull(asking.checkedAt());
+        assertNull(asking.checkedBy());
+        procedureRepo.deleteItem(step.id());
+    }
+
+    /**
+     * A document step is found by the document it made, ticked by its signatures but only once, and moved
+     * on to a corrected document.
+     */
+    @Test
+    @Order(73)
+    void aDocumentStepFollowsItsDocument() {
+        var wiring = GeneratorTestBase.wire(station);
+        int document = wiring.templates()
+                .create(
+                        wiring.owner(),
+                        letter("Einverständnis")
+                                .body(List.of(row(signature(SignatureRole.PARTICIPANT, "Unterschrift"))))
+                                .build(),
+                        member.id())
+                .id();
+        int first = logged(document, member2.id());
+        int corrected = logged(document, member2.id());
+        var step = procedureRepo.createItem(
+                adHocProcedureId, "Einverständnis", null, true, true, 9, StepKindChoice.document(document));
+        assertTrue(procedureRepo.linkGeneration(step.id(), first));
+        assertFalse(procedureRepo.linkGeneration(step.id(), corrected), "a step makes one document");
+
+        assertEquals(
+                step.id(),
+                procedureRepo.findItemByGeneration(first).orElseThrow().id());
+        assertTrue(procedureRepo.checkBySignatures(step.id(), member2.id()));
+        assertFalse(procedureRepo.checkBySignatures(step.id(), member2.id()), "ticked once");
+        assertEquals(
+                member2.id(),
+                procedureRepo.findItemById(step.id()).orElseThrow().checkedBy());
+
+        assertTrue(procedureRepo.relinkGeneration(first, corrected));
+        assertTrue(procedureRepo.findItemByGeneration(first).isEmpty());
+        assertEquals(
+                step.id(),
+                procedureRepo.findItemByGeneration(corrected).orElseThrow().id());
+        procedureRepo.deleteItem(step.id());
+    }
+
+    /** A member reads the public procedures about them and their wards; a private one stays with the station. */
+    @Test
+    @Order(74)
+    void theProceduresAboutAMemberAreTheirPublicOnes() {
+        var open = procedureRepo.createProcedure(
+                station.id(), null, "Aufnahme", null, true, member.id(), null, null, null, member2.id());
+        var hidden = procedureRepo.createProcedure(
+                station.id(), null, "Intern", null, false, member.id(), null, null, null, member2.id());
+
+        var about = procedureRepo.findPublicAbout(station.id(), List.of(member2.id()), null).stream()
+                .map(Procedure::id)
+                .toList();
+        assertEquals(List.of(open.id()), about);
+        assertEquals(
+                1,
+                procedureRepo.countOpenPublicAboutNotRunBy(
+                        station.id(), member.id(), List.of(member.id(), member2.id())));
+        assertTrue(procedureRepo
+                .findPublicAbout(station.id(), List.of(member2.id()), ProcedureStatus.RESOLVED)
+                .isEmpty());
+        assertTrue(procedureRepo.findPublicAbout(station.id(), List.of(), null).isEmpty());
+
+        procedureRepo.deleteProcedure(open.id());
+        procedureRepo.deleteProcedure(hidden.id());
+    }
+
+    /**
+     * A procedure about a member falling due is found once it is within reach and until it is recorded as
+     * reminded of; a new due date makes it due again.
+     */
+    @Test
+    @Order(75)
+    void aProcedureFallingDueIsFoundUntilRemindedOf() {
+        var now = Instant.now();
+        var due = procedureRepo.createProcedure(
+                station.id(),
+                null,
+                "Bald fällig",
+                null,
+                true,
+                member.id(),
+                now.plus(1, ChronoUnit.DAYS),
+                null,
+                null,
+                member2.id());
+        var later = procedureRepo.createProcedure(
+                station.id(),
+                null,
+                "Später",
+                null,
+                true,
+                member.id(),
+                now.plus(5, ChronoUnit.DAYS),
+                null,
+                null,
+                member2.id());
+        var until = now.plus(2, ChronoUnit.DAYS);
+
+        var found = procedureRepo.findFallingDue(now, until, 100).stream()
+                .map(Procedure::id)
+                .toList();
+        assertTrue(found.contains(due.id()));
+        assertFalse(found.contains(later.id()));
+
+        var dueAt = procedureRepo.findProcedureById(due.id()).orElseThrow().dueAt();
+        assertFalse(procedureRepo.markDueReminded(due.id(), now.plus(9, ChronoUnit.DAYS), now), "another due date");
+        assertTrue(procedureRepo.markDueReminded(due.id(), dueAt, now));
+        assertFalse(procedureRepo.markDueReminded(due.id(), dueAt, now), "recorded once");
+        procedureRepo.updateProcedure(due.id(), "Umbenannt", null, true, dueAt);
+        assertFalse(
+                procedureRepo.findFallingDue(now, until, 100).stream().anyMatch(p -> p.id() == due.id()),
+                "a change that keeps the due date keeps the reminder recorded");
+        assertFalse(procedureRepo.findFallingDue(now, until, 100).stream().anyMatch(p -> p.id() == due.id()));
+
+        procedureRepo.updateProcedure(due.id(), "Bald fällig", null, true, now.plus(36, ChronoUnit.HOURS));
+        assertTrue(procedureRepo.findFallingDue(now, until, 100).stream().anyMatch(p -> p.id() == due.id()));
+
+        procedureRepo.deleteProcedure(due.id());
+        procedureRepo.deleteProcedure(later.id());
+    }
+
+    /**
+     * A procedure is made about another member; a step lets go of its document only where it holds that
+     * one; and the dependencies of a procedure are replaced as a whole.
+     */
+    @Test
+    @Order(76)
+    void aboutDocumentsAndDependenciesAreReplaced() {
+        var procedure = procedureRepo.createProcedure(
+                station.id(), null, "Wechsel", null, true, member.id(), null, null, null, member.id());
+        assertTrue(procedureRepo.setAbout(procedure.id(), member2.id()));
+        assertEquals(
+                member2.id(),
+                procedureRepo.findProcedureById(procedure.id()).orElseThrow().aboutMemberId());
+        assertFalse(procedureRepo.setAbout(-1, member2.id()));
+
+        var wiring = GeneratorTestBase.wire(station);
+        int document = wiring.templates()
+                .create(
+                        wiring.owner(),
+                        letter("Wechselbrief")
+                                .body(List.of(row(signature(SignatureRole.PARTICIPANT, "Unterschrift"))))
+                                .build(),
+                        member.id())
+                .id();
+        int generation = logged(document, member2.id());
+        var signed = procedureRepo.createItem(
+                procedure.id(), "Brief", null, true, true, 0, StepKindChoice.document(document));
+        var after = procedureRepo.createItem(procedure.id(), "Danach", null, true, true, 1, StepKindChoice.CHECK);
+        assertTrue(procedureRepo.linkGeneration(signed.id(), generation));
+        assertFalse(procedureRepo.unlinkGeneration(signed.id(), generation + 1), "only the document it holds");
+        assertTrue(procedureRepo.unlinkGeneration(signed.id(), generation));
+        assertNull(procedureRepo.findItemById(signed.id()).orElseThrow().generationId());
+
+        procedureRepo.setItemDependencies(procedure.id(), List.of(new int[] {after.id(), signed.id()}));
+        assertEquals(1, procedureRepo.findItemDependencies(procedure.id()).size());
+        procedureRepo.setItemDependencies(procedure.id(), List.of());
+        assertTrue(procedureRepo.findItemDependencies(procedure.id()).isEmpty());
+
+        procedureRepo.deleteProcedure(procedure.id());
+    }
+
+    @Test
     @Order(80)
     void resolveProcedure() {
-        assertTrue(procedureRepo.resolveProcedure(procedureId));
+        assertTrue(procedureRepo.resolveProcedure(procedureId, member.id()));
         var p = procedureRepo.findProcedureById(procedureId).orElseThrow();
+        assertEquals(member.id(), p.resolvedBy());
         assertEquals(ProcedureStatus.RESOLVED, p.status());
         assertNotNull(p.resolvedAt());
     }
@@ -458,7 +723,7 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(81)
     void resolveAlreadyResolved() {
-        assertFalse(procedureRepo.resolveProcedure(procedureId));
+        assertFalse(procedureRepo.resolveProcedure(procedureId, member.id()));
     }
 
     @Test
@@ -466,6 +731,7 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     void reopenProcedure() {
         assertTrue(procedureRepo.reopenProcedure(procedureId));
         var p = procedureRepo.findProcedureById(procedureId).orElseThrow();
+        assertNull(p.resolvedBy());
         assertEquals(ProcedureStatus.OPEN, p.status());
         assertNull(p.resolvedAt());
     }
@@ -484,21 +750,22 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     }
 
     /**
-     * The member is assigned to the open procedure; its first item is restored to public and
-     * user-assigned first, since earlier tests edit it.
+     * The member belongs to the open procedure's party; the procedure and its first item are made public
+     * and the item user-assigned first, since earlier tests edit them, and only public procedures count.
      */
     @Test
     @Order(91)
-    void countOpenByAssigneeWithAvailableItems() {
+    void countOpenRunByWithAvailableItems() {
+        procedureRepo.updateProcedure(procedureId, "Renamed Drill", "New desc", true, null);
         procedureRepo.updateItem(itemId1, "Check exits", "Desc", true, true, 1);
-        int count = procedureRepo.countOpenByAssigneeWithAvailableItems(station.id(), member.id());
+        int count = procedureRepo.countOpenRunByWithAvailableItems(station.id(), member.id());
         assertTrue(count >= 1);
     }
 
     @Test
     @Order(92)
-    void countOpenByAssigneeNoAssignment() {
-        int count = procedureRepo.countOpenByAssigneeWithAvailableItems(station.id(), member2.id());
+    void countOpenRunByNoPartyMembership() {
+        int count = procedureRepo.countOpenRunByWithAvailableItems(station.id(), member2.id());
         assertEquals(0, count);
     }
 
@@ -518,7 +785,7 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(102)
     void deleteTemplateItem() {
-        var temp = procedureRepo.createTemplateItem(templateId, "Temp", "Desc", true, true, 99);
+        var temp = procedureRepo.createTemplateItem(templateId, "Temp", "Desc", true, true, 99, StepKindChoice.CHECK);
         assertTrue(procedureRepo.deleteTemplateItem(temp.id()));
         assertFalse(procedureRepo.deleteTemplateItem(temp.id()));
     }
@@ -534,5 +801,34 @@ class ProcedureRepositoryTest extends RepositoryTestBase {
     @Order(111)
     void deleteProcedureNotFound() {
         assertFalse(procedureRepo.deleteProcedure(99999));
+    }
+
+    /**
+     * A document of a template logged as generated for a member, without drawing it: drawing a letter takes
+     * Pandoc, which the repository suite runs without.
+     */
+    private static int logged(int templateId, int memberId) {
+        return new DocumentGenerationRepository()
+                .log(
+                        new DocumentGeneration(
+                                0,
+                                station.id(),
+                                templateId,
+                                1,
+                                memberId,
+                                member.id(),
+                                Instant.now(),
+                                false,
+                                null,
+                                "0".repeat(64),
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                false,
+                                false),
+                        List.of())
+                .id();
     }
 }

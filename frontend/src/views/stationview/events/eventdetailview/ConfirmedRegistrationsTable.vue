@@ -22,12 +22,13 @@ import {userTypeOptions} from '@/views/stationview/members/listview/memberColumn
 import {emptyTableState, useDataTable} from '@/composables/useDataTable'
 import {useSession} from '@/composables/useSession'
 import {presentFile} from '@/util/documentFile'
+import {stationToday} from '@/util/format'
 import type {ExportSeparator} from '@/util/exportFormat'
 import RegistrationTableExport from './RegistrationTableExport.vue'
 import {columnOf, keyOf, readDrawnTable, tableColumnOf, type DrawnRow} from './registrationTableColumns'
 
 const {t} = useI18n()
-const {hasPermission} = useSession()
+const {hasPermission, stationTimezone} = useSession()
 
 const props = defineProps<{
   eventId: number
@@ -114,7 +115,7 @@ const table = useDataTable<Row>({
   state,
 })
 
-const day = computed(() => props.effectiveDate ?? new Date().toISOString().slice(0, 10))
+const day = computed(() => props.effectiveDate ?? stationToday(stationTimezone.value))
 
 /** The shown columns as the server names them, the name and the status first. */
 const drawnColumns = computed<ColumnChoice[]>(() => [

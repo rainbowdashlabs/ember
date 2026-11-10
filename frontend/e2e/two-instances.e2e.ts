@@ -17,6 +17,7 @@ import {
 } from './fixtures/peer'
 import {apiHeaders, proveFreshly} from './fixtures/auth'
 import {unique} from './fixtures/unique'
+import {stationDay} from './fixtures/stationDay'
 import {request, type APIRequestContext, type Page} from '@playwright/test'
 import {must} from './fixtures/must'
 
@@ -329,7 +330,7 @@ test.describe('Two instances', () => {
             expect(accepted.status(), await accepted.text()).toBe(201)
 
             const eventId = await sharedEventTakingRegistrations(owner, null)
-            const eventDate = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
+            const eventDate = stationDay(new Date(Date.now() + 86_400_000))
             const register = `/api/v1/federated/${owningStation}/events/${eventId}/register`
 
             const signedUp = await homeManagerApi.post(register, {data: {eventDate, memberId: null}})
@@ -381,7 +382,7 @@ test.describe('Two instances', () => {
             expect(accepted.status(), await accepted.text()).toBe(201)
 
             const eventId = await sharedEventTakingRegistrations(owner, null)
-            const eventDate = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
+            const eventDate = stationDay(new Date(Date.now() + 86_400_000))
 
             const partners = await partnersOf(owner)
             const guest = must(partners[0], 'the holder sees the station it just invited')
@@ -600,7 +601,7 @@ test.describe('Lending between instances', () => {
             const offer = offers.find(entry => entry.inventoryName === shelf)
             expect(offer?.stationId, 'the other instance offers its shelf').toBe(lendingStation)
 
-            const day = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
+            const day = stationDay(new Date(Date.now() + 86_400_000))
             const asked = await homeManagerApi.post('/api/v1/lending/requests', {
                 data: {owningStationId: lendingStation, dateFrom: day, dateTo: day, items: [{inventoryId, quantity: 1}]},
             })

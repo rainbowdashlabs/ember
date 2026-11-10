@@ -5,6 +5,7 @@
  */
 import {test, expect, apiHeaders} from './fixtures/auth'
 import type {APIRequestContext, Page} from '@playwright/test'
+import {stationDay} from './fixtures/stationDay'
 
 /**
  * Picks a kind by typing part of its name, which is the only way in: a station with hundreds of
@@ -25,7 +26,7 @@ function inDays(days: number): string {
 }
 
 function dayOf(iso: string): string {
-    return iso.slice(0, 10)
+    return stationDay(new Date(iso))
 }
 
 /** The seeded radio drawer, which holds six blue ones and a case nobody gave a kind to. */

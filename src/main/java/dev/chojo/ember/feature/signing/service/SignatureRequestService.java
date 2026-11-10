@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.signing.entity.SignatureAsk;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.entity.SignatureRequestView;
 import dev.chojo.ember.feature.signing.entity.Signer;
+import dev.chojo.ember.feature.signing.entity.SignerCapacity;
 import dev.chojo.ember.feature.signing.entity.SigningStatements;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
@@ -145,7 +146,7 @@ public class SignatureRequestService {
      */
     public SignatureRequest request(StationSession session, int generationId) {
         var generation = generationAt(session, generationId);
-        var created = onceForTheDocument(() -> create(session, generation, null));
+        var created = onceForTheDocument(() -> create(session, generation, null, null));
         notices.asked(created, requests.fieldsOf(created.id()));
         return created;
     }
@@ -188,13 +189,14 @@ public class SignatureRequestService {
             if (held.state() == RequestState.SUPERSEDED || held.state() == RequestState.WITHDRAWN) {
                 throw DocumentRefusal.SIGNING_REQUEST_ENDED.raise();
             }
-            var replacement = create(session, generation, old.id());
+            var replacement = create(session, generation, old.id(), old.purpose());
             requests.withdrawOpen(old.id(), by, names.official(by));
             requests.supersede(old.id(), replacement.id());
             return replacement;
         });
         log.info("Signing request {} superseded by {} at station {}", old.uid(), created.uid(), session.stationId());
         notices.settled(withdrawnFieldsOf(old.id()));
+        notices.replaced(old, created);
         notices.asked(created, requests.fieldsOf(created.id()));
         return created;
     }
@@ -212,14 +214,29 @@ public class SignatureRequestService {
         guards.requireMayManage(session, request.documentId());
         if (!request.open()) throw DocumentRefusal.SIGNING_REQUEST_NOT_OPEN.raise();
         int by = session.member().id();
-        Transactions.run(() -> {
-            var held = requests.lockRequest(request.id()).orElseThrow(DocumentRefusal.SIGNING_REQUEST_NOT_FOUND::raise);
-            if (!held.open()) throw DocumentRefusal.SIGNING_REQUEST_NOT_OPEN.raise();
-            requests.withdrawOpen(request.id(), by, names.official(by));
-            requests.closeIfSettled(request.id());
-        });
+        if (!withdrawRemaining(request.id(), by)) throw DocumentRefusal.SIGNING_REQUEST_NOT_OPEN.raise();
         notices.settled(withdrawnFieldsOf(request.id()));
-        return requests.findById(request.id()).orElse(request);
+        var now = requests.findById(request.id()).orElse(request);
+        notices.closed(now, requests.fieldsOf(request.id()), by);
+        return now;
+    }
+
+    /**
+     * Withdraws every field of a request that still waits, and closes the request where nothing is left
+     * open, under the request's lock.
+     *
+     * @param requestId the request
+     * @param by        who withdraws
+     * @return whether the request was still open
+     */
+    private boolean withdrawRemaining(int requestId, int by) {
+        return Transactions.call(() -> {
+            var held = requests.lockRequest(requestId).orElse(null);
+            if (held == null || !held.open()) return false;
+            requests.withdrawOpen(requestId, by, names.official(by));
+            requests.closeIfSettled(requestId);
+            return true;
+        });
     }
 
     /**
@@ -238,11 +255,55 @@ public class SignatureRequestService {
                 generations.findById(generationId).orElseThrow(DocumentRefusal.SIGNING_GENERATION_NOT_FOUND::raise);
         var created = Transactions.call(() -> {
             var plan = planOf(generation, memberOf(generation), filedDocument(generation));
-            return create(generation, plan, null, null);
+            return create(generation, plan, null, null, null);
         });
         if (requests.waitsForScan(created.id())) return created;
         notices.asked(created, requests.fieldsOf(created.id()));
         return created;
+    }
+
+    /**
+     * Asks for the signatures of a document a step of a procedure generated for the member it is about.
+     * The member the procedure asks on behalf of is named as the one who asked; the caller has made sure
+     * they are a current member who generates documents for members.
+     *
+     * @param generationId the generation log entry of the document
+     * @param askedBy      on whose behalf the procedure asks
+     * @param purpose      what the signatures are asked for, named to the signers: the procedure
+     * @return the request
+     */
+    public SignatureRequest requestForProcedure(int generationId, int askedBy, String purpose) {
+        var generation =
+                generations.findById(generationId).orElseThrow(DocumentRefusal.SIGNING_GENERATION_NOT_FOUND::raise);
+        var created = onceForTheDocument(() -> {
+            var plan = planOf(generation, memberOf(generation), filedDocument(generation));
+            return create(generation, plan, askedBy, null, purpose);
+        });
+        notices.asked(created, requests.fieldsOf(created.id()));
+        return created;
+    }
+
+    /**
+     * Withdraws every signature the live request of a generated document still waits for, as a procedure
+     * does when it no longer needs the document. What was already signed stays.
+     *
+     * <p>Unlike {@link #withdraw}, the closing is not announced. The procedure withdraws because the step
+     * holding the document is deleted, or is about to ask a different member, and the event bus answers in
+     * this very call: a request that closes with some fields signed would stand as agreed and tick that
+     * step, tell its party and ask for the steps it unlocks, of a procedure that is going away or no longer
+     * about that member.
+     *
+     * @param generationId the generation log entry of the document
+     * @param by           who withdraws
+     * @return whether a request was open to withdraw
+     */
+    public boolean withdrawForProcedure(int generationId, int by) {
+        var live = requests.findLiveFor(generationId).filter(SignatureRequest::open);
+        if (live.isEmpty()) return false;
+        int requestId = live.get().id();
+        boolean withdrawn = withdrawRemaining(requestId, by);
+        if (withdrawn) notices.settled(withdrawnFieldsOf(requestId));
+        return withdrawn;
     }
 
     /**
@@ -278,7 +339,7 @@ public class SignatureRequestService {
      */
     public SignatureAsk requireOwnedThenRequestInPerson(StationSession session, int generationId) {
         var generation = generationAt(session, generationId);
-        var created = onceForTheDocument(() -> create(session, generation, null));
+        var created = onceForTheDocument(() -> create(session, generation, null, null));
         return SignatureAsk.asked(created, requests.fieldsOf(created.id()));
     }
 
@@ -297,7 +358,7 @@ public class SignatureRequestService {
                 generations.findById(generationId).orElseThrow(DocumentRefusal.SIGNING_GENERATION_NOT_FOUND::raise);
         var created = onceForTheDocument(() -> {
             var plan = planOf(generation, memberOf(generation), filedDocument(generation));
-            return create(generation, plan, witnessId, null);
+            return create(generation, plan, witnessId, null, null);
         });
         return SignatureAsk.asked(created, requests.fieldsOf(created.id()));
     }
@@ -499,12 +560,19 @@ public class SignatureRequestService {
     }
 
     private SignatureRequest create(
-            StationSession session, DocumentGeneration generation, @Nullable Integer replacing) {
-        return create(generation, plan(session, generation), session.member().id(), replacing);
+            StationSession session,
+            DocumentGeneration generation,
+            @Nullable Integer replacing,
+            @Nullable String purpose) {
+        return create(generation, plan(session, generation), session.member().id(), replacing, purpose);
     }
 
     private SignatureRequest create(
-            DocumentGeneration generation, Plan plan, @Nullable Integer askedBy, @Nullable Integer replacing) {
+            DocumentGeneration generation,
+            Plan plan,
+            @Nullable Integer askedBy,
+            @Nullable Integer replacing,
+            @Nullable String purpose) {
         requireNothingLive(generation, replacing);
         if (plan.fields().isEmpty()) throw DocumentRefusal.SIGNING_NO_FIELDS.raise();
         var created = requests.create(
@@ -516,7 +584,8 @@ public class SignatureRequestService {
                         plan.memberId(),
                         plan.memberName(),
                         plan.sha256(),
-                        askedBy),
+                        askedBy,
+                        purpose),
                 plan.fields());
         log.info(
                 "Asked for {} signatures on document {} at station {} ({})",
@@ -597,16 +666,33 @@ public class SignatureRequestService {
 
     private static Signer signerFor(PendingSignature pending, int me, int accountId) {
         var field = pending.field();
+        return switch (capacityOf(field, me)) {
+            case ACCOUNT_HOLDER, WITNESSED -> Signer.accountHolder(accountId);
+            case MEMBER_THROUGH_ACCOUNT ->
+                Signer.memberThroughAccount(
+                        accountId, Objects.requireNonNull(field.signerId(), "a ward's field names the ward"));
+            case GUARDIAN ->
+                Signer.guardian(
+                        accountId, Objects.requireNonNull(field.memberId(), "a ward's document names the ward"));
+        };
+    }
+
+    /**
+     * In which capacity a member signs one of the fields pending for them: their own, a ward's own through
+     * the member's account, or as guardian on a ward's behalf.
+     *
+     * @param field the field, pending for the member
+     * @param me    the member
+     * @return the capacity, never {@link SignerCapacity#WITNESSED}
+     */
+    public static SignerCapacity capacityOf(RequestedSignature field, int me) {
         return switch (field.role()) {
             case PARTICIPANT ->
                 Objects.equals(field.signerId(), me)
-                        ? Signer.accountHolder(accountId)
-                        : Signer.memberThroughAccount(
-                                accountId, Objects.requireNonNull(field.signerId(), "a ward's field names the ward"));
-            case ISSUER -> Signer.accountHolder(accountId);
-            case GUARDIAN, ANY_GUARDIAN ->
-                Signer.guardian(
-                        accountId, Objects.requireNonNull(field.memberId(), "a ward's document names the ward"));
+                        ? SignerCapacity.ACCOUNT_HOLDER
+                        : SignerCapacity.MEMBER_THROUGH_ACCOUNT;
+            case ISSUER -> SignerCapacity.ACCOUNT_HOLDER;
+            case GUARDIAN, ANY_GUARDIAN -> SignerCapacity.GUARDIAN;
         };
     }
 }

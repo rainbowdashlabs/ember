@@ -10,6 +10,8 @@ import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.feature.documents.service.DocumentAccessService;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
@@ -23,6 +25,16 @@ import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.GenderFields;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
+import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
+import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
+import dev.chojo.ember.feature.signing.service.ProcedureSignatures;
+import dev.chojo.ember.feature.signing.service.SignatureRequestService;
+import dev.chojo.ember.feature.signing.service.SignerResolver;
+import dev.chojo.ember.feature.signing.service.SigningGuards;
+import dev.chojo.ember.feature.signing.service.SigningWiring;
+import dev.chojo.ember.feature.signing.service.TemplateDocumentStatements;
+import dev.chojo.ember.feature.signing.service.TestNotices;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
@@ -189,5 +201,46 @@ public abstract class GeneratorTestBase extends RepositoryTestBase {
 
     static void refused(Refusal refusal, Executable action) {
         assertEquals(refusal, assertThrows(RefusalResponse.class, action).refusal());
+    }
+
+    /**
+     * The signing services for the documents of one wired station, telling what happens to requests on the
+     * given bus.
+     *
+     * @param wiring      the station's documents
+     * @param requestRepo the signature requests
+     * @param bus         where closed, replaced and withdrawn requests are announced
+     * @return the services
+     */
+    public static SigningWiring signing(Wiring wiring, SignatureRequestRepository requestRepo, DomainEventBus bus) {
+        var guardians = new GuardianPolicy(stationMemberRepo);
+        var guards = new SigningGuards(
+                new DocumentAccessService(memberDocumentRepo, wiring.documents(), guardians),
+                memberDocumentRepo,
+                guardians);
+        var notices = TestNotices.notices(
+                newNotifier(), emailQueueRepo, stationRepo, stationMemberRepo, accountRepo, memberDocumentRepo, bus);
+        var requests = new SignatureRequestService(
+                requestRepo,
+                new SigningEvidenceRepository(),
+                wiring.log(),
+                memberDocumentRepo,
+                wiring.documents(),
+                stationMemberRepo,
+                memberNameResolver,
+                guardians,
+                new SignerResolver(stationMemberRepo, memberNameResolver, memberPermissionResolver),
+                guards,
+                notices,
+                new TemplateDocumentStatements(wiring.generator()));
+        var procedures = new ProcedureSignatures(
+                wiring.generation(),
+                requests,
+                stationMemberRepo,
+                memberPermissionResolver,
+                wiring.log(),
+                requestRepo,
+                notices);
+        return new SigningWiring(guardians, guards, notices, requests, procedures);
     }
 }

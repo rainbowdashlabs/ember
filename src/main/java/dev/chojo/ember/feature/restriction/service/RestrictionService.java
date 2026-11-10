@@ -144,6 +144,33 @@ public class RestrictionService {
     }
 
     /**
+     * Whether every group, tag and member an audience names belongs to the station.
+     *
+     * @param stationId the station
+     * @param audience  the audience
+     * @return whether nothing in it is of another station
+     */
+    public boolean ofStation(int stationId, RestrictionAudience audience) {
+        var selection = audience.toSelection();
+        return restrictionRepository.allOfStation(
+                stationId, selection.groupIds(), selection.tagIds(), selection.memberIds());
+    }
+
+    /**
+     * Whether an entity's restrictions name anybody and take the member in. Unlike {@link
+     * #includes(RestrictionType, int, int)}, an entity without restrictions takes in nobody, for an audience
+     * that names who runs something rather than who may see it.
+     *
+     * @param type     the restricted entity type
+     * @param entityId the entity
+     * @param memberId the member
+     * @return whether the entity carries restrictions and they take the member in
+     */
+    public boolean restrictedTo(RestrictionType type, int entityId, int memberId) {
+        return hasRestrictions(type, entityId) && includes(type, entityId, memberId);
+    }
+
+    /**
      * Whether an entity carries any restriction at all.
      */
     public boolean hasRestrictions(RestrictionType type, int entityId) {

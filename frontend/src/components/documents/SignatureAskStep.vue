@@ -22,6 +22,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {showToast} from '@/util/toast'
 import {signerOf} from './signatureSigner'
+import {witnessSigningHref} from './signatures/witnessSigning'
 
 /**
  * Asking for the signatures of a generated document: who would be asked to sign each field and what they
@@ -83,7 +84,7 @@ const inPerson = useAsyncAction(async () => {
     emit('done')
     return
   }
-  await router.push({path: '/station/signing/witness', query: {field: String(first.fieldId)}})
+  await router.push(witnessSigningHref(first.fieldId))
 })
 
 const keeping = computed(() => {

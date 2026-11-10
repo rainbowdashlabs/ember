@@ -12,14 +12,12 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import RowLink from '@/components/navigation/RowLink.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
+import ProcedureListRow from './procedurelistview/ProcedureListRow.vue'
+import { matchesSearch } from './procedurelistview/procedureSearch'
 import { useSession } from '@/composables/useSession'
 import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
@@ -35,6 +33,8 @@ const { hasPermission, loaded } = useSession()
 const canEdit = computed(() => hasPermission(StationPermission.PROCEDURE_EDIT))
 
 const items = ref<Procedure[]>([])
+/** The public procedures about the reader or somebody in their care, which they read among their own tasks. */
+const aboutMe = ref<Procedure[]>([])
 
 const searchQuery = ref('')
 const statusFilter = ref<ProcedureStatus | ''>(ProcedureStatus.OPEN)
@@ -44,9 +44,13 @@ const {loading, failure, reload} = useAsyncLoader(async (isCurrent) => {
   const params: ProcedureListParams = {}
   if (statusFilter.value) params.status = statusFilter.value
   if (assigneeFilter.value === 'me') params.assignee = 'me'
-  const found = await procedures.getProcedures(params)
+  const [found, concerning] = await Promise.all([
+    procedures.getProcedures(params),
+    procedures.listAboutMe(statusFilter.value || undefined),
+  ])
   if (!isCurrent()) return
   items.value = found
+  aboutMe.value = concerning
 }, {autoLoad: false})
 
 const {
@@ -60,21 +64,14 @@ const {
   failure,
 })
 
-const filteredItems = computed(() => {
-  let result = items.value
-  if (statusFilter.value) {
-    result = result.filter(p => p.status === statusFilter.value)
-  }
-  if (searchQuery.value.trim()) {
-    const q = searchQuery.value.trim().toLowerCase()
-    result = result.filter(p => p.name.toLowerCase().includes(q) || (p.description && p.description.toLowerCase().includes(q)))
-  }
-  return result
+/** The procedures about the reader that the main list does not show already, narrowed by the search. */
+const filteredAboutMe = computed(() => {
+  const shown = new Set(items.value.map(p => p.id))
+  return aboutMe.value.filter(p => !shown.has(p.id) && matchesSearch(p, searchQuery.value))
 })
 
-function procedurePage(p: Procedure) {
-  return { name: 'procedure-detail', params: { id: p.id } }
-}
+const filteredItems = computed(() => items.value.filter(p =>
+  (!statusFilter.value || p.status === statusFilter.value) && matchesSearch(p, searchQuery.value)))
 
 watch([statusFilter, assigneeFilter], () => reload())
 watch(loaded, (v) => { if (v) reload() }, { immediate: true })
@@ -111,6 +108,14 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       </SelectionToggleButton>
     </div>
 
+    <section v-if="filteredAboutMe.length > 0" class="mb-6" data-testid="procedures-about-me">
+      <SubHeader class="mb-1">{{ t('procedures.aboutMe') }}</SubHeader>
+      <p class="text-sm text-[var(--text-muted)] mb-2">{{ t('procedures.aboutMeHint') }}</p>
+      <div class="space-y-2">
+        <ProcedureListRow v-for="p in filteredAboutMe" :key="p.id" :procedure="p"/>
+      </div>
+    </section>
+
     <AsyncSection
       :empty="filteredItems.length === 0"
       :empty-message="t('procedures.empty')"
@@ -118,30 +123,17 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       :loading="loading"
     >
       <div class="space-y-2">
-        <RowLink v-for="p in filteredItems" :key="p.id" :to="procedurePage(p)">
-          <NeutralContainer
-            data-testid="procedure-entry"
-            class="flex items-center gap-3 cursor-pointer hover:border-[var(--color-primary)] transition-colors group"
-          >
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2">
-                <span class="font-medium">{{ p.name }}</span>
-                <SuccessBadge v-if="p.status === ProcedureStatus.RESOLVED">{{ t('procedures.resolved') }}</SuccessBadge>
-                <PrimaryBadge v-else>{{ t('procedures.open') }}</PrimaryBadge>
-              </div>
-              <div v-if="p.description" class="text-sm text-[var(--text-muted)] truncate">{{ p.description }}</div>
-            </div>
-            <div class="flex items-center gap-3 text-sm text-[var(--text-muted)] shrink-0">
-              <span v-if="p.dueAt" class="flex items-center gap-1">
-                <font-awesome-icon :icon="['fas', 'calendar']" class="w-3 h-3" />
-                {{ formatDate(p.dueAt) }}
-              </span>
-            </div>
-            <div v-if="canEdit" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <DeleteButton :label="t('common.delete')" @click="requestDelete(p)" />
-            </div>
-          </NeutralContainer>
-        </RowLink>
+        <ProcedureListRow v-for="p in filteredItems" :key="p.id" :procedure="p" data-testid="procedure-entry">
+          <div class="flex items-center gap-3 text-sm text-[var(--text-muted)] shrink-0">
+            <span v-if="p.dueAt" class="flex items-center gap-1">
+              <font-awesome-icon :icon="['fas', 'calendar']" class="w-3 h-3" />
+              {{ formatDate(p.dueAt) }}
+            </span>
+          </div>
+          <div v-if="canEdit" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <DeleteButton :label="t('common.delete')" @click="requestDelete(p)" />
+          </div>
+        </ProcedureListRow>
       </div>
     </AsyncSection>
 

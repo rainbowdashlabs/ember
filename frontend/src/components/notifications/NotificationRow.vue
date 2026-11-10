@@ -71,6 +71,7 @@ const typeIcons: Partial<Record<NotificationType, string>> = {
   PROCEDURE_RESOLVED: 'clipboard-check',
   PROCEDURE_REOPENED: 'rotate',
   PROCEDURE_ITEM_CHECKED: 'square-check',
+  PROCEDURE_DOCUMENT_WITHDRAWN: 'rotate-left',
   SELF_CHECK_ASSIGNED: 'shirt',
   SELF_CHECK_SUBMITTED: 'inbox',
   SELF_CHECK_ROW_REFUSED: 'rotate-left',

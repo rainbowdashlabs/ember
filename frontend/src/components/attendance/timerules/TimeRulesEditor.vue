@@ -16,7 +16,8 @@ import Alert from '@/components/feedback/Alert.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {MemberGroup, MemberWithName, UserTag} from '@/api/generated/schema'
 import {moveWithin} from '@/util/reorder'
-import {emptyDraft, minutesFit, namesSomebody, type TimeRuleDraft} from './timeRuleDraft'
+import {emptyDraft, minutesFit, type TimeRuleDraft} from './timeRuleDraft'
+import {namesSomebody} from '@/components/input/restriction'
 
 /**
  * The preparation and follow-up rules of a template or a sheet, edited as one list.
@@ -62,7 +63,7 @@ function reorder(from: number, to: number) {
     >
       <template #default="{item: rule, index}">
         <div class="space-y-3 rounded-lg border border-(--border) p-3" data-testid="time-rule">
-          <Alert v-if="!rule.intact && !namesSomebody(rule)" variant="error">{{ t('attendanceTimeRules.lostPart') }}</Alert>
+          <Alert v-if="!rule.intact && !namesSomebody(rule.audience)" variant="error">{{ t('attendanceTimeRules.lostPart') }}</Alert>
           <div class="flex items-start gap-2">
             <LabelledField :label="t('attendanceTimeRules.label')" hint class="flex-1">
               <TextInput
@@ -93,7 +94,7 @@ function reorder(from: number, to: number) {
           </div>
           <LabelledField
               :label="t('attendanceTimeRules.audience')"
-              :error="namesSomebody(rule) ? undefined : t('attendanceTimeRules.namesNobody')"
+              :error="namesSomebody(rule.audience) ? undefined : t('attendanceTimeRules.namesNobody')"
           >
             <RestrictionPicker
                 v-model="rule.audience"

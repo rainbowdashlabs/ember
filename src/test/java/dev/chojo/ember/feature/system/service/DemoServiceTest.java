@@ -93,7 +93,9 @@ import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.page.entity.PageVisibility;
 import dev.chojo.ember.feature.page.service.PageService;
+import dev.chojo.ember.feature.procedure.service.DocumentStepSigning;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
+import dev.chojo.ember.feature.procedure.service.SuitableDocuments;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import dev.chojo.ember.feature.quiz.service.QuizAnswerGrader;
 import dev.chojo.ember.feature.quiz.service.QuizAttemptService;
@@ -379,7 +381,13 @@ class DemoServiceTest extends RepositoryTestBase {
                 memberIdentityFactory,
                 memberNameResolver,
                 boardAttachmentSvc);
-        var procedureService = new ProcedureService(procedureRepo, noOpBus);
+        var procedureService = new ProcedureService(
+                procedureRepo,
+                noOpBus,
+                restrictionService,
+                SuitableDocuments.NONE,
+                mock(DocumentStepSigning.class),
+                stationMemberRepo);
 
         var memberSeeder = new DemoMemberSeeder(
                 accountRepo,
@@ -492,7 +500,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 federationService,
                 memberIdentityFactory,
                 demoClock);
-        var procedureSeeder = new DemoProcedureSeeder(procedureRepo);
+        var procedureSeeder = new DemoProcedureSeeder(procedureRepo, restrictionService, procedureService);
         var selfCheckSeeder = new DemoSelfCheckSeeder(selfCheckRepo, inventoryRepo, itemCustodyService, demoClock);
         var demoStorageConfig = new Storage();
         var demoBackend = localStorage();

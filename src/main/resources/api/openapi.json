@@ -35470,6 +35470,25 @@
         }
       }
     },
+    "/api/v1/procedures/about-me" : {
+      "get" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Procedure"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/procedures/for-event/{eid}" : {
       "get" : {
         "responses" : {
@@ -35483,6 +35502,34 @@
                     "$ref" : "#/components/schemas/Procedure"
                   }
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/procedures/for-members" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Procedure"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateProceduresRequest"
               }
             }
           }
@@ -35535,19 +35582,15 @@
         }
       }
     },
-    "/api/v1/procedures/{rid}/assignees" : {
-      "post" : {
+    "/api/v1/procedures/{rid}/about" : {
+      "put" : {
         "responses" : {
           "200" : {
             "description" : "OK",
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "type" : "integer",
-                    "format" : "int32"
-                  }
+                  "$ref" : "#/components/schemas/Procedure"
                 }
               }
             }
@@ -35557,27 +35600,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/AssigneeRequest"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/procedures/{rid}/assignees/{mid}" : {
-      "delete" : {
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "type" : "integer",
-                    "format" : "int32"
-                  }
-                }
+                "$ref" : "#/components/schemas/AboutRequest"
               }
             }
           }
@@ -35674,6 +35697,40 @@
         "responses" : {
           "204" : {
             "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/procedures/{rid}/items/{iid}/ask" : {
+      "post" : {
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/procedures/{rid}/party" : {
+      "put" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestrictionAudience"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RestrictionAudience"
+              }
+            }
           }
         }
       }
@@ -48204,6 +48261,18 @@
   },
   "components" : {
     "schemas" : {
+      "AboutRequest" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "ask" : {
+            "type" : [ "boolean", "null" ]
+          }
+        }
+      },
       "AbsenceRequest" : {
         "type" : "object",
         "properties" : {
@@ -49681,18 +49750,6 @@
           },
           "memberName" : {
             "type" : [ "string", "null" ]
-          }
-        }
-      },
-      "AssigneeRequest" : {
-        "type" : "object",
-        "properties" : {
-          "memberIds" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int32"
-            }
           }
         }
       },
@@ -54605,12 +54662,12 @@
               "type" : "null"
             } ]
           },
-          "assigneeIds" : {
-            "type" : [ "array", "null" ],
-            "items" : {
-              "type" : "integer",
-              "format" : "int32"
-            }
+          "party" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionAudience"
+            }, {
+              "type" : "null"
+            } ]
           },
           "eventId" : {
             "type" : [ "integer", "null" ],
@@ -54622,6 +54679,60 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "aboutMemberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        }
+      },
+      "CreateProceduresRequest" : {
+        "type" : "object",
+        "properties" : {
+          "templateId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "isPublic" : {
+            "type" : "boolean"
+          },
+          "dueAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "party" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionAudience"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "eventId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "eventDate" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "memberIds" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
           }
         }
       },
@@ -68655,7 +68766,7 @@
       },
       "NotificationType" : {
         "type" : "string",
-        "enum" : [ "NEW_NEWS", "NEWS_COMMENT", "COMMENT_MENTION", "EVENT_COMMENT", "EVENT_REGISTRATION_STATUS", "MOVEMENT_ADVANCED", "MOVEMENT_RAISED", "MOVEMENT_DECLINED", "MOVEMENT_CANCELLED", "NEW_EVENT", "NEW_EVENTS_BATCH", "MEMBER_ADDED_TO_GROUP", "PROFILE_FIELD_CHANGED", "PROCUREMENT_REQUESTED", "PROCUREMENT_FULFILLED", "NEW_FORM", "LOST_AND_FOUND_NEW", "LOST_AND_FOUND_CLAIMED", "WAITLIST_NEW_ENTRY", "LENDING_NEW_REQUEST", "LENDING_STATUS_CHANGE", "LENDING_NEW_MESSAGE", "BOARD_TICKET_UPDATE", "REGISTRATION_DEADLINE_EXPIRED", "EVENT_CANCELLED", "EVENT_REMINDER", "REGISTRATION_CLOSING", "REGISTRATION_ANSWER_MISSING", "EVENT_DATE_DROPPED", "EVENT_MOVED", "EVENT_DATE_RESTORED", "PROCEDURE_ASSIGNED", "PROCEDURE_RESOLVED", "PROCEDURE_REOPENED", "PROCEDURE_ITEM_CHECKED", "SELF_CHECK_ASSIGNED", "SELF_CHECK_SUBMITTED", "SELF_CHECK_ROW_REFUSED", "WAITLIST_PUBLIC_REGISTRATION", "WAITLIST_INVITATION_ANSWERED", "WAITLIST_TRIAL_ENDED", "STORAGE_WARNING", "MAILBOX_SUSPENDED", "MAIL_IMPORT_UNBOUND", "CLUSTER_APPLICATION_SUBMITTED", "CLUSTER_APPLICATION_APPROVED", "CLUSTER_APPLICATION_DENIED", "CLUSTER_APPLICATION_WITHDRAWN", "CLUSTER_STATION_RELEASED", "CLUSTER_MODULE_DENIED", "CLUSTER_ITEM_ISSUED", "CLUSTER_ITEM_LOST", "CLUSTER_QUOTA_CHANGED", "CLUSTER_MEMBER_ROLE_CHANGED", "CLUSTER_FIELD_VALUE_CHANGED", "EXPIRY_REMINDER", "FEDERATION_REQUEST_RECEIVED", "FEDERATION_REQUEST_ACCEPTED", "FEDERATION_REQUEST_DECLINED", "NAME_CHANGE_REQUESTED", "NAME_CHANGE_APPROVED", "NAME_CHANGE_DENIED", "SIGNATURE_REQUESTED", "SIGNATURE_REMINDER", "DOCUMENT_SIGNED", "DOCUMENT_SCAN_REJECTED", "ACCOUNT_LINK_ACCEPTED", "ASSOCIATION_LINK_ACCEPTED", "SIGNATURE_WITHDRAWN", "PARTNER_SIGNATURE_WITHDRAWN" ]
+        "enum" : [ "NEW_NEWS", "NEWS_COMMENT", "COMMENT_MENTION", "EVENT_COMMENT", "EVENT_REGISTRATION_STATUS", "MOVEMENT_ADVANCED", "MOVEMENT_RAISED", "MOVEMENT_DECLINED", "MOVEMENT_CANCELLED", "NEW_EVENT", "NEW_EVENTS_BATCH", "MEMBER_ADDED_TO_GROUP", "PROFILE_FIELD_CHANGED", "PROCUREMENT_REQUESTED", "PROCUREMENT_FULFILLED", "NEW_FORM", "LOST_AND_FOUND_NEW", "LOST_AND_FOUND_CLAIMED", "WAITLIST_NEW_ENTRY", "LENDING_NEW_REQUEST", "LENDING_STATUS_CHANGE", "LENDING_NEW_MESSAGE", "BOARD_TICKET_UPDATE", "REGISTRATION_DEADLINE_EXPIRED", "EVENT_CANCELLED", "EVENT_REMINDER", "REGISTRATION_CLOSING", "REGISTRATION_ANSWER_MISSING", "EVENT_DATE_DROPPED", "EVENT_MOVED", "EVENT_DATE_RESTORED", "PROCEDURE_ASSIGNED", "PROCEDURE_RESOLVED", "PROCEDURE_REOPENED", "PROCEDURE_ITEM_CHECKED", "PROCEDURE_DOCUMENT_WITHDRAWN", "SELF_CHECK_ASSIGNED", "SELF_CHECK_SUBMITTED", "SELF_CHECK_ROW_REFUSED", "WAITLIST_PUBLIC_REGISTRATION", "WAITLIST_INVITATION_ANSWERED", "WAITLIST_TRIAL_ENDED", "STORAGE_WARNING", "MAILBOX_SUSPENDED", "MAIL_IMPORT_UNBOUND", "CLUSTER_APPLICATION_SUBMITTED", "CLUSTER_APPLICATION_APPROVED", "CLUSTER_APPLICATION_DENIED", "CLUSTER_APPLICATION_WITHDRAWN", "CLUSTER_STATION_RELEASED", "CLUSTER_MODULE_DENIED", "CLUSTER_ITEM_ISSUED", "CLUSTER_ITEM_LOST", "CLUSTER_QUOTA_CHANGED", "CLUSTER_MEMBER_ROLE_CHANGED", "CLUSTER_FIELD_VALUE_CHANGED", "EXPIRY_REMINDER", "FEDERATION_REQUEST_RECEIVED", "FEDERATION_REQUEST_ACCEPTED", "FEDERATION_REQUEST_DECLINED", "NAME_CHANGE_REQUESTED", "NAME_CHANGE_APPROVED", "NAME_CHANGE_DENIED", "SIGNATURE_REQUESTED", "SIGNATURE_REMINDER", "DOCUMENT_SIGNED", "DOCUMENT_SCAN_REJECTED", "ACCOUNT_LINK_ACCEPTED", "ASSOCIATION_LINK_ACCEPTED", "SIGNATURE_WITHDRAWN", "PARTNER_SIGNATURE_WITHDRAWN" ]
       },
       "NumberConfig" : {
         "type" : "object",
@@ -68849,6 +68960,9 @@
           "memberName" : {
             "type" : "string"
           },
+          "purpose" : {
+            "type" : [ "string", "null" ]
+          },
           "fieldName" : {
             "type" : "string"
           },
@@ -68869,7 +68983,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "fieldId", "requestUid", "documentId", "documentTitle", "memberName", "fieldName", "role", "capacity", "memberId", "signerName", "statement" ]
+        "required" : [ "fieldId", "requestUid", "documentId", "documentTitle", "memberName", "purpose", "fieldName", "role", "capacity", "memberId", "signerName", "statement" ]
       },
       "Option" : {
         "type" : "object",
@@ -70770,9 +70884,17 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "aboutMemberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "resolvedBy" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "stationId", "templateId", "name", "description", "isPublic", "status", "assignedBy", "dueAt", "createdAt", "resolvedAt", "eventId", "eventDate" ]
+        "required" : [ "id", "stationId", "templateId", "name", "description", "isPublic", "status", "assignedBy", "dueAt", "createdAt", "resolvedAt", "eventId", "eventDate", "aboutMemberId", "resolvedBy" ]
       },
       "ProcedureDetail" : {
         "type" : "object",
@@ -70796,21 +70918,42 @@
               }
             }
           },
-          "assigneeIds" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int32"
-            }
+          "party" : {
+            "$ref" : "#/components/schemas/RestrictionAudience"
           },
-          "assignees" : {
+          "named" : {
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/MemberIdentity"
             }
+          },
+          "about" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "documentStates" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StepDocumentState"
+            }
+          },
+          "mayTick" : {
+            "type" : "boolean"
+          },
+          "readsAbout" : {
+            "type" : "boolean"
+          },
+          "documents" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StepDocument"
+            }
           }
         },
-        "required" : [ "procedure", "items", "dependencies", "assigneeIds", "assignees" ]
+        "required" : [ "procedure", "items", "dependencies", "party", "named", "about", "documentStates", "mayTick", "readsAbout", "documents" ]
       },
       "ProcedureItem" : {
         "type" : "object",
@@ -70855,9 +70998,20 @@
           "checkedBy" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "kind" : {
+            "$ref" : "#/components/schemas/ProcedureStepKind"
+          },
+          "documentTemplateId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "generationId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "procedureId", "title", "description", "note", "isPublic", "userAssigned", "position", "checked", "checkedAt", "checkedBy" ]
+        "required" : [ "id", "procedureId", "title", "description", "note", "isPublic", "userAssigned", "position", "checked", "checkedAt", "checkedBy", "kind", "documentTemplateId", "generationId" ]
       },
       "ProcedureItemRequest" : {
         "type" : "object",
@@ -70877,12 +71031,27 @@
           "position" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "kind" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ProcedureStepKind"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "documentTemplateId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         }
       },
       "ProcedureStatus" : {
         "type" : "string",
         "enum" : [ "OPEN", "RESOLVED" ]
+      },
+      "ProcedureStepKind" : {
+        "type" : "string",
+        "enum" : [ "CHECK", "DOCUMENT" ]
       },
       "ProcedureTemplate" : {
         "type" : "object",
@@ -70935,9 +71104,18 @@
                 "format" : "int32"
               }
             }
+          },
+          "party" : {
+            "$ref" : "#/components/schemas/RestrictionAudience"
+          },
+          "documents" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StepDocument"
+            }
           }
         },
-        "required" : [ "template", "items", "dependencies" ]
+        "required" : [ "template", "items", "dependencies", "party", "documents" ]
       },
       "ProcedureTemplateItem" : {
         "type" : "object",
@@ -70965,9 +71143,16 @@
           "position" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "kind" : {
+            "$ref" : "#/components/schemas/ProcedureStepKind"
+          },
+          "documentTemplateId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "templateId", "title", "description", "isPublic", "userAssigned", "position" ]
+        "required" : [ "id", "templateId", "title", "description", "isPublic", "userAssigned", "position", "kind", "documentTemplateId" ]
       },
       "ProcedureTemplateRequest" : {
         "type" : "object",
@@ -70977,6 +71162,13 @@
           },
           "description" : {
             "type" : [ "string", "null" ]
+          },
+          "party" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionAudience"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -71334,6 +71526,10 @@
           }
         },
         "required" : [ "memberId", "fieldId", "value" ]
+      },
+      "Progress" : {
+        "type" : "string",
+        "enum" : [ "NOT_ASKED", "WAITING", "AGREED", "NOT_AGREED", "WITHDRAWN" ]
       },
       "PronounLanguage" : {
         "type" : "object",
@@ -75239,7 +75435,7 @@
       },
       "RestrictionType" : {
         "type" : "string",
-        "enum" : [ "EVENT", "EVENT_VIEW", "EVENT_TEMPLATE", "EVENT_TEMPLATE_VIEW", "QUIZ_TEST", "FORM", "NEWS", "KB_FOLDER", "KB_FILE", "DOCUMENT_TEMPLATE", "DOCUMENT_TEMPLATE_STATION_USE", "WITNESS_REACH", "ATTENDANCE_TEMPLATE_TIME_RULE", "ATTENDANCE_SESSION_TIME_RULE" ]
+        "enum" : [ "EVENT", "EVENT_VIEW", "EVENT_TEMPLATE", "EVENT_TEMPLATE_VIEW", "QUIZ_TEST", "FORM", "NEWS", "KB_FOLDER", "KB_FILE", "DOCUMENT_TEMPLATE", "DOCUMENT_TEMPLATE_STATION_USE", "WITNESS_REACH", "ATTENDANCE_TEMPLATE_TIME_RULE", "ATTENDANCE_SESSION_TIME_RULE", "PROCEDURE", "PROCEDURE_TEMPLATE" ]
       },
       "ResultFieldCondition" : {
         "type" : "object",
@@ -77861,9 +78057,15 @@
           },
           "memberName" : {
             "type" : [ "string", "null" ]
+          },
+          "purpose" : {
+            "type" : [ "string", "null" ]
+          },
+          "capacity" : {
+            "$ref" : "#/components/schemas/SignerCapacity"
           }
         },
-        "required" : [ "fieldId", "documentTitle", "memberName" ]
+        "required" : [ "fieldId", "documentTitle", "memberName", "purpose", "capacity" ]
       },
       "SignatureRole" : {
         "type" : "string",
@@ -79435,6 +79637,48 @@
       "StepActor" : {
         "type" : "string",
         "enum" : [ "MEMBER", "STATION", "OWNER" ]
+      },
+      "StepDocument" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "name" ]
+      },
+      "StepDocumentState" : {
+        "type" : "object",
+        "properties" : {
+          "itemId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "documentId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "progress" : {
+            "$ref" : "#/components/schemas/Progress"
+          },
+          "settled" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "fields" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "openFieldId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        },
+        "required" : [ "itemId", "documentId", "progress", "settled", "fields", "openFieldId" ]
       },
       "StepOrderRequest" : {
         "type" : "object",

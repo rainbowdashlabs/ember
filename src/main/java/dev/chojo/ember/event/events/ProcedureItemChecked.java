@@ -15,6 +15,6 @@ public record ProcedureItemChecked(
         String procedureName,
         int itemId,
         String itemTitle,
-        List<Integer> assigneeMemberIds,
+        List<Integer> partyMemberIds,
         int checkedByMemberId)
         implements DomainEvent {}

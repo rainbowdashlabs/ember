@@ -67,9 +67,20 @@ public class GuardianPolicy {
     public List<Integer> household(UserSession session) {
         StationMember member = session.member();
         if (member == null) return List.of();
+        return householdOf(member.id());
+    }
+
+    /**
+     * A member and everybody they look after, the member first, for a caller that knows the member but
+     * holds no session of theirs.
+     *
+     * @param memberId the member
+     * @return the member ids they act for
+     */
+    public List<Integer> householdOf(int memberId) {
         var ids = new ArrayList<Integer>();
-        ids.add(member.id());
-        wards(session).forEach(ward -> ids.add(ward.id()));
+        ids.add(memberId);
+        wardsOf(memberId).forEach(ward -> ids.add(ward.id()));
         return ids;
     }
 

@@ -6,7 +6,7 @@
 import { computed, ref, type Ref } from 'vue'
 import { isQuarterMonthOf, isRecurringEvent } from '@/api/events'
 import { EventType, type EventBreak, type EventSummary } from '@/api/generated/schema'
-import { toIsoDate } from '@/util/format'
+import { shiftIsoDate, toIsoDate } from '@/util/format'
 
 /**
  * One cell of the month grid. Cells outside the visible month are still rendered so the grid
@@ -50,13 +50,6 @@ export interface CalendarSource {
 function isoToYmd(iso: string): [number, number, number] {
   const [y, m, d] = iso.split('-').map(Number) as [number, number, number]
   return [y, m - 1, d]
-}
-
-function addDays(iso: string, days: number): string {
-  const [y, m, d] = isoToYmd(iso)
-  const t = new Date(Date.UTC(y, m, d))
-  t.setUTCDate(t.getUTCDate() + days)
-  return t.toISOString().slice(0, 10)
 }
 
 /**
@@ -178,7 +171,7 @@ export function useEventCalendarGrid(source: Ref<CalendarSource>) {
     }
     if (!isRecurringEvent(ev.eventType)) return []
     const starts: string[] = []
-    let cursor = new Date(addDays(weekStart, -dur) + 'T12:00:00')
+    let cursor = new Date(shiftIsoDate(weekStart, -dur) + 'T12:00:00')
     const stop = new Date(weekEnd + 'T12:00:00')
     while (cursor.getTime() <= stop.getTime()) {
       if (recurringOccurrenceStartsOn(ev, cursor)) starts.push(toIsoDate(cursor))
@@ -213,7 +206,7 @@ export function useEventCalendarGrid(source: Ref<CalendarSource>) {
       const dur = eventDayDuration(ev)
       if (dur < 1) continue
       for (const startIso of barStartDates(ev, weekStart, weekEnd, dur)) {
-        const bar = clampedBar(weekDays, weekStart, weekEnd, ev, startIso, addDays(startIso, dur))
+        const bar = clampedBar(weekDays, weekStart, weekEnd, ev, startIso, shiftIsoDate(startIso, dur))
         if (bar) bars.push(bar)
       }
     }

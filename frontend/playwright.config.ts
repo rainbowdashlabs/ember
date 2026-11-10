@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {defineConfig, devices} from '@playwright/test'
+import {STATION_TIMEZONE} from './e2e/fixtures/stationDay'
 
 /**
  * The end-to-end suite. It walks the real application against a real backend and database, which is
@@ -78,6 +79,11 @@ export default defineConfig({
          * above every timeout a call passes for itself and below the story's own.
          */
         actionTimeout: 30_000,
+        /**
+         * The clock of the seeded stations, so a browser counts days the way the station does
+         * whatever zone the machine running the suite is in.
+         */
+        timezoneId: STATION_TIMEZONE,
         trace: 'on-first-retry',
         screenshot: 'only-on-failure',
         video: 'on-first-retry',

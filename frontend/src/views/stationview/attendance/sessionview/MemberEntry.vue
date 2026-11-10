@@ -17,8 +17,11 @@ import MemberCheckNotes from './MemberCheckNotes.vue'
 import {actionCount, hasAnything, hasBirthday} from './memberNotes'
 import type {AttendanceStatus} from '@/api/attendance'
 import type {AttendanceEntry, MemberNotes, MemberWithName} from '@/api/generated/schema'
+import {useSession} from '@/composables/useSession'
+import {stationDayOf} from '@/util/format'
 
 const {t} = useI18n()
+const {stationTimezone} = useSession()
 
 const props = defineProps<{
   member: MemberWithName
@@ -48,10 +51,13 @@ const emit = defineEmits<{
  * Whether the member had joined the station by the date this sheet is about. A member entered
  * afterwards was not there, so nothing is offered to record about them; a member with no join date
  * carries no restriction, which is the state every member had before the field was filled in.
+ *
+ * <p>The date is the one the sheet starts on at the station, which is the one the server checks the
+ * join date against. A sheet starting in the first hours after midnight is on the day before in UTC.
  */
 const hadJoined = computed(() => {
   if (!props.member.joinDate || !props.sessionStart) return true
-  return props.member.joinDate <= props.sessionStart.slice(0, 10)
+  return props.member.joinDate <= stationDayOf(new Date(props.sessionStart), stationTimezone.value)
 })
 
 /** What is outstanding is folded behind its count, so a station of forty stays a sheet of names. */

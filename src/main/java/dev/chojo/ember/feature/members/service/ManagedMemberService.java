@@ -186,10 +186,7 @@ public class ManagedMemberService {
     public DataExport export(int guardianId, int memberId) {
         requireManaged(guardianId, memberId, MemberRefusal.MEMBER_NOT_YOURS_TO_LOOK_AFTER);
         var data = gdprExportService.exportMemberData(memberId);
-        String name = memberRepository
-                .findById(memberId)
-                .map(StationMember::displayName)
-                .orElse("");
+        String name = memberRepository.displayNameOr(memberId, "");
         return new DataExport(data, name);
     }
 

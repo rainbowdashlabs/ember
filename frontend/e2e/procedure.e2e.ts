@@ -6,6 +6,7 @@
 import type {Page} from '@playwright/test'
 import {test, expect, apiHeaders} from './fixtures/auth'
 import {unique} from './fixtures/unique'
+import {stationDay} from './fixtures/stationDay'
 
 /**
  * A procedure of the story's own with one step in it, left open on its page - which is where
@@ -19,8 +20,11 @@ async function createProcedureWithStep(page: Page): Promise<string> {
     await page.goto('/station/procedures')
     await page.getByRole('button', {name: 'Neuer Ablauf'}).click()
     await page.waitForURL(/\/station\/procedures\/create/)
+    await page.getByTestId('procedure-start-blank').click()
+    await page.waitForURL(/blank=1/)
 
     await page.getByRole('textbox').first().fill(procedure)
+    await chooseAbout(page)
     await page.getByRole('button', {name: 'Schritt hinzufügen'}).click()
     await page.getByPlaceholder('Titel').first().fill('Erster Schritt')
 
@@ -28,6 +32,15 @@ async function createProcedureWithStep(page: Page): Promise<string> {
     await page.waitForURL(/\/station\/procedures\/\d+$/)
 
     return procedure
+}
+
+/**
+ * Picks the first member a new procedure can be about, which every new one has to name: the picker opens
+ * on a click and takes the highlighted row on Enter.
+ */
+async function chooseAbout(page: Page): Promise<void> {
+    await page.getByTestId('procedure-about').getByTestId('member-select-trigger').click()
+    await page.keyboard.press('Enter')
 }
 
 /**
@@ -89,9 +102,9 @@ test.describe('Procedures', () => {
     test('a template brings its steps into a new procedure', async ({managerPage: page}) => {
         const procedure = unique('Ablauf')
 
-        await page.goto('/station/procedures/create')
+        await page.goto('/station/procedures/create?blank=1')
 
-        await page.locator('select').first().selectOption({index: 1})
+        await page.locator('select').first().selectOption({label: 'Einführung neues Mitglied'})
 
         const firstStep = page.getByPlaceholder('Titel').first()
         await expect(firstStep).toBeVisible()
@@ -99,10 +112,39 @@ test.describe('Procedures', () => {
         expect(stepTitle).not.toBe('')
 
         await page.getByRole('textbox').first().fill(procedure)
+        await chooseAbout(page)
         await page.getByRole('button', {name: 'Neuer Ablauf'}).last().click()
 
         await page.waitForURL(/\/station\/procedures\/\d+$/)
         await expect(page.getByText(stepTitle).first()).toBeVisible()
+    })
+
+    /**
+     * Starting from a template asks only whom the procedure is about and when it is due: the template
+     * brings the steps, and the procedure is named after the template and the person.
+     */
+    test('a procedure is started from a template', async ({managerPage: page}) => {
+        const headers = await apiHeaders(page)
+        await page.goto('/station/procedures/create')
+
+        await page.locator('[data-testid^="procedure-start-template-"]')
+            .filter({hasText: 'Einführung neues Mitglied'}).first().click()
+        const dialog = page.getByTestId('procedure-from-template')
+        await expect(dialog).toBeVisible()
+        await dialog.getByTestId('procedure-from-template-about').getByTestId('member-select-trigger').click()
+        await page.keyboard.press('Enter')
+        await expect(dialog.getByTestId('procedure-from-template-name'), 'the name follows the person')
+            .toContainText('Einführung neues Mitglied: ')
+        await dialog.getByTestId('procedure-from-template-submit').click()
+
+        await page.waitForURL(/\/station\/procedures\/\d+$/)
+        await expect(page.getByTestId('procedure-about'), 'the page names whom it is about').toBeVisible()
+        const procedureId = page.url().match(/procedures\/(\d+)/)?.[1]
+        const detail = await (await page.request.get(`/api/v1/procedures/${procedureId}`, {headers})).json()
+        expect(detail.items.length, 'the template brought its steps along').toBeGreaterThan(0)
+        expect(detail.procedure.name).toContain('Einführung neues Mitglied: ')
+
+        await page.request.delete(`/api/v1/procedures/${procedureId}`, {headers})
     })
 
     test('the procedure templates are reachable', async ({managerPage: page}) => {
@@ -115,15 +157,17 @@ test.describe('Procedures', () => {
      * The preparation for an appointment starts from who is coming to it.
      *
      * <p>The sign-ups are arranged through the endpoints, because the story is about what the menu
-     * in the sign-ups tab does and not about three people clicking a button. What it asserts is the
-     * three things that make the list usable rather than decorative: the people who hold a place are
-     * on it, the steps came from a template, and pressing the same entry again offers this list
-     * instead of building a second one beside it. A procedure without a template has no steps, so the
-     * dialog asks for a template first.
+     * in the sign-ups tab does and not about three people clicking a button. What it asserts: every
+     * person who holds a place gets a procedure of their own, about them and named after them, the steps
+     * came from a template, and pressing the same entry again offers what is there instead of building a
+     * second set beside it. A procedure without a template has no steps, so the dialog asks for a
+     * template first.
      */
     test('a procedure is prepared for the people who are coming', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
         const appointment = unique('Ablaufabend')
+        const day = new Date(Date.now() + 27 * 86400000)
+        day.setUTCHours(12, 0, 0, 0)
 
         const created = await page.request.post('/api/v1/events', {
             headers,
@@ -131,8 +175,8 @@ test.describe('Procedures', () => {
                 name: appointment,
                 description: 'Vorbereitung aus den Anmeldungen',
                 eventType: 'ONE_TIME',
-                startTime: new Date(Date.now() + 27 * 86400000).toISOString(),
-                endTime: new Date(Date.now() + 27 * 86400000 + 3600000).toISOString(),
+                startTime: day.toISOString(),
+                endTime: new Date(day.getTime() + 3600000).toISOString(),
                 requiresRegistration: true,
             },
         })
@@ -161,26 +205,36 @@ test.describe('Procedures', () => {
 
         const template = page.getByTestId('signup-procedure-template')
         await expect(template).toBeVisible()
-        await template.selectOption({index: 1})
+        await template.selectOption({label: 'Einführung neues Mitglied'})
         await expect(page.getByTestId('signup-procedure-name'), 'the appointment names the list')
             .toHaveValue(new RegExp(appointment))
 
         await page.getByTestId('signup-procedure-submit').click()
-        await page.waitForURL(/\/station\/procedures\/\d+$/)
-        const procedureId = page.url().match(/procedures\/(\d+)/)?.[1]
+        await page.waitForURL(/\/station\/procedures$/)
 
-        await expect(page.getByText(people[0]!.name).first(), 'the first place holder is on it').toBeVisible()
-        await expect(page.getByText(people[1]!.name).first(), 'the second place holder is on it').toBeVisible()
-        await expect(page.getByTestId('procedure-appointment-link'), 'and it leads back to the appointment')
-            .toBeVisible()
+        const date = stationDay(day)
+        const prepared = await page.request.get(`/api/v1/procedures/for-event/${eventId}?date=${date}`, {headers})
+        expect(prepared.ok(), `the procedures read back (${await prepared.text()})`).toBeTruthy()
+        const made: {id: number; name: string; aboutMemberId: number; isPublic: boolean}[] = await prepared.json()
+        expect(made.length, 'one procedure for each person coming').toBe(2)
+        expect(made.map(procedure => procedure.aboutMemberId).sort(), 'each is about one of them')
+            .toEqual(people.map(person => person.id).sort())
+        for (const person of people) {
+            expect(made.some(procedure => procedure.name.includes(person.name)), `one is named after ${person.name}`)
+                .toBe(true)
+        }
 
+        const procedureId = made[0]!.id
         const detail = await page.request.get(`/api/v1/procedures/${procedureId}`, {headers})
-        expect(detail.ok(), `the procedure reads back (${await detail.text()})`).toBeTruthy()
+        expect(detail.ok(), `a procedure reads back (${await detail.text()})`).toBeTruthy()
         const body = await detail.json()
         expect(body.items.length, 'the template brought its steps along').toBeGreaterThan(0)
-        expect(body.procedure.isPublic, 'a private list would be closed to the people on it').toBe(true)
-        expect(body.items.every((item: {userAssigned: boolean}) => item.userAssigned),
-            'every step is one the people on the list may tick').toBe(true)
+        expect(body.procedure.isPublic, 'the person it is about reads it').toBe(true)
+
+        await page.goto(`/station/procedures/${procedureId}`)
+        await expect(page.getByTestId('procedure-about'), 'the page names whom it is about').toBeVisible()
+        await expect(page.getByTestId('procedure-appointment-link'), 'and it leads back to the appointment')
+            .toBeVisible()
 
         await page.goto(`/station/events/${eventId}`)
         await page.getByRole('tab', {name: 'Anmeldungen'}).click()
@@ -190,7 +244,7 @@ test.describe('Procedures', () => {
         await expect(page.getByTestId('signup-procedure-existing'),
             'a second press offers what is already there').toBeVisible()
 
-        await page.request.delete(`/api/v1/procedures/${procedureId}`, {headers})
+        for (const procedure of made) await page.request.delete(`/api/v1/procedures/${procedure.id}`, {headers})
         await page.request.delete(`/api/v1/events/${eventId}`, {headers})
     })
 })

@@ -83,6 +83,22 @@ public record RestrictionAudience(
         return (!typeNamed || typeMatches) && (!groupNamed || groupMatches) && (!tagNamed || tagMatches);
     }
 
+    /**
+     * This audience with each user type, group, tag and member named once, as it is stored: a member
+     * named twice would otherwise be told twice.
+     *
+     * @return the audience without repeats
+     */
+    public RestrictionAudience distinct() {
+        var selection = toSelection();
+        return new RestrictionAudience(
+                selection.userTypes().stream().distinct().toList(),
+                selection.groupIds().stream().distinct().toList(),
+                selection.tagIds().stream().distinct().toList(),
+                selection.memberIds().stream().distinct().toList(),
+                mode);
+    }
+
     public static RestrictionAudience of(RestrictionSet set) {
         return new RestrictionAudience(set.userTypes(), set.groupIds(), set.tagIds(), set.memberIds(), set.mode());
     }

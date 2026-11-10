@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {StationEvent} from '@/api/generated/schema'
-import {formatDateTime, formatWeekdayDate} from '@/util/format'
+import {formatDateTime, formatWeekdayDate, shiftIsoDate} from '@/util/format'
 
 /** The sentences an announcement can say about an event, each filled from one of its settings. */
 export type AnnouncementSentence =
@@ -66,7 +66,7 @@ function lapse(event: StationEvent, date: string | null, say: Say): string {
     const days = event.registrationCloseDays
     if (!days) return ''
     if (!date) return say('unconfirmedLapseDaysBefore', {days})
-    return say('unconfirmedLapseOn', {date: formatWeekdayDate(daysBefore(date, days))})
+    return say('unconfirmedLapseOn', {date: formatWeekdayDate(shiftIsoDate(date, -days))})
 }
 
 function minimum(event: StationEvent, date: string | null, say: Say): string {
@@ -75,12 +75,5 @@ function minimum(event: StationEvent, date: string | null, say: Say): string {
     const days = event.thresholdDays
     if (days == null) return say('minimumRegistrations', {count})
     if (!date) return say('minimumRegistrationsDaysBefore', {count, days})
-    return say('minimumRegistrationsBy', {count, date: formatWeekdayDate(daysBefore(date, days))})
-}
-
-/** The calendar day a number of days before another, both as `YYYY-MM-DD`. */
-function daysBefore(date: string, days: number): string {
-    const day = new Date(`${date}T00:00:00Z`)
-    day.setUTCDate(day.getUTCDate() - days)
-    return day.toISOString().slice(0, 10)
+    return say('minimumRegistrationsBy', {count, date: formatWeekdayDate(shiftIsoDate(date, -days))})
 }

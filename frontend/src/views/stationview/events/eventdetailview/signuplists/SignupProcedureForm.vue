@@ -19,12 +19,15 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SignupSetNotes from './SignupSetNotes.vue'
 import type {ProcedureTemplate} from '@/api/generated/schema'
+import type {PartyChoices} from '@/components/procedures/partyChoices'
+import type {RestrictionSelection} from '@/api/types'
+import PartySection from '@/views/stationview/procedure/procedurecreateview/PartySection.vue'
 import type {SignupMemberSet} from '@/composables/useSignupMemberSet'
 import type {Failure} from '@/util/failure'
 
 /**
- * What is asked before a preparation list is written: which template its steps come from, what it
- * is called, and by when it has to be done.
+ * What is asked before the procedures are written: which template their steps come from, what they are
+ * called, by when they have to be done, and who runs them.
  *
  * <p>The template is the one answer that cannot be skipped. Without it the list has no steps, and a
  * row of names with nothing to do is the thing this whole idea exists to stop producing.
@@ -32,6 +35,7 @@ import type {Failure} from '@/util/failure'
 const name = defineModel<string>('name', {required: true})
 const description = defineModel<string>('description', {required: true})
 const dueAt = defineModel<string>('dueAt', {required: true})
+const party = defineModel<RestrictionSelection>('party', {required: true})
 
 const props = defineProps<{
   /** The template picked so far, as the select holds it: its id written out, or nothing. */
@@ -42,6 +46,8 @@ const props = defineProps<{
   memberSet: SignupMemberSet
   /** The occurrence the set belongs to, already written the way a reader reads a date. */
   dateLabel: string
+  /** Whom the managing party can name. */
+  partyChoices: PartyChoices
 }>()
 
 const emit = defineEmits<{
@@ -77,6 +83,7 @@ const canSubmit = computed(() =>
     <div>
       <FieldLabel>{{ t('signupLists.procedureName') }}</FieldLabel>
       <TextInput v-model="name" data-testid="signup-procedure-name"/>
+      <MutedText tag="p" class="mt-1">{{ t('signupLists.procedureNameHelp') }}</MutedText>
     </div>
 
     <div>
@@ -89,6 +96,8 @@ const canSubmit = computed(() =>
       <DateInput v-model="dueAt" data-testid="signup-procedure-due"/>
       <MutedText tag="p" class="mt-1">{{ t('signupLists.procedureDueHelp') }}</MutedText>
     </div>
+
+    <PartySection v-model="party" :choices="partyChoices"/>
 
     <SignupSetNotes :member-set="memberSet" :date-label="dateLabel"/>
 
