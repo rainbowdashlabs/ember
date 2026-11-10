@@ -31,6 +31,11 @@
       "groupSlug": "all-minor-patch"
     },
     {
+      "description": "TypeScript stays below 7 until typescript-eslint accepts it: its parser asks for a TypeScript below 6.1, so npm cannot install 7 and the whole group of major updates fails with it",
+      "matchDepNames": ["typescript"],
+      "allowedVersions": "<7"
+    },
+    {
       "description": "Group all major updates per package manager",
       "matchUpdateTypes": ["major"],
       "groupName": "major updates"
