@@ -4,29 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {AllEventRestrictions} from '@/api/events'
-import type {MemberGroup, RestrictionAudience, UserTag} from '@/api/generated/schema'
-import {restrictionLabels} from '@/components/input/restriction'
+import type {MemberGroup, UserTag} from '@/api/generated/schema'
+import {namesSomebody, normalizedRestriction, restrictionLabels} from '@/components/input/restriction'
 
 /** The slice of vue-i18n's translate this module needs: plain, interpolated and pluralised. */
 type Translate = (key: string, arg?: number | Record<string, unknown>) => string
-
-function sortedCopy(values: readonly number[] | undefined): number[] {
-    return [...(values ?? [])].sort((a, b) => a - b)
-}
-
-function normalized(audience: RestrictionAudience | undefined) {
-    return {
-        userTypes: [...(audience?.userTypes ?? [])].sort(),
-        groupIds: sortedCopy(audience?.groupIds),
-        tagIds: sortedCopy(audience?.tagIds),
-        memberIds: sortedCopy(audience?.memberIds),
-    }
-}
-
-function isEmpty(audience: ReturnType<typeof normalized>): boolean {
-    return audience.userTypes.length + audience.groupIds.length + audience.tagIds.length
-        + audience.memberIds.length === 0
-}
 
 /**
  * Who may answer an appointment, as one readable sentence, or null where saying so would not help.
@@ -51,9 +33,9 @@ export function registrationAudienceNote(
 ): string | null {
     const entry = restrictions[eventId]
     if (!entry) return null
-    const register = normalized(entry.register)
-    if (isEmpty(register)) return null
-    const view = normalized(entry.view)
+    const register = normalizedRestriction(entry.register)
+    if (!namesSomebody(register)) return null
+    const view = normalizedRestriction(entry.view)
     if (JSON.stringify(register) === JSON.stringify(view)) return null
 
     const or = t('eventsUpcoming.audienceOr')

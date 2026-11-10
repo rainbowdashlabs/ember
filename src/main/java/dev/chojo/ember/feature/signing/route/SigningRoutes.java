@@ -218,6 +218,8 @@ public class SigningRoutes implements Routes {
      * @param documentId    the member document it is on, or null once that was deleted
      * @param documentTitle the title the document is filed under, or null once it was deleted
      * @param memberName    the official name of the member the document is about
+     * @param purpose       what the signatures are asked for beyond the document, such as a procedure, or
+     *                      null
      * @param fieldName     the field's name in the document
      * @param role          who the field asks for
      * @param capacity      in what capacity the reader would sign it
@@ -232,6 +234,7 @@ public class SigningRoutes implements Routes {
             @Nullable Integer documentId,
             @Nullable String documentTitle,
             String memberName,
+            @Nullable String purpose,
             String fieldName,
             FieldRole role,
             SignerCapacity capacity,
@@ -247,6 +250,7 @@ public class SigningRoutes implements Routes {
                     pending.documentId(),
                     pending.documentTitle(),
                     pending.memberName(),
+                    pending.purpose(),
                     field.fieldName(),
                     field.role(),
                     open.signer().capacity(),

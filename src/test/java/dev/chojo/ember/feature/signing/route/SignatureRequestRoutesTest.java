@@ -91,7 +91,8 @@ class SignatureRequestRoutesTest {
                 Instant.EPOCH,
                 2,
                 null,
-                true);
+                true,
+                null);
     }
 
     @Test

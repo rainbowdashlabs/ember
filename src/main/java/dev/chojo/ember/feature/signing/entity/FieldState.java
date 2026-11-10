@@ -16,5 +16,15 @@ public enum FieldState {
     /** A manager let it go. */
     WAIVED,
     /** The signature is no longer asked for. */
-    WITHDRAWN
+    WITHDRAWN;
+
+    /**
+     * Whether the field lets its request stand as agreed: it was signed, confirmed on paper or waived. A
+     * waived field agrees here although it does not make the request complete, which takes a signature.
+     *
+     * @return whether the field agrees
+     */
+    public boolean agrees() {
+        return this == SIGNED || this == PAPER_CONFIRMED || this == WAIVED;
+    }
 }

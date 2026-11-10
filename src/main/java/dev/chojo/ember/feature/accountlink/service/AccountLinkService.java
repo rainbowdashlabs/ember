@@ -279,10 +279,7 @@ public class AccountLinkService {
                 .findById(request.stationId())
                 .map(Station::name)
                 .orElse("");
-        String memberName = memberRepository
-                .findById(request.memberId())
-                .map(StationMember::displayName)
-                .orElse("");
+        String memberName = memberRepository.displayNameOr(request.memberId(), "");
         String address = account.email();
         if (address == null) return;
         emailService.sendAccountLinkRequest(

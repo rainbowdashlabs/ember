@@ -109,7 +109,9 @@ export default {
     requirements: {
         signatureTitle: 'Sign a document',
         signatureText: 'This document is waiting for your signature.',
-        signatureTextFor: 'A document for {name} is waiting for a signature through your account.',
+        signatureTextFor: '{name} signs this document themselves, through your account.',
+        signatureTextAsGuardian: 'This document for {name} is waiting for your signature as their guardian.',
+        signatureForProcedure: 'It is part of the procedure {procedure}.',
         sign: 'Sign',
         signAll: 'Sign all at once',
     },
@@ -141,6 +143,7 @@ export default {
                 themselves: '{name} signs in person. Hand {name} the device to read and tick.',
             },
             overview: {
+                purpose: 'For the procedure {procedure}',
                 heading: 'These signatures are still missing',
                 hint: 'All of them are chosen. To do one later, untick it.',
                 line: '{document}: {who}',

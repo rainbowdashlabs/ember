@@ -78,6 +78,34 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         assertTrue(stationMemberRepo.findById(memberId1).isPresent());
     }
 
+    /** A current member of the station is one; somebody of another station, or who left, is not. */
+    @Test
+    @Order(2)
+    void onlySomebodyWhoStaysIsACurrentMember() {
+        var leaving = stationMemberRepo.createWithoutAccount(station.id(), "Geht bald");
+        assertEquals(
+                leaving,
+                stationMemberRepo.findCurrentAt(station.id(), leaving.id()).orElseThrow());
+        assertTrue(stationMemberRepo
+                .findCurrentAt(station.id() + 100_000, leaving.id())
+                .isEmpty());
+
+        stationMemberRepo.setFormer(leaving.id(), true);
+
+        assertTrue(stationMemberRepo.findCurrentAt(station.id(), leaving.id()).isEmpty());
+        stationMemberRepo.delete(leaving.id());
+    }
+
+    /** A member is named by their display name, one who is gone by what the caller falls back to. */
+    @Test
+    @Order(2)
+    void aMemberIsNamedOrFallsBack() {
+        var named = stationMemberRepo.createWithoutAccount(station.id(), "Nina Name");
+        assertEquals(named.displayName(), stationMemberRepo.displayNameOr(named.id(), "?"));
+        stationMemberRepo.delete(named.id());
+        assertEquals("?", stationMemberRepo.displayNameOr(named.id(), "?"));
+    }
+
     /** Several members are read in one go, and an id that resolves to nobody is simply left out. */
     @Test
     @Order(2)

@@ -656,7 +656,8 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
                 SIGNED_AT.minusSeconds(3600),
                 null,
                 null,
-                false);
+                false,
+                null);
         var fields = List.of(
                 field(
                         11,

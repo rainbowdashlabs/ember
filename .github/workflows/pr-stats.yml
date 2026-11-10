@@ -1,0 +1,35 @@
+name: Pull Request Stats
+
+# Keeps one comment on every pull request that counts the lines it adds and removes per area and
+# names the kind of change from the changelog entries it adds, and sets the matching c: labels.
+# The logic lives in .github/scripts/pr-stats.cjs. Only that folder is checked out, and pull
+# requests from forks are skipped, because their token may not write and their script is not ours.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: pr-stats-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  stats:
+    name: Count the changed lines
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the stats script
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+      - name: Post or update the stats comment
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const run = require('./.github/scripts/pr-stats.cjs')
+            await run({github, context})

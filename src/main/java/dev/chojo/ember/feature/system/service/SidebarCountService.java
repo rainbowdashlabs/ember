@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.service.NotificationInbox;
@@ -38,6 +39,7 @@ public class SidebarCountService {
     private final ItemMovementService movementService;
     private final ProcedureService procedureService;
     private final StationMemberService stationMemberService;
+    private final GuardianPolicy guardians;
 
     @Inject
     public SidebarCountService(
@@ -53,7 +55,8 @@ public class SidebarCountService {
             InventoryService inventoryService,
             ItemMovementService movementService,
             ProcedureService procedureService,
-            StationMemberService stationMemberService) {
+            StationMemberService stationMemberService,
+            GuardianPolicy guardians) {
         this.notificationInbox = notificationInbox;
         this.requirementsService = requirementsService;
         this.profileFieldChangeRepository = profileFieldChangeRepository;
@@ -67,6 +70,7 @@ public class SidebarCountService {
         this.movementService = movementService;
         this.procedureService = procedureService;
         this.stationMemberService = stationMemberService;
+        this.guardians = guardians;
     }
 
     public SidebarCounts getCounts(StationSession session) {
@@ -124,7 +128,9 @@ public class SidebarCountService {
         if (roles.contains(StationPermission.PROCEDURE_EDIT)) {
             procedureCount = procedureService.countOpenByStation(stationId);
         } else {
-            procedureCount = procedureService.countOpenByAssigneeWithAvailableItems(stationId, memberId);
+            procedureCount = procedureService.countOpenRunByWithAvailableItems(stationId, memberId)
+                    + procedureService.countOpenPublicAboutNotRunBy(
+                            stationId, memberId, guardians.householdOf(memberId));
         }
 
         return new SidebarCounts(

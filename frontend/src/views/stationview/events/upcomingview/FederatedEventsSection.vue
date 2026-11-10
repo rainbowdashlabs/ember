@@ -14,11 +14,12 @@ import type {FederatedEventItem, PartnerDocumentToSign, RemoteMemberRegistration
 import {showToast} from '@/util/toast'
 import {useSession} from '@/composables/useSession'
 import {reportCaughtError} from '@/util/devErrorReporter'
+import {stationDayOf, stationToday} from '@/util/format'
 import type {AnswerablePerson} from '@/util/eventAnswers'
 import PartnerSigningStep from '../eventshared/PartnerSigningStep.vue'
 
 const {t} = useI18n()
-const {sessionInfo} = useSession()
+const {sessionInfo, stationTimezone} = useSession()
 
 const federatedEvents = ref<FederatedEventItem[]>([])
 const myRegistrations = ref<RemoteMemberRegistration[]>([])
@@ -47,9 +48,13 @@ const eligibleMembers = computed((): AnswerablePerson<string>[] => {
   return result
 })
 
+/**
+ * The day a partner's appointment falls on, which is the day a registration is filed under. Read on
+ * this station's clock, as the detail page of the appointment does.
+ */
 function getEventDate(fed: FederatedEventItem): string {
-  if (fed.event.startTime) return new Date(fed.event.startTime).toISOString().slice(0, 10)
-  return new Date().toISOString().slice(0, 10)
+  const start = fed.event.startTime
+  return start ? stationDayOf(new Date(start), stationTimezone.value) : stationToday(stationTimezone.value)
 }
 
 /** Signing the chosen people up, one request each, the way the station's own appointments do. */

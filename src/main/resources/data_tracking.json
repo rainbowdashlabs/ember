@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:2a06eafc03078a7f6562b6182f545157ab90e2e44a9c1240a817221099b90fa5",
-  "generatedAt": "2026-11-08T18:18:32Z",
+  "schemaHash": "sha256:431ef6b6afbd55036bdfa5f68a00dc040d79f80e5a0f48cb6ff8c51c9701c28e",
+  "generatedAt": "2026-11-09T09:29:16Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -22568,7 +22568,7 @@
     "procedure": {
       "feature": "procedure",
       "scope": "STATION",
-      "tableHash": "sha256:1aa513ed66347397e8b214abaeb0798dbfa2f331b8d6e1c1534902f4ada30f87",
+      "tableHash": "sha256:68ec3aa13cf7d77836defcdf5789193a5947ca4669786f004c69563cf8ef2859",
       "columns": [
         {
           "name": "id",
@@ -22649,9 +22649,43 @@
           "nullable": true,
           "verified": true,
           "description": "The single occurrence of that appointment the procedure belongs to, since a recurring appointment has one per date. NULL exactly when event_id is NULL."
+        },
+        {
+          "name": "about_member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member the procedure is about, whose documents its document steps generate. NULL for procedures from before it was asked for, and once that member was deleted."
+        },
+        {
+          "name": "restriction_mode",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "AND or OR, how the parts of procedure_restriction combine."
+        },
+        {
+          "name": "resolved_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member who resolved the procedure, told when a signature one of its document steps rests on is withdrawn afterwards. NULL while it is open, for procedures resolved before it was recorded, and once that member was deleted."
+        },
+        {
+          "name": "due_reminded_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the signatures its document steps still waited for were reminded of because the procedure falls due within two days. NULL while that reminder has not been sent; cleared when the due date changes."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "about_member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
         {
           "column": "assigned_by",
           "refTable": "station_member",
@@ -22661,6 +22695,12 @@
         {
           "column": "event_id",
           "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "resolved_by",
+          "refTable": "station_member",
           "refColumn": "id",
           "onDelete": "SET NULL"
         },
@@ -22682,68 +22722,23 @@
         "rationale": "Belongs in station transfer; handler in StationExportService/StationImportService not yet implemented"
       },
       "gdprExport": {
-        "status": "IGNORED",
-        "reason": "Procedure data — pending detailed review for per-member fields"
-      },
-      "gdprDeletion": {
-        "status": "IGNORED",
-        "reason": "Procedure data — pending detailed review for per-member fields"
-      }
-    },
-    "procedure_assignee": {
-      "feature": "procedure",
-      "scope": "STATION",
-      "tableHash": "sha256:1c284ab9cd995644817a238385f18306cf140e3e0478633d2218237cf53e7c03",
-      "columns": [
-        {
-          "name": "procedure_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true
-        },
-        {
-          "name": "member_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "member_id",
-          "refTable": "station_member",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        },
-        {
-          "column": "procedure_id",
-          "refTable": "procedure",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        }
-      ],
-      "stationTransfer": {
-        "status": "TRACKED",
-        "rationale": "Belongs in station transfer; handler in StationExportService/StationImportService not yet implemented"
-      },
-      "gdprExport": {
         "status": "TRACKED",
         "identityColumns": [
           {
             "type": "MEMBER_ID",
-            "column": "member_id"
+            "column": "about_member_id"
           }
         ]
       },
       "gdprDeletion": {
         "status": "IGNORED",
-        "reason": "Procedure structure data — pending detailed review"
+        "reason": "Procedure data — pending detailed review for per-member fields"
       }
     },
     "procedure_item": {
       "feature": "procedure",
       "scope": "STATION",
-      "tableHash": "sha256:32d331ceb16a5883c817aa4ffe5d12f9b33a3987f1a381de01b18d4b34ef9a4d",
+      "tableHash": "sha256:44611e1afe99e839060e4cedc67c6226df585e6030dbf1728f8610780741e823",
       "columns": [
         {
           "name": "id",
@@ -22810,12 +22805,45 @@
           "type": "int4",
           "nullable": true,
           "verified": true
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "CHECK for a step ticked by hand, DOCUMENT for a document to sign that ticks itself once settled."
+        },
+        {
+          "name": "document_template_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The document template a DOCUMENT step generates. NULL for a CHECK step, and once the template was deleted."
+        },
+        {
+          "name": "generation_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The document a DOCUMENT step generated, whose signature request settles it. NULL until the step unlocks, and once that entry was deleted."
         }
       ],
       "foreignKeys": [
         {
           "column": "checked_by",
           "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "document_template_id",
+          "refTable": "document_template",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "generation_id",
+          "refTable": "document_generation",
           "refColumn": "id",
           "onDelete": "SET NULL"
         },
@@ -22828,6 +22856,10 @@
       ],
       "stationTransfer": {
         "status": "TRACKED",
+        "optionalReferences": [
+          "document_template_id",
+          "generation_id"
+        ],
         "rationale": "Belongs in station transfer; handler in StationExportService/StationImportService not yet implemented"
       },
       "gdprExport": {
@@ -22884,10 +22916,102 @@
         "reason": "Procedure structure data — pending detailed review"
       }
     },
+    "procedure_restriction": {
+      "feature": "procedure",
+      "scope": "STATION",
+      "tableHash": "sha256:b726ea71881432b65ee3b5a43d826d9ee267529c19e379872c724c59fe9587a6",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "procedure_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The procedure the party runs."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required group membership."
+        },
+        {
+          "name": "tag_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required tag."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Specific member (always OR-connected, bypasses AND/OR mode)."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "procedure_id",
+          "refTable": "procedure",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "tag_id",
+          "refTable": "user_tag",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Procedure structure data; a member named in it goes with the member by cascade"
+      },
+      "description": "The managing party of a procedure: who sees its public steps, ticks the steps marked for them and is told about it. Empty means nobody beyond those who edit procedures. Shaped like event_restriction."
+    },
     "procedure_template": {
       "feature": "procedure",
       "scope": "STATION",
-      "tableHash": "sha256:4c8fad79394caedc6701fc8059aab0bb90d8b6c537fea92582c89d9b1df4eed7",
+      "tableHash": "sha256:af002d2dd5eaf89b182d887a6d9c2c5173dc63b86c26dba7db78d40119b333dc",
       "columns": [
         {
           "name": "id",
@@ -22930,6 +23054,13 @@
           "type": "timestamptz",
           "nullable": false,
           "verified": true
+        },
+        {
+          "name": "restriction_mode",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "AND or OR, how the parts of procedure_template_restriction combine."
         }
       ],
       "foreignKeys": [
@@ -22962,7 +23093,7 @@
     "procedure_template_item": {
       "feature": "procedure",
       "scope": "STATION",
-      "tableHash": "sha256:422784a283d38d7d14f6b3bcdb20351e7e5d7b5ab500f54867d093277d75a7c3",
+      "tableHash": "sha256:ae8007ab12055c180a82d068d0a7e6caa4e62ada47dd08dc0550b177b6028649",
       "columns": [
         {
           "name": "id",
@@ -23005,9 +23136,29 @@
           "type": "int4",
           "nullable": false,
           "verified": true
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "CHECK for a step ticked by hand, DOCUMENT for a document to sign that ticks itself once settled."
+        },
+        {
+          "name": "document_template_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The document template a DOCUMENT step generates. NULL for a CHECK step, and once the template was deleted."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "document_template_id",
+          "refTable": "document_template",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
         {
           "column": "template_id",
           "refTable": "procedure_template",
@@ -23017,6 +23168,9 @@
       ],
       "stationTransfer": {
         "status": "TRACKED",
+        "optionalReferences": [
+          "document_template_id"
+        ],
         "rationale": "Belongs in station transfer; handler in StationExportService/StationImportService not yet implemented"
       },
       "gdprExport": {
@@ -23072,6 +23226,93 @@
         "status": "IGNORED",
         "reason": "Procedure structure data — pending detailed review"
       }
+    },
+    "procedure_template_restriction": {
+      "feature": "procedure",
+      "scope": "STATION",
+      "tableHash": "sha256:d2d41cc2f4a24bb22f0395d8dc042d245d961dc71e68286ef2abd2bb59069c55",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The procedure template."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required group membership."
+        },
+        {
+          "name": "tag_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required tag."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Specific member (always OR-connected, bypasses AND/OR mode)."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "tag_id",
+          "refTable": "user_tag",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "template_id",
+          "refTable": "procedure_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Template configuration, not per-member data"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Template configuration, not per-member data; a member named in it goes with the member by cascade"
+      },
+      "description": "The managing party a procedure started from the template begins with, copied into the procedure and changed there. Empty means none. Shaped like event_restriction."
     },
     "profile_field": {
       "feature": "members",
@@ -25616,7 +25857,7 @@
     "signing_request": {
       "feature": "signing",
       "scope": "STATION",
-      "tableHash": "sha256:5837ea94b6885ea16722e213d54627051fdf4ae002a9f2feb9c61fbcf92fcf85",
+      "tableHash": "sha256:eb7a7f235568750a2ba7f53fa7d39f2f2f56fcb3ba9a97c2004a0b726185958a",
       "columns": [
         {
           "name": "id",
@@ -25736,6 +25977,13 @@
           "nullable": true,
           "verified": true,
           "description": "When the sweep that seals the newest state of requests last failed to seal this one. The sweep takes the requests that never failed first and the others in the order they last failed, so a request that keeps failing holds back no other. NULL once a version was filed, and for a request whose sealing never failed in the sweep."
+        },
+        {
+          "name": "purpose",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the signatures are asked for, named to the signers, such as the procedure a document step belongs to. NULL where the document alone says it."
         }
       ],
       "foreignKeys": [

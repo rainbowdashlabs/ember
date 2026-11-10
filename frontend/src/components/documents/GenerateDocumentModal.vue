@@ -21,7 +21,7 @@ import TemplateChoice from './TemplateChoice.vue'
 import IssuerOverride from './IssuerOverride.vue'
 import SignatureAskStep from './SignatureAskStep.vue'
 import GenerationAnswers from './GenerationAnswers.vue'
-import {anyAnswerProblem, todayIso} from './questionLimits'
+import {anyAnswerProblem} from './questionLimits'
 import {fromCompletion} from '@/components/input/select/memberOption'
 import {documentTemplates, stationMembers} from '@/api'
 import type {
@@ -33,6 +33,8 @@ import type {
 } from '@/api/generated/schema'
 import type {GenerationAnswers as Answers} from '@/api/documentTemplates'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useSession} from '@/composables/useSession'
+import {stationToday} from '@/util/format'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {showToast} from '@/util/toast'
 
@@ -100,7 +102,8 @@ const loader = useAsyncLoader(async () => {
 
 const questions = ref<TemplateQuestion[]>([])
 const answers = ref<Answers>({})
-const today = todayIso()
+const {stationTimezone} = useSession()
+const today = stationToday(stationTimezone.value)
 const answersWrong = computed(() => anyAnswerProblem(questions.value, answers.value, today))
 
 const suggesting = useAsyncAction(async (id: number, member: number) => {

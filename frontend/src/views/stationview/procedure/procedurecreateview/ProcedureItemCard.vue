@@ -12,6 +12,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import StepDocumentChoice from '@/components/procedures/StepDocumentChoice.vue'
 import type {EditableItem} from '@/composables/useProcedureForm'
 
 const {t} = useI18n()
@@ -60,6 +61,8 @@ function removeDependency(depId: number) {
         <span class="text-(--text-muted)">{{ t('procedures.itemPublic') }}</span>
       </label>
     </div>
+    <StepDocumentChoice :model-value="item.document" :locked="item.documentMade" class="text-sm"
+                        @update:model-value="document => item = {...item, document}"/>
     <div class="text-sm">
       <FieldLabel class="mb-1">{{ t('procedures.dependsOn') }}</FieldLabel>
       <div v-if="item.dependsOn.length > 0" class="flex flex-wrap gap-1 mb-1">

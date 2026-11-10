@@ -5,10 +5,16 @@
  */
 import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { procedures, stationMembers } from '@/api'
-import type { MemberCompletion, ProcedureItemRequest, ProcedureTemplate, ProcedureTemplateDetail } from '@/api/generated/schema'
+import { procedures } from '@/api'
+import { StationPermission, type ProcedureItemRequest, type ProcedureStepKind, type ProcedureTemplate, type ProcedureTemplateDetail, type StepDocument } from '@/api/generated/schema'
+import type { RestrictionSelection } from '@/api/types'
+import { emptyRestriction, namesSomebody, toRestriction } from '@/components/input/restriction'
+import { documentChanged, stepDocumentOf, stepKindChange, type AskedDocument } from '@/components/procedures/stepDocument'
+import { loadPartyChoices, noPartyChoices, type PartyChoices } from '@/components/procedures/partyChoices'
+import { fromCompletion } from '@/components/input/select/memberOption'
 import type { StepDependency } from '@/api/procedures'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useSession } from '@/composables/useSession'
 import { describeFailure } from '@/util/failure'
 import { dateToInstant, instantToDate } from '@/util/format'
 import { moveWithin } from '@/util/reorder'
@@ -23,6 +29,12 @@ export interface EditableItem {
     userAssigned: boolean
     position: number
     dependsOn: number[]
+    /** The document the step asks to sign, null for a step ticked by hand. */
+    document: AskedDocument | null
+    /** Whether the step already made its document, which fixes what it asks for. */
+    documentMade: boolean
+    /** The document the stored step asks to sign, to send what it asks for only when that changed. */
+    storedDocumentId?: number | null
 }
 
 /**
@@ -39,6 +51,7 @@ export interface EditableItem {
  */
 export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: Ref<number | null>) {
   const { t } = useI18n()
+  const { hasPermission } = useSession()
 
   const name = ref('')
   /**
@@ -55,13 +68,25 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
    */
   const dueAt = ref('')
   const isPublic = ref(true)
+  /** The member the procedure is about, as the picker holds it: the id, or empty for nobody in particular. */
+  const about = ref('')
+  /** Whom the procedure was loaded about, so saving changes it only where the reader did. */
+  const savedAbout = ref('')
+  /** Whether the procedure is about somebody already, who can be changed but not taken away. */
+  const aboutFixed = computed(() => savedAbout.value !== '')
+  /** Whether the procedure has to name somebody it is about, which every new one does. */
+  const aboutRequired = computed(() => !isEditMode.value)
 
   const templates = ref<ProcedureTemplate[]>([])
   const selectedTemplateId = ref<number | null>(null)
   const templateDetail = ref<ProcedureTemplateDetail | null>(null)
 
-  const members = ref<MemberCompletion[]>([])
-  const selectedAssigneeIds = ref<number[]>([])
+  /** Whom the party can name; its members are also whom the procedure can be about. */
+  const partyChoices = ref<PartyChoices>(noPartyChoices())
+  /** The members the procedure can be about, as the member pickers offer them. */
+  const aboutChoices = computed(() => partyChoices.value.members.map(fromCompletion))
+  /** The managing party: who sees the public steps, ticks those marked for them and is told. */
+  const party = ref<RestrictionSelection>(emptyRestriction())
 
   const items = ref<EditableItem[]>([])
   const existingItemIds = ref<Set<number>>(new Set())
@@ -74,14 +99,26 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
    * server ids, so they are translated through the temp id each item is given here.
    */
   function toEditableItems(
-    source: {id: number; title: string; description?: string | null; isPublic: boolean; userAssigned: boolean; position: number}[],
+    source: {
+      id: number
+      title: string
+      description?: string | null
+      isPublic: boolean
+      userAssigned: boolean
+      position: number
+      kind?: ProcedureStepKind
+      documentTemplateId?: number | null
+      generationId?: number | null
+    }[],
     dependencies: number[][],
+    documents: readonly StepDocument[],
     keepIds: boolean,
   ): EditableItem[] {
     const realToTemp = new Map<number, number>()
     const editable: EditableItem[] = source.map(item => {
       const tempId = nextTempId++
       realToTemp.set(item.id, tempId)
+      const document = stepDocumentOf(item, documents)
       return {
         ...(keepIds ? {id: item.id} : {}),
         tempId,
@@ -91,6 +128,9 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
         userAssigned: item.userAssigned,
         position: item.position,
         dependsOn: [],
+        document,
+        documentMade: keepIds && item.generationId != null,
+        ...(keepIds ? {storedDocumentId: document?.id ?? null} : {}),
       }
     })
     for (const {itemId, dependsOnItemId} of procedures.dependencyEntries(dependencies)) {
@@ -115,7 +155,9 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       templateDetail.value = detail
       name.value = detail.template.name
       description.value = detail.template.description ?? ''
-      items.value = toEditableItems(detail.items, detail.dependencies, false)
+      items.value = toEditableItems(detail.items, detail.dependencies, detail.documents, false)
+      const templateParty = toRestriction(detail.party)
+      if (!isEditMode.value && namesSomebody(templateParty)) party.value = templateParty
     } catch (e) {
       failure.value = {...describeFailure(e, t), message: t('procedures.templateNotLoaded')}
     }
@@ -128,6 +170,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       items.value = []
       name.value = ''
       description.value = ''
+      party.value = emptyRestriction()
       return
     }
     selectedTemplateId.value = Number(idStr)
@@ -135,12 +178,9 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
   }
 
   const {loading, failure, reload} = useAsyncLoader(async () => {
-    const [tpls, mbrs] = await Promise.all([
-      procedures.getTemplates(),
-      stationMembers.listCompletions(),
-    ])
+    const [tpls, choices] = await Promise.all([procedures.getTemplates(), loadPartyChoices()])
     templates.value = tpls.filter(tpl => !tpl.archived)
-    members.value = mbrs
+    partyChoices.value = choices
 
     if (isEditMode.value) {
       const detail = await procedures.getProcedure(editId.value!)
@@ -149,9 +189,11 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       description.value = detail.procedure.description ?? ''
       dueAt.value = instantToDate(detail.procedure.dueAt)
       isPublic.value = detail.procedure.isPublic
-      selectedAssigneeIds.value = [...detail.assigneeIds]
+      about.value = detail.procedure.aboutMemberId == null ? '' : String(detail.procedure.aboutMemberId)
+      savedAbout.value = about.value
+      party.value = toRestriction(detail.party)
       existingItemIds.value = new Set(detail.items.map(i => i.id))
-      items.value = toEditableItems(detail.items, detail.dependencies, true)
+      items.value = toEditableItems(detail.items, detail.dependencies, detail.documents, true)
       return
     }
     if (presetTemplateId.value != null) {
@@ -174,6 +216,8 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       userAssigned: false,
       position: items.value.length,
       dependsOn: [],
+      document: null,
+      documentMade: false,
     }]
   }
 
@@ -198,6 +242,26 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     items.value = items.value.map((current, i) => (i === index ? item : current))
   }
 
+  /** The documents the form starts asking to sign: those of new steps and of steps whose document changed. */
+  const changedDocuments = computed(() => items.value
+    .filter(item => item.document != null && documentChanged(item.storedDocumentId, item.document))
+    .map(item => item.document!))
+
+  /**
+   * Why the form cannot be saved as it stands, as the messages to show, each a refusal the server would
+   * give: document steps its user may not ask for, documents that are gone, a new procedure about nobody,
+   * and documents to sign on a procedure about nobody.
+   */
+  const blockers = computed(() => {
+    const changed = changedDocuments.value
+    return [
+      changed.length > 0 && !hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER) && 'procedures.stepDocumentsNotYours',
+      changed.some(document => document.gone) && 'procedures.stepDocumentsGone',
+      aboutRequired.value && !about.value && 'procedures.aboutRequired',
+      changed.length > 0 && !about.value && 'procedures.stepDocumentsNeedAbout',
+    ].filter((key): key is string => typeof key === 'string')
+  })
+
   function itemPayload(item: EditableItem, position: number): ProcedureItemRequest {
     return {
       title: item.title,
@@ -205,6 +269,7 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       isPublic: item.isPublic,
       userAssigned: item.userAssigned,
       position,
+      ...stepKindChange(item.storedDocumentId, item.document),
     }
   }
 
@@ -219,14 +284,6 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       }
     }
     return deps
-  }
-
-  async function syncAssignees(pid: number) {
-    const current = (await procedures.getProcedure(pid)).assigneeIds
-    const toAdd = selectedAssigneeIds.value.filter(id => !current.includes(id))
-    const toRemove = current.filter(id => !selectedAssigneeIds.value.includes(id))
-    if (toAdd.length) await procedures.addAssignees(pid, toAdd)
-    for (const id of toRemove) await procedures.removeAssignee(pid, id)
   }
 
   /**
@@ -264,7 +321,11 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
         dueAt: dateToInstant(dueAt.value),
         isPublic: isPublic.value,
       })
-      await syncAssignees(pid)
+      if (about.value && about.value !== savedAbout.value) {
+        await procedures.setAbout(pid, Number(about.value), false)
+        savedAbout.value = about.value
+      }
+      await procedures.setParty(pid, party.value)
       await procedures.setProcedureDependencies(pid, buildDependencies(await syncItems(pid)))
       return pid
     }
@@ -274,15 +335,15 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
       description: description.value || undefined,
       dueAt: dateToInstant(dueAt.value) ?? undefined,
       isPublic: isPublic.value,
-      assigneeIds: selectedAssigneeIds.value,
+      party: party.value,
+      aboutMemberId: about.value ? Number(about.value) : null,
     })
     const tempToReal = new Map<number, number>()
     for (const [i, item] of items.value.entries()) {
       const createdItem = await procedures.addItem(created.id, itemPayload(item, i))
       tempToReal.set(item.tempId, createdItem.id)
     }
-    const deps = buildDependencies(tempToReal)
-    if (deps.length) await procedures.setProcedureDependencies(created.id, deps)
+    await procedures.setProcedureDependencies(created.id, buildDependencies(tempToReal))
     return created.id
   }
 
@@ -292,12 +353,17 @@ export function useProcedureForm(editId: Ref<number | null>, presetTemplateId: R
     description,
     dueAt,
     isPublic,
+    about,
+    aboutFixed,
+    aboutRequired,
     templates,
     selectedTemplateId,
     templateDetail,
-    members,
-    selectedAssigneeIds,
+    partyChoices,
+    aboutChoices,
+    party,
     items,
+    blockers,
     isEditMode,
     loading,
     failure,

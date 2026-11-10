@@ -18,19 +18,27 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import TemplateItemCard from '@/views/stationview/procedure/proceduretemplateeditview/TemplateItemCard.vue'
-import type {ProcedureTemplateItem} from '@/api/generated/schema'
+import type {MemberGroup, ProcedureTemplateItem} from '@/api/generated/schema'
+import type {RestrictionSelection} from '@/api/types'
+import PartySection from '@/views/stationview/procedure/procedurecreateview/PartySection.vue'
 
 const {t} = useI18n()
+
+/** The default party of the example: the group of youth leaders. */
+const PARTY: RestrictionSelection = {userTypes: [], groupIds: [1], tagIds: [], memberIds: [], mode: 'AND'}
+const GROUPS: MemberGroup[] = [{id: 1, stationId: '00000000-0000-4000-a000-000000000001', name: 'Jugendwarte', color: null, position: 0, groupSetId: null, userTypes: []}]
 
 const ITEMS: ProcedureTemplateItem[] = [
   {
     id: 1,
     templateId: 1,
-    title: 'Aufnahmeantrag unterschreiben lassen',
+    title: 'Aufnahmeantrag unterschreiben',
     description: 'Von der Person und bei Minderjährigen von den Erziehungsberechtigten.',
     isPublic: true,
     userAssigned: false,
     position: 0,
+    kind: 'DOCUMENT',
+    documentTemplateId: 1,
   },
   {
     id: 2,
@@ -40,6 +48,8 @@ const ITEMS: ProcedureTemplateItem[] = [
     isPublic: true,
     userAssigned: true,
     position: 1,
+    kind: 'CHECK',
+    documentTemplateId: null,
   },
 ]
 
@@ -61,13 +71,14 @@ const getItemById = (id: number) => ITEMS.find(item => item.id === id)
         <SecondaryButton :icon="['fas', 'pen']">{{ t('common.edit') }}</SecondaryButton>
         <SecondaryButton :icon="['fas', 'arrow-left']">{{ t('common.back') }}</SecondaryButton>
       </ButtonRow>
+      <PartySection :model-value="PARTY" :choices="{members: [], groups: GROUPS, tags: []}" class="mb-4"/>
       <div class="flex items-center justify-between mb-3">
         <SubHeader>{{ t('procedures.items') }}</SubHeader>
         <PrimaryButton :icon="['fas', 'plus']">{{ t('procedures.addItem') }}</PrimaryButton>
       </div>
       <div class="space-y-2">
         <TemplateItemCard :item="ITEMS[0]!" :index="0" :can-manage="true"
-                          :dependencies="[]" :get-item-by-id="getItemById"/>
+                          :dependencies="[]" :get-item-by-id="getItemById" :document="{id: 1, name: 'Aufnahmeantrag'}"/>
         <TemplateItemCard :item="ITEMS[1]!" :index="1" :can-manage="true"
                           :dependencies="[1]" :get-item-by-id="getItemById"/>
       </div>
@@ -89,6 +100,10 @@ const getItemById = (id: number) => ITEMS.find(item => item.id === id)
             <ToggleInput :model-value="false"/>
           </div>
         </div>
+        <div class="flex items-center gap-2">
+          <FieldLabel>{{ t('procedures.stepDocument') }}</FieldLabel>
+          <ToggleInput :model-value="false"/>
+        </div>
         <div class="flex gap-2 justify-end">
           <PrimaryButton>{{ t('common.save') }}</PrimaryButton>
         </div>
@@ -101,6 +116,14 @@ const getItemById = (id: number) => ITEMS.find(item => item.id === id)
 
     <HelpSection :title="t('helpCenter.procedureTemplateEdit.togglesTitle')">
       <p>{{ t('helpCenter.procedureTemplateEdit.togglesText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.procedureTemplateEdit.documentTitle')">
+      <p>{{ t('helpCenter.procedureTemplateEdit.documentText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.procedureTemplateEdit.partyTitle')">
+      <p>{{ t('helpCenter.procedureTemplateEdit.partyText') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.procedureTemplateEdit.tip') }}</HelpTip>

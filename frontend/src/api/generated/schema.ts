@@ -45308,7 +45308,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/procedures/{rid}/assignees": {
+    "/api/v1/procedures/{rid}/about": {
         parameters: {
             query?: never;
             header?: never;
@@ -45316,8 +45316,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
-        post: {
+        put: {
             parameters: {
                 query?: never;
                 header?: never;
@@ -45326,7 +45325,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["AssigneeRequest"];
+                    "application/json": components["schemas"]["AboutRequest"];
                 };
             };
             responses: {
@@ -45336,47 +45335,13 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": number[];
+                        "application/json": components["schemas"]["Procedure"];
                     };
                 };
             };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/procedures/{rid}/assignees/{mid}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
         post?: never;
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": number[];
-                    };
-                };
-            };
-        };
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -45535,6 +45500,78 @@ export interface paths {
         };
         trace?: never;
     };
+    "/api/v1/procedures/{rid}/items/{iid}/ask": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/procedures/{rid}/party": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RestrictionAudience"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RestrictionAudience"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/procedures/{rid}/reopen": {
         parameters: {
             query?: never;
@@ -45605,6 +45642,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/procedures/about-me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Procedure"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/procedures/for-event/{eid}": {
         parameters: {
             query?: never;
@@ -45634,6 +45706,45 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/procedures/for-members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CreateProceduresRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Procedure"][];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -63106,6 +63217,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AboutRequest: {
+            ask?: boolean | null;
+            /** Format: int32 */
+            memberId?: number | null;
+        };
         AbsenceRequest: {
             absentFrom?: components["schemas"]["LocalDate"];
             absentUntil?: components["schemas"]["LocalDate"];
@@ -63609,9 +63725,6 @@ export interface components {
             state: components["schemas"]["RequestState"];
             /** Format: uuid */
             uid: string;
-        };
-        AssigneeRequest: {
-            memberIds?: number[];
         };
         AssignItemRequest: {
             /** Format: int32 */
@@ -65298,7 +65411,8 @@ export interface components {
             userTypes?: components["schemas"]["StationUserType"][];
         };
         CreateProcedureRequest: {
-            assigneeIds?: number[] | null;
+            /** Format: int32 */
+            aboutMemberId?: number | null;
             description?: string | null;
             dueAt?: components["schemas"]["Instant"] | null;
             eventDate?: components["schemas"]["LocalDate"] | null;
@@ -65306,6 +65420,20 @@ export interface components {
             eventId?: number | null;
             isPublic?: boolean;
             name?: string;
+            party?: components["schemas"]["RestrictionAudience"] | null;
+            /** Format: int32 */
+            templateId?: number | null;
+        };
+        CreateProceduresRequest: {
+            description?: string | null;
+            dueAt?: components["schemas"]["Instant"] | null;
+            eventDate?: components["schemas"]["LocalDate"] | null;
+            /** Format: int32 */
+            eventId?: number | null;
+            isPublic?: boolean;
+            memberIds?: number[] | null;
+            name?: string;
+            party?: components["schemas"]["RestrictionAudience"] | null;
             /** Format: int32 */
             templateId?: number | null;
         };
@@ -70161,7 +70289,7 @@ export interface components {
             feed: boolean;
         };
         /** @enum {string} */
-        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_COMMENT" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "WAITLIST_TRIAL_ENDED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED" | "SIGNATURE_REQUESTED" | "SIGNATURE_REMINDER" | "DOCUMENT_SIGNED" | "DOCUMENT_SCAN_REJECTED" | "ACCOUNT_LINK_ACCEPTED" | "ASSOCIATION_LINK_ACCEPTED" | "SIGNATURE_WITHDRAWN" | "PARTNER_SIGNATURE_WITHDRAWN";
+        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_COMMENT" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "PROCEDURE_DOCUMENT_WITHDRAWN" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "WAITLIST_TRIAL_ENDED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED" | "SIGNATURE_REQUESTED" | "SIGNATURE_REMINDER" | "DOCUMENT_SIGNED" | "DOCUMENT_SCAN_REJECTED" | "ACCOUNT_LINK_ACCEPTED" | "ASSOCIATION_LINK_ACCEPTED" | "SIGNATURE_WITHDRAWN" | "PARTNER_SIGNATURE_WITHDRAWN";
         NumberConfig: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -70235,6 +70363,7 @@ export interface components {
             /** Format: int32 */
             memberId: number | null;
             memberName: string;
+            purpose: string | null;
             /** Format: uuid */
             requestUid: string;
             role: components["schemas"]["FieldRole"];
@@ -70864,6 +70993,8 @@ export interface components {
         };
         Procedure: {
             /** Format: int32 */
+            aboutMemberId: number | null;
+            /** Format: int32 */
             assignedBy: number;
             createdAt: components["schemas"]["Instant"];
             description: string | null;
@@ -70876,6 +71007,8 @@ export interface components {
             isPublic: boolean;
             name: string;
             resolvedAt: components["schemas"]["Instant"] | null;
+            /** Format: int32 */
+            resolvedBy: number | null;
             /** Format: uuid */
             stationId: string;
             status: components["schemas"]["ProcedureStatus"];
@@ -70883,11 +71016,16 @@ export interface components {
             templateId: number | null;
         };
         ProcedureDetail: {
-            assigneeIds: number[];
-            assignees: components["schemas"]["MemberIdentity"][];
+            about: components["schemas"]["MemberIdentity"] | null;
             dependencies: number[][];
+            documents: components["schemas"]["StepDocument"][];
+            documentStates: components["schemas"]["StepDocumentState"][];
             items: components["schemas"]["ProcedureItem"][];
+            mayTick: boolean;
+            named: components["schemas"]["MemberIdentity"][];
+            party: components["schemas"]["RestrictionAudience"];
             procedure: components["schemas"]["Procedure"];
+            readsAbout: boolean;
         };
         ProcedureItem: {
             checked: boolean;
@@ -70896,8 +71034,13 @@ export interface components {
             checkedBy: number | null;
             description: string | null;
             /** Format: int32 */
+            documentTemplateId: number | null;
+            /** Format: int32 */
+            generationId: number | null;
+            /** Format: int32 */
             id: number;
             isPublic: boolean;
+            kind: components["schemas"]["ProcedureStepKind"];
             note: string | null;
             /** Format: int32 */
             position: number;
@@ -70908,7 +71051,10 @@ export interface components {
         };
         ProcedureItemRequest: {
             description?: string | null;
+            /** Format: int32 */
+            documentTemplateId?: number | null;
             isPublic?: boolean;
+            kind?: components["schemas"]["ProcedureStepKind"] | null;
             /** Format: int32 */
             position?: number;
             title?: string;
@@ -70916,6 +71062,8 @@ export interface components {
         };
         /** @enum {string} */
         ProcedureStatus: "OPEN" | "RESOLVED";
+        /** @enum {string} */
+        ProcedureStepKind: "CHECK" | "DOCUMENT";
         ProcedureTemplate: {
             archived: boolean;
             createdAt: components["schemas"]["Instant"];
@@ -70930,14 +71078,19 @@ export interface components {
         };
         ProcedureTemplateDetail: {
             dependencies: number[][];
+            documents: components["schemas"]["StepDocument"][];
             items: components["schemas"]["ProcedureTemplateItem"][];
+            party: components["schemas"]["RestrictionAudience"];
             template: components["schemas"]["ProcedureTemplate"];
         };
         ProcedureTemplateItem: {
             description: string | null;
             /** Format: int32 */
+            documentTemplateId: number | null;
+            /** Format: int32 */
             id: number;
             isPublic: boolean;
+            kind: components["schemas"]["ProcedureStepKind"];
             /** Format: int32 */
             position: number;
             /** Format: int32 */
@@ -70948,6 +71101,7 @@ export interface components {
         ProcedureTemplateRequest: {
             description?: string | null;
             name?: string;
+            party?: components["schemas"]["RestrictionAudience"] | null;
         };
         ProcurementResponse: {
             fulfilledAt: components["schemas"]["Instant"] | null;
@@ -71082,6 +71236,8 @@ export interface components {
             memberId: number;
             value: string;
         };
+        /** @enum {string} */
+        Progress: "NOT_ASKED" | "WAITING" | "AGREED" | "NOT_AGREED" | "WITHDRAWN";
         PronounLanguage: {
             code: string;
             female: components["schemas"]["PronounSet"];
@@ -72381,7 +72537,7 @@ export interface components {
             userTypes?: components["schemas"]["StationUserType"][] | null;
         };
         /** @enum {string} */
-        RestrictionType: "EVENT" | "EVENT_VIEW" | "EVENT_TEMPLATE" | "EVENT_TEMPLATE_VIEW" | "QUIZ_TEST" | "FORM" | "NEWS" | "KB_FOLDER" | "KB_FILE" | "DOCUMENT_TEMPLATE" | "DOCUMENT_TEMPLATE_STATION_USE" | "WITNESS_REACH" | "ATTENDANCE_TEMPLATE_TIME_RULE" | "ATTENDANCE_SESSION_TIME_RULE";
+        RestrictionType: "EVENT" | "EVENT_VIEW" | "EVENT_TEMPLATE" | "EVENT_TEMPLATE_VIEW" | "QUIZ_TEST" | "FORM" | "NEWS" | "KB_FOLDER" | "KB_FILE" | "DOCUMENT_TEMPLATE" | "DOCUMENT_TEMPLATE_STATION_USE" | "WITNESS_REACH" | "ATTENDANCE_TEMPLATE_TIME_RULE" | "ATTENDANCE_SESSION_TIME_RULE" | "PROCEDURE" | "PROCEDURE_TEMPLATE";
         ResultFieldCondition: {
             /** Format: int32 */
             fieldId?: number;
@@ -73233,10 +73389,12 @@ export interface components {
         /** @enum {string} */
         SignatureImageSource: "DRAWN" | "TYPED" | "UPLOADED";
         SignatureItem: {
+            capacity: components["schemas"]["SignerCapacity"];
             documentTitle: string | null;
             /** Format: int32 */
             fieldId: number;
             memberName: string | null;
+            purpose: string | null;
         };
         /** @enum {string} */
         SignatureRole: "PARTICIPANT" | "GUARDIAN_1" | "GUARDIAN_2" | "EACH_GUARDIAN" | "ANY_GUARDIAN" | "ISSUER";
@@ -73817,6 +73975,24 @@ export interface components {
         };
         /** @enum {string} */
         StepActor: "MEMBER" | "STATION" | "OWNER";
+        StepDocument: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+        };
+        StepDocumentState: {
+            /** Format: int32 */
+            documentId: number | null;
+            /** Format: int32 */
+            fields: number;
+            /** Format: int32 */
+            itemId: number;
+            /** Format: int32 */
+            openFieldId: number | null;
+            progress: components["schemas"]["Progress"];
+            /** Format: int32 */
+            settled: number;
+        };
         StepOrderRequest: {
             stepIds?: number[];
         };
@@ -75256,6 +75432,7 @@ export interface components {
     headers: never;
     pathItems: never;
 }
+export type AboutRequest = components['schemas']['AboutRequest'];
 export type AbsenceRequest = components['schemas']['AbsenceRequest'];
 export type AbsenceResponse = components['schemas']['AbsenceResponse'];
 export type AbsentMemberResponse = components['schemas']['AbsentMemberResponse'];
@@ -75323,7 +75500,6 @@ export type ArtRequest = components['schemas']['ArtRequest'];
 export type ArtStock = components['schemas']['ArtStock'];
 export type AskedFieldResponse = components['schemas']['AskedFieldResponse'];
 export type AskedRequestResponse = components['schemas']['AskedRequestResponse'];
-export type AssigneeRequest = components['schemas']['AssigneeRequest'];
 export type AssignItemRequest = components['schemas']['AssignItemRequest'];
 export type AssignItemsRequest = components['schemas']['AssignItemsRequest'];
 export type AssignmentRequest = components['schemas']['AssignmentRequest'];
@@ -75563,6 +75739,7 @@ export type CreateMovementRequest = components['schemas']['CreateMovementRequest
 export type CreatePageRequest = components['schemas']['CreatePageRequest'];
 export type CreatePresetRequest = components['schemas']['CreatePresetRequest'];
 export type CreateProcedureRequest = components['schemas']['CreateProcedureRequest'];
+export type CreateProceduresRequest = components['schemas']['CreateProceduresRequest'];
 export type CreateProcurementRequest = components['schemas']['CreateProcurementRequest'];
 export type CreateRequest = components['schemas']['CreateRequest'];
 export type CreateTemplateRequest = components['schemas']['CreateTemplateRequest'];
@@ -76340,6 +76517,7 @@ export type ProcedureDetail = components['schemas']['ProcedureDetail'];
 export type ProcedureItem = components['schemas']['ProcedureItem'];
 export type ProcedureItemRequest = components['schemas']['ProcedureItemRequest'];
 export type ProcedureStatus = components['schemas']['ProcedureStatus'];
+export type ProcedureStepKind = components['schemas']['ProcedureStepKind'];
 export type ProcedureTemplate = components['schemas']['ProcedureTemplate'];
 export type ProcedureTemplateDetail = components['schemas']['ProcedureTemplateDetail'];
 export type ProcedureTemplateItem = components['schemas']['ProcedureTemplateItem'];
@@ -76354,6 +76532,7 @@ export type ProfileFieldRequest = components['schemas']['ProfileFieldRequest'];
 export type ProfileFieldScope = components['schemas']['ProfileFieldScope'];
 export type ProfileFieldTarget = components['schemas']['ProfileFieldTarget'];
 export type ProfileFieldValue = components['schemas']['ProfileFieldValue'];
+export type Progress = components['schemas']['Progress'];
 export type PronounLanguage = components['schemas']['PronounLanguage'];
 export type PronounRole = components['schemas']['PronounRole'];
 export type PronounSet = components['schemas']['PronounSet'];
@@ -76721,6 +76900,8 @@ export type StatusRequest = components['schemas']['StatusRequest'];
 export type StatusResponse = components['schemas']['StatusResponse'];
 export type StatusUpdateRequest = components['schemas']['StatusUpdateRequest'];
 export type StepActor = components['schemas']['StepActor'];
+export type StepDocument = components['schemas']['StepDocument'];
+export type StepDocumentState = components['schemas']['StepDocumentState'];
 export type StepOrderRequest = components['schemas']['StepOrderRequest'];
 export type StepRequest = components['schemas']['StepRequest'];
 export type StepResponse = components['schemas']['StepResponse'];
@@ -77737,6 +77918,7 @@ export const NotificationType = {
     NEW_NEWS: "NEW_NEWS",
     PARTNER_SIGNATURE_WITHDRAWN: "PARTNER_SIGNATURE_WITHDRAWN",
     PROCEDURE_ASSIGNED: "PROCEDURE_ASSIGNED",
+    PROCEDURE_DOCUMENT_WITHDRAWN: "PROCEDURE_DOCUMENT_WITHDRAWN",
     PROCEDURE_ITEM_CHECKED: "PROCEDURE_ITEM_CHECKED",
     PROCEDURE_REOPENED: "PROCEDURE_REOPENED",
     PROCEDURE_RESOLVED: "PROCEDURE_RESOLVED",
@@ -77883,6 +78065,11 @@ export const ProcedureStatus = {
     RESOLVED: "RESOLVED",
 } as const;
 
+export const ProcedureStepKind = {
+    CHECK: "CHECK",
+    DOCUMENT: "DOCUMENT",
+} as const;
+
 export const ProfileFieldScope = {
     GUARDIAN: "GUARDIAN",
     MANAGER: "MANAGER",
@@ -77894,6 +78081,14 @@ export const ProfileFieldScope = {
 export const ProfileFieldTarget = {
     GROUP: "GROUP",
     ROLE: "ROLE",
+} as const;
+
+export const Progress = {
+    AGREED: "AGREED",
+    NOT_AGREED: "NOT_AGREED",
+    NOT_ASKED: "NOT_ASKED",
+    WAITING: "WAITING",
+    WITHDRAWN: "WITHDRAWN",
 } as const;
 
 export const PronounRole = {
@@ -77990,6 +78185,8 @@ export const RestrictionType = {
     KB_FILE: "KB_FILE",
     KB_FOLDER: "KB_FOLDER",
     NEWS: "NEWS",
+    PROCEDURE: "PROCEDURE",
+    PROCEDURE_TEMPLATE: "PROCEDURE_TEMPLATE",
     QUIZ_TEST: "QUIZ_TEST",
     WITNESS_REACH: "WITNESS_REACH",
 } as const;

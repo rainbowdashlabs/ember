@@ -4,10 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import type { RestrictionSelection } from './types'
 import { createCrudResource, createScopedCrudResource, type NoContent } from './crud'
 import type {
-    AssigneeRequest,
     CreateProcedureRequest,
+    CreateProceduresRequest,
     DependencyEntry,
     DependencyRequest,
     PatchItemRequest,
@@ -20,6 +21,7 @@ import type {
     ProcedureTemplateDetail,
     ProcedureTemplateItem,
     ProcedureTemplateRequest,
+    RestrictionAudience,
     UpdateProcedureRequest,
 } from './generated/schema'
 
@@ -128,16 +130,37 @@ export async function reopenProcedure(id: number): Promise<Procedure> {
     return res.data
 }
 
-/** Hands the procedure to more members. @returns the ids of everybody it is handed to now */
-export async function addAssignees(id: number, memberIds: number[]): Promise<number[]> {
-    const request: AssigneeRequest = { memberIds }
-    const res = await client.post<number[]>(`/procedures/${id}/assignees`, request)
+/** Gives the procedure another managing party. @returns the party as it now stands */
+export async function setParty(id: number, party: RestrictionSelection): Promise<RestrictionAudience> {
+    const res = await client.put<RestrictionAudience>(`/procedures/${id}/party`, party)
     return res.data
 }
 
-/** Takes the procedure away from one member. @returns the ids of everybody it is still handed to */
-export async function removeAssignee(id: number, memberId: number): Promise<number[]> {
-    const res = await client.delete<number[]>(`/procedures/${id}/assignees/${memberId}`)
+/**
+ * Makes a procedure about another member, whose documents its steps then ask to sign.
+ *
+ * @param ask whether to ask for the unlocked document steps right away; false for a caller that sets the
+ *            dependencies right after, which asks then
+ */
+export async function setAbout(id: number, memberId: number, ask = true): Promise<Procedure> {
+    const res = await client.put<Procedure>(`/procedures/${id}/about`, {memberId, ask})
+    return res.data
+}
+
+/** Starts one procedure per member from the same template, each about that member and named after them. */
+export async function createProceduresForMembers(request: CreateProceduresRequest): Promise<Procedure[]> {
+    const res = await client.post<Procedure[]>('/procedures/for-members', request)
+    return res.data
+}
+
+/** Asks again for the document of a document step whose document is missing or ended without agreement. */
+export async function askAgain(procedureId: number, itemId: number): Promise<void> {
+    await client.post(`/procedures/${procedureId}/items/${itemId}/ask`)
+}
+
+/** The public procedures about the reader and the members in their care. */
+export async function listAboutMe(status?: ProcedureStatus): Promise<Procedure[]> {
+    const res = await client.get<Procedure[]>('/procedures/about-me', {params: status ? {status} : {}})
     return res.data
 }
 

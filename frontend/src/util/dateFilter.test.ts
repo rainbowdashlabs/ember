@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 /** @vitest-environment happy-dom */
-import {describe, expect, it} from 'vitest'
+import {afterEach, describe, expect, it} from 'vitest'
 import {
     buildDateTree,
     isTreeChecked,
@@ -16,6 +16,12 @@ import {
 } from './dateFilter'
 
 const TODAY = new Date('2026-09-07T00:00:00')
+const originalZone = process.env.TZ
+
+afterEach(() => {
+    if (originalZone === undefined) delete process.env.TZ
+    else process.env.TZ = originalZone
+})
 
 function tokensOf(...entries: string[]) {
     return splitDateTokens(new Set(entries))
@@ -85,6 +91,14 @@ describe('matchesDateFilter', () => {
 
     it('filters a timestamp by its day', () => {
         expect(matchesDateFilter('2025-03-14T18:30:00Z', tokensOf('2025-03'), TODAY)).toBe(true)
+    })
+
+    /** Half an hour before midnight UTC the column already writes the next day for a reader in Berlin. */
+    it('filters a timestamp by the day the reader sees it on', () => {
+        process.env.TZ = 'Europe/Berlin'
+        expect(matchesDateFilter('2025-03-14T23:30:00Z', tokensOf('2025-03-15'), TODAY)).toBe(true)
+        expect(matchesDateFilter('2025-03-14T23:30:00Z', tokensOf('2025-03-14'), TODAY)).toBe(false)
+        expect(buildDateTree(['2025-03-31T22:30:00Z'])[0]!.months[0]!.days).toEqual(['2025-04-01'])
     })
 
     it('takes from inclusive and before exclusive', () => {

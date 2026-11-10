@@ -23,6 +23,12 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TemplateItemCard from '@/views/stationview/procedure/proceduretemplateeditview/TemplateItemCard.vue'
+import PartySection from '@/views/stationview/procedure/procedurecreateview/PartySection.vue'
+import StepDocumentChoice from '@/components/procedures/StepDocumentChoice.vue'
+import { stepDocumentOf, stepKindChange, stepKindOf, type AskedDocument } from '@/components/procedures/stepDocument'
+import { loadPartyChoices, noPartyChoices, type PartyChoices } from '@/components/procedures/partyChoices'
+import { emptyRestriction, sameRestriction, toRestriction } from '@/components/input/restriction'
+import type { RestrictionSelection } from '@/api/types'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { procedures } from '@/api'
@@ -56,14 +62,42 @@ const itemTitle = ref('')
 const itemDescription = ref('')
 const itemIsPublic = ref(true)
 const itemUserAssigned = ref(false)
+const itemDocument = ref<AskedDocument | null>(null)
 
 const showDepModal = ref(false)
 const depTargetItem = ref<ProcedureTemplateItem | null>(null)
 const depSelectedId = ref<number | null>(null)
 
+/** The managing party every procedure started from the template begins with. */
+const party = ref<RestrictionSelection>(emptyRestriction())
+/** The party as last saved, against which an edit is told apart. */
+const savedParty = ref<RestrictionSelection>(emptyRestriction())
+/** Whether the party was changed since it was last saved, so a reload after another change keeps it. */
+const partyEdited = computed(() => !sameRestriction(party.value, savedParty.value))
+const partyChoices = ref<PartyChoices>(noPartyChoices())
+
 const {loading, failure, reload} = useAsyncLoader(async () => {
-  detail.value = await procedures.getTemplate(templateId.value)
+  const [loaded, choices] = await Promise.all([procedures.getTemplate(templateId.value), loadPartyChoices()])
+  detail.value = loaded
+  const keepEdit = partyEdited.value
+  savedParty.value = toRestriction(loaded.party)
+  if (!keepEdit) party.value = savedParty.value
+  partyChoices.value = choices
 }, {autoLoad: false})
+
+/** Saves the template's party, keeping its name and description as they are. */
+async function saveParty() {
+  const template = detail.value?.template
+  if (!template) return
+  await writeThenReload(async () => {
+    await procedures.updateTemplate(templateId.value, {
+      name: template.name,
+      description: template.description ?? undefined,
+      party: party.value,
+    })
+    savedParty.value = party.value
+  })
+}
 
 /**
  * Writes one change, then reads the template back.
@@ -106,6 +140,7 @@ function openAddItemModal() {
   itemDescription.value = ''
   itemIsPublic.value = true
   itemUserAssigned.value = false
+  itemDocument.value = null
   showItemModal.value = true
 }
 
@@ -115,6 +150,7 @@ function openEditItemModal(item: ProcedureTemplateItem) {
   itemDescription.value = item.description ?? ''
   itemIsPublic.value = item.isPublic
   itemUserAssigned.value = item.userAssigned
+  itemDocument.value = stepDocumentOf(item, detail.value?.documents ?? [])
   showItemModal.value = true
 }
 
@@ -137,6 +173,7 @@ async function handleSaveItem() {
         isPublic: itemIsPublic.value,
         userAssigned: itemUserAssigned.value,
         position: editingItem.value.position,
+        ...stepKindChange(stepDocumentOf(editingItem.value, detail.value?.documents ?? [])?.id ?? null, itemDocument.value),
       })
     } else {
       await procedures.createTemplateItem(templateId.value, {
@@ -145,6 +182,7 @@ async function handleSaveItem() {
         isPublic: itemIsPublic.value,
         userAssigned: itemUserAssigned.value,
         position: nextPosition(),
+        ...stepKindOf(itemDocument.value),
       })
     }
     showItemModal.value = false
@@ -215,6 +253,13 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
         </ButtonRow>
       </div>
 
+      <div v-if="canManage" class="mb-4 space-y-2">
+        <PartySection v-model="party" :choices="partyChoices"/>
+        <ButtonRow align="end">
+          <PrimaryButton data-testid="template-party-save" @click="saveParty">{{ t('common.save') }}</PrimaryButton>
+        </ButtonRow>
+      </div>
+
       <div class="flex items-center justify-between mb-3">
         <SubHeader>{{ t('procedures.items') }}</SubHeader>
         <PrimaryButton v-if="canManage" @click="openAddItemModal">
@@ -231,6 +276,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
           :can-manage="canManage"
           :dependencies="getDepsForItem(item.id)"
           :get-item-by-id="getItemById"
+          :document="stepDocumentOf(item, detail.documents)"
           @edit="openEditItemModal"
           @delete="handleDeleteItem"
           @open-deps="openDepModal"
@@ -269,6 +315,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
             <ToggleInput v-model="itemUserAssigned" />
           </div>
         </div>
+        <StepDocumentChoice v-model="itemDocument" />
         <div class="flex gap-2 justify-end">
           <PrimaryButton type="submit">{{ t('common.save') }}</PrimaryButton>
         </div>

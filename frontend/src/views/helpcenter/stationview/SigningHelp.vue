@@ -30,6 +30,7 @@ const exampleField = computed<OpenSignatureResponse>(() => ({
   documentId: 0,
   documentTitle: t('helpCenter.signing.exampleTitle'),
   memberName: t('helpCenter.signing.exampleChild'),
+  purpose: null,
   fieldName: 'guardian1',
   role: FieldRole.GUARDIAN,
   capacity: SignerCapacity.GUARDIAN,
@@ -86,6 +87,10 @@ const exampleOffer = computed<BatchStartResponse>(() => ({
     <HelpSection :title="t('helpCenter.signing.mail')">
       <p>{{ t('helpCenter.signing.mailReminder') }}</p>
       <p>{{ t('helpCenter.signing.mailCopy') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.signing.procedure')">
+      <p>{{ t('helpCenter.signing.procedureText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.signing.withdraw')">

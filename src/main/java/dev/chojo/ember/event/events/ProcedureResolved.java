@@ -10,5 +10,5 @@ import dev.chojo.ember.event.DomainEvent;
 import java.util.List;
 
 public record ProcedureResolved(
-        int stationId, int procedureId, String procedureName, List<Integer> assigneeMemberIds, int resolvedByMemberId)
+        int stationId, int procedureId, String procedureName, List<Integer> partyMemberIds, int resolvedByMemberId)
         implements DomainEvent {}

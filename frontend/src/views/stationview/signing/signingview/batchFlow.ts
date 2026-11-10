@@ -12,6 +12,8 @@ import {fillInEntries, fillInsComplete, type FillInValues} from './fillIns'
 export interface SigningDocumentGroup {
     requestUid: string
     title: string
+    /** What the signatures are asked for beyond the document, such as a procedure, or null. */
+    purpose: string | null
     fields: OpenSignatureResponse[]
 }
 
@@ -47,7 +49,12 @@ export function groupByDocument(
     for (const field of fields) {
         const group = groups.find(candidate => candidate.requestUid === field.requestUid)
         if (group) group.fields.push(field)
-        else groups.push({requestUid: field.requestUid, title: field.documentTitle ?? untitled, fields: [field]})
+        else groups.push({
+            requestUid: field.requestUid,
+            title: field.documentTitle ?? untitled,
+            purpose: field.purpose ?? null,
+            fields: [field],
+        })
     }
     const first = groups.findIndex(group => group.fields.some(field => field.fieldId === firstFieldId))
     if (first > 0) groups.unshift(...groups.splice(first, 1))

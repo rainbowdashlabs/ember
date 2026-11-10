@@ -19,12 +19,14 @@ import {
     instantToLocalInput,
     localInputToInstant,
     placeLine,
+    shiftIsoDate,
     stationClock,
     stationDayOf,
     stationToday,
     timeOnDayOf,
     todayIsoDate,
     toIsoDate,
+    utcDayOf,
 } from './format'
 
 const originalZone = process.env.TZ
@@ -308,6 +310,54 @@ describe('today', () => {
         const now = new Date()
         expect(todayIsoDate()).toBe(
             `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`)
+    })
+})
+
+/**
+ * Half an hour before midnight UTC it is already half past midnight in Berlin. A day cut off the
+ * stored moment is the day before the one the station is living through, which is what made pages
+ * and stories go wrong late in the evening.
+ */
+describe('half an hour before midnight UTC', () => {
+    const halfPastElevenUtc = new Date('2026-11-10T23:30:00Z')
+
+    it('is already the next day at the station', () => {
+        readingFrom('UTC')
+        expect(stationDayOf(halfPastElevenUtc, 'Europe/Berlin')).toBe('2026-11-11')
+        expect(utcDayOf(halfPastElevenUtc)).toBe('2026-11-10')
+    })
+
+    it('is the next day for a reader in Berlin too', () => {
+        expect(toIsoDate(halfPastElevenUtc)).toBe('2026-11-11')
+    })
+})
+
+describe('the UTC day of a moment', () => {
+    it('is the day a moment made at midnight UTC stands for, whoever reads it', () => {
+        readingFrom('Pacific/Auckland')
+        expect(utcDayOf(new Date('2026-03-01T00:00:00Z'))).toBe('2026-03-01')
+        readingFrom('America/New_York')
+        expect(utcDayOf(new Date('2026-03-01T00:00:00Z'))).toBe('2026-03-01')
+    })
+
+    it('writes a short year out in four digits, as a date field holds it', () => {
+        expect(utcDayOf(new Date(Date.UTC(900, 0, 5)))).toBe('0900-01-05')
+    })
+})
+
+describe('a calendar date moved by days', () => {
+    it('moves forward and back across months and years', () => {
+        expect(shiftIsoDate('2026-12-30', 3)).toBe('2027-01-02')
+        expect(shiftIsoDate('2026-03-01', -1)).toBe('2026-02-28')
+        expect(shiftIsoDate('2028-03-01', -1)).toBe('2028-02-29')
+        expect(shiftIsoDate('2026-10-12', 0)).toBe('2026-10-12')
+    })
+
+    it('counts calendar days across a change of summer time, wherever the reader is', () => {
+        readingFrom('Europe/Berlin')
+        expect(shiftIsoDate('2026-10-24', 2)).toBe('2026-10-26')
+        readingFrom('Pacific/Auckland')
+        expect(shiftIsoDate('2026-03-28', 2)).toBe('2026-03-30')
     })
 })
 

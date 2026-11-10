@@ -5,9 +5,8 @@
  */
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
+import StartTile from '@/components/start/StartTile.vue'
+import StartTileSection from '@/components/start/StartTileSection.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {TemplateDetail} from '@/api/generated/schema'
 import {StationUserTypeLabels} from '@/api/types'
@@ -41,37 +40,23 @@ function enteredNames(template: TemplateDetail): string[] {
 </script>
 
 <template>
-  <div class="space-y-3">
-    <SubHeader>{{ t('attendanceNew.fromTemplate') }}</SubHeader>
-    <MutedText v-if="props.templates.length === 0" tag="div" size="sm" class="py-2">
-      {{ t('attendanceNew.noTemplates') }}
-    </MutedText>
-    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <NeutralContainer v-for="tpl in props.templates" :key="tpl.id"
-                        :data-testid="`attendance-template-${tpl.id}`"
-                        class="cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all"
-                        @click="emit('select', tpl.id)">
-        <div class="space-y-2">
-          <div class="flex items-center justify-between gap-2">
-            <span class="font-medium">{{ tpl.name }}</span>
-            <PrimaryButton :icon="['fas', 'plus']">
-              {{ t('attendanceNew.create') }}
-            </PrimaryButton>
-          </div>
+  <StartTileSection :title="t('attendanceNew.fromTemplate')"
+                    :empty-note="props.templates.length === 0 ? t('attendanceNew.noTemplates') : null">
+    <StartTile v-for="tpl in props.templates" :key="tpl.id"
+               :data-testid="`attendance-template-${tpl.id}`"
+               :title="tpl.name" :button-label="t('attendanceNew.create')"
+               @start="emit('select', tpl.id)">
+      <MutedText tag="p" size="sm">
+        {{ enteredNames(tpl).length > 0
+          ? t('attendanceNew.entersGroups', {groups: enteredNames(tpl).join(', ')})
+          : t('attendanceNew.entersNobody') }}
+      </MutedText>
 
-          <MutedText tag="p" size="sm">
-            {{ enteredNames(tpl).length > 0
-              ? t('attendanceNew.entersGroups', {groups: enteredNames(tpl).join(', ')})
-              : t('attendanceNew.entersNobody') }}
-          </MutedText>
-
-          <MutedText tag="p" size="sm">
-            {{ fieldNames(tpl).length > 0
-              ? t('attendanceNew.asksFor', {fields: fieldNames(tpl).join(', ')})
-              : t('attendanceNew.asksNothing') }}
-          </MutedText>
-        </div>
-      </NeutralContainer>
-    </div>
-  </div>
+      <MutedText tag="p" size="sm">
+        {{ fieldNames(tpl).length > 0
+          ? t('attendanceNew.asksFor', {fields: fieldNames(tpl).join(', ')})
+          : t('attendanceNew.asksNothing') }}
+      </MutedText>
+    </StartTile>
+  </StartTileSection>
 </template>

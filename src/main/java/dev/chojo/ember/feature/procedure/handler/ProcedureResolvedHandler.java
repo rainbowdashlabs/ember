@@ -38,7 +38,7 @@ public class ProcedureResolvedHandler implements DomainEventHandler<ProcedureRes
                 new NotificationParams.ProcedureResolvedParams(event.procedureName()),
                 new NotificationData.NotificationLink("procedure-detail", Map.of("id", event.procedureId())));
         notifier.notify(
-                StationAudience.members(event.assigneeMemberIds()).except(event.resolvedByMemberId()),
+                StationAudience.members(event.partyMemberIds()).except(event.resolvedByMemberId()),
                 NotificationType.PROCEDURE_RESOLVED,
                 data,
                 Delivery.ONCE_WHILE_UNREAD);

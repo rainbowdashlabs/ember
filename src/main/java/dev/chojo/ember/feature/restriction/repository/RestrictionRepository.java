@@ -197,6 +197,34 @@ public class RestrictionRepository {
                 .all();
     }
 
+    /**
+     * Whether every group, tag and member a selection names belongs to one station, so an audience never
+     * reaches across stations.
+     *
+     * @param stationId the station
+     * @param groupIds  the groups named
+     * @param tagIds    the tags named
+     * @param memberIds the members named
+     * @return whether all of them are the station's own
+     */
+    public boolean allOfStation(
+            int stationId, Collection<Integer> groupIds, Collection<Integer> tagIds, Collection<Integer> memberIds) {
+        return countAt("member_group", stationId, groupIds)
+                        == Set.copyOf(groupIds).size()
+                && countAt("user_tag", stationId, tagIds) == Set.copyOf(tagIds).size()
+                && countAt("station_member", stationId, memberIds)
+                        == Set.copyOf(memberIds).size();
+    }
+
+    private static int countAt(String table, int stationId, Collection<Integer> ids) {
+        if (ids.isEmpty()) return 0;
+        return query("SELECT count(*) AS found FROM %s WHERE station_id = :station_id AND id = ANY(:ids);", table)
+                .single(call().bind("station_id", stationId).bind("ids", List.copyOf(ids), PostgreSqlTypes.INTEGER))
+                .map(row -> row.getInt("found"))
+                .first()
+                .orElse(0);
+    }
+
     private static RestrictionMember identityOf(Row row) throws SQLException {
         return new RestrictionMember(
                 row.getInt("id"),

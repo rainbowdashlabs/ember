@@ -6,6 +6,7 @@
 import type {CommentResponse, MemberCompletion} from '@/api/generated/schema'
 import type {PitchBoard} from './pitchTypes'
 import {pitchIdentity} from './pitchMembers'
+import {toIsoDate} from '@/util/format'
 
 /**
  * The board a demonstration shows. It is fed to the application's own board components, so every
@@ -21,7 +22,7 @@ function daysAgo(days: number): string {
 function inDays(days: number): string {
     const date = new Date()
     date.setDate(date.getDate() + days)
-    return date.toISOString().slice(0, 10)
+    return toIsoDate(date)
 }
 
 const ANNA = pitchIdentity('Anna Müller', 'm-anna')

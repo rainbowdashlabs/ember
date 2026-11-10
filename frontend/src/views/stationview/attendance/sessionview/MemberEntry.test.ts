@@ -5,10 +5,13 @@
  */
 /** @vitest-environment happy-dom */
 import {mount} from '@vue/test-utils'
-import {describe, expect, it} from 'vitest'
+import {describe, expect, it, vi} from 'vitest'
+import {ref} from 'vue'
 import MemberEntry from './MemberEntry.vue'
 import type {MemberNotes, MemberWithName, SwapNote} from '@/api/generated/schema'
 import {createMember} from '@/test/mocks/factories'
+
+vi.mock('@/composables/useSession', () => ({useSession: () => ({stationTimezone: ref('Europe/Berlin')})}))
 
 /**
  * What a row of the sheet gives away about a member before anybody asks.
@@ -22,8 +25,8 @@ const harness = {
     },
 }
 
-function member(): MemberWithName {
-    return createMember({id: 1, name: 'Max Hoffmann', firstName: 'Max', lastName: 'Hoffmann'})
+function member(overrides: Partial<MemberWithName> = {}): MemberWithName {
+    return createMember({id: 1, name: 'Max Hoffmann', firstName: 'Max', lastName: 'Hoffmann', ...overrides})
 }
 
 function swap(overrides: Partial<SwapNote> = {}): SwapNote {
@@ -80,5 +83,36 @@ describe('MemberEntry', () => {
         const wrapper = row(notes({birthdayDaysAgo: 0}))
 
         expect(wrapper.find('[data-testid="member-notes-toggle"]').text()).toContain('Hinweis')
+    })
+
+    /**
+     * A sheet that starts half an hour after midnight at the station is stored on the day before
+     * in UTC. A member who joined that day was there, as the server counts it.
+     */
+    it('offers a member who joined on the day the sheet starts at the station', () => {
+        const wrapper = mount(MemberEntry, {
+            props: {
+                member: member({joinDate: '2026-11-11'}),
+                memberName: 'Hoffmann',
+                sessionStart: '2026-11-10T23:30:00Z',
+            },
+            ...harness,
+        })
+
+        expect(wrapper.text()).not.toContain('beigetreten')
+        expect(wrapper.findComponent({name: 'MemberEntryStatusButtons'}).exists()).toBe(true)
+    })
+
+    it('offers nothing for a member who joined after the day the sheet starts at the station', () => {
+        const wrapper = mount(MemberEntry, {
+            props: {
+                member: member({joinDate: '2026-11-12'}),
+                memberName: 'Hoffmann',
+                sessionStart: '2026-11-10T23:30:00Z',
+            },
+            ...harness,
+        })
+
+        expect(wrapper.findComponent({name: 'MemberEntryStatusButtons'}).exists()).toBe(false)
     })
 })

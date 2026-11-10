@@ -275,9 +275,8 @@ public class AppointmentDocumentService {
      * @param manages  whether the reader manages the registrations of the station
      */
     void requireMayHandIn(StationSession session, StationEvent event, LocalDate date, int memberId, boolean manages) {
-        boolean ofTheStation = members.findById(memberId)
-                .filter(member -> member.stationId() == event.stationId() && !member.former())
-                .isPresent();
+        boolean ofTheStation =
+                members.findCurrentAt(event.stationId(), memberId).isPresent();
         boolean actsFor = manages || guardians.mayActFor(session.user(), memberId);
         if (!ofTheStation || !actsFor || !takesPart(event, date, memberId)) {
             throw DocumentRefusal.DOCUMENT_REQUIREMENT_NOT_YOURS.raise();

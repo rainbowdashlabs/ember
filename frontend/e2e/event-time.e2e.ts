@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect, apiHeaders, type Page} from './fixtures/auth'
+import {STATION_TIMEZONE, stationMoment} from './fixtures/stationDay'
 
 async function makeAppointment(page: Page, headers: Record<string, string>, name: string, start: Date) {
     const created = await page.request.post('/api/v1/events', {
@@ -30,8 +31,7 @@ test.describe('The time of an appointment', () => {
     test('reads the same on the list of what is coming up and on the appointment itself',
         async ({managerPage: page}) => {
             const headers = await apiHeaders(page)
-            const start = new Date(Date.now() + 9 * 86400000)
-            start.setHours(19, 30, 0, 0)
+            const start = stationMoment(9, 19, 30)
             const name = `Uhrzeitprobe ${test.info().workerIndex}-${Date.now()}`
             const eventId = await makeAppointment(page, headers, name, start)
 
@@ -59,15 +59,15 @@ test.describe('The time of an appointment', () => {
     test('names the day it falls on even when that day has not started in London yet',
         async ({managerPage: page}) => {
             const headers = await apiHeaders(page)
-            const start = new Date(Date.now() + 9 * 86400000)
-            start.setHours(0, 30, 0, 0)
+            const start = stationMoment(9, 0, 30)
             const name = `Mitternachtsprobe ${test.info().workerIndex}-${Date.now()}`
             const eventId = await makeAppointment(page, headers, name, start)
 
             await page.goto(`/station/events/${eventId}`)
             const shown = await page.getByTestId('event-start').innerText()
 
-            const expected = start.toLocaleDateString('de-DE', {day: '2-digit', month: '2-digit', year: 'numeric'})
+            const expected = start.toLocaleDateString('de-DE',
+                {day: '2-digit', month: '2-digit', year: 'numeric', timeZone: STATION_TIMEZONE})
             expect(shown, 'the day and the clock are read off one and the same moment').toContain(expected)
             expect(shown).toContain('00:30')
 
@@ -81,8 +81,7 @@ test.describe('The time of an appointment', () => {
      */
     test('cannot end before it begins', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
-        const start = new Date(Date.now() + 9 * 86400000)
-        start.setHours(19, 30, 0, 0)
+        const start = stationMoment(9, 19, 30)
 
         const refused = await page.request.post('/api/v1/events', {
             headers,

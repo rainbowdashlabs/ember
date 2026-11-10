@@ -152,7 +152,13 @@ public final class RestrictionSql {
                         memberIdExpression);
     }
 
-    private static String existsRestriction(RestrictionType type, String entityIdExpression) {
+    /**
+     * A predicate matching only entities that carry at least one restriction.
+     *
+     * @param type               the restricted entity type
+     * @param entityIdExpression the SQL expression yielding the entity ID, e.g. {@code p.id}
+     */
+    public static String existsRestriction(RestrictionType type, String entityIdExpression) {
         return "EXISTS(SELECT 1 FROM %s r WHERE r.%s = %s)"
                 .formatted(type.table(), type.fkColumn(), entityIdExpression);
     }

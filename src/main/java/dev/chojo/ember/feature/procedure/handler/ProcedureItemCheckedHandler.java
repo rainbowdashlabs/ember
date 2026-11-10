@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.procedure.handler;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.ProcedureItemChecked;
-import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
@@ -38,16 +37,13 @@ public class ProcedureItemCheckedHandler implements DomainEventHandler<Procedure
 
     @Override
     public void handle(ProcedureItemChecked event) {
-        String checkedByName = stationMemberRepository
-                .findById(event.checkedByMemberId())
-                .map(StationMember::displayName)
-                .orElse("?");
+        String checkedByName = stationMemberRepository.displayNameOr(event.checkedByMemberId(), "?");
         var data = NotificationData.of(
                 new NotificationParams.ProcedureItemCheckedParams(
                         event.procedureName(), event.itemTitle(), checkedByName),
                 new NotificationData.NotificationLink("procedure-detail", Map.of("id", event.procedureId())));
         notifier.notify(
-                StationAudience.members(event.assigneeMemberIds()).except(event.checkedByMemberId()),
+                StationAudience.members(event.partyMemberIds()).except(event.checkedByMemberId()),
                 NotificationType.PROCEDURE_ITEM_CHECKED,
                 data,
                 Delivery.ONCE_WHILE_UNREAD);

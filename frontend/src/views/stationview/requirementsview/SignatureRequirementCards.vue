@@ -12,18 +12,24 @@ import type {SignatureItem} from '@/api/generated/schema'
 
 /**
  * The documents waiting for the reader's signature, each opening the signing screen for its field.
- * Whose document it is shows only where it is not the reader's own. Where more than one waits, one action
- * above them signs them all in one go.
+ * Whose document it is shows only where it is not the reader's own, and the procedure it is asked for where
+ * one asks. Where more than one waits, one action above them signs them all in one go.
  */
 defineProps<{signatures: SignatureItem[]}>()
 
 const {t} = useI18n()
 const router = useRouter()
 
+/**
+ * Who is asked to sign, and for whom. A guardian can meet the same document twice: once for a member in
+ * their care who signs through the guardian's account, once for their own consent as guardian.
+ */
 function textOf(signature: SignatureItem): string {
-  return signature.memberName
-      ? t('requirements.signatureTextFor', {name: signature.memberName})
+  const text = signature.memberName
+      ? t(signature.capacity === 'GUARDIAN' ? 'requirements.signatureTextAsGuardian' : 'requirements.signatureTextFor',
+          {name: signature.memberName})
       : t('requirements.signatureText')
+  return signature.purpose ? `${text} ${t('requirements.signatureForProcedure', {procedure: signature.purpose})}` : text
 }
 </script>
 
