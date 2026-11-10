@@ -84,7 +84,7 @@
     "jsdom": "^30.0.1",
     "jsonc-eslint-parser": "^3.0.0",
     "openapi-typescript": "^7.13.0",
-    "typescript": "~7.0.0",
+    "typescript": "~6.0.2",
     "vite": "^8.0.10",
     "vitest": "^5.0.0",
     "vue-eslint-parser": "^10.4.1",
