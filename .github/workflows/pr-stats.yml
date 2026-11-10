@@ -1,0 +1,110 @@
+name: Pull Request Stats
+
+# Keeps one comment on every pull request that counts the lines it adds and removes, split into
+# frontend and backend logic, tests, localisation and generated files, and edits that comment on
+# every push instead of adding a new one. It only reads the list of changed files through the API
+# and never checks out the pull request's code. Pull requests from forks are skipped, because their
+# token may not write comments.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: pr-stats-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  stats:
+    name: Count the changed lines
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post or update the stats comment
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const MARKER = '<!-- pr-stats -->'
+            const AREAS = [
+              ['generated', 'Generated', f => f.startsWith('frontend/src/api/generated/')
+                || f === 'src/main/resources/api/openapi.json'
+                || f === 'src/main/resources/data_tracking.json'],
+              ['feI18n', 'Frontend localisation', f => f.startsWith('frontend/src/i18n/')],
+              ['beI18n', 'Backend localisation', f => f.startsWith('src/main/resources/i18n/')],
+              ['feTests', 'Frontend tests', f => f.startsWith('frontend/e2e/')
+                || (f.startsWith('frontend/') && /\.(test|spec)\.[cm]?[jt]s$/.test(f))],
+              ['feLogic', 'Frontend logic', f => f.startsWith('frontend/src/')],
+              ['feOther', 'Frontend other', f => f.startsWith('frontend/')],
+              ['beTests', 'Backend tests', f => f.startsWith('src/test/')],
+              ['beLogic', 'Backend logic', f => f.startsWith('src/main/java/')],
+              ['beOther', 'Backend other', f => f.startsWith('src/') || f.startsWith('buildSrc/')
+                || f.startsWith('gradle/') || /^(build|settings)\.gradle\.kts$/.test(f)],
+              ['other', 'Other', () => true],
+            ]
+            const GROUPS = [
+              ['Frontend logic', ['feLogic']],
+              ['Backend logic', ['beLogic']],
+              ['Localisation', ['feI18n', 'beI18n']],
+              ['Frontend', ['feLogic', 'feTests', 'feI18n', 'feOther']],
+              ['Backend', ['beLogic', 'beTests', 'beI18n', 'beOther']],
+            ]
+
+            const {owner, repo} = context.repo
+            const number = context.payload.pull_request.number
+            const files = await github.paginate(github.rest.pulls.listFiles,
+              {owner, repo, pull_number: number, per_page: 100})
+
+            const sums = Object.fromEntries(AREAS.map(([key]) => [key, {files: 0, added: 0, removed: 0}]))
+            for (const file of files) {
+              const [key] = AREAS.find(([, , matches]) => matches(file.filename))
+              sums[key].files += 1
+              sums[key].added += file.additions
+              sums[key].removed += file.deletions
+            }
+            const total = keys => keys.reduce((sum, key) => ({
+              files: sum.files + sums[key].files,
+              added: sum.added + sums[key].added,
+              removed: sum.removed + sums[key].removed,
+            }), {files: 0, added: 0, removed: 0})
+
+            const fmt = n => n.toLocaleString('en-US')
+            const net = s => (s.added - s.removed >= 0 ? '+' : '') + fmt(s.added - s.removed)
+            const row = (label, s, bold = false) => {
+              const cells = [label, fmt(s.files), '+' + fmt(s.added), '-' + fmt(s.removed), net(s)]
+              return '| ' + (bold ? cells.map(c => `**${c}**`) : cells).join(' | ') + ' |'
+            }
+            const head = ['| Area | Files | Added | Removed | Net |', '|---|---:|---:|---:|---:|']
+
+            const areas = AREAS.filter(([key]) => sums[key].files > 0)
+                .map(([key, label]) => row(label, sums[key]))
+            const groups = GROUPS.map(([label, keys]) => row(label, total(keys)))
+            const all = row('Total', total(AREAS.map(([key]) => key)), true)
+            const capped = files.length >= 3000
+                ? '\n> The API lists at most 3000 files, so this pull request is counted only in part.\n'
+                : ''
+
+            const body = [
+              MARKER,
+              '### Pull request stats',
+              '',
+              ...head, ...groups, all,
+              '',
+              '<details><summary>By area</summary>',
+              '',
+              ...head, ...areas,
+              '',
+              '</details>',
+              capped,
+              `<sub>Updated for ${context.payload.pull_request.head.sha.slice(0, 9)}.</sub>`,
+            ].join('\n')
+
+            const comments = await github.paginate(github.rest.issues.listComments,
+              {owner, repo, issue_number: number, per_page: 100})
+            const mine = comments.find(c => c.user.type === 'Bot' && c.body.startsWith(MARKER))
+            if (mine) {
+              await github.rest.issues.updateComment({owner, repo, comment_id: mine.id, body})
+            } else {
+              await github.rest.issues.createComment({owner, repo, issue_number: number, body})
+            }
