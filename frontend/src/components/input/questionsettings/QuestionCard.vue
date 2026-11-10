@@ -58,7 +58,7 @@ const {t} = useI18n()
 
 <template>
   <div class="rounded border border-(--border) p-3 space-y-3">
-    <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-end">
+    <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-start">
       <LabelledField :label="nameLabel">
         <TextInput :model-value="name" :placeholder="namePlaceholder" data-testid="question-name"
                    @update:model-value="value => name = String(value ?? '')"/>
@@ -67,7 +67,7 @@ const {t} = useI18n()
         <FieldTypePicker :model-value="fieldType" :types="types" :describe="describe"
                          data-testid="question-type" @update:model-value="type => fieldType = type"/>
       </LabelledField>
-      <DeleteButton class="justify-self-end" :label="t('common.delete')" @click="emit('remove')"/>
+      <DeleteButton class="justify-self-end sm:mt-7" :label="t('common.delete')" @click="emit('remove')"/>
     </div>
 
     <QuestionSettingsEditor
