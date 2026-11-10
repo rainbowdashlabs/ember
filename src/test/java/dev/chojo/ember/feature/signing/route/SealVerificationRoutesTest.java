@@ -344,10 +344,33 @@ class SealVerificationRoutesTest extends RepositoryTestBase {
         long tooLarge = SealVerifier.MAX_BYTES + 2L * PublicSigningRoutes.FORM_ALLOWANCE_BYTES;
 
         assertRefused(
-                harness.request(
-                        client -> client.request(VERIFY, TestUploads.streamedChunkedMultipart(FILE_NAME, tooLarge))),
+                refusedWhileSending(TestUploads.streamedChunkedMultipart(FILE_NAME, tooLarge)),
                 413,
                 DocumentRefusal.SEAL_CHECK_TOO_LARGE);
+    }
+
+    /**
+     * The answer to an upload the server refuses while it is still being sent. The server answers and
+     * closes the connection with the rest of the body on its way; now and then the client meets the
+     * closed connection before it has read the answer and reports one without an answer. That says
+     * nothing about the server, so the upload is sent again, at most three times, and every answer that
+     * does arrive is checked as it is.
+     */
+    private Response refusedWhileSending(Consumer<Request.Builder> upload) {
+        for (int attempt = 1; ; attempt++) {
+            try {
+                return harness.request(client -> client.request(VERIFY, upload));
+            } catch (Exception e) {
+                if (attempt == 3 || !lostTheAnswer(e)) throw e;
+            }
+        }
+    }
+
+    private static boolean lostTheAnswer(Throwable failure) {
+        for (var cause = failure; cause != null; cause = cause.getCause()) {
+            if (cause instanceof IOException) return true;
+        }
+        return false;
     }
 
     @Test
