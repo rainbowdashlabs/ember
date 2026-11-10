@@ -5,6 +5,7 @@
  */
 import type {APIRequestContext} from '@playwright/test'
 import {test, expect, apiHeaders} from './fixtures/auth'
+import {stationDay} from './fixtures/stationDay'
 
 /**
  * A table of people with the columns a station chose, on an appointment and on the register.
@@ -120,7 +121,7 @@ test.describe('A table of people', () => {
 
             const refused = await memberPage.request.post(`/api/v1/events/${eventId}/registration-table`, {
                 headers: await apiHeaders(memberPage),
-                data: {date: new Date(Date.now() + 10 * 86400000).toISOString().slice(0, 10), columns: []},
+                data: {date: stationDay(new Date(Date.now() + 10 * 86400000)), columns: []},
             })
             expect(refused.ok(), 'and asking for it outright is refused rather than answered thinly').toBeFalsy()
         } finally {

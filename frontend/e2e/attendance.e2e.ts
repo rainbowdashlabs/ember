@@ -7,6 +7,7 @@ import {statSync} from 'node:fs'
 import type {Locator} from '@playwright/test'
 import {test, expect, apiHeaders, type Page} from './fixtures/auth'
 import {unique} from './fixtures/unique'
+import {stationDay} from './fixtures/stationDay'
 import {ownMember} from './fixtures/ownMember'
 
 /**
@@ -461,7 +462,7 @@ test.describe('Attendance', () => {
         const found = await page.request
             .post('/api/v1/lost-and-found', {
                 headers,
-                data: {description, foundAt: new Date().toISOString().slice(0, 10)},
+                data: {description, foundAt: stationDay()},
             })
             .then(response => response.json())
         const claimed = await memberPage.request.post(`/api/v1/lost-and-found/${found.id}/claim`, {

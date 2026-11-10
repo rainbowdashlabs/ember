@@ -6,7 +6,7 @@
 import tsParser from '@typescript-eslint/parser'
 import {RuleTester} from 'eslint'
 import {builtinRules} from 'eslint/use-at-your-own-risk'
-import {GENERIC_FAILURE, INLINE_DATE_FORMAT, INLINE_STATE_TYPE, MUTABLE_IDENTITY, STORY_CASTING} from './restrictions.mjs'
+import {GENERIC_FAILURE, INLINE_DATE_FORMAT, INLINE_STATE_TYPE, MUTABLE_IDENTITY, STORY_CASTING, UTC_DAY_CUT} from './restrictions.mjs'
 
 /**
  * What each refused shape catches and what it leaves alone.
@@ -61,6 +61,19 @@ holds(INLINE_DATE_FORMAT, [
     "new Date(value).toLocaleDateString('de-DE')",
     'new Date(value).toLocaleTimeString()',
     "new Date(value).toLocaleString('de-DE', {day: '2-digit'})",
+])
+
+holds(UTC_DAY_CUT, [
+    'const sent = moment.toISOString()',
+    'const day = stationDayOf(moment, timezone)',
+    "const day = stored.slice(0, 10)",
+    "const parts = name.split('T')",
+], [
+    'const day = moment.toISOString().slice(0, 10)',
+    "const day = moment.toISOString().split('T')[0]",
+    'const day = moment.toISOString().substring(0, 10)',
+    'const day = new Date().toISOString().substr(0, 10)',
+    'const day = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)',
 ])
 
 holds(STORY_CASTING, [

@@ -9,6 +9,7 @@ import {proveFreshly} from './fixtures/auth'
 import {browserContextWith, demoSignIn} from './fixtures/session'
 import {signInOneGo} from './fixtures/signing'
 import {unique} from './fixtures/unique'
+import {stationDay} from './fixtures/stationDay'
 
 /**
  * A partner station's member signs the agreement of a shared appointment at their own station, on
@@ -124,7 +125,7 @@ async function sharedAppointmentAskingAgreement(
     expect(asked.ok(), `the appointment asks for the agreement (${await asked.text()})`).toBe(true)
     const shared = await owner.put(`/api/v1/events/${eventId}/federation`, {data: {scope: 'ALL_PARTNERS', partnerIds: []}})
     expect(shared.ok(), await shared.text()).toBe(true)
-    return {eventId, eventDate: start.toISOString().slice(0, 10), agreement: name}
+    return {eventId, eventDate: stationDay(start), agreement: name}
 }
 
 /**

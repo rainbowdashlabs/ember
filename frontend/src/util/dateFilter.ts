@@ -5,6 +5,7 @@
  */
 import {ageOn, endOfYear} from '@/util/age'
 import {DEFAULT_WARN_FROM_DAYS, expiryStateOf, FILTERABLE_EXPIRY_STATES, type ExpiryStateName} from '@/util/expiry'
+import {toIsoDate} from '@/util/format'
 
 /**
  * The token grammar a date column's filter set speaks.
@@ -106,9 +107,19 @@ export function joinDateTokens(tokens: DateFilterTokens): Set<string> {
     return set
 }
 
-/** The day part of whatever a date column stores, so a timestamp filters like its day. */
+const CALENDAR_DAY = /^\d{4}-\d{2}-\d{2}$/
+
+/**
+ * The day whatever a date column stores falls on, so a timestamp filters like its day.
+ *
+ * <p>A timestamp is read on the reader's clock, the one the column writes it out on. Its date part
+ * is the day in UTC, which in Berlin is the day before for anything stamped in the first hours
+ * after midnight.
+ */
 function dayOf(value: string): string {
-    return value.slice(0, 10)
+    if (CALENDAR_DAY.test(value)) return value
+    const moment = new Date(value)
+    return Number.isNaN(moment.getTime()) ? value : toIsoDate(moment)
 }
 
 function underPrefix(day: string, prefix: string): boolean {

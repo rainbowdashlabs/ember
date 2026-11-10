@@ -36,6 +36,8 @@ Die Anwesenheit kann Zeit vor und nach einem Termin gutschreiben, und der Berich
 ### Fehlerbehebungen
 
 - **Erziehungsberechtigte sehen, welche Unterschrift ihre ist.** Unterschreibt ein Kind über das Konto der erziehungsberechtigten Person, stand dasselbe Dokument bei den offenen Aufgaben zweimal mit gleichem Text. Die beiden Karten sagen jetzt, welche das Kind unterschreibt und welche die erziehungsberechtigte Person.
+- **Termine von Partnerwachen nach Mitternacht zeigten den Vortag.** In manchen Fällen stand ein Termin einer Partnerwache, der kurz nach Mitternacht beginnt, beim Tag davor, und das An- oder Abmelden konnte scheitern. Das Datum richtet sich jetzt nach der Uhr der Wache, wie bei den eigenen Terminen.
+- **Datumsfilter in Tabellen treffen den angezeigten Tag.** In manchen Fällen zeigte eine Tabelle einen Eintrag von kurz nach Mitternacht an einem Tag, während der Datumsfilter ihn dem Vortag zuordnete. Der Filter nimmt jetzt den Tag, den die Tabelle zeigt.
 
 ## v26.23.5
 

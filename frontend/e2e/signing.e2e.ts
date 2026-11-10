@@ -9,6 +9,7 @@ import {signInOneGo} from './fixtures/signing'
 import {cast} from './fixtures/cast'
 import {ownMember, type OwnMember} from './fixtures/ownMember'
 import {hydrated} from './fixtures/hydrated'
+import {stationDay} from './fixtures/stationDay'
 
 /**
  * Signing a document to bring, the way a guardian and a manager meet it: signing up a child ends on
@@ -74,7 +75,7 @@ async function appointment(manager: Page, withConsent = true): Promise<{eventId:
     expect(created.ok(), `the organiser made an appointment (${await created.text()})`).toBeTruthy()
     const eventId = (await created.json()).id as number
     if (withConsent) await askFor(manager, eventId)
-    return {eventId, date: start.toISOString().slice(0, 10)}
+    return {eventId, date: stationDay(start)}
 }
 
 async function askFor(manager: Page, eventId: number) {

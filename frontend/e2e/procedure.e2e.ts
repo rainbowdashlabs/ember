@@ -6,6 +6,7 @@
 import type {Page} from '@playwright/test'
 import {test, expect, apiHeaders} from './fixtures/auth'
 import {unique} from './fixtures/unique'
+import {stationDay} from './fixtures/stationDay'
 
 /**
  * A procedure of the story's own with one step in it, left open on its page - which is where
@@ -165,6 +166,8 @@ test.describe('Procedures', () => {
     test('a procedure is prepared for the people who are coming', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
         const appointment = unique('Ablaufabend')
+        const day = new Date(Date.now() + 27 * 86400000)
+        day.setUTCHours(12, 0, 0, 0)
 
         const created = await page.request.post('/api/v1/events', {
             headers,
@@ -172,8 +175,8 @@ test.describe('Procedures', () => {
                 name: appointment,
                 description: 'Vorbereitung aus den Anmeldungen',
                 eventType: 'ONE_TIME',
-                startTime: new Date(Date.now() + 27 * 86400000).toISOString(),
-                endTime: new Date(Date.now() + 27 * 86400000 + 3600000).toISOString(),
+                startTime: day.toISOString(),
+                endTime: new Date(day.getTime() + 3600000).toISOString(),
                 requiresRegistration: true,
             },
         })
@@ -209,7 +212,7 @@ test.describe('Procedures', () => {
         await page.getByTestId('signup-procedure-submit').click()
         await page.waitForURL(/\/station\/procedures$/)
 
-        const date = new Date(Date.now() + 27 * 86400000).toISOString().slice(0, 10)
+        const date = stationDay(day)
         const prepared = await page.request.get(`/api/v1/procedures/for-event/${eventId}?date=${date}`, {headers})
         expect(prepared.ok(), `the procedures read back (${await prepared.text()})`).toBeTruthy()
         const made: {id: number; name: string; aboutMemberId: number; isPublic: boolean}[] = await prepared.json()

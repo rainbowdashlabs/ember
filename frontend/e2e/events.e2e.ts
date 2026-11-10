@@ -5,6 +5,7 @@
  */
 import {test, expect, apiHeaders, type Page} from './fixtures/auth'
 import {pickMemberByName} from './fixtures/memberMenu'
+import {stationDay} from './fixtures/stationDay'
 
 /**
  * Registering for an event, withdrawing again, and the organiser's view of who has signed up.
@@ -74,7 +75,7 @@ async function weeklyAppointment(page: Page, name: string) {
 
     return {
         id,
-        dateAfterWeeks: (weeks: number) => new Date(start.getTime() + weeks * week).toISOString().slice(0, 10),
+        dateAfterWeeks: (weeks: number) => stationDay(new Date(start.getTime() + weeks * week)),
         remove: () => page.request.delete(`/api/v1/events/${id}`, {headers}),
     }
 }

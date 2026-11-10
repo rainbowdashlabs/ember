@@ -36,6 +36,8 @@ Attendance can credit time spent before and after an appointment, and the report
 ### Fixes
 
 - **Guardians see which signature is theirs.** A guardian whose child signs through the guardian's account saw the same document twice on the open tasks page, with the same text. The two cards now say which one the child signs and which one the guardian signs as guardian.
+- **Partner appointments after midnight showed the day before.** In some cases, an appointment of a partner station that starts shortly after midnight was listed under the previous day, and signing up for it or withdrawing could fail. The date now follows the station's clock, as it does for the station's own appointments.
+- **Table date filters match the shown day.** In some cases, an entry made shortly after midnight showed one day in a table while its date filter counted it under the day before. The filter now uses the day the table shows.
 
 ## v26.23.5
 

@@ -14,7 +14,8 @@ import ProseExcerpt from '@/components/display/ProseExcerpt.vue'
 import EventHeadline from '@/views/stationview/events/eventshared/EventHeadline.vue'
 import EventRegistrationActions from '@/views/stationview/events/eventshared/EventRegistrationActions.vue'
 import type {FederatedEventItem, RemoteMemberRegistration} from '@/api/generated/schema'
-import {formatTime} from '@/util/format'
+import {formatTime, stationDayOf} from '@/util/format'
+import {useSession} from '@/composables/useSession'
 import {renderMarkdown} from '@/util/markdown'
 import type {AnswerablePerson, GivenAnswer} from '@/util/eventAnswers'
 
@@ -31,6 +32,7 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+const {stationTimezone} = useSession()
 
 /**
  * What the household has answered about the partner's appointment.
@@ -55,13 +57,16 @@ const answers = computed((): GivenAnswer<string, string>[] => {
 })
 
 /**
- * The day the partner's appointment falls on, taken off its start.
+ * The day the partner's appointment falls on, taken off its start on this station's clock.
  *
  * <p>A federated appointment carries an instant rather than the occurrence dates a local one is
  * expanded into, so the tile reads the date out of it and shows the same line every other
- * appointment in the list shows.
+ * appointment in the list shows. It is the same day a registration for it is filed under.
  */
-const occurrenceDate = computed(() => props.fed.event.startTime.slice(0, 10))
+const occurrenceDate = computed(() => {
+  const start = props.fed.event.startTime
+  return start ? stationDayOf(new Date(start), stationTimezone.value) : ''
+})
 
 /** Where the partner's own page for this appointment lives. */
 const detailRoute = computed(() => ({

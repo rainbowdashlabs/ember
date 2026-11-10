@@ -255,7 +255,30 @@ export function instantToDate(iso?: string | null): string {
     if (!iso) return ''
     const parsed = new Date(iso)
     if (Number.isNaN(parsed.getTime())) return ''
-    return parsed.toISOString().slice(0, 10)
+    return utcDayOf(parsed)
+}
+
+/**
+ * The calendar date a moment falls on in UTC, as `yyyy-MM-dd`.
+ *
+ * <p>Only right where the moment was made at midnight UTC to stand for a day, as calendar
+ * arithmetic and {@link dateToInstant} do. For the day something happens on, ask
+ * {@link stationDayOf} or {@link toIsoDate}: between ten and midnight UTC the day in Berlin is
+ * already the next one.
+ */
+export function utcDayOf(moment: Date): string {
+    return `${String(moment.getUTCFullYear()).padStart(4, '0')}-${pad2(moment.getUTCMonth() + 1)}-${pad2(moment.getUTCDate())}`
+}
+
+/**
+ * A calendar date moved by a number of days, both as `yyyy-MM-dd`. Negative days move it back.
+ *
+ * <p>Counted on the calendar alone, so a change to or from summer time in between moves nothing.
+ */
+export function shiftIsoDate(date: string, days: number): string {
+    const day = new Date(`${date}T00:00:00Z`)
+    day.setUTCDate(day.getUTCDate() + days)
+    return utcDayOf(day)
 }
 
 /**

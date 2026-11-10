@@ -10,6 +10,7 @@ import {
     type QuestionLimits,
     type TemplateQuestion,
 } from '@/api/generated/schema'
+import {shiftIsoDate} from '@/util/format'
 
 /** Limits that limit nothing, which a new question and a question of a changed kind start from. */
 export const NO_LIMITS: QuestionLimits = {
@@ -54,15 +55,7 @@ export function dayOf(bound: DayBound | null, today: string): string | null {
     if (!bound) return null
     if (bound.day) return bound.day
     if (bound.fromToday === null) return null
-    const day = new Date(`${today}T00:00:00Z`)
-    day.setUTCDate(day.getUTCDate() + bound.fromToday)
-    return day.toISOString().slice(0, 10)
-}
-
-/** Today in the reader's calendar, as an ISO date. */
-export function todayIso(): string {
-    const now = new Date()
-    return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10)
+    return shiftIsoDate(today, bound.fromToday)
 }
 
 /**

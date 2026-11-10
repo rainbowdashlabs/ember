@@ -30,7 +30,7 @@ import {describeFailure, type Failure} from '@/util/failure'
 import {getFeedStatus} from '@/api/feedToken'
 import {useConfirmAction} from '@/composables/useConfirmAction'
 import {useSession} from '@/composables/useSession'
-import {toIsoDate, todayIsoDate, weekdayName} from '@/util/format'
+import {toIsoDate, todayIsoDate, utcDayOf, weekdayName} from '@/util/format'
 import {answerableMembers, isMembersAnswer} from '@/util/eventAnswers'
 
 const emit = defineEmits<{
@@ -107,7 +107,7 @@ const upcomingEvents = computed((): UpcomingEvent[] => {
 
   for (let offset = 0; offset <= 14; offset++) {
     const date = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + offset))
-    const dateStr = date.toISOString().slice(0, 10)
+    const dateStr = utcDayOf(date)
     const dow = date.getUTCDay() === 0 ? 7 : date.getUTCDay()
     const dayOfMonth = date.getUTCDate()
     const month = date.getUTCMonth()
