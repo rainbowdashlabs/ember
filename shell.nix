@@ -2,8 +2,8 @@
 
 let
   playwrightPkgs = import (fetchTarball {
-    url = "https://github.com/NixOS/nixpkgs/archive/c59305bab2065cfecc4944690d9eedbb56f3a9fa.tar.gz";
-    sha256 = "16rsfnnxk6294sz6asx0shblirkhm4yyvkimq3v00c0y2114gp7b";
+    url = "https://github.com/NixOS/nixpkgs/archive/ed3ab557c98d46c3678089994f39e6c649d19315.tar.gz";
+    sha256 = "0wqcs14j043mqgch8byfs1mcyl6wrzh834bsh08w4r2z91kv9xkx";
   }) {};
 in
 pkgs.mkShell {
