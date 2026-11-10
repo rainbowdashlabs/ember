@@ -9,14 +9,19 @@ const MARKER = '<!-- pr-stats -->'
 /** The API lists at most this many files of a pull request. */
 const FILE_LIMIT = 3000
 
+/** Files a tool writes: a generated folder, a .generated. file, the API spec and the schema tracking. */
+const GENERATED_FILES = ['src/main/resources/api/openapi.json', 'src/main/resources/data_tracking.json']
+
+function isGenerated(path) {
+    return /(^|\/)generated\//.test(path) || /\.generated\./.test(path) || GENERATED_FILES.includes(path)
+}
+
 /**
  * Where a changed file belongs. The first area whose test matches wins, so generated files and
  * localisation are taken out before the broader frontend and backend areas.
  */
 const AREAS = [
-    {key: 'generated', label: 'Generated', matches: f => f.startsWith('frontend/src/api/generated/')
-        || f === 'src/main/resources/api/openapi.json'
-        || f === 'src/main/resources/data_tracking.json'},
+    {key: 'generated', label: 'Generated', matches: isGenerated},
     {key: 'feI18n', label: 'Frontend localisation', matches: f => f.startsWith('frontend/src/i18n/')},
     {key: 'beI18n', label: 'Backend localisation', matches: f => f.startsWith('src/main/resources/i18n/')},
     {key: 'feTests', label: 'Frontend tests', matches: f => f.startsWith('frontend/e2e/')
@@ -29,6 +34,9 @@ const AREAS = [
         || f.startsWith('gradle/') || /^(build|settings)\.gradle\.kts$/.test(f)},
     {key: 'other', label: 'Other', matches: () => true},
 ]
+
+/** The areas that are counted; generated files are shown apart, as nobody wrote them. */
+const COUNTED = AREAS.map(area => area.key).filter(key => key !== 'generated')
 
 /** The rows of the main table, each summing one or more areas. */
 const SUMMARY = [
@@ -183,7 +191,8 @@ function render(sums, kinds, fileCount, headSha) {
         '',
         ...table([
             ...SUMMARY.map(line => row(line.label, total(sums, line.areas))),
-            row('Total', total(sums, AREAS.map(area => area.key)), true),
+            row('Total', total(sums, COUNTED), true),
+            row('Generated (not counted)', sums.generated),
         ]),
         '',
         '<details><summary>By area</summary>',
