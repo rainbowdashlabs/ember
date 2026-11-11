@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.system.entity.ProblemLevel;
 import dev.chojo.ember.feature.system.entity.ProblemOccurrence;
 import dev.chojo.ember.feature.system.entity.ProblemRecord;
 import dev.chojo.ember.feature.system.entity.ProblemState;
+import dev.chojo.ember.feature.system.entity.StoredProblem;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.Test;
 
@@ -207,7 +208,7 @@ class ProblemLogRepositoryTest extends RepositoryTestBase {
         String fp = fingerprint();
         var created = problems.record(record(fp, ProblemLevel.ERROR, List.of("x"), Instant.now()));
         int admin = accountRepo.create(fp + "@problems.test", "Ada", "Admin").id();
-        assertTrue(problems.setState(created.id(), ProblemState.RESOLVED, admin));
+        assertTrue(problems.setState(created.id(), Set.of(ProblemState.OPEN), ProblemState.RESOLVED, admin));
 
         var again = problems.record(record(fp, ProblemLevel.ERROR, List.of("x"), Instant.now()));
 
@@ -217,7 +218,9 @@ class ProblemLogRepositoryTest extends RepositoryTestBase {
         var stored = problems.find(created.id()).orElseThrow();
         assertEquals(1, stored.reopenedCount());
         assertTrue(stored.stateChangedAt() != null, "coming back is a change of state");
-        assertFalse(problems.setState(Long.MAX_VALUE, ProblemState.RESOLVED, admin), "nothing to change");
+        assertFalse(
+                problems.setState(Long.MAX_VALUE, Set.of(ProblemState.OPEN), ProblemState.RESOLVED, admin),
+                "nothing to change");
     }
 
     @Test
@@ -225,7 +228,7 @@ class ProblemLogRepositoryTest extends RepositoryTestBase {
         String fp = fingerprint();
         var created = problems.record(record(fp, ProblemLevel.WARN, List.of("noise"), Instant.now()));
         int admin = accountRepo.create(fp + "@problems.test", "Ada", "Admin").id();
-        problems.setState(created.id(), ProblemState.MUTED, admin);
+        problems.setState(created.id(), Set.of(ProblemState.OPEN), ProblemState.MUTED, admin);
 
         var again = problems.record(record(fp, ProblemLevel.WARN, List.of("noise"), Instant.now()));
 
@@ -278,11 +281,11 @@ class ProblemLogRepositoryTest extends RepositoryTestBase {
         int admin = accountRepo
                 .create(fingerprint() + "@problems.test", "Ada", "Admin")
                 .id();
-        problems.setState(older.id(), ProblemState.MUTED, admin);
+        problems.setState(older.id(), Set.of(ProblemState.OPEN), ProblemState.MUTED, admin);
 
-        var muted = problems.list(Set.of(ProblemState.MUTED));
-        var all = problems.list(Set.of());
-        var openOrMuted = problems.list(Set.of(ProblemState.OPEN, ProblemState.MUTED));
+        var muted = problems.list(Set.of(ProblemState.MUTED), false);
+        var all = problems.list(Set.of(), false);
+        var openOrMuted = problems.list(Set.of(ProblemState.OPEN, ProblemState.MUTED), false);
 
         assertTrue(openOrMuted.stream().anyMatch(p -> p.id() == older.id()));
         assertTrue(openOrMuted.stream().anyMatch(p -> p.id() == newer.id()));
@@ -320,11 +323,52 @@ class ProblemLogRepositoryTest extends RepositoryTestBase {
     void anAdministratorWhoLeavesLeavesTheStateBehind() {
         var created = problems.record(record(fingerprint(), ProblemLevel.ERROR, List.of("x"), Instant.now()));
         var admin = accountRepo.create(fingerprint() + "@problems.test", "Ada", "Admin");
-        problems.setState(created.id(), ProblemState.RESOLVED, admin.id());
+        problems.setState(created.id(), Set.of(ProblemState.OPEN), ProblemState.RESOLVED, admin.id());
 
         accountRepo.delete(admin.id());
 
         assertEquals(
                 ProblemState.RESOLVED, problems.find(created.id()).orElseThrow().state());
+    }
+
+    @Test
+    void refusalsAreListedApartTheMostFrequentFirst() {
+        var fault = problems.record(record(fingerprint(), ProblemLevel.WARN, List.of("f"), Instant.now()));
+        var rare = problems.record(record(fingerprint(), ProblemLevel.REFUSAL, List.of("r"), Instant.now()));
+        var often = problems.record(record(
+                fingerprint(),
+                ProblemLevel.REFUSAL,
+                List.of("o1", "o2", "o3"),
+                Instant.now().minusSeconds(60)));
+
+        var refusals = problems.list(Set.of(), true);
+        var faults = problems.list(Set.of(), false);
+
+        assertTrue(refusals.stream().noneMatch(p -> p.id() == fault.id()));
+        assertTrue(faults.stream().noneMatch(p -> p.id() == rare.id() || p.id() == often.id()));
+        var ids = refusals.stream().map(StoredProblem::id).toList();
+        assertTrue(ids.indexOf(often.id()) < ids.indexOf(rare.id()), "the more frequent refusal comes first");
+    }
+
+    @Test
+    void aChangeFromTheWrongStateLeavesTheProblemAlone() {
+        var created = problems.record(record(fingerprint(), ProblemLevel.ERROR, List.of("x"), Instant.now()));
+        int first = accountRepo
+                .create(fingerprint() + "@problems.test", "Ada", "Admin")
+                .id();
+        int second = accountRepo
+                .create(fingerprint() + "@problems.test", "Bo", "Admin")
+                .id();
+        problems.setState(created.id(), Set.of(ProblemState.OPEN), ProblemState.RESOLVED, first);
+        var resolved = problems.find(created.id()).orElseThrow();
+
+        assertTrue(
+                problems.setState(created.id(), Set.of(ProblemState.MUTED), ProblemState.OPEN, second),
+                "the problem is there");
+        assertTrue(problems.setState(created.id(), Set.of(ProblemState.OPEN), ProblemState.RESOLVED, second));
+
+        var after = problems.find(created.id()).orElseThrow();
+        assertEquals(ProblemState.RESOLVED, after.state(), "unmuting a resolved problem does not reopen it");
+        assertEquals(resolved.stateChangedAt(), after.stateChangedAt(), "resolving again keeps the first resolve");
     }
 }

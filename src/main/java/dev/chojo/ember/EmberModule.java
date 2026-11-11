@@ -430,6 +430,7 @@ import dev.chojo.ember.feature.system.service.DemoTwoFactorSeeder;
 import dev.chojo.ember.feature.system.service.DemoVideoSeeder;
 import dev.chojo.ember.feature.system.service.DemoWaitingListSeeder;
 import dev.chojo.ember.feature.system.service.ProblemLogFlusher;
+import dev.chojo.ember.feature.system.service.ProblemLogService;
 import dev.chojo.ember.feature.system.service.ProblemReportSweeper;
 import dev.chojo.ember.feature.system.service.SchemaFingerprint;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
@@ -872,6 +873,7 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(MailImportPoller.class);
         taskSources.addBinding().to(AuthCleanupSweeper.class);
         taskSources.addBinding().to(ProblemReportSweeper.class);
+        taskSources.addBinding().to(ProblemLogService.class);
         taskSources.addBinding().to(UpdateCheckService.class);
         taskSources.addBinding().to(DemoService.class);
         taskSources.addBinding().to(FederationPartnerSeeder.class);

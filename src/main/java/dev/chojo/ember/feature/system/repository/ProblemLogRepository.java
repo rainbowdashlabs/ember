@@ -35,6 +35,9 @@ public class ProblemLogRepository {
     /** How many different messages a problem keeps. */
     public static final int MESSAGE_LIMIT = 20;
 
+    /** How many problems a list holds at most. */
+    public static final int LIST_LIMIT = 500;
+
     /** How many occurrences a problem keeps beside it. */
     public static final int OCCURRENCE_LIMIT = 5;
 
@@ -157,18 +160,26 @@ public class ProblemLogRepository {
     }
 
     /**
-     * The problems in the given states, the most recent first.
+     * The problems in the given states, either the faults or the refusals.
      *
-     * @param states the states to list, every state when empty
+     * <p>At most {@link #LIST_LIMIT} are listed. Faults come the most recent first, because what
+     * happened last is what to look at; refusals the most frequent first, because the refusal readers
+     * hit most is the one worth looking at.
+     *
+     * @param states    the states to list, every state when empty
+     * @param refusals  whether to list the refusals instead of the faults
      * @return the problems
      */
-    public List<StoredProblem> list(Collection<ProblemState> states) {
+    public List<StoredProblem> list(Collection<ProblemState> states, boolean refusals) {
         List<String> names = states.stream().map(Enum::name).toList();
+        String order = refusals ? "count DESC, last_seen DESC, id DESC" : "last_seen DESC, id DESC";
         return query("SELECT " + StoredProblem.COLUMNS + """
                          FROM problem_log
-                        WHERE cardinality(:states::TEXT[]) = 0 OR state = ANY(:states::TEXT[])
-                        ORDER BY last_seen DESC, id DESC;""")
-                .single(call().bind("states", names, PostgreSqlTypes.TEXT))
+                        WHERE (cardinality(:states::TEXT[]) = 0 OR state = ANY(:states::TEXT[]))
+                          AND (level = 'REFUSAL') = :refusals
+                        ORDER BY %s
+                        LIMIT %d;""".formatted(order, LIST_LIMIT))
+                .single(call().bind("states", names, PostgreSqlTypes.TEXT).bind("refusals", refusals))
                 .map(StoredProblem.map())
                 .all();
     }
@@ -187,21 +198,38 @@ public class ProblemLogRepository {
     }
 
     /**
-     * Sets the state of a problem by hand.
+     * Sets the state of a problem by hand, where it stands in one of the states the change starts from.
+     *
+     * <p>A problem in any other state is left as it is, so a page that is out of date cannot reopen a
+     * resolved problem by unmuting it, and resolving a resolved problem keeps who resolved it first.
      *
      * @param id      the problem
-     * @param state   its new state
+     * @param from    the states the change may start from
+     * @param to      its new state
      * @param account the administrator setting it
-     * @return whether the problem was there
+     * @return whether the problem is there, changed or not
      */
-    public boolean setState(long id, ProblemState state, int account) {
-        return query("""
+    public boolean setState(long id, Set<ProblemState> from, ProblemState to, int account) {
+        List<String> names = from.stream().map(Enum::name).toList();
+        boolean changed = query("""
                         UPDATE problem_log
                         SET state = :state, state_changed_at = now(), state_changed_by = :account
-                        WHERE id = :id;""")
-                .single(call().bind("id", id).bind("state", state).bind("account", account))
+                        WHERE id = :id AND state = ANY(:from::TEXT[]);""")
+                .single(call().bind("id", id)
+                        .bind("state", to)
+                        .bind("account", account)
+                        .bind("from", names, PostgreSqlTypes.TEXT))
                 .update()
                 .changed();
+        return changed || exists(id);
+    }
+
+    private boolean exists(long id) {
+        return query("SELECT 1 AS one FROM problem_log WHERE id = :id;")
+                .single(call().bind("id", id))
+                .map(row -> row.getInt("one"))
+                .first()
+                .isPresent();
     }
 
     /**

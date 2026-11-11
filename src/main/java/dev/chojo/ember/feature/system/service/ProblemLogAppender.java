@@ -17,25 +17,17 @@ import org.jspecify.annotations.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 /**
- * Custom Logback appender that captures ERROR and WARN log events in memory.
- * Aggregates entries by stacktrace/exception to count occurrences.
- * Entries older than 3 days are automatically pruned.
- *
- * <p>Besides that view it gathers every problem for the database: what happened since the last write,
- * per fingerprint, which {@link ProblemLogFlusher} takes and writes. It never touches the database
+ * Gathers every warning and error for the problem log in the database: what happened since the last
+ * write, per fingerprint, which {@link ProblemLogFlusher} takes and writes. It never touches the database
  * itself, so a log call never waits for one, and it holds at most {@link #PENDING_LIMIT} problems while
  * the database cannot be written to; further problems, and problems put back that no longer fit, are
  * counted on one overflow entry, refusals included: the overflow is a fault in its own right. Whatever
@@ -44,9 +36,6 @@ import java.util.function.Supplier;
  * problem and is gathered like any other.
  */
 public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
-    private static final long RETENTION_MS = Duration.ofDays(3).toMillis();
-    private static final int MAX_ENTRIES = 1000;
-
     /** How many problems wait for the database at most; any further one is counted on the overflow entry. */
     static final int PENDING_LIMIT = 1000;
 
@@ -58,8 +47,6 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
 
     private static ProblemLogAppender instance;
 
-    private final Map<String, ProblemEntry> problems = new ConcurrentHashMap<>();
-    private final AtomicLong idCounter = new AtomicLong(0);
     private final Map<String, PendingProblem> pending = new ConcurrentHashMap<>();
 
     public ProblemLogAppender() {
@@ -80,76 +67,12 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
         return instance;
     }
 
-    public List<ProblemEntry> getProblems(boolean includeAcknowledged) {
-        pruneOldEntries();
-        return problems.values().stream()
-                .filter(p -> includeAcknowledged || !p.acknowledged())
-                .sorted((a, b) -> b.lastOccurrence().compareTo(a.lastOccurrence()))
-                .toList();
-    }
-
-    public boolean acknowledge(long id) {
-        for (var entry : problems.values()) {
-            if (entry.id() == id) {
-                entry.setAcknowledged(true);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * How many entries nobody has looked at yet.
-     *
-     * <p>Counted rather than listed, because the sidebar asks for this on a timer and the entries carry
-     * their stacktraces with them.
-     *
-     * @return the number of unacknowledged entries
-     */
-    public int countUnacknowledged() {
-        pruneOldEntries();
-        int waiting = 0;
-        for (var entry : problems.values()) {
-            if (!entry.acknowledged()) waiting++;
-        }
-        return waiting;
-    }
-
-    public int acknowledgeAll() {
-        int count = 0;
-        for (var entry : problems.values()) {
-            if (!entry.acknowledged()) {
-                entry.setAcknowledged(true);
-                count++;
-            }
-        }
-        return count;
-    }
-
     @Override
     protected void append(ILoggingEvent event) {
         if (event.getLevel().toInt() < Level.WARN.toInt()) return;
         if (WRITING.get()) return;
 
-        pruneOldEntries();
-
-        String key = buildAggregationKey(event);
-        gather(key, event);
-        problems.compute(key, (_, existing) -> {
-            if (existing != null && !existing.acknowledged()) {
-                existing.addOccurrence(event.getFormattedMessage(), Instant.ofEpochMilli(event.getTimeStamp()));
-                return existing;
-            }
-            return new ProblemEntry(
-                    idCounter.incrementAndGet(),
-                    event.getLevel().toString(),
-                    event.getLoggerName(),
-                    event.getFormattedMessage(),
-                    extractStacktrace(event.getThrowableProxy()),
-                    extractExceptionClass(event.getThrowableProxy()),
-                    extractExceptionMessage(event.getThrowableProxy()),
-                    Instant.ofEpochMilli(event.getTimeStamp()));
-        });
+        gather(buildAggregationKey(event), event);
     }
 
     /**
@@ -317,135 +240,4 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
     private String extractExceptionMessage(IThrowableProxy tp) {
         return tp != null ? tp.getMessage() : null;
     }
-
-    private void pruneOldEntries() {
-        long cutoff = System.currentTimeMillis() - RETENTION_MS;
-        problems.entrySet().removeIf(e -> e.getValue().lastOccurrence().toEpochMilli() < cutoff);
-
-        if (problems.size() > MAX_ENTRIES) {
-            var sorted = new ArrayList<>(problems.entrySet());
-            sorted.sort(
-                    Comparator.comparingLong(a -> a.getValue().lastOccurrence().toEpochMilli()));
-            int toRemove = sorted.size() - MAX_ENTRIES;
-            for (int i = 0; i < toRemove; i++) {
-                problems.remove(sorted.get(i).getKey());
-            }
-        }
-    }
-
-    /**
-     * Represents an aggregated problem with occurrence count and optional distinct messages.
-     * Mutable aggregation state stays internal; API consumers receive an immutable
-     * {@link ProblemSnapshot} via {@link #snapshot()}.
-     */
-    public static class ProblemEntry {
-        private final long id;
-        private final String level;
-        private final String logger;
-        private final String stacktrace;
-        private final String exceptionClass;
-        private final String exceptionMessage;
-        private final Instant firstOccurrence;
-        private final List<String> distinctMessages = Collections.synchronizedList(new ArrayList<>());
-        private volatile Instant lastOccurrence;
-        private volatile int count;
-        private volatile boolean acknowledged;
-
-        ProblemEntry(
-                long id,
-                String level,
-                String logger,
-                String message,
-                String stacktrace,
-                String exceptionClass,
-                String exceptionMessage,
-                Instant timestamp) {
-            this.id = id;
-            this.level = level;
-            this.logger = logger;
-            this.stacktrace = stacktrace;
-            this.exceptionClass = exceptionClass;
-            this.exceptionMessage = exceptionMessage;
-            this.firstOccurrence = timestamp;
-            this.lastOccurrence = timestamp;
-            this.count = 1;
-            this.distinctMessages.add(message);
-        }
-
-        public long id() {
-            return id;
-        }
-
-        public Instant lastOccurrence() {
-            return lastOccurrence;
-        }
-
-        public boolean acknowledged() {
-            return acknowledged;
-        }
-
-        /**
-         * Creates an immutable copy of the current aggregation state for API serialization.
-         */
-        public ProblemSnapshot snapshot() {
-            List<String> messages;
-            synchronized (distinctMessages) {
-                messages = List.copyOf(distinctMessages);
-            }
-            return new ProblemSnapshot(
-                    id,
-                    level,
-                    logger,
-                    exceptionClass,
-                    exceptionMessage,
-                    stacktrace,
-                    firstOccurrence,
-                    lastOccurrence,
-                    count,
-                    acknowledged,
-                    messages);
-        }
-
-        synchronized void addOccurrence(String message, Instant timestamp) {
-            count++;
-            if (timestamp.isAfter(lastOccurrence)) {
-                lastOccurrence = timestamp;
-            }
-            if (distinctMessages.size() < 50 && !distinctMessages.contains(message)) {
-                distinctMessages.add(message);
-            }
-        }
-
-        void setAcknowledged(boolean ack) {
-            this.acknowledged = ack;
-        }
-    }
-
-    /**
-     * Immutable API view of an aggregated problem.
-     *
-     * @param id               stable identifier for acknowledging the problem
-     * @param level            log level, {@code ERROR} or {@code WARN}
-     * @param logger           fully qualified logger name that emitted the event
-     * @param exceptionClass   fully qualified exception class, or {@code null} without a throwable
-     * @param exceptionMessage exception message, or {@code null} without a throwable
-     * @param stacktrace       rendered stacktrace including causes, or {@code null} without a throwable
-     * @param firstOccurrence  timestamp of the first aggregated occurrence
-     * @param lastOccurrence   timestamp of the most recent occurrence
-     * @param count            number of aggregated occurrences
-     * @param acknowledged     whether an administrator dismissed the problem
-     * @param distinctMessages up to 50 distinct formatted log messages
-     */
-    public record ProblemSnapshot(
-            long id,
-            String level,
-            String logger,
-            @Nullable String exceptionClass,
-            @Nullable String exceptionMessage,
-            @Nullable String stacktrace,
-            Instant firstOccurrence,
-            Instant lastOccurrence,
-            int count,
-            boolean acknowledged,
-            List<String> distinctMessages) {}
 }

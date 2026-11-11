@@ -6394,11 +6394,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List application problems (errors and warnings) */
+        /** List the recorded problems */
         get: {
             parameters: {
                 query?: {
-                    includeAcknowledged?: boolean;
+                    refusals?: boolean;
+                    state?: string;
                 };
                 header?: never;
                 path?: never;
@@ -6412,7 +6413,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ProblemSnapshot"][];
+                        "application/json": components["schemas"]["StoredProblem"][];
                     };
                 };
             };
@@ -6425,7 +6426,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/problems/{id}/acknowledge": {
+    "/api/v1/admin/problems/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -6434,7 +6435,52 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Acknowledge a specific problem */
+        post?: never;
+        /** Delete a problem now */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/problems/{id}/mute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Keep a problem out of the waiting count and the beacon for good */
         post: {
             parameters: {
                 query?: never;
@@ -6470,7 +6516,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/problems/acknowledge-all": {
+    "/api/v1/admin/problems/{id}/resolve": {
         parameters: {
             query?: never;
             header?: never;
@@ -6479,10 +6525,102 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Acknowledge all unacknowledged problems */
+        /** Mark a problem as dealt with */
         post: {
             parameters: {
                 query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/problems/{id}/unmute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take a muted problem back to open */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/problems/resolve-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark every open fault, or every open refusal, as dealt with */
+        post: {
+            parameters: {
+                query?: {
+                    refusals?: boolean;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -6495,7 +6633,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["AcknowledgeResult"];
+                        "application/json": components["schemas"]["ResolveResult"];
                     };
                 };
             };
@@ -63863,10 +64001,6 @@ export interface components {
         AcknowledgeRequest: {
             comment?: string;
         };
-        AcknowledgeResult: {
-            /** Format: int32 */
-            acknowledged: number;
-        };
         AcknowledgeStepRequest: {
             newItem?: components["schemas"]["NewItemRequest"] | null;
             note?: string | null;
@@ -71596,6 +71730,8 @@ export interface components {
             error: string | null;
             healthy: boolean;
         };
+        /** @enum {string} */
+        ProblemLevel: "WARN" | "ERROR" | "REFUSAL";
         ProblemPayload: {
             contactMail: string | null;
             contactName: string | null;
@@ -71633,21 +71769,8 @@ export interface components {
             stationId: string;
             userRoles: string | null;
         };
-        ProblemSnapshot: {
-            acknowledged: boolean;
-            /** Format: int32 */
-            count: number;
-            distinctMessages: string[];
-            exceptionClass: string | null;
-            exceptionMessage: string | null;
-            firstOccurrence: components["schemas"]["Instant"];
-            /** Format: int64 */
-            id: number;
-            lastOccurrence: components["schemas"]["Instant"];
-            level: string;
-            logger: string;
-            stacktrace: string | null;
-        };
+        /** @enum {string} */
+        ProblemState: "OPEN" | "RESOLVED" | "MUTED";
         Procedure: {
             /** Format: int32 */
             aboutMemberId: number | null;
@@ -73154,6 +73277,10 @@ export interface components {
         ResolveRequest: {
             acknowledged?: boolean;
             resolvedIn?: string | null;
+        };
+        ResolveResult: {
+            /** Format: int32 */
+            resolved: number;
         };
         RestorePlan: {
             movements: components["schemas"]["PlannedLanding"][];
@@ -74758,6 +74885,26 @@ export interface components {
             /** Format: int64 */
             total: number;
         };
+        StoredProblem: {
+            /** Format: int64 */
+            count: number;
+            distinctMessages: string[];
+            exceptionClass: string | null;
+            exceptionMessage: string | null;
+            fingerprint: string;
+            firstSeen: components["schemas"]["Instant"];
+            /** Format: int64 */
+            id: number;
+            lastSeen: components["schemas"]["Instant"];
+            level: components["schemas"]["ProblemLevel"];
+            logger: string;
+            message: string;
+            /** Format: int32 */
+            reopenedCount: number;
+            stacktrace: string | null;
+            state: components["schemas"]["ProblemState"];
+            stateChangedAt: components["schemas"]["Instant"] | null;
+        };
         /** @enum {string} */
         Strategy: "CASCADE" | "DELETE_EXPLICIT" | "ANONYMIZE" | "NULL" | "RETAIN" | "RETAIN_UNLINKED" | "NOT_APPLICABLE";
         StringValue: {
@@ -76146,7 +76293,6 @@ export type AckKind = components['schemas']['AckKind'];
 export type AcknowledgeAllResponse = components['schemas']['AcknowledgeAllResponse'];
 export type AcknowledgedMails = components['schemas']['AcknowledgedMails'];
 export type AcknowledgeRequest = components['schemas']['AcknowledgeRequest'];
-export type AcknowledgeResult = components['schemas']['AcknowledgeResult'];
 export type AcknowledgeStepRequest = components['schemas']['AcknowledgeStepRequest'];
 export type ActiveSession = components['schemas']['ActiveSession'];
 export type Actual = components['schemas']['Actual'];
@@ -77221,9 +77367,10 @@ export type PreviewResponse = components['schemas']['PreviewResponse'];
 export type PreviewResult = components['schemas']['PreviewResult'];
 export type ProbeRequest = components['schemas']['ProbeRequest'];
 export type ProbeResult = components['schemas']['ProbeResult'];
+export type ProblemLevel = components['schemas']['ProblemLevel'];
 export type ProblemPayload = components['schemas']['ProblemPayload'];
 export type ProblemReport = components['schemas']['ProblemReport'];
-export type ProblemSnapshot = components['schemas']['ProblemSnapshot'];
+export type ProblemState = components['schemas']['ProblemState'];
 export type Procedure = components['schemas']['Procedure'];
 export type ProcedureDetail = components['schemas']['ProcedureDetail'];
 export type ProcedureItem = components['schemas']['ProcedureItem'];
@@ -77416,6 +77563,7 @@ export type ResolvedResponse = components['schemas']['ResolvedResponse'];
 export type ResolvedTarget = components['schemas']['ResolvedTarget'];
 export type ResolvedValueResponse = components['schemas']['ResolvedValueResponse'];
 export type ResolveRequest = components['schemas']['ResolveRequest'];
+export type ResolveResult = components['schemas']['ResolveResult'];
 export type RestorePlan = components['schemas']['RestorePlan'];
 export type RestoreRequest = components['schemas']['RestoreRequest'];
 export type RestoreResult = components['schemas']['RestoreResult'];
@@ -77639,6 +77787,7 @@ export type StorageAuditOutcome = components['schemas']['StorageAuditOutcome'];
 export type StorageBackendType = components['schemas']['StorageBackendType'];
 export type StorageCategory = components['schemas']['StorageCategory'];
 export type StorageQuotaPreset = components['schemas']['StorageQuotaPreset'];
+export type StoredProblem = components['schemas']['StoredProblem'];
 export type Strategy = components['schemas']['Strategy'];
 export type StringValue = components['schemas']['StringValue'];
 export type SuggestedAnswer = components['schemas']['SuggestedAnswer'];
@@ -78819,6 +78968,18 @@ export const PollStatus = {
     PENDING: "PENDING",
     REJECTED: "REJECTED",
     UNKNOWN: "UNKNOWN",
+} as const;
+
+export const ProblemLevel = {
+    ERROR: "ERROR",
+    REFUSAL: "REFUSAL",
+    WARN: "WARN",
+} as const;
+
+export const ProblemState = {
+    MUTED: "MUTED",
+    OPEN: "OPEN",
+    RESOLVED: "RESOLVED",
 } as const;
 
 export const ProcedureStatus = {
