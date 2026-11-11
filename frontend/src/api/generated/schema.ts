@@ -63963,6 +63963,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/waiting-lists/visitors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who from the waiting lists said they come to one date of an appointment */
+        get: {
+            parameters: {
+                query: {
+                    date: string;
+                    event: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListVisitor"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -76278,6 +76317,17 @@ export interface components {
         WaitingListVisibleFieldsRequest: {
             fieldIds?: number[] | null;
         };
+        WaitingListVisitor: {
+            arrivalTime: components["schemas"]["LocalTime"] | null;
+            date: components["schemas"]["LocalDate"];
+            /** Format: int32 */
+            entryId: number;
+            firstname: string;
+            lastname: string;
+            /** Format: int32 */
+            listId: number;
+            listName: string;
+        };
         WaitingListWithCount: {
             /** Format: int32 */
             entryCount: number;
@@ -78114,6 +78164,7 @@ export type WaitingListRegisterRequest = components['schemas']['WaitingListRegis
 export type WaitingListRegistrationStatus = components['schemas']['WaitingListRegistrationStatus'];
 export type WaitingListRequest = components['schemas']['WaitingListRequest'];
 export type WaitingListVisibleFieldsRequest = components['schemas']['WaitingListVisibleFieldsRequest'];
+export type WaitingListVisitor = components['schemas']['WaitingListVisitor'];
 export type WaitingListWithCount = components['schemas']['WaitingListWithCount'];
 export type WebAuthnBeginResponse = components['schemas']['WebAuthnBeginResponse'];
 export type WebAuthnConfig = components['schemas']['WebAuthnConfig'];

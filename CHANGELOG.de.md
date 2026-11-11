@@ -23,6 +23,8 @@ Jede Zahl der Übersicht öffnet die passende Liste, fehlgeschlagene E-Mails las
 - **Ein Beacon zeigt die mitgesendeten Logzeilen.** Jeder Eintrag seines Fehlerprotokolls zeigt beim Aufklappen die Zeilen, die jede Instanz mitgesendet hat, nach Instanz und Vorkommen.
 - **Konsolenlogs, die ein Log-Sammler lesen kann.** Steht die neue Umgebungsvariable `LOG_FORMAT` auf `json`, schreibt das Backend jeden Logeintrag als ein JSON-Objekt auf die Konsole, den Stacktrace darin. Sammler wie Loki behalten den Stacktrace dann bei seiner Zeile, statt jede Zeile einzeln abzulegen.
 - **Fehlgeschlagene Datenbankabfragen sagen, was fehlschlug.** Die Logzeile einer fehlgeschlagenen Abfrage enthält den Fehler der Datenbank selbst statt nur „Database query error“.
+- **Der gewählte Probetermin in der Warteliste.** Die Warteliste zeigt in einer eigenen Spalte, welchen Termin jemand für die Probe gewählt hat, mit dem Termin und der Uhrzeit, zu der die Person da sein soll, und lässt sich danach sortieren und filtern. Bisher stand er nur auf der Seite des Eintrags.
+- **Wer zur Probe kommt, steht am Termin.** Die Seite eines Termins zeigt, wer von der Warteliste diesen Termin gewählt hat, mit Uhrzeit und Warteliste, für alle, die die Warteliste lesen dürfen. Auf Teilnehmerlisten stehen diese Personen nicht.
 - **Mitgliedstypen einer Gruppe warnen schon beim Auswählen.** Wer nicht mehr zu den gewählten Typen passt, steht sofort im Formular, und der Knopf zum Speichern nimmt diese Mitglieder aus der Gruppe.
 
 ### Sicherheit

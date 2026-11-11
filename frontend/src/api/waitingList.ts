@@ -6,6 +6,7 @@
 import client from './client'
 import {createCrudResource, createScopedCrudResource} from './crud'
 import type {
+    WaitingListVisitor,
     InvitationRecipients,
     PublicWaitlistFormResponse,
     PublicWaitlistRegistrationRequest,
@@ -231,5 +232,15 @@ export async function submitPublicRegistration(
 
 export async function verifyPublicRegistration(token: string): Promise<WaitingListRegistrationStatus> {
     const res = await client.get<WaitingListRegistrationStatus>(`/public/waitlist/verify/${token}`)
+    return res.data
+}
+
+/**
+ * Who from the station's waiting lists said they come to one date of an appointment.
+ *
+ * @param date the date, as 2026-11-12
+ */
+export async function visitors(eventId: number, date: string): Promise<WaitingListVisitor[]> {
+    const res = await client.get<WaitingListVisitor[]>('/waiting-lists/visitors', {params: {event: eventId, date}})
     return res.data
 }

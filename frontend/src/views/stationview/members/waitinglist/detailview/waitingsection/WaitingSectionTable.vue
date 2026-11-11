@@ -13,7 +13,8 @@ import type { DataTableApi } from '@/composables/useDataTable'
 import WaitingSectionActions from './WaitingSectionActions.vue'
 import WaitingSectionGuardians from './WaitingSectionGuardians.vue'
 import WaitingStatusCell from './WaitingStatusCell.vue'
-import { BIRTH_DATE_KEY } from './waitingColumns'
+import PickedDateCell from './PickedDateCell.vue'
+import { BIRTH_DATE_KEY, PICKED_DATE_KEY } from './waitingColumns'
 
 /**
  * The people waiting, one line each, numbered in the order the table shows them. A press on a line
@@ -76,6 +77,9 @@ function birthDateClass(item: WaitingListEntryWithScore): string {
     </template>
     <template #cell-status="{row}">
       <WaitingStatusCell :item="row" />
+    </template>
+    <template #[`cell-${PICKED_DATE_KEY}`]="{row}">
+      <PickedDateCell :entry="row.entry"/>
     </template>
     <template #cell-score="{text}">
       <span class="font-mono">{{ text }}</span>

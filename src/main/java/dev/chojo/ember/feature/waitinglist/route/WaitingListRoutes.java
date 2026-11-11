@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListVisitor;
 import dev.chojo.ember.feature.waitinglist.service.PublicWaitingListRateLimiter;
 import dev.chojo.ember.feature.waitinglist.service.PublicWaitingListService;
 import dev.chojo.ember.feature.waitinglist.service.ScoreEvaluator;
@@ -130,6 +131,7 @@ public class WaitingListRoutes implements Routes {
         routes.get(prefix + "/trials", this::listOwnTrials, StationPermission.LOGIN);
         routes.post(prefix + "/trials/{entryId}/end", this::endOwnTrial, StationPermission.LOGIN);
 
+        routes.get(prefix + "/waiting-lists/visitors", this::listVisitors, StationPermission.WAITLIST_READ);
         routes.get(prefix + "/waiting-lists", this::listAll, StationPermission.WAITLIST_READ);
         routes.get(prefix + "/waiting-lists/{id}", this::getById, StationPermission.WAITLIST_READ);
         routes.get(prefix + "/waiting-lists/{id}/fields", this::listFields, StationPermission.WAITLIST_READ);
@@ -708,6 +710,31 @@ public class WaitingListRoutes implements Routes {
         verifyInviteInList(listId, inviteId);
         service.deleteInvite(inviteId);
         ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /** The date a request names, refused as unusable input where it is missing or no date. */
+    private static LocalDate dateParam(Context ctx) {
+        String date = ctx.queryParam("date");
+        try {
+            return LocalDate.parse(date == null ? "" : date);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Not a date: " + date, e);
+        }
+    }
+
+    @OpenApi(
+            path = "/api/v1/waiting-lists/visitors",
+            methods = HttpMethod.GET,
+            summary = "Who from the waiting lists said they come to one date of an appointment",
+            queryParams = {
+                @OpenApiParam(name = "event", type = Integer.class, required = true),
+                @OpenApiParam(name = "date", required = true, description = "the date, as 2026-11-12")
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WaitingListVisitor[].class)))
+    private void listVisitors(Context ctx) {
+        int eventId = ctx.queryParamAsClass("event", Integer.class).get();
+        LocalDate date = dateParam(ctx);
+        ctx.json(service.visitors(StationSession.from(ctx).stationId(), eventId, date));
     }
 
     @OpenApi(
