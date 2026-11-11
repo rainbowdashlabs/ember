@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.util;
 
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
+
 /**
  * The name of the key-value pair a log event carries when it says itself which problem it is.
  *
@@ -16,6 +19,12 @@ package dev.chojo.ember.util;
 public final class ProblemKey {
     /** The key of the pair. */
     public static final String NAME = "problem";
+
+    /**
+     * Marks a warning as a refusal: something a reader asked for and was told no. The problem log keeps
+     * those apart from faults, never counts them as waiting and never forwards them.
+     */
+    public static final Marker REFUSAL = MarkerFactory.getMarker("REFUSAL");
 
     private ProblemKey() {}
 }

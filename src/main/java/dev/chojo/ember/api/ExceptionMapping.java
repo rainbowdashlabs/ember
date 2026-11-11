@@ -19,6 +19,7 @@ import io.javalin.http.HttpResponseException;
 import io.javalin.http.HttpStatus;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.core.JacksonException;
@@ -99,30 +100,33 @@ public class ExceptionMapping {
         });
 
         routes.exception(IllegalArgumentException.class, (err, ctx) -> {
-            log.warn("Invalid input on {} {}: {}", ctx.method(), ctx.path(), err.getMessage(), err);
+            logRefusal(ctx, BodyRefusal.INPUT_NOT_USABLE.code(), "Invalid input", err.getMessage(), err);
             String said = Failures.readable(err.getMessage()).orElse(BodyRefusal.INPUT_NOT_USABLE.message());
             ctx.json(ErrorResponseWrapper.of(BodyRefusal.INPUT_NOT_USABLE, said))
                     .status(BodyRefusal.INPUT_NOT_USABLE.status());
         });
 
         routes.exception(MigrationException.class, (err, ctx) -> {
-            log.warn("Storage move refused on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
+            logRefusal(ctx, err.getClass().getSimpleName(), "Storage move refused", err.getMessage(), null);
             ctx.json(new ErrorResponseWrapper("Storage Unavailable", err.getMessage()))
                     .status(HttpStatus.BAD_REQUEST);
         });
 
         routes.exception(StationMemberInviteService.ProvisionException.class, (err, ctx) -> {
-            log.warn("Member could not be provisioned on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
+            logRefusal(ctx, err.getClass().getSimpleName(), "Member could not be provisioned", err.getMessage(), null);
             ctx.json(new ErrorResponseWrapper("Conflict", err.getMessage())).status(HttpStatus.CONFLICT);
         });
 
         routes.exception(StreamReadException.class, (err, ctx) -> {
-            log.warn("Malformed body on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
+            logRefusal(ctx, BodyRefusal.BODY_NOT_JSON.code(), "Malformed body", err.getMessage(), null);
             answerRefusal(ctx, BodyRefusal.BODY_NOT_JSON, BodyRefusal.BODY_NOT_JSON.message());
         });
 
         routes.exception(MismatchedInputException.class, (err, ctx) -> {
-            log.warn("Rejected body on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
+            var kind = err instanceof UnrecognizedPropertyException
+                    ? BodyRefusal.BODY_UNEXPECTED_FIELD
+                    : BodyRefusal.BODY_DOES_NOT_MATCH;
+            logRefusal(ctx, kind.code(), "Rejected body", err.getMessage(), null);
             if (err instanceof UnrecognizedPropertyException unknown) {
                 var refused = BodyRefusal.BODY_UNEXPECTED_FIELD.raise(unknown.getPropertyName());
                 ctx.json(refused.body()).status(refused.getStatus());
@@ -133,7 +137,7 @@ public class ExceptionMapping {
         });
 
         routes.exception(ValueInstantiationException.class, (err, ctx) -> {
-            log.warn("Rejected value in body on {} {}: {}", ctx.method(), ctx.path(), err.getMessage());
+            logRefusal(ctx, BodyRefusal.BODY_VALUE_REJECTED.code(), "Rejected value in body", err.getMessage(), null);
             answerRefusal(ctx, BodyRefusal.BODY_VALUE_REJECTED, rejectedValueDetail(err));
         });
 
@@ -144,7 +148,7 @@ public class ExceptionMapping {
             if (ours) {
                 log.error("Unhandled exception on route {} {}, reference {}", ctx.method(), ctx.path(), reference, err);
             } else {
-                log.warn("Request refused on route {} {}, reference {}", ctx.method(), ctx.path(), reference, err);
+                logRefusal(ctx, refusal.code(), "Request refused", "reference " + reference, err);
             }
             if (devErrors) devErrorWriter.write(err, ctx.method() + " " + ctx.path());
             ctx.json(new ErrorResponseWrapper(
@@ -169,9 +173,8 @@ public class ExceptionMapping {
      * Records a failure on its way out, at the volume its status deserves.
      *
      * <p>A fault is an error with its stack trace, a miss is whatever {@link #logNotFound} decides,
-     * and an ordinary refusal is a warning without one, because a reader sending something wrong is
-     * not an event an operator needs a trace for. A {@code 401} is left silent: an expired session
-     * is the most ordinary thing that happens here.
+     * and any other {@code 4xx} is a refusal, see {@link #logRefusal}. A {@code 401} is left silent: an
+     * expired session is the most ordinary thing that happens here.
      */
     private void logFailure(Context ctx, int code, String message, Throwable err, boolean devErrors) {
         if (code >= 500) {
@@ -184,9 +187,45 @@ public class ExceptionMapping {
             if (devErrors) devErrorWriter.write(err, ctx.method() + " " + ctx.path());
             return;
         }
-        if (code >= 400 && code != 401) {
-            log.warn("HTTP {} on {} {}: {}", code, ctx.method(), ctx.path(), message);
+        if (code >= 400 && code != 401) logRefusal(ctx, refusalKind(code, err), "HTTP " + code, message, null);
+    }
+
+    /**
+     * Records a refusal: a reader asked for something and was told no.
+     *
+     * <p>A refusal is no fault, and one reader can cause any number of them, each with its own ids and
+     * names in the message. It is therefore marked as a refusal, which the problem log keeps apart from
+     * faults, and named by its route template and its kind, so however often it happens it is one
+     * problem per route and kind, while the messages keep a few readable examples. A refusal on an
+     * address no route claims is named without the address, so a scanner cannot make a new problem
+     * with every guess.
+     *
+     * @param ctx     the request that was refused
+     * @param kind    what refused it: the refusal's code where it has one
+     * @param what    how the line starts, saying what was refused
+     * @param message what the response or the cause said
+     * @param err     the cause, where its stack trace is worth keeping
+     */
+    private static void logRefusal(Context ctx, String kind, String what, String message, @Nullable Throwable err) {
+        var endpoint = ctx.endpoints().matchedHttpEndpoint();
+        String route = endpoint == null ? "unmatched" : endpoint.path;
+        log.atWarn()
+                .addMarker(ProblemKey.REFUSAL)
+                .addKeyValue(ProblemKey.NAME, "refusal " + kind + " " + ctx.method() + " " + route)
+                .setCause(err)
+                .log("{} on {} {}: {}", what, ctx.method(), ctx.path(), message);
+    }
+
+    /**
+     * The kind a refusal is named by: the refusal's code, the exception's own name where it stands for
+     * one particular refusal, or the status where nothing more is known.
+     */
+    private static String refusalKind(int code, Throwable err) {
+        if (err instanceof RefusalResponse refused) return refused.refusal().code();
+        if (err.getClass() != ApiException.class && err instanceof ApiException) {
+            return err.getClass().getSimpleName();
         }
+        return "HTTP " + code;
     }
 
     /**

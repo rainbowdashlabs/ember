@@ -463,4 +463,26 @@ class ProblemLogFlusherTest {
                 List.of("404 on GET /api/v1/events/7: No such event", "404 on GET /api/v1/events/9: No such event"),
                 recorded.messages());
     }
+
+    @Test
+    void aMarkedRefusalIsKeptAsARefusal() {
+        var appender = new ProblemLogAppender(false);
+        var repository = new Recording();
+        var flusher = new ProblemLogFlusher(repository, () -> appender);
+        List<StoredProblem> told = new ArrayList<>();
+        flusher.onNewOrReopened(told::add);
+        for (int id : List.of(7, 8, 9)) {
+            var refused = warning("HTTP 403 on GET /api/v1/things/" + id + ": Not yours");
+            refused.addMarker(ProblemKey.REFUSAL);
+            refused.addKeyValuePair(new KeyValuePair(ProblemKey.NAME, "refusal HTTP 403 GET /api/v1/things/{id}"));
+            appender.append(refused);
+        }
+
+        assertEquals(1, flusher.flush());
+        var recorded = repository.written.getFirst();
+        assertEquals(ProblemLevel.REFUSAL, recorded.level());
+        assertEquals(3, recorded.count());
+        assertEquals(3, recorded.messages().size());
+        assertTrue(told.isEmpty(), "a refusal is never handed on");
+    }
 }

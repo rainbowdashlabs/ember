@@ -38,9 +38,10 @@ import java.util.function.Supplier;
  * per fingerprint, which {@link ProblemLogFlusher} takes and writes. It never touches the database
  * itself, so a log call never waits for one, and it holds at most {@link #PENDING_LIMIT} problems while
  * the database cannot be written to; further problems, and problems put back that no longer fit, are
- * counted on one overflow entry. Whatever is logged on the flusher's own thread while it writes is not
- * gathered, so a database that refuses the write does not keep feeding the log it refuses; what other
- * threads log about the same outage is a real problem and is gathered like any other.
+ * counted on one overflow entry, refusals included: the overflow is a fault in its own right. Whatever
+ * is logged on the flusher's own thread while it writes is not gathered, so a database that refuses the
+ * write does not keep feeding the log it refuses; what other threads log about the same outage is a real
+ * problem and is gathered like any other.
  */
 public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
     private static final long RETENTION_MS = Duration.ofDays(3).toMillis();
@@ -172,7 +173,7 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
             var target = existing == null
                     ? new PendingProblem(
                             fingerprint,
-                            ProblemLevel.valueOf(event.getLevel().toString()),
+                            levelOf(event),
                             event.getLoggerName(),
                             message,
                             extractExceptionClass(throwable),
@@ -260,6 +261,13 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
         }
     }
 
+    /** The level an event is kept at: a refusal where its caller marked it so, otherwise its own. */
+    static ProblemLevel levelOf(ILoggingEvent event) {
+        var markers = event.getMarkerList();
+        if (markers != null && markers.contains(ProblemKey.REFUSAL)) return ProblemLevel.REFUSAL;
+        return ProblemLevel.valueOf(event.getLevel().toString());
+    }
+
     /** The problem an event names itself, where its caller added {@link ProblemKey#NAME}. */
     private static @Nullable String declaredKey(ILoggingEvent event) {
         var pairs = event.getKeyValuePairs();
@@ -272,12 +280,12 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
 
     private String buildAggregationKey(ILoggingEvent event) {
         String declared = declaredKey(event);
-        if (declared != null) return event.getLoggerName() + ":" + event.getLevel() + ":" + declared;
+        if (declared != null) return event.getLoggerName() + ":" + levelOf(event) + ":" + declared;
         var tp = event.getThrowableProxy();
         if (tp != null) {
-            return event.getLoggerName() + ":" + tp.getClassName() + ":" + extractFirstFrame(tp);
+            return event.getLoggerName() + ":" + levelOf(event) + ":" + tp.getClassName() + ":" + extractFirstFrame(tp);
         }
-        return event.getLoggerName() + ":" + event.getLevel() + ":" + event.getFormattedMessage();
+        return event.getLoggerName() + ":" + levelOf(event) + ":" + event.getFormattedMessage();
     }
 
     private String extractFirstFrame(IThrowableProxy tp) {
