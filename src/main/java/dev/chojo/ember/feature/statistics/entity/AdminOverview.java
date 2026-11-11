@@ -20,8 +20,10 @@ import java.util.List;
  * @param emailStuckSending          the instance's own mails a sender took in hand more than ten minutes ago
  *                                   and never handed over
  * @param stationApplicationsPending applications for a new station waiting for a decision
- * @param stationsSetupPending       regular stations still in their setup; an association's home
- *                                   station has no setup to wait for
+ * @param stationsSetupPending       stations waiting for their manager, as the station list's
+ *                                   "waiting" filter shows them: the manager cannot sign in yet or has
+ *                                   not finished the setup; stations without a manager, copies left by
+ *                                   a move and associations' home stations are not counted
  * @param accountsUnverified         accounts with a real address that is not confirmed yet; a stand-in
  *                                   address can never be confirmed and is not counted
  * @param federationPartnersPending  pairings with other stations waiting for an answer
@@ -45,6 +47,27 @@ public record AdminOverview(
         int signingKeysLocked,
         List<RecentApplication> recentApplications,
         List<RecentProblemReport> recentProblemReports) {
+
+    /**
+     * @param count how many stations wait for their manager, as the station list's "waiting" filter shows
+     *              them, which needs the manager each station has and so is not counted here
+     * @return this overview with that count
+     */
+    public AdminOverview withStationsSetupPending(int count) {
+        return new AdminOverview(
+                emailFailed,
+                emailPending,
+                emailStuckSending,
+                stationApplicationsPending,
+                count,
+                accountsUnverified,
+                federationPartnersPending,
+                discoveryPeersUnreachable,
+                problemReportsOpen,
+                signingKeysLocked,
+                recentApplications,
+                recentProblemReports);
+    }
 
     /**
      * @param count how many signing keys no longer open, which the database cannot count

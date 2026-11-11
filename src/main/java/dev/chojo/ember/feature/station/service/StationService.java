@@ -332,12 +332,12 @@ public class StationService {
     }
 
     /**
-     * Reads what a screen shows about a manager, or nothing at all for a member who has no account
-     * behind them any more. The account counts as ready once its address is confirmed and it can sign
-     * in, by a password it chose or because it finished its setup another way (a passkey), the same
-     * rule the instance's station list derives its states from. A former member keeps their row after being decoupled from their
-     * account, and a decoupled member who still holds the administrator role would otherwise be
-     * asked for an account that is not there.
+     * Reads what a screen shows about a manager, or nothing at all for a member who has no account behind them
+     * any more. The account counts as ready once its address is confirmed and it can sign in, by a password it
+     * chose or because it finished its setup another way (a passkey), the same rule the instance's station list
+     * derives its states from. A former member keeps their row after being decoupled from their account, and a
+     * decoupled member who still holds the administrator role would otherwise be asked for an account that is
+     * not there.
      */
     private Optional<ManagerInfo> managerInfoOf(StationMember member) {
         Integer accountId = member.accountId();

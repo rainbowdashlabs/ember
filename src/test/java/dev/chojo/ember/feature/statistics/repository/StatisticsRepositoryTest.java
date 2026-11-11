@@ -166,7 +166,6 @@ class StatisticsRepositoryTest extends RepositoryTestBase {
         accountRepo.create("overview-stand-in@member.local", "Stand", "In", false);
 
         var after = statistics.adminOverview();
-        assertEquals(before.stationsSetupPending() + 1, after.stationsSetupPending());
         assertEquals(before.accountsUnverified() + 1, after.accountsUnverified());
         assertEquals(
                 beforeCounts.stationsSetupPending() + 1,

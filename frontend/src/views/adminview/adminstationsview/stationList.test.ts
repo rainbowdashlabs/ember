@@ -30,14 +30,17 @@ describe('stationList', () => {
     })
 
     it('counts a station being set up as waiting as much as one whose manager cannot sign in yet', () => {
-        const waiting = {state: StationState.WAITING_FOR_MANAGER}
-        const settingUp = {state: StationState.SETTING_UP}
-        const setUp = {state: StationState.SET_UP}
-        const noManager = {state: StationState.NO_MANAGER}
+        const waiting = {state: StationState.WAITING_FOR_MANAGER, movedAway: false}
+        const settingUp = {state: StationState.SETTING_UP, movedAway: false}
+        const setUp = {state: StationState.SET_UP, movedAway: false}
+        const noManager = {state: StationState.NO_MANAGER, movedAway: false}
+        const movedCopy = {state: StationState.WAITING_FOR_MANAGER, movedAway: true}
 
         expect(matchesFilter(waiting, StationFilters.WAITING)).toBe(true)
         expect(matchesFilter(settingUp, StationFilters.WAITING)).toBe(true)
         expect(matchesFilter(setUp, StationFilters.WAITING)).toBe(false)
+        expect(matchesFilter(movedCopy, StationFilters.WAITING), 'a moved copy waits for nobody here').toBe(false)
+        expect(matchesFilter(movedCopy, StationFilters.ALL)).toBe(true)
         expect(matchesFilter(setUp, StationFilters.SET_UP)).toBe(true)
         expect(matchesFilter(noManager, StationFilters.NO_MANAGER)).toBe(true)
         expect(matchesFilter(noManager, StationFilters.ALL)).toBe(true)

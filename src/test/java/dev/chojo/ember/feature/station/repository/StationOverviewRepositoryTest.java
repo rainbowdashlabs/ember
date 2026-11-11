@@ -234,6 +234,24 @@ class StationOverviewRepositoryTest extends RepositoryTestBase {
         assertNull(overviews.find(station.id()).orElseThrow().lastReminderAt());
     }
 
+    /**
+     * The overview's count of waiting stations is the list's "waiting" filter: a manager who cannot sign
+     * in yet and one setting up count, a station without a manager, one that is set up and the copy of one
+     * that moved away do not.
+     */
+    @Test
+    void theWaitingCountHoldsTheStationsTheWaitingFilterShows() {
+        int before = overviews.countWaiting();
+        manager(stationRepo.create("Zaehlt Wartend"), "countwait", true, false);
+        manager(stationRepo.create("Zaehlt Einrichtung"), "countsetup", true, true);
+        stationRepo.create("Zaehlt Ohne Verwaltung");
+        Station moved = stationRepo.create("Zaehlt Weggezogen");
+        manager(moved, "countmoved", true, false);
+        stationRepo.markMovedAway(moved.id(), "https://anderswo.example");
+
+        assertEquals(before + 2, overviews.countWaiting());
+    }
+
     @Test
     void theCopyAStationLeftWhenItMovedAwayIsMarked() {
         Station moved = stationRepo.create("Weggezogen");

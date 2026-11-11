@@ -38,6 +38,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class StationOverviewRepository {
 
+    private static final String WAITING_HERE = "o.state IN (:waiting, :setting_up) AND NOT o.moved_away";
+
     private static final String OVERVIEW = """
             WITH manager AS (
                 SELECT DISTINCT ON (sm.station_id)
@@ -113,6 +115,23 @@ public class StationOverviewRepository {
      */
     public List<StationOverview> list() {
         return query(OVERVIEW, "TRUE").single(base()).map(StationOverview.map()).all();
+    }
+
+    /**
+     * How many stations wait for their manager here: whose manager cannot sign in yet or has not finished
+     * the setup, without the copies stations left when they moved away. The same stations the list's
+     * "waiting" filter shows, so the overview can link to them.
+     *
+     * @return the number of waiting stations
+     */
+    public int countWaiting() {
+        String waiting = OVERVIEW.formatted(WAITING_HERE).replace(";", "");
+        return query("SELECT count(*) AS waiting FROM (" + waiting + ") w;")
+                .single(base().bind("waiting", StationState.WAITING_FOR_MANAGER)
+                        .bind("setting_up", StationState.SETTING_UP))
+                .map(row -> row.getInt("waiting"))
+                .first()
+                .orElse(0);
     }
 
     /**

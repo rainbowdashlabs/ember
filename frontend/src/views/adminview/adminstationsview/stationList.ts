@@ -76,14 +76,15 @@ export function canRemind(station: Pick<AdminStationSummary, 'state' | 'movedAwa
 
 /**
  * Whether a station belongs under a filter. "Waiting" holds both a station whose manager cannot sign
- * in yet and one whose manager can but has not finished the setup.
+ * in yet and one whose manager can but has not finished the setup, without the copies stations left
+ * when they moved away: those wait for nobody here, and the overview counts them the same way.
  */
-export function matchesFilter(station: Pick<AdminStationSummary, 'state'>, filter: StationFilter): boolean {
+export function matchesFilter(station: Pick<AdminStationSummary, 'state' | 'movedAway'>, filter: StationFilter): boolean {
     switch (filter) {
         case StationFilters.SET_UP:
             return station.state === StationState.SET_UP
         case StationFilters.WAITING:
-            return waitsForManager(station)
+            return waitsForManager(station) && !station.movedAway
         case StationFilters.NO_MANAGER:
             return station.state === StationState.NO_MANAGER
         default:

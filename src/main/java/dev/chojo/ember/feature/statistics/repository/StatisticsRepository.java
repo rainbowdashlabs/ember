@@ -373,9 +373,6 @@ public class StatisticsRepository {
                             e.failed, e.pending, e.stuck,
                             (SELECT count(*) FROM station_application
                              WHERE status = :application_pending)                      AS applications_pending,
-                            (SELECT count(*) FROM station
-                             WHERE setup_completed_at IS NULL
-                               AND station_kind = :regular)                            AS setup_pending,
                             (SELECT count(*) FROM account
                              WHERE email_verified = FALSE
                                AND email IS NOT NULL AND email <> ''
@@ -399,14 +396,13 @@ public class StatisticsRepository {
                         .bind("email_sending", EmailQueueStatus.SENDING)
                         .bind("application_pending", ApplicationStatus.PENDING)
                         .bind("partner_pending", FederationStatus.PENDING)
-                        .bind("regular", StationKind.REGULAR)
                         .bind("synthetic", "%" + Account.SYNTHETIC_EMAIL_SUFFIX))
                 .map(row -> new AdminOverview(
                         row.getInt("failed"),
                         row.getInt("pending"),
                         row.getInt("stuck"),
                         row.getInt("applications_pending"),
-                        row.getInt("setup_pending"),
+                        0,
                         row.getInt("unverified"),
                         row.getInt("partners_pending"),
                         row.getInt("peers_unreachable"),

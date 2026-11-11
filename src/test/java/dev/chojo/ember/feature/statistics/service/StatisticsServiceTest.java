@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.statistics.service;
 
 import dev.chojo.ember.feature.signing.service.SigningKeyRecovery;
+import dev.chojo.ember.feature.station.repository.StationOverviewRepository;
 import dev.chojo.ember.feature.statistics.entity.AdminOverview;
 import dev.chojo.ember.feature.statistics.repository.StatisticsRepository;
 import org.junit.jupiter.api.Test;
@@ -20,13 +21,15 @@ import static org.mockito.Mockito.when;
 class StatisticsServiceTest {
     private final StatisticsRepository repository = mock(StatisticsRepository.class);
     private final SigningKeyRecovery signingKeys = mock(SigningKeyRecovery.class);
-    private final StatisticsService service = new StatisticsService(repository, signingKeys);
+    private final StationOverviewRepository stations = mock(StationOverviewRepository.class);
+    private final StatisticsService service = new StatisticsService(repository, signingKeys, stations);
 
     @Test
     void theFiguresAreCountedForTheStationAskingOrTheWholeInstance() {
         when(repository.adminOverview())
                 .thenReturn(new AdminOverview(1, 2, 3, 4, 5, 6, 7, 8, 9, 0, List.of(), List.of()));
         when(signingKeys.lockedCount()).thenReturn(2);
+        when(stations.countWaiting()).thenReturn(11);
 
         service.forStation(4);
         service.forInstance();
@@ -37,5 +40,7 @@ class StatisticsServiceTest {
         verify(repository).adminOverview();
         assertEquals(2, overview.signingKeysLocked());
         assertEquals(9, overview.problemReportsOpen());
+        assertEquals(
+                11, overview.stationsSetupPending(), "waiting stations are counted as the station list counts them");
     }
 }
