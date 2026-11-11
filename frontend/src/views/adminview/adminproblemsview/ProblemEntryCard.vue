@@ -9,7 +9,7 @@ import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import ProblemEntryHeader from './ProblemEntryHeader.vue'
 import ProblemEntryDetails from './ProblemEntryDetails.vue'
-import {hasDetails, type ProblemAction} from '@/api/problems'
+import type {ProblemAction} from '@/api/problems'
 import {ProblemLevel, ProblemState, type StoredProblem} from '@/api/generated/schema'
 
 const props = defineProps<{
@@ -26,19 +26,17 @@ const emit = defineEmits<{
 
 const containerComponent = computed(() => props.entry.level === ProblemLevel.ERROR ? ErrorContainer : InfoContainer)
 
-const expandable = computed(() => hasDetails(props.entry))
-
-/** An entry with nothing behind it does not open, so the card does not invite the click either. */
+/** Every entry opens: there is always at least the log around it to look at. */
 function toggle() {
-  if (expandable.value) emit('toggle', props.entry.id)
+  emit('toggle', props.entry.id)
 }
 </script>
 
 <template>
   <component
     :is="containerComponent"
-    class="transition-all"
-    :class="{'opacity-50': entry.state !== ProblemState.OPEN, 'cursor-pointer': expandable}"
+    class="transition-all cursor-pointer"
+    :class="{'opacity-50': entry.state !== ProblemState.OPEN}"
     @click="toggle"
   >
     <ProblemEntryHeader
@@ -47,6 +45,6 @@ function toggle() {
       :can-send="canSend"
       @act="(action, id) => emit('act', action, id)"
     />
-    <ProblemEntryDetails v-if="expanded && expandable" :entry="entry"/>
+    <ProblemEntryDetails v-if="expanded" :entry="entry" @click.stop/>
   </component>
 </template>

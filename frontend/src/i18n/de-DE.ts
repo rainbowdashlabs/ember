@@ -11087,6 +11087,10 @@ export default {
         contact: 'Kontakt',
         unknownInstance: 'Unbekannte Instanz',
     },
+    problemCard: {
+        expand: 'Details anzeigen',
+        collapse: 'Details ausblenden',
+    },
     adminProblems: {
         errors: 'Fehler',
         warnings: 'Warnungen',
@@ -11114,6 +11118,15 @@ export default {
         reopened: '{count}-mal wieder aufgetreten',
         messages: 'Nachrichten',
         copyStacktrace: 'Stacktrace kopieren',
+        contextTitle: 'Umgebende Logzeilen',
+        contextAllThreads: 'Alle Threads',
+        contextLoggingOff: 'Das Anwendungslog wird nicht in der Datenbank gespeichert, daher sind keine umgebenden Zeilen vorhanden.',
+        contextSettings: 'Zu den Einstellungen',
+        contextNothingKept: 'Für diesen Zeitraum ist nichts gespeichert. Ältere Zeilen werden nach der Aufbewahrungsfrist gelöscht, gespeichert wird nur ab der eingestellten Stufe, und einige Logger der Datenbankanbindung werden nie gespeichert.',
+        contextNoOccurrence: 'Zu diesem Eintrag ist kein Zeitpunkt gespeichert.',
+        contextThisEntry: 'Dieser Eintrag',
+        contextLoading: 'Logzeilen werden geladen',
+        contextOwnLineMissing: 'Die Zeile des Eintrags selbst steht nicht im gespeicherten Log: Ihre Stufe wird nicht gespeichert, oder ihr Logger ist vom Speichern ausgenommen.',
     },
     adminDataTracking: {
         batchFailed: 'Aktualisierungen fehlgeschlagen: {count}',

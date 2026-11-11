@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import PillBadge from '@/components/badge/PillBadge.vue'
 import ProblemCardHeader from '@/components/problem/ProblemCardHeader.vue'
-import {hasDetails, problemTitle, type ProblemAction} from '@/api/problems'
+import {problemTitle, type ProblemAction} from '@/api/problems'
 import {ProblemLevel, ProblemState, type StoredProblem} from '@/api/generated/schema'
 
 const props = defineProps<{
@@ -24,8 +24,6 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-
-const expandable = computed(() => hasDetails(props.entry))
 
 const title = computed(() => problemTitle(props.entry))
 
@@ -42,7 +40,7 @@ const stateLabel = computed(() => {
 <template>
   <ProblemCardHeader
       :count="entry.count"
-      :expandable="expandable"
+      expandable
       :expanded="expanded"
       :first-occurrence="entry.firstSeen"
       :last-occurrence="entry.lastSeen"

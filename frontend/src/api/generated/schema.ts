@@ -6471,6 +6471,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/problems/{id}/context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The stored log around one occurrence of a problem */
+        get: {
+            parameters: {
+                query?: {
+                    allThreads?: boolean;
+                    at?: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemContext"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/problems/{id}/mute": {
         parameters: {
             query?: never;
@@ -71730,8 +71789,31 @@ export interface components {
             error: string | null;
             healthy: boolean;
         };
+        ProblemContext: {
+            allThreads: boolean;
+            databaseLogging: boolean;
+            lines: components["schemas"]["ProblemContextLine"][];
+            /** Format: int32 */
+            occurrence: number;
+            occurrences: components["schemas"]["ProblemOccurrence"][];
+            state: components["schemas"]["ProblemContextState"];
+        };
+        ProblemContextLine: {
+            level: string;
+            loggedAt: components["schemas"]["Instant"];
+            logger: string;
+            message: string;
+            problem: boolean;
+            thread: string;
+        };
+        /** @enum {string} */
+        ProblemContextState: "LINES" | "LOGGING_OFF" | "NOTHING_KEPT" | "NO_OCCURRENCE";
         /** @enum {string} */
         ProblemLevel: "WARN" | "ERROR" | "REFUSAL";
+        ProblemOccurrence: {
+            occurredAt: components["schemas"]["Instant"];
+            thread: string;
+        };
         ProblemPayload: {
             contactMail: string | null;
             contactName: string | null;
@@ -77367,7 +77449,11 @@ export type PreviewResponse = components['schemas']['PreviewResponse'];
 export type PreviewResult = components['schemas']['PreviewResult'];
 export type ProbeRequest = components['schemas']['ProbeRequest'];
 export type ProbeResult = components['schemas']['ProbeResult'];
+export type ProblemContext = components['schemas']['ProblemContext'];
+export type ProblemContextLine = components['schemas']['ProblemContextLine'];
+export type ProblemContextState = components['schemas']['ProblemContextState'];
 export type ProblemLevel = components['schemas']['ProblemLevel'];
+export type ProblemOccurrence = components['schemas']['ProblemOccurrence'];
 export type ProblemPayload = components['schemas']['ProblemPayload'];
 export type ProblemReport = components['schemas']['ProblemReport'];
 export type ProblemState = components['schemas']['ProblemState'];
@@ -78968,6 +79054,13 @@ export const PollStatus = {
     PENDING: "PENDING",
     REJECTED: "REJECTED",
     UNKNOWN: "UNKNOWN",
+} as const;
+
+export const ProblemContextState = {
+    LINES: "LINES",
+    LOGGING_OFF: "LOGGING_OFF",
+    NOTHING_KEPT: "NOTHING_KEPT",
+    NO_OCCURRENCE: "NO_OCCURRENCE",
 } as const;
 
 export const ProblemLevel = {

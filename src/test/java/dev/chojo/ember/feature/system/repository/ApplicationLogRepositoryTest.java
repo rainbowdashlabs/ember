@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.system.repository;
 
+import dev.chojo.ember.feature.system.repository.ApplicationLogRepository.LogEntry;
 import dev.chojo.ember.feature.system.service.DatabaseLogAppender.LogLine;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeEach;
@@ -238,5 +239,71 @@ class ApplicationLogRepositoryTest extends RepositoryTestBase {
 
         assertTrue(found.isEmpty(), "it matches no logger");
         assertEquals(1, repository.size(), "and the table is still there");
+    }
+
+    private static LogLine on(String thread, String message, Instant at) {
+        return new LogLine(at, "INFO", "dev.chojo.ember.A", thread, message, null);
+    }
+
+    @Test
+    void theLinesAroundAMomentStayInTheirWindowAndThread() {
+        Instant at = Instant.parse("2026-11-01T10:00:00Z");
+        repository.write(List.of(
+                on("worker-1", "too early", at.minusSeconds(31)),
+                on("worker-1", "before", at.minusSeconds(10)),
+                on("worker-2", "other thread", at.minusSeconds(5)),
+                on("worker-1", "the moment", at),
+                on("worker-1", "after", at.plusSeconds(2)),
+                on("worker-1", "too late", at.plusSeconds(6))));
+
+        var own = repository.around(at, "worker-1", at.minusSeconds(30), at.plusSeconds(5), 50, 10);
+        var every = repository.around(at, null, at.minusSeconds(30), at.plusSeconds(5), 50, 10);
+
+        assertEquals(
+                List.of("before", "the moment", "after"),
+                own.stream().map(LogEntry::message).toList());
+        assertEquals(
+                List.of("before", "other thread", "the moment", "after"),
+                every.stream().map(LogEntry::message).toList());
+    }
+
+    @Test
+    void theLinesAroundAMomentKeepTheClosestOnes() {
+        Instant at = Instant.parse("2026-11-01T11:00:00Z");
+        repository.write(List.of(
+                on("main", "far before", at.minusSeconds(3)),
+                on("main", "near before", at.minusSeconds(1)),
+                on("main", "the moment", at),
+                on("main", "near after", at.plusSeconds(1)),
+                on("main", "far after", at.plusSeconds(3))));
+
+        var lines = repository.around(at, "main", at.minusSeconds(30), at.plusSeconds(5), 2, 1);
+
+        assertEquals(
+                List.of("near before", "the moment", "near after"),
+                lines.stream().map(LogEntry::message).toList());
+    }
+
+    @Test
+    void theLinesAroundAMomentIncludeBothEndsAndKeepTheirOrderWithinAMillisecond() {
+        Instant at = Instant.parse("2026-11-01T12:00:00Z");
+        repository.write(List.of(
+                on("main", "at the start", at.minusSeconds(30)),
+                on("main", "first in the moment", at),
+                on("other", "another thread in the moment", at),
+                on("main", "second in the moment", at),
+                on("main", "at the end", at.plusSeconds(5))));
+
+        var lines = repository.around(at, null, at.minusSeconds(30), at.plusSeconds(5), 50, 10);
+
+        assertEquals(
+                List.of(
+                        "at the start",
+                        "first in the moment",
+                        "another thread in the moment",
+                        "second in the moment",
+                        "at the end"),
+                lines.stream().map(LogEntry::message).toList());
+        assertTrue(lines.stream().allMatch(line -> line.throwable() == null), "the traces stay behind");
     }
 }

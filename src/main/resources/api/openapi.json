@@ -4618,6 +4618,65 @@
         } ]
       }
     },
+    "/api/v1/admin/problems/{id}/context" : {
+      "get" : {
+        "summary" : "The stored log around one occurrence of a problem",
+        "tags" : [ "Problems" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemContext"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "at",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "allThreads",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        } ]
+      }
+    },
     "/api/v1/admin/problems/{id}/mute" : {
       "post" : {
         "summary" : "Keep a problem out of the waiting count and the beacon for good",
@@ -71668,9 +71727,80 @@
         },
         "required" : [ "healthy", "error", "checkedAt" ]
       },
+      "ProblemContext" : {
+        "type" : "object",
+        "properties" : {
+          "state" : {
+            "$ref" : "#/components/schemas/ProblemContextState"
+          },
+          "databaseLogging" : {
+            "type" : "boolean"
+          },
+          "occurrences" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ProblemOccurrence"
+            }
+          },
+          "occurrence" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "allThreads" : {
+            "type" : "boolean"
+          },
+          "lines" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ProblemContextLine"
+            }
+          }
+        },
+        "required" : [ "state", "databaseLogging", "occurrences", "occurrence", "allThreads", "lines" ]
+      },
+      "ProblemContextLine" : {
+        "type" : "object",
+        "properties" : {
+          "loggedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "level" : {
+            "type" : "string"
+          },
+          "logger" : {
+            "type" : "string"
+          },
+          "thread" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "problem" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "loggedAt", "level", "logger", "thread", "message", "problem" ]
+      },
+      "ProblemContextState" : {
+        "type" : "string",
+        "enum" : [ "LINES", "LOGGING_OFF", "NOTHING_KEPT", "NO_OCCURRENCE" ]
+      },
       "ProblemLevel" : {
         "type" : "string",
         "enum" : [ "WARN", "ERROR", "REFUSAL" ]
+      },
+      "ProblemOccurrence" : {
+        "type" : "object",
+        "properties" : {
+          "occurredAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "thread" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "occurredAt", "thread" ]
       },
       "ProblemPayload" : {
         "type" : "object",

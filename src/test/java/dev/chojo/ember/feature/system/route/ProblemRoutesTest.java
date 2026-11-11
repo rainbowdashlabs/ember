@@ -9,7 +9,11 @@ import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.SystemRefusal;
+import dev.chojo.ember.feature.system.entity.ProblemContext;
+import dev.chojo.ember.feature.system.entity.ProblemContextLine;
+import dev.chojo.ember.feature.system.entity.ProblemContextState;
 import dev.chojo.ember.feature.system.entity.ProblemLevel;
+import dev.chojo.ember.feature.system.entity.ProblemOccurrence;
 import dev.chojo.ember.feature.system.entity.ProblemState;
 import dev.chojo.ember.feature.system.entity.StoredProblem;
 import dev.chojo.ember.feature.system.service.ProblemLogService;
@@ -138,5 +142,36 @@ class ProblemRoutesTest {
 
         assertEquals(403, answer.code());
         verifyNoInteractions(service);
+    }
+
+    @Test
+    void theContextAsksForTheOccurrenceAndThreadsItWasGiven() {
+        var service = mock(ProblemLogService.class);
+        Instant at = Instant.parse("2026-11-01T10:00:00Z");
+        when(service.context(5, at, true))
+                .thenReturn(new ProblemContext(
+                        ProblemContextState.LINES,
+                        true,
+                        List.of(new ProblemOccurrence(at, "worker-1")),
+                        2,
+                        true,
+                        List.of(new ProblemContextLine(at, "ERROR", "dev.chojo.ember.X", "worker-1", "broken", true))));
+        when(service.context(5, null, false))
+                .thenReturn(new ProblemContext(ProblemContextState.LOGGING_OFF, false, List.of(), 0, false, List.of()));
+        var harness = RouteHarness.serving(new ProblemRoutes(service));
+
+        harness.run((server, client) -> {
+            var admin = harness.as(TestSessions.administrator());
+            var lines = json(
+                    client.get(PREFIX + "/admin/problems/5/context?at=2026-11-01T10:00:00Z&allThreads=true", admin));
+            assertEquals("LINES", lines.path("state").asString());
+            assertEquals(true, lines.path("lines").get(0).path("problem").asBoolean());
+            var off = json(client.get(PREFIX + "/admin/problems/5/context", admin));
+            assertEquals("LOGGING_OFF", off.path("state").asString());
+            assertEquals(
+                    400,
+                    client.get(PREFIX + "/admin/problems/5/context?at=yesterday", admin)
+                            .code());
+        });
     }
 }

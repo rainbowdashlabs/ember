@@ -9,6 +9,7 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.feature.system.entity.ProblemContext;
 import dev.chojo.ember.feature.system.entity.ProblemState;
 import dev.chojo.ember.feature.system.entity.StoredProblem;
 import dev.chojo.ember.feature.system.service.ProblemLogService;
@@ -22,7 +23,10 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.Locale;
 import java.util.Set;
 
@@ -47,6 +51,7 @@ public class ProblemRoutes implements Routes {
         routes.post(prefix + "/admin/problems/{id}/mute", this::mute, InstancePermission.ADMINISTRATOR);
         routes.post(prefix + "/admin/problems/{id}/unmute", this::unmute, InstancePermission.ADMINISTRATOR);
         routes.delete(prefix + "/admin/problems/{id}", this::delete, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/admin/problems/{id}/context", this::context, InstancePermission.ADMINISTRATOR);
     }
 
     /**
@@ -62,6 +67,17 @@ public class ProblemRoutes implements Routes {
 
     private static boolean refusals(Context ctx) {
         return ctx.queryParamAsClass("refusals", Boolean.class).getOrDefault(false);
+    }
+
+    /** When the occurrence asked for happened, or null for the newest. Text that is no moment is refused. */
+    private static @Nullable Instant at(Context ctx) {
+        String at = ctx.queryParam("at");
+        if (at == null || at.isBlank()) return null;
+        try {
+            return Instant.parse(at);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Not a moment: " + at, e);
+        }
     }
 
     private static int account(Context ctx) {
@@ -155,6 +171,28 @@ public class ProblemRoutes implements Routes {
     private void delete(Context ctx) {
         problems.delete(ctx.pathParamAsClass("id", Long.class).get());
         ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/admin/problems/{id}/context",
+            methods = HttpMethod.GET,
+            summary = "The stored log around one occurrence of a problem",
+            tags = {"Problems"},
+            pathParams = @OpenApiParam(name = "id", type = Long.class, required = true),
+            queryParams = {
+                @OpenApiParam(name = "at", description = "when the occurrence happened; the newest when left out"),
+                @OpenApiParam(name = "allThreads", type = Boolean.class, description = "every thread, not only its own")
+            },
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProblemContext.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void context(Context ctx) {
+        ctx.json(problems.context(
+                ctx.pathParamAsClass("id", Long.class).get(),
+                at(ctx),
+                ctx.queryParamAsClass("allThreads", Boolean.class).getOrDefault(false)));
     }
 
     /**

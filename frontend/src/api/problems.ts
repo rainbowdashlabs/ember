@@ -4,21 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import {ProblemState, type ResolveResult, type StoredProblem} from './generated/schema'
+import {ProblemState, type ProblemContext, type ResolveResult, type StoredProblem} from './generated/schema'
 
 /** What an administrator can do with one problem from its card. */
 export type ProblemAction = 'resolve' | 'mute' | 'unmute' | 'delete' | 'send'
 
 /** The states a list can ask for: one of them, or all at once. */
 export type ProblemStateFilter = ProblemState | 'all'
-
-/**
- * Whether an entry holds anything beyond the line already on the card: a stacktrace, or more messages
- * than the one shown. With neither, expanding it opens an empty box, so the card does not offer it.
- */
-export function hasDetails(entry: StoredProblem): boolean {
-    return !!entry.stacktrace || entry.distinctMessages.length > 1
-}
 
 /** How long a problem's title runs before it is cut, so one long log line cannot flood a card or a dialog. */
 const TITLE_LIMIT = 200
@@ -68,5 +60,17 @@ export async function deleteProblem(id: number): Promise<void> {
  */
 export async function resolveAll(refusals: boolean): Promise<ResolveResult> {
     const res = await client.post<ResolveResult>('/admin/problems/resolve-all', null, {params: {refusals}})
+    return res.data
+}
+
+/**
+ * The stored log around one occurrence of a problem.
+ *
+ * @param at when the occurrence happened, or null for the newest
+ * @param allThreads whether to list every thread, not only the occurrence's own
+ */
+export async function context(id: number, at: string | null = null, allThreads = false): Promise<ProblemContext> {
+    const params = at ? {at, allThreads} : {allThreads}
+    const res = await client.get<ProblemContext>(`/admin/problems/${id}/context`, {params})
     return res.data
 }
