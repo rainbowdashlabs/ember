@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.station.repository;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
@@ -654,6 +655,70 @@ public class StationRepository {
                 WHERE id = :id
                   AND setup_completed_at IS NULL;
                 """).single(call().bind("id", stationId)).update().changed();
+    }
+
+    /**
+     * Starts the station's wait for its manager afresh, for a manager just named. A station already set up
+     * waits for nobody and is left alone.
+     *
+     * @param stationId the station
+     * @return {@code true} when the station now waits from this moment
+     */
+    public boolean startWaiting(int stationId) {
+        return query("""
+                UPDATE station
+                SET waiting_since = now()
+                WHERE id = :id
+                  AND setup_completed_at IS NULL;""").single(call().bind("id", stationId)).update().changed();
+    }
+
+    /**
+     * Starts the station's wait for its manager where it waited for nobody so far, such as a station whose
+     * manager was given the role among its members rather than named for it. A station already waiting
+     * keeps the start of its wait, and one that is set up is left alone.
+     *
+     * @param stationId the station
+     * @return {@code true} when the station now waits from this moment
+     */
+    public boolean startWaitingIfIdle(int stationId) {
+        return query("""
+                UPDATE station
+                SET waiting_since = now()
+                WHERE id = :id
+                  AND waiting_since IS NULL
+                  AND setup_completed_at IS NULL;""").single(call().bind("id", stationId)).update().changed();
+    }
+
+    /**
+     * Starts the wait of a station that arrived from another instance and still waits for its manager. The
+     * moment it started waiting stays behind on the instance it came from, so it waits from its arrival,
+     * and its automatic reminders count from there. Only a station that is not set up, does not wait
+     * already and has a manager with an account is touched.
+     *
+     * @param stationId the imported station
+     * @return {@code true} when the station now waits from this moment
+     */
+    public boolean startWaitingAfterImport(int stationId) {
+        return query("""
+                UPDATE station s
+                SET waiting_since = now()
+                WHERE s.id = :id
+                  AND s.setup_completed_at IS NULL
+                  AND s.waiting_since IS NULL
+                  AND s.station_kind = :regular
+                  AND EXISTS (
+                      SELECT 1
+                      FROM station_member sm
+                      JOIN station_member_permission smp ON smp.member_id = sm.id
+                      JOIN station_permission sp ON sp.id = smp.permission_id AND sp.name = :administrator
+                      WHERE sm.station_id = s.id
+                        AND sm.former = FALSE
+                        AND sm.account_id IS NOT NULL);""")
+                .single(call().bind("id", stationId)
+                        .bind("regular", StationKind.REGULAR)
+                        .bind("administrator", StationPermission.STATION_ADMINISTRATOR))
+                .update()
+                .changed();
     }
 
     /**

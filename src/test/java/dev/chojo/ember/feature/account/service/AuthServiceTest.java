@@ -19,6 +19,8 @@ import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailConfirmationPolicy;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
+import dev.chojo.ember.feature.statistics.repository.UsageRepository;
+import dev.chojo.ember.feature.statistics.service.UsageRecorder;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
@@ -36,6 +38,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -89,7 +93,8 @@ class AuthServiceTest extends RepositoryTestBase {
                 breachCheckWorker,
                 twoFactorRepoLocal,
                 trustedDeviceService,
-                passkeyModeService);
+                passkeyModeService,
+                new UsageRecorder(new UsageRepository()));
     }
 
     @Test
@@ -1139,7 +1144,8 @@ class AuthServiceTest extends RepositoryTestBase {
                 mock(BreachCheckWorker.class),
                 twoFactorRepoLocal,
                 trustedDeviceService,
-                passkeyModeService);
+                passkeyModeService,
+                new UsageRecorder(new UsageRepository()));
     }
 
     /**
@@ -1172,6 +1178,34 @@ class AuthServiceTest extends RepositoryTestBase {
 
         accountRepo.delete(fixture.accountId());
         stationRepo.delete(fixture.stationId());
+    }
+
+    private static boolean activeToday(int accountId) {
+        return query("SELECT last_active_on = CURRENT_DATE AS today FROM account WHERE id = :id;")
+                .single(call().bind("id", accountId))
+                .map(row -> row.getBoolean("today"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
+     * A sign-in counts the account as using the instance today, on its own: the session's first
+     * minute writes no last use, so the gate alone would miss somebody who signs in and leaves.
+     */
+    @Test
+    @Order(88)
+    void aSignInCountsTheAccountAsActiveToday() {
+        var fixture = createLoginCapableAccount("active-on-sign-in");
+        assertFalse(activeToday(fixture.accountId()));
+
+        assertTrue(demoModeService().loginAsDemo(fixture.email(), "agent", "DE").success());
+
+        assertTrue(activeToday(fixture.accountId()));
+
+        var vouched = createLoginCapableAccount("active-on-vouched");
+        assertTrue(service.admitVouchedForAccount(vouched.accountId(), "agent", "DE")
+                .success());
+        assertTrue(activeToday(vouched.accountId()));
     }
 
     /**
@@ -1544,7 +1578,8 @@ class AuthServiceTest extends RepositoryTestBase {
                 mock(BreachCheckWorker.class),
                 twoFactorRepoLocal,
                 trustedDeviceService,
-                modeService);
+                modeService,
+                new UsageRecorder(new UsageRepository()));
     }
 
     /** G3: an account may hold no credential row, and the login refuses it deliberately. */

@@ -26,6 +26,8 @@ import dev.chojo.ember.feature.mail.service.MailConfirmationPolicy;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.statistics.repository.UsageRepository;
+import dev.chojo.ember.feature.statistics.service.UsageRecorder;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
@@ -98,7 +100,8 @@ class OneTimePasswordServiceTest extends RepositoryTestBase {
                 twoFactorRepository,
                 new TrustedDeviceService(
                         twoFactorRepository, TokenHasher.forTesting("otp-pepper"), new TwoFactorSettings()),
-                passkeyModeService);
+                passkeyModeService,
+                new UsageRecorder(new UsageRepository()));
     }
 
     @BeforeEach

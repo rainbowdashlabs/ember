@@ -11,10 +11,12 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import ManagerSection from './ManagerSection.vue'
-import type {ManagerDetail} from '@/api/generated/schema'
+import type {AdminStationSummary, ManagerDetail} from '@/api/generated/schema'
 
 defineProps<{
   manager: ManagerDetail | null
+  summary?: AdminStationSummary | null
+  onReminded?: (station: AdminStationSummary) => void
   editingManager: boolean
   isEdit: boolean
   save: () => Promise<void>
@@ -43,6 +45,8 @@ const {t} = useI18n()
     <ManagerSection
       v-model:manager-email="managerEmail"
       :manager="manager"
+      :summary="summary"
+      :on-reminded="onReminded"
       :editing-manager="editingManager"
       :is-edit="isEdit"
       @start-transfer="emit('start-transfer')"

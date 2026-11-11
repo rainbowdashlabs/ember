@@ -1584,13 +1584,29 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List every account of the instance, a page at a time */
+        /** List every account of the instance, filtered, sorted and a page at a time */
         get: {
             parameters: {
                 query?: {
+                    association?: string;
+                    confirmed?: boolean;
+                    direction?: string;
+                    neverSignedIn?: boolean;
                     page?: number;
+                    passkeysMax?: number;
+                    passkeysMin?: number;
+                    password?: components["schemas"]["AccountPasswordState"];
                     q?: string;
+                    role?: components["schemas"]["InstanceUserType"];
+                    signedInFrom?: string;
+                    signedInTo?: string;
                     size?: number;
+                    sort?: components["schemas"]["AccountSort"];
+                    station?: string;
+                    twoFactor?: boolean;
+                    withoutAddress?: boolean;
+                    withoutAssociation?: boolean;
+                    withoutStation?: boolean;
                 };
                 header?: never;
                 path?: never;
@@ -1605,6 +1621,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["AccountOverviewPage"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
             };
@@ -1727,6 +1752,53 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/accounts/{id}/setup-mail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send an account that is not yet ready the mail it waits for */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccountSetupMail"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
             };
@@ -3331,6 +3403,249 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/mailing/failed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The instance's own mails that did not arrive and nobody has taken note of, a page at a time */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    size?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FailedMailPage"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/mailing/failed/{id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take note of one of the instance's own mails that did not arrive */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/mailing/failed/{id}/requeue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send one of the instance's own mails the queue gave up on again, from the first provider */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/mailing/failed/acknowledge-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take note of the instance's own mails that did not arrive, up to the latest failure seen */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FailedMailsUpTo"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AcknowledgedMails"];
+                    };
+                };
+                /** @description A body without upTo is refused with ML-006; no body at all is refused as a request that cannot be read */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/mailing/failed/stations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The stations with mails that did not arrive, counted per station without naming any mail */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationFailedMails"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/mailing/failed/stations/{stationUid}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take note of one station's mails that did not arrive, up to the latest failure seen */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    stationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FailedMailsUpTo"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AcknowledgedMails"];
+                    };
+                };
+                /** @description A body without upTo is refused with ML-006; no body at all is refused as a request that cannot be read */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -6581,6 +6896,154 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/stations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List every station with its state, manager, member count and last reminder */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminStationSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/stations/{uid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One station with its state, manager, member count and last reminder */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    uid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminStationSummary"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/stations/{uid}/remind-manager": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remind the manager of a station that waits */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    uid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ManagerReminderAnswer"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/statistics": {
         parameters: {
             query?: never;
@@ -6591,7 +7054,9 @@ export interface paths {
         /** Get admin-level statistics */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    window?: components["schemas"]["StatisticsWindow"];
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -63331,6 +63796,7 @@ export interface components {
         };
         AccountOverview: {
             associations: components["schemas"]["AssociationRole"][];
+            confirmed: boolean | null;
             email: string | null;
             hasPassword: boolean;
             /** Format: int32 */
@@ -63343,6 +63809,7 @@ export interface components {
             /** Format: int32 */
             passkeys: number;
             passwordSignIn: boolean;
+            setupMail: components["schemas"]["SetupMailKind"] | null;
             stations: string[];
             twoFactor: boolean;
             /** Format: uuid */
@@ -63357,6 +63824,8 @@ export interface components {
             /** Format: int32 */
             total: number;
         };
+        /** @enum {string} */
+        AccountPasswordState: "NONE" | "ON" | "OFF" | "ONE_TIME";
         AccountSearchResult: {
             displayName: string;
             email: string | null;
@@ -63367,6 +63836,11 @@ export interface components {
             /** Format: uuid */
             uid: string;
         };
+        AccountSetupMail: {
+            outcome: components["schemas"]["Outcome"];
+        };
+        /** @enum {string} */
+        AccountSort: "NAME" | "LAST_SIGN_IN" | "PASSKEYS";
         AchievementItem: {
             description?: string;
             title?: string;
@@ -63379,6 +63853,10 @@ export interface components {
         /** @enum {string} */
         AckKind: "CONFIRMED" | "ASSERTED" | "FORCED" | "CORRECTED" | "AUTO_CONFIRMED";
         AcknowledgeAllResponse: {
+            /** Format: int32 */
+            acknowledged: number;
+        };
+        AcknowledgedMails: {
             /** Format: int32 */
             acknowledged: number;
         };
@@ -63462,6 +63940,21 @@ export interface components {
             /** Format: int32 */
             stationsSetupPending: number;
         };
+        AdminStationSummary: {
+            associationName: string | null;
+            createdAt: components["schemas"]["Instant"] | null;
+            /** Format: uuid */
+            id: string;
+            lastReminder: components["schemas"]["ManagerReminderSummary"] | null;
+            managerEmail: string | null;
+            managerName: string | null;
+            /** Format: int32 */
+            memberCount: number;
+            movedAway: boolean;
+            name: string;
+            state: components["schemas"]["StationState"];
+            waitingSince: components["schemas"]["Instant"] | null;
+        };
         AdminStationUsage: {
             categories: components["schemas"]["CategoryUsage"][];
             origin: components["schemas"]["QuotaOrigin"];
@@ -63485,9 +63978,10 @@ export interface components {
             accountsVerified: number;
             /** Format: int32 */
             accountsWith2fa: number;
+            activeByDay: components["schemas"]["UsageSeries"];
             /** Format: int32 */
             activeSessions: number;
-            attendanceByStatus: components["schemas"]["AttendanceStatusCount"][];
+            attendanceByMonth: components["schemas"]["AttendanceMonth"][];
             emailByDay: components["schemas"]["DayCount"][];
             emailByStatus: components["schemas"]["EmailStatusCount"][];
             /** Format: int32 */
@@ -63502,14 +63996,16 @@ export interface components {
             emailSentToday: number;
             /** Format: int32 */
             eventsUpcoming: number;
+            federation: components["schemas"]["FederationFigures"];
+            growth: components["schemas"]["GrowthSeries"];
             /** Format: int32 */
             mailProviderBlocks: number;
             /** Format: int32 */
             pendingApplications: number;
-            registrationsByDay: components["schemas"]["DayCount"][];
-            sessionsByDay: components["schemas"]["DayCount"][];
+            peopleByType: components["schemas"]["PeopleFigures"];
             /** Format: int32 */
             sessionsThisMonth: number;
+            signUpsByDay: components["schemas"]["DayCount"][];
             /** Format: int32 */
             stationsSetupComplete: number;
             /** Format: int32 */
@@ -63537,6 +64033,7 @@ export interface components {
             totalProfileFields: number;
             /** Format: int32 */
             totalStations: number;
+            window: components["schemas"]["StatisticsWindow"];
         };
         AgreementSigner: {
             documentName: string;
@@ -63895,11 +64392,6 @@ export interface components {
         };
         /** @enum {string} */
         AttendanceStatus: "UNCONFIRMED" | "PRESENT" | "ABSENT" | "DECLINED";
-        AttendanceStatusCount: {
-            /** Format: int32 */
-            cnt: number;
-            status: components["schemas"]["AttendanceStatus"];
-        };
         AttendanceTemplate: {
             /** Format: int32 */
             id: number;
@@ -64652,6 +65144,11 @@ export interface components {
             fileCount: number;
             /** Format: int64 */
             totalBytes: number;
+        };
+        CauseCount: {
+            cause: components["schemas"]["FailedMailCause"];
+            /** Format: int32 */
+            count: number;
         };
         CellConfig: components["schemas"]["AccordionConfig"] | components["schemas"]["AchievementsConfig"] | components["schemas"]["AddressCardConfig"] | components["schemas"]["AudioEmbedConfig"] | components["schemas"]["BlogSignupConfig"] | components["schemas"]["CalloutConfig"] | components["schemas"]["CodeBlockConfig"] | components["schemas"]["CountdownConfig"] | components["schemas"]["DividerConfig"] | components["schemas"]["ExternalLinkCardConfig"] | components["schemas"]["FeaturedEventConfig"] | components["schemas"]["FileDownloadConfig"] | components["schemas"]["FillInConfig"] | components["schemas"]["FormsCtaConfig"] | components["schemas"]["HeroBannerConfig"] | components["schemas"]["ImageConfig"] | components["schemas"]["ImageGalleryConfig"] | components["schemas"]["KbArticleConfig"] | components["schemas"]["MapConfig"] | components["schemas"]["MarkdownConfig"] | components["schemas"]["MemberListConfig"] | components["schemas"]["MemberSpotlightConfig"] | components["schemas"]["NestedRowsConfig"] | components["schemas"]["NewsTeaserConfig"] | components["schemas"]["PageLinkConfig"] | components["schemas"]["PartnerStationsConfig"] | components["schemas"]["PastEventRecapConfig"] | components["schemas"]["PdfConfig"] | components["schemas"]["PollEmbedConfig"] | components["schemas"]["QuizTeaserConfig"] | components["schemas"]["QuoteConfig"] | components["schemas"]["SignatureConfig"] | components["schemas"]["SpacerConfig"] | components["schemas"]["StatsCounterConfig"] | components["schemas"]["TabsConfig"] | components["schemas"]["UpcomingEventsConfig"] | components["schemas"]["VideoConfig"];
         CellConfigByType: {
@@ -66757,6 +67254,31 @@ export interface components {
             email: string;
             reason: string | null;
         };
+        FailedMail: {
+            cause: components["schemas"]["FailedMailCause"];
+            createdAt: components["schemas"]["Instant"];
+            detail: string | null;
+            failedAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            id: number;
+            recipient: string;
+            requeueable: boolean;
+            subject: string;
+        };
+        /** @enum {string} */
+        FailedMailCause: "NO_PROVIDER" | "NO_PROVIDER_LEFT" | "PROVIDER_REFUSED" | "PROVIDER_BROKEN" | "RETRIES_EXHAUSTED" | "UNRECORDED" | "HARD_BOUNCE" | "BLOCKED" | "SPAM";
+        FailedMailPage: {
+            mails: components["schemas"]["FailedMail"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            size: number;
+            /** Format: int32 */
+            total: number;
+        };
+        FailedMailsUpTo: {
+            upTo?: components["schemas"]["Instant"] | null;
+        };
         FeaturedEventConfig: {
             ctaText?: string;
             ctaUrl?: string;
@@ -66872,6 +67394,27 @@ export interface components {
                 [key: string]: string;
             };
         };
+        FederationFigures: {
+            /** Format: int32 */
+            associations: number;
+            lendingByMonth: components["schemas"]["MonthCount"][];
+            /** Format: int32 */
+            localPartners: number;
+            /** Format: int32 */
+            partnerInstances: number;
+            partnersByStatus: components["schemas"]["PartnerStatusCount"][];
+            /** Format: int32 */
+            peersKnown: number;
+            /** Format: int32 */
+            peersReachable: number;
+            /** Format: int32 */
+            remotePartners: number;
+            sharesByKind: components["schemas"]["ShareCount"][];
+            /** Format: int32 */
+            stationsInAssociations: number;
+            /** Format: int32 */
+            stationsWithPartner: number;
+        };
         FederationInfoResponse: {
             contract: components["schemas"]["FederationContract"];
         };
@@ -66899,6 +67442,8 @@ export interface components {
             /** Format: uuid */
             stationUid?: string;
         };
+        /** @enum {string} */
+        FederationShareKind: "KNOWLEDGE_BASE" | "BOARD" | "QUIZ" | "PROTOCOL" | "EVENT" | "INVENTORY";
         FederationShareResponse: {
             partnerIds: number[] | null;
             scope: components["schemas"]["ShareScope"] | null;
@@ -67712,6 +68257,27 @@ export interface components {
         };
         GroupSetRequest: {
             name?: string;
+        };
+        GrowthDay: {
+            /** Format: int32 */
+            accounts: number;
+            /** Format: int32 */
+            associations: number;
+            /** Format: int32 */
+            attendanceEntries: number;
+            day: string;
+            /** Format: int32 */
+            events: number;
+            /** Format: int32 */
+            inventoryItems: number;
+            /** Format: int32 */
+            members: number;
+            /** Format: int32 */
+            stations: number;
+        };
+        GrowthSeries: {
+            days: components["schemas"]["GrowthDay"][];
+            recordedSince: string | null;
         };
         /** @enum {string} */
         GuardianCondition: "SECOND_GUARDIAN" | "NO_SECOND_GUARDIAN";
@@ -69361,6 +69927,14 @@ export interface components {
             } | null;
             issuer?: components["schemas"]["IssuerChoice"] | null;
         };
+        ManagerReminderAnswer: {
+            result: components["schemas"]["ReminderResult"];
+            station: components["schemas"]["AdminStationSummary"];
+        };
+        ManagerReminderSummary: {
+            sentAt: components["schemas"]["Instant"];
+            trigger: components["schemas"]["ReminderTrigger"];
+        };
         MapConfig: {
             /** Format: int32 */
             heightPx?: number;
@@ -69880,9 +70454,16 @@ export interface components {
             /** Format: int32 */
             beaconReports: number;
             /** Format: int32 */
+            failedMails: number;
+            /** Format: int32 */
             problemLog: number;
             /** Format: int32 */
             problemReports: number;
+        };
+        MonthCount: {
+            /** Format: int32 */
+            count: number;
+            month: string;
         };
         MonthSummary: {
             members: components["schemas"]["MemberSummary"][];
@@ -70429,6 +71010,8 @@ export interface components {
         OrderRequest: {
             needIds?: number[];
         };
+        /** @enum {string} */
+        Outcome: "INVITATION_SENT" | "CONFIRMATION_SENT" | "CONFIRMED";
         OutgoingPairRequestResponse: {
             answeredAt: components["schemas"]["Instant"] | null;
             createdAt: components["schemas"]["Instant"];
@@ -70676,6 +71259,11 @@ export interface components {
             stationUids?: string[];
             title?: string;
         };
+        PartnerStatusCount: {
+            /** Format: int32 */
+            count: number;
+            status: components["schemas"]["FederationStatus"];
+        };
         PasskeyCodeResponse: {
             code: string;
             expiresAt: components["schemas"]["Instant"];
@@ -70828,6 +71416,30 @@ export interface components {
         };
         /** @enum {string} */
         PeerSource: "BOOTSTRAP" | "GOSSIP" | "MANUAL";
+        PeopleByType: {
+            /** Format: int32 */
+            guardian: number;
+            /** Format: int32 */
+            manager: number;
+            /** Format: int32 */
+            member: number;
+            /** Format: int32 */
+            memberships: number;
+            /** Format: int32 */
+            people: number;
+            /** Format: int32 */
+            team: number;
+            /** Format: int32 */
+            trial: number;
+        };
+        PeopleDay: {
+            counts: components["schemas"]["PeopleByType"];
+            day: string;
+        };
+        PeopleFigures: {
+            byDay: components["schemas"]["PeopleDay"][];
+            current: components["schemas"]["PeopleByType"];
+        };
         Permission: {
             /** Format: int32 */
             id: number;
@@ -72237,6 +72849,10 @@ export interface components {
             backlinks: components["schemas"]["KbFile"][];
             related: components["schemas"]["KbFile"][];
         };
+        /** @enum {string} */
+        ReminderResult: "SENT" | "CONFIRMED_WITHOUT_MAIL";
+        /** @enum {string} */
+        ReminderTrigger: "MANUAL" | "AFTER_7_DAYS" | "AFTER_21_DAYS";
         RemoteAttachment: {
             fileName: string;
             /** Format: int64 */
@@ -73259,6 +73875,8 @@ export interface components {
             };
             theme: string;
         };
+        /** @enum {string} */
+        SetupMailKind: "INVITATION" | "CONFIRMATION";
         SetupStatus: {
             completedAt: components["schemas"]["Instant"] | null;
             optionalSteps: components["schemas"]["StepState"][];
@@ -73319,6 +73937,11 @@ export interface components {
              */
             type: "SFTP";
             username: string;
+        };
+        ShareCount: {
+            /** Format: int32 */
+            count: number;
+            kind: components["schemas"]["FederationShareKind"];
         };
         SharedBrand: {
             customThemeColors: string | null;
@@ -73741,6 +74364,16 @@ export interface components {
             thresholdDays: number | null;
             viewRestrictionMode: components["schemas"]["RestrictionMode"];
         };
+        StationFailedMails: {
+            causes: components["schemas"]["CauseCount"][];
+            /** Format: int32 */
+            count: number;
+            newest: components["schemas"]["Instant"];
+            oldest: components["schemas"]["Instant"];
+            stationName: string;
+            /** Format: uuid */
+            stationUid: string;
+        };
         StationFile: {
             contentHash: string;
             defaultAltText: string | null;
@@ -73946,6 +74579,8 @@ export interface components {
             /** Format: int64 */
             usedBytes: number;
         };
+        /** @enum {string} */
+        StationState: "NO_MANAGER" | "WAITING_FOR_MANAGER" | "SETTING_UP" | "SET_UP";
         StationStatistics: {
             attendanceByMonth: components["schemas"]["AttendanceMonth"][];
             eventRegistrations: components["schemas"]["EventRegistrations"][];
@@ -73977,6 +74612,8 @@ export interface components {
         StationUserTypeRequest: {
             userType?: string;
         };
+        /** @enum {string} */
+        StatisticsWindow: "DAYS_30" | "MONTHS_12" | "ALL";
         StatItem: {
             label?: string;
             suffix?: string;
@@ -75014,6 +75651,13 @@ export interface components {
             section: string;
             type: string;
         };
+        UsageSeries: {
+            average30: number;
+            days: components["schemas"]["DayCount"][];
+            recordedSince: string | null;
+            /** Format: int32 */
+            today: number;
+        };
         UserAgentsResponse: {
             /** Format: int64 */
             totalRequests: number;
@@ -75492,11 +76136,15 @@ export type AccountActionRequest = components['schemas']['AccountActionRequest']
 export type AccountInfo = components['schemas']['AccountInfo'];
 export type AccountOverview = components['schemas']['AccountOverview'];
 export type AccountOverviewPage = components['schemas']['AccountOverviewPage'];
+export type AccountPasswordState = components['schemas']['AccountPasswordState'];
 export type AccountSearchResult = components['schemas']['AccountSearchResult'];
+export type AccountSetupMail = components['schemas']['AccountSetupMail'];
+export type AccountSort = components['schemas']['AccountSort'];
 export type AchievementItem = components['schemas']['AchievementItem'];
 export type AchievementsConfig = components['schemas']['AchievementsConfig'];
 export type AckKind = components['schemas']['AckKind'];
 export type AcknowledgeAllResponse = components['schemas']['AcknowledgeAllResponse'];
+export type AcknowledgedMails = components['schemas']['AcknowledgedMails'];
 export type AcknowledgeRequest = components['schemas']['AcknowledgeRequest'];
 export type AcknowledgeResult = components['schemas']['AcknowledgeResult'];
 export type AcknowledgeStepRequest = components['schemas']['AcknowledgeStepRequest'];
@@ -75508,6 +76156,7 @@ export type AddPeerRequest = components['schemas']['AddPeerRequest'];
 export type AddressCardConfig = components['schemas']['AddressCardConfig'];
 export type AdminMapsConfig = components['schemas']['AdminMapsConfig'];
 export type AdminOverview = components['schemas']['AdminOverview'];
+export type AdminStationSummary = components['schemas']['AdminStationSummary'];
 export type AdminStationUsage = components['schemas']['AdminStationUsage'];
 export type AdminStatistics = components['schemas']['AdminStatistics'];
 export type AgreementSigner = components['schemas']['AgreementSigner'];
@@ -75564,7 +76213,6 @@ export type AttendanceReportPreset = components['schemas']['AttendanceReportPres
 export type AttendanceSession = components['schemas']['AttendanceSession'];
 export type AttendanceSessionField = components['schemas']['AttendanceSessionField'];
 export type AttendanceStatus = components['schemas']['AttendanceStatus'];
-export type AttendanceStatusCount = components['schemas']['AttendanceStatusCount'];
 export type AttendanceTemplate = components['schemas']['AttendanceTemplate'];
 export type AttendanceTemplateField = components['schemas']['AttendanceTemplateField'];
 export type AudienceRequest = components['schemas']['AudienceRequest'];
@@ -75670,6 +76318,7 @@ export type CatalogTransferQuestion = components['schemas']['CatalogTransferQues
 export type CategoryRequest = components['schemas']['CategoryRequest'];
 export type CategoryUsage = components['schemas']['CategoryUsage'];
 export type CategoryUsageResponse = components['schemas']['CategoryUsageResponse'];
+export type CauseCount = components['schemas']['CauseCount'];
 export type CellConfig = components['schemas']['CellConfig'];
 export type CellConfigByType = components['schemas']['CellConfigByType'];
 export type CellContentType = components['schemas']['CellContentType'];
@@ -75957,6 +76606,10 @@ export type ExtraTimeCredit = components['schemas']['ExtraTimeCredit'];
 export type ExtraTimeRequest = components['schemas']['ExtraTimeRequest'];
 export type FactorInfo = components['schemas']['FactorInfo'];
 export type FailedInviteResponse = components['schemas']['FailedInviteResponse'];
+export type FailedMail = components['schemas']['FailedMail'];
+export type FailedMailCause = components['schemas']['FailedMailCause'];
+export type FailedMailPage = components['schemas']['FailedMailPage'];
+export type FailedMailsUpTo = components['schemas']['FailedMailsUpTo'];
 export type FeaturedEventConfig = components['schemas']['FeaturedEventConfig'];
 export type FederatedBoardDetail = components['schemas']['FederatedBoardDetail'];
 export type FederatedEventItem = components['schemas']['FederatedEventItem'];
@@ -75972,9 +76625,11 @@ export type FederationCapability = components['schemas']['FederationCapability']
 export type FederationConfigRequest = components['schemas']['FederationConfigRequest'];
 export type FederationConfigResponse = components['schemas']['FederationConfigResponse'];
 export type FederationContract = components['schemas']['FederationContract'];
+export type FederationFigures = components['schemas']['FederationFigures'];
 export type FederationInfoResponse = components['schemas']['FederationInfoResponse'];
 export type FederationPartner = components['schemas']['FederationPartner'];
 export type FederationRequestBody = components['schemas']['FederationRequestBody'];
+export type FederationShareKind = components['schemas']['FederationShareKind'];
 export type FederationShareResponse = components['schemas']['FederationShareResponse'];
 export type FederationStatus = components['schemas']['FederationStatus'];
 export type FederationTargetRequest = components['schemas']['FederationTargetRequest'];
@@ -76098,6 +76753,8 @@ export type GroupRequest = components['schemas']['GroupRequest'];
 export type GroupRuleRefusedBody = components['schemas']['GroupRuleRefusedBody'];
 export type GroupRulesRequest = components['schemas']['GroupRulesRequest'];
 export type GroupSetRequest = components['schemas']['GroupSetRequest'];
+export type GrowthDay = components['schemas']['GrowthDay'];
+export type GrowthSeries = components['schemas']['GrowthSeries'];
 export type GuardianCondition = components['schemas']['GuardianCondition'];
 export type GuardianEntry = components['schemas']['GuardianEntry'];
 export type HandOutRequest = components['schemas']['HandOutRequest'];
@@ -76317,6 +76974,8 @@ export type ManagedRequestResponse = components['schemas']['ManagedRequestRespon
 export type ManagedStationResponse = components['schemas']['ManagedStationResponse'];
 export type ManagerDetail = components['schemas']['ManagerDetail'];
 export type ManagerGenerationRequest = components['schemas']['ManagerGenerationRequest'];
+export type ManagerReminderAnswer = components['schemas']['ManagerReminderAnswer'];
+export type ManagerReminderSummary = components['schemas']['ManagerReminderSummary'];
 export type MapConfig = components['schemas']['MapConfig'];
 export type MapsGeocodingConfig = components['schemas']['MapsGeocodingConfig'];
 export type MapsTilesConfig = components['schemas']['MapsTilesConfig'];
@@ -76389,6 +77048,7 @@ export type Mode = components['schemas']['Mode'];
 export type ModelInfo = components['schemas']['ModelInfo'];
 export type ModulesResponse = components['schemas']['ModulesResponse'];
 export type MonitoringCounts = components['schemas']['MonitoringCounts'];
+export type MonthCount = components['schemas']['MonthCount'];
 export type MonthSummary = components['schemas']['MonthSummary'];
 export type Moved = components['schemas']['Moved'];
 export type MoveFileRequest = components['schemas']['MoveFileRequest'];
@@ -76467,6 +77127,7 @@ export type Option = components['schemas']['Option'];
 export type Ordering = components['schemas']['Ordering'];
 export type OrderingView = components['schemas']['OrderingView'];
 export type OrderRequest = components['schemas']['OrderRequest'];
+export type Outcome = components['schemas']['Outcome'];
 export type OutgoingPairRequestResponse = components['schemas']['OutgoingPairRequestResponse'];
 export type OutputShape = components['schemas']['OutputShape'];
 export type OverviewResponse = components['schemas']['OverviewResponse'];
@@ -76508,6 +77169,7 @@ export type PartnerResponse = components['schemas']['PartnerResponse'];
 export type PartnerSigner = components['schemas']['PartnerSigner'];
 export type PartnerSignerDocument = components['schemas']['PartnerSignerDocument'];
 export type PartnerStationsConfig = components['schemas']['PartnerStationsConfig'];
+export type PartnerStatusCount = components['schemas']['PartnerStatusCount'];
 export type PasskeyCodeResponse = components['schemas']['PasskeyCodeResponse'];
 export type PasskeyEntryResponse = components['schemas']['PasskeyEntryResponse'];
 export type PasskeysConfigRequest = components['schemas']['PasskeysConfigRequest'];
@@ -76529,6 +77191,9 @@ export type PdfPage = components['schemas']['PdfPage'];
 export type PeerAnnouncement = components['schemas']['PeerAnnouncement'];
 export type PeerResponse = components['schemas']['PeerResponse'];
 export type PeerSource = components['schemas']['PeerSource'];
+export type PeopleByType = components['schemas']['PeopleByType'];
+export type PeopleDay = components['schemas']['PeopleDay'];
+export type PeopleFigures = components['schemas']['PeopleFigures'];
 export type Permission = components['schemas']['Permission'];
 export type PermissionNode = components['schemas']['PermissionNode'];
 export type PermissionsByMember = components['schemas']['PermissionsByMember'];
@@ -76706,6 +77371,8 @@ export type RegistrationTemplateField = components['schemas']['RegistrationTempl
 export type RegistrationUpdateItem = components['schemas']['RegistrationUpdateItem'];
 export type RelatedFilesRequest = components['schemas']['RelatedFilesRequest'];
 export type RelatedFilesResponse = components['schemas']['RelatedFilesResponse'];
+export type ReminderResult = components['schemas']['ReminderResult'];
+export type ReminderTrigger = components['schemas']['ReminderTrigger'];
 export type RemoteAttachment = components['schemas']['RemoteAttachment'];
 export type RemoteBoard = components['schemas']['RemoteBoard'];
 export type RemoteCatalogDetail = components['schemas']['RemoteCatalogDetail'];
@@ -76851,6 +77518,7 @@ export type SetTemplateUserTypesRequest = components['schemas']['SetTemplateUser
 export type SetTimeRulesRequest = components['schemas']['SetTimeRulesRequest'];
 export type SettingsRequest = components['schemas']['SettingsRequest'];
 export type SettingsResponse = components['schemas']['SettingsResponse'];
+export type SetupMailKind = components['schemas']['SetupMailKind'];
 export type SetupStatus = components['schemas']['SetupStatus'];
 export type SetUsernameRequest = components['schemas']['SetUsernameRequest'];
 export type SetUserTypePermissionsRequest = components['schemas']['SetUserTypePermissionsRequest'];
@@ -76859,6 +77527,7 @@ export type SetValuesRequest = components['schemas']['SetValuesRequest'];
 export type Sftp = components['schemas']['Sftp'];
 export type SftpRequest = components['schemas']['SftpRequest'];
 export type SftpSummary = components['schemas']['SftpSummary'];
+export type ShareCount = components['schemas']['ShareCount'];
 export type SharedBrand = components['schemas']['SharedBrand'];
 export type ShareDetail = components['schemas']['ShareDetail'];
 export type SharedEvent = components['schemas']['SharedEvent'];
@@ -76912,6 +77581,7 @@ export type StationCertificateInfo = components['schemas']['StationCertificateIn
 export type StationClusterResponse = components['schemas']['StationClusterResponse'];
 export type StationDetail = components['schemas']['StationDetail'];
 export type StationEvent = components['schemas']['StationEvent'];
+export type StationFailedMails = components['schemas']['StationFailedMails'];
 export type StationFile = components['schemas']['StationFile'];
 export type StationFileFolder = components['schemas']['StationFileFolder'];
 export type StationFileTag = components['schemas']['StationFileTag'];
@@ -76934,10 +77604,12 @@ export type StationPoolUse = components['schemas']['StationPoolUse'];
 export type StationRegistrationStatus = components['schemas']['StationRegistrationStatus'];
 export type StationRequest = components['schemas']['StationRequest'];
 export type StationRoomResponse = components['schemas']['StationRoomResponse'];
+export type StationState = components['schemas']['StationState'];
 export type StationStatistics = components['schemas']['StationStatistics'];
 export type StationUsageResponse = components['schemas']['StationUsageResponse'];
 export type StationUserType = components['schemas']['StationUserType'];
 export type StationUserTypeRequest = components['schemas']['StationUserTypeRequest'];
+export type StatisticsWindow = components['schemas']['StatisticsWindow'];
 export type StatItem = components['schemas']['StatItem'];
 export type StatsCounterConfig = components['schemas']['StatsCounterConfig'];
 export type Status = components['schemas']['Status'];
@@ -77095,6 +77767,7 @@ export type UpdateTemplateRequest = components['schemas']['UpdateTemplateRequest
 export type UpdateTicketRequest = components['schemas']['UpdateTicketRequest'];
 export type UpsertPolicyRequest = components['schemas']['UpsertPolicyRequest'];
 export type Usage = components['schemas']['Usage'];
+export type UsageSeries = components['schemas']['UsageSeries'];
 export type UserAgentsResponse = components['schemas']['UserAgentsResponse'];
 export type UserTag = components['schemas']['UserTag'];
 export type UserTypeChangeResponse = components['schemas']['UserTypeChangeResponse'];
@@ -77162,6 +77835,19 @@ export type WordFormImport = components['schemas']['WordFormImport'];
 export type YoutubeFileRequest = components['schemas']['YoutubeFileRequest'];
 export type $defs = Record<string, never>;
 export type operations = Record<string, never>;
+
+export const AccountPasswordState = {
+    NONE: "NONE",
+    OFF: "OFF",
+    ON: "ON",
+    ONE_TIME: "ONE_TIME",
+} as const;
+
+export const AccountSort = {
+    LAST_SIGN_IN: "LAST_SIGN_IN",
+    NAME: "NAME",
+    PASSKEYS: "PASSKEYS",
+} as const;
 
 export const AckKind = {
     ASSERTED: "ASSERTED",
@@ -77483,6 +78169,27 @@ export const Expected = {
 export const ExternalLinkImageDisplay = {
     BANNER: "BANNER",
     ICON: "ICON",
+} as const;
+
+export const FailedMailCause = {
+    BLOCKED: "BLOCKED",
+    HARD_BOUNCE: "HARD_BOUNCE",
+    NO_PROVIDER: "NO_PROVIDER",
+    NO_PROVIDER_LEFT: "NO_PROVIDER_LEFT",
+    PROVIDER_BROKEN: "PROVIDER_BROKEN",
+    PROVIDER_REFUSED: "PROVIDER_REFUSED",
+    RETRIES_EXHAUSTED: "RETRIES_EXHAUSTED",
+    SPAM: "SPAM",
+    UNRECORDED: "UNRECORDED",
+} as const;
+
+export const FederationShareKind = {
+    BOARD: "BOARD",
+    EVENT: "EVENT",
+    INVENTORY: "INVENTORY",
+    KNOWLEDGE_BASE: "KNOWLEDGE_BASE",
+    PROTOCOL: "PROTOCOL",
+    QUIZ: "QUIZ",
 } as const;
 
 export const FederationStatus = {
@@ -78007,6 +78714,12 @@ export const OnboardingTaskState = {
     SKIPPED: "SKIPPED",
 } as const;
 
+export const Outcome = {
+    CONFIRMATION_SENT: "CONFIRMATION_SENT",
+    CONFIRMED: "CONFIRMED",
+    INVITATION_SENT: "INVITATION_SENT",
+} as const;
+
 export const OutputShape = {
     FLAT: "FLAT",
     ROWS: "ROWS",
@@ -78193,6 +78906,17 @@ export const RegistrationStatus = {
     WITHDRAWN: "WITHDRAWN",
 } as const;
 
+export const ReminderResult = {
+    CONFIRMED_WITHOUT_MAIL: "CONFIRMED_WITHOUT_MAIL",
+    SENT: "SENT",
+} as const;
+
+export const ReminderTrigger = {
+    AFTER_21_DAYS: "AFTER_21_DAYS",
+    AFTER_7_DAYS: "AFTER_7_DAYS",
+    MANUAL: "MANUAL",
+} as const;
+
 export const RequestState = {
     COMPLETE: "COMPLETE",
     OPEN: "OPEN",
@@ -78339,6 +79063,11 @@ export const SelfRegistration = {
     CLOSED: "CLOSED",
     NOT_ELIGIBLE: "NOT_ELIGIBLE",
     OPEN: "OPEN",
+} as const;
+
+export const SetupMailKind = {
+    CONFIRMATION: "CONFIRMATION",
+    INVITATION: "INVITATION",
 } as const;
 
 export const ShareGrant = {
@@ -78504,12 +79233,25 @@ export const StationPermission = {
     WAITLIST_READ: "WAITLIST_READ",
 } as const;
 
+export const StationState = {
+    NO_MANAGER: "NO_MANAGER",
+    SETTING_UP: "SETTING_UP",
+    SET_UP: "SET_UP",
+    WAITING_FOR_MANAGER: "WAITING_FOR_MANAGER",
+} as const;
+
 export const StationUserType = {
     GUARDIAN: "GUARDIAN",
     MANAGER: "MANAGER",
     MEMBER: "MEMBER",
     TEAM: "TEAM",
     TRIAL: "TRIAL",
+} as const;
+
+export const StatisticsWindow = {
+    ALL: "ALL",
+    DAYS_30: "DAYS_30",
+    MONTHS_12: "MONTHS_12",
 } as const;
 
 export const Status = {

@@ -30,7 +30,7 @@ const {t} = useI18n()
       <SuccessContainer class="flex items-center justify-between">
         <div>
           <div class="font-medium">{{ t('helpCenter.sample.people.maxMustermann') }}</div>
-          <div class="text-sm text-(--text-muted)">max@mustermann.de</div>
+          <div class="text-sm text-(--text-muted)">max.mustermann@example.org</div>
           <div class="text-xs mt-1">
             <span class="text-success">
               <font-awesome-icon :icon="['fas', 'check']" class="mr-1" />{{ t('adminStations.accountReady') }}

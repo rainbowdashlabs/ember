@@ -34,6 +34,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.StationModule;
+import dev.chojo.ember.feature.station.repository.StationOverviewRepository;
 import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
 import dev.chojo.ember.feature.station.transfer.ActiveImports;
@@ -507,6 +508,12 @@ class StationTransferTest extends RepositoryTestBase {
         assertTrue(stationRepo.findDisabledModules(result.stationId()).contains(StationModule.LOST_AND_FOUND));
 
         assertNotNull(imported.ownerMemberId(), "Station owner should be set after import");
+        assertNotNull(
+                new StationOverviewRepository()
+                        .find(result.stationId())
+                        .orElseThrow()
+                        .waitingSince(),
+                "a moved station that still waits for its manager waits from its arrival");
 
         var importedMemberIds = importedMembers.stream().map(StationMember::id).toList();
         assertTrue(importedMemberIds.stream().noneMatch(id -> id == sourceManagerId), "member ids are remapped");
@@ -779,6 +786,12 @@ class StationTransferTest extends RepositoryTestBase {
         assertTrue(result.stationId() > 0);
         assertEquals("Empty Source", result.stationName());
         assertTrue(stationMemberRepo.findByStation(result.stationId()).isEmpty());
+        assertNull(
+                new StationOverviewRepository()
+                        .find(result.stationId())
+                        .orElseThrow()
+                        .waitingSince(),
+                "a station without a manager waits for nobody");
 
         stationRepo.delete(result.stationId());
     }

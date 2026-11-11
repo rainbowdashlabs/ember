@@ -5,6 +5,7 @@
  */
 <script setup lang="ts">
 import {computed} from 'vue'
+import type {RouteLocationRaw} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
@@ -18,7 +19,8 @@ const props = defineProps<{
   count: number
   warnAt?: number
   critAt?: number
-  routeName?: string
+  /** Where the records the card counts are listed, with the filter set; nothing for a card that only counts. */
+  to?: RouteLocationRaw
 }>()
 
 const variant = computed<'success' | 'info' | 'error' | 'neutral'>(() => {
@@ -34,16 +36,13 @@ const container = computed(() => {
   if (variant.value === 'info') return InfoContainer
   return NeutralContainer
 })
-
-/** The page the card stands for, or nothing for a card that only counts something. */
-const page = computed(() => props.routeName ? {name: props.routeName} : null)
 </script>
 
 <template>
-  <RowLink :to="page">
+  <RowLink :to="to ?? null">
     <component
         :is="container"
-        :class="['flex flex-col gap-2 h-full', routeName ? 'cursor-pointer hover:border-primary transition-colors' : '']"
+        :class="['flex flex-col gap-2 h-full', to ? 'cursor-pointer hover:border-primary transition-colors' : '']"
     >
       <div class="flex items-start gap-2">
         <font-awesome-icon :icon="icon" class="text-xl mt-0.5"/>

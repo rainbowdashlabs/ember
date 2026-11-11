@@ -35,10 +35,16 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.adminStationEdit.managerTitle')">
       <p>{{ t('helpCenter.adminStationEdit.managerText') }}</p>
+      <p>{{ t('helpCenter.adminStationEdit.accountStateText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.adminStationEdit.exampleTitle')">
       <StationEditExample/>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.adminStationEdit.reminderTitle')">
+      <p>{{ t('helpCenter.adminStationEdit.reminderText') }}</p>
+      <p>{{ t('helpCenter.adminStationEdit.reminderMailText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.adminStationEdit.instanceMailTitle')">

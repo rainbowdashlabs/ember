@@ -72,6 +72,12 @@ export interface TableColumn<Row> {
     defaultVisible?: boolean
     sortable?: boolean
     filterable?: boolean
+    /**
+     * Whether the filter offers the choice of empty cells where the server filters, which it does
+     * only for a column whose empties the server is asked about. Where the table filters itself, it
+     * always offers it.
+     */
+    filtersEmpty?: boolean
     /** Whether the plain-text search looks at this column. Defaults to text and enum columns. */
     searchable?: boolean
     align?: 'left' | 'center' | 'right'

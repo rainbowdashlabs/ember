@@ -151,6 +151,7 @@ public class StationApplicationService {
                 .findPermissionByName(StationPermission.LOGIN)
                 .orElseThrow(() -> new IllegalStateException("Login role not found"));
         stationMemberRepository.grantPermission(member.id(), loginRole.id());
+        stationRepository.startWaiting(station.id());
 
         String token = UUID.randomUUID().toString();
         accountRepository.createToken(

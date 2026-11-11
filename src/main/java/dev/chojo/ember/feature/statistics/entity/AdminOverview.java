@@ -13,12 +13,19 @@ import java.util.List;
 /**
  * What needs an instance administrator's attention, for the dashboard they land on.
  *
- * @param emailFailed                mails given up on
- * @param emailPending               mails waiting to be sent
- * @param emailStuckSending          mails taken by a sender more than ten minutes ago and not handed over
+ * @param emailFailed                mails of the instance and every station that did not arrive and that
+ *                                   nobody has taken note of: given up on by the queue, or reported by
+ *                                   the provider as bounced, blocked or spam
+ * @param emailPending               the instance's own mails waiting to be sent, the ones its mail log shows
+ * @param emailStuckSending          the instance's own mails a sender took in hand more than ten minutes ago
+ *                                   and never handed over
  * @param stationApplicationsPending applications for a new station waiting for a decision
- * @param stationsSetupPending       stations still in their setup
- * @param accountsUnverified         accounts whose address is not confirmed yet
+ * @param stationsSetupPending       stations waiting for their manager, as the station list's
+ *                                   "waiting" filter shows them: the manager cannot sign in yet or has
+ *                                   not finished the setup; stations without a manager, copies left by
+ *                                   a move and associations' home stations are not counted
+ * @param accountsUnverified         accounts with a real address that is not confirmed yet; a stand-in
+ *                                   address can never be confirmed and is not counted
  * @param federationPartnersPending  pairings with other stations waiting for an answer
  * @param discoveryPeersUnreachable  known instances that did not answer and are not blocked
  * @param problemReportsOpen         problem reports nobody has acknowledged
@@ -40,6 +47,27 @@ public record AdminOverview(
         int signingKeysLocked,
         List<RecentApplication> recentApplications,
         List<RecentProblemReport> recentProblemReports) {
+
+    /**
+     * @param count how many stations wait for their manager, as the station list's "waiting" filter shows
+     *              them, which needs the manager each station has and so is not counted here
+     * @return this overview with that count
+     */
+    public AdminOverview withStationsSetupPending(int count) {
+        return new AdminOverview(
+                emailFailed,
+                emailPending,
+                emailStuckSending,
+                stationApplicationsPending,
+                count,
+                accountsUnverified,
+                federationPartnersPending,
+                discoveryPeersUnreachable,
+                problemReportsOpen,
+                signingKeysLocked,
+                recentApplications,
+                recentProblemReports);
+    }
 
     /**
      * @param count how many signing keys no longer open, which the database cannot count

@@ -37,6 +37,10 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING
  *                                 where it holds none
  * @param passkeys                 how many passkeys it may sign in with
  * @param twoFactor                whether a second factor is asked after its password
+ * @param confirmed                whether its address was confirmed, or {@code null} for a stand-in
+ *                                 address, which can never be
+ * @param setupMail                the mail an administrator can send it to finish its setup, or
+ *                                 {@code null} where it needs none
  */
 public record AccountOverview(
         int id,
@@ -52,7 +56,9 @@ public record AccountOverview(
         boolean passwordSignIn,
         @Nullable Instant oneTimePasswordExpiresAt,
         int passkeys,
-        boolean twoFactor) {
+        boolean twoFactor,
+        @Nullable Boolean confirmed,
+        @Nullable SetupMailKind setupMail) {
 
     /**
      * A role an account holds in an association.
@@ -69,11 +75,13 @@ public record AccountOverview(
         return row -> {
             String email = row.getString("email");
             String username = row.getString("username");
+            boolean realAddress = Account.isRealEmail(email);
+            boolean verified = row.getBoolean("email_verified");
             return new AccountOverview(
                     row.getInt("id"),
                     row.get("uid", UUID_STRING),
                     row.getString("name"),
-                    Account.isRealEmail(email) ? email : null,
+                    realAddress ? email : null,
                     username != null && !username.isBlank() ? username : email,
                     row.getEnum("instance_user_type", InstanceUserType.class),
                     row.get("last_sign_in_at", INSTANT_TIMESTAMP),
@@ -83,7 +91,9 @@ public record AccountOverview(
                     row.getBoolean("password_sign_in"),
                     row.get("one_time_password_expires_at", INSTANT_TIMESTAMP),
                     row.getInt("passkeys"),
-                    row.getBoolean("two_factor"));
+                    row.getBoolean("two_factor"),
+                    realAddress ? verified : null,
+                    SetupMailKind.of(row.getBoolean("awaits_setup"), realAddress, verified));
         };
     }
 

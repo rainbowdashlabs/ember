@@ -12,6 +12,8 @@ import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.statistics.repository.UsageRepository;
+import dev.chojo.ember.feature.statistics.service.UsageRecorder;
 import io.javalin.http.Context;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,13 +37,14 @@ import static org.mockito.Mockito.when;
 
 /**
  * The gate admits a live session, keeps it alive and renews its cookie once half its lifetime is
- * spent, and clears a cookie that names nothing.
+ * spent, counts the account as using the instance today, and clears a cookie that names nothing.
  */
 class SessionGateTest {
     private final AccessManager accessManager = mock(AccessManager.class);
     private final AccountRepository accounts = mock(AccountRepository.class);
     private final SessionCookies cookies = mock(SessionCookies.class);
     private final CsrfGuard csrfGuard = mock(CsrfGuard.class);
+    private final UsageRepository usage = mock(UsageRepository.class);
     private final Context ctx = mock(Context.class);
     private SessionGate gate;
 
@@ -53,7 +56,7 @@ class SessionGateTest {
         when(ctx.userAgent()).thenReturn("agent");
         when(ctx.header("CF-IPCountry")).thenReturn("DE");
         when(csrfGuard.permits(any(), anyString())).thenReturn(true);
-        gate = new SessionGate(accessManager, accounts, auth, cookies, csrfGuard);
+        gate = new SessionGate(accessManager, accounts, auth, cookies, csrfGuard, new UsageRecorder(usage));
     }
 
     @Test
@@ -138,5 +141,42 @@ class SessionGateTest {
 
         verify(ctx).attribute(ApiServer.ATTR_SESSION, session);
         verify(cookies, never()).clear(ctx);
+    }
+
+    private UserSession sessionOf(int accountId) {
+        UserSession session = mock(UserSession.class);
+        when(session.accountId()).thenReturn(accountId);
+        when(accessManager.resolveUserSession("live", null, null)).thenReturn(Optional.of(session));
+        when(accounts.renewSession(eq("live"), anyInt(), anyInt())).thenReturn(Optional.empty());
+        return session;
+    }
+
+    @Test
+    void aWrittenSessionCountsItsAccountAsActiveToday() {
+        sessionOf(42);
+        when(accounts.touchSession("live", "agent", "DE")).thenReturn(true);
+
+        gate.admit(ctx, "live", null, null);
+
+        verify(usage).markActive(42);
+    }
+
+    @Test
+    void aSessionTouchedWithinTheMinuteIsNotCountedAgain() {
+        sessionOf(42);
+        when(accounts.touchSession("live", "agent", "DE")).thenReturn(false);
+
+        gate.admit(ctx, "live", null, null);
+
+        verify(usage, never()).markActive(anyInt());
+    }
+
+    @Test
+    void aFailedUsageRecordingDoesNotReachTheRequest() {
+        UserSession session = sessionOf(42);
+        when(accounts.touchSession("live", "agent", "DE")).thenReturn(true);
+        when(usage.markActive(42)).thenThrow(new IllegalStateException("database gone"));
+
+        assertSame(session, gate.admit(ctx, "live", null, null).orElseThrow());
     }
 }

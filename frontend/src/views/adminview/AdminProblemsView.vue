@@ -20,8 +20,10 @@ import BeaconPreviewModal from '@/components/log/BeaconPreviewModal.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import type {BeaconStatus, ProblemSnapshot} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
+import {useMonitoringCounts} from '@/composables/useMonitoringCounts'
 
 const {t} = useI18n()
+const {refresh: refreshCounts} = useMonitoringCounts()
 
 const showAcknowledged = ref(false)
 const levelFilter = ref<string | null>(null)
@@ -50,6 +52,7 @@ async function ack(id: number) {
     } else {
         entries.value = entries.value.filter(e => e.id !== id)
     }
+    void refreshCounts()
 }
 
 async function ackAll() {
@@ -59,6 +62,7 @@ async function ackAll() {
     } else {
         entries.value = []
     }
+    void refreshCounts()
 }
 
 function toggleExpand(id: number) {

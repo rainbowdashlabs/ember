@@ -6,6 +6,7 @@
 import type {Browser, Page} from '@playwright/test'
 import {test, expect} from './fixtures/auth'
 import {unique} from './fixtures/unique'
+import {sidebarEntry} from './fixtures/sidebar'
 
 /**
  * The administration area: the legal documents an operator publishes, the settings that govern the
@@ -484,5 +485,58 @@ test.describe('Admin pages render', () => {
         await expect(page.getByText('Nur im Dev-Modus verfügbar')).toBeVisible()
         await expect(page.getByText('Tabellen gesamt')).toBeVisible()
         await expect(page.getByText('account', {exact: true}).first()).toBeVisible()
+    })
+})
+
+/**
+ * Every count on the overview leads to the records it counts, with the filter set that shows them.
+ * The story only reads, so it runs beside the others.
+ */
+test.describe('Overview', () => {
+    test('a count on the overview opens its records with the filter set', async ({adminPage: page}) => {
+        await page.goto('/admin/dashboard/overview')
+        await page.getByRole('link', {name: /Unbestätigte Konten/}).click()
+        await expect(page).toHaveURL(/\/admin\/accounts\?confirmed=false/)
+        await expect(page.getByTestId('page-subtitle')).toContainText('Jedes Konto dieser Instanz')
+
+        await page.goto('/admin/dashboard/overview')
+        await page.getByRole('link', {name: /Wachen ohne Einrichtung/}).click()
+        await expect(page).toHaveURL(/\/admin\/stations\?state=waiting/)
+        await expect(page.getByTestId('station-filter-waiting')).toHaveAttribute('aria-checked', 'true')
+    })
+})
+
+/** What the sidebar's count beside the mail log reads, nothing shown being none. */
+async function mailLogCount(page: Page): Promise<number> {
+    const text = await sidebarEntry(page, 'Mailprotokoll').first().innerText()
+    return Number(text.match(/(\d+)\s*$/)?.[1] ?? 0)
+}
+
+/**
+ * A failed mail of the instance, from the overview's card to taking note of it. The demo seeds the one
+ * mail, since the instance under test has no mail provider and its own mail waits rather than fails.
+ * Serial, because taking note of it is once per run.
+ *
+ * The count is asked to drop rather than to land on a number: a station's mail failing elsewhere in the
+ * run while this one is taken note of would move it the other way.
+ */
+test.describe.serial('Failed mails', () => {
+    const RECIPIENT = 'fehlgeschlagen@demo.invalid'
+
+    test('a failed instance mail is followed from the overview and taken note of', async ({adminPage: page}) => {
+        await page.goto('/admin/dashboard/overview')
+        await page.getByRole('link', {name: /Fehlgeschlagene E-Mails/}).click()
+        await expect(page).toHaveURL(/\/admin\/monitoring\/mail-log#failed$/)
+        await expect(page.getByTestId('page-subtitle')).toContainText('Was aus der Post geworden ist')
+
+        const row = page.getByTestId('failed-mail').filter({hasText: RECIPIENT})
+        await expect(row).toBeVisible()
+        await expect.poll(() => mailLogCount(page)).toBeGreaterThan(0)
+        const before = await mailLogCount(page)
+
+        await row.getByTestId('failed-acknowledge').click()
+
+        await expect(row, 'taking note takes the mail off the list').toHaveCount(0)
+        await expect.poll(() => mailLogCount(page), 'the count beside the mail log drops').toBeLessThan(before)
     })
 })

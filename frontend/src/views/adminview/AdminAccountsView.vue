@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -21,29 +21,47 @@ import AccountPager from './adminaccountsview/AccountPager.vue'
 import AccountDetailModal from './adminaccountsview/AccountDetailModal.vue'
 
 /**
- * Every account of the instance, searched and paged on the server. A row opens the account with
- * what can be done to it: a one-time password, a reset of its second factor, retiring its password.
+ * Every account of the instance, searched, filtered, sorted and paged on the server. The table's own
+ * sort and filter dialogs say what the server is asked for, and the address carries the filters, so
+ * a link can open the list already filtered. A row opens the account with what can be done to it:
+ * the mail it waits for, a one-time password, a reset of its second factor, retiring its password.
+ * The opened account stays open when a reload after an action leaves it off the filtered page; it
+ * takes the reloaded row where there is one.
  */
 const {t} = useI18n()
 const list = useAccountList()
-const {query, page, pages, total, accounts, loading, failure} = list
+const {query, page, pages, total, accounts, places, loading, failure} = list
 
 const table = useDataTable<AccountOverview>({
   id: 'admin-accounts',
   perStation: false,
   rows: accounts,
-  columns: computed(() => accountColumns(t)),
+  columns: computed(() => accountColumns(t, places.value)),
   rowKey: account => account.id,
+  state: list.state,
+  serverSide: true,
 })
 
-const openedId = ref<number | null>(null)
-const opened = computed(() => accounts.value.find(account => account.id === openedId.value) ?? null)
+list.follow(
+  () => ({sortKey: table.sortKey, sortDirection: table.sortDirection, filters: table.standingFilters}),
+  columns => { if (columns.length > 0) table.setColumnsVisible(columns, true) },
+)
+
+const opened = ref<AccountOverview | null>(null)
 const showing = computed({
   get: () => opened.value !== null,
-  set: value => { if (!value) openedId.value = null },
+  set: value => { if (!value) opened.value = null },
 })
 
-onMounted(() => list.load())
+watch(accounts, rows => {
+  const current = opened.value
+  if (current) opened.value = rows.find(account => account.id === current.id) ?? current
+})
+
+onMounted(() => {
+  void list.load()
+  void list.loadPlaces()
+})
 </script>
 
 <template>
@@ -60,7 +78,7 @@ onMounted(() => list.load())
         <TableColumnPicker :table="table"/>
       </div>
       <FailureAlert :failure="failure"/>
-      <RecordTable :table="table" plain clickable test-id="accounts-table" row-test-id="account-row" @row-click="openedId = $event.id">
+      <RecordTable :table="table" plain clickable test-id="accounts-table" row-test-id="account-row" @row-click="opened = $event">
         <template #empty>
           <EmptyState v-if="!loading" compact>{{ t('adminAccounts.empty') }}</EmptyState>
         </template>

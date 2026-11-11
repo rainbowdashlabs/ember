@@ -197,4 +197,66 @@ describe('useDataTable', () => {
 
         expect(names(table)).toEqual(['Ben'])
     })
+
+    describe('when the server sorts and filters', () => {
+        function serverTable(): DataTableApi<Person> {
+            let api: DataTableApi<Person> | null = null
+            mount(defineComponent({
+                setup() {
+                    api = useDataTable<Person>({
+                        id: 'server', rows: PEOPLE, columns: COLUMNS, rowKey: p => p.id, serverSide: true,
+                    })
+                    return () => null
+                },
+            }))
+            return api as unknown as DataTableApi<Person>
+        }
+
+        it('shows the rows as given while keeping its sort and filters', () => {
+            const table = serverTable()
+            table.toggleSort('shoe')
+            table.toggleSort('shoe')
+            table.setFilter('role', new Set(['LEAD']), false)
+            table.search = 'ben'
+
+            expect(names(table)).toEqual(['Anna', 'Ben', 'Cara'])
+            expect(table.sortKey).toBe('shoe')
+            expect(table.sortDirection).toBe('desc')
+            expect(table.hasFilter('role')).toBe(true)
+        })
+
+        it('offers only what a column names as options, not what the page holds', () => {
+            const table = serverTable()
+
+            table.openFilter('role')
+            expect(table.filterDialog?.choices.map(choice => choice.value)).toEqual(['LEAD', 'MEMBER'])
+            table.openFilter('name')
+            expect(table.filterDialog?.choices).toEqual([])
+            table.openFilter('shoe')
+            expect(table.filterDialog?.choices).toEqual([])
+            table.openFilter('active')
+            expect(table.filterDialog?.choices.map(choice => choice.value)).toEqual(['true', 'false'])
+        })
+
+        it('offers the empty choice only where a column says the server reads it', () => {
+            const table = serverTable()
+            table.openFilter('born')
+            expect(table.filterDialog?.offersEmpty).toBe(false)
+
+            const own = tableOf()
+            own.openFilter('born')
+            expect(own.filterDialog?.offersEmpty).toBe(true)
+        })
+
+        it('reports the filters standing on the shown columns only', () => {
+            const table = serverTable()
+            table.setFilter('shoe', new Set(['min:40']), false)
+            table.setFilter('born', new Set(), true)
+            table.setFilter('groups', new Set(['Chor']), false)
+
+            expect([...table.standingFilters.keys()]).toEqual(['born', 'shoe'])
+            expect(table.standingFilters.get('born')?.includeEmpty).toBe(true)
+            expect([...table.standingFilters.get('shoe')?.selected ?? []]).toEqual(['min:40'])
+        })
+    })
 })

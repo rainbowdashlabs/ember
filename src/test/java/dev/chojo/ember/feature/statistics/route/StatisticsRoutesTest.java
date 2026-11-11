@@ -8,9 +8,11 @@ package dev.chojo.ember.feature.statistics.route;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.feature.statistics.entity.AdminOverview;
 import dev.chojo.ember.feature.statistics.entity.AdminStatistics;
 import dev.chojo.ember.feature.statistics.entity.StationStatistics;
+import dev.chojo.ember.feature.statistics.entity.StatisticsWindow;
 import dev.chojo.ember.feature.statistics.service.StatisticsService;
 import org.junit.jupiter.api.Test;
 
@@ -18,8 +20,11 @@ import java.util.List;
 import java.util.Map;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
+import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -29,9 +34,7 @@ class StatisticsRoutesTest {
         var statistics = mock(StatisticsService.class);
         when(statistics.forStation(3))
                 .thenReturn(new StationStatistics(1, Map.of(), List.of(), List.of(), List.of(), Map.of()));
-        when(statistics.forInstance())
-                .thenReturn(
-                        new AdminStatistics(null, List.of(), List.of(), List.of(), List.of(), List.of(), List.of()));
+        when(statistics.forInstance(any())).thenReturn(mock(AdminStatistics.class));
         when(statistics.overview()).thenReturn(new AdminOverview(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, List.of(), List.of()));
         var harness = RouteHarness.serving(new StatisticsRoutes(statistics));
 
@@ -45,7 +48,28 @@ class StatisticsRoutesTest {
         });
 
         verify(statistics).forStation(3);
-        verify(statistics).forInstance();
+        verify(statistics).forInstance(StatisticsWindow.DAYS_30);
         verify(statistics).overview();
+    }
+
+    @Test
+    void theWindowIsTakenFromTheAddressAndAnUnknownOneIsRefused() {
+        var statistics = mock(StatisticsService.class);
+        when(statistics.forInstance(any())).thenReturn(mock(AdminStatistics.class));
+        var harness = RouteHarness.serving(new StatisticsRoutes(statistics));
+
+        harness.run((server, client) -> {
+            var admin = harness.as(TestSessions.administrator());
+            assertEquals(
+                    200,
+                    client.get(PREFIX + "/admin/statistics?window=MONTHS_12", admin)
+                            .code());
+            assertEquals(
+                    SystemRefusal.STATISTICS_WINDOW_UNKNOWN,
+                    refusalOf(client.get(PREFIX + "/admin/statistics?window=fortnight", admin)));
+        });
+
+        verify(statistics).forInstance(StatisticsWindow.MONTHS_12);
+        verify(statistics, never()).forInstance(StatisticsWindow.ALL);
     }
 }

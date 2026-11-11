@@ -14,4 +14,5 @@ export default {
     'A-003': ACCOUNT_NOT_HERE,
     'A-004': ONE_TIME_PASSWORD_FOR_YOURSELF,
     'A-005': ONE_TIME_PASSWORD_PASSKEYS_ONLY,
+    'A-006': 'Ein Filter oder die Sortierung der Kontenliste nennt etwas, das es nicht gibt',
 }
