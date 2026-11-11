@@ -234,7 +234,6 @@ class ProblemLogRepositoryTest extends RepositoryTestBase {
 
         assertEquals(ProblemState.MUTED, again.state());
         assertFalse(again.newOrReopened());
-        assertTrue(problems.mutedFingerprints().contains(fp));
         assertEquals(2, problems.find(created.id()).orElseThrow().count());
     }
 
@@ -370,5 +369,10 @@ class ProblemLogRepositoryTest extends RepositoryTestBase {
         var after = problems.find(created.id()).orElseThrow();
         assertEquals(ProblemState.RESOLVED, after.state(), "unmuting a resolved problem does not reopen it");
         assertEquals(resolved.stateChangedAt(), after.stateChangedAt(), "resolving again keeps the first resolve");
+    }
+
+    @Test
+    void aWorkingDatabaseAnswers() {
+        assertTrue(problems.reachable());
     }
 }

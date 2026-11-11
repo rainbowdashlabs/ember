@@ -16,7 +16,6 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -288,18 +287,6 @@ public class ProblemLogRepository {
                 .map(row -> row.getInt("open"))
                 .first()
                 .orElse(0);
-    }
-
-    /**
-     * The fingerprints of the muted problems, which the recorder keeps from being told about.
-     *
-     * @return the fingerprints
-     */
-    public Set<String> mutedFingerprints() {
-        return new HashSet<>(query("SELECT fingerprint FROM problem_log WHERE state = 'MUTED';")
-                .single(call())
-                .map(row -> row.getString("fingerprint"))
-                .all());
     }
 
     /**
