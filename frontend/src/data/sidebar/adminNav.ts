@@ -61,11 +61,12 @@ export const ADMIN_NAV: NavEntryDef<AdminNavContext>[] = [
     {kind: 'page', key: 'admin-two-factor', label: 'sidebar.twoFactor', icon: 'mobile-screen', to: '/admin/2fa'},
     {
         kind: 'group', key: 'monitoring', label: 'sidebar.monitoring', icon: 'triangle-exclamation',
+        badge: ({counts}) => counts.problemLog + counts.problemReports + counts.failedMails,
         children: [
             {kind: 'page', key: 'admin-storage', label: 'sidebar.storageDashboard', icon: 'hard-drive', to: '/admin/monitoring/storage', onboarding: 'nav.admin.storage'},
             {kind: 'page', key: 'admin-storage-backend', label: 'sidebar.storageBackend', icon: 'hard-drive', to: '/admin/monitoring/storage/backend', paletteOnly: true},
             {kind: 'page', key: 'admin-storage-audit', label: 'sidebar.storageAudit', icon: 'list-check', to: '/admin/monitoring/storage/audit', paletteOnly: true},
-            {kind: 'page', key: 'admin-mail-log', label: 'sidebar.mailLog', icon: 'envelope', to: '/admin/monitoring/mail-log'},
+            {kind: 'page', key: 'admin-mail-log', label: 'sidebar.mailLog', icon: 'envelope', to: '/admin/monitoring/mail-log', badge: ({counts}) => counts.failedMails},
             {kind: 'page', key: 'admin-log', label: 'sidebar.applicationLog', icon: 'file-lines', to: '/admin/monitoring/log'},
             {kind: 'page', key: 'admin-problems', label: 'sidebar.problemLog', icon: 'bug', to: '/admin/monitoring/problems', badge: ({counts}) => counts.problemLog},
             {kind: 'page', key: 'admin-problem-reports', label: 'sidebar.problemReports', icon: 'flag', to: '/admin/monitoring/problem-reports', badge: ({counts}) => counts.problemReports},

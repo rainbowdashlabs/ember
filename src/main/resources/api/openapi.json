@@ -67913,9 +67913,13 @@
           "beaconReports" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "failedMails" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "problemLog", "problemReports", "beaconActive", "beaconFaults", "beaconReports" ]
+        "required" : [ "problemLog", "problemReports", "beaconActive", "beaconFaults", "beaconReports", "failedMails" ]
       },
       "MonthSummary" : {
         "type" : "object",

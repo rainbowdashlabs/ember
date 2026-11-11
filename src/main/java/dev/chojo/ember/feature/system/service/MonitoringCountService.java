@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.feature.beacon.repository.BeaconReadRepository;
 import dev.chojo.ember.feature.beacon.service.BeaconSettings;
+import dev.chojo.ember.feature.mail.service.FailedMailService;
 import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -14,20 +15,24 @@ import jakarta.inject.Singleton;
 import java.util.function.IntSupplier;
 
 /**
- * What is waiting for the operator: faults and reports nobody has acknowledged yet, from this
- * instance and, where it receives them, from the instances that report to it.
+ * What is waiting for the operator: faults, reports and failed mails nobody has acknowledged yet,
+ * from this instance and, where it receives them, from the instances that report to it.
  */
 @Singleton
 public class MonitoringCountService {
     private final ProblemReportRepository reports;
     private final BeaconReadRepository beacon;
     private final BeaconSettings beaconSettings;
+    private final FailedMailService failedMails;
     private final IntSupplier unacknowledgedFaults;
 
     @Inject
     public MonitoringCountService(
-            ProblemReportRepository reports, BeaconReadRepository beacon, BeaconSettings beaconSettings) {
-        this(reports, beacon, beaconSettings, MonitoringCountService::faultsInTheLog);
+            ProblemReportRepository reports,
+            BeaconReadRepository beacon,
+            BeaconSettings beaconSettings,
+            FailedMailService failedMails) {
+        this(reports, beacon, beaconSettings, failedMails, MonitoringCountService::faultsInTheLog);
     }
 
     /**
@@ -39,10 +44,12 @@ public class MonitoringCountService {
             ProblemReportRepository reports,
             BeaconReadRepository beacon,
             BeaconSettings beaconSettings,
+            FailedMailService failedMails,
             IntSupplier unacknowledgedFaults) {
         this.reports = reports;
         this.beacon = beacon;
         this.beaconSettings = beaconSettings;
+        this.failedMails = failedMails;
         this.unacknowledgedFaults = unacknowledgedFaults;
     }
 
@@ -65,7 +72,8 @@ public class MonitoringCountService {
                 reports.countUnacknowledged(),
                 receiving,
                 waiting.faults(),
-                waiting.reports());
+                waiting.reports(),
+                failedMails.unacknowledgedCount());
     }
 
     /**
@@ -74,7 +82,14 @@ public class MonitoringCountService {
      * @param beaconActive   whether this instance accepts what other instances report
      * @param beaconFaults   faults gathered from other instances, unacknowledged
      * @param beaconReports  forwarded reports from other instances, unacknowledged
+     * @param failedMails    mails of the instance and every station that did not arrive and nobody
+     *                       has taken note of, the same figure the overview shows
      */
     public record MonitoringCounts(
-            int problemLog, int problemReports, boolean beaconActive, int beaconFaults, int beaconReports) {}
+            int problemLog,
+            int problemReports,
+            boolean beaconActive,
+            int beaconFaults,
+            int beaconReports,
+            int failedMails) {}
 }

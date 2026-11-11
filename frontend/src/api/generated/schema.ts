@@ -70238,6 +70238,8 @@ export interface components {
             /** Format: int32 */
             beaconReports: number;
             /** Format: int32 */
+            failedMails: number;
+            /** Format: int32 */
             problemLog: number;
             /** Format: int32 */
             problemReports: number;

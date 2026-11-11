@@ -4,8 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {onMounted} from 'vue'
+import {onMounted, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {useRoute} from 'vue-router'
 import {useMonitoringCounts} from '@/composables/useMonitoringCounts'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import NavSidebar from '@/components/navigation/NavSidebar.vue'
@@ -25,7 +26,8 @@ import {usePageHeader} from '@/composables/usePageHeader'
  *
  * <p>The beacon settings entry always shows, since setting a beacon up is how an instance becomes
  * one; what a beacon gathers shows only once it is active, rather than as empty pages everywhere else.
- * The inspector tools show in development builds only.
+ * The inspector tools show in development builds only. The monitoring counts behind the sidebar's
+ * badges are read again on every move to another page of the administration.
  */
 const {t} = useI18n()
 const {loaded, load} = useSession()
@@ -35,6 +37,7 @@ const {nodes} = useAdminNav()
 const {open: openQuickSearch} = useQuickSearchShortcut('admin')
 
 const {refresh: refreshCounts} = useMonitoringCounts()
+const route = useRoute()
 
 onMounted(() => {
   if (!loaded.value) {
@@ -42,6 +45,8 @@ onMounted(() => {
   }
   refreshCounts()
 })
+
+watch(() => route.path, () => { void refreshCounts() })
 
 </script>
 
