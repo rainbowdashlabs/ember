@@ -1033,6 +1033,7 @@ volumes:
                         webStatsEnabled: 'Aktiviert die Erfassung der öffentlichen Seitenaufrufe (anonym, keine Cookies, keine IPs gespeichert).',
                         webStatsRetentionDays: 'Wie viele Tage die Seitenaufruf-Statistik aufbewahrt wird. Standard hält ein Jahr.',
                         webStatsFlushIntervalSeconds: 'Wie oft (in Sekunden) die im Speicher gesammelten Seitenaufrufe in die Datenbank geschrieben werden.',
+                        problemRetentionDays: 'Wie viele Tage ein Eintrag im Problemprotokoll bleibt, nachdem er zuletzt aufgetreten ist. Standard ist 30 Tage, weniger als ein Tag gilt als ein Tag.',
                     },
                     network: {
                         trustedProxies: 'Komma-getrennte Liste von CIDR-Bereichen der Reverse-Proxies, denen Forwarded-For-Header geglaubt werden darf. Leer = direkter Betrieb ohne Reverse Proxy.',
