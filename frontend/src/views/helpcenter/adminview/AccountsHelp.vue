@@ -13,6 +13,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import RecordTable from '@/components/table/RecordTable.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
+import Alert from '@/components/feedback/Alert.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import OneTimePasswordSheet from '@/components/onetimepassword/OneTimePasswordSheet.vue'
 import type {AccountOverview} from '@/api/generated/schema'
 import {useDataTable} from '@/composables/useDataTable'
@@ -40,11 +43,19 @@ const table = useDataTable<AccountOverview>({
     <HelpSection :title="t('helpCenter.adminAccounts.whatIs')">
       <p>{{ t('helpCenter.adminAccounts.whatIsText') }}</p>
       <p>{{ t('helpCenter.adminAccounts.columnsText') }}</p>
+      <p>{{ t('helpCenter.adminAccounts.confirmedText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.adminAccounts.howTo')">
       <p>{{ t('helpCenter.adminAccounts.searchText') }}</p>
       <p>{{ t('helpCenter.adminAccounts.openText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.adminAccounts.filterTitle')">
+      <p>{{ t('helpCenter.adminAccounts.filterText') }}</p>
+      <p>{{ t('helpCenter.adminAccounts.sortText') }}</p>
+      <p>{{ t('helpCenter.adminAccounts.emptyText') }}</p>
+      <p>{{ t('helpCenter.adminAccounts.linkText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.adminAccounts.exampleTitle')">
@@ -56,12 +67,20 @@ const table = useDataTable<AccountOverview>({
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.adminAccounts.actionsTitle')">
+      <p>{{ t('helpCenter.adminAccounts.setupMailText') }}</p>
+      <p>{{ t('helpCenter.adminAccounts.confirmationMailText') }}</p>
+      <p>{{ t('helpCenter.adminAccounts.setupMailOutcomeText') }}</p>
       <p>{{ t('helpCenter.adminAccounts.oneTimePasswordText') }}</p>
       <p>{{ t('helpCenter.adminAccounts.resetText') }}</p>
       <p>{{ t('helpCenter.adminAccounts.retireText') }}</p>
       <NeutralContainer class="space-y-4">
         <SubHeader>{{ opened.name }}</SubHeader>
         <AccountFacts :account="opened"/>
+        <Alert variant="success">{{ t('adminAccounts.setupMail.sent.INVITATION_SENT', {name: opened.name}) }}</Alert>
+        <div class="space-y-2">
+          <MutedText tag="p" size="sm">{{ t('adminAccounts.setupMail.hint.INVITATION') }}</MutedText>
+          <SecondaryButton :icon="['fas', 'paper-plane']">{{ t('adminAccounts.setupMail.action.INVITATION') }}</SecondaryButton>
+        </div>
       </NeutralContainer>
     </HelpSection>
 

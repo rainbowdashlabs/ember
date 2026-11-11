@@ -4400,10 +4400,23 @@ volumes:
             title: 'Admin - Übersicht',
             subtitle: 'Die Startseite des Admin-Bereichs.',
             whatIs: 'Was ist der Admin-Bereich?',
-            whatIsText: 'Der Admin-Bereich ist für die Verwaltung der gesamten Plattform. Hier verwaltest du alle Wachen und siehst Statistiken über das gesamte System.',
+            whatIsText: 'Der Admin-Bereich ist für die Verwaltung der gesamten Plattform. Die Übersicht ist seine Startseite. Oben stehen Karten mit allem, was gerade Aufmerksamkeit braucht. Darunter folgen die neuesten offenen Wachen-Anträge und Problemmeldungen.',
             whoCanSee: 'Wer hat Zugang?',
             whoCanSeeText: 'Nur Nutzer mit der Admin-Rolle können den Admin-Bereich sehen. Wenn du ihn nicht siehst, bist du kein Admin.',
-            tip: 'Über den Button „Wach Panel" oben rechts kommst du zurück zur normalen Ansicht deiner Wache.',
+            cardsTitle: 'Die Karten',
+            cardsText: 'Jede Karte zählt etwas und führt mit einem Klick zu genau diesen Einträgen. Steht die Zahl auf null, ist die Karte grün, sonst gelb. Rot wird sie, wenn es dringend ist: bei fehlgeschlagenen und hängenden E-Mails und Siegel-Schlüsseln schon ab einem Eintrag, bei Problemmeldungen, unbestätigten Konten und der Warteschlange erst bei vielen.',
+            allClearText: 'Der grüne Kasten „Alles erledigt" erscheint, wenn nichts Dringendes wartet. Die Warteschlange, Wachen ohne Einrichtung und unbestätigte Konten zählen dafür nicht mit, sie haben nur ihre eigenen Karten.',
+            exampleTitle: 'So sehen die Karten aus',
+            mailsTitle: 'Die Karten zu E-Mails',
+            failedText: '„Fehlgeschlagene E-Mails" zählt alle Mails, die nicht angekommen sind und die noch niemand zur Kenntnis genommen hat. Dazu gehören die Mails der Instanz und die aller Wachen. Die Karte öffnet das Mailprotokoll direkt beim Abschnitt „Fehlgeschlagene E-Mails".',
+            acknowledgeText: 'Dort nimmst du die Mails zur Kenntnis. Danach sinkt die Zahl auf der Karte und an „Monitoring" in der Seitenleiste.',
+            queueText: '„Hängende E-Mails" und „E-Mails in der Warteschlange" zählen nur die Mails der Instanz selbst, nicht die der Wachen. Beide öffnen das Mailprotokoll, die hängenden direkt bei ihrer Warnung.',
+            stationsTitle: 'Die Karten zu Wachen und Konten',
+            stationsText: '„Wachen ohne Einrichtung" zählt die Wachen, die auf ihre Verwaltung warten: Sie kann sich noch nicht anmelden oder hat die Einrichtung noch nicht abgeschlossen. Wachen ohne eingetragene Verwaltung, Verbände und Kopien umgezogener Wachen zählen nicht mit.',
+            stationsLinkText: 'Die Karte öffnet die Wachenliste mit dem Filter „Warten auf Einrichtung". Die Liste zeigt dann genau die Wachen, die die Karte zählt.',
+            accountsText: '„Unbestätigte Konten" zählt Konten mit einer echten Adresse, die noch nicht bestätigt ist. Konten ohne eigene Adresse können nichts bestätigen und zählen nicht. Die Karte öffnet die Kontenliste mit genau diesem Filter.',
+            otherText: 'Die übrigen Karten führen zu ihren Seiten: offene Wachen-Anträge, unerreichbare Peers, Problemmeldungen und Siegel-Schlüssel. „Föderationsanfragen offen" führt zum Abschnitt Föderation der Statistiken.',
+            tip: 'Eine Karte mit einer Zahl über null ist eine Aufgabe. Klick sie an, und du landest direkt bei den Einträgen, um die es geht.',
         },
         adminStatistics: {
             title: 'Plattform-Statistiken',
@@ -5359,15 +5372,33 @@ volumes:
         },
         adminStations: {
             title: 'Wachen verwalten',
-            subtitle: 'Alle Wachen der Plattform anlegen und bearbeiten.',
+            subtitle: 'Alle Wachen der Plattform mit ihrem Stand, anlegen, bearbeiten und an die Einrichtung erinnern.',
             whatIs: 'Was sind Wachen?',
-            whatIsText: 'Jede Wache ist eine eigenstaendige Einheit auf der Plattform - mit eigenen Mitgliedern, Gruppen, Terminen und Inventar. Als Admin verwaltest du alle Wachen.',
+            whatIsText: 'Jede Wache ist eine eigenständige Einheit auf der Plattform - mit eigenen Mitgliedern, Gruppen, Terminen und Inventar. Als Admin verwaltest du alle Wachen.',
+            listTitle: 'Was die Liste zeigt',
+            listText: 'Zu jeder Wache siehst du ihr Logo, den Namen, ihren Stand und wie viele Mitglieder sie hat. Archivierte Mitglieder zählen dabei nicht mit. Dazu kommen der Verbund, falls sie in einem ist, und wer sie verwaltet. Hat eine Wache kein Logo, stehen dort ihre Anfangsbuchstaben.',
+            statesTitle: 'Der Stand einer Wache',
+            statesText: '„Eingerichtet" heißt, die Verwaltung hat die Einrichtung abgeschlossen. „In Einrichtung" heißt, die Verwaltung kann sich anmelden, ist mit der Einrichtung aber noch nicht fertig.',
+            statesWaitingText: '„Wartet auf Verwaltung" heißt, die Verwaltung kann sich noch nicht anmelden: Sie hat noch kein Passwort gewählt oder ihre Adresse nicht bestätigt. „Ohne Verwaltung" heißt, es ist noch niemand eingetragen.',
+            filterTitle: 'Filtern und Ansicht',
+            filterText: 'Mit den Knöpfen oben links wählst du, welche Wachen du siehst: alle, die eingerichteten, die auf Einrichtung warten, oder die ohne Verwaltung. „Warten auf Einrichtung" zeigt die Wachen, die „Wartet auf Verwaltung" oder „In Einrichtung" sind. Der Filter steht auch in der Adresse der Seite, so führt die Übersicht direkt hierher.',
+            viewText: 'Rechts daneben wechselst du zwischen „Kacheln" und „Tabelle". Dein Browser merkt sich die Wahl. Die Tabelle zeigt dieselben Angaben, dazu seit wann eine Wache wartet und wann zuletzt erinnert wurde. Über „Spalten" blendest du weitere ein, zum Beispiel wann die Wache angelegt wurde.',
+            tilesTitle: 'So sehen die Kacheln aus',
+            tableTitle: 'So sieht die Tabelle aus',
+            remindTitle: 'Die Verwaltung erinnern',
+            remindText: 'Bei einer Wache, die auf Einrichtung wartet, steht „Erinnerung senden". Kann sich die Verwaltung noch nicht anmelden, bekommt sie einen neuen Link, um ein Passwort zu wählen oder ihre Adresse zu bestätigen. Kann sie sich schon anmelden, bekommt sie eine Mail, dass die Wache noch auf ihre Einrichtung wartet.',
+            remindAfterText: 'Darunter steht, wann zuletzt erinnert wurde, und ob von Hand oder automatisch. Nach einer Erinnerung von Hand ist der Knopf zehn Minuten lang gesperrt, damit ein Doppelklick nur eine Mail verschickt. Kann deine Instanz keine Mails senden, gilt eine offene Bestätigung der Adresse stattdessen gleich als erteilt.',
+            autoTitle: 'Automatische Erinnerungen',
+            autoText: 'Wartet eine Wache auf ihre Verwaltung, erinnert Ember von selbst: einmal nach 7 Tagen und einmal nach 21 Tagen. Danach kommt keine automatische Erinnerung mehr. Die Tage zählen ab dem Moment, an dem die Verwaltung eingetragen wurde, auch bei angenommenen Anträgen und importierten Wachen. Bei Wachen, die schon vor diesem Update gewartet haben, zählen die Tage ab dem Update.',
+            autoSkipText: 'Eine automatische Erinnerung fällt aus, wenn in den 24 Stunden davor schon erinnert wurde. Ember schreibt auch nicht an eine Verwaltung ohne eigene Adresse oder an eine Adresse, die die letzte Mail abgewiesen hat. Wartet eine Wache schon länger als 35 Tage, holt Ember die Erinnerung nach 21 Tagen nicht mehr nach.',
+            autoResetText: 'Trägst du eine neue Verwaltung ein, beginnt die Wartezeit von vorn, und mit ihr beide Erinnerungen. Eine Erinnerung von Hand verschiebt die automatischen nicht.',
+            movedText: 'Ist eine Wache auf eine andere Instanz umgezogen, bleibt hier eine Kopie zurück. Diese Kopie wartet auf niemanden: Sie wird nie erinnert und zählt nicht zu den wartenden Wachen.',
             createTitle: 'Wache erstellen',
-            createText: 'Klicke auf Neue Wache und gib einen Namen ein. Nach dem Erstellen kannst du einen Manager zuweisen - die Person, die die Wache verwaltet.',
+            createText: 'Klicke auf Neue Wache und gib einen Namen ein. Nach dem Erstellen kannst du einen Manager zuweisen - die Person, die die Wache verwaltet. In der Tabellenansicht stehen „Neue Wache" und „Wache importieren" als Knöpfe über der Tabelle.',
             editTitle: 'Wache bearbeiten',
             editText: 'Auf der Bearbeitungsseite kannst du den Namen der Wache ändern und den Manager wechseln. Wenn die Manager-E-Mail noch kein Konto hat, wird automatisch eine Einladung versendet.',
             importTitle: 'Wache importieren',
-            importText: 'Du kannst eine Wache von einer anderen Plattform importieren. Klicke auf das Import-Feld und gib die Adresse und den Transfer-Code ein, den der Manager der Quell-Wache erstellt hat.',
+            importText: 'Du kannst eine Wache von einer anderen Ember-Instanz importieren. Klicke auf „Wache importieren" und gib den Transfer-Code ein, den der Manager der Quell-Wache erstellt hat. Die Adresse der Quelle steckt schon im Code.',
             deleteTitle: 'Wache löschen',
             deleteText: 'Wenn du eine Wache löschst, werden alle zugehörigen Daten (Mitglieder, Termine, Inventar usw.) unwiderruflich gelöscht.',
             tip: 'Sei vorsichtig beim Löschen - es gibt kein Zurück.',
@@ -5425,7 +5456,11 @@ volumes:
             nameText: 'Ändere den Namen der Wache. Der Name wird überall auf der Plattform angezeigt.',
             managerTitle: 'Manager zuweisen',
             managerText: 'Der Manager ist die Person, die die Wache verwaltet. Gib die E-Mail-Adresse ein - wenn noch kein Konto existiert, wird automatisch eine Einladung versendet.',
+            accountStateText: '„Konto aktiv" heißt, der Manager kann sich anmelden. „Einrichtung ausstehend" heißt, er hat noch kein Passwort gewählt oder seine Adresse noch nicht bestätigt.',
             exampleTitle: 'So sieht die Seite aus',
+            reminderTitle: 'An die Einrichtung erinnern',
+            reminderText: 'Wartet die Wache noch auf ihren Manager, steht im Kasten des Managers ihr Stand: „Wartet auf Verwaltung" oder „In Einrichtung". Darunter findest du „Erinnerung senden", genau wie in der Wachenliste.',
+            reminderMailText: 'Kann sich der Manager noch nicht anmelden, bekommt er einen neuen Link. Kann er sich anmelden, erinnert ihn die Mail daran, die Einrichtung abzuschließen. Darunter steht, wann zuletzt erinnert wurde, von Hand oder automatisch nach 7 und 21 Tagen.',
             instanceMailTitle: 'Mailanbieter der Instanz',
             instanceMailText: 'Im Kasten „Mailanbieter der Instanz" gibst du der Wache die Anbieter der Instanz frei. Dann verschickt die Instanz ihre Mails mit, sobald die eigenen Anbieter der Wache für den Tag nichts mehr übrig haben. Eine feste Höchstzahl an Mails pro Tag nur für diese Wache ist möglich. Leer gilt nur der Anteil aller Wachen in Prozent.',
             tip: 'Wenn du den Manager wechselst, erhält die neue Person alle Verwaltungsrechte für die Wache.',
@@ -6532,7 +6567,7 @@ volumes:
             pictureText: 'Wer eine Meldung schreibt, kann ein Bild der Seite mitschicken. Es ist freiwillig, wird nie von allein aufgenommen, und was darauf niemand sehen soll, wird vor dem Absenden übermalt. Aufgeklappt steht das Bild unter den Angaben zur Meldung.',
             pictureForwardText: 'Meldest du an einen Beacon weiter, wartet eine Meldung mit Bild, bis du sie weitergibst. Im Fenster „Was gesendet wird" kannst du weitere Stellen übermalen oder das Bild aus der Sendung nehmen. Ein weggelassenes Bild wird nie nachgereicht, und ein Schalter in den Beacon-Einstellungen schickt Meldungen mit Bild stattdessen sofort raus.',
             ackTitle: 'Erledigt und gelöscht',
-            ackText: 'Erledigte Meldungen verschwinden aus der Liste, bleiben aber gespeichert. Gelöschte Meldungen sind endgültig weg. „Alle bestätigen" erledigt in einem Schritt alles Offene.',
+            ackText: 'Erledigte Meldungen verschwinden aus der Liste, bleiben aber gespeichert. Gelöschte Meldungen sind endgültig weg. „Alle bestätigen" erledigt in einem Schritt alles Offene. Die Zahl an „Problemmeldungen" und an „Monitoring" in der Seitenleiste sinkt dabei sofort mit.',
             retentionText: 'Dreißig Tage nachdem eine Meldung als erledigt markiert wurde, wird sie samt Bild gelöscht. Eine Meldung, die niemand als erledigt markiert, bleibt liegen.',
             tip: 'Schau erst in die Details, bevor du eine Meldung erledigst - die letzten Aufrufe zeigen oft schon, woran es lag.',
         },
@@ -6604,6 +6639,46 @@ volumes:
             poolWarningText: 'Hat ein Anbieter kein Tageslimit, gibt es keinen Anteil, den er '
                 + 'zurückhalten kann. Solange Wachen freigegeben sind, warnt die Seite dann. Trag '
                 + 'beim Anbieter ein Tageslimit ein, damit der Instanz sicher etwas bleibt.',
+            failedTitle: 'Fehlgeschlagene E-Mails',
+            failedText: 'Ganz oben steht der Abschnitt „Fehlgeschlagene E-Mails". Er zeigt die Mails, die nicht '
+                + 'angekommen sind und die noch niemand zur Kenntnis genommen hat. Gibt es keine, ist der '
+                + 'Abschnitt gar nicht da.',
+            failedKindsText: 'Fehlgeschlagen ist eine Mail, die Ember aufgegeben hat, oder die der Anbieter '
+                + 'später als unzustellbar, blockiert oder Spam zurückgemeldet hat. Weich abgewiesene Mails '
+                + 'zählen nicht, denn dort versucht es der Anbieter noch weiter.',
+            failedInstanceText: 'Unter „Instanz" stehen die eigenen Mails der Instanz mit Empfänger, Betreff, '
+                + 'Zeitpunkten und Grund. Hat der Anbieter etwas dazu gemeldet, steht es in der letzten Spalte. '
+                + 'Sind es mehr als 25, lädt der Knopf darunter die nächsten nach.',
+            failedReasonsText: 'Ember selbst gibt eine Mail auf, wenn kein Anbieter eingerichtet ist, keiner mehr '
+                + 'übrig ist, der Anbieter sie abgelehnt hat, er nicht nutzbar ist oder alle Versuche aufgebraucht '
+                + 'sind. Der Anbieter meldet zurück, dass die Adresse nicht existiert, der Empfänger blockiert hat '
+                + 'oder die Mail als Spam markiert wurde. Bei älteren Mails steht „Grund nicht erfasst". Die ersten '
+                + 'beiden Gründe gibt es nur bei Mails der Wachen. Mails der Instanz warten ohne Anbieter, bis einer '
+                + 'eingerichtet ist.',
+            failedStationsText: 'Unter „Wachen" steht pro Wache eine Zeile: wie viele Mails, aus welchen Gründen '
+                + 'und in welchem Zeitraum. Empfänger und Betreff siehst du hier nie, denn wem eine Wache schreibt, '
+                + 'ist ihre Sache. Die Wache selbst sieht ihre Mails vollständig auf ihrer eigenen Mailseite.',
+            failedExampleTitle: 'So sieht der Abschnitt aus',
+            acknowledgeTitle: 'Zur Kenntnis nehmen',
+            acknowledgeText: '„Zur Kenntnis genommen" beendet die Warnung für eine Mail. Gelöscht wird nichts: Die '
+                + 'Mail bleibt im Protokoll, bis sie nach 30 Tagen mit den anderen aufgeräumt wird. „Alle zur '
+                + 'Kenntnis nehmen" erledigt die Mails der Instanz auf einmal.',
+            acknowledgeUpToText: 'Bei einer Wache nimmt der Knopf in ihrer Zeile alle ihre Mails bis zum letzten '
+                + 'Fehlschlag zur Kenntnis, den die Zeile zeigt. „Alle zur Kenntnis nehmen" reicht genauso nur bis '
+                + 'zur neuesten Mail, die du siehst. Kommt in der Zwischenzeit ein neuer Fehlschlag dazu, bleibt '
+                + 'er stehen. Auf der Mailseite der Wache ändert sich dabei nichts.',
+            failedRequeueText: '„Erneut senden" steht nur bei Mails der Instanz, die Ember selbst aufgegeben hat. '
+                + 'Die Mail geht dann zurück in die Warteschlange und beginnt wieder beim ersten Anbieter.',
+            failedNoRequeueText: 'Hat der Anbieter eine Mail als unzustellbar, blockiert oder Spam gemeldet, gibt es '
+                + 'den Knopf nicht: Die gleiche Mail an die gleiche Adresse würde wieder abgewiesen. Bei „Grund '
+                + 'nicht erfasst" fehlt er ebenfalls.',
+            badgeTitle: 'Die Zahlen in der Seitenleiste',
+            badgeText: 'Die Zahl an „Mailprotokoll" zählt die fehlgeschlagenen Mails, die noch niemand zur '
+                + 'Kenntnis genommen hat, die der Wachen eingeschlossen. Die Zahl an „Monitoring" zählt dazu das '
+                + 'Fehlerprotokoll und die Problemmeldungen. So siehst du schon in der Liste aller Bereiche, ob '
+                + 'dort etwas wartet.',
+            badgeRefreshText: 'Beide Zahlen werden bei jedem Seitenwechsel in der Verwaltung neu gelesen. Nimmst '
+                + 'du etwas zur Kenntnis, sinken sie sofort.',
             tip: 'Häufen sich weiche Abweisungen bei einem Anbieter, liegt das meist nicht an der '
                 + 'Nachricht, sondern an seinem Absendeserver. Dann hilft ein weiterer Anbieter in '
                 + 'der Liste mehr als ein weiterer Versuch.',
@@ -6643,7 +6718,7 @@ volumes:
             listTitle: 'Eintraege verstehen',
             listText: 'Jeder Eintrag zeigt: die Art des Problems (Fehler oder Warnung), wann es zuletzt aufgetreten ist, wie oft und eine technische Nachricht. Mit den Buttons „Fehler" und „Warnungen" oben filterst du die Liste auf eine Art.',
             acknowledgeTitle: 'Bestaetigen und Aufklappen',
-            acknowledgeText: 'Du kannst einzelne Einträge bestätigen oder alle auf einmal. Klicke auf einen Eintrag, um Details und Fehlerprotokoll zu sehen. Das Fehlerprotokoll kannst du kopieren. Einträge ohne Fehlerprotokoll und ohne weitere Nachrichten lassen sich nicht aufklappen, weil dahinter nichts steht.',
+            acknowledgeText: 'Du kannst einzelne Einträge bestätigen oder alle auf einmal. Klicke auf einen Eintrag, um Details und Fehlerprotokoll zu sehen. Das Fehlerprotokoll kannst du kopieren. Einträge ohne Fehlerprotokoll und ohne weitere Nachrichten lassen sich nicht aufklappen, weil dahinter nichts steht. Die Zahl an „Fehlerprotokoll" zählt die unbestätigten Einträge. Nach dem Bestätigen sinkt sie sofort, und mit ihr die Zahl an „Monitoring".',
             groupingTitle: 'Zusammenfassung',
             groupingText: 'Gleichartige Probleme werden zusammengefasst. Wenn derselbe Fehler mehrfach auftritt, siehst du ihn als einen Eintrag mit einer Zaehlung.',
             noiseTitle: 'Was nicht im Protokoll landet',
@@ -6717,12 +6792,21 @@ volumes:
             whatIs: 'Was finde ich hier?',
             whatIsText: 'Hier siehst du alle Konten deiner Instanz. Zu jedem Konto steht da, zu welchen Wachen und Verbänden es gehört. Du siehst auch, ob es Administration der Instanz ist und wann es sich zuletzt angemeldet hat.',
             columnsText: 'Die Spalten Passwort, Passkeys und Zweiter Faktor zeigen, womit sich das Konto anmeldet. Steht beim Passwort „Einmalpasswort", wartet ein Einmalpasswort darauf, ersetzt zu werden.',
+            confirmedText: 'Die Spalte „Adresse bestätigt" zeigt, ob die Person ihre E-Mail-Adresse schon bestätigt hat. Ein Konto ohne eigene Adresse hat dort keinen Wert, denn es kann nichts bestätigen.',
             howTo: 'Wie benutze ich das?',
             searchText: 'Tipp oben einen Teil des Namens, der Adresse oder des Benutzernamens ein. Die Liste zeigt dann nur passende Konten. Unter der Liste blätterst du mit „Zurück" und „Weiter" durch die Seiten.',
             openText: 'Klick auf eine Zeile, um das Konto zu öffnen. Dort siehst du alle Angaben und darunter die Aktionen.',
+            filterTitle: 'Filtern und sortieren',
+            filterText: 'Über die Spaltenköpfe filterst und sortierst du die Liste. Die Filter gelten für alle Konten der Instanz, nicht nur für die Seite, die du gerade siehst. Die Zahl unter der Liste zählt nur die Konten, die zum Filter passen.',
+            sortText: 'Sortieren kannst du nach Name, letzter Anmeldung und Passkeys. Name und Benutzername haben keinen Filter, dafür ist die Suche oben da.',
+            emptyText: 'Manche Filter bieten zusätzlich „Kein Wert (leer)" an. Bei Wachen und Verbänden findest du damit Konten, die nirgends dabei sind. Bei der letzten Anmeldung findest du Konten, die sich noch nie angemeldet haben. Bei „Adresse bestätigt" findest du Konten ohne eigene Adresse.',
+            linkText: 'Die Adresse der Seite merkt sich die Filter. Ein Lesezeichen oder ein geteilter Link öffnet die Liste genau so gefiltert. Die Karte „Unbestätigte Konten" auf der Übersicht nutzt das und zeigt dir gleich alle Konten mit unbestätigter Adresse.',
             exampleTitle: 'So sieht die Liste aus',
             sampleSearch: 'weber',
             actionsTitle: 'Was du mit einem Konto tun kannst',
+            setupMailText: 'Ist ein Konto noch nicht fertig, steht bei den Aktionen ganz oben ein eigener Knopf. Hat das Konto noch kein eigenes Passwort, heißt er „Einladung erneut senden". Die Person bekommt dann einen neuen Link, mit dem sie ein Passwort wählt.',
+            confirmationMailText: 'Hat das Konto ein Passwort, aber die Adresse ist noch nicht bestätigt, heißt der Knopf „Bestätigungsmail erneut senden". Die Mail bringt einen neuen Link zum Bestätigen. Bei einem fertigen Konto gibt es den Knopf nicht.',
+            setupMailOutcomeText: 'Danach steht oben, was passiert ist: Die Einladung ist verschickt, die Bestätigungsmail ist verschickt, oder die Adresse ist gleich als bestätigt markiert. Das Letzte passiert, wenn deine Instanz keine E-Mails senden kann.',
             oneTimePasswordText: '„Einmalpasswort erstellen" ersetzt das Passwort durch ein neues, das Ember auswürfelt. Das hilft, wenn eine Person keinen Link per Mail bekommen kann. Alle Sitzungen des Kontos enden, und beim ersten Anmelden wählt die Person ein eigenes Passwort.',
             resetText: '„2FA zurücksetzen" entfernt alle zweiten Faktoren, vertrauten Geräte und Sitzungen des Kontos. Beim nächsten Anmelden richtet die Person ihren zweiten Faktor neu ein.',
             retireText: '„Passwort stilllegen" schaltet die Anmeldung mit Passwort ab. Das geht nur, wenn sich das Konto schon einmal mit einem Passkey angemeldet hat.',

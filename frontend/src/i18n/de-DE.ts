@@ -2032,7 +2032,7 @@ export default {
         filterNoManager: 'Ohne Verwaltung',
         viewLabel: 'Ansicht der Wachen',
         reminderSent: 'Die Erinnerung an die Verwaltung ist unterwegs.',
-        reminderConfirmedWithoutMail: 'Diese Instanz fragt nicht nach einer Bestätigung. Die Adresse der Verwaltung gilt jetzt als bestätigt, eine E-Mail war nicht nötig.',
+        reminderConfirmedWithoutMail: 'Diese Instanz kann keine E-Mails senden. Die Adresse der Verwaltung ist deshalb als bestätigt markiert.',
         remindedJustNow: 'Die Verwaltung wurde gerade erst erinnert. Eine weitere Erinnerung ist in einigen Minuten möglich.',
         viewTiles: 'Kacheln',
         viewTable: 'Tabelle',

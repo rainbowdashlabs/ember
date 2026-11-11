@@ -11,7 +11,12 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MailPoolOverview from '@/components/mail/MailPoolOverview.vue'
 import MailProviderStanding from '@/components/mail/MailProviderStanding.vue'
+import SectionHeader from '@/components/typography/SectionHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import type {ProviderStanding} from '@/api/generated/schema'
+import FailedInstanceMails from '@/views/adminview/adminmaillogview/FailedInstanceMails.vue'
+import FailedStationMails from '@/views/adminview/adminmaillogview/FailedStationMails.vue'
+import {SAMPLE_FAILED_MAILS, SAMPLE_STATION_FAILURES} from './mailloghelp/sampleFailedMails'
 
 const {t} = useI18n()
 
@@ -37,6 +42,37 @@ const providers: ProviderStanding[] = [
   <HelpArticle :title="t('helpCenter.adminMailLog.title')" :subtitle="t('helpCenter.adminMailLog.subtitle')">
     <HelpSection :title="t('helpCenter.adminMailLog.whatIs')">
       <p>{{ t('helpCenter.adminMailLog.whatIsText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.adminMailLog.failedTitle')">
+      <p>{{ t('helpCenter.adminMailLog.failedText') }}</p>
+      <p>{{ t('helpCenter.adminMailLog.failedKindsText') }}</p>
+      <p>{{ t('helpCenter.adminMailLog.failedInstanceText') }}</p>
+      <p>{{ t('helpCenter.adminMailLog.failedReasonsText') }}</p>
+      <p>{{ t('helpCenter.adminMailLog.failedStationsText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.adminMailLog.failedExampleTitle')">
+      <NeutralContainer class="space-y-4">
+        <SectionHeader>{{ t('failedMails.title') }}</SectionHeader>
+        <MutedText tag="p" size="sm">{{ t('failedMails.hint') }}</MutedText>
+        <div inert class="space-y-4">
+          <FailedInstanceMails :mails="SAMPLE_FAILED_MAILS" :total="SAMPLE_FAILED_MAILS.length" :busy="false"/>
+          <FailedStationMails :stations="SAMPLE_STATION_FAILURES" :busy="false"/>
+        </div>
+      </NeutralContainer>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.adminMailLog.acknowledgeTitle')">
+      <p>{{ t('helpCenter.adminMailLog.acknowledgeText') }}</p>
+      <p>{{ t('helpCenter.adminMailLog.acknowledgeUpToText') }}</p>
+      <p>{{ t('helpCenter.adminMailLog.failedRequeueText') }}</p>
+      <p>{{ t('helpCenter.adminMailLog.failedNoRequeueText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.adminMailLog.badgeTitle')">
+      <p>{{ t('helpCenter.adminMailLog.badgeText') }}</p>
+      <p>{{ t('helpCenter.adminMailLog.badgeRefreshText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.adminMailLog.statesTitle')">

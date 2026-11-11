@@ -4,27 +4,88 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
-import EditButton from '@/components/button/EditButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
+import type {AdminStationSummary} from '@/api/generated/schema'
+import {useDataTable} from '@/composables/useDataTable'
+import StationsGrid from '@/views/adminview/adminstationsview/StationsGrid.vue'
+import StationsTable from '@/views/adminview/adminstationsview/StationsTable.vue'
+import StationListControls from '@/views/adminview/adminstationsview/StationListControls.vue'
+import {stationColumns} from '@/views/adminview/adminstationsview/stationColumns'
+import {StationFilters, StationViews} from '@/views/adminview/adminstationsview/stationList'
+import {SAMPLE_STATIONS} from './stationshelp/sampleStations'
 
 const {t} = useI18n()
+
+const table = useDataTable<AdminStationSummary>({
+  id: 'help-admin-stations',
+  perStation: false,
+  rows: SAMPLE_STATIONS,
+  columns: computed(() => stationColumns(t)),
+  rowKey: station => station.id,
+})
 </script>
 
 <template>
   <HelpArticle :title="t('helpCenter.adminStations.title')" :subtitle="t('helpCenter.adminStations.subtitle')">
     <HelpSection :title="t('helpCenter.adminStations.whatIs')">
       <p>{{ t('helpCenter.adminStations.whatIsText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.adminStations.listTitle')">
+      <p>{{ t('helpCenter.adminStations.listText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.adminStations.statesTitle')">
+      <p>{{ t('helpCenter.adminStations.statesText') }}</p>
+      <p>{{ t('helpCenter.adminStations.statesWaitingText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.adminStations.filterTitle')">
+      <p>{{ t('helpCenter.adminStations.filterText') }}</p>
+      <p>{{ t('helpCenter.adminStations.viewText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.adminStations.tilesTitle')">
+      <div inert class="space-y-4">
+        <StationListControls :filter="StationFilters.ALL" :view="StationViews.TILES"/>
+        <StationsGrid :stations="[...SAMPLE_STATIONS]"/>
+      </div>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.adminStations.tableTitle')">
+      <div inert class="space-y-4">
+        <StationListControls :filter="StationFilters.ALL" :view="StationViews.TABLE">
+          <TableColumnPicker :table="table"/>
+        </StationListControls>
+        <ButtonRow>
+          <PrimaryButton :icon="['fas', 'plus']">{{ t('adminStations.create') }}</PrimaryButton>
+          <SecondaryButton :icon="['fas', 'upload']">{{ t('adminStations.importStation') }}</SecondaryButton>
+        </ButtonRow>
+        <StationsTable :table="table"/>
+      </div>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.adminStations.remindTitle')">
+      <p>{{ t('helpCenter.adminStations.remindText') }}</p>
+      <p>{{ t('helpCenter.adminStations.remindAfterText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.adminStations.autoTitle')">
+      <p>{{ t('helpCenter.adminStations.autoText') }}</p>
+      <p>{{ t('helpCenter.adminStations.autoSkipText') }}</p>
+      <p>{{ t('helpCenter.adminStations.autoResetText') }}</p>
+      <p>{{ t('helpCenter.adminStations.movedText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.adminStations.createTitle')">
@@ -37,40 +98,7 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.adminStations.importTitle')">
       <p>{{ t('helpCenter.adminStations.importText') }}</p>
-    </HelpSection>
-
-    <HelpSection :title="t('helpCenter.adminStations.createTitle')">
-      <div class="grid gap-4 sm:grid-cols-2">
-        <PrimaryContainer
-            class="flex flex-col items-center justify-center gap-2 cursor-pointer py-6 border-dashed hover:opacity-80 transition-opacity">
-          <font-awesome-icon :icon="['fas', 'plus']" class="text-2xl" />
-          <span class="font-medium">{{ t('adminStations.create') }}</span>
-        </PrimaryContainer>
-
-        <NeutralContainer
-            class="flex flex-col items-center justify-center gap-2 cursor-pointer py-6 hover:opacity-80 transition-opacity">
-          <font-awesome-icon :icon="['fas', 'upload']" class="text-2xl text-(--text-muted)" />
-          <span class="font-medium">{{ t('adminStations.importStation') }}</span>
-        </NeutralContainer>
-
-        <NeutralContainer class="flex items-center justify-between py-6">
-          <span class="font-medium text-lg">{{ t('helpCenter.sample.stations.dlrgMusterstadt') }}</span>
-          <div class="flex items-center gap-2">
-            <EditButton />
-            <DeleteButton />
-          </div>
-        </NeutralContainer>
-
-        <NeutralContainer class="flex items-center justify-between py-6">
-          <span class="font-medium text-lg">{{ t('helpCenter.sample.stations.dlrgBeispielburg') }}</span>
-          <div class="flex items-center gap-2">
-            <EditButton />
-            <DeleteButton />
-          </div>
-        </NeutralContainer>
-      </div>
-
-      <NeutralContainer class="mt-4 space-y-4">
+      <NeutralContainer class="space-y-4">
         <p class="text-sm text-(--text-muted)">{{ t('adminStations.importHint') }}</p>
         <div class="space-y-1">
           <FieldLabel>{{ t('adminStations.importToken') }}</FieldLabel>

@@ -65,7 +65,7 @@ describe('ManagerReminder', () => {
         await view.find('[data-testid="remind-manager"]').trigger('click')
         await flushPromises()
 
-        expect(showToast.mock.calls[0]![0]).toContain('gilt jetzt als bestätigt')
+        expect(showToast.mock.calls[0]![0]).toContain('als bestätigt markiert')
     })
 
     it('waits with the button for ten minutes after a reminder by hand', () => {

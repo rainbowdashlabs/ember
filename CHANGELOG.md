@@ -2,16 +2,34 @@
 
 ## v26.24.1
 
-Buttons that could only end in a refusal are gone or explain themselves. Self-registration, dependent yes/no questions and group member types now say up front what is possible.
+Every count on the overview opens the matching list, and failed mails can be read and acknowledged. The manager of a station that waits can be reminded, also automatically. The account list filters over every account. The statistics show how many people use the instance each day and how it grows, recorded from this version on. Buttons that could only end in a refusal are gone or explain themselves.
+
+### New Features
+
+- **Usage and growth over time.** The statistics show how many people use the instance each day and how accounts, members, stations and records grow, recorded from this version on. People are counted by member type, attendance appears per month and federation has a section of its own.
+- **Reminders for station managers.** The manager of a station that waits can be sent the invitation again or a reminder to finish the setup, from the station list and the station page. The manager is also reminded automatically after 7 and after 21 days of waiting, counted from the update for stations that were already waiting.
 
 ### Improvements
 
+- **Account filters cover every account.** Filters and sorting on the account list apply to all accounts instead of the page on screen, and the list can be filtered by confirmed address. The setup or confirmation mail of an account can be sent again from the account's details.
+- **Overview counts open their records.** Each count on the overview opens the matching list, such as the unconfirmed accounts or the stations waiting for setup.
+- **Failed mails can be read and acknowledged.** The mail log lists every mail that did not arrive with its reason, including bounces and spam reports from a provider, and counts the stations' failures per station. Acknowledging a mail ends its warning, and one the instance gave up on can be sent again.
+- **A clearer station list.** Stations show their logo, state, member count and manager, can be filtered by state and can be shown as tiles or as a table.
+- **Monitoring shows what is waiting.** The Monitoring entry in the sidebar counts open problems, reports and failed mails, and the count updates while moving between pages.
 - **Group member types warn while they are chosen.** Narrowing a group to member types lists the members who no longer fit right away, and the save button takes them out of the group.
+
+### Changes
+
+- **The new sessions chart is removed.** The chart counted sign-ins and lost past days as sessions ended. People per day replaces it.
+- **A deleted station takes its mail log along.** The mails of a station are deleted with the station instead of staying behind as mails of the instance.
 
 ### Fixes
 
+- **Associations counted as stations awaiting setup.** The overview and the statistics counted each association as a station that still had to be set up. They count stations only.
+- **Accounts without an address counted as unconfirmed.** Accounts made for people without an email address raised the number of unconfirmed accounts, although they can never confirm one. They are no longer counted.
 - **Self-registration offered to members it was not meant for.** The sign-up button showed on member questions limited to a group, member type or tag, also for members outside it, and the click was then refused. It now appears only for members who may sign up, and an appointment past its registration deadline says so.
 - **Deleting a yes/no question others depend on failed.** Deleting such a question, or giving it another type, was refused with advice to reload the page. The dialog now names the dependent questions and can remove their condition in the same step, keeping their answers.
+
 
 ## v26.24.0
 

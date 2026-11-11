@@ -2,16 +2,34 @@
 
 ## v26.24.1
 
-Knöpfe, die nur zu einer Ablehnung führen konnten, sind verschwunden oder erklären sich. Selbsteintragung, abhängige Ja/Nein-Fragen und Mitgliedstypen von Gruppen zeigen jetzt vorab, was möglich ist.
+Jede Zahl der Übersicht öffnet die passende Liste, fehlgeschlagene E-Mails lassen sich lesen und zur Kenntnis nehmen. Die Verwaltung einer wartenden Wache lässt sich erinnern und wird auch von selbst erinnert. Die Kontenliste filtert über alle Konten. Die Statistik zeigt, wie viele Personen die Instanz täglich nutzen und wie sie wächst, aufgezeichnet ab dieser Version. Knöpfe, die nur zu einer Ablehnung führen konnten, sind verschwunden oder erklären sich.
+
+### Neue Funktionen
+
+- **Nutzung und Wachstum im Verlauf.** Die Statistik zeigt, wie viele Personen die Instanz täglich nutzen und wie Konten, Mitglieder, Wachen und Einträge wachsen, aufgezeichnet ab dieser Version. Personen werden nach Mitgliedstyp gezählt, die Anwesenheit erscheint pro Monat und die Föderation hat einen eigenen Abschnitt.
+- **Erinnerungen an die Verwaltung einer Wache.** Der Verwaltung einer wartenden Wache lässt sich die Einladung erneut senden oder eine Erinnerung an die Einrichtung, aus der Wachenliste und von der Seite der Wache. Nach 7 und nach 21 Tagen Wartezeit kommt die Erinnerung auch von selbst, gezählt ab dem Update für Wachen, die schon vorher warteten.
 
 ### Verbesserungen
 
+- **Kontenfilter gelten für alle Konten.** Filter und Sortierung der Kontenliste gelten für alle Konten statt nur für die angezeigte Seite, und die Liste lässt sich nach bestätigter Adresse filtern. Die Einrichtungs- oder Bestätigungsmail eines Kontos lässt sich in den Angaben des Kontos erneut senden.
+- **Die Zahlen der Übersicht öffnen ihre Einträge.** Jede Zahl der Übersicht öffnet die passende Liste, etwa die unbestätigten Konten oder die Wachen, die auf ihre Einrichtung warten.
+- **Fehlgeschlagene E-Mails lassen sich lesen und zur Kenntnis nehmen.** Das Mailprotokoll zeigt jede E-Mail, die nicht angekommen ist, mit ihrem Grund und zählt die Fehler der Wachen je Wache. Zur Kenntnis nehmen beendet die Warnung, und eine E-Mail, die die Instanz aufgegeben hat, lässt sich erneut senden.
+- **Eine übersichtlichere Wachenliste.** Wachen zeigen Logo, Stand, Mitgliederzahl und Verwaltung, lassen sich nach Stand filtern und als Kacheln oder als Tabelle zeigen.
+- **Monitoring zeigt, was wartet.** Der Eintrag Monitoring in der Seitenleiste zählt offene Probleme, Problemmeldungen und fehlgeschlagene E-Mails, und die Zahl aktualisiert sich beim Wechseln der Seiten.
 - **Mitgliedstypen einer Gruppe warnen schon beim Auswählen.** Wer nicht mehr zu den gewählten Typen passt, steht sofort im Formular, und der Knopf zum Speichern nimmt diese Mitglieder aus der Gruppe.
+
+### Änderungen
+
+- **Das Diagramm „Neue Sitzungen pro Tag“ entfällt.** Das Diagramm zählte Anmeldungen und verlor vergangene Tage, sobald Sitzungen endeten. Personen pro Tag ersetzt es.
+- **Eine gelöschte Wache nimmt ihr Mailprotokoll mit.** Die E-Mails einer Wache werden mit der Wache gelöscht, statt als E-Mails der Instanz zurückzubleiben.
 
 ### Fehlerbehebungen
 
+- **Verbände zählten als Wachen, die auf die Einrichtung warten.** Übersicht und Statistik zählten jeden Verband als Wache, die noch eingerichtet werden muss. Sie zählen jetzt nur Wachen.
+- **Konten ohne Adresse zählten als unbestätigt.** Konten für Personen ohne E-Mail-Adresse erhöhten die Zahl unbestätigter Konten, obwohl sie nie eine bestätigen können. Sie werden nicht mehr gezählt.
 - **Selbsteintragung auch Mitgliedern außerhalb der Auswahl angeboten.** Der Knopf „Eintragen" erschien bei Mitgliederfragen, die auf eine Gruppe, einen Mitgliedstyp oder einen Tag beschränkt sind, auch für Mitglieder außerhalb davon, und der Klick wurde dann abgelehnt. Er erscheint jetzt nur noch für Mitglieder, die sich eintragen dürfen, und nach dem Anmeldeschluss steht dort, dass die Eintragung geschlossen ist.
 - **Ja/Nein-Fragen mit abhängigen Fragen ließen sich nicht löschen.** Das Löschen einer solchen Frage oder ein anderer Typ für sie wurde abgelehnt, mit dem Rat, die Seite neu zu laden. Der Dialog nennt jetzt die abhängigen Fragen und kann ihre Bedingung im selben Schritt entfernen, ihre Antworten bleiben erhalten.
+
 
 ## v26.24.0
 

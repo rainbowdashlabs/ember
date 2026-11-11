@@ -402,6 +402,7 @@ import dev.chojo.ember.feature.system.service.DemoClusterSeeder;
 import dev.chojo.ember.feature.system.service.DemoDocumentTemplateSeeder;
 import dev.chojo.ember.feature.system.service.DemoEquipmentSeeder;
 import dev.chojo.ember.feature.system.service.DemoEventSeeder;
+import dev.chojo.ember.feature.system.service.DemoFailedMailSeeder;
 import dev.chojo.ember.feature.system.service.DemoFederationSeeder;
 import dev.chojo.ember.feature.system.service.DemoFormSeeder;
 import dev.chojo.ember.feature.system.service.DemoFreshStationSeeder;
@@ -730,6 +731,7 @@ public class EmberModule extends AbstractModule {
         demoSeederBinder.addBinding().to(DemoAvatarSeeder.class);
         demoSeederBinder.addBinding().to(DemoFederationSeeder.class);
         demoSeederBinder.addBinding().to(DemoSettingsSeeder.class);
+        demoSeederBinder.addBinding().to(DemoFailedMailSeeder.class);
         demoSeederBinder.addBinding().to(DemoChecklistSeeder.class);
         demoSeederBinder.addBinding().to(DemoDocumentTemplateSeeder.class);
         demoSeederBinder.addBinding().to(DemoPhotoConsentSeeder.class);
