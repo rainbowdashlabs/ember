@@ -1,10 +1,14 @@
 <configuration>
     <timestamp key="runTimestamp" datePattern="yyyy-MM-dd_HH-mm-ss"/>
 
-    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <appender name="STDOUT_text" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
+    </appender>
+
+    <appender name="STDOUT_json" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.JsonEncoder"/>
     </appender>
 
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -47,7 +51,7 @@
     <logger name="tools.jackson" level="WARN" />
 
     <root level="INFO">
-        <appender-ref ref="STDOUT" />
+        <appender-ref ref="STDOUT_${LOG_FORMAT:-text}" />
         <appender-ref ref="FILE" />
         <appender-ref ref="PROBLEMS" />
         <appender-ref ref="DATABASE" />

@@ -8,7 +8,7 @@ import '@fortawesome/fontawesome-svg-core/styles.css'
 import {FontAwesomeIcon} from '@fortawesome/vue-fontawesome'
 import {
     faAngleDown, faAngleUp, faAnglesDown, faAnglesUp, faArrowDownWideShort, faArrowRight,
-    faArrowsRotate, faArrowUpWideShort, faEllipsis, faEquals, faAsterisk, faBan, faBars, faBell, faBold,
+    faArrowsRotate, faArrowUpWideShort, faEllipsis, faEquals, faAsterisk, faBan, faBars, faBell, faBellSlash, faBold,
     faBoxesStacked, faBoxOpen, faBuilding, faBullhorn, faCalendarDays, faCalendarPlus, faChartLine, faCheck,
     faCheckDouble, faChevronDown, faChevronLeft, faChevronRight, faChevronUp, faCircle,
     faCircleCheck, faCircleDot, faCircleUp, faCircleInfo, faClipboardCheck, faClipboardList, faClipboardUser,
@@ -58,7 +58,7 @@ library.add(
     faRightLeft, faList,
     faLayerGroup, faBoxesStacked, faBoxOpen, faClipboardUser, faCalendarPlus, faClockRotateLeft,
     faClipboardCheck, faUsersGear, faPlus, faChevronLeft, faChevronUp, faGripVertical, faCopy,
-    faBell, faPhone, faMobileScreen, faIdCard, faHashtag, faFire, faMedal, faRainbow,
+    faBell, faBellSlash, faPhone, faMobileScreen, faIdCard, faHashtag, faFire, faMedal, faRainbow,
     faCalendarDays, faPenToSquare, faFolderPlus, faClipboardList, faUser, faSort, faSortUp,
     faSortDown, faAsterisk, faEye, faLink, faTableColumns, faTableList, faBan, faBarcode, faComment, faCheckDouble,
     faMinus, faRotate, faRss, faScissors, faNewspaper, faGear, faPeopleGroup, faArrowRight,

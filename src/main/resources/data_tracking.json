@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:14e3b00230eff8d3c584407dc33c58fd6886ece42a7cefb90dc1de8ee0f845b3",
-  "generatedAt": "2026-11-11T13:02:05Z",
+  "schemaHash": "sha256:e8d1caca6059aa8e544b35be6f625c549012d994e8d5a9bd2f350ffd12de5fa4",
+  "generatedAt": "2026-11-11T14:57:35Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -2757,6 +2757,82 @@
         "reason": "Stacktraces and frame names, no personal data."
       },
       "description": "A fault as the beacon knows it, gathered from every instance that reported it."
+    },
+    "beacon_problem_context": {
+      "tableHash": "sha256:e6c3b3713980049d53b18ff9ba864f7b336e86289bd9db3e1fae8623f59f82bd",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int8",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "problem_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The problem the lines belong to. Deleting it deletes them."
+        },
+        {
+          "name": "instance_id",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The instance that sent them. Forgetting it deletes them."
+        },
+        {
+          "name": "occurred_at",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "When the occurrence the lines surround happened, on the sending instance."
+        },
+        {
+          "name": "received_at",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "When the beacon received them."
+        },
+        {
+          "name": "lines",
+          "type": "jsonb",
+          "nullable": false,
+          "verified": true,
+          "description": "The lines, oldest first: time, level, logger, thread and the redacted message of each."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "instance_id",
+          "refTable": "beacon_instance",
+          "refColumn": "instance_id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "problem_id",
+          "refTable": "beacon_problem",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Belongs to this beacon, not to any station here."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Log lines another instance sent after replacing mail addresses, identifiers and the names of its accounts; nothing here identifies a person of this instance."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Carries no key to a person; it goes with its problem and with the instance that sent it."
+      },
+      "description": "On a beacon: the log lines an instance sent with a problem, the last five per problem and instance. The sender replaced mail addresses, identifiers and names before sending.",
+      "feature": "beacon",
+      "scope": "INSTANCE"
     },
     "beacon_problem_instance": {
       "feature": "beacon",
@@ -22652,6 +22728,202 @@
         "reason": "Goes with the member, who is deleted with it, and with a withdrawal of the sign-up."
       },
       "description": "A member of this station signed up here for one date of a partner station's appointment. The partner holds the registration itself; this is this station's own word that it was given, so that a partner telling it which of its members are registered is believed only for members it signed up. Removed when the member withdraws."
+    },
+    "problem_log": {
+      "tableHash": "sha256:88b14fd426d442b6707b92bb9dbd604c472b2dab1e4cca246faeaf775d1453f6",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int8",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "fingerprint",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What makes two log events the same problem: logger, exception class and first frame, or logger, level and message without an exception, or route and refusal for a refusal."
+        },
+        {
+          "name": "level",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "WARN, ERROR, or REFUSAL for a request the application refused."
+        },
+        {
+          "name": "logger",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Which logger reported the problem."
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The message of the first occurrence. May contain request paths and identifiers."
+        },
+        {
+          "name": "exception_class",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The class of the exception, NULL for a problem logged without one."
+        },
+        {
+          "name": "exception_message",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The message of the latest exception, NULL without one."
+        },
+        {
+          "name": "stacktrace",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The stacktrace of the latest occurrence, causes included. NULL without an exception."
+        },
+        {
+          "name": "distinct_messages",
+          "type": "_text",
+          "nullable": false,
+          "verified": true,
+          "description": "Up to 20 different messages the problem was logged with, oldest first. May contain request paths and identifiers."
+        },
+        {
+          "name": "count",
+          "type": "int8",
+          "nullable": false,
+          "verified": true,
+          "description": "How often the problem happened."
+        },
+        {
+          "name": "first_seen",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "When it happened first."
+        },
+        {
+          "name": "last_seen",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "When it happened last; the retention counts from here."
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "OPEN: waiting for an administrator. RESOLVED: taken care of; happening again opens it. MUTED: known noise; happening again only counts."
+        },
+        {
+          "name": "state_changed_at",
+          "type": "timestamp",
+          "nullable": true,
+          "verified": true,
+          "description": "When the state was last changed by hand or by happening again."
+        },
+        {
+          "name": "state_changed_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The administrator who last changed the state. NULL when it changed by happening again, and once that account is deleted."
+        },
+        {
+          "name": "reopened_count",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "How often the problem came back after it was resolved."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "state_changed_by",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Faults this instance logged; a moved station brings none of them along."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "An operational record of faults. Its only reference to a person is the administrator who last changed a state, which is set to NULL when that account is deleted; messages may quote request paths but are not about a person."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "The administrator reference is set to NULL with the account, and every row is deleted once the retention passes."
+      },
+      "description": "Warnings, errors and refusals the application logged, one row per problem, kept across restarts until the retention removes them.",
+      "feature": "system",
+      "scope": "INSTANCE"
+    },
+    "problem_occurrence": {
+      "tableHash": "sha256:eadc4e33ff64fa9c0c5079c65bfb65006efb4a0d7c4b943c13fa8418af8c27d1",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int8",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "problem_id",
+          "type": "int8",
+          "nullable": false,
+          "verified": true,
+          "description": "The problem. Deleting it deletes its occurrences."
+        },
+        {
+          "name": "occurred_at",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "When it happened."
+        },
+        {
+          "name": "thread",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The thread that logged it."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "problem_id",
+          "refTable": "problem_log",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Belongs to a problem of this instance."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Only a time and a thread name; nothing about a person."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Only a time and a thread name; it goes with its problem."
+      },
+      "description": "The last five occurrences of each problem: when and on which thread. Holds no message text; the log lines around an occurrence are looked up by it.",
+      "feature": "system",
+      "scope": "INSTANCE"
     },
     "problem_report": {
       "feature": "system",

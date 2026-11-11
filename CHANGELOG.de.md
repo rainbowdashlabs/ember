@@ -2,7 +2,7 @@
 
 ## v26.24.1
 
-Jede Zahl der Übersicht öffnet die passende Liste, fehlgeschlagene E-Mails lassen sich lesen und zur Kenntnis nehmen. Die Verwaltung einer wartenden Wache lässt sich erinnern und wird auch von selbst erinnert. Die Kontenliste filtert über alle Konten. Die Statistik zeigt, wie viele Personen die Instanz täglich nutzen und wie sie wächst, aufgezeichnet ab dieser Version. Knöpfe, die nur zu einer Ablehnung führen konnten, sind verschwunden oder erklären sich.
+Jede Zahl der Übersicht öffnet die passende Liste, fehlgeschlagene E-Mails lassen sich lesen und zur Kenntnis nehmen. Die Verwaltung einer wartenden Wache lässt sich erinnern und wird auch von selbst erinnert. Die Kontenliste filtert über alle Konten. Die Statistik zeigt, wie viele Personen die Instanz täglich nutzen und wie sie wächst, aufgezeichnet ab dieser Version. Knöpfe, die nur zu einer Ablehnung führen konnten, sind verschwunden oder erklären sich. Das Problemprotokoll übersteht einen Neustart, kann Bekanntes stummschalten und zeigt die Logzeilen um ein Problem. Diese Zeilen können auf Wunsch an einen Beacon gehen, Namen und Adressen werden dabei ersetzt.
 
 ### Neue Funktionen
 
@@ -16,15 +16,31 @@ Jede Zahl der Übersicht öffnet die passende Liste, fehlgeschlagene E-Mails las
 - **Fehlgeschlagene E-Mails lassen sich lesen und zur Kenntnis nehmen.** Das Mailprotokoll zeigt jede E-Mail, die nicht angekommen ist, mit ihrem Grund und zählt die Fehler der Wachen je Wache. Zur Kenntnis nehmen beendet die Warnung, und eine E-Mail, die die Instanz aufgegeben hat, lässt sich erneut senden.
 - **Eine übersichtlichere Wachenliste.** Wachen zeigen Logo, Stand, Mitgliederzahl und Verwaltung, lassen sich nach Stand filtern und als Kacheln oder als Tabelle zeigen.
 - **Monitoring zeigt, was wartet.** Der Eintrag Monitoring in der Seitenleiste zählt offene Probleme, Problemmeldungen und fehlgeschlagene E-Mails, und die Zahl aktualisiert sich beim Wechseln der Seiten.
+- **Das Problemprotokoll übersteht einen Neustart.** Warnungen und Fehler werden gespeichert und bleiben, bis sie 30 Tage lang nicht mehr aufgetreten sind, einstellbar mit dem neuen Konfigurationsschlüssel `metrics.problemRetentionDays`. Ein erledigtes Problem, das wieder auftritt, ist wieder offen und zeigt, wie oft es wiederkam.
+- **Probleme lassen sich stummschalten.** Ein stummgeschaltetes Problem zählt weiter mit, erscheint aber nie wieder als offen und wird nie von selbst an einen Beacon weitergegeben. Probleme lassen sich auch sofort löschen.
+- **Logzeilen um ein Problem.** Wird das Anwendungslog in der Datenbank gespeichert, zeigt ein aufgeklapptes Problem die Zeilen seines Threads von 30 Sekunden davor bis 5 Sekunden danach, die eigene Zeile markiert. Auf Wunsch zeigt es alle Threads und jedes seiner letzten fünf Vorkommen.
+- **Probleme können mit ihren Logzeilen an einen Beacon gehen.** Wer ein Problem von Hand sendet, kann die Logzeilen um das Problem mitsenden, und die Vorschau zeigt sie genau so, wie sie die Instanz verlassen. Der neue Beacon-Schalter „Logzeilen automatisch mitsenden“, standardmäßig aus, nimmt sie bei selbst weitergegebenen Problemen mit.
+- **Ein Beacon zeigt die mitgesendeten Logzeilen.** Jeder Eintrag seines Fehlerprotokolls zeigt beim Aufklappen die Zeilen, die jede Instanz mitgesendet hat, nach Instanz und Vorkommen.
+- **Konsolenlogs, die ein Log-Sammler lesen kann.** Steht die neue Umgebungsvariable `LOG_FORMAT` auf `json`, schreibt das Backend jeden Logeintrag als ein JSON-Objekt auf die Konsole, den Stacktrace darin. Sammler wie Loki behalten den Stacktrace dann bei seiner Zeile, statt jede Zeile einzeln abzulegen.
+- **Fehlgeschlagene Datenbankabfragen sagen, was fehlschlug.** Die Logzeile einer fehlgeschlagenen Abfrage enthält den Fehler der Datenbank selbst statt nur „Database query error“.
 - **Mitgliedstypen einer Gruppe warnen schon beim Auswählen.** Wer nicht mehr zu den gewählten Typen passt, steht sofort im Formular, und der Knopf zum Speichern nimmt diese Mitglieder aus der Gruppe.
+
+### Sicherheit
+
+- **Weniger Persönliches erreicht einen Beacon.** In allem, was über ein Problem an einen Beacon geht, werden E-Mail-Adressen, IP-Adressen, lange Kennungen, als Einstellung geschriebene Passwörter und Tokens sowie die Namen der Konten dieser Instanz ersetzt. Bisher waren es nur E-Mail-Adressen.
 
 ### Änderungen
 
+- **Ablehnungen stehen getrennt von Fehlern.** Bewusst abgewiesene Anfragen stehen im Problemprotokoll unter einem eigenen Filter, die häufigsten oben, ein Eintrag je Seite der Anwendung und Art. Sie zählen nie zu den wartenden Problemen und gehen nie an einen Beacon.
+- **Unbekannte Adressen erscheinen nicht mehr im Problemprotokoll.** Anfragen an Adressen, die es in der Anwendung nicht gibt, werden wie bisher beantwortet, aber nicht mehr festgehalten. „Nicht gefunden“ auf einer echten Seite zählt einmal pro Seite statt einmal pro Eintrag.
+- **Aus Bestätigen wird Erledigen.** Probleme werden erledigt statt bestätigt, und „Alle erledigen“ gilt für Fehler oder für Ablehnungen, je nachdem, was gezeigt wird.
 - **Das Diagramm „Neue Sitzungen pro Tag“ entfällt.** Das Diagramm zählte Anmeldungen und verlor vergangene Tage, sobald Sitzungen endeten. Personen pro Tag ersetzt es.
 - **Eine gelöschte Wache nimmt ihr Mailprotokoll mit.** Die E-Mails einer Wache werden mit der Wache gelöscht, statt als E-Mails der Instanz zurückzubleiben.
 
 ### Fehlerbehebungen
 
+- **Eine zweite Anwesenheitsvorlage mit gleichem Namen schlug fehl.** Wer eine Anwesenheitsvorlage anlegte oder umbenannte und dabei einen Namen wählte, den eine andere Vorlage der Wache schon trug, bekam einen Fehler. Das wird jetzt mit dem Hinweis abgelehnt, dass der Name vergeben ist.
+- **Stacktraces sagten „at“ doppelt.** Jede Zeile eines Stacktraces im Problemprotokoll und im gespeicherten Anwendungslog begann mit „at at“. Jetzt steht es einmal da.
 - **Verbände zählten als Wachen, die auf die Einrichtung warten.** Übersicht und Statistik zählten jeden Verband als Wache, die noch eingerichtet werden muss. Sie zählen jetzt nur Wachen.
 - **Konten ohne Adresse zählten als unbestätigt.** Konten für Personen ohne E-Mail-Adresse erhöhten die Zahl unbestätigter Konten, obwohl sie nie eine bestätigen können. Sie werden nicht mehr gezählt.
 - **Selbsteintragung auch Mitgliedern außerhalb der Auswahl angeboten.** Der Knopf „Eintragen" erschien bei Mitgliederfragen, die auf eine Gruppe, einen Mitgliedstyp oder einen Tag beschränkt sind, auch für Mitglieder außerhalb davon, und der Klick wurde dann abgelehnt. Er erscheint jetzt nur noch für Mitglieder, die sich eintragen dürfen, und nach dem Anmeldeschluss steht dort, dass die Eintragung geschlossen ist.

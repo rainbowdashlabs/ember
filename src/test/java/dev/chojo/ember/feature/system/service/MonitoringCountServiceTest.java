@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.system.service;
 import dev.chojo.ember.feature.beacon.repository.BeaconReadRepository;
 import dev.chojo.ember.feature.beacon.service.BeaconSettings;
 import dev.chojo.ember.feature.mail.service.FailedMailService;
+import dev.chojo.ember.feature.system.repository.ProblemLogRepository;
 import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import dev.chojo.ember.feature.system.service.MonitoringCountService.MonitoringCounts;
 import org.junit.jupiter.api.Test;
@@ -38,7 +39,9 @@ class MonitoringCountServiceTest {
 
     @Test
     void anInstanceThatReceivesNothingDoesNotAskTheBeaconTables() {
-        var counts = new MonitoringCountService(reports, beacon, settings, failedMails).counts();
+        var counts = new MonitoringCountService(
+                        reports, beacon, settings, failedMails, mock(ProblemLogRepository.class))
+                .counts();
 
         assertEquals(0, counts.beaconFaults());
         assertEquals(false, counts.beaconActive());

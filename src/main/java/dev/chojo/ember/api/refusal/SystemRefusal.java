@@ -125,7 +125,7 @@ public enum SystemRefusal implements Refusal {
     PROBLEM_REPORT_PICTURE_NOT_HERE(
             29, HttpStatus.NOT_FOUND, "The picture that went with that report is not here any more"),
 
-    /** A problem in the instance list acknowledged after it had already gone from it. */
+    /** A problem resolved, muted or deleted after it had already gone from the problem log. */
     PROBLEM_NOT_HERE(30, HttpStatus.NOT_FOUND, "That problem is not here any more"),
 
     /**

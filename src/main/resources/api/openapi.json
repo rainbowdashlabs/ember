@@ -1549,6 +1549,36 @@
         }
       }
     },
+    "/api/v1/admin/beacon/collected/faults/{id}/context" : {
+      "get" : {
+        "summary" : "The log lines instances sent with one gathered fault, the newest first",
+        "tags" : [ "Beacon" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BeaconProblemContext"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/admin/beacon/collected/figures" : {
       "get" : {
         "summary" : "The bucketed figures this beacon collected over the last days",
@@ -1687,6 +1717,13 @@
             }
           }
         },
+        "parameters" : [ {
+          "name" : "withContext",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -1708,7 +1745,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/ProblemPayload"
+                  "$ref" : "#/components/schemas/ProblemPreview"
                 }
               }
             }
@@ -1721,6 +1758,12 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "withContext",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
           }
         } ]
       }
@@ -1748,6 +1791,12 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "contextAt",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
           }
         } ]
       }
@@ -4531,7 +4580,7 @@
     },
     "/api/v1/admin/problems" : {
       "get" : {
-        "summary" : "List application problems (errors and warnings)",
+        "summary" : "List the recorded problems",
         "tags" : [ "Problems" ],
         "responses" : {
           "200" : {
@@ -4541,7 +4590,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/ProblemSnapshot"
+                    "$ref" : "#/components/schemas/StoredProblem"
                   }
                 }
               }
@@ -4549,7 +4598,13 @@
           }
         },
         "parameters" : [ {
-          "name" : "includeAcknowledged",
+          "name" : "state",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "refusals",
           "in" : "query",
           "schema" : {
             "type" : "boolean"
@@ -4557,9 +4612,9 @@
         } ]
       }
     },
-    "/api/v1/admin/problems/acknowledge-all" : {
+    "/api/v1/admin/problems/resolve-all" : {
       "post" : {
-        "summary" : "Acknowledge all unacknowledged problems",
+        "summary" : "Mark every open fault, or every open refusal, as dealt with",
         "tags" : [ "Problems" ],
         "responses" : {
           "200" : {
@@ -4567,17 +4622,173 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/AcknowledgeResult"
+                  "$ref" : "#/components/schemas/ResolveResult"
                 }
               }
             }
           }
-        }
+        },
+        "parameters" : [ {
+          "name" : "refusals",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        } ]
       }
     },
-    "/api/v1/admin/problems/{id}/acknowledge" : {
+    "/api/v1/admin/problems/{id}" : {
+      "delete" : {
+        "summary" : "Delete a problem now",
+        "tags" : [ "Problems" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/problems/{id}/context" : {
+      "get" : {
+        "summary" : "The stored log around one occurrence of a problem",
+        "tags" : [ "Problems" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemContext"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "at",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "allThreads",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/problems/{id}/mute" : {
       "post" : {
-        "summary" : "Acknowledge a specific problem",
+        "summary" : "Keep a problem out of the waiting count and the beacon for good",
+        "tags" : [ "Problems" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/problems/{id}/resolve" : {
+      "post" : {
+        "summary" : "Mark a problem as dealt with",
+        "tags" : [ "Problems" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/problems/{id}/unmute" : {
+      "post" : {
+        "summary" : "Take a muted problem back to open",
         "tags" : [ "Problems" ],
         "responses" : {
           "204" : {
@@ -49162,16 +49373,6 @@
           }
         }
       },
-      "AcknowledgeResult" : {
-        "type" : "object",
-        "properties" : {
-          "acknowledged" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        },
-        "required" : [ "acknowledged" ]
-      },
       "AcknowledgeStepRequest" : {
         "type" : "object",
         "properties" : {
@@ -51472,6 +51673,33 @@
         },
         "required" : [ "metricsUid", "subject", "day", "members", "accounts", "stations", "inventory" ]
       },
+      "BeaconProblemContext" : {
+        "type" : "object",
+        "properties" : {
+          "instanceId" : {
+            "type" : "string"
+          },
+          "contactName" : {
+            "type" : [ "string", "null" ]
+          },
+          "version" : {
+            "type" : [ "string", "null" ]
+          },
+          "occurredAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "receivedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "lines" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LogLinePayload"
+            }
+          }
+        },
+        "required" : [ "instanceId", "contactName", "version", "occurredAt", "receivedAt", "lines" ]
+      },
       "BeaconReport" : {
         "type" : "object",
         "properties" : {
@@ -51537,6 +51765,9 @@
           "forwardReports" : {
             "type" : "boolean"
           },
+          "forwardLogContext" : {
+            "type" : "boolean"
+          },
           "reviewReportPictures" : {
             "type" : "boolean"
           },
@@ -51569,6 +51800,9 @@
           "forwardReports" : {
             "type" : "boolean"
           },
+          "forwardLogContext" : {
+            "type" : "boolean"
+          },
           "reviewReportPictures" : {
             "type" : "boolean"
           },
@@ -51585,7 +51819,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "enabled", "url", "forwardProblems", "forwardReports", "reviewReportPictures", "metricsEnabled", "receiving", "contactName", "contactMail" ]
+        "required" : [ "enabled", "url", "forwardProblems", "forwardReports", "forwardLogContext", "reviewReportPictures", "metricsEnabled", "receiving", "contactName", "contactMail" ]
       },
       "BindRequest" : {
         "type" : "object",
@@ -65699,6 +65933,27 @@
         },
         "required" : [ "value", "count" ]
       },
+      "LogLinePayload" : {
+        "type" : "object",
+        "properties" : {
+          "loggedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "level" : {
+            "type" : "string"
+          },
+          "logger" : {
+            "type" : "string"
+          },
+          "thread" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "loggedAt", "level", "logger", "thread", "message" ]
+      },
       "LogPageResponse" : {
         "type" : "object",
         "properties" : {
@@ -71575,6 +71830,81 @@
         },
         "required" : [ "healthy", "error", "checkedAt" ]
       },
+      "ProblemContext" : {
+        "type" : "object",
+        "properties" : {
+          "state" : {
+            "$ref" : "#/components/schemas/ProblemContextState"
+          },
+          "databaseLogging" : {
+            "type" : "boolean"
+          },
+          "occurrences" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ProblemOccurrence"
+            }
+          },
+          "occurrence" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "allThreads" : {
+            "type" : "boolean"
+          },
+          "lines" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ProblemContextLine"
+            }
+          }
+        },
+        "required" : [ "state", "databaseLogging", "occurrences", "occurrence", "allThreads", "lines" ]
+      },
+      "ProblemContextLine" : {
+        "type" : "object",
+        "properties" : {
+          "loggedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "level" : {
+            "type" : "string"
+          },
+          "logger" : {
+            "type" : "string"
+          },
+          "thread" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "problem" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "loggedAt", "level", "logger", "thread", "message", "problem" ]
+      },
+      "ProblemContextState" : {
+        "type" : "string",
+        "enum" : [ "LINES", "LOGGING_OFF", "NOTHING_KEPT", "NO_OCCURRENCE" ]
+      },
+      "ProblemLevel" : {
+        "type" : "string",
+        "enum" : [ "WARN", "ERROR", "REFUSAL" ]
+      },
+      "ProblemOccurrence" : {
+        "type" : "object",
+        "properties" : {
+          "occurredAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "thread" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "occurredAt", "thread" ]
+      },
       "ProblemPayload" : {
         "type" : "object",
         "properties" : {
@@ -71617,9 +71947,31 @@
           },
           "lastOccurrence" : {
             "$ref" : "#/components/schemas/Instant"
+          },
+          "context" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LogLinePayload"
+            }
           }
         },
         "required" : [ "envelope", "version", "contactName", "contactMail", "fingerprint", "level", "logger", "exceptionClass", "message", "frames", "occurrences", "firstOccurrence", "lastOccurrence" ]
+      },
+      "ProblemPreview" : {
+        "type" : "object",
+        "properties" : {
+          "payload" : {
+            "$ref" : "#/components/schemas/ProblemPayload"
+          },
+          "contextAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "payload", "contextAt" ]
       },
       "ProblemReport" : {
         "type" : "object",
@@ -71684,49 +72036,9 @@
         },
         "required" : [ "id", "stationId", "memberId", "reporterName", "message", "pageUrl", "userRoles", "recentRequests", "browserInfo", "screenSize", "screenshotFileId", "acknowledged", "acknowledgedAt", "forwardedAt", "createdAt" ]
       },
-      "ProblemSnapshot" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "level" : {
-            "type" : "string"
-          },
-          "logger" : {
-            "type" : "string"
-          },
-          "exceptionClass" : {
-            "type" : [ "string", "null" ]
-          },
-          "exceptionMessage" : {
-            "type" : [ "string", "null" ]
-          },
-          "stacktrace" : {
-            "type" : [ "string", "null" ]
-          },
-          "firstOccurrence" : {
-            "$ref" : "#/components/schemas/Instant"
-          },
-          "lastOccurrence" : {
-            "$ref" : "#/components/schemas/Instant"
-          },
-          "count" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "acknowledged" : {
-            "type" : "boolean"
-          },
-          "distinctMessages" : {
-            "type" : "array",
-            "items" : {
-              "type" : "string"
-            }
-          }
-        },
-        "required" : [ "id", "level", "logger", "exceptionClass", "exceptionMessage", "stacktrace", "firstOccurrence", "lastOccurrence", "count", "acknowledged", "distinctMessages" ]
+      "ProblemState" : {
+        "type" : "string",
+        "enum" : [ "OPEN", "RESOLVED", "MUTED" ]
       },
       "Procedure" : {
         "type" : "object",
@@ -76056,6 +76368,16 @@
             "type" : [ "string", "null" ]
           }
         }
+      },
+      "ResolveResult" : {
+        "type" : "object",
+        "properties" : {
+          "resolved" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "resolved" ]
       },
       "ResolvedMember" : {
         "type" : "object",
@@ -80858,6 +81180,67 @@
           }
         },
         "required" : [ "id", "name", "total", "kb", "board", "images", "pages", "perFile", "perImage" ]
+      },
+      "StoredProblem" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "fingerprint" : {
+            "type" : "string"
+          },
+          "level" : {
+            "$ref" : "#/components/schemas/ProblemLevel"
+          },
+          "logger" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "exceptionClass" : {
+            "type" : [ "string", "null" ]
+          },
+          "exceptionMessage" : {
+            "type" : [ "string", "null" ]
+          },
+          "stacktrace" : {
+            "type" : [ "string", "null" ]
+          },
+          "distinctMessages" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "firstSeen" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "lastSeen" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "state" : {
+            "$ref" : "#/components/schemas/ProblemState"
+          },
+          "stateChangedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "reopenedCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "id", "fingerprint", "level", "logger", "message", "exceptionClass", "exceptionMessage", "stacktrace", "distinctMessages", "count", "firstSeen", "lastSeen", "state", "stateChangedAt", "reopenedCount" ]
       },
       "Strategy" : {
         "type" : "string",

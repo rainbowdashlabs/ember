@@ -2216,6 +2216,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/beacon/collected/faults/{id}/context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The log lines instances sent with one gathered fault, the newest first */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BeaconProblemContext"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/beacon/collected/figures": {
         parameters: {
             query?: never;
@@ -2412,7 +2450,9 @@ export interface paths {
         /** What one problem would travel as */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    withContext?: boolean;
+                };
                 header?: never;
                 path: {
                     id: number;
@@ -2427,7 +2467,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ProblemPayload"];
+                        "application/json": components["schemas"]["ProblemPreview"];
                     };
                 };
             };
@@ -2452,7 +2492,9 @@ export interface paths {
         /** Send one problem to the beacon */
         post: {
             parameters: {
-                query?: never;
+                query?: {
+                    contextAt?: string;
+                };
                 header?: never;
                 path: {
                     id: number;
@@ -2490,7 +2532,9 @@ export interface paths {
         /** Send the chosen problems to the beacon */
         post: {
             parameters: {
-                query?: never;
+                query?: {
+                    withContext?: boolean;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -6394,11 +6438,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List application problems (errors and warnings) */
+        /** List the recorded problems */
         get: {
             parameters: {
                 query?: {
-                    includeAcknowledged?: boolean;
+                    refusals?: boolean;
+                    state?: string;
                 };
                 header?: never;
                 path?: never;
@@ -6412,7 +6457,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ProblemSnapshot"][];
+                        "application/json": components["schemas"]["StoredProblem"][];
                     };
                 };
             };
@@ -6425,7 +6470,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/problems/{id}/acknowledge": {
+    "/api/v1/admin/problems/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -6434,7 +6479,111 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Acknowledge a specific problem */
+        post?: never;
+        /** Delete a problem now */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/problems/{id}/context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The stored log around one occurrence of a problem */
+        get: {
+            parameters: {
+                query?: {
+                    allThreads?: boolean;
+                    at?: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemContext"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/problems/{id}/mute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Keep a problem out of the waiting count and the beacon for good */
         post: {
             parameters: {
                 query?: never;
@@ -6470,7 +6619,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/admin/problems/acknowledge-all": {
+    "/api/v1/admin/problems/{id}/resolve": {
         parameters: {
             query?: never;
             header?: never;
@@ -6479,10 +6628,102 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Acknowledge all unacknowledged problems */
+        /** Mark a problem as dealt with */
         post: {
             parameters: {
                 query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/problems/{id}/unmute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take a muted problem back to open */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/problems/resolve-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark every open fault, or every open refusal, as dealt with */
+        post: {
+            parameters: {
+                query?: {
+                    refusals?: boolean;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -6495,7 +6736,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["AcknowledgeResult"];
+                        "application/json": components["schemas"]["ResolveResult"];
                     };
                 };
             };
@@ -63863,10 +64104,6 @@ export interface components {
         AcknowledgeRequest: {
             comment?: string;
         };
-        AcknowledgeResult: {
-            /** Format: int32 */
-            acknowledged: number;
-        };
         AcknowledgeStepRequest: {
             newItem?: components["schemas"]["NewItemRequest"] | null;
             note?: string | null;
@@ -64648,6 +64885,14 @@ export interface components {
             stations: string | null;
             subject: string;
         };
+        BeaconProblemContext: {
+            contactName: string | null;
+            instanceId: string;
+            lines: components["schemas"]["LogLinePayload"][];
+            occurredAt: components["schemas"]["Instant"];
+            receivedAt: components["schemas"]["Instant"];
+            version: string | null;
+        };
         BeaconReport: {
             acknowledged: boolean;
             browser: string | null;
@@ -64670,6 +64915,7 @@ export interface components {
             contactMail?: string;
             contactName?: string;
             enabled?: boolean;
+            forwardLogContext?: boolean;
             forwardProblems?: boolean;
             forwardReports?: boolean;
             metricsEnabled?: boolean;
@@ -64681,6 +64927,7 @@ export interface components {
             contactMail: string;
             contactName: string;
             enabled: boolean;
+            forwardLogContext: boolean;
             forwardProblems: boolean;
             forwardReports: boolean;
             metricsEnabled: boolean;
@@ -69642,6 +69889,13 @@ export interface components {
         LoginResultResponse: {
             expiresAt: components["schemas"]["Instant"];
         };
+        LogLinePayload: {
+            level: string;
+            loggedAt: components["schemas"]["Instant"];
+            logger: string;
+            message: string;
+            thread: string;
+        };
         LogPageResponse: {
             entries: components["schemas"]["LogEntryResponse"][];
             /** Format: int32 */
@@ -71596,9 +71850,35 @@ export interface components {
             error: string | null;
             healthy: boolean;
         };
+        ProblemContext: {
+            allThreads: boolean;
+            databaseLogging: boolean;
+            lines: components["schemas"]["ProblemContextLine"][];
+            /** Format: int32 */
+            occurrence: number;
+            occurrences: components["schemas"]["ProblemOccurrence"][];
+            state: components["schemas"]["ProblemContextState"];
+        };
+        ProblemContextLine: {
+            level: string;
+            loggedAt: components["schemas"]["Instant"];
+            logger: string;
+            message: string;
+            problem: boolean;
+            thread: string;
+        };
+        /** @enum {string} */
+        ProblemContextState: "LINES" | "LOGGING_OFF" | "NOTHING_KEPT" | "NO_OCCURRENCE";
+        /** @enum {string} */
+        ProblemLevel: "WARN" | "ERROR" | "REFUSAL";
+        ProblemOccurrence: {
+            occurredAt: components["schemas"]["Instant"];
+            thread: string;
+        };
         ProblemPayload: {
             contactMail: string | null;
             contactName: string | null;
+            context?: components["schemas"]["LogLinePayload"][];
             envelope: components["schemas"]["Envelope"];
             exceptionClass: string | null;
             fingerprint: string;
@@ -71611,6 +71891,10 @@ export interface components {
             /** Format: int32 */
             occurrences: number;
             version: string;
+        };
+        ProblemPreview: {
+            contextAt: components["schemas"]["Instant"] | null;
+            payload: components["schemas"]["ProblemPayload"];
         };
         ProblemReport: {
             acknowledged: boolean;
@@ -71633,21 +71917,8 @@ export interface components {
             stationId: string;
             userRoles: string | null;
         };
-        ProblemSnapshot: {
-            acknowledged: boolean;
-            /** Format: int32 */
-            count: number;
-            distinctMessages: string[];
-            exceptionClass: string | null;
-            exceptionMessage: string | null;
-            firstOccurrence: components["schemas"]["Instant"];
-            /** Format: int64 */
-            id: number;
-            lastOccurrence: components["schemas"]["Instant"];
-            level: string;
-            logger: string;
-            stacktrace: string | null;
-        };
+        /** @enum {string} */
+        ProblemState: "OPEN" | "RESOLVED" | "MUTED";
         Procedure: {
             /** Format: int32 */
             aboutMemberId: number | null;
@@ -73154,6 +73425,10 @@ export interface components {
         ResolveRequest: {
             acknowledged?: boolean;
             resolvedIn?: string | null;
+        };
+        ResolveResult: {
+            /** Format: int32 */
+            resolved: number;
         };
         RestorePlan: {
             movements: components["schemas"]["PlannedLanding"][];
@@ -74758,6 +75033,26 @@ export interface components {
             /** Format: int64 */
             total: number;
         };
+        StoredProblem: {
+            /** Format: int64 */
+            count: number;
+            distinctMessages: string[];
+            exceptionClass: string | null;
+            exceptionMessage: string | null;
+            fingerprint: string;
+            firstSeen: components["schemas"]["Instant"];
+            /** Format: int64 */
+            id: number;
+            lastSeen: components["schemas"]["Instant"];
+            level: components["schemas"]["ProblemLevel"];
+            logger: string;
+            message: string;
+            /** Format: int32 */
+            reopenedCount: number;
+            stacktrace: string | null;
+            state: components["schemas"]["ProblemState"];
+            stateChangedAt: components["schemas"]["Instant"] | null;
+        };
         /** @enum {string} */
         Strategy: "CASCADE" | "DELETE_EXPLICIT" | "ANONYMIZE" | "NULL" | "RETAIN" | "RETAIN_UNLINKED" | "NOT_APPLICABLE";
         StringValue: {
@@ -76146,7 +76441,6 @@ export type AckKind = components['schemas']['AckKind'];
 export type AcknowledgeAllResponse = components['schemas']['AcknowledgeAllResponse'];
 export type AcknowledgedMails = components['schemas']['AcknowledgedMails'];
 export type AcknowledgeRequest = components['schemas']['AcknowledgeRequest'];
-export type AcknowledgeResult = components['schemas']['AcknowledgeResult'];
 export type AcknowledgeStepRequest = components['schemas']['AcknowledgeStepRequest'];
 export type ActiveSession = components['schemas']['ActiveSession'];
 export type Actual = components['schemas']['Actual'];
@@ -76246,6 +76540,7 @@ export type BatchStartRequest = components['schemas']['BatchStartRequest'];
 export type BatchStartResponse = components['schemas']['BatchStartResponse'];
 export type BeaconFault = components['schemas']['BeaconFault'];
 export type BeaconMetricsRow = components['schemas']['BeaconMetricsRow'];
+export type BeaconProblemContext = components['schemas']['BeaconProblemContext'];
 export type BeaconReport = components['schemas']['BeaconReport'];
 export type BeaconSettingsRequest = components['schemas']['BeaconSettingsRequest'];
 export type BeaconStatus = components['schemas']['BeaconStatus'];
@@ -76937,6 +77232,7 @@ export type LoggingConfigRequest = components['schemas']['LoggingConfigRequest']
 export type LoginRequest = components['schemas']['LoginRequest'];
 export type LoginResponse = components['schemas']['LoginResponse'];
 export type LoginResultResponse = components['schemas']['LoginResultResponse'];
+export type LogLinePayload = components['schemas']['LogLinePayload'];
 export type LogPageResponse = components['schemas']['LogPageResponse'];
 export type LookAndFeelRequest = components['schemas']['LookAndFeelRequest'];
 export type Lookup = components['schemas']['Lookup'];
@@ -77221,9 +77517,15 @@ export type PreviewResponse = components['schemas']['PreviewResponse'];
 export type PreviewResult = components['schemas']['PreviewResult'];
 export type ProbeRequest = components['schemas']['ProbeRequest'];
 export type ProbeResult = components['schemas']['ProbeResult'];
+export type ProblemContext = components['schemas']['ProblemContext'];
+export type ProblemContextLine = components['schemas']['ProblemContextLine'];
+export type ProblemContextState = components['schemas']['ProblemContextState'];
+export type ProblemLevel = components['schemas']['ProblemLevel'];
+export type ProblemOccurrence = components['schemas']['ProblemOccurrence'];
 export type ProblemPayload = components['schemas']['ProblemPayload'];
+export type ProblemPreview = components['schemas']['ProblemPreview'];
 export type ProblemReport = components['schemas']['ProblemReport'];
-export type ProblemSnapshot = components['schemas']['ProblemSnapshot'];
+export type ProblemState = components['schemas']['ProblemState'];
 export type Procedure = components['schemas']['Procedure'];
 export type ProcedureDetail = components['schemas']['ProcedureDetail'];
 export type ProcedureItem = components['schemas']['ProcedureItem'];
@@ -77416,6 +77718,7 @@ export type ResolvedResponse = components['schemas']['ResolvedResponse'];
 export type ResolvedTarget = components['schemas']['ResolvedTarget'];
 export type ResolvedValueResponse = components['schemas']['ResolvedValueResponse'];
 export type ResolveRequest = components['schemas']['ResolveRequest'];
+export type ResolveResult = components['schemas']['ResolveResult'];
 export type RestorePlan = components['schemas']['RestorePlan'];
 export type RestoreRequest = components['schemas']['RestoreRequest'];
 export type RestoreResult = components['schemas']['RestoreResult'];
@@ -77639,6 +77942,7 @@ export type StorageAuditOutcome = components['schemas']['StorageAuditOutcome'];
 export type StorageBackendType = components['schemas']['StorageBackendType'];
 export type StorageCategory = components['schemas']['StorageCategory'];
 export type StorageQuotaPreset = components['schemas']['StorageQuotaPreset'];
+export type StoredProblem = components['schemas']['StoredProblem'];
 export type Strategy = components['schemas']['Strategy'];
 export type StringValue = components['schemas']['StringValue'];
 export type SuggestedAnswer = components['schemas']['SuggestedAnswer'];
@@ -78819,6 +79123,25 @@ export const PollStatus = {
     PENDING: "PENDING",
     REJECTED: "REJECTED",
     UNKNOWN: "UNKNOWN",
+} as const;
+
+export const ProblemContextState = {
+    LINES: "LINES",
+    LOGGING_OFF: "LOGGING_OFF",
+    NOTHING_KEPT: "NOTHING_KEPT",
+    NO_OCCURRENCE: "NO_OCCURRENCE",
+} as const;
+
+export const ProblemLevel = {
+    ERROR: "ERROR",
+    REFUSAL: "REFUSAL",
+    WARN: "WARN",
+} as const;
+
+export const ProblemState = {
+    MUTED: "MUTED",
+    OPEN: "OPEN",
+    RESOLVED: "RESOLVED",
 } as const;
 
 export const ProcedureStatus = {

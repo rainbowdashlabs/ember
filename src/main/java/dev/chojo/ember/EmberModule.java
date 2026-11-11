@@ -429,6 +429,8 @@ import dev.chojo.ember.feature.system.service.DemoStationSeeder;
 import dev.chojo.ember.feature.system.service.DemoTwoFactorSeeder;
 import dev.chojo.ember.feature.system.service.DemoVideoSeeder;
 import dev.chojo.ember.feature.system.service.DemoWaitingListSeeder;
+import dev.chojo.ember.feature.system.service.ProblemLogFlusher;
+import dev.chojo.ember.feature.system.service.ProblemLogService;
 import dev.chojo.ember.feature.system.service.ProblemReportSweeper;
 import dev.chojo.ember.feature.system.service.SchemaFingerprint;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
@@ -450,6 +452,7 @@ import dev.chojo.ember.feature.waitinglist.service.WaitingListFeedDetails;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
 import dev.chojo.ember.lifecycle.ShutdownFlush;
 import dev.chojo.ember.lifecycle.TaskSource;
+import dev.chojo.ember.util.sql.QueryErrors;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -855,6 +858,7 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(UsageSnapshotTask.class);
         taskSources.addBinding().to(ApiRequestLogger.class);
         taskSources.addBinding().to(ApplicationLogWriter.class);
+        taskSources.addBinding().to(ProblemLogFlusher.class);
         taskSources.addBinding().to(RegistrationDeadlineChecker.class);
         taskSources.addBinding().to(EventReminderChecker.class);
         taskSources.addBinding().to(EventThresholdChecker.class);
@@ -870,6 +874,7 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(MailImportPoller.class);
         taskSources.addBinding().to(AuthCleanupSweeper.class);
         taskSources.addBinding().to(ProblemReportSweeper.class);
+        taskSources.addBinding().to(ProblemLogService.class);
         taskSources.addBinding().to(UpdateCheckService.class);
         taskSources.addBinding().to(DemoService.class);
         taskSources.addBinding().to(FederationPartnerSeeder.class);
@@ -902,6 +907,7 @@ public class EmberModule extends AbstractModule {
         flushes.addBinding().to(ApiRequestLogger.class);
         flushes.addBinding().to(FeedMetricsService.class);
         flushes.addBinding().to(ApplicationLogWriter.class);
+        flushes.addBinding().to(ProblemLogFlusher.class);
     }
 
     @Provides
@@ -1111,7 +1117,8 @@ public class EmberModule extends AbstractModule {
      * Before 1.60 merges duplicate profile fields, their answers and definitions are copied to the data
      * volume, not to a table, because a table would travel with a station export. The configuration is
      * thread-scoped so that services grouping writes with {@code Transactions.run} reach their
-     * repositories inside the same transaction.
+     * repositories inside the same transaction. A failed query is logged with the database's own error
+     * in its line, not only in its stack trace.
      */
     @Provides
     @Singleton
@@ -1129,7 +1136,7 @@ public class EmberModule extends AbstractModule {
         }
 
         var config = QueryConfiguration.builder(dataSource)
-                .setExceptionHandler(err -> log.error("Database query error", err))
+                .setExceptionHandler(err -> log.error("Database query error: {}", QueryErrors.summary(err), err))
                 .setThrowExceptions(true)
                 .setRowMapperRegistry(new RowMapperRegistry().register(PostgresqlMapper.getDefaultMapper()))
                 .build();

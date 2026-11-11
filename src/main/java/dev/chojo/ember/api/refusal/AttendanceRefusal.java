@@ -269,7 +269,13 @@ public enum AttendanceRefusal implements Refusal {
     ATTENDANCE_EXTRA_TIME_NOT_GIVEN(
             63,
             HttpStatus.BAD_REQUEST,
-            "Say whether this person did the preparation and follow-up, so nothing was saved");
+            "Say whether this person did the preparation and follow-up, so nothing was saved"),
+
+    /** A new or renamed attendance template taking the name of another template of the station in use. */
+    ATTENDANCE_TEMPLATE_NAME_TAKEN(
+            64,
+            HttpStatus.CONFLICT,
+            "The station already has an attendance template with that name, so nothing was saved");
 
     private final Definition definition;
 

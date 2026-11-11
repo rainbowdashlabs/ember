@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Optional;
 
@@ -25,6 +26,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 @Singleton
 public class BeaconIntakeRepository {
+
+    /** How many sets of log lines a beacon keeps per fault and instance. */
+    public static final int CONTEXTS_KEPT = 5;
 
     /**
      * The key an instance is known by, if it has ever reported.
@@ -122,6 +126,34 @@ public class BeaconIntakeRepository {
                         .bind("first", payload.firstOccurrence(), INSTANT_TIMESTAMP)
                         .bind("last", payload.lastOccurrence(), INSTANT_TIMESTAMP))
                 .insert();
+    }
+
+    /**
+     * Keeps the log lines an instance sent with a fault, and lets go of all but the newest
+     * {@link #CONTEXTS_KEPT} it sent for that fault.
+     *
+     * @param problemId  the fault
+     * @param instanceId the instance that sent them
+     * @param occurredAt when the occurrence they surround happened, on that instance
+     * @param lines      the lines as JSON, already checked and cut to size
+     */
+    public void storeProblemContext(int problemId, String instanceId, Instant occurredAt, String lines) {
+        query("""
+                        INSERT INTO beacon_problem_context (problem_id, instance_id, occurred_at, lines)
+                        VALUES (:problem, :instance, :occurred, :lines::JSONB);""")
+                .single(call().bind("problem", problemId)
+                        .bind("instance", instanceId)
+                        .bind("occurred", occurredAt, INSTANT_TIMESTAMP)
+                        .bind("lines", lines))
+                .insert();
+        query("""
+                        DELETE FROM beacon_problem_context
+                        WHERE problem_id = :problem AND instance_id = :instance
+                          AND id NOT IN (SELECT id FROM beacon_problem_context
+                                         WHERE problem_id = :problem AND instance_id = :instance
+                                         ORDER BY received_at DESC, id DESC LIMIT %d);""".formatted(CONTEXTS_KEPT))
+                .single(call().bind("problem", problemId).bind("instance", instanceId))
+                .delete();
     }
 
     /** Stores somebody's own words, which do not group and are never corrected. */

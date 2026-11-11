@@ -132,6 +132,13 @@ export const ENVIRONMENT_GROUPS: readonly EnvironmentGroup[] = [
     {title: 'helpCenter.basics.configuration.envGroupFederation', defaultOpen: true, prefixes: ['federation']},
     {title: 'helpCenter.basics.configuration.envGroupTheming', defaultOpen: false, prefixes: ['theming']},
     {
+        title: 'helpCenter.basics.configuration.envGroupLogging',
+        defaultOpen: false,
+        variables: [
+            {name: 'LOG_FORMAT', default: 'text'},
+        ],
+    },
+    {
         title: 'helpCenter.basics.configuration.envGroupTools',
         note: 'helpCenter.basics.configuration.envGroupToolsNote',
         defaultOpen: false,

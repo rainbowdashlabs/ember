@@ -11,14 +11,15 @@ import dev.chojo.ember.api.refusal.BeaconRefusal;
 import dev.chojo.ember.feature.beacon.entity.BeaconFault;
 import dev.chojo.ember.feature.beacon.entity.BeaconMetricsRow;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads.MetricsBatch;
-import dev.chojo.ember.feature.beacon.entity.BeaconPayloads.ProblemPayload;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads.ReportPayload;
+import dev.chojo.ember.feature.beacon.entity.BeaconProblemContext;
 import dev.chojo.ember.feature.beacon.entity.BeaconReport;
 import dev.chojo.ember.feature.beacon.service.BeaconAdminService;
 import dev.chojo.ember.feature.beacon.service.BeaconAdminService.BeaconSettingsRequest;
 import dev.chojo.ember.feature.beacon.service.BeaconAdminService.BeaconStatus;
 import dev.chojo.ember.feature.beacon.service.BeaconAdminService.SendReportRequest;
 import dev.chojo.ember.feature.beacon.service.BeaconAdminService.SendResult;
+import dev.chojo.ember.feature.beacon.service.BeaconReportService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -32,6 +33,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
 /**
@@ -61,6 +64,7 @@ public class BeaconAdminRoutes implements Routes {
         routes.get(base + "/figures/preview", this::previewMetrics, InstancePermission.ADMINISTRATOR);
 
         routes.get(base + "/collected/faults", this::faults, InstancePermission.ADMINISTRATOR);
+        routes.get(base + "/collected/faults/{id}/context", this::faultContext, InstancePermission.ADMINISTRATOR);
         routes.put(base + "/collected/faults/{id}", this::resolveFault, InstancePermission.ADMINISTRATOR);
         routes.get(base + "/collected/reports", this::collectedReports, InstancePermission.ADMINISTRATOR);
         routes.post(
@@ -87,6 +91,18 @@ public class BeaconAdminRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = BeaconFault[].class)))
     private void faults(Context ctx) {
         ctx.json(beacon.faults(includeAcknowledged(ctx)));
+    }
+
+    @OpenApi(
+            path = "/api/v1/admin/beacon/collected/faults/{id}/context",
+            methods = HttpMethod.GET,
+            summary = "The log lines instances sent with one gathered fault, the newest first",
+            tags = {"Beacon"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = BeaconProblemContext[].class)))
+    private void faultContext(Context ctx) {
+        ctx.json(beacon.faultContext(pathId(ctx)));
     }
 
     /** Marking a fault as seen, or naming the version that put it right. */
@@ -192,15 +208,39 @@ public class BeaconAdminRoutes implements Routes {
         ctx.json(beacon.update(ctx.bodyAsClass(BeaconSettingsRequest.class)));
     }
 
+    /** The occurrence whose previewed lines go with a problem, or null for none. Text that is no moment is refused. */
+    private static @Nullable Instant contextAt(Context ctx) {
+        String at = ctx.queryParam("contextAt");
+        if (at == null || at.isBlank()) return null;
+        try {
+            return Instant.parse(at);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Not a moment: " + at, e);
+        }
+    }
+
+    /** Whether the log lines around a problem are to go with it: only when asked for. */
+    private static boolean withContext(Context ctx) {
+        return ctx.queryParamAsClass("withContext", Boolean.class).getOrDefault(false);
+    }
+
     @OpenApi(
             path = "/api/v1/admin/beacon/problems/{id}/preview",
             methods = HttpMethod.GET,
             summary = "What one problem would travel as",
             tags = {"Beacon"},
             pathParams = @OpenApiParam(name = "id", type = Long.class, required = true),
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProblemPayload.class)))
+            queryParams =
+                    @OpenApiParam(
+                            name = "withContext",
+                            type = Boolean.class,
+                            description = "with the log lines around it"),
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = BeaconReportService.ProblemPreview.class)))
     private void previewProblem(Context ctx) {
-        ctx.json(beacon.previewProblem(problemId(ctx)));
+        ctx.json(beacon.previewProblem(problemId(ctx), withContext(ctx)));
     }
 
     @OpenApi(
@@ -209,9 +249,13 @@ public class BeaconAdminRoutes implements Routes {
             summary = "Send one problem to the beacon",
             tags = {"Beacon"},
             pathParams = @OpenApiParam(name = "id", type = Long.class, required = true),
+            queryParams =
+                    @OpenApiParam(
+                            name = "contextAt",
+                            description = "the occurrence the previewed lines surround; no lines when left out"),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SendResult.class)))
     private void sendProblem(Context ctx) {
-        ctx.json(beacon.sendProblem(problemId(ctx)));
+        ctx.json(beacon.sendProblem(problemId(ctx), contextAt(ctx)));
     }
 
     @OpenApi(
@@ -219,10 +263,15 @@ public class BeaconAdminRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Send the chosen problems to the beacon",
             tags = {"Beacon"},
+            queryParams =
+                    @OpenApiParam(
+                            name = "withContext",
+                            type = Boolean.class,
+                            description = "with the log lines around it"),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SendRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SendResult.class)))
     private void sendProblems(Context ctx) {
-        ctx.json(beacon.sendProblems(ctx.bodyAsClass(SendRequest.class).ids()));
+        ctx.json(beacon.sendProblems(ctx.bodyAsClass(SendRequest.class).ids(), withContext(ctx)));
     }
 
     @OpenApi(

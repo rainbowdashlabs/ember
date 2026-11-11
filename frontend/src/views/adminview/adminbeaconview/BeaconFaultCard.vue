@@ -16,6 +16,7 @@ import ProblemCardHeader from '@/components/problem/ProblemCardHeader.vue'
 import ProblemCardDetails from '@/components/problem/ProblemCardDetails.vue'
 import ProblemStacktrace from '@/components/problem/ProblemStacktrace.vue'
 import type {BeaconFault} from '@/api/generated/schema'
+import BeaconFaultContext from './BeaconFaultContext.vue'
 
 /**
  * One fault, read exactly like an entry of this instance's own error log, with the two things only a
@@ -35,7 +36,6 @@ const {t} = useI18n()
 
 const containerComponent = computed(() => props.fault.level === 'ERROR' ? ErrorContainer : InfoContainer)
 
-const expandable = computed(() => !!props.fault.frames || !!props.fault.message)
 
 /**
  * What the fault is called.
@@ -50,22 +50,21 @@ const title = computed(() => {
   return props.fault.exceptionClass ?? props.fault.logger ?? props.fault.fingerprint
 })
 
-/** A fault that arrived without its frames does not open, so the card does not invite the click either. */
 function toggle() {
-  if (expandable.value) emit('toggle', props.fault.id)
+  emit('toggle', props.fault.id)
 }
 </script>
 
 <template>
   <component
       :is="containerComponent"
-      :class="{'opacity-50': fault.acknowledged, 'cursor-pointer': expandable}"
-      class="transition-all"
+      :class="{'opacity-50': fault.acknowledged}"
+      class="transition-all cursor-pointer"
       @click="toggle"
   >
     <ProblemCardHeader
         :count="fault.occurrences"
-        :expandable="expandable"
+        expandable
         :expanded="expanded"
         :first-occurrence="fault.firstSeen"
         :last-occurrence="fault.lastSeen"
@@ -94,10 +93,11 @@ function toggle() {
       </template>
     </ProblemCardHeader>
 
-    <ProblemCardDetails v-if="expanded && expandable">
+    <ProblemCardDetails v-if="expanded" @click.stop>
       <ProblemStacktrace v-if="fault.message" :trace="fault.message" class="mb-3"/>
       <MutedText v-if="fault.exceptionClass" tag="p" size="sm" class="mb-3">{{ fault.exceptionClass }}</MutedText>
       <ProblemStacktrace v-if="fault.frames" :trace="fault.frames"/>
+      <BeaconFaultContext :fault-id="fault.id"/>
     </ProblemCardDetails>
   </component>
 </template>

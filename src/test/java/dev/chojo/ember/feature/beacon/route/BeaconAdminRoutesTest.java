@@ -16,12 +16,14 @@ import dev.chojo.ember.feature.beacon.service.BeaconAdminService.BeaconSettingsR
 import dev.chojo.ember.feature.beacon.service.BeaconAdminService.BeaconStatus;
 import dev.chojo.ember.feature.beacon.service.BeaconAdminService.SendReportRequest;
 import dev.chojo.ember.feature.beacon.service.BeaconAdminService.SendResult;
+import dev.chojo.ember.feature.beacon.service.BeaconReportService;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import io.javalin.testtools.HttpClient;
 import io.javalin.testtools.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.List;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
@@ -32,6 +34,7 @@ import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
@@ -47,8 +50,10 @@ class BeaconAdminRoutesTest {
     @BeforeEach
     void setup() {
         beacon = mock(BeaconAdminService.class);
-        when(beacon.previewProblem(anyLong()))
-                .thenReturn(new ProblemPayload(null, "1", null, null, "f", "ERROR", "l", "E", "m", "", 1, null, null));
+        when(beacon.previewProblem(anyLong(), anyBoolean()))
+                .thenReturn(new BeaconReportService.ProblemPreview(
+                        new ProblemPayload(null, "1", null, null, "f", "ERROR", "l", "E", "m", "", 1, null, null),
+                        Instant.parse("2026-11-01T10:00:00Z")));
         when(beacon.previewReport(anyInt()))
                 .thenReturn(new ReportPayload(null, "1", null, null, "m", "/p", "b", "s", "r", "q", null, null));
         when(beacon.previewMetrics()).thenReturn(new MetricsBatch(1, "1", "2026-09-01", List.of()));
@@ -65,7 +70,7 @@ class BeaconAdminRoutesTest {
 
     @Test
     void theStatusIsReadAndTheSettingsWritten() {
-        var status = new BeaconStatus(true, "https://b.test", true, false, true, false, true, "Mara", "m@test");
+        var status = new BeaconStatus(true, "https://b.test", true, false, false, true, false, true, "Mara", "m@test");
         when(beacon.status()).thenReturn(status);
         when(beacon.update(any())).thenReturn(status);
 
@@ -80,19 +85,29 @@ class BeaconAdminRoutesTest {
 
         verify(beacon)
                 .update(new BeaconSettingsRequest(
-                        true, "https://b.test", true, false, true, false, true, "Mara", "m@test"));
+                        true, "https://b.test", true, false, false, true, false, true, "Mara", "m@test"));
     }
 
     @Test
     void problemsAreNamedByNumberPreviewedAndSent() {
-        when(beacon.sendProblem(anyLong())).thenReturn(new SendResult(1));
-        when(beacon.sendProblems(any())).thenReturn(new SendResult(2));
+        when(beacon.sendProblem(anyLong(), any())).thenReturn(new SendResult(1));
+        when(beacon.sendProblems(any(), anyBoolean())).thenReturn(new SendResult(2));
 
         harness.run((server, client) -> {
             assertEquals(200, get(client, "/problems/7/preview").code());
             assertEquals(
                     1,
                     json(post(client, "/problems/7/send", null)).path("queued").asInt());
+            var preview = json(get(client, "/problems/7/preview?withContext=true"));
+            assertEquals("2026-11-01T10:00:00Z", preview.path("contextAt").asString());
+            assertEquals(
+                    1,
+                    json(post(client, "/problems/7/send?contextAt=2026-11-01T10:00:00Z", null))
+                            .path("queued")
+                            .asInt());
+            post(client, "/problems/send?withContext=true", body("{\"ids\": [3]}"));
+            assertEquals(
+                    400, post(client, "/problems/7/send?contextAt=soon", null).code());
             assertEquals(
                     2,
                     json(post(client, "/problems/send", body("{\"ids\": [1, 2]}")))
@@ -101,8 +116,22 @@ class BeaconAdminRoutesTest {
             assertEquals(BeaconRefusal.BEACON_PROBLEM_ID_NOT_A_NUMBER, refusalOf(get(client, "/problems/x/preview")));
         });
 
-        verify(beacon).previewProblem(7L);
-        verify(beacon).sendProblems(List.of(1L, 2L));
+        verify(beacon).previewProblem(7L, false);
+        verify(beacon).previewProblem(7L, true);
+        verify(beacon).sendProblem(7L, null);
+        verify(beacon).sendProblem(7L, Instant.parse("2026-11-01T10:00:00Z"));
+        verify(beacon).sendProblems(List.of(1L, 2L), false);
+        verify(beacon).sendProblems(List.of(3L), true);
+    }
+
+    @Test
+    void theLinesAFaultCameWithAreReadByAnAdministrator() {
+        when(beacon.faultContext(4)).thenReturn(List.of());
+
+        harness.run((server, client) ->
+                assertEquals(200, get(client, "/collected/faults/4/context").code()));
+
+        verify(beacon).faultContext(4);
     }
 
     @Test

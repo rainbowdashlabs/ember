@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.system.service;
 import dev.chojo.ember.feature.beacon.repository.BeaconReadRepository;
 import dev.chojo.ember.feature.beacon.service.BeaconSettings;
 import dev.chojo.ember.feature.mail.service.FailedMailService;
+import dev.chojo.ember.feature.system.repository.ProblemLogRepository;
 import dev.chojo.ember.feature.system.repository.ProblemReportRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -24,38 +25,34 @@ public class MonitoringCountService {
     private final BeaconReadRepository beacon;
     private final BeaconSettings beaconSettings;
     private final FailedMailService failedMails;
-    private final IntSupplier unacknowledgedFaults;
+    private final IntSupplier openProblems;
 
     @Inject
     public MonitoringCountService(
             ProblemReportRepository reports,
             BeaconReadRepository beacon,
             BeaconSettings beaconSettings,
-            FailedMailService failedMails) {
-        this(reports, beacon, beaconSettings, failedMails, MonitoringCountService::faultsInTheLog);
+            FailedMailService failedMails,
+            ProblemLogRepository problems) {
+        this(reports, beacon, beaconSettings, failedMails, problems::countOpen);
     }
 
     /**
      * The same, counting the unacknowledged faults of the log the given way.
      *
-     * @param unacknowledgedFaults how many faults in the log nobody has acknowledged
+     * @param openProblems how many problems in the log wait for an administrator
      */
     MonitoringCountService(
             ProblemReportRepository reports,
             BeaconReadRepository beacon,
             BeaconSettings beaconSettings,
             FailedMailService failedMails,
-            IntSupplier unacknowledgedFaults) {
+            IntSupplier openProblems) {
         this.reports = reports;
         this.beacon = beacon;
         this.beaconSettings = beaconSettings;
         this.failedMails = failedMails;
-        this.unacknowledgedFaults = unacknowledgedFaults;
-    }
-
-    private static int faultsInTheLog() {
-        var log = ProblemLogAppender.instance();
-        return log != null ? log.countUnacknowledged() : 0;
+        this.openProblems = openProblems;
     }
 
     /**
@@ -68,7 +65,7 @@ public class MonitoringCountService {
         boolean receiving = beaconSettings.receiving();
         var waiting = receiving ? beacon.countWaiting() : new BeaconReadRepository.Waiting(0, 0);
         return new MonitoringCounts(
-                unacknowledgedFaults.getAsInt(),
+                openProblems.getAsInt(),
                 reports.countUnacknowledged(),
                 receiving,
                 waiting.faults(),
@@ -77,7 +74,7 @@ public class MonitoringCountService {
     }
 
     /**
-     * @param problemLog     entries in the fault log nobody has acknowledged
+     * @param problemLog     open warnings and errors in the problem log
      * @param problemReports reports from this instance's own members that nobody has looked at
      * @param beaconActive   whether this instance accepts what other instances report
      * @param beaconFaults   faults gathered from other instances, unacknowledged
