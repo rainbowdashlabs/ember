@@ -43,7 +43,7 @@
     {
       "description": "Every PostgreSQL image moves in one PR, so the compose files, the installer, the hosting help and the tests never run different versions",
       "matchDatasources": ["docker"],
-      "matchDepNames": ["postgres"],
+      "matchDepNames": ["postgres", "public.ecr.aws/docker/library/postgres"],
       "groupName": "postgres",
       "groupSlug": "postgres"
     },
