@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.insights.service.BotClassifier;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
 import dev.chojo.ember.feature.insights.service.RefererDomainExtractor;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.statistics.service.UsageRecorder;
 import dev.chojo.ember.feature.system.service.ApiRequestLogger;
 import dev.chojo.ember.feature.system.service.DemoService;
 import dev.chojo.ember.feature.traffic.service.AuthBucketClassifier;
@@ -284,6 +285,11 @@ public final class RouteHarness {
         CsrfGuard csrf = mock(CsrfGuard.class);
         when(csrf.permits(any(), anyString())).thenReturn(true);
         return new SessionGate(
-                accessManager, mock(AccountRepository.class), new Auth(), mock(SessionCookies.class), csrf);
+                accessManager,
+                mock(AccountRepository.class),
+                new Auth(),
+                mock(SessionCookies.class),
+                csrf,
+                mock(UsageRecorder.class));
     }
 }

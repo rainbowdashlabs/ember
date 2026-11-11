@@ -30,6 +30,7 @@ import dev.chojo.ember.feature.members.repository.RegistrationCodeRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.GroupMembershipService;
 import dev.chojo.ember.feature.passkey.service.PasskeyModeService;
+import dev.chojo.ember.feature.statistics.service.UsageRecorder;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.service.TrustedDeviceService;
 import dev.chojo.ember.util.RandomTokens;
@@ -82,6 +83,7 @@ public class AuthService {
     private final TwoFactorRepository twoFactorRepository;
     private final TrustedDeviceService trustedDeviceService;
     private final PasskeyModeService passkeyModeService;
+    private final UsageRecorder usageRecorder;
     /**
      * Lazily-computed hash of a random throwaway password, used by {@link #login} when the
      * supplied email does not resolve to an account or has no stored credential. Running the
@@ -109,7 +111,8 @@ public class AuthService {
             BreachCheckWorker breachCheckWorker,
             TwoFactorRepository twoFactorRepository,
             TrustedDeviceService trustedDeviceService,
-            PasskeyModeService passkeyModeService) {
+            PasskeyModeService passkeyModeService,
+            UsageRecorder usageRecorder) {
         this.accountRepository = accountRepository;
         this.accountEmailService = accountEmailService;
         this.confirmationPolicy = confirmationPolicy;
@@ -127,6 +130,7 @@ public class AuthService {
         this.twoFactorRepository = twoFactorRepository;
         this.trustedDeviceService = trustedDeviceService;
         this.passkeyModeService = passkeyModeService;
+        this.usageRecorder = usageRecorder;
     }
 
     /**
@@ -1583,7 +1587,7 @@ public class AuthService {
                     deviceTrustId,
                     trustedDevice);
             accountRepository.markSetupCompleted(accountId);
-            accountRepository.touchLastSignIn(accountId);
+            signedIn(accountId);
             log.info("Session created for account {}", accountId);
             return LoginResult.success(stableToken, stableExpiry);
         }
@@ -1593,7 +1597,7 @@ public class AuthService {
         accountRepository.createSession(
                 accountId, token, expiresAt, userAgent, location, twoFactorVerifiedAt, deviceTrustId, trustedDevice);
         accountRepository.markSetupCompleted(accountId);
-        accountRepository.touchLastSignIn(accountId);
+        signedIn(accountId);
         log.info("Session created for account {}", accountId);
         return LoginResult.success(token, expiresAt);
     }
@@ -1609,9 +1613,19 @@ public class AuthService {
         String token = generateToken();
         Instant expiresAt = Instant.now().plus(authConfig.sessionMinutes(false), ChronoUnit.MINUTES);
         accountRepository.createVouchedSession(accountId, token, expiresAt, userAgent, location);
-        accountRepository.touchLastSignIn(accountId);
+        signedIn(accountId);
         log.info("Vouched session created for account {}", accountId);
         return LoginResult.success(token, expiresAt);
+    }
+
+    /**
+     * Records a sign-in: the account's last sign-in moves, and it counts as using the instance today.
+     * A new session's first requests come within the minute in which its last use is not written
+     * again, so without this a person who signs in and leaves within that minute would not count.
+     */
+    private void signedIn(int accountId) {
+        accountRepository.touchLastSignIn(accountId);
+        usageRecorder.markActive(accountId);
     }
 
     /**

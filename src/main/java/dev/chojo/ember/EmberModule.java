@@ -366,6 +366,7 @@ import dev.chojo.ember.feature.station.transfer.DocumentSearchTableImporter;
 import dev.chojo.ember.feature.station.transfer.StationTableImporter;
 import dev.chojo.ember.feature.station.transfer.TableImporter;
 import dev.chojo.ember.feature.statistics.route.StatisticsRoutes;
+import dev.chojo.ember.feature.statistics.service.UsageSnapshotTask;
 import dev.chojo.ember.feature.storage.handler.StorageWarningHandler;
 import dev.chojo.ember.feature.storage.route.StationStorageBackendRoutes;
 import dev.chojo.ember.feature.storage.route.StorageRoutes;
@@ -849,6 +850,7 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(PageHitRecorder.class);
         taskSources.addBinding().to(OutgoingPairRequestService.class);
         taskSources.addBinding().to(StationTrafficRecorder.class);
+        taskSources.addBinding().to(UsageSnapshotTask.class);
         taskSources.addBinding().to(ApiRequestLogger.class);
         taskSources.addBinding().to(ApplicationLogWriter.class);
         taskSources.addBinding().to(RegistrationDeadlineChecker.class);
