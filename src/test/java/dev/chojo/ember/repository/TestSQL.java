@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.utility.DockerImageName;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -46,7 +45,7 @@ public class TestSQL {
     }
 
     public static GenericContainer<?> createContainer(String user, String pw) {
-        GenericContainer<?> self = new GenericContainer<>(DockerImageName.parse(TestContainers.POSTGRES_IMAGE))
+        GenericContainer<?> self = new GenericContainer<>(TestContainers.POSTGRES_IMAGE)
                 .withExposedPorts(5432)
                 .withEnv("POSTGRES_USER", user)
                 .withEnv("POSTGRES_PASSWORD", pw)

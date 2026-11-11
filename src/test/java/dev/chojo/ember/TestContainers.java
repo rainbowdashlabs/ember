@@ -6,6 +6,7 @@
 package dev.chojo.ember;
 
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -35,8 +36,14 @@ public final class TestContainers {
      * The PostgreSQL image every test database runs: the one the compose files and the installer
      * ship, so a test never passes against a server no installation has. Renovate updates it
      * together with those.
+     *
+     * <p>It is pulled from the copy of Docker's official images that AWS serves, not from Docker Hub,
+     * whose limit on pulls the many jobs of one build ran into. The image is the same, so it stands in
+     * for {@code postgres} wherever Testcontainers asks for that.
      */
-    public static final String POSTGRES_IMAGE = "postgres:18-alpine";
+    public static final DockerImageName POSTGRES_IMAGE = DockerImageName.parse(
+                    "public.ecr.aws/docker/library/postgres:18-alpine")
+            .asCompatibleSubstituteFor("postgres");
 
     private static final Path LOCK_FILE =
             Path.of(System.getProperty("java.io.tmpdir"), "ember-testcontainer-start.lock");
