@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:9933a0fe843cd6779f990f311814465bbf14616a3155bd7bf6012361021c90c4",
-  "generatedAt": "2026-11-11T11:52:41Z",
+  "schemaHash": "sha256:14e3b00230eff8d3c584407dc33c58fd6886ece42a7cefb90dc1de8ee0f845b3",
+  "generatedAt": "2026-11-11T12:35:46Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -8775,7 +8775,7 @@
     "email_queue": {
       "feature": "mail",
       "scope": "INSTANCE",
-      "tableHash": "sha256:bce3d70a5af1d5c00a63211a225c1295f7eef288ca73cfd958da7247d2441751",
+      "tableHash": "sha256:ef1a5b64ebd70492d4b7bab419afbbde8d0cdf01121aae3591763fb93f06dbaf",
       "columns": [
         {
           "name": "id",
@@ -8789,7 +8789,7 @@
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "References the sending station. NULL for system emails."
+          "description": "References the sending station. NULL for system emails. Deleting the station deletes its emails, so they never count as the instance's own."
         },
         {
           "name": "recipient",
@@ -8916,6 +8916,13 @@
           "nullable": true,
           "verified": true,
           "description": "The administrator who took note of the failure. NULL once that account is deleted, and for failures nobody took note of."
+        },
+        {
+          "name": "failed_at",
+          "type": "timestamp",
+          "nullable": true,
+          "verified": true,
+          "description": "When the queue gave up on the email. NULL for an email the queue did not give up on, and for failures recorded before this was kept."
         }
       ],
       "foreignKeys": [
@@ -8929,7 +8936,7 @@
           "column": "station_id",
           "refTable": "station",
           "refColumn": "id",
-          "onDelete": "SET NULL"
+          "onDelete": "CASCADE"
         }
       ],
       "stationTransfer": {
@@ -8997,17 +9004,17 @@
       ],
       "stationTransfer": {
         "status": "IGNORED",
-        "reason": "Files of queued emails, instance-scoped and gone once their email is sent or failed"
+        "reason": "Files of queued emails, instance-scoped and gone once their email is sent, or with it by the 30-day cleanup when it failed"
       },
       "gdprExport": {
         "status": "IGNORED",
-        "reason": "Files of queued emails, held only until their email is sent or failed; the sealed document itself is in the member documents export"
+        "reason": "Files of queued emails, held until their email is sent, or until the 30-day cleanup when it failed; the sealed document itself is in the member documents export"
       },
       "gdprDeletion": {
         "status": "IGNORED",
-        "reason": "Files of queued emails, deleted once their email is sent or failed, and with the email by cascade"
+        "reason": "Files of queued emails, deleted once their email is sent, and with the email by cascade, which the 30-day cleanup removes when it failed"
       },
-      "description": "Files a queued email carries, such as the sealed PDF a signer gets as their own copy. Deleted as soon as the email was handed to a provider or failed for good, so a file never stays here longer than its email waits."
+      "description": "Files a queued email carries, such as the sealed PDF a signer gets as their own copy. Deleted as soon as the email was handed to a provider. A failed email keeps its files so it can be sent again, until the usual 30-day cleanup removes them with the email."
     },
     "entity_note": {
       "feature": "members",
@@ -14949,6 +14956,8 @@
       "description": "Consent records for GDPR compliance."
     },
     "instance_usage_daily": {
+      "feature": "statistics",
+      "scope": "INSTANCE",
       "tableHash": "sha256:c0f916569e35148e1298f9787f169407503efc88438a8f149f699f736dd40f53",
       "columns": [
         {
@@ -15140,9 +15149,7 @@
         "status": "IGNORED",
         "reason": "Daily totals only; nothing in a row says who was counted."
       },
-      "description": "One row per day: how many people used the instance that day, and how large the instance was. Holds counts only, never who. Kept for good.",
-      "feature": "statistics",
-      "scope": "INSTANCE"
+      "description": "One row per day: how many people used the instance that day, and how large the instance was. Holds counts only, never who. Kept for good."
     },
     "inventory": {
       "feature": "inventory",
@@ -28094,6 +28101,8 @@
       "description": "The mail providers a station sends through, in the order they are tried."
     },
     "station_manager_reminder": {
+      "feature": "station",
+      "scope": "STATION",
       "tableHash": "sha256:8a2eb698c76376d3c6f05fa0b9810ef26d5929f9333b38e52c04879056e6a7d8",
       "columns": [
         {
@@ -28185,9 +28194,7 @@
         "status": "IGNORED",
         "reason": "Both references to an account are set to NULL when the account is deleted, and the rows go with the station."
       },
-      "description": "Every reminder sent, or deliberately skipped, to the manager of a station that is not set up yet. An automatic reminder is written once per trigger and waiting period, which is what keeps it from going out twice.",
-      "feature": "station",
-      "scope": "STATION"
+      "description": "Every reminder sent, or deliberately skipped, to the manager of a station that is not set up yet. An automatic reminder is written once per trigger and waiting period, which is what keeps it from going out twice."
     },
     "station_member": {
       "feature": "station",

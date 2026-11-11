@@ -1,16 +1,23 @@
 -- What the instance administration needs to say what is waiting and how the instance is used.
 --
--- A failed mail keeps why it failed and whether an administrator has taken note of it, so the warning
--- on the overview can end without deleting the mail. A station remembers when it was made and since
--- when it waits for its manager, and every reminder sent to that manager is written down, which is
--- what keeps an automatic reminder from going out twice. An account remembers the last day it was
--- used, and one row a day holds how many people used the instance and how large it was, because
--- nothing else keeps a history of either.
+-- A failed mail keeps why and when it failed and whether an administrator has taken note of it, so
+-- the warning on the overview can end without deleting the mail, and it keeps its files so it can
+-- be sent again. A station's mails go with the station, so they never turn into the instance's own.
+-- A station remembers when it was made and since when it waits for its manager, and every reminder
+-- sent to that manager is written down, which is what keeps an automatic reminder from going out
+-- twice. An account remembers the last day it was used, and one row a day holds how many people
+-- used the instance and how large it was, because nothing else keeps a history of either.
 
 ALTER TABLE ember_schema.email_queue
     ADD COLUMN failure_reason  TEXT      NULL,
     ADD COLUMN acknowledged_at TIMESTAMP NULL,
-    ADD COLUMN acknowledged_by INT       NULL REFERENCES ember_schema.account (id) ON DELETE SET NULL;
+    ADD COLUMN acknowledged_by INT       NULL REFERENCES ember_schema.account (id) ON DELETE SET NULL,
+    ADD COLUMN failed_at       TIMESTAMP NULL;
+
+ALTER TABLE ember_schema.email_queue
+    DROP CONSTRAINT email_queue_station_id_fkey,
+    ADD CONSTRAINT email_queue_station_id_fkey
+        FOREIGN KEY (station_id) REFERENCES ember_schema.station (id) ON DELETE CASCADE;
 
 CREATE INDEX idx_email_queue_acknowledged_by
     ON ember_schema.email_queue (acknowledged_by)
@@ -26,6 +33,12 @@ COMMENT ON COLUMN ember_schema.email_queue.acknowledged_at IS
     'When an instance administrator took note that the email did not arrive. Ends the warning for it; the email stays until the usual cleanup removes it.';
 COMMENT ON COLUMN ember_schema.email_queue.acknowledged_by IS
     'The administrator who took note of the failure. NULL once that account is deleted, and for failures nobody took note of.';
+COMMENT ON COLUMN ember_schema.email_queue.failed_at IS
+    'When the queue gave up on the email. NULL for an email the queue did not give up on, and for failures recorded before this was kept.';
+COMMENT ON COLUMN ember_schema.email_queue.station_id IS
+    'References the sending station. NULL for system emails. Deleting the station deletes its emails, so they never count as the instance''s own.';
+COMMENT ON TABLE ember_schema.email_queue_attachment IS
+    'Files a queued email carries, such as the sealed PDF a signer gets as their own copy. Deleted as soon as the email was handed to a provider. A failed email keeps its files so it can be sent again, until the usual 30-day cleanup removes them with the email.';
 
 ALTER TABLE ember_schema.station
     ADD COLUMN created_at    TIMESTAMPTZ NULL,

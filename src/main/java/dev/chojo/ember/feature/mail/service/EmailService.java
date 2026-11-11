@@ -10,6 +10,7 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.mail.entity.MailAttachment;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
+import dev.chojo.ember.feature.mail.entity.MailFailureReason;
 import dev.chojo.ember.feature.mail.entity.SignatureInvitation;
 import dev.chojo.ember.feature.mail.entity.SignedCopy;
 import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
@@ -1180,7 +1181,7 @@ public class EmailService implements TaskSource {
             chain = chainService.forStation(stationId);
             if (chain.isEmpty()) {
                 log.warn("Email {} failed: station {} has no provider to send through", email.id(), stationId);
-                queueRepository.markFailed(email.id());
+                queueRepository.markFailed(email.id(), MailFailureReason.NO_PROVIDER);
                 return Outcome.FAILED;
             }
             if (!allowance.anyRoomToday(stationId, chain)) {
@@ -1208,7 +1209,7 @@ public class EmailService implements TaskSource {
                 return Outcome.REQUEUED;
             }
             log.warn("Email {} failed: station {} has no provider left to try", email.id(), stationId);
-            queueRepository.markFailed(email.id());
+            queueRepository.markFailed(email.id(), MailFailureReason.NO_PROVIDER_LEFT);
             return Outcome.FAILED;
         }
         return send(email, inTurn.get());
@@ -1217,7 +1218,7 @@ public class EmailService implements TaskSource {
     private Outcome send(EmailQueueRepository.QueuedEmail email, MailChainEntry entry) {
         MailProvider provider = buildProvider(entry);
         if (provider == null) {
-            queueRepository.markFailed(email.id());
+            queueRepository.markFailed(email.id(), MailFailureReason.PROVIDER_BROKEN);
             return Outcome.FAILED;
         }
         queueRepository.renewClaim(email.id());
@@ -1239,7 +1240,7 @@ public class EmailService implements TaskSource {
                         : Outcome.REQUEUED;
             case PERMANENT_FAILURE -> {
                 log.warn("Email {} delivery to {} failed permanently; marking failed", email.id(), email.recipient());
-                queueRepository.markFailed(email.id());
+                queueRepository.markFailed(email.id(), MailFailureReason.PROVIDER_REFUSED);
                 yield Outcome.FAILED;
             }
         };

@@ -13,6 +13,8 @@ import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.mail.entity.EmailQueueStatus;
+import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
+import dev.chojo.ember.feature.mail.entity.MailFailureReason;
 import dev.chojo.ember.feature.statistics.entity.AdminStatistics;
 import dev.chojo.ember.feature.statistics.entity.AdminStatistics.EmailStatusCount;
 import dev.chojo.ember.feature.statistics.entity.StationStatistics.AttendanceMonth;
@@ -33,6 +35,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -131,11 +135,12 @@ class StatisticsRepositoryTest extends RepositoryTestBase {
     void theMailQueueIsCountedPerStatus() {
         var before = statistics.adminStatistics();
         var beforeByStatus = byStatus(before);
+        int overviewBefore = statistics.adminOverview().emailFailed();
 
         for (int i = 0; i < 4; i++) emailQueueRepo.enqueue("stats" + i + "@test.com", "Subject", "Body");
         var sending = emailQueueRepo.fetchPending(3, true);
         emailQueueRepo.markSent(sending.get(0).id());
-        emailQueueRepo.markFailed(sending.get(1).id());
+        emailQueueRepo.markFailed(sending.get(1).id(), MailFailureReason.RETRIES_EXHAUSTED);
 
         var after = statistics.adminStatistics();
         assertEquals(before.counts().emailPending() + 1, after.counts().emailPending());
@@ -147,8 +152,89 @@ class StatisticsRepositoryTest extends RepositoryTestBase {
                 beforeByStatus.getOrDefault(EmailQueueStatus.PENDING, 0) + 1,
                 afterByStatus.get(EmailQueueStatus.PENDING));
         assertEquals(afterByStatus.get(EmailQueueStatus.FAILED), after.counts().emailFailed());
+        assertEquals(overviewBefore + 1, statistics.adminOverview().emailFailed());
+    }
+
+    @Test
+    void theOverviewLeavesOutAssociationsAndStandInAddresses() {
+        var before = statistics.adminOverview();
+        var beforeCounts = statistics.adminStatistics().counts();
+
+        clusterService.create("Overview Association", "Der Träger");
+        stationRepo.create("Overview Station");
+        accountRepo.create("overview-unconfirmed@test.com", "Un", "Confirmed", false);
+        accountRepo.create("overview-stand-in@member.local", "Stand", "In", false);
+
+        var after = statistics.adminOverview();
+        assertEquals(before.stationsSetupPending() + 1, after.stationsSetupPending());
+        assertEquals(before.accountsUnverified() + 1, after.accountsUnverified());
         assertEquals(
-                before.counts().emailFailed() + 1, statistics.adminOverview().emailFailed());
+                beforeCounts.stationsSetupPending() + 1,
+                statistics.adminStatistics().counts().stationsSetupPending());
+    }
+
+    @Test
+    void theOverviewCountsMailsThatDidNotArriveUntilSomebodyTakesNote() {
+        int before = statistics.adminOverview().emailFailed();
+        var station = stationRepo.create("Overview Mail Station");
+
+        emailQueueRepo.enqueue("bounced@test.com", "Bounced", "Body", station.id());
+        emailQueueRepo.enqueue("deferred@test.com", "Deferred", "Body", station.id());
+        emailQueueRepo.enqueue("given-up@test.com", "Given up", "Body");
+        var sending = emailQueueRepo.fetchPending(10, true);
+        int givenUp = 0;
+        for (var mail : sending) {
+            switch (mail.recipient()) {
+                case "bounced@test.com" -> {
+                    emailQueueRepo.markSent(mail.id());
+                    emailQueueRepo.recordDelivery(mail.id(), MailDeliveryStatus.HARD_BOUNCE, "no such user", null);
+                }
+                case "deferred@test.com" -> {
+                    emailQueueRepo.markSent(mail.id());
+                    emailQueueRepo.recordDelivery(mail.id(), MailDeliveryStatus.DEFERRED, null, null);
+                }
+                case "given-up@test.com" -> {
+                    givenUp = mail.id();
+                    emailQueueRepo.markFailed(mail.id(), MailFailureReason.NO_PROVIDER);
+                }
+                default -> emailQueueRepo.requeue(mail.id());
+            }
+        }
+
+        assertEquals(before + 2, statistics.adminOverview().emailFailed());
+
+        emailQueueRepo.acknowledgeInstanceFailure(
+                givenUp,
+                accountRepo.create("overview-admin@test.com", "Ad", "Min").id());
+
+        assertEquals(before + 1, statistics.adminOverview().emailFailed());
+    }
+
+    @Test
+    void thePendingAndStuckCardsCountTheInstancesOwnMailsTheMailLogShows() {
+        var before = statistics.adminOverview();
+        var station = stationRepo.create("Overview Queue Station");
+
+        emailQueueRepo.enqueue("waiting-instance@test.com", "Waiting", "Body");
+        emailQueueRepo.enqueue("waiting-station@test.com", "Waiting", "Body", station.id());
+        assertEquals(before.emailPending() + 1, statistics.adminOverview().emailPending());
+
+        emailQueueRepo.enqueue("old-but-fresh-claim@test.com", "Claim", "Body");
+        emailQueueRepo.enqueue("left-behind@test.com", "Claim", "Body");
+        emailQueueRepo.enqueue("left-behind-station@test.com", "Claim", "Body", station.id());
+        query("""
+                UPDATE email_queue
+                SET status     = 'SENDING',
+                    created_at = now() - INTERVAL '1 day',
+                    claimed_at = CASE WHEN recipient = 'old-but-fresh-claim@test.com' THEN now()
+                                      ELSE now() - INTERVAL '1 hour' END
+                WHERE recipient IN ('old-but-fresh-claim@test.com', 'left-behind@test.com',
+                                    'left-behind-station@test.com');""").single(call()).update();
+
+        assertEquals(
+                before.emailStuckSending() + 1,
+                statistics.adminOverview().emailStuckSending(),
+                "only the instance's mail left behind past the stuck threshold");
     }
 
     private static int memberOf(int stationId, String email) {

@@ -5,12 +5,15 @@
  */
 package dev.chojo.ember.feature.statistics.repository;
 
+import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry.AttendanceStatus;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.repository.RefusalSql;
 import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
 import dev.chojo.ember.feature.mail.entity.EmailQueueStatus;
+import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
+import dev.chojo.ember.feature.mail.repository.MailFailureSql;
 import dev.chojo.ember.feature.station.entity.ApplicationStatus;
 import dev.chojo.ember.feature.statistics.entity.AdminCounts;
 import dev.chojo.ember.feature.statistics.entity.AdminOverview;
@@ -238,7 +241,8 @@ public class StatisticsRepository {
                             (SELECT
                                  count(*) FILTER (WHERE station_kind = :regular)          AS regular,
                                  count(*) FILTER (WHERE setup_completed_at IS NOT NULL) AS setup_complete,
-                                 count(*) FILTER (WHERE setup_completed_at IS NULL)     AS setup_pending
+                                 count(*) FILTER (WHERE setup_completed_at IS NULL
+                                                  AND station_kind = :regular)          AS setup_pending
                              FROM station) s,
                             (SELECT
                                  count(*)                                                         AS total,
@@ -370,8 +374,12 @@ public class StatisticsRepository {
                             (SELECT count(*) FROM station_application
                              WHERE status = :application_pending)                      AS applications_pending,
                             (SELECT count(*) FROM station
-                             WHERE setup_completed_at IS NULL)                         AS setup_pending,
-                            (SELECT count(*) FROM account WHERE email_verified = FALSE) AS unverified,
+                             WHERE setup_completed_at IS NULL
+                               AND station_kind = :regular)                            AS setup_pending,
+                            (SELECT count(*) FROM account
+                             WHERE email_verified = FALSE
+                               AND email IS NOT NULL AND email <> ''
+                               AND lower(email) NOT LIKE :synthetic)                   AS unverified,
                             (SELECT count(*) FROM federation_partner
                              WHERE status = :partner_pending)                          AS partners_pending,
                             (SELECT count(*) FROM discovery_peer
@@ -380,16 +388,19 @@ public class StatisticsRepository {
                              WHERE acknowledged = FALSE)                               AS reports_open
                         FROM
                             (SELECT
-                                 count(*) FILTER (WHERE status = :email_failed)  AS failed,
-                                 count(*) FILTER (WHERE status = :email_pending) AS pending,
+                                 count(*) FILTER (WHERE %s)                      AS failed,
+                                 count(*) FILTER (WHERE status = :email_pending
+                                                  AND station_id IS NULL)        AS pending,
                                  count(*) FILTER (WHERE status = :email_sending
-                                                  AND created_at < now() - interval '10 minutes') AS stuck
-                             FROM email_queue) e;""")
-                .single(call().bind("email_failed", EmailQueueStatus.FAILED)
-                        .bind("email_pending", EmailQueueStatus.PENDING)
+                                                  AND station_id IS NULL
+                                                  AND claimed_at < now() - make_interval(mins => %d)) AS stuck
+                             FROM email_queue) e;""", MailFailureSql.UNACKNOWLEDGED, EmailQueueRepository.STUCK_MINUTES)
+                .single(call().bind("email_pending", EmailQueueStatus.PENDING)
                         .bind("email_sending", EmailQueueStatus.SENDING)
                         .bind("application_pending", ApplicationStatus.PENDING)
-                        .bind("partner_pending", FederationStatus.PENDING))
+                        .bind("partner_pending", FederationStatus.PENDING)
+                        .bind("regular", StationKind.REGULAR)
+                        .bind("synthetic", "%" + Account.SYNTHETIC_EMAIL_SUFFIX))
                 .map(row -> new AdminOverview(
                         row.getInt("failed"),
                         row.getInt("pending"),

@@ -13,12 +13,17 @@ import java.util.List;
 /**
  * What needs an instance administrator's attention, for the dashboard they land on.
  *
- * @param emailFailed                mails given up on
- * @param emailPending               mails waiting to be sent
- * @param emailStuckSending          mails taken by a sender more than ten minutes ago and not handed over
+ * @param emailFailed                mails of the instance and every station that did not arrive and that
+ *                                   nobody has taken note of: given up on by the queue, or reported by
+ *                                   the provider as bounced, blocked or spam
+ * @param emailPending               the instance's own mails waiting to be sent, the ones its mail log shows
+ * @param emailStuckSending          the instance's own mails a sender took in hand more than ten minutes ago
+ *                                   and never handed over
  * @param stationApplicationsPending applications for a new station waiting for a decision
- * @param stationsSetupPending       stations still in their setup
- * @param accountsUnverified         accounts whose address is not confirmed yet
+ * @param stationsSetupPending       regular stations still in their setup; an association's home
+ *                                   station has no setup to wait for
+ * @param accountsUnverified         accounts with a real address that is not confirmed yet; a stand-in
+ *                                   address can never be confirmed and is not counted
  * @param federationPartnersPending  pairings with other stations waiting for an answer
  * @param discoveryPeersUnreachable  known instances that did not answer and are not blocked
  * @param problemReportsOpen         problem reports nobody has acknowledged

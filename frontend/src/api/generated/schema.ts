@@ -3409,6 +3409,249 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/config/mailing/failed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The instance's own mails that did not arrive and nobody has taken note of, a page at a time */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    size?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FailedMailPage"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/mailing/failed/{id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take note of one of the instance's own mails that did not arrive */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/mailing/failed/{id}/requeue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send one of the instance's own mails the queue gave up on again, from the first provider */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/mailing/failed/acknowledge-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take note of the instance's own mails that did not arrive, up to the latest failure seen */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FailedMailsUpTo"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AcknowledgedMails"];
+                    };
+                };
+                /** @description A body without upTo is refused with ML-006; no body at all is refused as a request that cannot be read */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/mailing/failed/stations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The stations with mails that did not arrive, counted per station without naming any mail */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationFailedMails"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/mailing/failed/stations/{stationUid}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take note of one station's mails that did not arrive, up to the latest failure seen */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    stationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FailedMailsUpTo"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AcknowledgedMails"];
+                    };
+                };
+                /** @description A body without upTo is refused with ML-006; no body at all is refused as a request that cannot be read */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/config/mailing/providers": {
         parameters: {
             query?: never;
@@ -63463,6 +63706,10 @@ export interface components {
             /** Format: int32 */
             acknowledged: number;
         };
+        AcknowledgedMails: {
+            /** Format: int32 */
+            acknowledged: number;
+        };
         AcknowledgeRequest: {
             comment?: string;
         };
@@ -64733,6 +64980,11 @@ export interface components {
             fileCount: number;
             /** Format: int64 */
             totalBytes: number;
+        };
+        CauseCount: {
+            cause: components["schemas"]["FailedMailCause"];
+            /** Format: int32 */
+            count: number;
         };
         CellConfig: components["schemas"]["AccordionConfig"] | components["schemas"]["AchievementsConfig"] | components["schemas"]["AddressCardConfig"] | components["schemas"]["AudioEmbedConfig"] | components["schemas"]["BlogSignupConfig"] | components["schemas"]["CalloutConfig"] | components["schemas"]["CodeBlockConfig"] | components["schemas"]["CountdownConfig"] | components["schemas"]["DividerConfig"] | components["schemas"]["ExternalLinkCardConfig"] | components["schemas"]["FeaturedEventConfig"] | components["schemas"]["FileDownloadConfig"] | components["schemas"]["FillInConfig"] | components["schemas"]["FormsCtaConfig"] | components["schemas"]["HeroBannerConfig"] | components["schemas"]["ImageConfig"] | components["schemas"]["ImageGalleryConfig"] | components["schemas"]["KbArticleConfig"] | components["schemas"]["MapConfig"] | components["schemas"]["MarkdownConfig"] | components["schemas"]["MemberListConfig"] | components["schemas"]["MemberSpotlightConfig"] | components["schemas"]["NestedRowsConfig"] | components["schemas"]["NewsTeaserConfig"] | components["schemas"]["PageLinkConfig"] | components["schemas"]["PartnerStationsConfig"] | components["schemas"]["PastEventRecapConfig"] | components["schemas"]["PdfConfig"] | components["schemas"]["PollEmbedConfig"] | components["schemas"]["QuizTeaserConfig"] | components["schemas"]["QuoteConfig"] | components["schemas"]["SignatureConfig"] | components["schemas"]["SpacerConfig"] | components["schemas"]["StatsCounterConfig"] | components["schemas"]["TabsConfig"] | components["schemas"]["UpcomingEventsConfig"] | components["schemas"]["VideoConfig"];
         CellConfigByType: {
@@ -66837,6 +67089,31 @@ export interface components {
         FailedInviteResponse: {
             email: string;
             reason: string | null;
+        };
+        FailedMail: {
+            cause: components["schemas"]["FailedMailCause"];
+            createdAt: components["schemas"]["Instant"];
+            detail: string | null;
+            failedAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            id: number;
+            recipient: string;
+            requeueable: boolean;
+            subject: string;
+        };
+        /** @enum {string} */
+        FailedMailCause: "NO_PROVIDER" | "NO_PROVIDER_LEFT" | "PROVIDER_REFUSED" | "PROVIDER_BROKEN" | "RETRIES_EXHAUSTED" | "UNRECORDED" | "HARD_BOUNCE" | "BLOCKED" | "SPAM";
+        FailedMailPage: {
+            mails: components["schemas"]["FailedMail"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            size: number;
+            /** Format: int32 */
+            total: number;
+        };
+        FailedMailsUpTo: {
+            upTo?: components["schemas"]["Instant"] | null;
         };
         FeaturedEventConfig: {
             ctaText?: string;
@@ -73826,6 +74103,16 @@ export interface components {
             thresholdDays: number | null;
             viewRestrictionMode: components["schemas"]["RestrictionMode"];
         };
+        StationFailedMails: {
+            causes: components["schemas"]["CauseCount"][];
+            /** Format: int32 */
+            count: number;
+            newest: components["schemas"]["Instant"];
+            oldest: components["schemas"]["Instant"];
+            stationName: string;
+            /** Format: uuid */
+            stationUid: string;
+        };
         StationFile: {
             contentHash: string;
             defaultAltText: string | null;
@@ -75585,6 +75872,7 @@ export type AchievementItem = components['schemas']['AchievementItem'];
 export type AchievementsConfig = components['schemas']['AchievementsConfig'];
 export type AckKind = components['schemas']['AckKind'];
 export type AcknowledgeAllResponse = components['schemas']['AcknowledgeAllResponse'];
+export type AcknowledgedMails = components['schemas']['AcknowledgedMails'];
 export type AcknowledgeRequest = components['schemas']['AcknowledgeRequest'];
 export type AcknowledgeResult = components['schemas']['AcknowledgeResult'];
 export type AcknowledgeStepRequest = components['schemas']['AcknowledgeStepRequest'];
@@ -75758,6 +76046,7 @@ export type CatalogTransferQuestion = components['schemas']['CatalogTransferQues
 export type CategoryRequest = components['schemas']['CategoryRequest'];
 export type CategoryUsage = components['schemas']['CategoryUsage'];
 export type CategoryUsageResponse = components['schemas']['CategoryUsageResponse'];
+export type CauseCount = components['schemas']['CauseCount'];
 export type CellConfig = components['schemas']['CellConfig'];
 export type CellConfigByType = components['schemas']['CellConfigByType'];
 export type CellContentType = components['schemas']['CellContentType'];
@@ -76045,6 +76334,10 @@ export type ExtraTimeCredit = components['schemas']['ExtraTimeCredit'];
 export type ExtraTimeRequest = components['schemas']['ExtraTimeRequest'];
 export type FactorInfo = components['schemas']['FactorInfo'];
 export type FailedInviteResponse = components['schemas']['FailedInviteResponse'];
+export type FailedMail = components['schemas']['FailedMail'];
+export type FailedMailCause = components['schemas']['FailedMailCause'];
+export type FailedMailPage = components['schemas']['FailedMailPage'];
+export type FailedMailsUpTo = components['schemas']['FailedMailsUpTo'];
 export type FeaturedEventConfig = components['schemas']['FeaturedEventConfig'];
 export type FederatedBoardDetail = components['schemas']['FederatedBoardDetail'];
 export type FederatedEventItem = components['schemas']['FederatedEventItem'];
@@ -77002,6 +77295,7 @@ export type StationCertificateInfo = components['schemas']['StationCertificateIn
 export type StationClusterResponse = components['schemas']['StationClusterResponse'];
 export type StationDetail = components['schemas']['StationDetail'];
 export type StationEvent = components['schemas']['StationEvent'];
+export type StationFailedMails = components['schemas']['StationFailedMails'];
 export type StationFile = components['schemas']['StationFile'];
 export type StationFileFolder = components['schemas']['StationFileFolder'];
 export type StationFileTag = components['schemas']['StationFileTag'];
@@ -77586,6 +77880,18 @@ export const Expected = {
 export const ExternalLinkImageDisplay = {
     BANNER: "BANNER",
     ICON: "ICON",
+} as const;
+
+export const FailedMailCause = {
+    BLOCKED: "BLOCKED",
+    HARD_BOUNCE: "HARD_BOUNCE",
+    NO_PROVIDER: "NO_PROVIDER",
+    NO_PROVIDER_LEFT: "NO_PROVIDER_LEFT",
+    PROVIDER_BROKEN: "PROVIDER_BROKEN",
+    PROVIDER_REFUSED: "PROVIDER_REFUSED",
+    RETRIES_EXHAUSTED: "RETRIES_EXHAUSTED",
+    SPAM: "SPAM",
+    UNRECORDED: "UNRECORDED",
 } as const;
 
 export const FederationStatus = {

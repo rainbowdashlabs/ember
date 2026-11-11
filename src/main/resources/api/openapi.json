@@ -2347,6 +2347,169 @@
         }
       }
     },
+    "/api/v1/admin/config/mailing/failed" : {
+      "get" : {
+        "summary" : "The instance's own mails that did not arrive and nobody has taken note of, a page at a time",
+        "tags" : [ "Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FailedMailPage"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "page",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/config/mailing/failed/acknowledge-all" : {
+      "post" : {
+        "summary" : "Take note of the instance's own mails that did not arrive, up to the latest failure seen",
+        "tags" : [ "Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AcknowledgedMails"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "A body without upTo is refused with ML-006; no body at all is refused as a request that cannot be read"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FailedMailsUpTo"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/mailing/failed/stations" : {
+      "get" : {
+        "summary" : "The stations with mails that did not arrive, counted per station without naming any mail",
+        "tags" : [ "Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StationFailedMails"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/mailing/failed/stations/{stationUid}/acknowledge" : {
+      "post" : {
+        "summary" : "Take note of one station's mails that did not arrive, up to the latest failure seen",
+        "tags" : [ "Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AcknowledgedMails"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "A body without upTo is refused with ML-006; no body at all is refused as a request that cannot be read"
+          }
+        },
+        "parameters" : [ {
+          "name" : "stationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FailedMailsUpTo"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/mailing/failed/{id}/acknowledge" : {
+      "post" : {
+        "summary" : "Take note of one of the instance's own mails that did not arrive",
+        "tags" : [ "Settings" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/config/mailing/failed/{id}/requeue" : {
+      "post" : {
+        "summary" : "Send one of the instance's own mails the queue gave up on again, from the first provider",
+        "tags" : [ "Settings" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/admin/config/mailing/providers" : {
       "get" : {
         "summary" : "Get the instance's mail providers in the order they are tried",
@@ -48910,6 +49073,16 @@
           }
         }
       },
+      "AcknowledgedMails" : {
+        "type" : "object",
+        "properties" : {
+          "acknowledged" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "acknowledged" ]
+      },
       "ActiveSession" : {
         "type" : "object",
         "properties" : {
@@ -52564,6 +52737,19 @@
           }
         },
         "required" : [ "category", "totalBytes", "fileCount" ]
+      },
+      "CauseCount" : {
+        "type" : "object",
+        "properties" : {
+          "cause" : {
+            "$ref" : "#/components/schemas/FailedMailCause"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "cause", "count" ]
       },
       "CellConfig" : {
         "oneOf" : [ {
@@ -58702,6 +58888,77 @@
           }
         },
         "required" : [ "email", "reason" ]
+      },
+      "FailedMail" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "recipient" : {
+            "type" : "string"
+          },
+          "subject" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "failedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "cause" : {
+            "$ref" : "#/components/schemas/FailedMailCause"
+          },
+          "detail" : {
+            "type" : [ "string", "null" ]
+          },
+          "requeueable" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "recipient", "subject", "createdAt", "failedAt", "cause", "detail", "requeueable" ]
+      },
+      "FailedMailCause" : {
+        "type" : "string",
+        "enum" : [ "NO_PROVIDER", "NO_PROVIDER_LEFT", "PROVIDER_REFUSED", "PROVIDER_BROKEN", "RETRIES_EXHAUSTED", "UNRECORDED", "HARD_BOUNCE", "BLOCKED", "SPAM" ]
+      },
+      "FailedMailPage" : {
+        "type" : "object",
+        "properties" : {
+          "mails" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FailedMail"
+            }
+          },
+          "total" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "mails", "total", "page", "size" ]
+      },
+      "FailedMailsUpTo" : {
+        "type" : "object",
+        "properties" : {
+          "upTo" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
       },
       "FeaturedEventConfig" : {
         "type" : "object",
@@ -79158,6 +79415,35 @@
           }
         },
         "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "templateId", "requiresRegistration", "registrationDeadline", "requiresConfirmation", "categoryId", "restrictionMode", "viewRestrictionMode", "restricted", "isPublic", "registrationLimit", "cancelled", "cancelledAt", "cancelReason", "minRegistrations", "thresholdDays", "registrationCloseDays", "repeatUntil", "repeatCount", "recurring" ]
+      },
+      "StationFailedMails" : {
+        "type" : "object",
+        "properties" : {
+          "stationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "oldest" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "newest" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "causes" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CauseCount"
+            }
+          }
+        },
+        "required" : [ "stationUid", "stationName", "count", "oldest", "newest", "causes" ]
       },
       "StationFile" : {
         "type" : "object",

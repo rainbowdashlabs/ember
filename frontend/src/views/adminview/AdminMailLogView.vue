@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import MailDashboard from '@/components/mail/MailDashboard.vue'
+import FailedMailsSection from './adminmaillogview/FailedMailsSection.vue'
 import {getInstanceMailDashboard, liftInstanceBlock, requeueInstanceStuckMails} from '@/api/mailProviders'
 
 const {t} = useI18n()
@@ -14,11 +15,14 @@ const {t} = useI18n()
 
 <template>
   <ViewContent :title="t('pages.admin-mail-log.title')" :subtitle="t('pages.admin-mail-log.subtitle')">
-    <MailDashboard
-        :load="getInstanceMailDashboard"
-        :lift="liftInstanceBlock"
-        :requeue="requeueInstanceStuckMails"
-        :per-station="false"
-    />
+    <div class="space-y-4">
+      <FailedMailsSection/>
+      <MailDashboard
+          :load="getInstanceMailDashboard"
+          :lift="liftInstanceBlock"
+          :requeue="requeueInstanceStuckMails"
+          :per-station="false"
+      />
+    </div>
   </ViewContent>
 </template>
