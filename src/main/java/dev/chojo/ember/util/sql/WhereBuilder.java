@@ -5,10 +5,12 @@
  */
 package dev.chojo.ember.util.sql;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.api.call.Call;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -67,6 +69,21 @@ public final class WhereBuilder {
     /** Appends a predicate with one bind, unless the value is {@code null}. */
     public WhereBuilder add(String fragment, String parameter, @Nullable Enum<?> value) {
         return value == null ? this : append(fragment, call -> call.bind(parameter, value));
+    }
+
+    /** Appends a predicate whose binds the given function applies, for one that carries several of them. */
+    public WhereBuilder add(String fragment, UnaryOperator<Call> binds) {
+        return append(fragment, binds);
+    }
+
+    /**
+     * Appends a predicate binding a list of texts as one array, for a fragment such as
+     * {@code AND x = ANY(:parameter)}. An empty list is dropped, so naming nothing narrows nothing.
+     */
+    public WhereBuilder anyOf(String fragment, String parameter, Collection<String> values) {
+        if (values.isEmpty()) return this;
+        List<String> bound = List.copyOf(values);
+        return append(fragment, call -> call.bind(parameter, bound, PostgreSqlTypes.TEXT));
     }
 
     /**

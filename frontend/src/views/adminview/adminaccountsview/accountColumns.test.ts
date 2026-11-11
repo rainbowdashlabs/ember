@@ -13,6 +13,7 @@ function account(overrides: Partial<AccountOverview> = {}): AccountOverview {
         id: 1, uid: '00000000-0000-0000-0000-000000000001', name: 'Lena Weber', email: null, loginName: 'lena',
         instanceUserType: 'USER', lastSignInAt: null, stations: [], associations: [],
         hasPassword: true, passwordSignIn: true, oneTimePasswordExpiresAt: null, passkeys: 0, twoFactor: false,
+        confirmed: null, setupMail: null,
         ...overrides,
     }
 }

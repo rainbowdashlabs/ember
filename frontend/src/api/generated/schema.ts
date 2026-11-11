@@ -1584,13 +1584,29 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List every account of the instance, a page at a time */
+        /** List every account of the instance, filtered, sorted and a page at a time */
         get: {
             parameters: {
                 query?: {
+                    association?: string;
+                    confirmed?: boolean;
+                    direction?: string;
+                    neverSignedIn?: boolean;
                     page?: number;
+                    passkeysMax?: number;
+                    passkeysMin?: number;
+                    password?: components["schemas"]["AccountPasswordState"];
                     q?: string;
+                    role?: components["schemas"]["InstanceUserType"];
+                    signedInFrom?: string;
+                    signedInTo?: string;
                     size?: number;
+                    sort?: components["schemas"]["AccountSort"];
+                    station?: string;
+                    twoFactor?: boolean;
+                    withoutAddress?: boolean;
+                    withoutAssociation?: boolean;
+                    withoutStation?: boolean;
                 };
                 header?: never;
                 path?: never;
@@ -1605,6 +1621,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["AccountOverviewPage"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
             };
@@ -1727,6 +1752,53 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/accounts/{id}/setup-mail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send an account that is not yet ready the mail it waits for */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccountSetupMail"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
             };
@@ -63331,6 +63403,7 @@ export interface components {
         };
         AccountOverview: {
             associations: components["schemas"]["AssociationRole"][];
+            confirmed: boolean | null;
             email: string | null;
             hasPassword: boolean;
             /** Format: int32 */
@@ -63343,6 +63416,7 @@ export interface components {
             /** Format: int32 */
             passkeys: number;
             passwordSignIn: boolean;
+            setupMail: components["schemas"]["SetupMailKind"] | null;
             stations: string[];
             twoFactor: boolean;
             /** Format: uuid */
@@ -63357,6 +63431,8 @@ export interface components {
             /** Format: int32 */
             total: number;
         };
+        /** @enum {string} */
+        AccountPasswordState: "NONE" | "ON" | "OFF" | "ONE_TIME";
         AccountSearchResult: {
             displayName: string;
             email: string | null;
@@ -63367,6 +63443,11 @@ export interface components {
             /** Format: uuid */
             uid: string;
         };
+        AccountSetupMail: {
+            outcome: components["schemas"]["Outcome"];
+        };
+        /** @enum {string} */
+        AccountSort: "NAME" | "LAST_SIGN_IN" | "PASSKEYS";
         AchievementItem: {
             description?: string;
             title?: string;
@@ -70429,6 +70510,8 @@ export interface components {
         OrderRequest: {
             needIds?: number[];
         };
+        /** @enum {string} */
+        Outcome: "INVITATION_SENT" | "CONFIRMATION_SENT" | "CONFIRMED";
         OutgoingPairRequestResponse: {
             answeredAt: components["schemas"]["Instant"] | null;
             createdAt: components["schemas"]["Instant"];
@@ -73259,6 +73342,8 @@ export interface components {
             };
             theme: string;
         };
+        /** @enum {string} */
+        SetupMailKind: "INVITATION" | "CONFIRMATION";
         SetupStatus: {
             completedAt: components["schemas"]["Instant"] | null;
             optionalSteps: components["schemas"]["StepState"][];
@@ -75492,7 +75577,10 @@ export type AccountActionRequest = components['schemas']['AccountActionRequest']
 export type AccountInfo = components['schemas']['AccountInfo'];
 export type AccountOverview = components['schemas']['AccountOverview'];
 export type AccountOverviewPage = components['schemas']['AccountOverviewPage'];
+export type AccountPasswordState = components['schemas']['AccountPasswordState'];
 export type AccountSearchResult = components['schemas']['AccountSearchResult'];
+export type AccountSetupMail = components['schemas']['AccountSetupMail'];
+export type AccountSort = components['schemas']['AccountSort'];
 export type AchievementItem = components['schemas']['AchievementItem'];
 export type AchievementsConfig = components['schemas']['AchievementsConfig'];
 export type AckKind = components['schemas']['AckKind'];
@@ -76467,6 +76555,7 @@ export type Option = components['schemas']['Option'];
 export type Ordering = components['schemas']['Ordering'];
 export type OrderingView = components['schemas']['OrderingView'];
 export type OrderRequest = components['schemas']['OrderRequest'];
+export type Outcome = components['schemas']['Outcome'];
 export type OutgoingPairRequestResponse = components['schemas']['OutgoingPairRequestResponse'];
 export type OutputShape = components['schemas']['OutputShape'];
 export type OverviewResponse = components['schemas']['OverviewResponse'];
@@ -76851,6 +76940,7 @@ export type SetTemplateUserTypesRequest = components['schemas']['SetTemplateUser
 export type SetTimeRulesRequest = components['schemas']['SetTimeRulesRequest'];
 export type SettingsRequest = components['schemas']['SettingsRequest'];
 export type SettingsResponse = components['schemas']['SettingsResponse'];
+export type SetupMailKind = components['schemas']['SetupMailKind'];
 export type SetupStatus = components['schemas']['SetupStatus'];
 export type SetUsernameRequest = components['schemas']['SetUsernameRequest'];
 export type SetUserTypePermissionsRequest = components['schemas']['SetUserTypePermissionsRequest'];
@@ -77162,6 +77252,19 @@ export type WordFormImport = components['schemas']['WordFormImport'];
 export type YoutubeFileRequest = components['schemas']['YoutubeFileRequest'];
 export type $defs = Record<string, never>;
 export type operations = Record<string, never>;
+
+export const AccountPasswordState = {
+    NONE: "NONE",
+    OFF: "OFF",
+    ON: "ON",
+    ONE_TIME: "ONE_TIME",
+} as const;
+
+export const AccountSort = {
+    LAST_SIGN_IN: "LAST_SIGN_IN",
+    NAME: "NAME",
+    PASSKEYS: "PASSKEYS",
+} as const;
 
 export const AckKind = {
     ASSERTED: "ASSERTED",
@@ -78007,6 +78110,12 @@ export const OnboardingTaskState = {
     SKIPPED: "SKIPPED",
 } as const;
 
+export const Outcome = {
+    CONFIRMATION_SENT: "CONFIRMATION_SENT",
+    CONFIRMED: "CONFIRMED",
+    INVITATION_SENT: "INVITATION_SENT",
+} as const;
+
 export const OutputShape = {
     FLAT: "FLAT",
     ROWS: "ROWS",
@@ -78339,6 +78448,11 @@ export const SelfRegistration = {
     CLOSED: "CLOSED",
     NOT_ELIGIBLE: "NOT_ELIGIBLE",
     OPEN: "OPEN",
+} as const;
+
+export const SetupMailKind = {
+    CONFIRMATION: "CONFIRMATION",
+    INVITATION: "INVITATION",
 } as const;
 
 export const ShareGrant = {

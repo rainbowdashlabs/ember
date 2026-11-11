@@ -996,7 +996,7 @@
     },
     "/api/v1/admin/accounts" : {
       "get" : {
-        "summary" : "List every account of the instance, a page at a time",
+        "summary" : "List every account of the instance, filtered, sorted and a page at a time",
         "tags" : [ "Admin Accounts" ],
         "responses" : {
           "200" : {
@@ -1005,6 +1005,16 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AccountOverviewPage"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
                 }
               }
             }
@@ -1029,6 +1039,104 @@
           "schema" : {
             "type" : "integer",
             "format" : "int32"
+          }
+        }, {
+          "name" : "role",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/InstanceUserType"
+          }
+        }, {
+          "name" : "password",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/AccountPasswordState"
+          }
+        }, {
+          "name" : "twoFactor",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "passkeysMin",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "passkeysMax",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "confirmed",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "withoutAddress",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "signedInFrom",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "signedInTo",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "neverSignedIn",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "station",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "withoutStation",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "association",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "withoutAssociation",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/AccountSort"
+          }
+        }, {
+          "name" : "direction",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
           }
         } ]
       }
@@ -1116,6 +1224,43 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/accounts/{id}/setup-mail" : {
+      "post" : {
+        "summary" : "Send an account that is not yet ready the mail it waits for",
+        "tags" : [ "Admin Accounts" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AccountSetupMail"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
                 }
               }
             }
@@ -48601,9 +48746,19 @@
           },
           "twoFactor" : {
             "type" : "boolean"
+          },
+          "confirmed" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "setupMail" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/SetupMailKind"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "uid", "name", "email", "loginName", "instanceUserType", "lastSignInAt", "stations", "associations", "hasPassword", "passwordSignIn", "oneTimePasswordExpiresAt", "passkeys", "twoFactor" ]
+        "required" : [ "id", "uid", "name", "email", "loginName", "instanceUserType", "lastSignInAt", "stations", "associations", "hasPassword", "passwordSignIn", "oneTimePasswordExpiresAt", "passkeys", "twoFactor", "confirmed", "setupMail" ]
       },
       "AccountOverviewPage" : {
         "type" : "object",
@@ -48628,6 +48783,10 @@
           }
         },
         "required" : [ "accounts", "total", "page", "size" ]
+      },
+      "AccountPasswordState" : {
+        "type" : "string",
+        "enum" : [ "NONE", "ON", "OFF", "ONE_TIME" ]
       },
       "AccountSearchResult" : {
         "type" : "object",
@@ -48654,6 +48813,19 @@
           }
         },
         "required" : [ "id", "uid", "displayName", "firstName", "lastName", "email" ]
+      },
+      "AccountSetupMail" : {
+        "type" : "object",
+        "properties" : {
+          "outcome" : {
+            "$ref" : "#/components/schemas/Outcome"
+          }
+        },
+        "required" : [ "outcome" ]
+      },
+      "AccountSort" : {
+        "type" : "string",
+        "enum" : [ "NAME", "LAST_SIGN_IN", "PASSKEYS" ]
       },
       "AchievementItem" : {
         "type" : "object",
@@ -69107,6 +69279,10 @@
         },
         "required" : [ "items" ]
       },
+      "Outcome" : {
+        "type" : "string",
+        "enum" : [ "INVITATION_SENT", "CONFIRMATION_SENT", "CONFIRMED" ]
+      },
       "OutgoingPairRequestResponse" : {
         "type" : "object",
         "properties" : {
@@ -77651,6 +77827,10 @@
           }
         },
         "required" : [ "emailEnabled", "theme", "darkMode", "feel", "notifications", "mailConfigured", "mailProviders" ]
+      },
+      "SetupMailKind" : {
+        "type" : "string",
+        "enum" : [ "INVITATION", "CONFIRMATION" ]
       },
       "SetupStatus" : {
         "type" : "object",
