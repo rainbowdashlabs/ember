@@ -425,7 +425,8 @@ public class StationImportService {
     /**
      * Walks the topological table order and imports each payload from the bundle. Returns the total
      * number of rows imported across all tables. Also sets the station owner to the first imported
-     * MANAGER member when no owner is set yet.
+     * MANAGER member when no owner is set yet, and starts the wait of a station that still waits for its
+     * manager, since when it began waiting is not carried over.
      */
     private int runImport(StationImportContext context, Map<String, Object> bundle) {
         int total = 0;
@@ -439,6 +440,7 @@ public class StationImportService {
         mergeLendingClashes(context);
         relinkFolderIcons(context.stationId());
         assignDefaultOwnerIfNeeded(context.stationId());
+        stationRepository.startWaitingAfterImport(context.stationId());
         importedLinks.ask(context);
         return total;
     }
@@ -511,6 +513,7 @@ public class StationImportService {
             engine.settle(stationId, context.idMap(), context.waitingRows());
             mergeLendingClashes(context);
             relinkFolderIcons(stationId);
+            stationRepository.startWaitingAfterImport(stationId);
             importedLinks.ask(context);
             sharedStorage = adoptStorage(context, client, p, stationData);
             copyFiles(context, client, p, sharedStorage);

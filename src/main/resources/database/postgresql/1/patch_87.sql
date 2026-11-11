@@ -85,7 +85,7 @@ COMMENT ON COLUMN ember_schema.station_manager_reminder.station_id IS
 COMMENT ON COLUMN ember_schema.station_manager_reminder.account_id IS
     'The manager the reminder was written to. NULL once that account is deleted.';
 COMMENT ON COLUMN ember_schema.station_manager_reminder.kind IS
-    'SETUP_LINK: a fresh link to choose a password, for a manager who never signed in. SETUP_REMINDER: a note that the station waits to be set up, for a manager who can sign in.';
+    'SETUP_LINK: a fresh link to choose a password or to confirm the address, for a manager who cannot sign in yet. SETUP_REMINDER: a note that the station waits to be set up, for a manager who can sign in.';
 COMMENT ON COLUMN ember_schema.station_manager_reminder.trigger IS
     'What sent it: MANUAL for an administrator, AFTER_7_DAYS and AFTER_21_DAYS for the automatic reminders.';
 COMMENT ON COLUMN ember_schema.station_manager_reminder.waiting_since IS

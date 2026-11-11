@@ -32,7 +32,8 @@
     "signature-reminder": "Erinnerung: {documentTitle} wartet auf eine Unterschrift",
     "signed-copy": "Kopie mit Unterschrift: {documentTitle}",
     "account-link-request": "{stationName} möchte dein Konto verknüpfen",
-    "association-link-request": "{associationName} bietet dir eine Rolle an"
+    "association-link-request": "{associationName} bietet dir eine Rolle an",
+    "station-setup-reminder": "{stationName} wartet darauf, eingerichtet zu werden"
   },
   "body": {
     "twoFactorReset.defaultActor": "einem Administrator"

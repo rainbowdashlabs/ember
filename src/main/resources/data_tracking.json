@@ -1,7 +1,7 @@
 {
   "version": 1,
   "schemaHash": "sha256:14e3b00230eff8d3c584407dc33c58fd6886ece42a7cefb90dc1de8ee0f845b3",
-  "generatedAt": "2026-11-11T12:35:46Z",
+  "generatedAt": "2026-11-11T13:02:05Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -28131,7 +28131,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "SETUP_LINK: a fresh link to choose a password, for a manager who never signed in. SETUP_REMINDER: a note that the station waits to be set up, for a manager who can sign in."
+          "description": "SETUP_LINK: a fresh link to choose a password or to confirm the address, for a manager who cannot sign in yet. SETUP_REMINDER: a note that the station waits to be set up, for a manager who can sign in."
         },
         {
           "name": "trigger",

@@ -349,6 +349,7 @@ import dev.chojo.ember.feature.signing.service.SignatureReminders;
 import dev.chojo.ember.feature.signing.service.SignatureRetentionSweeper;
 import dev.chojo.ember.feature.signing.service.SigningStateSweeper;
 import dev.chojo.ember.feature.signing.service.TemplateDocumentStatements;
+import dev.chojo.ember.feature.station.route.AdminStationRoutes;
 import dev.chojo.ember.feature.station.route.DiscoveryRoutes;
 import dev.chojo.ember.feature.station.route.FirstStationRoutes;
 import dev.chojo.ember.feature.station.route.PublicStationRoutes;
@@ -500,6 +501,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(AvatarRoutes.class);
         routesBinder.addBinding().to(AccountDataRoutes.class);
         routesBinder.addBinding().to(StationRoutes.class);
+        routesBinder.addBinding().to(AdminStationRoutes.class);
         routesBinder.addBinding().to(FirstStationRoutes.class);
         routesBinder.addBinding().to(StationMemberRoutes.class);
         routesBinder.addBinding().to(MemberCardRoutes.class);

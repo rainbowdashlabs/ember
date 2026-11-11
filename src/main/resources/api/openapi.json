@@ -4861,6 +4861,121 @@
         }
       }
     },
+    "/api/v1/admin/stations" : {
+      "get" : {
+        "summary" : "List every station with its state, manager, member count and last reminder",
+        "tags" : [ "Admin Stations" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AdminStationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/stations/{uid}" : {
+      "get" : {
+        "summary" : "One station with its state, manager, member count and last reminder",
+        "tags" : [ "Admin Stations" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AdminStationSummary"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "uid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/stations/{uid}/remind-manager" : {
+      "post" : {
+        "summary" : "Remind the manager of a station that waits",
+        "tags" : [ "Admin Stations" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ManagerReminderAnswer"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too Many Requests",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "uid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ]
+      }
+    },
     "/api/v1/admin/statistics" : {
       "get" : {
         "summary" : "Get admin-level statistics",
@@ -49253,6 +49368,59 @@
         },
         "required" : [ "emailFailed", "emailPending", "emailStuckSending", "stationApplicationsPending", "stationsSetupPending", "accountsUnverified", "federationPartnersPending", "discoveryPeersUnreachable", "problemReportsOpen", "signingKeysLocked", "recentApplications", "recentProblemReports" ]
       },
+      "AdminStationSummary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "state" : {
+            "$ref" : "#/components/schemas/StationState"
+          },
+          "memberCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "managerName" : {
+            "type" : [ "string", "null" ]
+          },
+          "managerEmail" : {
+            "type" : [ "string", "null" ]
+          },
+          "waitingSince" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "createdAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "associationName" : {
+            "type" : [ "string", "null" ]
+          },
+          "lastReminder" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ManagerReminderSummary"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "movedAway" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "name", "state", "memberCount", "managerName", "managerEmail", "waitingSince", "createdAt", "associationName", "lastReminder", "movedAway" ]
+      },
       "AdminStationUsage" : {
         "type" : "object",
         "properties" : {
@@ -66363,6 +66531,30 @@
           }
         }
       },
+      "ManagerReminderAnswer" : {
+        "type" : "object",
+        "properties" : {
+          "station" : {
+            "$ref" : "#/components/schemas/AdminStationSummary"
+          },
+          "result" : {
+            "$ref" : "#/components/schemas/ReminderResult"
+          }
+        },
+        "required" : [ "station", "result" ]
+      },
+      "ManagerReminderSummary" : {
+        "type" : "object",
+        "properties" : {
+          "sentAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "trigger" : {
+            "$ref" : "#/components/schemas/ReminderTrigger"
+          }
+        },
+        "required" : [ "sentAt", "trigger" ]
+      },
       "MapConfig" : {
         "type" : "object",
         "properties" : {
@@ -74851,6 +75043,14 @@
         },
         "required" : [ "related", "backlinks" ]
       },
+      "ReminderResult" : {
+        "type" : "string",
+        "enum" : [ "SENT", "CONFIRMED_WITHOUT_MAIL" ]
+      },
+      "ReminderTrigger" : {
+        "type" : "string",
+        "enum" : [ "MANUAL", "AFTER_7_DAYS", "AFTER_21_DAYS" ]
+      },
       "RemoteAttachment" : {
         "type" : "object",
         "properties" : {
@@ -79994,6 +80194,10 @@
           }
         },
         "required" : [ "stationUid", "stationName", "quotaBytes", "ownStore", "granted", "resolved", "usedBytes", "usage", "presetId", "presetName" ]
+      },
+      "StationState" : {
+        "type" : "string",
+        "enum" : [ "NO_MANAGER", "WAITING_FOR_MANAGER", "SETTING_UP", "SET_UP" ]
       },
       "StationStatistics" : {
         "type" : "object",

@@ -6896,6 +6896,154 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/stations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List every station with its state, manager, member count and last reminder */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminStationSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/stations/{uid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One station with its state, manager, member count and last reminder */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    uid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminStationSummary"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/stations/{uid}/remind-manager": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remind the manager of a station that waits */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    uid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ManagerReminderAnswer"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/statistics": {
         parameters: {
             query?: never;
@@ -63790,6 +63938,21 @@ export interface components {
             /** Format: int32 */
             stationsSetupPending: number;
         };
+        AdminStationSummary: {
+            associationName: string | null;
+            createdAt: components["schemas"]["Instant"] | null;
+            /** Format: uuid */
+            id: string;
+            lastReminder: components["schemas"]["ManagerReminderSummary"] | null;
+            managerEmail: string | null;
+            managerName: string | null;
+            /** Format: int32 */
+            memberCount: number;
+            movedAway: boolean;
+            name: string;
+            state: components["schemas"]["StationState"];
+            waitingSince: components["schemas"]["Instant"] | null;
+        };
         AdminStationUsage: {
             categories: components["schemas"]["CategoryUsage"][];
             origin: components["schemas"]["QuotaOrigin"];
@@ -69719,6 +69882,14 @@ export interface components {
             } | null;
             issuer?: components["schemas"]["IssuerChoice"] | null;
         };
+        ManagerReminderAnswer: {
+            result: components["schemas"]["ReminderResult"];
+            station: components["schemas"]["AdminStationSummary"];
+        };
+        ManagerReminderSummary: {
+            sentAt: components["schemas"]["Instant"];
+            trigger: components["schemas"]["ReminderTrigger"];
+        };
         MapConfig: {
             /** Format: int32 */
             heightPx?: number;
@@ -72599,6 +72770,10 @@ export interface components {
             backlinks: components["schemas"]["KbFile"][];
             related: components["schemas"]["KbFile"][];
         };
+        /** @enum {string} */
+        ReminderResult: "SENT" | "CONFIRMED_WITHOUT_MAIL";
+        /** @enum {string} */
+        ReminderTrigger: "MANUAL" | "AFTER_7_DAYS" | "AFTER_21_DAYS";
         RemoteAttachment: {
             fileName: string;
             /** Format: int64 */
@@ -74320,6 +74495,8 @@ export interface components {
             /** Format: int64 */
             usedBytes: number;
         };
+        /** @enum {string} */
+        StationState: "NO_MANAGER" | "WAITING_FOR_MANAGER" | "SETTING_UP" | "SET_UP";
         StationStatistics: {
             attendanceByMonth: components["schemas"]["AttendanceMonth"][];
             eventRegistrations: components["schemas"]["EventRegistrations"][];
@@ -75886,6 +76063,7 @@ export type AddPeerRequest = components['schemas']['AddPeerRequest'];
 export type AddressCardConfig = components['schemas']['AddressCardConfig'];
 export type AdminMapsConfig = components['schemas']['AdminMapsConfig'];
 export type AdminOverview = components['schemas']['AdminOverview'];
+export type AdminStationSummary = components['schemas']['AdminStationSummary'];
 export type AdminStationUsage = components['schemas']['AdminStationUsage'];
 export type AdminStatistics = components['schemas']['AdminStatistics'];
 export type AgreementSigner = components['schemas']['AgreementSigner'];
@@ -76700,6 +76878,8 @@ export type ManagedRequestResponse = components['schemas']['ManagedRequestRespon
 export type ManagedStationResponse = components['schemas']['ManagedStationResponse'];
 export type ManagerDetail = components['schemas']['ManagerDetail'];
 export type ManagerGenerationRequest = components['schemas']['ManagerGenerationRequest'];
+export type ManagerReminderAnswer = components['schemas']['ManagerReminderAnswer'];
+export type ManagerReminderSummary = components['schemas']['ManagerReminderSummary'];
 export type MapConfig = components['schemas']['MapConfig'];
 export type MapsGeocodingConfig = components['schemas']['MapsGeocodingConfig'];
 export type MapsTilesConfig = components['schemas']['MapsTilesConfig'];
@@ -77090,6 +77270,8 @@ export type RegistrationTemplateField = components['schemas']['RegistrationTempl
 export type RegistrationUpdateItem = components['schemas']['RegistrationUpdateItem'];
 export type RelatedFilesRequest = components['schemas']['RelatedFilesRequest'];
 export type RelatedFilesResponse = components['schemas']['RelatedFilesResponse'];
+export type ReminderResult = components['schemas']['ReminderResult'];
+export type ReminderTrigger = components['schemas']['ReminderTrigger'];
 export type RemoteAttachment = components['schemas']['RemoteAttachment'];
 export type RemoteBoard = components['schemas']['RemoteBoard'];
 export type RemoteCatalogDetail = components['schemas']['RemoteCatalogDetail'];
@@ -77320,6 +77502,7 @@ export type StationPoolUse = components['schemas']['StationPoolUse'];
 export type StationRegistrationStatus = components['schemas']['StationRegistrationStatus'];
 export type StationRequest = components['schemas']['StationRequest'];
 export type StationRoomResponse = components['schemas']['StationRoomResponse'];
+export type StationState = components['schemas']['StationState'];
 export type StationStatistics = components['schemas']['StationStatistics'];
 export type StationUsageResponse = components['schemas']['StationUsageResponse'];
 export type StationUserType = components['schemas']['StationUserType'];
@@ -78610,6 +78793,17 @@ export const RegistrationStatus = {
     WITHDRAWN: "WITHDRAWN",
 } as const;
 
+export const ReminderResult = {
+    CONFIRMED_WITHOUT_MAIL: "CONFIRMED_WITHOUT_MAIL",
+    SENT: "SENT",
+} as const;
+
+export const ReminderTrigger = {
+    AFTER_21_DAYS: "AFTER_21_DAYS",
+    AFTER_7_DAYS: "AFTER_7_DAYS",
+    MANUAL: "MANUAL",
+} as const;
+
 export const RequestState = {
     COMPLETE: "COMPLETE",
     OPEN: "OPEN",
@@ -78924,6 +79118,13 @@ export const StationPermission = {
     WAITLIST_EDIT: "WAITLIST_EDIT",
     WAITLIST_MANAGER: "WAITLIST_MANAGER",
     WAITLIST_READ: "WAITLIST_READ",
+} as const;
+
+export const StationState = {
+    NO_MANAGER: "NO_MANAGER",
+    SETTING_UP: "SETTING_UP",
+    SET_UP: "SET_UP",
+    WAITING_FOR_MANAGER: "WAITING_FOR_MANAGER",
 } as const;
 
 export const StationUserType = {

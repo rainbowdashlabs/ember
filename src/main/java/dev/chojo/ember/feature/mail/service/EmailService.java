@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Central email service handling both global system emails and per-station notification emails.
@@ -398,6 +399,29 @@ public class EmailService implements TaskSource {
         var vars = baseVars(name, null);
         vars.put("url", url);
         enqueueGlobal(email, subject("set-password", locale, null), loadTemplate("set-password.html", locale, vars));
+    }
+
+    /**
+     * Reminds a station's manager who can already sign in that the station still waits to be set up, through
+     * the instance-wide relay, with a link that opens the setup of that station.
+     *
+     * @param email       where the mail goes
+     * @param name        the person it is about, for the greeting
+     * @param stationId   the station, for its logo in the header
+     * @param stationName the station that waits
+     * @param stationUid  the station, for the link
+     * @param locale      the language to write in
+     */
+    public void sendStationSetupReminder(
+            String email, String name, int stationId, String stationName, UUID stationUid, String locale) {
+        var vars = baseVars(name, null);
+        putStationLogo(vars, stationId);
+        vars.put("stationName", stationName);
+        vars.put("url", api.baseUrl() + "/station/setup?station=" + stationUid);
+        enqueueGlobal(
+                email,
+                subject("station-setup-reminder", locale, stationPlaceholders(stationName)),
+                loadTemplate("station-setup-reminder.html", locale, vars));
     }
 
     /**
