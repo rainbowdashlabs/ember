@@ -1,5 +1,18 @@
 # Änderungsprotokoll
 
+## v26.24.1
+
+Knöpfe, die nur zu einer Ablehnung führen konnten, sind verschwunden oder erklären sich. Selbsteintragung, abhängige Ja/Nein-Fragen und Mitgliedstypen von Gruppen zeigen jetzt vorab, was möglich ist.
+
+### Verbesserungen
+
+- **Mitgliedstypen einer Gruppe warnen schon beim Auswählen.** Wer nicht mehr zu den gewählten Typen passt, steht sofort im Formular, und der Knopf zum Speichern nimmt diese Mitglieder aus der Gruppe.
+
+### Fehlerbehebungen
+
+- **Selbsteintragung auch Mitgliedern außerhalb der Auswahl angeboten.** Der Knopf „Eintragen" erschien bei Mitgliederfragen, die auf eine Gruppe, einen Mitgliedstyp oder einen Tag beschränkt sind, auch für Mitglieder außerhalb davon, und der Klick wurde dann abgelehnt. Er erscheint jetzt nur noch für Mitglieder, die sich eintragen dürfen, und nach dem Anmeldeschluss steht dort, dass die Eintragung geschlossen ist.
+- **Ja/Nein-Fragen mit abhängigen Fragen ließen sich nicht löschen.** Das Löschen einer solchen Frage oder ein anderer Typ für sie wurde abgelehnt, mit dem Rat, die Seite neu zu laden. Der Dialog nennt jetzt die abhängigen Fragen und kann ihre Bedingung im selben Schritt entfernen, ihre Antworten bleiben erhalten.
+
 ## v26.24.0
 
 Die Anwesenheit kann Zeit vor und nach einem Termin gutschreiben, und der Bericht zählt diese Minuten zu den Stunden jeder Person. Die Ausrüstung eines Mitglieds wird auf seiner eigenen Seite aus- und zurückgegeben, und die Seite öffnet mit den Tabs, die jemand sehen darf. Tabs auf den Hauptseiten lassen sich über die Adresse verlinken. Fehlende Ausstattung steht bei der vorhandenen und wird über ein Fenster mit Suche ausgegeben. Bewegungen heißen überall Vorgänge. Auch bei Terminen mit Anmeldung gibt es „Abmelden“, und danach enden die Erinnerungen an die Anmeldefrist. Wer Termine verwaltet, erfährt von jeder neuen Unterhaltung unter einem Termin. Unterschriften lassen sich vor Ort sammeln, von Probemitgliedern und Mitgliedern ohne eigenes Konto, bestätigt mit dem Konto der Person, die sammelt. Vorlagen sagen, für wen sie gedacht sind, überall, wo ein Dokument aus ihnen entsteht. In jedem Ablauf geht es um ein Mitglied, er wird von Gruppen, Mitgliedstypen oder Tags betreut und kann das Mitglied und seine Erziehungsberechtigten ein Dokument unterschreiben lassen.

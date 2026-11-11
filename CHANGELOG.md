@@ -1,5 +1,18 @@
 # Changelog
 
+## v26.24.1
+
+Buttons that could only end in a refusal are gone or explain themselves. Self-registration, dependent yes/no questions and group member types now say up front what is possible.
+
+### Improvements
+
+- **Group member types warn while they are chosen.** Narrowing a group to member types lists the members who no longer fit right away, and the save button takes them out of the group.
+
+### Fixes
+
+- **Self-registration offered to members it was not meant for.** The sign-up button showed on member questions limited to a group, member type or tag, also for members outside it, and the click was then refused. It now appears only for members who may sign up, and an appointment past its registration deadline says so.
+- **Deleting a yes/no question others depend on failed.** Deleting such a question, or giving it another type, was refused with advice to reload the page. The dialog now names the dependent questions and can remove their condition in the same step, keeping their answers.
+
 ## v26.24.0
 
 Attendance can credit time spent before and after an appointment, and the report counts those minutes in each person's hours. A member's equipment is handed out and taken back on the member's own page, which opens with the tabs each reader may see. Tabs on the main pages can be linked by their address. Missing equipment stands among the pieces a member holds and is handed out from a searchable window. The German interface uses one name for equipment movements throughout. Appointments that need a sign-up can be declined, which ends the reminders that registration is closing. Appointment managers are notified about every new conversation on an appointment. Signatures can be collected in person from trial users and members without a login, confirmed by the account of whoever collects them. Templates say for whom they are meant, wherever a document is made from them. Procedures are about one member, run by groups, member types or tags, and can ask that member and their guardians to sign a document as one of their steps.

@@ -1723,9 +1723,11 @@ volumes:
             shownIfScope: 'Das gilt nur, wenn jemand beide Felder gestellt bekommt. Wer nur das abhängige Feld '
                 + 'bekommt, sieht es immer, mit seiner üblichen Pflicht-Einstellung.',
             shownIfRules: 'Ein Feld kann nur von einer Ja/Nein-Frage desselben Profils abhängen, und eine Frage, '
-                + 'von der andere abhängen, kann selbst nicht abhängen. Solange Felder von einer Ja/Nein-Frage '
-                + 'abhängen, lässt sie sich weder löschen noch in einen anderen Typ ändern. Die Vorlagen JuLeiCa '
-                + 'und Leistungsspange legen die Verbindung gleich mit an.',
+                + 'von der andere abhängen, kann selbst nicht abhängen. Löschst du eine Ja/Nein-Frage, von der '
+                + 'andere Felder abhängen, nennt Ember diese Felder, und „Bedingungen entfernen und löschen" nimmt '
+                + 'ihre Bedingung mit heraus. Bei einem anderen Typ geschieht das beim Speichern. Danach '
+                + 'erscheinen sie immer, ihre Antworten bleiben erhalten. Die '
+                + 'Vorlagen JuLeiCa und Leistungsspange legen die Verbindung gleich mit an.',
             title: 'Mitglieder-Konfiguration',
             subtitle: 'Profilfelder für Mitglieder einrichten.',
             whatIs: 'Was sind Profilfelder?',
@@ -1897,8 +1899,9 @@ volumes:
                 + 'Beispiel nur Team und Manager. Ist nichts ausgewählt, darf jeder Mitgliedstyp in die Gruppe.',
             bindingExampleTitle: 'Gruppenset und Mitgliedstypen im Gruppenformular',
             conflictTitle: 'Wenn Mitglieder nicht passen',
-            conflictText: 'Passen Mitglieder nicht zu den gewählten Mitgliedstypen, zeigt Ember sie dir und kann '
-                + 'sie aus der Gruppe nehmen. Sind Mitglieder in mehreren Gruppen eines neuen Sets, zeigt Ember sie '
+            conflictText: 'Passen Mitglieder nicht zu den gewählten Mitgliedstypen, nennt das Formular sie schon '
+                + 'beim Auswählen, und der Knopf „Speichern und aus der Gruppe nehmen" nimmt sie beim Speichern '
+                + 'aus der Gruppe. Sind Mitglieder in mehreren Gruppen eines neuen Sets, zeigt Ember sie '
                 + 'mit einem Link zu ihrem Profil. Dort entscheidest du, in welcher Gruppe sie bleiben.',
             tip: 'Gruppen werden auch für Anwesenheitsvorlagen, Sichtbarkeitseinschränkungen bei Neuigkeiten und Terminen sowie für gruppenspezifische Profilfelder verwendet.',
         },
@@ -5585,7 +5588,7 @@ volumes:
             fieldsTitle: 'Eigene Felder',
             fieldsText: 'Eigene Felder kannst du für viele Datenarten anlegen - Text, Zahl, Datum, Ort, Auswahl, sowie Mitglieder. Mitgliederfelder können auf eine Gruppe, einen Benutzertyp oder ein Tag eingeschränkt werden.',
             selfRegistrationTitle: 'Selbsteintragung für Mitgliederfelder',
-            selfRegistrationText: 'Wenn du „Selbsteintragung erlauben" für ein Mitgliederfeld aktivierst, können sich passende Mitglieder selbst eintragen - auch ohne die Berechtigung zum Bearbeiten des Termins. Bei Einzelfeldern bleibt der Platz beim ersten Mitglied, das ihn nimmt; nur diese Person kann den Platz wieder freigeben. Listenfelder erlauben mehrere Eintragungen.',
+            selfRegistrationText: 'Wenn du „Selbsteintragung erlauben" für ein Mitgliederfeld aktivierst, können sich passende Mitglieder selbst eintragen - auch ohne die Berechtigung zum Bearbeiten des Termins. Ist das Feld auf eine Gruppe, einen Mitgliedstyp oder einen Tag beschränkt, sehen nur Mitglieder darin den Knopf „Eintragen". Nach dem Anmeldeschluss steht dort „Eintragung geschlossen", wer schon eingetragen ist, kann sich aber weiter austragen. Bei Einzelfeldern bleibt der Platz beim ersten Mitglied, das ihn nimmt; nur diese Person kann den Platz wieder freigeben. Listenfelder erlauben mehrere Eintragungen.',
             loadTemplateTitle: 'Vorlage laden',
             loadTemplateText: 'Über den Button „Vorlage laden" oben rechts werden alle gespeicherten Einstellungen einer Vorlage in den Termin übernommen.',
             tip: 'Wiederkehrende Termine werden automatisch während Pausen/Ferien ausgeblendet.',
