@@ -8,14 +8,19 @@ package dev.chojo.ember.feature.station.repository;
 import de.chojo.sadu.queries.api.call.Call;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
+import dev.chojo.ember.feature.station.entity.ReminderTrigger;
 import dev.chojo.ember.feature.station.entity.StationOverview;
+import dev.chojo.ember.feature.station.entity.StationState;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
  * Reads the stations of the instance the way its administration sees them, every station in one query.
@@ -121,6 +126,37 @@ public class StationOverviewRepository {
                 .single(base().bind("id", stationId))
                 .map(StationOverview.map())
                 .first();
+    }
+
+    /**
+     * The stations an automatic reminder is due for: running here, waiting for a manager they have, waiting
+     * since {@code waitedAt} or earlier and, where {@code notBefore} is given, since after it, and not yet
+     * reminded by this trigger in their current waiting period.
+     *
+     * @param trigger   the reminder to look for
+     * @param waitedAt  the latest start of waiting that makes the reminder due
+     * @param notBefore the start of waiting from which on the reminder is too late, or {@code null} for no bound
+     * @return the stations the reminder is due for
+     */
+    public List<StationOverview> dueForReminder(
+            ReminderTrigger trigger, Instant waitedAt, @Nullable Instant notBefore) {
+        return query(OVERVIEW, """
+                        o.state IN (:waiting, :setting_up)
+                        AND NOT o.moved_away
+                        AND o.waiting_since <= :waited_at
+                        AND (CAST(:not_before AS TIMESTAMPTZ) IS NULL OR o.waiting_since > :not_before)
+                        AND NOT EXISTS (
+                            SELECT 1 FROM station_manager_reminder r
+                            WHERE r.station_id = o.id
+                              AND r.trigger = :trigger
+                              AND r.waiting_since = o.waiting_since)""")
+                .single(base().bind("waiting", StationState.WAITING_FOR_MANAGER)
+                        .bind("setting_up", StationState.SETTING_UP)
+                        .bind("waited_at", waitedAt, INSTANT_TIMESTAMP)
+                        .bind("not_before", notBefore, INSTANT_TIMESTAMP)
+                        .bind("trigger", trigger))
+                .map(StationOverview.map())
+                .all();
     }
 
     private static Call base() {

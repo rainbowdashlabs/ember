@@ -100,4 +100,67 @@ public class ManagerReminderRepository {
                 .first()
                 .orElse(false);
     }
+
+    /**
+     * Whether any reminder, by hand or automatic, went out to the station's manager at or after the given
+     * moment. A reminder written down as skipped did not go out and does not count.
+     *
+     * @param stationId the station
+     * @param since     the moment to look back to
+     * @return {@code true} when one went out since then
+     */
+    public boolean sentSince(int stationId, Instant since) {
+        return query("""
+                SELECT EXISTS (
+                    SELECT 1 FROM station_manager_reminder
+                    WHERE station_id = :station_id
+                      AND sent_at >= :since
+                ) AS sent;""")
+                .single(call().bind("station_id", stationId).bind("since", since, INSTANT_TIMESTAMP))
+                .map(row -> row.getBoolean("sent"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
+     * Turns the automatic reminder of the station's current wait into one that did not go out, for a
+     * reminder whose mail turned out not to be needed after it was written down.
+     *
+     * @param stationId the station
+     * @param trigger   the automatic reminder
+     * @return {@code true} when a reminder was changed
+     */
+    public boolean markNotSent(int stationId, ReminderTrigger trigger) {
+        return query("""
+                UPDATE station_manager_reminder r
+                SET sent_at = NULL
+                FROM station s
+                WHERE s.id = r.station_id
+                  AND r.station_id = :station_id
+                  AND r.trigger = :trigger
+                  AND r.waiting_since = s.waiting_since;""")
+                .single(call().bind("station_id", stationId).bind("trigger", trigger))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Whether the newest mail queued for an address came back refused: a hard bounce, a block or a spam
+     * report from the provider. Writing to it again would only add another mail that does not arrive.
+     *
+     * @param address the address, compared without regard to case
+     * @return {@code true} when the newest mail to it was refused
+     */
+    public boolean newestMailRefused(String address) {
+        return query("""
+                SELECT delivery_status IN ('HARD_BOUNCE', 'BLOCKED', 'SPAM') AS refused
+                FROM email_queue
+                WHERE lower(recipient) = lower(:address)
+                ORDER BY created_at DESC, id DESC
+                LIMIT 1;""")
+                .single(call().bind("address", address))
+                .map(row -> row.getBoolean("refused"))
+                .first()
+                .orElse(false);
+    }
 }

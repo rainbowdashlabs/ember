@@ -27,6 +27,9 @@ CREATE INDEX idx_email_queue_unacknowledged_failures
     ON ember_schema.email_queue (station_id, created_at)
     WHERE acknowledged_at IS NULL AND (status = 'FAILED' OR delivery_status IN ('HARD_BOUNCE', 'BLOCKED', 'SPAM'));
 
+CREATE INDEX idx_email_queue_recipient_lower
+    ON ember_schema.email_queue (lower(recipient), created_at DESC);
+
 COMMENT ON COLUMN ember_schema.email_queue.failure_reason IS
     'Why the queue gave up on the email: NO_PROVIDER, NO_PROVIDER_LEFT, PROVIDER_REFUSED, PROVIDER_BROKEN or RETRIES_EXHAUSTED. NULL for an email the queue did not give up on, and for failures recorded before the reason was kept.';
 COMMENT ON COLUMN ember_schema.email_queue.acknowledged_at IS

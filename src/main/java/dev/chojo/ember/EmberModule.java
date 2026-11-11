@@ -357,6 +357,7 @@ import dev.chojo.ember.feature.station.route.SetupRoutes;
 import dev.chojo.ember.feature.station.route.StationApplicationRoutes;
 import dev.chojo.ember.feature.station.route.StationManageRoutes;
 import dev.chojo.ember.feature.station.route.StationRoutes;
+import dev.chojo.ember.feature.station.service.ManagerReminderTask;
 import dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog;
 import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
@@ -882,6 +883,7 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(SigningStateSweeper.class);
         taskSources.addBinding().to(SealedVersionTimestamps.class);
         taskSources.addBinding().to(SignatureReminders.class);
+        taskSources.addBinding().to(ManagerReminderTask.class);
         taskSources.addBinding().to(ProcedureDueReminders.class);
         taskSources.addBinding().to(PartnerAuthorities.class);
         taskSources.addBinding().to(PartnerAgreements.class);

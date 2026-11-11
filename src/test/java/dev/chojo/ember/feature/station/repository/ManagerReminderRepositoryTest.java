@@ -105,6 +105,22 @@ class ManagerReminderRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    void anyReminderThatWentOutCountsAsRecentAndOneMarkedNotSentDoesNot() {
+        Station station = stationRepo.create("Irgendwann erinnert");
+        stationRepo.startWaiting(station.id());
+        Account manager = account("any");
+        Instant since = Instant.now().minus(Duration.ofHours(24));
+
+        reminders.record(
+                station.id(), manager.id(), ReminderKind.SETUP_LINK, ReminderTrigger.AFTER_7_DAYS, Instant.now(), null);
+        assertTrue(reminders.sentSince(station.id(), since));
+
+        assertTrue(reminders.markNotSent(station.id(), ReminderTrigger.AFTER_7_DAYS));
+        assertFalse(reminders.sentSince(station.id(), since));
+        assertFalse(reminders.markNotSent(station.id(), ReminderTrigger.AFTER_21_DAYS), "nothing written for it");
+    }
+
+    @Test
     void namingAManagerStartsTheWaitOnlyWhileTheStationIsNotSetUp() {
         Station waiting = stationRepo.create("Wartet");
         Station done = stationRepo.create("Fertig");
@@ -144,6 +160,31 @@ class ManagerReminderRepositoryTest extends RepositoryTestBase {
         assertFalse(stationRepo.startWaitingAfterImport(setUp.id()));
         assertTrue(waits(withManager));
         assertFalse(waits(withoutManager));
+    }
+
+    @Test
+    void onlyARefusalOnTheNewestMailToAnAddressCounts() {
+        String address = "Bounce-" + UUID.randomUUID() + "@test.example";
+        assertFalse(reminders.newestMailRefused(address), "nothing was ever sent there");
+
+        emailQueueRepo.enqueue(address, "Erste", "Inhalt");
+        delivered(address, "Erste", "HARD_BOUNCE");
+        assertTrue(reminders.newestMailRefused(address.toLowerCase()), "compared without regard to case");
+
+        emailQueueRepo.enqueue(address, "Zweite", "Inhalt");
+        query(
+                        "UPDATE email_queue SET created_at = created_at + INTERVAL '1 minute' WHERE subject = 'Zweite' AND recipient = :to;")
+                .single(call().bind("to", address))
+                .update();
+        delivered(address, "Zweite", "DELIVERED");
+        assertFalse(reminders.newestMailRefused(address), "a later mail arrived");
+    }
+
+    private static void delivered(String address, String subject, String status) {
+        query(
+                        "UPDATE email_queue SET status = 'SENT', delivery_status = :status WHERE recipient = :to AND subject = :subject;")
+                .single(call().bind("status", status).bind("to", address).bind("subject", subject))
+                .update();
     }
 
     private boolean record(Station station, Account manager, ReminderTrigger trigger) {

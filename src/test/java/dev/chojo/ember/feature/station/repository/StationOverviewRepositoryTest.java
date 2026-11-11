@@ -242,6 +242,40 @@ class StationOverviewRepositoryTest extends RepositoryTestBase {
         assertTrue(overviews.find(moved.id()).orElseThrow().movedAway());
     }
 
+    @Test
+    void anAutomaticReminderIsDueForAWaitingStationWithinItsWindowUntilItIsWritten() {
+        Station waiting = stationRepo.create("Wartet acht Tage");
+        Account manager = manager(waiting, "due", true, true);
+        Station nobody = stationRepo.create("Wartet ohne Verwaltung");
+        query("UPDATE station SET waiting_since = now() - INTERVAL '8 days' WHERE id IN (:a, :b);")
+                .single(call().bind("a", waiting.id()).bind("b", nobody.id()))
+                .update();
+        Instant now = Instant.now();
+
+        assertTrue(isDue(
+                ReminderTrigger.AFTER_7_DAYS, now.minus(7, ChronoUnit.DAYS), now.minus(21, ChronoUnit.DAYS), waiting));
+        assertFalse(
+                isDue(ReminderTrigger.AFTER_7_DAYS, now.minus(7, ChronoUnit.DAYS), null, nobody), "nobody to remind");
+        assertFalse(isDue(ReminderTrigger.AFTER_21_DAYS, now.minus(21, ChronoUnit.DAYS), null, waiting), "too early");
+        assertFalse(
+                isDue(
+                        ReminderTrigger.AFTER_7_DAYS,
+                        now.minus(7, ChronoUnit.DAYS),
+                        now.minus(1, ChronoUnit.DAYS),
+                        waiting),
+                "waited past the window");
+
+        reminders.record(
+                waiting.id(), manager.id(), ReminderKind.SETUP_REMINDER, ReminderTrigger.AFTER_7_DAYS, now, null);
+        assertFalse(
+                isDue(ReminderTrigger.AFTER_7_DAYS, now.minus(7, ChronoUnit.DAYS), null, waiting), "already written");
+    }
+
+    private boolean isDue(ReminderTrigger trigger, Instant waitedAt, Instant notBefore, Station station) {
+        return overviews.dueForReminder(trigger, waitedAt, notBefore).stream()
+                .anyMatch(due -> due.id() == station.id());
+    }
+
     private Account manager(Station station, String name, boolean confirmed, boolean chosePassword) {
         Account account = accountRepo.create(unique(name), "Mara", "Nager", confirmed);
         if (chosePassword) accountRepo.createCredential(account.id(), "hash");

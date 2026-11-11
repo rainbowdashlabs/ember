@@ -52,6 +52,18 @@ public class ManagerReminderService {
     /** How long after a reminder by hand a second one by hand is refused, so a double click sends one mail. */
     static final Duration HAND_GAP = Duration.ofMinutes(10);
 
+    /** How long after any reminder an automatic one is skipped, so the manager is not written twice in a day. */
+    static final Duration AUTOMATIC_GAP = Duration.ofHours(24);
+
+    /** How long a station waits before the first automatic reminder. */
+    static final Duration AFTER_7 = Duration.ofDays(7);
+
+    /** How long a station waits before the second and last automatic reminder. */
+    static final Duration AFTER_21 = Duration.ofDays(21);
+
+    /** How long after the wait began the last automatic reminder is given up when it could not go out. */
+    static final Duration GIVE_UP_AFTER = Duration.ofDays(35);
+
     private final StationOverviewRepository overviews;
     private final ManagerReminderRepository reminders;
     private final StationRepository stations;
@@ -120,6 +132,22 @@ public class ManagerReminderService {
     }
 
     /**
+     * What an automatic reminder came to.
+     */
+    public enum Outcome {
+        /** The reminder went out. */
+        SENT,
+        /** The reminder was written down as skipped, because another one went out shortly before. */
+        SKIPPED,
+        /** Nothing was sent: the manager cannot be written to, or nothing could be queued for them. */
+        PASSED_OVER,
+        /** Nothing was written: the station no longer waits in the period the reminder was due for. */
+        NOT_DUE,
+        /** Nothing was written: the reminder was already written for this waiting period. */
+        ALREADY_WRITTEN
+    }
+
+    /**
      * Every station somebody runs, as the instance administration sees them.
      *
      * @return the stations
@@ -183,6 +211,100 @@ public class ManagerReminderService {
         });
         StationOverview after = overviews.find(stationId).orElseThrow(StationRefusal.STATION_NOT_HERE_BY_NAME::raise);
         return new ReminderAnswer(after, result);
+    }
+
+    /**
+     * The stations an automatic reminder is due for now. A station that waited past the later reminder
+     * before the earlier one went out is due only for the later one, so a long pause of the task never
+     * sends both at once. The later reminder is given up {@link #GIVE_UP_AFTER} after the wait began:
+     * a manager who could not be written to for two weeks past it is better asked in person.
+     *
+     * @param trigger the automatic reminder
+     * @return the stations it is due for
+     */
+    public List<StationOverview> dueFor(ReminderTrigger trigger) {
+        Instant now = clock.instant();
+        return switch (trigger) {
+            case AFTER_7_DAYS -> overviews.dueForReminder(trigger, now.minus(AFTER_7), now.minus(AFTER_21));
+            case AFTER_21_DAYS -> overviews.dueForReminder(trigger, now.minus(AFTER_21), now.minus(GIVE_UP_AFTER));
+            case MANUAL -> List.of();
+        };
+    }
+
+    /**
+     * Sends one automatic reminder, unless the station has moved on since it was found due.
+     *
+     * <p>The station is read afresh under a lock right before sending. One that moved away, is set up
+     * meanwhile, whose manager finished their part, or whose waiting period started anew is not reminded.
+     * A manager with a stand-in address, or whose address refused the newest mail sent to it, is passed
+     * over without a record and looked at again on the next run. Where any reminder went out within
+     * {@link #AUTOMATIC_GAP}, the automatic one is written down as skipped and never tried again. The record
+     * is written before the mail is queued, in the same transaction: only the run whose record was written
+     * sends, so two runs never send the same reminder twice. Where nothing could be queued after all, the
+     * record goes with the rolled back transaction and the reminder is passed over; where the instance
+     * counted the address as confirmed instead, the record stays as not sent.
+     *
+     * <p>Runs outside any transaction of its caller: its own transaction is what undoes the record when
+     * nothing could be queued, and joining an outer one would let the record stay.
+     *
+     * @param stationId    the station found due
+     * @param trigger      the reminder it was found due for
+     * @param waitingSince the waiting period it was found due in
+     * @return what came of it
+     */
+    public Outcome remindAutomatically(int stationId, ReminderTrigger trigger, Instant waitingSince) {
+        try {
+            return Transactions.call(() -> remindAutomaticallyLocked(stationId, trigger, waitingSince));
+        } catch (NothingQueued e) {
+            log.debug(
+                    "Nothing could be queued for the manager of station {}, so its {} reminder waits",
+                    stationId,
+                    trigger);
+            return Outcome.PASSED_OVER;
+        }
+    }
+
+    private Outcome remindAutomaticallyLocked(int stationId, ReminderTrigger trigger, Instant waitingSince) {
+        reminders.lockStation(stationId);
+        StationOverview station = overviews.find(stationId).orElse(null);
+        Account manager = station == null ? null : managerOf(station).orElse(null);
+        if (station == null
+                || manager == null
+                || station.movedAway()
+                || !station.state().waitsForManager()
+                || !waitingSince.equals(station.waitingSince())) {
+            log.info("Station {} no longer waits as it did, so its {} reminder is not sent", stationId, trigger);
+            return Outcome.NOT_DUE;
+        }
+        if (!manager.hasRealEmail() || reminders.newestMailRefused(manager.email())) {
+            log.debug("The manager of station {} cannot be written to, so its {} reminder waits", stationId, trigger);
+            return Outcome.PASSED_OVER;
+        }
+        Instant now = clock.instant();
+        boolean remindedJustNow = reminders.sentSince(stationId, now.minus(AUTOMATIC_GAP));
+        ReminderKind kind = kindFor(station.state());
+        if (!reminders.record(stationId, manager.id(), kind, trigger, remindedJustNow ? null : now, null)) {
+            return Outcome.ALREADY_WRITTEN;
+        }
+        if (remindedJustNow) {
+            log.info("Station {} was reminded shortly before, so its {} reminder is skipped", stationId, trigger);
+            return Outcome.SKIPPED;
+        }
+        Delivery delivery = send(station, manager);
+        if (delivery == Delivery.CONFIRMED_WITHOUT_MAIL) {
+            reminders.markNotSent(stationId, trigger);
+            return Outcome.PASSED_OVER;
+        }
+        if (delivery != Delivery.SENT) throw new NothingQueued();
+        log.info("Reminded the manager of station {} automatically ({}, {})", stationId, trigger, kind);
+        return Outcome.SENT;
+    }
+
+    /** Rolls back an automatic reminder whose record was written but whose mail reached nobody. */
+    private static final class NothingQueued extends RuntimeException {
+        private NothingQueued() {
+            super(null, null, false, false);
+        }
     }
 
     private static void requireWaiting(StationOverview station) {
