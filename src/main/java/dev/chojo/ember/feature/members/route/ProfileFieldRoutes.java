@@ -304,43 +304,46 @@ public class ProfileFieldRoutes implements Routes {
         requireOwnedField(ctx, id);
         int stationId = StationSession.from(ctx).stationId();
         profileFieldService.requireSetAllowed(stationId, request.fieldSetId());
-        if (unlinksDependents(ctx) && request.fieldType() != FieldType.BOOLEAN) {
-            var changed = profileFieldService.changeUnlinkingDependents(
-                    stationId,
-                    id,
-                    new ProfileFieldService.FieldChange(
-                            request.name(),
-                            request.fieldType(),
-                            configOf(request),
-                            request.required() != null && request.required(),
-                            request.readonly() != null && request.readonly(),
-                            request.width(),
-                            request.keepOnArchive() != null && request.keepOnArchive(),
-                            request.shownIfFieldId(),
-                            request.fieldSetId()));
+        var change = changeOf(request);
+        if (unlinksDependents(ctx) && change.fieldType() != FieldType.BOOLEAN) {
+            var changed = profileFieldService.changeUnlinkingDependents(stationId, id, change);
             ctx.json(profileFieldService.findById(id).orElse(changed));
             return;
         }
-        profileFieldService.requireDependencyAllowed(stationId, id, request.shownIfFieldId());
+        profileFieldService.requireDependencyAllowed(stationId, id, change.shownIfFieldId());
         profileFieldService
                 .update(
                         id,
-                        request.name(),
-                        request.fieldType(),
-                        configOf(request),
-                        request.required() != null && request.required(),
-                        request.readonly() != null && request.readonly(),
-                        request.width(),
-                        request.keepOnArchive() != null && request.keepOnArchive())
+                        change.name(),
+                        change.fieldType(),
+                        change.config(),
+                        change.required(),
+                        change.readonly(),
+                        change.width(),
+                        change.keepOnArchive())
                 .ifPresentOrElse(
                         updated -> {
-                            profileFieldService.dependOn(id, request.shownIfFieldId());
-                            profileFieldService.joinSet(id, request.fieldSetId());
+                            profileFieldService.dependOn(id, change.shownIfFieldId());
+                            profileFieldService.joinSet(id, change.fieldSetId());
                             ctx.json(profileFieldService.findById(id).orElse(updated));
                         },
                         () -> {
                             throw MemberRefusal.PROFILE_FIELD_NOT_HERE_ON_CHANGE.raise();
                         });
+    }
+
+    /** Everything a change of a question asks for, with the flags a request may leave out read as off. */
+    private static ProfileFieldService.FieldChange changeOf(ProfileFieldRequest request) {
+        return new ProfileFieldService.FieldChange(
+                request.name(),
+                request.fieldType(),
+                configOf(request),
+                request.required() != null && request.required(),
+                request.readonly() != null && request.readonly(),
+                request.width(),
+                request.keepOnArchive() != null && request.keepOnArchive(),
+                request.shownIfFieldId(),
+                request.fieldSetId());
     }
 
     /**
