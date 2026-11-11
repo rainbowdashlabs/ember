@@ -11,15 +11,23 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import {StationUserTypeLabels} from '@/api/types'
 import type {MemberGroupSet, StationUserType} from '@/api/generated/schema'
+import type {GroupHolder} from './useGroupRulesForm'
+import BulletList from '@/components/typography/BulletList.vue'
+import Alert from '@/components/feedback/Alert.vue'
+import {memberDisplayName} from '../listview/useMemberData'
 import {STATION_USER_TYPES} from '@/util/stationUserTypes'
 
 /**
  * The rules of a group in its form: the set it belongs to, and the member types it takes. No type
  * ticked means every type, which is what a group has always been.
  */
-defineProps<{
+withDefaults(defineProps<{
   sets: MemberGroupSet[]
-}>()
+  /** The members of the group of none of the ticked types, who saving would take out. */
+  misfits?: GroupHolder[]
+}>(), {
+  misfits: () => [],
+})
 
 const setId = defineModel<number | null>('setId', {required: true})
 const userTypes = defineModel<StationUserType[]>('userTypes', {required: true})
@@ -56,5 +64,15 @@ function pickSet(value: unknown) {
       </SelectionToggleButton>
     </div>
     <MutedText tag="p">{{ t('memberGroups.rules.userTypesHint') }}</MutedText>
+    <Alert v-if="misfits.length > 0" variant="info" data-testid="group-misfits">
+      <p>{{ t('memberGroups.rules.misfits', {count: misfits.length}) }}</p>
+      <BulletList>
+        <li v-for="member in misfits" :key="member.id">
+          <NuxtLink :to="{name: 'members-edit', params: {id: member.id}}" class="text-primary hover:underline">
+            {{ memberDisplayName(member) }}
+          </NuxtLink>
+        </li>
+      </BulletList>
+    </Alert>
   </div>
 </template>

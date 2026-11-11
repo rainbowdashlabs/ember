@@ -4045,6 +4045,9 @@ export default {
             setHint: 'Ein Mitglied ist in höchstens einer dieser Gruppen.',
             userTypes: 'Nur für diese Mitgliedstypen',
             userTypesHint: 'Keine Auswahl heißt: Die Gruppe nimmt jeden Mitgliedstyp auf.',
+            misfits: 'Mitglieder ohne einen der gewählten Typen ({count}). Beim Speichern werden sie aus der '
+                + 'Gruppe genommen:',
+            removeMisfitsAndSave: 'Speichern und aus der Gruppe nehmen ({count})',
         },
         conflicts: {
             bindingTitle: 'Mitglieder passen nicht',
