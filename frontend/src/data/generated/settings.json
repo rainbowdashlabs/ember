@@ -547,6 +547,10 @@
   "env" : "METRICS_FEEDSTATSRETENTIONDAYS",
   "default" : "90"
 }, {
+  "configKey" : "metrics.problemRetentionDays",
+  "env" : "METRICS_PROBLEMRETENTIONDAYS",
+  "default" : "30"
+}, {
   "configKey" : "metrics.trafficEnabled",
   "env" : "METRICS_TRAFFICENABLED",
   "default" : "true"
