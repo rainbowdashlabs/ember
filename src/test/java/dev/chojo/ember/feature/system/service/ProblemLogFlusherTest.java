@@ -13,7 +13,9 @@ import dev.chojo.ember.feature.system.entity.ProblemRecord;
 import dev.chojo.ember.feature.system.entity.ProblemState;
 import dev.chojo.ember.feature.system.entity.StoredProblem;
 import dev.chojo.ember.feature.system.repository.ProblemLogRepository;
+import dev.chojo.ember.util.ProblemKey;
 import org.junit.jupiter.api.Test;
+import org.slf4j.event.KeyValuePair;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -439,5 +441,26 @@ class ProblemLogFlusherTest {
 
         assertEquals(1, repository.written.size());
         assertTrue(told.isEmpty());
+    }
+
+    @Test
+    void anEventThatNamesItsProblemIsCountedByThatName() {
+        var appender = new ProblemLogAppender(false);
+        var repository = new Recording();
+        var flusher = new ProblemLogFlusher(repository, () -> appender);
+        var first = warning("404 on GET /api/v1/events/7: No such event");
+        first.addKeyValuePair(new KeyValuePair(ProblemKey.NAME, "404 GET /api/v1/events/{id}"));
+        var second = warning("404 on GET /api/v1/events/9: No such event");
+        second.addKeyValuePair(new KeyValuePair(ProblemKey.NAME, "404 GET /api/v1/events/{id}"));
+
+        appender.append(first);
+        appender.append(second);
+
+        assertEquals(1, flusher.flush());
+        var recorded = repository.written.getFirst();
+        assertEquals(2, recorded.count());
+        assertEquals(
+                List.of("404 on GET /api/v1/events/7: No such event", "404 on GET /api/v1/events/9: No such event"),
+                recorded.messages());
     }
 }

@@ -12,6 +12,7 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.storage.migration.MigrationException;
 import dev.chojo.ember.util.DevErrorWriter;
+import dev.chojo.ember.util.ProblemKey;
 import io.javalin.config.RoutesConfig;
 import io.javalin.http.Context;
 import io.javalin.http.HttpResponseException;
@@ -189,23 +190,27 @@ public class ExceptionMapping {
     }
 
     /**
-     * Records that nothing was found at an address, quietly where the address is one scanners try
-     * everywhere.
+     * Records that nothing was found at an address, but only where a route answered it.
      *
-     * <p>A 404 is worth an operator's attention when a client asks for something that ought to be
-     * there, and worth none when it is the hundredth guess at a credentials file. Since the address is
-     * part of what the fault log writes down, every spelling of a probe arrived as a fault of its own
-     * and the ones worth reading were lost among them.
+     * <p>A 404 behind a real route says something that ought to be there is not, such as an appointment
+     * that was deleted while somebody still had it open, and that is worth an operator's attention. A 404
+     * for an address no route claims is a guess, almost always a scanner trying file after file, and
+     * worth none: it is logged at debug level and never reaches the problem log. The route's template
+     * names the problem, so a hundred missing appointments are one problem with a count, while each
+     * message keeps the address that was asked for.
      *
      * @param ctx     the request that found nothing
-     * @param message what the response said, which for an address no route claims is Javalin's own wording
+     * @param message what the response said
      */
     private static void logNotFound(Context ctx, String message) {
-        if (ScannerProbes.looksLikeAProbe(ctx.path())) {
+        var endpoint = ctx.endpoints().matchedHttpEndpoint();
+        if (endpoint == null) {
             log.debug("404 on {} {}: {}", ctx.method(), ctx.path(), message);
             return;
         }
-        log.warn("404 on {} {}: {}", ctx.method(), ctx.path(), message);
+        log.atWarn()
+                .addKeyValue(ProblemKey.NAME, "404 " + ctx.method() + " " + endpoint.path)
+                .log("404 on {} {}: {}", ctx.method(), ctx.path(), message);
     }
 
     /**

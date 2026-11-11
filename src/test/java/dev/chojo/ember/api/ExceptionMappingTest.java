@@ -5,6 +5,10 @@
  */
 package dev.chojo.ember.api;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.api.refusal.BodyRefusal;
 import dev.chojo.ember.api.refusal.ClusterRefusal;
@@ -16,15 +20,18 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.migration.MigrationException;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.util.DevErrorWriter;
+import dev.chojo.ember.util.ProblemKey;
 import io.javalin.Javalin;
 import io.javalin.http.Handler;
 import io.javalin.http.NotFoundResponse;
 import io.javalin.testtools.JavalinTest;
 import io.javalin.testtools.Response;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -176,5 +183,78 @@ class ExceptionMappingTest {
         assertEquals(500, response.code());
         assertFalse(body.toString().contains("db-internal-7"), body.toString());
         assertFalse(body.path("reference").asString("").isBlank(), "the reference finds the log line");
+    }
+
+    private static List<ILoggingEvent> logged(String route, String asked) {
+        return logged(route, asked, ctx -> {});
+    }
+
+    private static List<ILoggingEvent> logged(String route, String asked, Handler beforeMatched) {
+        Logger logger = (Logger) LoggerFactory.getLogger(ExceptionMapping.class);
+        var events = new ListAppender<ILoggingEvent>();
+        events.start();
+        logger.addAppender(events);
+        try {
+            Javalin app = Javalin.create(config -> {
+                config.jsonMapper(ApiJsonMapper.forApi(mock(StationRepository.class), mock(ClusterRepository.class)));
+                new ExceptionMapping(new Demo(), mock(DevErrorWriter.class)).install(config.routes);
+                config.routes.beforeMatched(beforeMatched);
+                config.routes.get(route, ctx -> {
+                    throw new NotFoundResponse("No such thing");
+                });
+            });
+            JavalinTest.test(app, (server, client) -> client.get(asked));
+            return List.copyOf(events.list);
+        } finally {
+            logger.detachAppender(events);
+        }
+    }
+
+    private static String problemOf(ILoggingEvent event) {
+        return event.getKeyValuePairs().stream()
+                .filter(pair -> ProblemKey.NAME.equals(pair.key))
+                .map(pair -> String.valueOf(pair.value))
+                .findFirst()
+                .orElse(null);
+    }
+
+    @Test
+    void aMissBehindARouteIsAWarningNamedByTheRoute() {
+        var warnings = logged("/api/v1/things/{id}", "/api/v1/things/7").stream()
+                .filter(event -> event.getLevel() == Level.WARN)
+                .toList();
+
+        assertEquals(1, warnings.size());
+        assertEquals("404 GET /api/v1/things/{id}", problemOf(warnings.getFirst()));
+        assertTrue(warnings.getFirst().getFormattedMessage().contains("/api/v1/things/7"));
+    }
+
+    @Test
+    void aMissNoRouteClaimsIsOnlyADebugLine() {
+        var events = logged(PATH, "/wp-login.php");
+
+        assertTrue(
+                events.stream().noneMatch(event -> event.getLevel().isGreaterOrEqual(Level.WARN)), events.toString());
+        assertEquals(
+                1,
+                events.stream()
+                        .filter(event -> event.getLevel() == Level.DEBUG)
+                        .filter(event -> event.getFormattedMessage().contains("/wp-login.php"))
+                        .count(),
+                events.toString());
+    }
+
+    @Test
+    void aMissBeforeTheHandlerIsStillNamedByTheRoute() {
+        var warnings = logged("/api/v1/things/{id}", "/api/v1/things/7", ctx -> {
+                    throw new NotFoundResponse("Gone before the handler");
+                })
+                .stream()
+                .filter(event -> event.getLevel() == Level.WARN)
+                .filter(event -> event.getFormattedMessage().contains("/api/v1/things/7"))
+                .toList();
+
+        assertEquals(1, warnings.size(), warnings.toString());
+        assertEquals("404 GET /api/v1/things/{id}", problemOf(warnings.getFirst()));
     }
 }

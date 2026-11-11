@@ -11,6 +11,7 @@ import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.classic.spi.StackTraceElementProxy;
 import ch.qos.logback.core.AppenderBase;
 import dev.chojo.ember.feature.system.entity.ProblemLevel;
+import dev.chojo.ember.util.ProblemKey;
 import org.jspecify.annotations.Nullable;
 
 import java.nio.charset.StandardCharsets;
@@ -259,7 +260,19 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
         }
     }
 
+    /** The problem an event names itself, where its caller added {@link ProblemKey#NAME}. */
+    private static @Nullable String declaredKey(ILoggingEvent event) {
+        var pairs = event.getKeyValuePairs();
+        if (pairs == null) return null;
+        for (var pair : pairs) {
+            if (ProblemKey.NAME.equals(pair.key) && pair.value != null) return pair.value.toString();
+        }
+        return null;
+    }
+
     private String buildAggregationKey(ILoggingEvent event) {
+        String declared = declaredKey(event);
+        if (declared != null) return event.getLoggerName() + ":" + event.getLevel() + ":" + declared;
         var tp = event.getThrowableProxy();
         if (tp != null) {
             return event.getLoggerName() + ":" + tp.getClassName() + ":" + extractFirstFrame(tp);
