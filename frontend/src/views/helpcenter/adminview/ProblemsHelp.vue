@@ -23,8 +23,17 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.adminProblems.listText') }}</p>
     </HelpSection>
 
-    <HelpSection :title="t('helpCenter.adminProblems.acknowledgeTitle')">
-      <p>{{ t('helpCenter.adminProblems.acknowledgeText') }}</p>
+    <HelpSection :title="t('helpCenter.adminProblems.resolveTitle')">
+      <p>{{ t('helpCenter.adminProblems.resolveText') }}</p>
+      <p>{{ t('helpCenter.adminProblems.deleteText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.adminProblems.countTitle')">
+      <p>{{ t('helpCenter.adminProblems.countText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.adminProblems.refusalsTitle')">
+      <p>{{ t('helpCenter.adminProblems.refusalsText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.adminProblems.groupingTitle')">
@@ -33,6 +42,15 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.adminProblems.noiseTitle')">
       <p>{{ t('helpCenter.adminProblems.noiseText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.adminProblems.contextTitle')">
+      <p>{{ t('helpCenter.adminProblems.contextText') }}</p>
+      <p>{{ t('helpCenter.adminProblems.contextSource') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.adminProblems.beaconTitle')">
+      <p>{{ t('helpCenter.adminProblems.beaconText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.adminProblems.exampleTitle')">

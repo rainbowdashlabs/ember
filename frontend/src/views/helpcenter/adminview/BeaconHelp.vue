@@ -45,6 +45,11 @@ const FAULTS: BeaconFault[] = [
       <p>{{ t('helpCenter.adminBeacon.sendingPreview') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.adminBeacon.linesTitle')">
+      <p>{{ t('helpCenter.adminBeacon.linesText') }}</p>
+      <p>{{ t('helpCenter.adminBeacon.linesReplaced') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.adminBeacon.numbers')">
       <p>{{ t('helpCenter.adminBeacon.numbersText') }}</p>
       <p>{{ t('helpCenter.adminBeacon.numbersWhen') }}</p>

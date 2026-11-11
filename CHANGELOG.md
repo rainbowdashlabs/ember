@@ -2,7 +2,7 @@
 
 ## v26.24.1
 
-Every count on the overview opens the matching list, and failed mails can be read and acknowledged. The manager of a station that waits can be reminded, also automatically. The account list filters over every account. The statistics show how many people use the instance each day and how it grows, recorded from this version on. Buttons that could only end in a refusal are gone or explain themselves.
+Every count on the overview opens the matching list, and failed mails can be read and acknowledged. The manager of a station that waits can be reminded, also automatically. The account list filters over every account. The statistics show how many people use the instance each day and how it grows, recorded from this version on. Buttons that could only end in a refusal are gone or explain themselves. The problem log is kept across restarts, can mute what is known and shows the log lines around a problem. Those lines can go to a beacon on request, with names and addresses replaced.
 
 ### New Features
 
@@ -16,10 +16,22 @@ Every count on the overview opens the matching list, and failed mails can be rea
 - **Failed mails can be read and acknowledged.** The mail log lists every mail that did not arrive with its reason, including bounces and spam reports from a provider, and counts the stations' failures per station. Acknowledging a mail ends its warning, and one the instance gave up on can be sent again.
 - **A clearer station list.** Stations show their logo, state, member count and manager, can be filtered by state and can be shown as tiles or as a table.
 - **Monitoring shows what is waiting.** The Monitoring entry in the sidebar counts open problems, reports and failed mails, and the count updates while moving between pages.
+- **The problem log survives a restart.** Warnings and errors are stored and kept until they have not happened for 30 days, set by the new `metrics.problemRetentionDays` config key. A resolved problem that happens again is open again and shows how often it came back.
+- **Problems can be muted.** A muted problem keeps counting but never shows as open again and is never forwarded on its own. Problems can also be deleted right away.
+- **Log lines around a problem.** Where the application log is stored in the database, an opened problem shows the lines of its thread from 30 seconds before to 5 seconds after it, with its own line marked. All threads and each of its last five occurrences can be shown on request.
+- **Problems can go to a beacon with their log lines.** Sending a problem by hand offers to include the lines around it, shown in the preview exactly as they leave. The new beacon switch "Send log lines automatically", off by default, adds them to problems forwarded on their own.
+- **A beacon shows the lines sent with a fault.** Each entry of a beacon's fault log opens with the log lines every instance sent, by instance and occurrence.
 - **Group member types warn while they are chosen.** Narrowing a group to member types lists the members who no longer fit right away, and the save button takes them out of the group.
+
+### Security
+
+- **Less about people reaches a beacon.** Everything sent to a beacon about a problem has mail addresses, IP addresses, long identifiers, passwords and tokens written as a setting, and the names of this instance's accounts replaced. Before, only mail addresses were.
 
 ### Changes
 
+- **Refusals are listed apart from faults.** Requests that were refused on purpose appear in the problem log under their own filter, most frequent first, one entry per page of the application and kind. They never count toward the waiting number and never go to a beacon.
+- **Unknown addresses no longer appear in the problem log.** Requests to addresses the application does not have are answered as before but no longer recorded. "Not found" on a real page counts once per page instead of once per record.
+- **Acknowledge becomes Resolve.** Problems are resolved instead of acknowledged, and "Resolve all" applies to faults or to refusals, whichever is shown.
 - **The new sessions chart is removed.** The chart counted sign-ins and lost past days as sessions ended. People per day replaces it.
 - **A deleted station takes its mail log along.** The mails of a station are deleted with the station instead of staying behind as mails of the instance.
 
