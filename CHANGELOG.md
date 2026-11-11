@@ -23,6 +23,8 @@ Every count on the overview opens the matching list, and failed mails can be rea
 - **A beacon shows the lines sent with a fault.** Each entry of a beacon's fault log opens with the log lines every instance sent, by instance and occurrence.
 - **Console logs a log collector can read.** The new `LOG_FORMAT` environment variable set to `json` makes the backend write one JSON object per log entry to the console, stack trace included. Collectors such as Loki then keep the trace with its line instead of storing every line on its own.
 - **Failed database queries say what failed.** The log line of a failed query carries the database's own error instead of only "Database query error".
+- **The picked probe date on the waiting list.** The waiting list shows in its own column which date someone picked to come to the probe, with the appointment and the time they were asked for, and can be sorted and filtered by it. Before, it stood only on each entry's page.
+- **Who comes to the probe on the appointment.** The page of an appointment lists who from the waiting list picked that date, with their time and list, for those who may read the waiting list. They stay off the attendee lists.
 - **Group member types warn while they are chosen.** Narrowing a group to member types lists the members who no longer fit right away, and the save button takes them out of the group.
 
 ### Security

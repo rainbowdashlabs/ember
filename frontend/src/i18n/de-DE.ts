@@ -3235,6 +3235,10 @@ export default {
         toList: 'Zur Mitgliederliste',
     },
     eventDetail: {
+        probeVisitors: 'Kommen zur Probe',
+        probeVisitorsHint: 'Von der Warteliste eingeladen und haben diesen Termin gewählt. Sie stehen auf keiner Teilnehmerliste.',
+        probeVisitorArrival: 'Kommt um {time}',
+        probeVisitorFrom: 'Warteliste {list}',
         tabInfo: 'Informationen',
         yourAnswer: 'Deine Antwort',
         updateAnswer: 'Antworten aktualisieren',
@@ -6672,6 +6676,7 @@ export default {
         answerNote: 'Nachricht zur Antwort',
         offeredDates: 'Angebotene Termine',
         pickedDate: 'Gewählter Termin',
+        pickedDateAt: 'um {time}',
         startTesting: 'Probezeit starten',
         join: 'Aufnehmen',
         withdraw: 'Ausscheiden',

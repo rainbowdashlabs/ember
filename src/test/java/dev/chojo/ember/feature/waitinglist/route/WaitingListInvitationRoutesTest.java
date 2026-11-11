@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListVisitor;
 import dev.chojo.ember.feature.waitinglist.service.PublicWaitingListRateLimiter;
 import dev.chojo.ember.feature.waitinglist.service.PublicWaitingListService;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
@@ -308,5 +309,28 @@ class WaitingListInvitationRoutesTest {
         });
 
         verify(lists).endTrial(eq(3), eq(9), anyList());
+    }
+
+    @Test
+    void theVisitorsOfADateAreForWaitingListReadersOnly() {
+        var visitor =
+                new WaitingListVisitor(9, 5, "Jugend", "Mia", "Muster", LocalDate.of(2026, 6, 2), LocalTime.of(17, 45));
+        when(lists.visitors(3, 12, LocalDate.of(2026, 6, 2))).thenReturn(List.of(visitor));
+
+        harness.run((server, client) -> {
+            var reader = harness.as(TestSessions.member(3, StationPermission.WAITLIST_READ));
+            var answer = json(client.get(PREFIX + "/waiting-lists/visitors?event=12&date=2026-06-02", reader));
+            assertEquals("Mia", answer.get(0).path("firstname").asString());
+            assertEquals("17:45:00", answer.get(0).path("arrivalTime").asString());
+            var member = harness.as(TestSessions.member(3, StationPermission.LOGIN));
+            assertEquals(
+                    403,
+                    client.get(PREFIX + "/waiting-lists/visitors?event=12&date=2026-06-02", member)
+                            .code());
+            assertEquals(
+                    400,
+                    client.get(PREFIX + "/waiting-lists/visitors?event=12&date=soon", reader)
+                            .code());
+        });
     }
 }

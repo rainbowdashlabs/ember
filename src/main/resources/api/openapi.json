@@ -48468,6 +48468,42 @@
         }
       }
     },
+    "/api/v1/waiting-lists/visitors" : {
+      "get" : {
+        "summary" : "Who from the waiting lists said they come to one date of an appointment",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/WaitingListVisitor"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "event",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "date",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
     "/api/v1/waiting-lists/{id}" : {
       "get" : {
         "summary" : "Get waiting list",
@@ -84691,6 +84727,39 @@
             }
           }
         }
+      },
+      "WaitingListVisitor" : {
+        "type" : "object",
+        "properties" : {
+          "entryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "listId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "listName" : {
+            "type" : "string"
+          },
+          "firstname" : {
+            "type" : "string"
+          },
+          "lastname" : {
+            "type" : "string"
+          },
+          "date" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "arrivalTime" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalTime"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "entryId", "listId", "listName", "firstname", "lastname", "date", "arrivalTime" ]
       },
       "WaitingListWithCount" : {
         "type" : "object",
