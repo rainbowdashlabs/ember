@@ -10,27 +10,50 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.classic.spi.StackTraceElementProxy;
 import ch.qos.logback.core.AppenderBase;
+import dev.chojo.ember.feature.system.entity.ProblemLevel;
 import org.jspecify.annotations.Nullable;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Custom Logback appender that captures ERROR and WARN log events in memory.
  * Aggregates entries by stacktrace/exception to count occurrences.
  * Entries older than 3 days are automatically pruned.
+ *
+ * <p>Besides that view it gathers every problem for the database: what happened since the last write,
+ * per fingerprint, which {@link ProblemLogFlusher} takes and writes. It never touches the database
+ * itself, so a log call never waits for one, and it holds at most {@link #PENDING_LIMIT} problems while
+ * the database cannot be written to; further problems, and problems put back that no longer fit, are
+ * counted on one overflow entry. Whatever is logged on the flusher's own thread while it writes is not
+ * gathered, so a database that refuses the write does not keep feeding the log it refuses; what other
+ * threads log about the same outage is a real problem and is gathered like any other.
  */
 public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
     private static final long RETENTION_MS = Duration.ofDays(3).toMillis();
     private static final int MAX_ENTRIES = 1000;
+
+    /** How many problems wait for the database at most; any further one is counted on the overflow entry. */
+    static final int PENDING_LIMIT = 1000;
+
+    /** The fingerprint of the entry counting the problems that did not fit while the database was away. */
+    static final String OVERFLOW_FINGERPRINT = "problem-log-overflow";
+
+    /** Set on the flusher's thread while it writes, so nothing logged there is gathered again. */
+    private static final ThreadLocal<Boolean> WRITING = ThreadLocal.withInitial(() -> false);
 
     private static ProblemLogAppender instance;
 
@@ -39,10 +62,21 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
 
     private final Map<String, ProblemEntry> problems = new ConcurrentHashMap<>();
     private final AtomicLong idCounter = new AtomicLong(0);
+    private final Map<String, PendingProblem> pending = new ConcurrentHashMap<>();
     private volatile Consumer<ProblemEntry> listener;
 
     public ProblemLogAppender() {
-        instance = this;
+        this(true);
+    }
+
+    /**
+     * An appender that registers itself as the one the application reads, or one that stays private to
+     * whoever made it.
+     *
+     * @param register whether it becomes {@link #instance()}
+     */
+    ProblemLogAppender(boolean register) {
+        if (register) instance = this;
     }
 
     public static ProblemLogAppender instance() {
@@ -98,10 +132,12 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
     @Override
     protected void append(ILoggingEvent event) {
         if (event.getLevel().toInt() < Level.WARN.toInt()) return;
+        if (WRITING.get()) return;
 
         pruneOldEntries();
 
         String key = buildAggregationKey(event);
+        gather(key, event);
         boolean forwardable = !isOwnFailure(event);
         problems.compute(key, (_, existing) -> {
             if (existing != null && !existing.acknowledged()) {
@@ -119,6 +155,115 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
                     Instant.ofEpochMilli(event.getTimeStamp()));
         });
         if (forwardable) notifyListener(problems.get(key));
+    }
+
+    /**
+     * Counts the event on what waits for the database, or on the overflow entry once too many different
+     * problems wait.
+     */
+    private void gather(String key, ILoggingEvent event) {
+        String fingerprint = fingerprintOf(key);
+        Instant at = Instant.ofEpochMilli(event.getTimeStamp());
+        String message = event.getFormattedMessage() == null ? "" : event.getFormattedMessage();
+        IThrowableProxy throwable = event.getThrowableProxy();
+        if (!pending.containsKey(fingerprint) && pending.size() >= PENDING_LIMIT) {
+            pending.compute(OVERFLOW_FINGERPRINT, (_, overflow) -> {
+                var target = overflow == null ? overflowEntry(at) : overflow;
+                target.add(event.getLoggerName() + ": " + message, null, () -> null, at, event.getThreadName());
+                return target;
+            });
+            return;
+        }
+        pending.compute(fingerprint, (_, existing) -> {
+            var target = existing == null
+                    ? new PendingProblem(
+                            fingerprint,
+                            ProblemLevel.valueOf(event.getLevel().toString()),
+                            event.getLoggerName(),
+                            message,
+                            extractExceptionClass(throwable),
+                            at)
+                    : existing;
+            target.add(
+                    message,
+                    extractExceptionMessage(throwable),
+                    () -> extractStacktrace(throwable),
+                    at,
+                    event.getThreadName());
+            return target;
+        });
+    }
+
+    private static PendingProblem overflowEntry(Instant at) {
+        return new PendingProblem(
+                OVERFLOW_FINGERPRINT,
+                ProblemLevel.WARN,
+                ProblemLogAppender.class.getName(),
+                "More different problems than the problem log holds while it cannot write; the rest are counted here",
+                null,
+                at);
+    }
+
+    /**
+     * Takes everything gathered for the database, leaving nothing behind; what is logged meanwhile is
+     * gathered anew.
+     *
+     * @return the problems gathered since the last call
+     */
+    List<PendingProblem> drainPending() {
+        var drained = new ArrayList<PendingProblem>();
+        for (String fingerprint : List.copyOf(pending.keySet())) {
+            var problem = pending.remove(fingerprint);
+            if (problem != null) drained.add(problem);
+        }
+        return drained;
+    }
+
+    /**
+     * Puts back what could not be written, adding what was gathered for the same problem meanwhile.
+     *
+     * @param problem the problem that was not written
+     */
+    void restore(PendingProblem problem) {
+        boolean overflow = problem.fingerprint().equals(OVERFLOW_FINGERPRINT);
+        if (!overflow && !pending.containsKey(problem.fingerprint()) && pending.size() >= PENDING_LIMIT) {
+            var record = problem.record();
+            pending.compute(OVERFLOW_FINGERPRINT, (_, existing) -> {
+                var target = existing == null ? overflowEntry(record.firstSeen()) : existing;
+                target.countIn(record);
+                return target;
+            });
+            return;
+        }
+        pending.merge(problem.fingerprint(), problem, (current, earlier) -> {
+            current.absorb(earlier);
+            return current;
+        });
+    }
+
+    /**
+     * Runs a write with everything logged on this thread meanwhile left ungathered.
+     *
+     * @param write the write
+     * @return what the write returned
+     */
+    static <T> T writing(Supplier<T> write) {
+        WRITING.set(true);
+        try {
+            return write.get();
+        } finally {
+            WRITING.set(false);
+        }
+    }
+
+    /** The stored form of an aggregation key: short, fixed in length, and free of what the key quotes. */
+    static String fingerprintOf(String key) {
+        try {
+            var digest = MessageDigest.getInstance("SHA-256").digest(key.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is part of every Java runtime", e);
+        }
     }
 
     /**

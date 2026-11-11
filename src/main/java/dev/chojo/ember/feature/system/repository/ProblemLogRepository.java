@@ -275,6 +275,23 @@ public class ProblemLogRepository {
     }
 
     /**
+     * Whether the database answers at all, which tells a refused problem from an outage.
+     *
+     * @return whether a trivial query went through
+     */
+    public boolean reachable() {
+        try {
+            return query("SELECT 1 AS one;")
+                    .single(call())
+                    .map(row -> row.getInt("one"))
+                    .first()
+                    .isPresent();
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
+    /**
      * The occurrences kept beside a problem, the newest first.
      *
      * @param problemId the problem

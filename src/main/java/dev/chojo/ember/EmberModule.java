@@ -429,6 +429,7 @@ import dev.chojo.ember.feature.system.service.DemoStationSeeder;
 import dev.chojo.ember.feature.system.service.DemoTwoFactorSeeder;
 import dev.chojo.ember.feature.system.service.DemoVideoSeeder;
 import dev.chojo.ember.feature.system.service.DemoWaitingListSeeder;
+import dev.chojo.ember.feature.system.service.ProblemLogFlusher;
 import dev.chojo.ember.feature.system.service.ProblemReportSweeper;
 import dev.chojo.ember.feature.system.service.SchemaFingerprint;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
@@ -855,6 +856,7 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(UsageSnapshotTask.class);
         taskSources.addBinding().to(ApiRequestLogger.class);
         taskSources.addBinding().to(ApplicationLogWriter.class);
+        taskSources.addBinding().to(ProblemLogFlusher.class);
         taskSources.addBinding().to(RegistrationDeadlineChecker.class);
         taskSources.addBinding().to(EventReminderChecker.class);
         taskSources.addBinding().to(EventThresholdChecker.class);
@@ -902,6 +904,7 @@ public class EmberModule extends AbstractModule {
         flushes.addBinding().to(ApiRequestLogger.class);
         flushes.addBinding().to(FeedMetricsService.class);
         flushes.addBinding().to(ApplicationLogWriter.class);
+        flushes.addBinding().to(ProblemLogFlusher.class);
     }
 
     @Provides
