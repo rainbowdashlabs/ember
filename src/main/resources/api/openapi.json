@@ -49503,9 +49503,16 @@
           },
           "isPublic" : {
             "type" : "boolean"
+          },
+          "selfRegistrationState" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/SelfRegistration"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "eventId", "name", "fieldType", "config", "value", "position", "overview", "attendanceFieldId", "isPublic" ]
+        "required" : [ "id", "eventId", "name", "fieldType", "config", "value", "position", "overview", "attendanceFieldId", "isPublic", "selfRegistrationState" ]
       },
       "AppointmentTemplateField" : {
         "type" : "object",
@@ -76760,6 +76767,10 @@
           }
         },
         "required" : [ "id", "memberId", "memberName", "dueOn", "state", "handedOutAt", "submittedAt", "handedOutByName", "checkId" ]
+      },
+      "SelfRegistration" : {
+        "type" : "string",
+        "enum" : [ "OPEN", "NOT_ELIGIBLE", "CLOSED" ]
       },
       "SelfServiceOffer" : {
         "type" : "object",

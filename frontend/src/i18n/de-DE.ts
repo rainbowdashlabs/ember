@@ -11743,6 +11743,7 @@ export default {
         saveValue: 'Eintragung speichern',
         valueSaveFailed: 'Speichern fehlgeschlagen.',
         slotTaken: 'Belegt',
+        selfRegisterClosed: 'Eintragung geschlossen',
         selfRegisterConflict: 'Der Platz ist bereits vergeben.',
         selfRegisterForbidden: 'Du erfüllst die Voraussetzung für dieses Feld nicht.',
         selfRegisterFailed: 'Eintragung fehlgeschlagen.',
