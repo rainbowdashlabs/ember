@@ -4991,7 +4991,14 @@
               }
             }
           }
-        }
+        },
+        "parameters" : [ {
+          "name" : "window",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/StatisticsWindow"
+          }
+        } ]
       }
     },
     "/api/v1/admin/storage/audit" : {
@@ -49571,6 +49578,9 @@
             "type" : "integer",
             "format" : "int32"
           },
+          "window" : {
+            "$ref" : "#/components/schemas/StatisticsWindow"
+          },
           "emailByDay" : {
             "type" : "array",
             "items" : {
@@ -49583,19 +49593,7 @@
               "$ref" : "#/components/schemas/EmailStatusCount"
             }
           },
-          "attendanceByStatus" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/AttendanceStatusCount"
-            }
-          },
-          "registrationsByDay" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/DayCount"
-            }
-          },
-          "sessionsByDay" : {
+          "signUpsByDay" : {
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/DayCount"
@@ -49606,9 +49604,27 @@
             "items" : {
               "$ref" : "#/components/schemas/StationMembers"
             }
+          },
+          "activeByDay" : {
+            "$ref" : "#/components/schemas/UsageSeries"
+          },
+          "growth" : {
+            "$ref" : "#/components/schemas/GrowthSeries"
+          },
+          "attendanceByMonth" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AttendanceMonth"
+            }
+          },
+          "federation" : {
+            "$ref" : "#/components/schemas/FederationFigures"
+          },
+          "peopleByType" : {
+            "$ref" : "#/components/schemas/PeopleFigures"
           }
         },
-        "required" : [ "emailPending", "emailSending", "emailSentToday", "emailFailed", "emailSent", "mailProviderBlocks", "totalAccounts", "totalStations", "totalClusters", "totalMembers", "activeSessions", "pendingApplications", "sessionsThisMonth", "totalInventoryItems", "totalEvents", "totalAttendanceSessions", "totalAttendanceEntries", "totalProfileFields", "totalGroups", "accountsVerified", "accountsUnverified", "stationsSetupComplete", "stationsSetupPending", "accountsWith2fa", "eventsUpcoming", "totalEventRegistrations", "emailByDay", "emailByStatus", "attendanceByStatus", "registrationsByDay", "sessionsByDay", "topStationsByMembers" ]
+        "required" : [ "emailPending", "emailSending", "emailSentToday", "emailFailed", "emailSent", "mailProviderBlocks", "totalAccounts", "totalStations", "totalClusters", "totalMembers", "activeSessions", "pendingApplications", "sessionsThisMonth", "totalInventoryItems", "totalEvents", "totalAttendanceSessions", "totalAttendanceEntries", "totalProfileFields", "totalGroups", "accountsVerified", "accountsUnverified", "stationsSetupComplete", "stationsSetupPending", "accountsWith2fa", "eventsUpcoming", "totalEventRegistrations", "window", "emailByDay", "emailByStatus", "signUpsByDay", "topStationsByMembers", "activeByDay", "growth", "attendanceByMonth", "federation", "peopleByType" ]
       },
       "AgreementSigner" : {
         "type" : "object",
@@ -50656,19 +50672,6 @@
       "AttendanceStatus" : {
         "type" : "string",
         "enum" : [ "UNCONFIRMED", "PRESENT", "ABSENT", "DECLINED" ]
-      },
-      "AttendanceStatusCount" : {
-        "type" : "object",
-        "properties" : {
-          "status" : {
-            "$ref" : "#/components/schemas/AttendanceStatus"
-          },
-          "cnt" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        },
-        "required" : [ "status", "cnt" ]
       },
       "AttendanceTemplate" : {
         "type" : "object",
@@ -59467,6 +59470,62 @@
         },
         "required" : [ "core", "features" ]
       },
+      "FederationFigures" : {
+        "type" : "object",
+        "properties" : {
+          "partnersByStatus" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PartnerStatusCount"
+            }
+          },
+          "localPartners" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "remotePartners" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationsWithPartner" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "partnerInstances" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "sharesByKind" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ShareCount"
+            }
+          },
+          "lendingByMonth" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MonthCount"
+            }
+          },
+          "peersKnown" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "peersReachable" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "associations" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationsInAssociations" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "partnersByStatus", "localPartners", "remotePartners", "stationsWithPartner", "partnerInstances", "sharesByKind", "lendingByMonth", "peersKnown", "peersReachable", "associations", "stationsInAssociations" ]
+      },
       "FederationInfoResponse" : {
         "type" : "object",
         "properties" : {
@@ -59542,6 +59601,10 @@
             "format" : "uuid"
           }
         }
+      },
+      "FederationShareKind" : {
+        "type" : "string",
+        "enum" : [ "KNOWLEDGE_BASE", "BOARD", "QUIZ", "PROTOCOL", "EVENT", "INVENTORY" ]
       },
       "FederationShareResponse" : {
         "type" : "object",
@@ -62045,6 +62108,58 @@
             "type" : "string"
           }
         }
+      },
+      "GrowthDay" : {
+        "type" : "object",
+        "properties" : {
+          "day" : {
+            "type" : "string"
+          },
+          "accounts" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "members" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stations" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "events" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "attendanceEntries" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "inventoryItems" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "associations" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "day", "accounts", "members", "stations", "events", "attendanceEntries", "inventoryItems", "associations" ]
+      },
+      "GrowthSeries" : {
+        "type" : "object",
+        "properties" : {
+          "recordedSince" : {
+            "type" : [ "string", "null" ]
+          },
+          "days" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/GrowthDay"
+            }
+          }
+        },
+        "required" : [ "recordedSince", "days" ]
       },
       "GuardianCondition" : {
         "type" : "string",
@@ -68113,6 +68228,19 @@
         },
         "required" : [ "problemLog", "problemReports", "beaconActive", "beaconFaults", "beaconReports", "failedMails" ]
       },
+      "MonthCount" : {
+        "type" : "object",
+        "properties" : {
+          "month" : {
+            "type" : "string"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "month", "count" ]
+      },
       "MonthSummary" : {
         "type" : "object",
         "properties" : {
@@ -70461,6 +70589,19 @@
           }
         }
       },
+      "PartnerStatusCount" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "$ref" : "#/components/schemas/FederationStatus"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "status", "count" ]
+      },
       "PasskeyCodeResponse" : {
         "type" : "object",
         "properties" : {
@@ -70909,6 +71050,67 @@
       "PeerSource" : {
         "type" : "string",
         "enum" : [ "BOOTSTRAP", "GOSSIP", "MANUAL" ]
+      },
+      "PeopleByType" : {
+        "type" : "object",
+        "properties" : {
+          "people" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "trial" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "member" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "guardian" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "team" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "manager" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "memberships" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "people", "trial", "member", "guardian", "team", "manager", "memberships" ]
+      },
+      "PeopleDay" : {
+        "type" : "object",
+        "properties" : {
+          "day" : {
+            "type" : "string"
+          },
+          "counts" : {
+            "$ref" : "#/components/schemas/PeopleByType"
+          }
+        },
+        "required" : [ "day", "counts" ]
+      },
+      "PeopleFigures" : {
+        "type" : "object",
+        "properties" : {
+          "current" : {
+            "$ref" : "#/components/schemas/PeopleByType"
+          },
+          "byDay" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PeopleDay"
+            }
+          }
+        },
+        "required" : [ "current", "byDay" ]
       },
       "Permission" : {
         "type" : "object",
@@ -78411,6 +78613,19 @@
         },
         "required" : [ "type", "host", "port", "username", "knownHostsPinned", "basePath", "credentialFingerprint" ]
       },
+      "ShareCount" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "$ref" : "#/components/schemas/FederationShareKind"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "kind", "count" ]
+      },
       "ShareDetail" : {
         "type" : "object",
         "properties" : {
@@ -80286,6 +80501,10 @@
             "type" : "string"
           }
         }
+      },
+      "StatisticsWindow" : {
+        "type" : "string",
+        "enum" : [ "DAYS_30", "MONTHS_12", "ALL" ]
       },
       "StatsCounterConfig" : {
         "type" : "object",
@@ -83132,6 +83351,28 @@
           }
         },
         "required" : [ "type", "locale", "section" ]
+      },
+      "UsageSeries" : {
+        "type" : "object",
+        "properties" : {
+          "today" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "average30" : {
+            "type" : "number"
+          },
+          "recordedSince" : {
+            "type" : [ "string", "null" ]
+          },
+          "days" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DayCount"
+            }
+          }
+        },
+        "required" : [ "today", "average30", "recordedSince", "days" ]
       },
       "UserAgentsResponse" : {
         "type" : "object",

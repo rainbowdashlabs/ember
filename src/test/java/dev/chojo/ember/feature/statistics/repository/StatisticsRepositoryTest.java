@@ -15,8 +15,8 @@ import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.mail.entity.EmailQueueStatus;
 import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
 import dev.chojo.ember.feature.mail.entity.MailFailureReason;
-import dev.chojo.ember.feature.statistics.entity.AdminStatistics;
 import dev.chojo.ember.feature.statistics.entity.AdminStatistics.EmailStatusCount;
+import dev.chojo.ember.feature.statistics.entity.InstanceTotals;
 import dev.chojo.ember.feature.statistics.entity.StationStatistics.AttendanceMonth;
 import dev.chojo.ember.feature.statistics.entity.StationStatistics.EventRegistrations;
 import dev.chojo.ember.feature.statistics.entity.StationStatistics.InventoryStatus;
@@ -61,7 +61,7 @@ class StatisticsRepositoryTest extends RepositoryTestBase {
                 .id();
     }
 
-    private static Map<EmailQueueStatus, Integer> byStatus(AdminStatistics stats) {
+    private static Map<EmailQueueStatus, Integer> byStatus(InstanceTotals stats) {
         return stats.emailByStatus().stream()
                 .collect(Collectors.toMap(EmailStatusCount::status, EmailStatusCount::cnt));
     }
@@ -369,16 +369,14 @@ class StatisticsRepositoryTest extends RepositoryTestBase {
     void theDailySeriesCoverThirtyDays() {
         var stats = statistics.adminStatistics();
 
-        assertEquals(30, stats.registrationsByDay().size());
-        assertEquals(30, stats.sessionsByDay().size());
+        assertEquals(30, stats.signUpsByDay().size());
     }
 
     @Test
     void theJsonKeepsTheShapeThePagesRead() {
         var admin = Json.MAPPER.valueToTree(statistics.adminStatistics());
-        assertTrue(admin.has("pendingApplications"), "the counts sit at the top level");
         assertTrue(admin.has("emailByDay"));
-        assertTrue(admin.has("totalClusters"));
+        assertTrue(admin.get("counts").has("totalClusters"));
         statistics.adminStatistics().topStationsByMembers().stream()
                 .findFirst()
                 .ifPresent(

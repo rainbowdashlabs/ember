@@ -4415,9 +4415,38 @@ volumes:
             platform: 'Plattform - Anzahl der Wachen, Konten, Mitglieder, aktiven Sitzungen und Konten mit '
                 + 'Zwei-Faktor-Anmeldung.',
             dataStore: 'Datenbestand - Termine, Anmeldungen, Anwesenheiten, Inventar-Artikel, Profilfelder.',
-            charts: 'Aktivität und Status - Verläufe der letzten 30 Tage sowie die Verteilung von '
-                + 'E-Mail-, Anwesenheits- und Einrichtungsstatus.',
-            tip: 'Die Statistiken werden automatisch aktualisiert, wenn sich Daten ändern.',
+            charts: 'Nutzung, Personen, Wachstum, Anwesenheit und Föderation - wie die Plattform über die Zeit '
+                + 'genutzt wird und wächst.',
+            overviewTitle: 'Was gerade los ist',
+            windowTitle: 'Zeitraum wählen',
+            windowText: 'Mit dem Feld „Zeitraum“ wählst du, wie weit die Verläufe zurückreichen. Bei den letzten '
+                + '30 Tagen siehst du jeden Tag einzeln. Bei 12 Monaten und beim gesamten Zeitraum siehst du einen '
+                + 'Punkt pro Woche.',
+            usageTitle: 'Nutzung',
+            usageText: 'Hier siehst du, wie viele Personen die Plattform an einem Tag benutzt haben. Daneben stehen '
+                + 'die Zahl von heute und der Durchschnitt der letzten 30 vollen Tage. Der heutige Tag zählt dort '
+                + 'noch nicht mit, weil er noch nicht vorbei ist.',
+            usageCounting: 'Jedes Konto zählt höchstens einmal am Tag, egal wie oft es etwas anklickt. Es wird nur '
+                + 'gezählt, nicht wer es war. In der Wochenansicht siehst du den Durchschnitt der Tage dieser Woche.',
+            emptyText: 'Gezählt wird erst seit dieser Version. Am Anfang sind die Verläufe deshalb kurz oder noch '
+                + 'leer, und statt eines Diagramms steht dort „Noch nichts aufgezeichnet“.',
+            peopleTitle: 'Personen',
+            peopleText: 'Hier siehst du, wie viele Personen es auf der Plattform gibt, nach ihrem Typ. Zum Beispiel '
+                + '50 Mitglieder, 10 Erziehungsberechtigte und 5 auf Probe. Archivierte Mitglieder zählen nicht mit.',
+            peopleTypesText: 'Eine Person kann in zwei Wachen verschiedene Typen haben. Dann zählt sie bei beiden '
+                + 'Typen. Deshalb ergeben die Typen zusammen oft mehr als „Personen insgesamt“. Die '
+                + '„Mitgliedschaften“ zählen jede Wache einzeln, wer in zwei Wachen ist, zählt also zweimal.',
+            growthTitle: 'Wachstum, Anwesenheit und Föderation',
+            growthText: 'Unter „Wachstum“ siehst du, wie Konten, Mitgliedschaften, Wachen, Termine, '
+                + 'Anwesenheitseinträge, Inventar und Verbände mehr werden. Die Plattform merkt sich das einmal am '
+                + 'Tag, erst seit dieser Version. Darum steht darunter, seit wann aufgezeichnet wird.',
+            attendanceText: 'Unter „Anwesenheit“ siehst du pro Monat, wie viele anwesend, abwesend oder abgesagt '
+                + 'waren, und wie viele Anwesenheiten es gab. Gab es im Zeitraum keine, steht dort ein kurzer '
+                + 'Hinweis statt der Diagramme.',
+            federationText: 'Unter „Föderation“ siehst du, welche Wachen mit Partnern zusammenarbeiten, was sie '
+                + 'teilen und ausleihen, welche anderen Instanzen bekannt sind und wie viele Wachen in Verbänden '
+                + 'sind.',
+            tip: 'Die Zahlen von heute ändern sich im Lauf des Tages. Am Ende des Tages bleiben sie so stehen.',
         },
         protocol: {
             title: 'Prüfungsprotokolle',

@@ -77,4 +77,5 @@ export default {
     'SY-056': STATION_NOT_HERE,
     'SY-057': 'Das Tageslimit einer Wache ist mindestens eine Mail, es wurde nichts geändert',
     'SY-058': 'Der Anteil der Wachen ist ein Prozentwert von 0 bis 100, es wurde nichts gespeichert',
+    'SY-059': 'Über diesen Zeitraum werden die Statistiken nicht gezeigt',
 }

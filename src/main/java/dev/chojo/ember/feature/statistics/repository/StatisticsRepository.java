@@ -19,11 +19,10 @@ import dev.chojo.ember.feature.statistics.entity.AdminCounts;
 import dev.chojo.ember.feature.statistics.entity.AdminOverview;
 import dev.chojo.ember.feature.statistics.entity.AdminOverview.RecentApplication;
 import dev.chojo.ember.feature.statistics.entity.AdminOverview.RecentProblemReport;
-import dev.chojo.ember.feature.statistics.entity.AdminStatistics;
-import dev.chojo.ember.feature.statistics.entity.AdminStatistics.AttendanceStatusCount;
 import dev.chojo.ember.feature.statistics.entity.AdminStatistics.DayCount;
 import dev.chojo.ember.feature.statistics.entity.AdminStatistics.EmailStatusCount;
 import dev.chojo.ember.feature.statistics.entity.AdminStatistics.StationMembers;
+import dev.chojo.ember.feature.statistics.entity.InstanceTotals;
 import dev.chojo.ember.feature.statistics.entity.StationStatistics;
 import dev.chojo.ember.feature.statistics.entity.StationStatistics.AttendanceMonth;
 import dev.chojo.ember.feature.statistics.entity.StationStatistics.EventRegistrations;
@@ -187,19 +186,12 @@ public class StatisticsRepository {
     }
 
     /**
-     * The figures of the instance statistics page.
+     * The figures of the instance statistics page that do not depend on a window of time.
      *
      * @return the figures
      */
-    public AdminStatistics adminStatistics() {
-        return new AdminStatistics(
-                adminCounts(),
-                emailByDay(),
-                emailByStatus(),
-                attendanceByStatus(),
-                registrationsByDay(),
-                sessionsByDay(),
-                topStationsByMembers());
+    public InstanceTotals adminStatistics() {
+        return new InstanceTotals(adminCounts(), emailByDay(), emailByStatus(), signUpsByDay(), topStationsByMembers());
     }
 
     private AdminCounts adminCounts() {
@@ -305,15 +297,7 @@ public class StatisticsRepository {
                 .all();
     }
 
-    private List<AttendanceStatusCount> attendanceByStatus() {
-        return query("""
-                        SELECT status, count(*) AS cnt FROM attendance_entry GROUP BY status ORDER BY status;""")
-                .single()
-                .map(row -> new AttendanceStatusCount(row.getEnum("status", AttendanceStatus.class), row.getInt("cnt")))
-                .all();
-    }
-
-    private List<DayCount> registrationsByDay() {
+    private List<DayCount> signUpsByDay() {
         return query("""
                         SELECT
                             to_char(d.day, 'YYYY-MM-DD') AS day,
@@ -321,21 +305,6 @@ public class StatisticsRepository {
                         FROM
                             %s
                             LEFT JOIN event_registration er ON er.created_at::DATE = d.day
-                        GROUP BY d.day
-                        ORDER BY d.day;""", DAILY_SERIES)
-                .single()
-                .map(row -> new DayCount(row.getString("day"), row.getInt("count")))
-                .all();
-    }
-
-    private List<DayCount> sessionsByDay() {
-        return query("""
-                        SELECT
-                            to_char(d.day, 'YYYY-MM-DD') AS day,
-                            count(se.id)                 AS count
-                        FROM
-                            %s
-                            LEFT JOIN account_session se ON se.created_at::DATE = d.day
                         GROUP BY d.day
                         ORDER BY d.day;""", DAILY_SERIES)
                 .single()
