@@ -7,20 +7,25 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import DetailLabel from '@/components/typography/DetailLabel.vue'
-import type {AccountOverview} from '@/api/generated/schema'
+import {AccountPasswordState, type AccountOverview} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
-import {associationLabel, passwordStateOf, PasswordState} from './accountColumns'
+import {associationLabel, passwordStateOf} from './accountColumns'
 
 /** What the account list knows about one account, written out in full. */
 const props = defineProps<{account: AccountOverview}>()
 
 const {t} = useI18n()
 
+function confirmedText(confirmed: boolean | null): string {
+  if (confirmed === null) return t('adminAccounts.noAddress')
+  return confirmed ? t('common.yes') : t('common.no')
+}
+
 const facts = computed(() => {
   const account = props.account
   const none = t('adminAccounts.none')
   const state = passwordStateOf(account)
-  const password = state === PasswordState.ONE_TIME
+  const password = state === AccountPasswordState.ONE_TIME
     ? t('adminAccounts.oneTimeUntil', {date: formatDateTime(account.oneTimePasswordExpiresAt)})
     : t(`adminAccounts.password.${state}`)
   return [
@@ -32,6 +37,7 @@ const facts = computed(() => {
     {key: 'password', value: password},
     {key: 'passkeys', value: String(account.passkeys)},
     {key: 'twoFactor', value: account.twoFactor ? t('common.yes') : t('common.no')},
+    {key: 'confirmed', value: confirmedText(account.confirmed)},
   ]
 })
 </script>

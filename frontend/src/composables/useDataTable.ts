@@ -60,6 +60,19 @@ export interface DataTableOptions<Row> {
     fallbackSort?: SortComparator<Row>
     /** Further words the search looks through beyond the searchable columns, such as an address. */
     searchText?: (row: Row) => string
+    /**
+     * Whether the server sorts, filters and searches the rows. The table then keeps and shows its
+     * sort and its filters but leaves the rows as they are given, and a filter offers only what its
+     * column names as options, since the rows on screen are no measure of what the server holds.
+     * The screen reads {@link DataTableApi.standingFilters} and the sort to ask the server.
+     */
+    serverSide?: boolean
+}
+
+/** What one column's filter holds while it stands. */
+export interface StandingFilter {
+    selected: ReadonlySet<string>
+    includeEmpty: boolean
 }
 
 /** The filter of one column as its dialog shows it. */
@@ -70,6 +83,19 @@ export interface FilterDialog {
     choices: FilterChoice[]
     selected: Set<string>
     includeEmpty: boolean
+    /** Whether the dialog offers the choice of empty cells at all. */
+    offersEmpty: boolean
+}
+
+/**
+ * The entries a filter offers when the server filters: an enum's or a list's options, both answers of
+ * a boolean, and nothing to tick for a date or a number, which keep their range.
+ */
+function serverChoicesFor<Row>(column: TableColumn<Row>, yesNo: YesNo): FilterChoice[] {
+    if (column.type === ColumnTypes.BOOLEAN) {
+        return ['true', 'false'].map(value => ({value, label: wordScalar(column, value, yesNo)}))
+    }
+    return [...column.options ?? []]
 }
 
 /**
@@ -195,7 +221,16 @@ export function useDataTable<Row>(options: DataTableOptions<Row>) {
         }))
     })
 
+    /** The filters on the shown columns, as they stand, keyed by column. */
+    const standingFilters = computed<ReadonlyMap<string, StandingFilter>>(() => new Map(visibleColumns.value
+        .filter(column => isFilterable(column) && hasFilter(column.key))
+        .map(column => [column.key, {
+            selected: state.value.filters.get(column.key) ?? new Set<string>(),
+            includeEmpty: state.value.empties.has(column.key),
+        }])))
+
     const rows = computed(() => {
+        if (options.serverSide) return [...allRows.value]
         const query = state.value.search.trim().toLowerCase()
         const filters = activeFilters.value
         if (!query && filters.length === 0) return sortedRows.value
@@ -254,9 +289,10 @@ export function useDataTable<Row>(options: DataTableOptions<Row>) {
             key: column.key,
             label: column.label,
             kind: filterKindOf(column.type),
-            choices: choicesFor(column, allRows.value, yesNo),
+            choices: options.serverSide ? serverChoicesFor(column, yesNo) : choicesFor(column, allRows.value, yesNo),
             selected: new Set(state.value.filters.get(column.key) ?? []),
             includeEmpty: state.value.empties.has(column.key),
+            offersEmpty: !options.serverSide || column.filtersEmpty === true,
         }
     })
 
@@ -310,6 +346,7 @@ export function useDataTable<Row>(options: DataTableOptions<Row>) {
         sortIcon,
         ariaSort,
         hasFilter,
+        standingFilters,
         filterDialog,
         openFilter,
         closeFilter,

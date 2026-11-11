@@ -2270,6 +2270,7 @@ export default {
         next: 'Weiter',
         none: 'Keine',
         neverSignedIn: 'Noch nie angemeldet',
+        noAddress: 'Keine eigene Adresse',
         oneTimeUntil: 'Einmalpasswort, gültig bis {date}',
         actionsTitle: 'Aktionen',
         col: {
@@ -2282,6 +2283,7 @@ export default {
             password: 'Passwort',
             passkeys: 'Passkeys',
             twoFactor: 'Zweiter Faktor',
+            confirmed: 'Adresse bestätigt',
         },
         roles: {
             USER: 'Benutzer',
@@ -2300,6 +2302,24 @@ export default {
             confirmTitle: 'Passwort stilllegen?',
             confirmText: '{name} meldet sich danach nur noch mit einem Passkey an.',
             success: 'Das Passwort von {name} ist stillgelegt.',
+        },
+        setupMail: {
+            action: {
+                INVITATION: 'Einladung erneut senden',
+                CONFIRMATION: 'Bestätigungsmail erneut senden',
+            },
+            hint: {
+                INVITATION: 'Das Konto hat noch kein eigenes Passwort. Die Einladung bringt einen neuen Link, '
+                    + 'mit dem eines gewählt wird.',
+                CONFIRMATION: 'Die Adresse des Kontos ist noch nicht bestätigt. Die Mail bringt einen neuen '
+                    + 'Link zum Bestätigen.',
+            },
+            sent: {
+                INVITATION_SENT: 'Die Einladung an {name} ist verschickt.',
+                CONFIRMATION_SENT: 'Die Bestätigungsmail an {name} ist verschickt.',
+                CONFIRMED: 'Diese Instanz kann keine E-Mails senden. Die Adresse von {name} ist deshalb als '
+                    + 'bestätigt markiert.',
+            },
         },
     },
     oneTimePassword: {

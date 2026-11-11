@@ -5,8 +5,8 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import type {AccountOverview} from '@/api/generated/schema'
-import {associationLabel, passwordStateOf, PasswordState} from './accountColumns'
+import {AccountPasswordState, type AccountOverview} from '@/api/generated/schema'
+import {associationLabel, passwordStateOf} from './accountColumns'
 
 function account(overrides: Partial<AccountOverview> = {}): AccountOverview {
     return {
@@ -20,13 +20,13 @@ function account(overrides: Partial<AccountOverview> = {}): AccountOverview {
 
 describe('passwordStateOf', () => {
     it('tells an account without a password from one whose password is switched off', () => {
-        expect(passwordStateOf(account({hasPassword: false, passwordSignIn: false}))).toBe(PasswordState.NONE)
-        expect(passwordStateOf(account({passwordSignIn: false}))).toBe(PasswordState.OFF)
+        expect(passwordStateOf(account({hasPassword: false, passwordSignIn: false}))).toBe(AccountPasswordState.NONE)
+        expect(passwordStateOf(account({passwordSignIn: false}))).toBe(AccountPasswordState.OFF)
     })
 
     it('names a one-time password still waiting to be replaced', () => {
-        expect(passwordStateOf(account({oneTimePasswordExpiresAt: '2026-10-09T12:00:00Z'}))).toBe(PasswordState.ONE_TIME)
-        expect(passwordStateOf(account())).toBe(PasswordState.ON)
+        expect(passwordStateOf(account({oneTimePasswordExpiresAt: '2026-10-09T12:00:00Z'}))).toBe(AccountPasswordState.ONE_TIME)
+        expect(passwordStateOf(account())).toBe(AccountPasswordState.ON)
     })
 })
 
