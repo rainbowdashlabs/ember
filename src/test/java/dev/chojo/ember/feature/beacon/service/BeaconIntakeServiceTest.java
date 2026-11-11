@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.beacon.service;
 
+import dev.chojo.ember.api.ApiJsonMapper;
 import dev.chojo.ember.api.refusal.BeaconRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
@@ -13,7 +14,9 @@ import dev.chojo.ember.auth.signing.repository.SignedRequestNonceRepository;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import dev.chojo.ember.feature.beacon.repository.BeaconIntakeRepository;
 import dev.chojo.ember.feature.beacon.repository.BeaconReadRepository;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.discovery.service.DiscoveryKeyService;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
@@ -21,12 +24,15 @@ import org.junit.jupiter.api.function.Executable;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 /**
  * The rules that decide whether a beacon writes anything down at all.
@@ -321,5 +327,92 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
     void aMessageIsBounded() {
         String long_ = "x".repeat(9000);
         assertEquals(4000, BeaconIntakeService.clampMessage(long_).length());
+    }
+
+    private static BeaconPayloads.ProblemPayload withLines(
+            String fingerprint, Instant occurred, List<BeaconPayloads.LogLinePayload> lines) {
+        return new BeaconPayloads.ProblemPayload(
+                envelope(Instant.now(), OWN_URL),
+                "26.15.0",
+                null,
+                null,
+                fingerprint,
+                "ERROR",
+                "logger",
+                "java.lang.IllegalStateException",
+                "Etwas ging schief",
+                "frames",
+                1,
+                occurred,
+                occurred,
+                lines);
+    }
+
+    private static BeaconPayloads.LogLinePayload line(String message) {
+        return new BeaconPayloads.LogLinePayload(Instant.now(), "INFO", "dev.chojo.ember.A", "worker-1", message);
+    }
+
+    private int faultId(String fingerprint) {
+        return read.faults(true).stream()
+                .filter(f -> f.fingerprint().equals(fingerprint))
+                .findFirst()
+                .orElseThrow()
+                .id();
+    }
+
+    /** The lines a fault came with are kept beside it, cut to what a beacon keeps of one delivery. */
+    @Test
+    void theLinesAFaultCameWithAreKeptAndCut() {
+        String id = service.accept(key(), envelope(Instant.now(), OWN_URL), OWN_URL);
+        String fingerprint = "fp-" + UUID.randomUUID();
+        var many = new ArrayList<BeaconPayloads.LogLinePayload>();
+        for (int i = 0; i < BeaconIntakeService.MAX_CONTEXT_LINES + 5; i++) many.add(line("line " + i));
+        many.set(0, line("x".repeat(5000)));
+        Instant occurred = Instant.parse("2026-11-01T10:00:00Z");
+
+        service.storeProblem(id, "k", withLines(fingerprint, occurred, many));
+
+        var kept = read.problemContext(faultId(fingerprint));
+        assertEquals(1, kept.size());
+        assertEquals(id, kept.getFirst().instanceId());
+        assertEquals(occurred, kept.getFirst().occurredAt());
+        assertEquals(
+                BeaconIntakeService.MAX_CONTEXT_LINES, kept.getFirst().lines().size());
+        assertEquals(2000, kept.getFirst().lines().getFirst().message().length());
+    }
+
+    /** Only the newest few deliveries of lines per fault and instance are kept. */
+    @Test
+    void onlyTheNewestLinesPerInstanceAreKept() {
+        String id = service.accept(key(), envelope(Instant.now(), OWN_URL), OWN_URL);
+        String fingerprint = "fp-" + UUID.randomUUID();
+        for (int i = 0; i < BeaconIntakeRepository.CONTEXTS_KEPT + 2; i++) {
+            service.storeProblem(id, "k", withLines(fingerprint, Instant.now(), List.of(line("delivery " + i))));
+        }
+
+        assertEquals(
+                BeaconIntakeRepository.CONTEXTS_KEPT,
+                read.problemContext(faultId(fingerprint)).size());
+    }
+
+    /** A fault from a sender that sends no lines, as one from before them, is filed as it always was. */
+    @Test
+    void aFaultWithoutLinesStillArrives() {
+        String id = service.accept(key(), envelope(Instant.now(), OWN_URL), OWN_URL);
+        String fingerprint = "fp-" + UUID.randomUUID();
+        String older = """
+                {"envelope": {"protocolVersion": 2, "issuedAt": "2026-11-01T10:00:00Z", "nonce": "n", "audience": "a"},
+                 "version": "26.15.0", "contactName": null, "contactMail": null, "fingerprint": "%s",
+                 "level": "ERROR", "logger": "l", "exceptionClass": null, "message": "m", "frames": "",
+                 "occurrences": 1, "firstOccurrence": "2026-11-01T10:00:00Z",
+                 "lastOccurrence": "2026-11-01T10:00:00Z"}""".formatted(fingerprint);
+        BeaconPayloads.ProblemPayload payload = ApiJsonMapper.forApi(
+                        mock(StationRepository.class), mock(ClusterRepository.class))
+                .fromJsonString(older, BeaconPayloads.ProblemPayload.class);
+
+        service.storeProblem(id, "k", payload);
+
+        assertNull(payload.context());
+        assertTrue(read.problemContext(faultId(fingerprint)).isEmpty());
     }
 }

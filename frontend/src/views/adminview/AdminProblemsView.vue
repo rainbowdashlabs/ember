@@ -25,7 +25,7 @@ import {problemTitle, type ProblemAction, type ProblemStateFilter} from '@/api/p
 
 const {t} = useI18n()
 const list = useProblemList()
-const {refusals, state, level, visible, loading, failure, result, selected, deletion} = list
+const {refusals, state, level, visible, loading, failure, result, selected, withContext, deletion} = list
 const {show: showDelete, target: deleteTarget, confirm: confirmDelete} = deletion
 
 const expandedId = ref<number | null>(null)
@@ -128,6 +128,13 @@ function openPreview(id: number) {
                 {{ t('beacon.sendSelected', {count: selected.size}) }}
             </SecondaryButton>
         </ButtonRow>
+        <label v-if="canSend && selected.size > 0" class="flex items-center gap-2 text-sm mb-4">
+            <CheckboxInput v-model="withContext" data-testid="beacon-selected-with-context"/>
+            {{ t('beacon.withContext') }}
+        </label>
+        <p v-if="canSend && selected.size > 0 && withContext" class="text-xs text-(--text-muted) mb-4">
+            {{ t('beacon.withContextSelectedHint') }}
+        </p>
 
         <FailureAlert :failure="failure" class="mb-4"/>
         <Alert v-if="result" variant="success" class="mb-4">{{ result }}</Alert>

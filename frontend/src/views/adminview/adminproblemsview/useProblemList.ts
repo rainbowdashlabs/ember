@@ -43,6 +43,7 @@ export function useProblemList() {
     const failure = ref<Failure | null>(null)
     const result = ref('')
     const selected = ref<Set<number>>(new Set())
+    const withContext = ref(false)
     const latestRequest = ref(0)
 
     const visible = computed(() =>
@@ -125,14 +126,16 @@ export function useProblemList() {
         if (next.has(id)) next.delete(id)
         else next.add(id)
         selected.value = next
+        if (next.size === 0) withContext.value = false
     }
 
     function sendSelected() {
         if (selected.value.size === 0) return Promise.resolve()
         return run(async () => {
-            const queued = await beacon.sendProblems([...selected.value])
+            const queued = await beacon.sendProblems([...selected.value], withContext.value)
             result.value = t('beacon.queued', {count: queued})
             selected.value = new Set()
+            withContext.value = false
         })
     }
 
@@ -150,7 +153,7 @@ export function useProblemList() {
     onMounted(() => load())
 
     return {
-        refusals, state, level, entries, visible, loading, failure, result, selected,
+        refusals, state, level, entries, visible, loading, failure, result, selected, withContext,
         errorCount, warnCount, canResolveAll,
         showKind, showState, toggleLevel, change, resolveAll, toggleSelected, sendSelected, requestDelete,
         deletion,

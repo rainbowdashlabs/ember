@@ -51,7 +51,7 @@ public class ProblemLogService implements TaskSource {
     static final int CONTEXT_BEFORE_LINES = 50;
 
     /** How far after an occurrence its surrounding lines reach, and how many of them at most. */
-    static final Duration CONTEXT_AFTER = Duration.ofSeconds(5);
+    public static final Duration CONTEXT_AFTER = Duration.ofSeconds(5);
 
     static final int CONTEXT_AFTER_LINES = 10;
 

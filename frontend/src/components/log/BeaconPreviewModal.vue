@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -14,13 +14,14 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import CoverablePicture from '@/components/problem/CoverablePicture.vue'
 import {beacon} from '@/api'
 import client from '@/api/client'
 import {flatten, pictureFrom, useCovers} from '@/composables/useScreenCapture'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import type {ProblemPayload, ReportPayload} from '@/api/generated/schema'
-import {describeFailure, FailureKind} from '@/util/failure'
+import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
 /**
  * Exactly what would leave this instance, shown before it does.
@@ -46,12 +47,22 @@ const emit = defineEmits<{sent: []}>()
 const {t} = useI18n()
 const payload = ref<ProblemPayload | ReportPayload | null>(null)
 
+/** Whether a fault takes the log lines around it along. Off until the reader ticks it, every time. */
+const withContext = ref(false)
+
+/** The occurrence the previewed lines surround, which the send names so the lines shown are the lines sent. */
+const contextAt = ref<string | null>(null)
+
+/** Lines were asked for, but the log kept none around the fault, so none go. */
+const noLinesKept = computed(() => props.kind === 'problem' && withContext.value && payload.value != null
+    && (payload.value as ProblemPayload).context == null)
+
 /**
  * The instance took nothing because its queue is full, which is a wait rather than a fault. Saying so
  * without offering a bug report is the point: nothing here is broken and nothing needs reporting.
  */
 function notQueued() {
-  failure.value = {
+  sendFailure.value = {
     kind: FailureKind.TOO_OFTEN,
     message: t('beacon.notQueued'),
     guidance: t('beacon.notQueuedGuidance'),
@@ -72,6 +83,9 @@ async function pictureOfReport(id: number): Promise<HTMLCanvasElement | null> {
   }
 }
 
+/** What went wrong sending, apart from the preview's own failure, so a failed send can be tried again. */
+const sendFailure = ref<Failure | null>(null)
+
 const {loading, failure, reload: preview} = useAsyncLoader(async (isCurrent) => {
   const id = props.entryId
   if (id == null) return
@@ -81,14 +95,28 @@ const {loading, failure, reload: preview} = useAsyncLoader(async (isCurrent) => 
   const shot = props.kind === 'report' && props.hasPicture ? await pictureOfReport(id) : null
   if (!isCurrent()) return
   picture.value = shot
-  const answer = props.kind === 'problem'
-      ? await beacon.previewProblem(id)
-      : await beacon.previewReportPayload(id)
+  if (props.kind === 'problem') {
+    const preview = await beacon.previewProblem(id, withContext.value)
+    if (!isCurrent()) return
+    contextAt.value = preview.contextAt ?? null
+    payload.value = preview.payload
+    return
+  }
+  const answer = await beacon.previewReportPayload(id)
   if (isCurrent()) payload.value = answer
 }, {autoLoad: false})
 
 watch(open, value => {
-  if (value && props.entryId != null) void preview()
+  if (!value) return
+  withContext.value = false
+  sendFailure.value = null
+  if (props.entryId != null) void preview()
+})
+
+watch(withContext, () => {
+  payload.value = null
+  contextAt.value = null
+  if (open.value && props.entryId != null) void preview()
 })
 
 /**
@@ -107,13 +135,13 @@ watch(open, value => {
 async function send(withPicture = true) {
   if (props.entryId == null) return
   sending.value = true
-  failure.value = null
+  sendFailure.value = null
   try {
     const covered = withPicture && picture.value && covers.value.length > 0
         ? await flatten(picture.value, covers.value)
         : null
     const queued = props.kind === 'problem'
-        ? await beacon.sendProblem(props.entryId)
+        ? await beacon.sendProblem(props.entryId, withContext.value ? contextAt.value : null)
         : await beacon.sendReportToBeacon(props.entryId, {
           screenshot: covered,
           dropScreenshot: !withPicture,
@@ -125,7 +153,7 @@ async function send(withPicture = true) {
     emit('sent')
     open.value = false
   } catch (e) {
-    failure.value = describeFailure(e, t)
+    sendFailure.value = describeFailure(e, t)
   } finally {
     sending.value = false
   }
@@ -138,8 +166,15 @@ async function send(withPicture = true) {
       <SubHeader>{{ t('beacon.previewTitle') }}</SubHeader>
       <MutedText tag="p" size="sm">{{ t('beacon.previewHint') }}</MutedText>
 
+      <label v-if="kind === 'problem'" class="flex items-center gap-2 text-sm">
+        <CheckboxInput v-model="withContext" data-testid="beacon-with-context"/>
+        {{ t('beacon.withContext') }}
+      </label>
+      <MutedText v-if="kind === 'problem'" tag="p" size="sm">{{ t('beacon.withContextHint') }}</MutedText>
+      <MutedText v-if="noLinesKept" tag="p" size="sm" data-testid="beacon-no-lines-kept">{{ t('beacon.noLinesKept') }}</MutedText>
+
       <Spinner v-if="loading" size="md"/>
-      <FailureAlert :failure="failure"/>
+      <FailureAlert :failure="failure ?? sendFailure"/>
 
       <pre v-if="payload" class="max-h-96 overflow-auto rounded-lg bg-bg-light-accent/40 dark:bg-bg-dark-accent/40 p-4 text-xs whitespace-pre-wrap break-words">{{ JSON.stringify(payload, null, 2) }}</pre>
 
@@ -158,7 +193,7 @@ async function send(withPicture = true) {
         >
           {{ t('beacon.sendWithoutPicture') }}
         </SecondaryButton>
-        <PrimaryButton :disabled="!payload || sending" :icon="['fas', 'tower-broadcast']" @click="send(true)">
+        <PrimaryButton :disabled="!payload || sending || loading || failure != null" :icon="['fas', 'tower-broadcast']" @click="send(true)">
           {{ sending ? t('common.loading') : t('beacon.send') }}
         </PrimaryButton>
       </ButtonRow>

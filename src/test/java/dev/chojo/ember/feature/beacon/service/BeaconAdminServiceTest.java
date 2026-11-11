@@ -135,18 +135,19 @@ class BeaconAdminServiceTest {
         when(config.url()).thenReturn("https://beacon.test");
 
         var status = service.update(new BeaconSettingsRequest(
-                true, "https://beacon.test", true, false, true, false, false, "Mara", "m@test"));
+                true, "https://beacon.test", true, false, true, true, false, false, "Mara", "m@test"));
 
-        verify(config).update(true, "https://beacon.test", true, false, true, false, false, "Mara", "m@test");
+        verify(config).update(true, "https://beacon.test", true, false, true, true, false, false, "Mara", "m@test");
         assertEquals("https://beacon.test", status.url());
     }
 
     @Test
     void problemsAreSentOnlyByABeaconThatIsSetUp() {
-        assertEquals(BeaconRefusal.BEACON_NOT_SET_UP, refusalOf(() -> service.sendProblem(1)));
+        assertEquals(BeaconRefusal.BEACON_NOT_SET_UP, refusalOf(() -> service.sendProblem(1, null)));
         when(config.enabled()).thenReturn(true);
-        assertEquals(BeaconRefusal.BEACON_NOTHING_CHOSEN_TO_SEND, refusalOf(() -> service.sendProblems(List.of())));
-        assertEquals(BeaconRefusal.BEACON_NOTHING_CHOSEN_TO_SEND, refusalOf(() -> service.sendProblems(null)));
+        assertEquals(
+                BeaconRefusal.BEACON_NOTHING_CHOSEN_TO_SEND, refusalOf(() -> service.sendProblems(List.of(), false)));
+        assertEquals(BeaconRefusal.BEACON_NOTHING_CHOSEN_TO_SEND, refusalOf(() -> service.sendProblems(null, false)));
     }
 
     @Test
@@ -156,16 +157,17 @@ class BeaconAdminServiceTest {
         var second = problem(2);
         when(problemLog.find(1)).thenReturn(Optional.of(first));
         when(problemLog.find(2)).thenReturn(Optional.of(second));
-        when(reports.send(any(), eq("1.2.3"))).thenReturn(true);
-        when(reports.sendAll(any(), eq("1.2.3"))).thenReturn(1);
+        Instant shown = Instant.parse("2026-11-01T10:00:00Z");
+        when(reports.sendAsShown(any(), eq("1.2.3"), eq(shown))).thenReturn(true);
+        when(reports.sendAll(any(), eq("1.2.3"), eq(true))).thenReturn(1);
 
-        service.previewProblem(1);
-        assertEquals(1, service.sendProblem(2).queued());
-        assertEquals(1, service.sendProblems(List.of(2L)).queued());
-        assertEquals(BeaconRefusal.BEACON_PROBLEM_NOT_HERE, refusalOf(() -> service.previewProblem(9)));
+        service.previewProblem(1, true);
+        assertEquals(1, service.sendProblem(2, shown).queued());
+        assertEquals(1, service.sendProblems(List.of(2L), true).queued());
+        assertEquals(BeaconRefusal.BEACON_PROBLEM_NOT_HERE, refusalOf(() -> service.previewProblem(9, false)));
 
-        verify(reports).payloadFor(first, "1.2.3");
-        verify(reports).sendAll(List.of(second), "1.2.3");
+        verify(reports).previewFor(first, "1.2.3", true);
+        verify(reports).sendAll(List.of(second), "1.2.3", true);
     }
 
     @Test

@@ -1549,6 +1549,36 @@
         }
       }
     },
+    "/api/v1/admin/beacon/collected/faults/{id}/context" : {
+      "get" : {
+        "summary" : "The log lines instances sent with one gathered fault, the newest first",
+        "tags" : [ "Beacon" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BeaconProblemContext"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/admin/beacon/collected/figures" : {
       "get" : {
         "summary" : "The bucketed figures this beacon collected over the last days",
@@ -1687,6 +1717,13 @@
             }
           }
         },
+        "parameters" : [ {
+          "name" : "withContext",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -1708,7 +1745,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/ProblemPayload"
+                  "$ref" : "#/components/schemas/ProblemPreview"
                 }
               }
             }
@@ -1721,6 +1758,12 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "withContext",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
           }
         } ]
       }
@@ -1748,6 +1791,12 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "contextAt",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
           }
         } ]
       }
@@ -51624,6 +51673,33 @@
         },
         "required" : [ "metricsUid", "subject", "day", "members", "accounts", "stations", "inventory" ]
       },
+      "BeaconProblemContext" : {
+        "type" : "object",
+        "properties" : {
+          "instanceId" : {
+            "type" : "string"
+          },
+          "contactName" : {
+            "type" : [ "string", "null" ]
+          },
+          "version" : {
+            "type" : [ "string", "null" ]
+          },
+          "occurredAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "receivedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "lines" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LogLinePayload"
+            }
+          }
+        },
+        "required" : [ "instanceId", "contactName", "version", "occurredAt", "receivedAt", "lines" ]
+      },
       "BeaconReport" : {
         "type" : "object",
         "properties" : {
@@ -51689,6 +51765,9 @@
           "forwardReports" : {
             "type" : "boolean"
           },
+          "forwardLogContext" : {
+            "type" : "boolean"
+          },
           "reviewReportPictures" : {
             "type" : "boolean"
           },
@@ -51721,6 +51800,9 @@
           "forwardReports" : {
             "type" : "boolean"
           },
+          "forwardLogContext" : {
+            "type" : "boolean"
+          },
           "reviewReportPictures" : {
             "type" : "boolean"
           },
@@ -51737,7 +51819,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "enabled", "url", "forwardProblems", "forwardReports", "reviewReportPictures", "metricsEnabled", "receiving", "contactName", "contactMail" ]
+        "required" : [ "enabled", "url", "forwardProblems", "forwardReports", "forwardLogContext", "reviewReportPictures", "metricsEnabled", "receiving", "contactName", "contactMail" ]
       },
       "BindRequest" : {
         "type" : "object",
@@ -65851,6 +65933,27 @@
         },
         "required" : [ "value", "count" ]
       },
+      "LogLinePayload" : {
+        "type" : "object",
+        "properties" : {
+          "loggedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "level" : {
+            "type" : "string"
+          },
+          "logger" : {
+            "type" : "string"
+          },
+          "thread" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "loggedAt", "level", "logger", "thread", "message" ]
+      },
       "LogPageResponse" : {
         "type" : "object",
         "properties" : {
@@ -71844,9 +71947,31 @@
           },
           "lastOccurrence" : {
             "$ref" : "#/components/schemas/Instant"
+          },
+          "context" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LogLinePayload"
+            }
           }
         },
         "required" : [ "envelope", "version", "contactName", "contactMail", "fingerprint", "level", "logger", "exceptionClass", "message", "frames", "occurrences", "firstOccurrence", "lastOccurrence" ]
+      },
+      "ProblemPreview" : {
+        "type" : "object",
+        "properties" : {
+          "payload" : {
+            "$ref" : "#/components/schemas/ProblemPayload"
+          },
+          "contextAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "payload", "contextAt" ]
       },
       "ProblemReport" : {
         "type" : "object",

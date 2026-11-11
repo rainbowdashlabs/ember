@@ -2216,6 +2216,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/beacon/collected/faults/{id}/context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The log lines instances sent with one gathered fault, the newest first */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BeaconProblemContext"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/beacon/collected/figures": {
         parameters: {
             query?: never;
@@ -2412,7 +2450,9 @@ export interface paths {
         /** What one problem would travel as */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    withContext?: boolean;
+                };
                 header?: never;
                 path: {
                     id: number;
@@ -2427,7 +2467,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ProblemPayload"];
+                        "application/json": components["schemas"]["ProblemPreview"];
                     };
                 };
             };
@@ -2452,7 +2492,9 @@ export interface paths {
         /** Send one problem to the beacon */
         post: {
             parameters: {
-                query?: never;
+                query?: {
+                    contextAt?: string;
+                };
                 header?: never;
                 path: {
                     id: number;
@@ -2490,7 +2532,9 @@ export interface paths {
         /** Send the chosen problems to the beacon */
         post: {
             parameters: {
-                query?: never;
+                query?: {
+                    withContext?: boolean;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -64841,6 +64885,14 @@ export interface components {
             stations: string | null;
             subject: string;
         };
+        BeaconProblemContext: {
+            contactName: string | null;
+            instanceId: string;
+            lines: components["schemas"]["LogLinePayload"][];
+            occurredAt: components["schemas"]["Instant"];
+            receivedAt: components["schemas"]["Instant"];
+            version: string | null;
+        };
         BeaconReport: {
             acknowledged: boolean;
             browser: string | null;
@@ -64863,6 +64915,7 @@ export interface components {
             contactMail?: string;
             contactName?: string;
             enabled?: boolean;
+            forwardLogContext?: boolean;
             forwardProblems?: boolean;
             forwardReports?: boolean;
             metricsEnabled?: boolean;
@@ -64874,6 +64927,7 @@ export interface components {
             contactMail: string;
             contactName: string;
             enabled: boolean;
+            forwardLogContext: boolean;
             forwardProblems: boolean;
             forwardReports: boolean;
             metricsEnabled: boolean;
@@ -69835,6 +69889,13 @@ export interface components {
         LoginResultResponse: {
             expiresAt: components["schemas"]["Instant"];
         };
+        LogLinePayload: {
+            level: string;
+            loggedAt: components["schemas"]["Instant"];
+            logger: string;
+            message: string;
+            thread: string;
+        };
         LogPageResponse: {
             entries: components["schemas"]["LogEntryResponse"][];
             /** Format: int32 */
@@ -71817,6 +71878,7 @@ export interface components {
         ProblemPayload: {
             contactMail: string | null;
             contactName: string | null;
+            context?: components["schemas"]["LogLinePayload"][];
             envelope: components["schemas"]["Envelope"];
             exceptionClass: string | null;
             fingerprint: string;
@@ -71829,6 +71891,10 @@ export interface components {
             /** Format: int32 */
             occurrences: number;
             version: string;
+        };
+        ProblemPreview: {
+            contextAt: components["schemas"]["Instant"] | null;
+            payload: components["schemas"]["ProblemPayload"];
         };
         ProblemReport: {
             acknowledged: boolean;
@@ -76474,6 +76540,7 @@ export type BatchStartRequest = components['schemas']['BatchStartRequest'];
 export type BatchStartResponse = components['schemas']['BatchStartResponse'];
 export type BeaconFault = components['schemas']['BeaconFault'];
 export type BeaconMetricsRow = components['schemas']['BeaconMetricsRow'];
+export type BeaconProblemContext = components['schemas']['BeaconProblemContext'];
 export type BeaconReport = components['schemas']['BeaconReport'];
 export type BeaconSettingsRequest = components['schemas']['BeaconSettingsRequest'];
 export type BeaconStatus = components['schemas']['BeaconStatus'];
@@ -77165,6 +77232,7 @@ export type LoggingConfigRequest = components['schemas']['LoggingConfigRequest']
 export type LoginRequest = components['schemas']['LoginRequest'];
 export type LoginResponse = components['schemas']['LoginResponse'];
 export type LoginResultResponse = components['schemas']['LoginResultResponse'];
+export type LogLinePayload = components['schemas']['LogLinePayload'];
 export type LogPageResponse = components['schemas']['LogPageResponse'];
 export type LookAndFeelRequest = components['schemas']['LookAndFeelRequest'];
 export type Lookup = components['schemas']['Lookup'];
@@ -77455,6 +77523,7 @@ export type ProblemContextState = components['schemas']['ProblemContextState'];
 export type ProblemLevel = components['schemas']['ProblemLevel'];
 export type ProblemOccurrence = components['schemas']['ProblemOccurrence'];
 export type ProblemPayload = components['schemas']['ProblemPayload'];
+export type ProblemPreview = components['schemas']['ProblemPreview'];
 export type ProblemReport = components['schemas']['ProblemReport'];
 export type ProblemState = components['schemas']['ProblemState'];
 export type Procedure = components['schemas']['Procedure'];

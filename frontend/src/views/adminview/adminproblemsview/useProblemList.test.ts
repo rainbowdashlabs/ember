@@ -174,4 +174,30 @@ describe('useProblemList', () => {
 
         expect(api.deleteProblem).toHaveBeenCalledWith(1)
     })
+
+    it('sends the picked problems with their lines only when that was ticked', async () => {
+        const list = await mounted()
+        api.sendProblems.mockResolvedValue(2)
+        list.toggleSelected(1)
+        list.toggleSelected(2)
+
+        await list.sendSelected()
+        expect(api.sendProblems).toHaveBeenLastCalledWith([1, 2], false)
+
+        list.toggleSelected(1)
+        list.withContext.value = true
+        await list.sendSelected()
+        expect(api.sendProblems).toHaveBeenLastCalledWith([1], true)
+        expect(list.withContext.value).toBe(false)
+    })
+
+    it('forgets the ticked lines once nothing is picked any more', async () => {
+        const list = await mounted()
+        list.toggleSelected(1)
+        list.withContext.value = true
+
+        list.toggleSelected(1)
+
+        expect(list.withContext.value).toBe(false)
+    })
 })

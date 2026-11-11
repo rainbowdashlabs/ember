@@ -5,11 +5,17 @@
  */
 package dev.chojo.ember.feature.beacon.service;
 
+import dev.chojo.ember.api.refusal.BeaconRefusal;
+import dev.chojo.ember.api.refusal.BodyRefusal;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import dev.chojo.ember.feature.discovery.service.DiscoveryHttpClient;
+import dev.chojo.ember.feature.system.entity.ProblemContext;
+import dev.chojo.ember.feature.system.entity.ProblemContextLine;
+import dev.chojo.ember.feature.system.entity.ProblemContextState;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
 import dev.chojo.ember.feature.system.entity.StoredProblem;
 import dev.chojo.ember.feature.system.service.ProblemLogFlusher;
+import dev.chojo.ember.feature.system.service.ProblemLogService;
 import dev.chojo.ember.lifecycle.SerialLane;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.util.Json;
@@ -20,11 +26,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -54,9 +66,27 @@ public class BeaconReportService {
 
     private static final int MAX_MESSAGE_CHARS = 4000;
 
-    /** A mail address, which is the one thing in a message that is a person and never a diagnosis. */
-    private static final Pattern MAIL_ADDRESS =
-            Pattern.compile("[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+", Pattern.CASE_INSENSITIVE);
+    /** How long a log line sent with a fault may run. */
+    static final int MAX_LINE_CHARS = 1000;
+
+    /**
+     * How many characters the lines sent with one fault hold together, well inside the 64 KiB a beacon
+     * reads of one delivery, with room for the fault's own words and frames.
+     */
+    static final int CONTEXT_BUDGET = 24_000;
+
+    /** What one line costs on top of its texts: its time, its level and the keys around them. */
+    private static final int LINE_OVERHEAD = 100;
+
+    /** The levels a line must have to leave the instance. */
+    private static final Set<String> SENT_LEVELS = Set.of("INFO", "WARN", "ERROR");
+
+    /**
+     * How long an automatic forward with lines waits after the fault was written: the window after the
+     * occurrence, plus the time the stored log takes to write what was logged in it, plus a margin.
+     * Sent sooner, the lines after the fault would be missing.
+     */
+    static final Duration CONTEXT_DELAY = ProblemLogService.CONTEXT_AFTER.plusSeconds(5);
 
     /** How the screen writes down one call it made, which is what a query has to be taken out of. */
     private static final Pattern REQUEST_URL = Pattern.compile("\"url\"\\s*:\\s*\"([^\"]*)\"");
@@ -64,15 +94,26 @@ public class BeaconReportService {
     private final BeaconSettings config;
     private final DiscoveryHttpClient httpClient;
     private final SelfDelivery self;
+    private final TaskScheduler scheduler;
     private final SerialLane lane;
+    private final BeaconRedaction redaction;
+    private final ProblemLogService problemLog;
 
     @Inject
     public BeaconReportService(
-            BeaconSettings config, DiscoveryHttpClient httpClient, SelfDelivery self, TaskScheduler scheduler) {
+            BeaconSettings config,
+            DiscoveryHttpClient httpClient,
+            SelfDelivery self,
+            TaskScheduler scheduler,
+            BeaconRedaction redaction,
+            ProblemLogService problemLog) {
         this.config = config;
         this.httpClient = httpClient;
         this.self = self;
+        this.scheduler = scheduler;
         this.lane = scheduler.lane("beacon-sender", QUEUE_CAPACITY);
+        this.redaction = redaction;
+        this.problemLog = problemLog;
     }
 
     /**
@@ -110,12 +151,23 @@ public class BeaconReportService {
      * would mean an operator switching forwarding on had to restart before anything went, which is
      * the whole reason these settings are stored rather than configured.
      *
+     * <p>Where the operator also asked for the log lines around a fault, the send waits
+     * {@link #CONTEXT_DELAY}, so the lines logged just after the fault have reached the stored log. Both
+     * switches are asked again when it goes, so turning either off in the meantime is honoured.
+     *
      * @param problems the problem log's writer, which says when a problem is new
      * @param version  this instance's version
      */
     public void startForwarding(ProblemLogFlusher problems, String version) {
         problems.onNewOrReopened(problem -> {
-            if (config.forwardProblems()) send(problem, version);
+            if (!config.forwardProblems()) return;
+            if (!config.forwardLogContext()) {
+                send(problem, version, false);
+                return;
+            }
+            scheduler.later("beacon-problem-context", CONTEXT_DELAY, () -> {
+                if (config.forwardProblems()) send(problem, version, config.forwardLogContext());
+            });
         });
     }
 
@@ -126,12 +178,43 @@ public class BeaconReportService {
      * what failed, and what failed is sometimes somebody's address, so the only honest way to ask
      * for consent is to show the bytes.
      *
-     * @param entry   the problem as the local log holds it
-     * @param version this instance's version
+     * <p>Every text in it goes through one {@link BeaconRedaction.Redactor}, the words the fault was
+     * logged with as much as the lines around it, so both follow one rule.
+     *
+     * @param entry       the problem as the local log holds it
+     * @param version     this instance's version
+     * @param withContext whether the log lines around its latest occurrence go with it
      * @return the payload, ready to be shown or sent
      */
-    public BeaconPayloads.ProblemPayload payloadFor(StoredProblem entry, String version) {
-        return new BeaconPayloads.ProblemPayload(
+    public BeaconPayloads.ProblemPayload payloadFor(StoredProblem entry, String version, boolean withContext) {
+        return previewFor(entry, version, withContext).payload();
+    }
+
+    /**
+     * The payload one problem would be sent as, and the occurrence its lines surround, so that sending
+     * it later can send the lines that were shown rather than those around a newer occurrence.
+     *
+     * @param entry       the problem as the local log holds it
+     * @param version     this instance's version
+     * @param withContext whether the log lines around its latest occurrence go with it
+     * @return the payload and the occurrence, which is null where no lines go
+     */
+    public ProblemPreview previewFor(StoredProblem entry, String version, boolean withContext) {
+        return build(entry, version, withContext, null, redaction.redactor());
+    }
+
+    private ProblemPreview build(
+            StoredProblem entry,
+            String version,
+            boolean withContext,
+            @Nullable Instant at,
+            BeaconRedaction.Redactor redactor) {
+        var context = withContext ? problemLog.context(entry.id(), at, false) : null;
+        var lines = context == null || !isAround(context, at) ? null : linesOf(context, redactor);
+        Instant around = lines == null
+                ? null
+                : context.occurrences().get(context.occurrence()).occurredAt();
+        var payload = new BeaconPayloads.ProblemPayload(
                 envelope(),
                 version,
                 blankToNull(config.contactName()),
@@ -140,12 +223,84 @@ public class BeaconReportService {
                 entry.level().name(),
                 entry.logger(),
                 entry.exceptionClass(),
-                wordsOf(entry),
+                wordsOf(entry, redactor),
                 String.join("\n", BeaconFingerprint.frameNames(entry.stacktrace())),
                 (int) Math.min(Integer.MAX_VALUE, entry.count()),
                 entry.firstSeen(),
-                entry.lastSeen());
+                entry.lastSeen(),
+                lines);
+        return new ProblemPreview(payload, around);
     }
+
+    /**
+     * Whether the lines are around the occurrence that was asked for. One no longer kept, which a fault
+     * recurring while its preview was read pushes out, is answered with the newest instead; those are
+     * lines nobody was shown, so then none go.
+     */
+    private static boolean isAround(ProblemContext context, @Nullable Instant at) {
+        if (at == null || context.occurrences().isEmpty()) return true;
+        boolean same =
+                context.occurrences().get(context.occurrence()).occurredAt().equals(at);
+        if (!same) log.info("The occurrence a preview showed is no longer kept; sending the fault without lines");
+        return same;
+    }
+
+    /**
+     * The stored lines around an occurrence as they may leave: at INFO and above only, since DEBUG and
+     * TRACE carry request bodies and dumps nobody outside should read; redacted; each cut to
+     * {@link #MAX_LINE_CHARS}; and, where together they would outgrow {@link #CONTEXT_BUDGET}, the
+     * lines furthest from the occurrence left out first, so a delivery always fits what a beacon reads.
+     *
+     * @return the lines oldest first, or null where none are kept, so nothing is sent rather than an
+     *     empty list
+     */
+    private static @Nullable List<BeaconPayloads.LogLinePayload> linesOf(
+            ProblemContext context, BeaconRedaction.Redactor redactor) {
+        if (context.state() != ProblemContextState.LINES) return null;
+        List<ProblemContextLine> lines = context.lines().stream()
+                .filter(line -> SENT_LEVELS.contains(line.level()))
+                .toList();
+        if (lines.isEmpty()) return null;
+        Instant at = context.occurrences().get(context.occurrence()).occurredAt();
+        var redacted = new ArrayList<BeaconPayloads.LogLinePayload>(lines.size());
+        for (var line : lines) {
+            redacted.add(new BeaconPayloads.LogLinePayload(
+                    line.loggedAt(),
+                    line.level(),
+                    line.logger(),
+                    cut(redactor.redact(line.thread()), MAX_LINE_CHARS),
+                    cut(redactor.redact(line.message()), MAX_LINE_CHARS)));
+        }
+        var closestFirst = new ArrayList<>(redacted);
+        closestFirst.sort(Comparator.comparing(
+                line -> Duration.between(line.loggedAt(), at).abs()));
+        Set<BeaconPayloads.LogLinePayload> kept = Collections.newSetFromMap(new IdentityHashMap<>());
+        int used = 0;
+        for (var line : closestFirst) {
+            int size = line.message().length()
+                    + line.thread().length()
+                    + line.logger().length()
+                    + LINE_OVERHEAD;
+            if (used + size > CONTEXT_BUDGET) break;
+            used += size;
+            kept.add(line);
+        }
+        return redacted.stream().filter(kept::contains).toList();
+    }
+
+    private static String cut(@Nullable String text, int limit) {
+        if (text == null) return "";
+        return text.length() > limit ? text.substring(0, limit) : text;
+    }
+
+    /**
+     * A payload as it was shown, and the occurrence its lines surround.
+     *
+     * @param payload    what would be sent
+     * @param contextAt  when the occurrence the lines surround happened, or null where no lines go
+     */
+    public record ProblemPreview(
+            BeaconPayloads.ProblemPayload payload, @Nullable Instant contextAt) {}
 
     /**
      * What the fault was logged with, which is most of what names it.
@@ -156,12 +311,11 @@ public class BeaconReportService {
      * because the same fingerprint often covers "failed: HTTP 409" and "failed: HTTP 500" and the
      * difference between them is the whole of the diagnosis.
      *
-     * <p>Mail addresses are taken out. A message quotes what failed and sometimes what failed is a
-     * person's address, and unlike a path or an identifier it is never the thing that names the
-     * fault. Everything else is left as it was written: an address inside the product, an
-     * identifier, a status code, all of which are what makes a fault findable again.
+     * <p>Mail addresses, identifiers and the names of accounts are taken out by {@link BeaconRedaction}.
+     * A message quotes what failed and sometimes what failed is a person, which is never the thing
+     * that names the fault.
      */
-    private static String wordsOf(StoredProblem entry) {
+    private static String wordsOf(StoredProblem entry, BeaconRedaction.Redactor redactor) {
         var words = new LinkedHashSet<String>();
         String exceptionMessage = entry.exceptionMessage();
         if (exceptionMessage != null && !exceptionMessage.isBlank()) {
@@ -172,33 +326,65 @@ public class BeaconReportService {
             if (words.size() >= MAX_DISTINCT_MESSAGES) break;
         }
         String joined = String.join("\n", words);
-        String withoutMail = MAIL_ADDRESS.matcher(joined).replaceAll("[mail]");
-        return withoutMail.length() > MAX_MESSAGE_CHARS ? withoutMail.substring(0, MAX_MESSAGE_CHARS) : withoutMail;
+        return cut(redactor.redact(joined), MAX_MESSAGE_CHARS);
     }
 
     /**
      * Queues one problem for its beacon. Returns at once; the sending happens on the lane.
      *
-     * @param entry   the problem being forwarded
-     * @param version this instance's version
+     * <p>The payload is built on the lane, when it goes, so the lines sent with it are the ones the
+     * stored log holds by then.
+     *
+     * @param entry       the problem being forwarded
+     * @param version     this instance's version
+     * @param withContext whether the log lines around it go with it
      * @return whether it was queued, false when the queue is full or reporting is off
      */
-    public boolean send(StoredProblem entry, String version) {
+    public boolean send(StoredProblem entry, String version, boolean withContext) {
+        return send(entry, version, withContext, null, null);
+    }
+
+    /**
+     * Queues one problem with the lines around the occurrence an operator was shown.
+     *
+     * @param entry     the problem being forwarded
+     * @param version   this instance's version
+     * @param contextAt the occurrence the shown lines surround, or null to send no lines
+     * @return whether it was queued
+     */
+    public boolean sendAsShown(StoredProblem entry, String version, @Nullable Instant contextAt) {
+        return send(entry, version, contextAt != null, contextAt, null);
+    }
+
+    private boolean send(
+            StoredProblem entry,
+            String version,
+            boolean withContext,
+            @Nullable Instant at,
+            BeaconRedaction.@Nullable Redactor shared) {
         if (!config.enabled()) return false;
-        return enqueue(() -> deliver("/api/v1/beacon/problems", payloadFor(entry, version)));
+        return enqueue(() -> {
+            var redactor = shared == null ? redaction.redactor() : shared;
+            deliver(
+                    "/api/v1/beacon/problems",
+                    build(entry, version, withContext, at, redactor).payload());
+        });
     }
 
     /**
      * Queues a set of problems, which is what the list's own action sends.
      *
-     * @param entries the problems being forwarded
-     * @param version this instance's version
+     * @param entries     the problems being forwarded
+     * @param version     this instance's version
+     * @param withContext whether the log lines around each go with it
      * @return how many were queued
      */
-    public int sendAll(List<StoredProblem> entries, String version) {
+    public int sendAll(List<StoredProblem> entries, String version, boolean withContext) {
+        if (entries.isEmpty()) return 0;
+        var redactor = redaction.redactor();
         int queued = 0;
         for (var entry : entries) {
-            if (send(entry, version)) queued++;
+            if (send(entry, version, withContext, null, redactor)) queued++;
         }
         return queued;
     }
@@ -326,6 +512,11 @@ public class BeaconReportService {
             log.warn("The beacon at {} could not be reached for {}", config.url(), path);
             return;
         }
+        if (refusedTheLines(payload, answer.get())) {
+            log.info("The beacon at {} does not take log lines yet; sending the fault without them", config.url());
+            deliver(path, ((BeaconPayloads.ProblemPayload) payload).withoutContext(envelope()));
+            return;
+        }
         if (!answer.get().accepted()) {
             log.warn(
                     "The beacon at {} answered {} for {}: {}",
@@ -334,6 +525,19 @@ public class BeaconReportService {
                     path,
                     answer.get().body());
         }
+    }
+
+    /**
+     * Whether a beacon turned a fault away for the lines it carried: one from before lines were sent
+     * refuses any field it does not know, and any beacon refuses a delivery larger than it reads.
+     */
+    private static boolean refusedTheLines(Object payload, DiscoveryHttpClient.Answer answer) {
+        return payload instanceof BeaconPayloads.ProblemPayload problem
+                && problem.context() != null
+                && answer.status() == 400
+                && answer.body() != null
+                && (answer.body().contains(BodyRefusal.BODY_UNEXPECTED_FIELD.code())
+                        || answer.body().contains(BeaconRefusal.BEACON_INTAKE_TOO_LARGE.code()));
     }
 
     /**

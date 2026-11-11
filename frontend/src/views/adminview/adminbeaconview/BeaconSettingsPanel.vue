@@ -78,6 +78,18 @@ async function save() {
         <ToggleInput v-model="form.forwardProblems" :disabled="!form.enabled"/>
         {{ t('beacon.forwardProblems') }}
       </label>
+      <div class="space-y-1 pl-6">
+        <label class="flex items-center gap-2 text-sm">
+          <ToggleInput
+              v-model="form.forwardLogContext"
+              :disabled="!form.enabled || !form.forwardProblems"
+              aria-describedby="beacon-forward-log-context-hint"
+              data-testid="beacon-forward-log-context"
+          />
+          {{ t('beacon.forwardLogContext') }}
+        </label>
+        <MutedText id="beacon-forward-log-context-hint" class="block text-xs">{{ t('beacon.forwardLogContextHint') }}</MutedText>
+      </div>
       <label class="flex items-center gap-2 text-sm">
         <ToggleInput v-model="form.forwardReports" :disabled="!form.enabled"/>
         {{ t('beacon.forwardReports') }}
