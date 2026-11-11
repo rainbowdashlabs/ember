@@ -21,6 +21,8 @@ Every count on the overview opens the matching list, and failed mails can be rea
 - **Log lines around a problem.** Where the application log is stored in the database, an opened problem shows the lines of its thread from 30 seconds before to 5 seconds after it, with its own line marked. All threads and each of its last five occurrences can be shown on request.
 - **Problems can go to a beacon with their log lines.** Sending a problem by hand offers to include the lines around it, shown in the preview exactly as they leave. The new beacon switch "Send log lines automatically", off by default, adds them to problems forwarded on their own.
 - **A beacon shows the lines sent with a fault.** Each entry of a beacon's fault log opens with the log lines every instance sent, by instance and occurrence.
+- **Console logs a log collector can read.** The new `LOG_FORMAT` environment variable set to `json` makes the backend write one JSON object per log entry to the console, stack trace included. Collectors such as Loki then keep the trace with its line instead of storing every line on its own.
+- **Failed database queries say what failed.** The log line of a failed query carries the database's own error instead of only "Database query error".
 - **Group member types warn while they are chosen.** Narrowing a group to member types lists the members who no longer fit right away, and the save button takes them out of the group.
 
 ### Security
@@ -37,6 +39,8 @@ Every count on the overview opens the matching list, and failed mails can be rea
 
 ### Fixes
 
+- **A second attendance template with the same name failed.** Creating or renaming an attendance template to a name another template of the station already had ended in an error. It is now refused with a message saying the name is taken.
+- **Stack traces said "at" twice.** Every line of a stack trace in the problem log and the stored application log started with "at at". Each line now says it once.
 - **Associations counted as stations awaiting setup.** The overview and the statistics counted each association as a station that still had to be set up. They count stations only.
 - **Accounts without an address counted as unconfirmed.** Accounts made for people without an email address raised the number of unconfirmed accounts, although they can never confirm one. They are no longer counted.
 - **Self-registration offered to members it was not meant for.** The sign-up button showed on member questions limited to a group, member type or tag, also for members outside it, and the click was then refused. It now appears only for members who may sign up, and an appointment past its registration deadline says so.

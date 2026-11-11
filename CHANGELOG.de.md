@@ -21,6 +21,8 @@ Jede Zahl der Übersicht öffnet die passende Liste, fehlgeschlagene E-Mails las
 - **Logzeilen um ein Problem.** Wird das Anwendungslog in der Datenbank gespeichert, zeigt ein aufgeklapptes Problem die Zeilen seines Threads von 30 Sekunden davor bis 5 Sekunden danach, die eigene Zeile markiert. Auf Wunsch zeigt es alle Threads und jedes seiner letzten fünf Vorkommen.
 - **Probleme können mit ihren Logzeilen an einen Beacon gehen.** Wer ein Problem von Hand sendet, kann die Logzeilen um das Problem mitsenden, und die Vorschau zeigt sie genau so, wie sie die Instanz verlassen. Der neue Beacon-Schalter „Logzeilen automatisch mitsenden“, standardmäßig aus, nimmt sie bei selbst weitergegebenen Problemen mit.
 - **Ein Beacon zeigt die mitgesendeten Logzeilen.** Jeder Eintrag seines Fehlerprotokolls zeigt beim Aufklappen die Zeilen, die jede Instanz mitgesendet hat, nach Instanz und Vorkommen.
+- **Konsolenlogs, die ein Log-Sammler lesen kann.** Steht die neue Umgebungsvariable `LOG_FORMAT` auf `json`, schreibt das Backend jeden Logeintrag als ein JSON-Objekt auf die Konsole, den Stacktrace darin. Sammler wie Loki behalten den Stacktrace dann bei seiner Zeile, statt jede Zeile einzeln abzulegen.
+- **Fehlgeschlagene Datenbankabfragen sagen, was fehlschlug.** Die Logzeile einer fehlgeschlagenen Abfrage enthält den Fehler der Datenbank selbst statt nur „Database query error“.
 - **Mitgliedstypen einer Gruppe warnen schon beim Auswählen.** Wer nicht mehr zu den gewählten Typen passt, steht sofort im Formular, und der Knopf zum Speichern nimmt diese Mitglieder aus der Gruppe.
 
 ### Sicherheit
@@ -37,6 +39,8 @@ Jede Zahl der Übersicht öffnet die passende Liste, fehlgeschlagene E-Mails las
 
 ### Fehlerbehebungen
 
+- **Eine zweite Anwesenheitsvorlage mit gleichem Namen schlug fehl.** Wer eine Anwesenheitsvorlage anlegte oder umbenannte und dabei einen Namen wählte, den eine andere Vorlage der Wache schon trug, bekam einen Fehler. Das wird jetzt mit dem Hinweis abgelehnt, dass der Name vergeben ist.
+- **Stacktraces sagten „at“ doppelt.** Jede Zeile eines Stacktraces im Problemprotokoll und im gespeicherten Anwendungslog begann mit „at at“. Jetzt steht es einmal da.
 - **Verbände zählten als Wachen, die auf die Einrichtung warten.** Übersicht und Statistik zählten jeden Verband als Wache, die noch eingerichtet werden muss. Sie zählen jetzt nur Wachen.
 - **Konten ohne Adresse zählten als unbestätigt.** Konten für Personen ohne E-Mail-Adresse erhöhten die Zahl unbestätigter Konten, obwohl sie nie eine bestätigen können. Sie werden nicht mehr gezählt.
 - **Selbsteintragung auch Mitgliedern außerhalb der Auswahl angeboten.** Der Knopf „Eintragen" erschien bei Mitgliederfragen, die auf eine Gruppe, einen Mitgliedstyp oder einen Tag beschränkt sind, auch für Mitglieder außerhalb davon, und der Klick wurde dann abgelehnt. Er erscheint jetzt nur noch für Mitglieder, die sich eintragen dürfen, und nach dem Anmeldeschluss steht dort, dass die Eintragung geschlossen ist.
