@@ -15740,7 +15740,9 @@ export interface paths {
         /** Change a question */
         put: {
             parameters: {
-                query?: never;
+                query?: {
+                    unlinkDependents?: boolean;
+                };
                 header?: never;
                 path: {
                     fieldId: number;
@@ -15760,13 +15762,24 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
             };
         };
         post?: never;
         /** Remove a question */
         delete: {
             parameters: {
-                query?: never;
+                query?: {
+                    unlinkDependents?: boolean;
+                };
                 header?: never;
                 path: {
                     fieldId: number;
@@ -15781,6 +15794,15 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
                 };
             };
         };
@@ -46421,7 +46443,9 @@ export interface paths {
         /** Update a profile field definition */
         put: {
             parameters: {
-                query?: never;
+                query?: {
+                    unlinkDependents?: boolean;
+                };
                 header?: never;
                 path: {
                     id: number;
@@ -46452,13 +46476,24 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
             };
         };
         post?: never;
         /** Delete a profile field definition */
         delete: {
             parameters: {
-                query?: never;
+                query?: {
+                    unlinkDependents?: boolean;
+                };
                 header?: never;
                 path: {
                     id: number;
@@ -46476,6 +46511,15 @@ export interface paths {
                 };
                 /** @description Not Found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };

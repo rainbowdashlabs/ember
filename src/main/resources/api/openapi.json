@@ -12384,6 +12384,16 @@
         "responses" : {
           "204" : {
             "description" : "No Content"
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -12393,6 +12403,12 @@
           "schema" : {
             "type" : "integer",
             "format" : "int32"
+          }
+        }, {
+          "name" : "unlinkDependents",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
           }
         } ],
         "requestBody" : {
@@ -12411,6 +12427,16 @@
         "responses" : {
           "204" : {
             "description" : "No Content"
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -12420,6 +12446,12 @@
           "schema" : {
             "type" : "integer",
             "format" : "int32"
+          }
+        }, {
+          "name" : "unlinkDependents",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
           }
         } ]
       }
@@ -36368,6 +36400,16 @@
                 }
               }
             }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -36377,6 +36419,12 @@
           "schema" : {
             "type" : "integer",
             "format" : "int32"
+          }
+        }, {
+          "name" : "unlinkDependents",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
           }
         } ],
         "requestBody" : {
@@ -36405,6 +36453,16 @@
                 }
               }
             }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -36414,6 +36472,12 @@
           "schema" : {
             "type" : "integer",
             "format" : "int32"
+          }
+        }, {
+          "name" : "unlinkDependents",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
           }
         } ]
       }

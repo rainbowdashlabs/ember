@@ -66,6 +66,27 @@ function configFor(
   return api as unknown as ReturnType<typeof useFieldsConfig>
 }
 
+/** The same, over a port a test hands in, so what it is asked to write can be read back. */
+function configOver(port: FieldsPort) {
+  let api: ReturnType<typeof useFieldsConfig> | null = null
+  mount(defineComponent({
+    setup() {
+      api = useFieldsConfig(port)
+      return () => null
+    },
+  }))
+  return api as unknown as ReturnType<typeof useFieldsConfig>
+}
+
+/** A yes/no question with a date shown only under it, and a question nothing depends on. */
+function licenceQuestions(): EditableField[] {
+  return [
+    field(1, 'JuLeiCa', FieldType.BOOLEAN),
+    {...field(2, 'JuLeiCa bis', FieldType.DATE), shownIfFieldId: 1},
+    field(3, 'Telefon', FieldType.TEXT),
+  ]
+}
+
 describe('useFieldsConfig', () => {
   /**
    * A station has one date of birth, whoever is asked it.
@@ -271,5 +292,37 @@ describe('useFieldsConfig', () => {
     })
 
     expect(dissolveSet).toHaveBeenCalledWith(7)
+  })
+  /** Deleting a question others are shown under takes their condition with it, and only then. */
+  it('asks to unlink only when deleting a question others depend on', async () => {
+    const remove = vi.fn(async () => undefined)
+    const config = configOver({...portOf(licenceQuestions(), []), remove})
+    await config.reload()
+
+    expect(config.dependentsOf(config.allFields.value[0] ?? null)).toEqual(['JuLeiCa bis'])
+
+    config.requestDelete(config.allFields.value[0]!)
+    await config.confirmDelete()
+    config.requestDelete(config.allFields.value[2]!)
+    await config.confirmDelete()
+
+    expect(remove).toHaveBeenNthCalledWith(1, 1, true)
+    expect(remove).toHaveBeenNthCalledWith(2, 3, false)
+  })
+
+  /** A yes/no question taking another type unlinks its dependents; keeping its type unlinks nothing. */
+  it('asks to unlink only when a yes/no question with dependents changes its type', async () => {
+    const update = vi.fn(async () => undefined)
+    const config = configOver({...portOf(licenceQuestions(), []), update})
+    await config.reload()
+    const flag = config.allFields.value[0]!
+
+    config.openEditField(flag)
+    await config.saveField({name: flag.name, fieldType: FieldType.BOOLEAN})
+    config.openEditField(flag)
+    await config.saveField({name: flag.name, fieldType: FieldType.DATE})
+
+    expect(update).toHaveBeenNthCalledWith(1, 1, expect.anything(), false)
+    expect(update).toHaveBeenNthCalledWith(2, 1, expect.anything(), true)
   })
 })

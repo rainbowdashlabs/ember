@@ -112,8 +112,28 @@ const fields = createCrudResource<ProfileField, EditableFieldRequest>('/profile-
 export const listFields = fields.list
 export const getField = fields.get
 export const createField = fields.create
-export const updateField = fields.update
-export const deleteField = fields.remove
+
+/**
+ * Changes a question. Asked to unlink its dependents, the questions shown only under it are shown
+ * unconditionally first, which is what lets a yes/no question become another type.
+ */
+export async function updateField(id: number, data: EditableFieldRequest, unlinkDependents = false): Promise<ProfileField> {
+    const res = await client.put<ProfileField>(`/profile-fields/${id}`, data, {params: unlinkParams(unlinkDependents)})
+    return res.data
+}
+
+/**
+ * Deletes a question and its answers. Asked to unlink its dependents, the questions shown only under
+ * it are shown unconditionally first, in the same step.
+ */
+export async function deleteField(id: number, unlinkDependents = false): Promise<void> {
+    await client.delete(`/profile-fields/${id}`, {params: unlinkParams(unlinkDependents)})
+}
+
+/** The query that asks for the dependents to be unlinked, or none. */
+export function unlinkParams(unlinkDependents: boolean): Record<string, string> | undefined {
+    return unlinkDependents ? {unlinkDependents: 'true'} : undefined
+}
 
 /**
  * Puts the fields in a given order in one request.

@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.members.service.GenderFields;
 import dev.chojo.ember.feature.members.service.ProfileFieldCore;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.owner.Owner;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -341,6 +342,81 @@ public class ClusterProfileFieldService {
      */
     public void requireDependencyAllowed(int clusterId, int fieldId, @Nullable Integer controller) {
         FieldDependencies.requireAllowed(fieldId, controller, dependencyNodes(clusterId));
+    }
+
+    /**
+     * Everything a change of an association's question writes, the question it depends on and its
+     * group included.
+     *
+     * @param name           the new name, or null to keep it for an unnamed spacer
+     * @param stationGroupId the station group the question is asked in, or null for every station
+     * @param shownIfFieldId the yes/no question it is shown under, or null
+     * @param fieldSetId     the group of questions it belongs to, or null
+     */
+    public record FieldChange(
+            @Nullable String name,
+            FieldType fieldType,
+            ProfileFieldConfig config,
+            boolean required,
+            boolean readonly,
+            @Nullable String width,
+            boolean stationReadonly,
+            boolean keepOnArchive,
+            @Nullable Integer stationGroupId,
+            @Nullable Integer shownIfFieldId,
+            @Nullable Integer fieldSetId) {}
+
+    /**
+     * Changes a question after showing the questions that depend on it unconditionally, in one step.
+     *
+     * <p>A change refused for any other reason leaves them depending on it as before. The question's own
+     * dependency is checked once they are gone, because only then is it allowed.
+     *
+     * @throws RefusalResponse where the change is refused, or the question is not the association's
+     */
+    public void changeUnlinkingDependents(int clusterId, int fieldId, FieldChange change) {
+        Transactions.run(() -> {
+            unlinkDependents(clusterId, fieldId);
+            update(
+                    clusterId,
+                    fieldId,
+                    change.name(),
+                    change.fieldType(),
+                    change.config(),
+                    change.required(),
+                    change.readonly(),
+                    change.width(),
+                    change.stationReadonly(),
+                    change.keepOnArchive(),
+                    change.stationGroupId());
+            requireDependencyAllowed(clusterId, fieldId, change.shownIfFieldId());
+            dependOn(clusterId, fieldId, change.shownIfFieldId());
+            joinSet(clusterId, fieldId, change.fieldSetId());
+        });
+    }
+
+    /**
+     * Withdraws a question after showing the questions that depend on it unconditionally, in one step,
+     * so a withdrawal refused for any other reason leaves them as they were.
+     */
+    public void deleteUnlinkingDependents(int clusterId, int fieldId) {
+        Transactions.run(() -> {
+            unlinkDependents(clusterId, fieldId);
+            delete(clusterId, fieldId);
+        });
+    }
+
+    /**
+     * Shows every question that depends on this one unconditionally again, so this one can be withdrawn
+     * or given another type. Their answers stay.
+     *
+     * @param clusterId the association the questions belong to
+     * @param fieldId   the question others depend on
+     */
+    public void unlinkDependents(int clusterId, int fieldId) {
+        for (var dependent : FieldDependencies.dependentsOf(fieldId, dependencyNodes(clusterId))) {
+            fieldRepository.setShownIf(dependent.id(), null);
+        }
     }
 
     private List<FieldDependencies.Node> dependencyNodes(int clusterId) {
