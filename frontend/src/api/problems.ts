@@ -4,28 +4,69 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {AcknowledgeResult, ProblemSnapshot} from './generated/schema'
+import {ProblemState, type ResolveResult, type StoredProblem} from './generated/schema'
+
+/** What an administrator can do with one problem from its card. */
+export type ProblemAction = 'resolve' | 'mute' | 'unmute' | 'delete' | 'send'
+
+/** The states a list can ask for: one of them, or all at once. */
+export type ProblemStateFilter = ProblemState | 'all'
 
 /**
  * Whether an entry holds anything beyond the line already on the card: a stacktrace, or more messages
  * than the one shown. With neither, expanding it opens an empty box, so the card does not offer it.
  */
-export function hasDetails(entry: ProblemSnapshot): boolean {
+export function hasDetails(entry: StoredProblem): boolean {
     return !!entry.stacktrace || entry.distinctMessages.length > 1
 }
 
-export async function listProblems(includeAcknowledged = false): Promise<ProblemSnapshot[]> {
-    const res = await client.get<ProblemSnapshot[]>('/admin/problems', {
-        params: includeAcknowledged ? {includeAcknowledged: 'true'} : {},
-    })
+/** How long a problem's title runs before it is cut, so one long log line cannot flood a card or a dialog. */
+const TITLE_LIMIT = 200
+
+/**
+ * What a problem is called on its card and in the dialogs about it: the exception it threw, or the first
+ * message it was logged with.
+ */
+export function problemTitle(entry: StoredProblem): string {
+    const title = entry.exceptionClass
+        ? `${entry.exceptionClass}: ${entry.exceptionMessage ?? ''}`
+        : (entry.distinctMessages[0] ?? entry.message)
+    return title.length > TITLE_LIMIT ? `${title.slice(0, TITLE_LIMIT)}...` : title
+}
+
+/**
+ * The recorded problems in one state, or in all of them.
+ *
+ * @param state which state to list
+ * @param refusals whether to list the refusals instead of the warnings and errors
+ */
+export async function listProblems(state: ProblemStateFilter = ProblemState.OPEN, refusals = false): Promise<StoredProblem[]> {
+    const res = await client.get<StoredProblem[]>('/admin/problems', {params: {state, refusals}})
     return res.data
 }
 
-export async function acknowledge(id: number): Promise<void> {
-    await client.post(`/admin/problems/${id}/acknowledge`)
+export async function resolve(id: number): Promise<void> {
+    await client.post(`/admin/problems/${id}/resolve`)
 }
 
-export async function acknowledgeAll(): Promise<AcknowledgeResult> {
-    const res = await client.post<AcknowledgeResult>('/admin/problems/acknowledge-all')
+export async function mute(id: number): Promise<void> {
+    await client.post(`/admin/problems/${id}/mute`)
+}
+
+export async function unmute(id: number): Promise<void> {
+    await client.post(`/admin/problems/${id}/unmute`)
+}
+
+export async function deleteProblem(id: number): Promise<void> {
+    await client.delete(`/admin/problems/${id}`)
+}
+
+/**
+ * Resolves every open problem of one kind.
+ *
+ * @param refusals whether to resolve the refusals instead of the warnings and errors
+ */
+export async function resolveAll(refusals: boolean): Promise<ResolveResult> {
+    const res = await client.post<ResolveResult>('/admin/problems/resolve-all', null, {params: {refusals}})
     return res.data
 }

@@ -17,6 +17,7 @@ import io.javalin.config.RoutesConfig;
 import io.javalin.http.Context;
 import io.javalin.http.HttpResponseException;
 import io.javalin.http.HttpStatus;
+import io.javalin.validation.ValidationException;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -90,6 +91,16 @@ public class ExceptionMapping {
                 ctx.header("Retry-After", Long.toString(refused.retryAfterSeconds()));
             }
             ctx.json(err.body()).status(err.getStatus());
+        });
+
+        routes.exception(ValidationException.class, (err, ctx) -> {
+            logRefusal(
+                    ctx,
+                    BodyRefusal.INPUT_NOT_USABLE.code(),
+                    "Unusable parameter",
+                    String.join(", ", err.getErrors().keySet()),
+                    null);
+            ctx.json(err.getErrors()).status(HttpStatus.BAD_REQUEST);
         });
 
         routes.exception(HttpResponseException.class, (err, ctx) -> {

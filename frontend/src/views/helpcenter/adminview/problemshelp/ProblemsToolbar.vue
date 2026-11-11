@@ -14,19 +14,33 @@ const {t} = useI18n()
 </script>
 
 <template>
+  <div class="flex flex-wrap items-center gap-2 mb-2">
+    <SelectionToggleButton :selected="true">
+      {{ t('adminProblems.faults') }}
+    </SelectionToggleButton>
+    <SelectionToggleButton :selected="false">
+      {{ t('adminProblems.refusals') }}
+    </SelectionToggleButton>
+  </div>
   <div class="flex items-center justify-between mb-4">
-    <div class="flex items-center gap-2">
-      <SelectionToggleButton :selected="false">
-        {{ t('adminProblems.showAcknowledged') }}
-      </SelectionToggleButton>
+    <div class="flex flex-wrap items-center gap-2">
       <SelectionToggleButton :selected="true">
+        {{ t('adminProblems.stateOpen') }}
+      </SelectionToggleButton>
+      <SelectionToggleButton :selected="false">
+        {{ t('adminProblems.stateResolved') }}
+      </SelectionToggleButton>
+      <SelectionToggleButton :selected="false">
+        {{ t('adminProblems.stateMuted') }}
+      </SelectionToggleButton>
+      <SelectionToggleButton :selected="false">
         {{ t('adminProblems.errors') }}
       </SelectionToggleButton>
       <SelectionToggleButton :selected="false">
         {{ t('adminProblems.warnings') }}
       </SelectionToggleButton>
       <SecondaryButton :icon="['fas', 'check-double']">
-        {{ t('adminProblems.acknowledgeAll') }}
+        {{ t('adminProblems.resolveAll') }}
       </SecondaryButton>
     </div>
   </div>

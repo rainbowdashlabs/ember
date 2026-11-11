@@ -9,11 +9,11 @@ import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import ProblemEntryHeader from './ProblemEntryHeader.vue'
 import ProblemEntryDetails from './ProblemEntryDetails.vue'
-import {hasDetails} from '@/api/problems'
-import type {ProblemSnapshot} from '@/api/generated/schema'
+import {hasDetails, type ProblemAction} from '@/api/problems'
+import {ProblemLevel, ProblemState, type StoredProblem} from '@/api/generated/schema'
 
 const props = defineProps<{
-  entry: ProblemSnapshot
+  entry: StoredProblem
   expanded: boolean
   /** Whether this instance reports to a beacon, which is the only case the send button belongs in. */
   canSend?: boolean
@@ -21,11 +21,10 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   toggle: [id: number]
-  ack: [id: number]
-  send: [id: number]
+  act: [action: ProblemAction, id: number]
 }>()
 
-const containerComponent = computed(() => props.entry.level === 'ERROR' ? ErrorContainer : InfoContainer)
+const containerComponent = computed(() => props.entry.level === ProblemLevel.ERROR ? ErrorContainer : InfoContainer)
 
 const expandable = computed(() => hasDetails(props.entry))
 
@@ -39,15 +38,14 @@ function toggle() {
   <component
     :is="containerComponent"
     class="transition-all"
-    :class="{'opacity-50': entry.acknowledged, 'cursor-pointer': expandable}"
+    :class="{'opacity-50': entry.state !== ProblemState.OPEN, 'cursor-pointer': expandable}"
     @click="toggle"
   >
     <ProblemEntryHeader
       :entry="entry"
       :expanded="expanded"
       :can-send="canSend"
-      @ack="emit('ack', $event)"
-      @send="emit('send', $event)"
+      @act="(action, id) => emit('act', action, id)"
     />
     <ProblemEntryDetails v-if="expanded && expandable" :entry="entry"/>
   </component>

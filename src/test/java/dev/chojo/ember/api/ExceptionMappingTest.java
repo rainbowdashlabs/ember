@@ -394,4 +394,18 @@ class ExceptionMappingTest {
         assertEquals(1, refused.size());
         assertEquals("refusal ThingLocked GET /api/v1/things/{id}", problemOf(refused.getFirst()));
     }
+
+    @Test
+    void anUnusablePathParameterIsARefusalOnItsRoute() {
+        var refused = refusals(logged(
+                "/api/v1/things/{id}",
+                ctx -> ctx.pathParamAsClass("id", Long.class).get(),
+                "/api/v1/things/not-a-number"));
+
+        assertEquals(1, refused.size());
+        assertEquals(
+                "refusal " + BodyRefusal.INPUT_NOT_USABLE.code() + " GET /api/v1/things/{id}",
+                problemOf(refused.getFirst()));
+        assertTrue(refused.getFirst().getFormattedMessage().contains("not-a-number"));
+    }
 }
