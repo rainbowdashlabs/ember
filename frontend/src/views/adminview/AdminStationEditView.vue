@@ -14,7 +14,7 @@ import {describeFailure} from '@/util/failure'
 import Spinner from '@/components/feedback/Spinner.vue'
 import StationForm from './adminstationeditview/StationForm.vue'
 import InstanceMailGrantPanel from './adminstationeditview/InstanceMailGrantPanel.vue'
-import type {ManagerDetail} from '@/api/generated/schema'
+import type {AdminStationSummary, ManagerDetail} from '@/api/generated/schema'
 import {stations} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
@@ -30,6 +30,7 @@ const isEdit = computed(() => stationId.value !== null)
 
 const name = ref('')
 const manager = ref<ManagerDetail | null>(null)
+const summary = ref<AdminStationSummary | null>(null)
 const managerEmail = ref('')
 const editingManager = ref(false)
 
@@ -49,7 +50,25 @@ const {loading, failure} = useAsyncLoader(async () => {
   manager.value = detail.manager
   managerEmail.value = ''
   editingManager.value = false
+  void loadSummary()
 })
+
+/**
+ * The station as the administration lists it, for the reminder to its manager. It is an addition to the
+ * page: where it cannot be read, the page works as before and only the reminder is not offered.
+ */
+async function loadSummary() {
+  if (!stationId.value) return
+  try {
+    summary.value = await stations.getAdminStation(stationId.value)
+  } catch {
+    summary.value = null
+  }
+}
+
+function setSummary(updated: AdminStationSummary) {
+  summary.value = updated
+}
 
 async function save() {
   failure.value = null
@@ -68,6 +87,7 @@ async function save() {
     failure.value = describeFailure(e, t)
     throw e
   }
+  void loadSummary()
 }
 
 function startTransfer() {
@@ -101,6 +121,8 @@ function goBack() {
         v-model:name="name"
         v-model:manager-email="managerEmail"
         :manager="manager"
+        :summary="summary"
+        :on-reminded="setSummary"
         :editing-manager="editingManager"
         :is-edit="isEdit"
         :save="save"
