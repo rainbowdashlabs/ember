@@ -8,7 +8,8 @@ package dev.chojo.ember.feature.beacon.service;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import dev.chojo.ember.feature.discovery.service.DiscoveryHttpClient;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
-import dev.chojo.ember.feature.system.service.ProblemLogAppender;
+import dev.chojo.ember.feature.system.entity.StoredProblem;
+import dev.chojo.ember.feature.system.service.ProblemLogFlusher;
 import dev.chojo.ember.lifecycle.SerialLane;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.util.Json;
@@ -35,14 +36,11 @@ import java.util.regex.Pattern;
  * <p>Nothing here is called from the logging path. The error log captures every WARN and ERROR,
  * including the ones this class writes when a send fails, so forwarding straight from the appender
  * would let a failing beacon feed itself: the send fails, the failure is logged, the log becomes a
- * problem, the problem is forwarded, the send fails. Work goes on a bounded queue instead, and this
- * class's own logger is the one the forwarder never forwards.
+ * problem, the problem is forwarded, the send fails. Work goes on a bounded queue instead, and the
+ * problem log never hands on anything logged under the beacon's package.
  */
 @Singleton
 public class BeaconReportService {
-
-    /** The logger whose own output is never forwarded, so a failing beacon cannot feed itself. */
-    public static final String OWN_LOGGER = BeaconReportService.class.getName();
 
     /** Reads what a beacon answers a picture with, which is the number the report then names. */
     private static final JsonMapper JSON = Json.MAPPER;
@@ -103,21 +101,21 @@ public class BeaconReportService {
     /**
      * Starts forwarding every new problem as it appears, if the operator asked for that.
      *
-     * <p>The appender hands entries over on the thread that logged them, so nothing here does more
-     * than put one on the queue. Entries the beacon itself logged never arrive: the appender leaves
-     * them out, which is what stops a failing beacon from feeding itself.
+     * <p>The problem log hands over a problem once it is written, when it is new or came back after it
+     * was resolved, so nothing here does more than put one on the queue. A muted problem never arrives,
+     * and neither does one the beacon itself logged: the problem log leaves those out, which is what
+     * stops a failing beacon from feeding itself.
      *
      * <p>The listener is always registered and asks the setting each time. Deciding once at boot
      * would mean an operator switching forwarding on had to restart before anything went, which is
      * the whole reason these settings are stored rather than configured.
      *
-     * @param version this instance's version
+     * @param problems the problem log's writer, which says when a problem is new
+     * @param version  this instance's version
      */
-    public void startForwarding(String version) {
-        var appender = ProblemLogAppender.instance();
-        if (appender == null) return;
-        appender.onNewProblem(entry -> {
-            if (config.forwardProblems()) send(entry.snapshot(), version);
+    public void startForwarding(ProblemLogFlusher problems, String version) {
+        problems.onNewOrReopened(problem -> {
+            if (config.forwardProblems()) send(problem, version);
         });
     }
 
@@ -132,21 +130,21 @@ public class BeaconReportService {
      * @param version this instance's version
      * @return the payload, ready to be shown or sent
      */
-    public BeaconPayloads.ProblemPayload payloadFor(ProblemLogAppender.ProblemSnapshot entry, String version) {
+    public BeaconPayloads.ProblemPayload payloadFor(StoredProblem entry, String version) {
         return new BeaconPayloads.ProblemPayload(
                 envelope(),
                 version,
                 blankToNull(config.contactName()),
                 blankToNull(config.contactMail()),
                 BeaconFingerprint.of(entry.exceptionClass(), entry.stacktrace(), entry.logger()),
-                entry.level(),
+                entry.level().name(),
                 entry.logger(),
                 entry.exceptionClass(),
                 wordsOf(entry),
                 String.join("\n", BeaconFingerprint.frameNames(entry.stacktrace())),
-                entry.count(),
-                entry.firstOccurrence(),
-                entry.lastOccurrence());
+                (int) Math.min(Integer.MAX_VALUE, entry.count()),
+                entry.firstSeen(),
+                entry.lastSeen());
     }
 
     /**
@@ -163,7 +161,7 @@ public class BeaconReportService {
      * fault. Everything else is left as it was written: an address inside the product, an
      * identifier, a status code, all of which are what makes a fault findable again.
      */
-    private static String wordsOf(ProblemLogAppender.ProblemSnapshot entry) {
+    private static String wordsOf(StoredProblem entry) {
         var words = new LinkedHashSet<String>();
         String exceptionMessage = entry.exceptionMessage();
         if (exceptionMessage != null && !exceptionMessage.isBlank()) {
@@ -185,7 +183,7 @@ public class BeaconReportService {
      * @param version this instance's version
      * @return whether it was queued, false when the queue is full or reporting is off
      */
-    public boolean send(ProblemLogAppender.ProblemSnapshot entry, String version) {
+    public boolean send(StoredProblem entry, String version) {
         if (!config.enabled()) return false;
         return enqueue(() -> deliver("/api/v1/beacon/problems", payloadFor(entry, version)));
     }
@@ -197,7 +195,7 @@ public class BeaconReportService {
      * @param version this instance's version
      * @return how many were queued
      */
-    public int sendAll(List<ProblemLogAppender.ProblemSnapshot> entries, String version) {
+    public int sendAll(List<StoredProblem> entries, String version) {
         int queued = 0;
         for (var entry : entries) {
             if (send(entry, version)) queued++;

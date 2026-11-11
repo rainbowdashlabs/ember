@@ -5,6 +5,10 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.feature.system.entity.ProblemLevel;
+import dev.chojo.ember.feature.system.entity.ProblemRecord;
+import dev.chojo.ember.feature.system.entity.ProblemState;
+import dev.chojo.ember.feature.system.entity.StoredProblem;
 import dev.chojo.ember.feature.system.repository.ProblemLogRepository;
 import dev.chojo.ember.lifecycle.Schedule;
 import dev.chojo.ember.lifecycle.ScheduledTask;
@@ -17,7 +21,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -30,6 +36,11 @@ import java.util.function.Supplier;
  * one, by the database answering at all; such a problem is refused for what it holds and is dropped after {@link #MAX_FAILED_WRITES} runs instead of
  * being kept forever. The first failed run after a good one is logged as a warning, which the problem log leaves
  * out because it is logged while writing.
+ *
+ * <p>A problem that is new, or came back after it was resolved, is handed to whoever listens once the run
+ * is written, outside the write itself, as long as it is still open by then: a muted problem never is,
+ * nor a refusal, nor anything the beacon logged about itself, which would otherwise feed a failing beacon
+ * its own failures.
  */
 @Singleton
 public class ProblemLogFlusher implements TaskSource, ShutdownFlush {
@@ -37,12 +48,16 @@ public class ProblemLogFlusher implements TaskSource, ShutdownFlush {
 
     private static final Duration INTERVAL = Duration.ofSeconds(5);
 
+    /** Anything logged from below here is the beacon's own and is never handed on. */
+    private static final String BEACON_PACKAGE = "dev.chojo.ember.feature.beacon";
+
     /** How many runs in a row one problem may be refused before it is dropped. */
     static final int MAX_FAILED_WRITES = 5;
 
     private final ProblemLogRepository repository;
     private final Supplier<@Nullable ProblemLogAppender> appender;
     private volatile boolean failing;
+    private volatile @Nullable Consumer<StoredProblem> listener;
 
     @Inject
     public ProblemLogFlusher(ProblemLogRepository repository) {
@@ -74,16 +89,51 @@ public class ProblemLogFlusher implements TaskSource, ShutdownFlush {
         var source = appender.get();
         if (source == null) return 0;
         List<PendingProblem> drained = source.drainPending();
-        return ProblemLogAppender.writing(() -> write(source, drained, shuttingDown));
+        List<Long> news = new ArrayList<>();
+        int written = ProblemLogAppender.writing(() -> write(source, drained, shuttingDown, news));
+        if (!shuttingDown) tell(news);
+        return written;
     }
 
-    private int write(ProblemLogAppender source, List<PendingProblem> drained, boolean shuttingDown) {
+    /**
+     * Hands every problem that is new or came back to whoever listens.
+     *
+     * @param listener what to tell, or null to stop telling anybody
+     */
+    public void onNewOrReopened(@Nullable Consumer<StoredProblem> listener) {
+        this.listener = listener;
+    }
+
+    private void tell(List<Long> ids) {
+        var current = listener;
+        if (current == null || ids.isEmpty()) return;
+        for (long id : ids) {
+            try {
+                repository
+                        .find(id)
+                        .filter(problem -> problem.state() == ProblemState.OPEN)
+                        .ifPresent(current);
+            } catch (RuntimeException e) {
+                log.debug("Could not hand problem {} on", id, e);
+            }
+        }
+    }
+
+    private static boolean worthTelling(ProblemRecord record, ProblemLogRepository.Recorded recorded) {
+        return recorded.newOrReopened()
+                && record.level() != ProblemLevel.REFUSAL
+                && !record.logger().startsWith(BEACON_PACKAGE);
+    }
+
+    private int write(ProblemLogAppender source, List<PendingProblem> drained, boolean shuttingDown, List<Long> news) {
         int written = 0;
         PendingProblem suspect = null;
         for (int i = 0; i < drained.size(); i++) {
             var problem = drained.get(i);
             try {
-                repository.record(problem.record());
+                var record = problem.record();
+                var recorded = repository.record(record);
+                if (worthTelling(record, recorded)) news.add(recorded.id());
                 written++;
                 if (suspect != null) keepOrDrop(source, suspect);
                 suspect = null;

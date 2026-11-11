@@ -14,7 +14,8 @@ import dev.chojo.ember.feature.beacon.service.BeaconAdminService.BeaconSettingsR
 import dev.chojo.ember.feature.beacon.service.BeaconAdminService.SendReportRequest;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
-import dev.chojo.ember.feature.system.service.ProblemLogAppender;
+import dev.chojo.ember.feature.system.entity.StoredProblem;
+import dev.chojo.ember.feature.system.repository.ProblemLogRepository;
 import dev.chojo.ember.feature.system.service.ProblemReportScreenshotService;
 import dev.chojo.ember.feature.system.service.ProblemReportService;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
@@ -47,7 +48,7 @@ class BeaconAdminServiceTest {
     private BeaconReadRepository collected;
     private ProblemReportService problemReports;
     private ProblemReportScreenshotService pictures;
-    private ProblemLogAppender problemLog;
+    private ProblemLogRepository problemLog;
     private BeaconAdminService service;
 
     private static Refusal refusalOf(Executable call) {
@@ -64,10 +65,9 @@ class BeaconAdminServiceTest {
                 id, 3, 11, "Mara", "It broke", "/x", "[]", "[]", "ua", "1x1", pictureId, false, null, null, null);
     }
 
-    private static ProblemLogAppender.ProblemEntry problem(long id) {
-        var entry = mock(ProblemLogAppender.ProblemEntry.class);
+    private static StoredProblem problem(long id) {
+        var entry = mock(StoredProblem.class);
         when(entry.id()).thenReturn(id);
-        when(entry.snapshot()).thenReturn(mock(ProblemLogAppender.ProblemSnapshot.class));
         return entry;
     }
 
@@ -79,11 +79,11 @@ class BeaconAdminServiceTest {
         collected = mock(BeaconReadRepository.class);
         problemReports = mock(ProblemReportService.class);
         pictures = mock(ProblemReportScreenshotService.class);
-        problemLog = mock(ProblemLogAppender.class);
+        problemLog = mock(ProblemLogRepository.class);
         var updates = mock(UpdateCheckService.class);
         when(updates.currentVersion()).thenReturn("1.2.3");
         service = new BeaconAdminService(
-                config, reports, metrics, updates, collected, problemReports, pictures, () -> problemLog);
+                config, reports, metrics, updates, collected, problemReports, pictures, problemLog);
     }
 
     @Test
@@ -142,20 +142,9 @@ class BeaconAdminServiceTest {
     }
 
     @Test
-    void problemsAreSentOnlyFromARunningLogOfABeaconThatIsSetUp() {
+    void problemsAreSentOnlyByABeaconThatIsSetUp() {
         assertEquals(BeaconRefusal.BEACON_NOT_SET_UP, refusalOf(() -> service.sendProblem(1)));
         when(config.enabled()).thenReturn(true);
-        var failing = new BeaconAdminService(
-                config,
-                reports,
-                metrics,
-                mock(UpdateCheckService.class),
-                collected,
-                problemReports,
-                pictures,
-                () -> null);
-        assertEquals(BeaconRefusal.PROBLEM_LOG_NOT_RUNNING, refusalOf(() -> failing.sendProblem(1)));
-        assertEquals(BeaconRefusal.PROBLEM_LOG_NOT_RUNNING_ON_SEND, refusalOf(() -> failing.sendProblems(List.of(1L))));
         assertEquals(BeaconRefusal.BEACON_NOTHING_CHOSEN_TO_SEND, refusalOf(() -> service.sendProblems(List.of())));
         assertEquals(BeaconRefusal.BEACON_NOTHING_CHOSEN_TO_SEND, refusalOf(() -> service.sendProblems(null)));
     }
@@ -165,7 +154,8 @@ class BeaconAdminServiceTest {
         when(config.enabled()).thenReturn(true);
         var first = problem(1);
         var second = problem(2);
-        when(problemLog.getProblems(true)).thenReturn(List.of(first, second));
+        when(problemLog.find(1)).thenReturn(Optional.of(first));
+        when(problemLog.find(2)).thenReturn(Optional.of(second));
         when(reports.send(any(), eq("1.2.3"))).thenReturn(true);
         when(reports.sendAll(any(), eq("1.2.3"))).thenReturn(1);
 
@@ -174,8 +164,8 @@ class BeaconAdminServiceTest {
         assertEquals(1, service.sendProblems(List.of(2L)).queued());
         assertEquals(BeaconRefusal.BEACON_PROBLEM_NOT_HERE, refusalOf(() -> service.previewProblem(9)));
 
-        verify(reports).payloadFor(first.snapshot(), "1.2.3");
-        verify(reports).sendAll(List.of(second.snapshot()), "1.2.3");
+        verify(reports).payloadFor(first, "1.2.3");
+        verify(reports).sendAll(List.of(second), "1.2.3");
     }
 
     @Test

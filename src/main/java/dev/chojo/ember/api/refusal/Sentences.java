@@ -63,7 +63,6 @@ final class Sentences {
     static final String BEACON_NOT_RECEIVING = "This instance is not a beacon";
     static final String BEACON_REPORT_NOT_HERE = "That report is not here any more";
     static final String BEACON_ID_NOT_A_NUMBER = "That does not name anything a beacon holds";
-    static final String PROBLEM_LOG_NOT_RUNNING = "Nothing is being written down about problems here";
     static final String EQUIPMENT_DATE_MISSING = "Name the day this is about";
     static final String EQUIPMENT_PIECE_MISSING = "Name the piece of gear this is about";
     static final String LOST_ITEM_NOT_CLAIMED = "That find has not been claimed, so nothing was changed";

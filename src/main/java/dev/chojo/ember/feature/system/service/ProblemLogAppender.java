@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -57,13 +56,9 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
 
     private static ProblemLogAppender instance;
 
-    /** Anything logged from below here is the forwarder's own and is never forwarded. */
-    private static final String FORWARDER_PACKAGE = "dev.chojo.ember.feature.beacon";
-
     private final Map<String, ProblemEntry> problems = new ConcurrentHashMap<>();
     private final AtomicLong idCounter = new AtomicLong(0);
     private final Map<String, PendingProblem> pending = new ConcurrentHashMap<>();
-    private volatile Consumer<ProblemEntry> listener;
 
     public ProblemLogAppender() {
         this(true);
@@ -138,7 +133,6 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
 
         String key = buildAggregationKey(event);
         gather(key, event);
-        boolean forwardable = !isOwnFailure(event);
         problems.compute(key, (_, existing) -> {
             if (existing != null && !existing.acknowledged()) {
                 existing.addOccurrence(event.getFormattedMessage(), Instant.ofEpochMilli(event.getTimeStamp()));
@@ -154,7 +148,6 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
                     extractExceptionMessage(event.getThrowableProxy()),
                     Instant.ofEpochMilli(event.getTimeStamp()));
         });
-        if (forwardable) notifyListener(problems.get(key));
     }
 
     /**
@@ -264,50 +257,6 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("SHA-256 is part of every Java runtime", e);
         }
-    }
-
-    /**
-     * Tells the forwarder about an entry, and swallows whatever it makes of that.
-     *
-     * <p>This runs on the thread that logged. A forwarder that threw here would turn every warning
-     * anywhere in the application into a second failure at the point it was reported.
-     */
-    private void notifyListener(ProblemEntry entry) {
-        var current = listener;
-        if (current == null || entry == null) return;
-        try {
-            current.accept(entry);
-        } catch (Exception ignored) {
-            return;
-        }
-    }
-
-    /**
-     * Whether this entry came from whatever is forwarding entries.
-     *
-     * <p>A failing forwarder logs a warning, the warning becomes a problem, the problem is forwarded,
-     * and the send fails again. Anything the forwarder itself says is recorded for a human to read
-     * and never handed back to it.
-     *
-     * @param event the entry being recorded
-     * @return whether it is the forwarder's own
-     */
-    private boolean isOwnFailure(ILoggingEvent event) {
-        String logger = event.getLoggerName();
-        return logger != null && logger.startsWith(FORWARDER_PACKAGE);
-    }
-
-    /**
-     * Hands a newly recorded entry to whoever forwards them, if anybody does.
-     *
-     * <p>Set by the beacon when an operator has asked for every problem to travel. Nothing is called
-     * inline from the logging path beyond handing the entry over: what the listener does with it is
-     * its own business, and it is expected to queue rather than send.
-     *
-     * @param listener what to tell, or null to stop telling anybody
-     */
-    public void onNewProblem(Consumer<ProblemEntry> listener) {
-        this.listener = listener;
     }
 
     private String buildAggregationKey(ILoggingEvent event) {

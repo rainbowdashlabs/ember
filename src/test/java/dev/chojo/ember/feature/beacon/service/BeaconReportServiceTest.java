@@ -6,8 +6,10 @@
 package dev.chojo.ember.feature.beacon.service;
 
 import dev.chojo.ember.feature.discovery.service.DiscoveryHttpClient;
+import dev.chojo.ember.feature.system.entity.ProblemLevel;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
-import dev.chojo.ember.feature.system.service.ProblemLogAppender;
+import dev.chojo.ember.feature.system.entity.ProblemState;
+import dev.chojo.ember.feature.system.entity.StoredProblem;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import org.junit.jupiter.api.Test;
 
@@ -150,22 +152,27 @@ class BeaconReportServiceTest {
     }
 
     /** A fault as the log holds one: no exception, and the same call failing two different ways. */
-    private static ProblemLogAppender.ProblemSnapshot aWarning() {
-        return new ProblemLogAppender.ProblemSnapshot(
+    private static StoredProblem aWarning() {
+        var messages = List.of(
+                "Signed GET list /remote/registrations/dd396799 failed: HTTP 409",
+                "Signed GET list /remote/registrations/dd396799 failed: HTTP 500",
+                "Mail an nora@example.com ging nicht");
+        return new StoredProblem(
                 1,
-                "WARN",
+                "fp",
+                ProblemLevel.WARN,
                 "dev.chojo.ember.feature.federation.service.FederationHttpClient",
+                messages.getFirst(),
                 null,
                 null,
                 null,
+                messages,
+                2,
                 Instant.now().minusSeconds(600),
                 Instant.now(),
-                2,
-                false,
-                List.of(
-                        "Signed GET list /remote/registrations/dd396799 failed: HTTP 409",
-                        "Signed GET list /remote/registrations/dd396799 failed: HTTP 500",
-                        "Mail an nora@example.com ging nicht"));
+                ProblemState.OPEN,
+                null,
+                0);
     }
 
     /**

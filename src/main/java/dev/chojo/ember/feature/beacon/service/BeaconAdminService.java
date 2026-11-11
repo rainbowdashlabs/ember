@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.beacon.service;
 
 import dev.chojo.ember.api.refusal.BeaconRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.feature.beacon.entity.BeaconFault;
 import dev.chojo.ember.feature.beacon.entity.BeaconMetricsRow;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
@@ -14,7 +13,8 @@ import dev.chojo.ember.feature.beacon.entity.BeaconReport;
 import dev.chojo.ember.feature.beacon.repository.BeaconReadRepository;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
-import dev.chojo.ember.feature.system.service.ProblemLogAppender;
+import dev.chojo.ember.feature.system.entity.StoredProblem;
+import dev.chojo.ember.feature.system.repository.ProblemLogRepository;
 import dev.chojo.ember.feature.system.service.ProblemReportScreenshotService;
 import dev.chojo.ember.feature.system.service.ProblemReportService;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
@@ -24,7 +24,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.function.Supplier;
+import java.util.Optional;
 
 /**
  * What an operator does with their own beacon: look at what would be sent and send it, and, where
@@ -43,7 +43,7 @@ public class BeaconAdminService {
     private final BeaconReadRepository collected;
     private final ProblemReportService problemReports;
     private final ProblemReportScreenshotService pictures;
-    private final Supplier<ProblemLogAppender> problemLog;
+    private final ProblemLogRepository problemLog;
 
     @Inject
     public BeaconAdminService(
@@ -53,24 +53,8 @@ public class BeaconAdminService {
             UpdateCheckService updates,
             BeaconReadRepository collected,
             ProblemReportService problemReports,
-            ProblemReportScreenshotService pictures) {
-        this(config, reports, metrics, updates, collected, problemReports, pictures, ProblemLogAppender::instance);
-    }
-
-    /**
-     * The same, reading the fault log from the given source.
-     *
-     * @param problemLog the fault log, answering null where it is not running
-     */
-    BeaconAdminService(
-            BeaconSettings config,
-            BeaconReportService reports,
-            BeaconMetricsService metrics,
-            UpdateCheckService updates,
-            BeaconReadRepository collected,
-            ProblemReportService problemReports,
             ProblemReportScreenshotService pictures,
-            Supplier<ProblemLogAppender> problemLog) {
+            ProblemLogRepository problemLog) {
         this.config = config;
         this.reports = reports;
         this.metrics = metrics;
@@ -172,18 +156,8 @@ public class BeaconAdminService {
         return status();
     }
 
-    private ProblemLogAppender runningLog(Refusal whenNotRunning) {
-        var appender = problemLog.get();
-        if (appender == null) throw whenNotRunning.raise();
-        return appender;
-    }
-
-    private ProblemLogAppender.ProblemSnapshot problem(long id) {
-        return runningLog(BeaconRefusal.PROBLEM_LOG_NOT_RUNNING).getProblems(true).stream()
-                .filter(problem -> problem.id() == id)
-                .map(ProblemLogAppender.ProblemEntry::snapshot)
-                .findFirst()
-                .orElseThrow(BeaconRefusal.BEACON_PROBLEM_NOT_HERE::raise);
+    private StoredProblem problem(long id) {
+        return problemLog.find(id).orElseThrow(BeaconRefusal.BEACON_PROBLEM_NOT_HERE::raise);
     }
 
     /** The exact payload one problem would travel as, shown before anything is sent. */
@@ -202,9 +176,10 @@ public class BeaconAdminService {
         if (ids == null || ids.isEmpty()) {
             throw BeaconRefusal.BEACON_NOTHING_CHOSEN_TO_SEND.raise();
         }
-        var chosen = runningLog(BeaconRefusal.PROBLEM_LOG_NOT_RUNNING_ON_SEND).getProblems(true).stream()
-                .filter(problem -> ids.contains(problem.id()))
-                .map(ProblemLogAppender.ProblemEntry::snapshot)
+        var chosen = ids.stream()
+                .distinct()
+                .map(problemLog::find)
+                .flatMap(Optional::stream)
                 .toList();
         return new SendResult(reports.sendAll(chosen, updates.currentVersion()));
     }

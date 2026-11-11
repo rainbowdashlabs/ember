@@ -11,12 +11,16 @@ import ch.qos.logback.classic.spi.LoggingEvent;
 import dev.chojo.ember.feature.system.entity.ProblemLevel;
 import dev.chojo.ember.feature.system.entity.ProblemRecord;
 import dev.chojo.ember.feature.system.entity.ProblemState;
+import dev.chojo.ember.feature.system.entity.StoredProblem;
 import dev.chojo.ember.feature.system.repository.ProblemLogRepository;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -57,6 +61,32 @@ class ProblemLogFlusherTest {
             return answers && !refusing;
         }
 
+        ProblemState stateOnRecord = ProblemState.OPEN;
+        ProblemState previousOnRecord;
+        final Map<Long, ProblemRecord> byId = new HashMap<>();
+
+        @Override
+        public Optional<StoredProblem> find(long id) {
+            var record = byId.get(id);
+            if (record == null) return Optional.empty();
+            return Optional.of(new StoredProblem(
+                    id,
+                    record.fingerprint(),
+                    record.level(),
+                    record.logger(),
+                    record.message(),
+                    null,
+                    null,
+                    null,
+                    record.messages(),
+                    record.count(),
+                    record.firstSeen(),
+                    record.lastSeen(),
+                    stateOnRecord,
+                    null,
+                    0));
+        }
+
         @Override
         public Recorded record(ProblemRecord record) {
             if (acceptBeforeRefusing == 0) refusing = true;
@@ -64,7 +94,8 @@ class ProblemLogFlusherTest {
             if (refusing) throw new IllegalStateException("database away");
             if (record.message().equals(refusedMessage)) throw new IllegalArgumentException("refused");
             written.add(record);
-            return new Recorded(written.size(), ProblemState.OPEN, null);
+            byId.put((long) written.size(), record);
+            return new Recorded(written.size(), stateOnRecord, previousOnRecord);
         }
     }
 
@@ -341,5 +372,72 @@ class ProblemLogFlusherTest {
         for (int run = 0; run < ProblemLogFlusher.MAX_FAILED_WRITES; run++) flusher.flush();
 
         assertTrue(appender.drainPending().isEmpty());
+    }
+
+    @Test
+    void onlyNewOrReopenedFaultsAreHandedOn() {
+        var appender = new ProblemLogAppender(false);
+        var repository = new Recording();
+        var flusher = new ProblemLogFlusher(repository, () -> appender);
+        var told = new ArrayList<String>();
+        flusher.onNewOrReopened(problem -> told.add(problem.message()));
+
+        appender.append(warning("new fault"));
+        appender.append(event("dev.chojo.ember.feature.beacon.service.Sender", Level.WARN, "beacon down", null, "b"));
+        flusher.flush();
+        assertEquals(List.of("new fault"), told, "the beacon's own warning is never handed on");
+
+        repository.previousOnRecord = ProblemState.OPEN;
+        appender.append(warning("new fault"));
+        flusher.flush();
+        assertEquals(1, told.size(), "an open problem happening again is not news");
+
+        repository.previousOnRecord = ProblemState.MUTED;
+        repository.stateOnRecord = ProblemState.MUTED;
+        appender.append(warning("new fault"));
+        flusher.flush();
+        assertEquals(1, told.size(), "a muted problem is never handed on");
+
+        repository.previousOnRecord = ProblemState.RESOLVED;
+        repository.stateOnRecord = ProblemState.OPEN;
+        appender.append(warning("came back"));
+        flusher.flush();
+        assertEquals(List.of("new fault", "came back"), told);
+    }
+
+    @Test
+    void aListenerThatFailsDoesNotKeepTheOthersFromBeingTold() {
+        var appender = new ProblemLogAppender(false);
+        var repository = new Recording();
+        var flusher = new ProblemLogFlusher(repository, () -> appender);
+        var told = new ArrayList<String>();
+        flusher.onNewOrReopened(problem -> {
+            if (told.isEmpty()) {
+                told.add("failed");
+                throw new IllegalStateException("listener broke");
+            }
+            told.add(problem.message());
+        });
+        appender.append(warning("one"));
+        appender.append(warning("two"));
+
+        assertEquals(2, flusher.flush());
+
+        assertEquals(2, told.size(), "the second problem was still handed on");
+    }
+
+    @Test
+    void shuttingDownTellsNobody() {
+        var appender = new ProblemLogAppender(false);
+        var repository = new Recording();
+        var flusher = new ProblemLogFlusher(repository, () -> appender);
+        var told = new ArrayList<String>();
+        flusher.onNewOrReopened(problem -> told.add(problem.message()));
+        appender.append(warning("at shutdown"));
+
+        flusher.flushAll();
+
+        assertEquals(1, repository.written.size());
+        assertTrue(told.isEmpty());
     }
 }
