@@ -253,6 +253,8 @@ Release
                         that is already released
   ci-migration-order    The migration check CI runs on a release branch: main's patches unchanged,
                         and at most one patch of its own, numbered above main's newest
+  ci-coverage-data      The coverage data of every backend suite of a workflow run, from RUN_ID and
+                        REPOSITORY, asked for again while an artifact is not listed yet
   ci-test [name]        The tests of the scripts under scripts/, or those whose file name contains
                         the given word
   release-check <pr>    Whether the release pull request is ready: release/vX.Y.Z into main at
@@ -653,6 +655,7 @@ case "$cmd" in
 
     ci-version)         cd "$ROOT"; run bash scripts/check-version.sh "$@" ;;
     ci-migration-order) cd "$ROOT"; run bash scripts/check-migration-order.sh "$@" ;;
+    ci-coverage-data)   cd "$ROOT"; run bash scripts/fetch-coverage-data.sh "$@" ;;
     ci-test)            cd "$ROOT"; run bash scripts/test/run.sh "$@" ;;
     release-check)      cd "$ROOT"; run bash scripts/release.sh check "$@" ;;
     release-feature)    cd "$ROOT"; run bash scripts/release.sh feature "$@" ;;
