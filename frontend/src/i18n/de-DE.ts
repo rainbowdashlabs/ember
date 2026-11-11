@@ -3969,6 +3969,13 @@ export default {
         fieldKeepOnArchive: 'Bei Archivierung behalten',
         fieldKeepOnArchiveHint: 'Dieses Feld bleibt bei ehemaligen Mitgliedern erhalten.',
         deleteConfirm: 'Feld "{name}" wirklich löschen? Alle gespeicherten Werte gehen verloren.',
+        deleteDependentsIntro: 'Diese Fragen werden nur angezeigt, wenn "{name}" mit Ja beantwortet ist:',
+        deleteDependentsAfter: 'Beim Löschen verlieren sie diese Bedingung und werden immer angezeigt. '
+            + 'Ihre Antworten bleiben erhalten.',
+        deleteUnlinkConfirm: 'Bedingungen entfernen und löschen',
+        typeChangeDependents: 'Diese Fragen werden nur angezeigt, wenn diese Frage mit Ja beantwortet ist: '
+            + '{names}. Mit einem anderen Typ verlieren sie diese Bedingung und werden immer angezeigt. Ihre '
+            + 'Antworten bleiben erhalten.',
     },
     memberSelect: {
         choose: 'Mitglied wählen',
@@ -4038,6 +4045,9 @@ export default {
             setHint: 'Ein Mitglied ist in höchstens einer dieser Gruppen.',
             userTypes: 'Nur für diese Mitgliedstypen',
             userTypesHint: 'Keine Auswahl heißt: Die Gruppe nimmt jeden Mitgliedstyp auf.',
+            misfits: 'Mitglieder ohne einen der gewählten Typen ({count}). Beim Speichern werden sie aus der '
+                + 'Gruppe genommen:',
+            removeMisfitsAndSave: 'Speichern und aus der Gruppe nehmen ({count})',
         },
         conflicts: {
             bindingTitle: 'Mitglieder passen nicht',
@@ -11743,6 +11753,7 @@ export default {
         saveValue: 'Eintragung speichern',
         valueSaveFailed: 'Speichern fehlgeschlagen.',
         slotTaken: 'Belegt',
+        selfRegisterClosed: 'Eintragung geschlossen',
         selfRegisterConflict: 'Der Platz ist bereits vergeben.',
         selfRegisterForbidden: 'Du erfüllst die Voraussetzung für dieses Feld nicht.',
         selfRegisterFailed: 'Eintragung fehlgeschlagen.',
@@ -11822,6 +11833,11 @@ export default {
         GONE: {
             message: 'Das gibt es nicht mehr.',
             guidance: 'Vermutlich wurde es gelöscht oder verschoben, während diese Seite offen war. Lade die Seite neu, dann siehst du den aktuellen Stand.',
+        },
+        dependentQuestions: {
+            guidance: 'Versuche es noch einmal: Der Dialog nennt jetzt die abhängigen Fragen und nimmt ihre '
+                + 'Bedingung mit heraus. Du kannst die Bedingung "Nur anzeigen, wenn" auch bei den genannten '
+                + 'Fragen selbst entfernen.',
         },
         CONFLICT: {
             message: 'In der Zwischenzeit hat es jemand anderes geändert.',

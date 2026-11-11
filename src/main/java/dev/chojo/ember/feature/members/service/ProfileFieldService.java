@@ -32,6 +32,7 @@ import dev.chojo.ember.feature.members.repository.StationFieldSetRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.owner.Owner;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -561,6 +562,80 @@ public class ProfileFieldService {
      */
     public void requireDependencyAllowed(int stationId, int id, @Nullable Integer controller) {
         FieldDependencies.requireAllowed(id, controller, dependencyNodes(stationId));
+    }
+
+    /**
+     * Everything a change of a question writes, the question it depends on and its group included.
+     *
+     * @param shownIfFieldId the yes/no question it is shown under, or null
+     * @param fieldSetId     the group it belongs to, or null
+     */
+    public record FieldChange(
+            String name,
+            FieldType fieldType,
+            ProfileFieldConfig config,
+            boolean required,
+            boolean readonly,
+            @Nullable String width,
+            boolean keepOnArchive,
+            @Nullable Integer shownIfFieldId,
+            @Nullable Integer fieldSetId) {}
+
+    /**
+     * Changes a question after showing the questions that depend on it unconditionally, in one step.
+     *
+     * <p>A yes/no question others are shown under cannot take another type while they are. Doing both
+     * here means the change cannot be refused for them, and a change refused for any other reason
+     * leaves them depending on it as before. The question's own dependency is checked once they are
+     * gone, because only then is it allowed.
+     *
+     * @return the question as changed
+     * @throws RefusalResponse where the change is refused, or the question is not there
+     */
+    public ProfileField changeUnlinkingDependents(int stationId, int id, FieldChange change) {
+        return Transactions.call(() -> {
+            unlinkDependents(stationId, id);
+            var changed = update(
+                            id,
+                            change.name(),
+                            change.fieldType(),
+                            change.config(),
+                            change.required(),
+                            change.readonly(),
+                            change.width(),
+                            change.keepOnArchive())
+                    .orElseThrow(MemberRefusal.PROFILE_FIELD_NOT_HERE_ON_CHANGE::raise);
+            requireDependencyAllowed(stationId, id, change.shownIfFieldId());
+            dependOn(id, change.shownIfFieldId());
+            joinSet(id, change.fieldSetId());
+            return changed;
+        });
+    }
+
+    /**
+     * Deletes a question after showing the questions that depend on it unconditionally, in one step,
+     * so a deletion refused for any other reason leaves them as they were.
+     *
+     * @return whether the question was there to delete
+     */
+    public boolean deleteUnlinkingDependents(int stationId, int id) {
+        return Transactions.call(() -> {
+            unlinkDependents(stationId, id);
+            return delete(id);
+        });
+    }
+
+    /**
+     * Shows every question that depends on this one unconditionally again, so this one can be deleted
+     * or given another type. Their answers stay.
+     *
+     * @param stationId the station the questions belong to
+     * @param id        the question others depend on
+     */
+    public void unlinkDependents(int stationId, int id) {
+        for (var dependent : FieldDependencies.dependentsOf(id, dependencyNodes(stationId))) {
+            profileFieldRepository.setShownIf(dependent.id(), null);
+        }
     }
 
     private List<FieldDependencies.Node> dependencyNodes(int stationId) {

@@ -40,6 +40,7 @@ const PUBLIC_FIELDS: AppointmentField[] = [
     overview: false,
     isPublic: true,
     attendanceFieldId: null,
+    selfRegistrationState: null,
   },
 ]
 </script>

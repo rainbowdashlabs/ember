@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.cluster.service;
 import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.feature.cluster.entity.ClusterProfileField;
 import dev.chojo.ember.feature.cluster.entity.ClusterProfileFieldAssignment;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
@@ -18,6 +19,7 @@ import dev.chojo.ember.feature.members.entity.ProfileWriter;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.Comparator;
@@ -682,5 +684,109 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                                 RefusalResponse.class,
                                 () -> clusterProfileFieldService.requireSetAllowed(clusterId, set.id()))
                         .refusal());
+    }
+
+    /**
+     * A yes/no question others depend on is refused while they do, and unlinking them shows them
+     * unconditionally so it can be withdrawn.
+     */
+    @Test
+    void unlinkingDependentsLetsAClustersQuestionGo() {
+        int clusterId = freshCluster();
+        var flag = clusterProfileFieldService.create(
+                clusterId,
+                "JuLeiCa",
+                FieldType.BOOLEAN,
+                ProfileFieldConfig.empty(),
+                false,
+                false,
+                null,
+                true,
+                false,
+                null);
+        var until = clusterProfileFieldService.create(
+                clusterId,
+                "JuLeiCa bis",
+                FieldType.DATE,
+                ProfileFieldConfig.empty(),
+                false,
+                false,
+                null,
+                true,
+                false,
+                null);
+        clusterProfileFieldService.dependOn(clusterId, until.id(), flag.id());
+
+        assertThrows(RefusalResponse.class, () -> clusterProfileFieldService.delete(clusterId, flag.id()));
+
+        clusterProfileFieldService.unlinkDependents(clusterId, flag.id());
+        clusterProfileFieldService.delete(clusterId, flag.id());
+
+        var left = clusterProfileFieldService.findByCluster(clusterId);
+        assertEquals(1, left.size());
+        assertNull(left.getFirst().shownIfFieldId());
+    }
+
+    /** A type change of an association's yes/no question unlinks its dependents, or nothing at all. */
+    @Test
+    void aClustersTypeChangeUnlinksItsDependentsOrNothingAtAll() {
+        int clusterId = freshCluster();
+        var flag = clusterProfileFieldService.create(
+                clusterId,
+                "Seepferdchen",
+                FieldType.BOOLEAN,
+                ProfileFieldConfig.empty(),
+                false,
+                false,
+                null,
+                true,
+                false,
+                null);
+        var until = clusterProfileFieldService.create(
+                clusterId,
+                "Seepferdchen am",
+                FieldType.DATE,
+                ProfileFieldConfig.empty(),
+                false,
+                false,
+                null,
+                true,
+                false,
+                null);
+        clusterProfileFieldService.dependOn(clusterId, until.id(), flag.id());
+
+        assertThrows(
+                RefusalResponse.class,
+                () -> clusterProfileFieldService.changeUnlinkingDependents(
+                        clusterId, flag.id(), clusterChange(flag.id())));
+        assertEquals(flag.id(), fieldOf(clusterId, until.id()).shownIfFieldId());
+        assertEquals(FieldType.BOOLEAN, fieldOf(clusterId, flag.id()).fieldType());
+
+        clusterProfileFieldService.changeUnlinkingDependents(clusterId, flag.id(), clusterChange(null));
+
+        assertEquals(FieldType.DATE, fieldOf(clusterId, flag.id()).fieldType());
+        assertNull(fieldOf(clusterId, until.id()).shownIfFieldId());
+    }
+
+    private static ClusterProfileFieldService.FieldChange clusterChange(@Nullable Integer shownIf) {
+        return new ClusterProfileFieldService.FieldChange(
+                "Seepferdchen",
+                FieldType.DATE,
+                ProfileFieldConfig.empty(),
+                false,
+                false,
+                null,
+                true,
+                false,
+                null,
+                shownIf,
+                null);
+    }
+
+    private static ClusterProfileField fieldOf(int clusterId, int fieldId) {
+        return clusterProfileFieldService.findByCluster(clusterId).stream()
+                .filter(field -> field.id() == fieldId)
+                .findFirst()
+                .orElseThrow();
     }
 }

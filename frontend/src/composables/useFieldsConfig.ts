@@ -38,8 +38,13 @@ export interface FieldsPort {
     /** Who each question is asked of. Read separately because one question has many audiences. */
     listAssignments(): Promise<ProfileFieldAssignment[]>
     create(field: EditableFieldRequest): Promise<EditableField>
-    update(id: number, field: EditableFieldRequest): Promise<unknown>
-    remove(id: number): Promise<unknown>
+    /**
+     * Changes a question. With `unlinkDependents`, the questions shown only under it are shown
+     * unconditionally first, which a yes/no question needs before it can take another type.
+     */
+    update(id: number, field: EditableFieldRequest, unlinkDependents: boolean): Promise<unknown>
+    /** Deletes a question, unlinking the questions shown only under it first where asked to. */
+    remove(id: number, unlinkDependents: boolean): Promise<unknown>
     /** Puts a question to an audience, or changes how it is put to them. */
     assign(fieldId: number, assignment: AssignmentRequest): Promise<unknown>
     /** Stops asking an audience. The question and its answers stay. */
@@ -267,6 +272,20 @@ export function useFieldsConfig(port: FieldsPort) {
         }
     }
 
+    /**
+     * Reads the questions back after a refused write, quietly.
+     *
+     * A refusal for questions depending on this one means somebody linked one after the screen loaded.
+     * Without catching up, the dialogs keep offering the plain write and are refused the same way again.
+     */
+    async function catchUpOnRefusal() {
+        try {
+            await fetchAll()
+        } catch {
+            return
+        }
+    }
+
     /** The questions this screen is about, by name. An association's are filed by group of stations. */
     const questions = computed(() => {
         const list = port.listStationGroups
@@ -354,6 +373,15 @@ export function useFieldsConfig(port: FieldsPort) {
     const booleanFields = computed(() => questions.value.filter(f => f.fieldType === FieldType.BOOLEAN))
 
     /**
+     * The names of the questions shown only under this one, read from every question of the owner and
+     * not only the ones the screen is filtered to, because the server counts them all.
+     */
+    function dependentsOf(field: EditableField | null): string[] {
+        if (!field) return []
+        return allFields.value.filter(f => f.shownIfFieldId === field.id).map(f => f.name)
+    }
+
+    /**
      * The station's date of birth, which decides whether another may be added.
      *
      * <p>One per station now, whoever is asked it. There used to be one per kind of member and a rule
@@ -403,13 +431,16 @@ export function useFieldsConfig(port: FieldsPort) {
         failure.value = null
         try {
             if (editingField.value) {
-                await port.update(editingField.value.id, withTarget(data))
+                const losesYesNo = editingField.value.fieldType === FieldType.BOOLEAN && data.fieldType !== FieldType.BOOLEAN
+                const unlink = losesYesNo && dependentsOf(editingField.value).length > 0
+                await port.update(editingField.value.id, withTarget(data), unlink)
             } else {
                 const created = await port.create(withTarget(data))
                 selectedFieldId.value = created?.id ?? null
             }
             showFieldModal.value = false
         } catch (e) {
+            await catchUpOnRefusal()
             record(e)
             return
         }
@@ -454,7 +485,7 @@ export function useFieldsConfig(port: FieldsPort) {
     async function writeField(field: EditableField, patch: FieldPatch) {
         allFields.value = allFields.value.map(f => f.id === field.id ? {...f, ...patch} : f)
         try {
-            await port.update(field.id, requestFor(field, patch))
+            await port.update(field.id, requestFor(field, patch), false)
         } catch (e) {
             await reload()
             record(e)
@@ -525,7 +556,14 @@ export function useFieldsConfig(port: FieldsPort) {
         requestDelete,
         confirm: confirmDelete,
     } = useConfirmDelete<EditableField>({
-        onDelete: async (field) => { await port.remove(field.id) },
+        onDelete: async (field) => {
+            try {
+                await port.remove(field.id, dependentsOf(field).length > 0)
+            } catch (e) {
+                await catchUpOnRefusal()
+                throw e
+            }
+        },
         onSuccess: () => reload(),
         failure,
     })
@@ -771,6 +809,7 @@ export function useFieldsConfig(port: FieldsPort) {
         formFor,
         dateFields,
         booleanFields,
+        dependentsOf,
         birthDateField,
         genderField,
         showFieldModal,

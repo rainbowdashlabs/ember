@@ -19,9 +19,12 @@ import java.util.List;
  * <p>What the server and its own screens work with. Partner stations are handed an {@link EventField},
  * which keeps the names they have always read.
  *
- * @param value             the answer, in the one shape its type is stored in
- * @param attendanceFieldId the field of the attendance sheet the answer fills in, or null
- * @param isPublic          whether readers outside the station and partner stations see it
+ * @param value                 the answer, in the one shape its type is stored in
+ * @param attendanceFieldId     the field of the attendance sheet the answer fills in, or null
+ * @param isPublic              whether readers outside the station and partner stations see it
+ * @param selfRegistrationState whether the reader asking may put themselves into this member
+ *                              question, or null where the question takes no self-registration or
+ *                              nobody asked on a reader's behalf
  */
 public record AppointmentField(
         int id,
@@ -33,7 +36,36 @@ public record AppointmentField(
         int position,
         boolean overview,
         @Nullable Integer attendanceFieldId,
-        boolean isPublic) {
+        boolean isPublic,
+        @Nullable SelfRegistration selfRegistrationState) {
+
+    /**
+     * A question as stored, not yet measured against any reader.
+     */
+    public AppointmentField(
+            int id,
+            int eventId,
+            String name,
+            FieldType fieldType,
+            EventQuestionSettings config,
+            String value,
+            int position,
+            boolean overview,
+            @Nullable Integer attendanceFieldId,
+            boolean isPublic) {
+        this(id, eventId, name, fieldType, config, value, position, overview, attendanceFieldId, isPublic, null);
+    }
+
+    /**
+     * The same question, telling the reader asking whether they may put themselves into it.
+     *
+     * @param state what the reader may do, or null to say nothing
+     * @return the question with that state
+     */
+    public AppointmentField withSelfRegistration(@Nullable SelfRegistration state) {
+        return new AppointmentField(
+                id, eventId, name, fieldType, config, value, position, overview, attendanceFieldId, isPublic, state);
+    }
 
     /**
      * Where an appointment takes place: the first location question it answers.

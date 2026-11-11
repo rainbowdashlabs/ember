@@ -14,6 +14,7 @@ import QuestionSettingsEditor from '@/components/input/questionsettings/Question
 import BirthDateFields from './fieldmodal/BirthDateFields.vue'
 import ExpiryDateFields from './fieldmodal/ExpiryDateFields.vue'
 import ShownIfField from './fieldmodal/ShownIfField.vue'
+import Alert from '@/components/feedback/Alert.vue'
 import FieldSetField from './fieldmodal/FieldSetField.vue'
 import BehaviorToggles from './fieldmodal/BehaviorToggles.vue'
 import ModalActions from './fieldmodal/ModalActions.vue'
@@ -57,6 +58,8 @@ const props = defineProps<{
   birthDateField: EditableField | null
   /** The field that already is the owner's gender, if any. */
   genderField: EditableField | null
+  /** The questions shown only under this one, by name, which lose that condition if it stops being yes/no. */
+  dependents: string[]
 }>()
 
 /** The types this field cannot take, because another field already is the one of its kind. */
@@ -75,6 +78,11 @@ const emit = defineEmits<{
 
 const fieldName = ref('')
 const fieldType = ref<FieldType>(FieldType.TEXT)
+/** Whether saving would turn a yes/no question others are shown under into another type. */
+const dropsDependents = computed(() =>
+  props.field?.fieldType === FieldType.BOOLEAN
+  && fieldType.value !== FieldType.BOOLEAN
+  && props.dependents.length > 0)
 const fieldDescription = ref('')
 const fieldRequired = ref(false)
 const fieldReadonly = ref(false)
@@ -247,6 +255,9 @@ function submit() {
       </template>
       <WidthField v-if="isSpacer" v-model="fieldWidth"/>
       <FieldSetField v-model="fieldSetId" :sets="sets"/>
+      <Alert v-if="dropsDependents" variant="info" data-testid="type-change-dependents">
+        {{ t('membersConfig.typeChangeDependents', {names: dependents.join(', ')}) }}
+      </Alert>
       <ModalActions
           :saving="saving"
           :disabled="!fieldName && !isSpacer"

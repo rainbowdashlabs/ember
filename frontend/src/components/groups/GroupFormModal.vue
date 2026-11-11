@@ -21,6 +21,8 @@ const {t} = useI18n()
 defineProps<{
   isEdit: boolean
   saving: boolean
+  /** What the save button says where saving does more than save, such as taking members out. */
+  saveLabel?: string
 }>()
 
 const emit = defineEmits<{
@@ -57,7 +59,7 @@ const capabilities = useGroupsCapabilities()
       <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">{{ t('memberGroups.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="saving || !nameModel" @click="emit('save')">
-          {{ saving ? t('common.loading') : t('memberGroups.save') }}
+          {{ saving ? t('common.loading') : (saveLabel ?? t('memberGroups.save')) }}
         </PrimaryButton>
       </ButtonRow>
     </div>

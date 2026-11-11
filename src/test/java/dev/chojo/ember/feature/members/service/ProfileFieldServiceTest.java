@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
@@ -358,6 +359,72 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
             service.delete(text.id());
             service.delete(flag.id());
         }
+    }
+
+    /**
+     * Unlinking shows the questions that depended on a yes/no question unconditionally, after which it
+     * can be deleted. A question depending on another one is left alone.
+     */
+    @Test
+    @Order(23)
+    void unlinkingDependentsLetsTheQuestionGo() {
+        var flag = ask("Has first aid", FieldType.BOOLEAN, "{}", ProfileFieldScope.MEMBER, 18);
+        var other = ask("Has diving", FieldType.BOOLEAN, "{}", ProfileFieldScope.MEMBER, 19);
+        var until = ask("First aid until", FieldType.DATE, "{}", ProfileFieldScope.MEMBER, 20);
+        var depth = ask("Diving depth", FieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 21);
+        try {
+            service.dependOn(until.id(), flag.id());
+            service.dependOn(depth.id(), other.id());
+
+            service.unlinkDependents(flag.stationId(), flag.id());
+
+            assertNull(service.findById(until.id()).orElseThrow().shownIfFieldId());
+            assertEquals(other.id(), service.findById(depth.id()).orElseThrow().shownIfFieldId());
+            assertTrue(service.delete(flag.id()));
+        } finally {
+            service.dependOn(depth.id(), null);
+            service.delete(depth.id());
+            service.delete(until.id());
+            service.delete(other.id());
+        }
+    }
+
+    /**
+     * A yes/no question others depend on takes another type once they are unlinked in the same step,
+     * and a change refused after the unlinking leaves them depending on it as before.
+     */
+    @Test
+    @Order(24)
+    void aTypeChangeUnlinksItsDependentsOrNothingAtAll() {
+        var flag = ask("Has swimming badge", FieldType.BOOLEAN, "{}", ProfileFieldScope.MEMBER, 22);
+        var until = ask("Swimming badge from", FieldType.DATE, "{}", ProfileFieldScope.MEMBER, 23);
+        try {
+            service.dependOn(until.id(), flag.id());
+
+            assertEquals(
+                    MemberRefusal.PROFILE_DEPENDENCY_ON_ITSELF,
+                    assertThrows(
+                                    RefusalResponse.class,
+                                    () -> service.changeUnlinkingDependents(
+                                            flag.stationId(), flag.id(), change(flag.name(), flag.id())))
+                            .refusal());
+            assertEquals(flag.id(), service.findById(until.id()).orElseThrow().shownIfFieldId());
+            assertEquals(
+                    FieldType.BOOLEAN, service.findById(flag.id()).orElseThrow().fieldType());
+
+            var changed = service.changeUnlinkingDependents(flag.stationId(), flag.id(), change(flag.name(), null));
+
+            assertEquals(FieldType.DATE, changed.fieldType());
+            assertNull(service.findById(until.id()).orElseThrow().shownIfFieldId());
+        } finally {
+            service.delete(until.id());
+            service.delete(flag.id());
+        }
+    }
+
+    private static ProfileFieldService.FieldChange change(String name, @Nullable Integer shownIf) {
+        return new ProfileFieldService.FieldChange(
+                name, FieldType.DATE, ProfileFieldConfig.empty(), false, false, null, false, shownIf, null);
     }
 
     /**
