@@ -28,7 +28,7 @@ x-rustfs: &rustfs
     RUSTFS_CONSOLE_ADDRESS: ":9001"
 
 x-rustfs-init: &rustfs-init
-  image: amazon/aws-cli:2.38.6
+  image: amazon/aws-cli:2.39.0
   entrypoint: ["/bin/sh", "-c"]
   # Credentials go in the command, not in `environment`: both services using this anchor bring an
   # `environment` of their own, and a YAML merge replaces that key whole rather than adding to it.
