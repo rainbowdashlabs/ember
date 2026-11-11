@@ -224,7 +224,7 @@ public class ProblemLogAppender extends AppenderBase<ILoggingEvent> {
         sb.append(tp.getClassName()).append(": ").append(tp.getMessage()).append("\n");
         if (tp.getStackTraceElementProxyArray() != null) {
             for (StackTraceElementProxy step : tp.getStackTraceElementProxyArray()) {
-                sb.append("    at ").append(step.getSTEAsString()).append("\n");
+                sb.append("    ").append(step.getSTEAsString()).append("\n");
             }
         }
         if (tp.getCause() != null) {

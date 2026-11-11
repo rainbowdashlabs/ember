@@ -133,6 +133,23 @@ class AttendanceServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(6)
+    void aTemplateNameInUseIsRefusedAndAFreedOneIsNot() {
+        var other = service.createTemplate(station.id(), "Name Clash");
+
+        var created = assertThrows(RefusalResponse.class, () -> service.createTemplate(station.id(), "Name Clash"));
+        var renamed = assertThrows(RefusalResponse.class, () -> service.updateTemplate(templateId, "Name Clash"));
+        assertEquals(AttendanceRefusal.ATTENDANCE_TEMPLATE_NAME_TAKEN, created.refusal());
+        assertEquals(AttendanceRefusal.ATTENDANCE_TEMPLATE_NAME_TAKEN, renamed.refusal());
+        assertTrue(service.updateTemplate(other.id(), "Name Clash").isPresent(), "keeping its own name is fine");
+
+        service.archiveTemplate(other.id());
+        var reused = service.createTemplate(station.id(), "Name Clash");
+        assertEquals("Name Clash", reused.name(), "a deleted template frees its name");
+        service.archiveTemplate(reused.id());
+    }
+
+    @Test
     @Order(10)
     void createTemplateField() {
         var fields = service.createTemplateField(

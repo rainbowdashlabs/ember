@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -127,6 +128,7 @@ class ProblemLogFlusherTest {
                 .orElseThrow();
         assertEquals("java.lang.IllegalStateException", failed.exceptionClass());
         assertTrue(failed.stacktrace().startsWith("java.lang.IllegalStateException: x"));
+        assertFalse(failed.stacktrace().contains("at at "), "each frame says at once");
         assertEquals("worker-2", failed.occurrences().getFirst().thread());
 
         assertEquals(0, flusher.flush(), "nothing is written twice");

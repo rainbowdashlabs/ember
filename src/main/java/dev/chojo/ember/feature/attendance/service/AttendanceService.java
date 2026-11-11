@@ -167,13 +167,35 @@ public class AttendanceService {
         return attendanceRepository.findTemplateFields(templateId);
     }
 
+    /**
+     * Creates a template, refused where another template of the station in use has the name.
+     *
+     * @param stationId the station
+     * @param name      the name
+     * @return the template
+     */
     public AttendanceTemplate createTemplate(int stationId, String name) {
+        if (attendanceRepository.templateNameInUse(stationId, name, null)) {
+            throw AttendanceRefusal.ATTENDANCE_TEMPLATE_NAME_TAKEN.raise();
+        }
         var template = attendanceRepository.createTemplate(stationId, name);
         log.info("Created attendance template {} for station {}", template.id(), stationId);
         return template;
     }
 
+    /**
+     * Renames a template, refused where another template of the station in use has the name.
+     *
+     * @param id   the template
+     * @param name the new name
+     * @return the renamed template, or empty where it is not there
+     */
     public Optional<AttendanceTemplate> updateTemplate(int id, String name) {
+        var current = attendanceRepository.findTemplateById(id);
+        if (current.isPresent()
+                && attendanceRepository.templateNameInUse(current.get().stationId(), name, id)) {
+            throw AttendanceRefusal.ATTENDANCE_TEMPLATE_NAME_TAKEN.raise();
+        }
         if (attendanceRepository.updateTemplate(id, name)) {
             log.info("Updated attendance template {}", id);
             return attendanceRepository.findTemplateById(id);
