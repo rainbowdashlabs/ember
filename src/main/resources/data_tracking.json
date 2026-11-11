@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "schemaHash": "sha256:431ef6b6afbd55036bdfa5f68a00dc040d79f80e5a0f48cb6ff8c51c9701c28e",
-  "generatedAt": "2026-11-09T09:29:16Z",
+  "schemaHash": "sha256:9933a0fe843cd6779f990f311814465bbf14616a3155bd7bf6012361021c90c4",
+  "generatedAt": "2026-11-11T11:52:41Z",
   "tables": {
     "account": {
       "feature": "account",
       "scope": "USER",
-      "tableHash": "sha256:c4511f1622efb2578c63ea81d6ea778f66519b9522042752e50e04c6c4ad9d11",
+      "tableHash": "sha256:b78b215f084db9226afd5c11a573dff23ff3766f1eedd0866f6cc4b59344a65d",
       "columns": [
         {
           "name": "id",
@@ -117,6 +117,13 @@
           "nullable": true,
           "verified": true,
           "description": "When a station import created this account under its address. Until the owner sets a password or a passkey through a link sent to that address, no station may change the account's address or how it signs in. NULL for every account whose owner confirmed it, and for every account made any other way."
+        },
+        {
+          "name": "last_active_on",
+          "type": "date",
+          "nullable": true,
+          "verified": true,
+          "description": "The last day the account used the instance, in the database's calendar. Written at most once a day per account; it is what the daily count of people using the instance is made from."
         }
       ],
       "foreignKeys": [
@@ -140,7 +147,8 @@
           "email_verified",
           "instance_user_type",
           "full_name",
-          "unconfirmed_since"
+          "unconfirmed_since",
+          "last_active_on"
         ],
         "rationale": "Reached via station_member.account_id; engine uses customScope to filter accounts referenced by this station's members. Importer matches by email or creates anew."
       },
@@ -8767,7 +8775,7 @@
     "email_queue": {
       "feature": "mail",
       "scope": "INSTANCE",
-      "tableHash": "sha256:85138b3b4314e2276c8a22f95814fdcae6d0560b826c6dcb9d0d33b9f027e888",
+      "tableHash": "sha256:bce3d70a5af1d5c00a63211a225c1295f7eef288ca73cfd958da7247d2441751",
       "columns": [
         {
           "name": "id",
@@ -8887,9 +8895,36 @@
           "nullable": true,
           "verified": true,
           "description": "Which provider of the instance's list carried the mail, counted from zero, whether the mail was the instance's own or a station's. NULL while unsent and for mail a station's own provider carried. The daily allowance of an instance provider and the share stations may use of it are counted from this."
+        },
+        {
+          "name": "failure_reason",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Why the queue gave up on the email: NO_PROVIDER, NO_PROVIDER_LEFT, PROVIDER_REFUSED, PROVIDER_BROKEN or RETRIES_EXHAUSTED. NULL for an email the queue did not give up on, and for failures recorded before the reason was kept."
+        },
+        {
+          "name": "acknowledged_at",
+          "type": "timestamp",
+          "nullable": true,
+          "verified": true,
+          "description": "When an instance administrator took note that the email did not arrive. Ends the warning for it; the email stays until the usual cleanup removes it."
+        },
+        {
+          "name": "acknowledged_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The administrator who took note of the failure. NULL once that account is deleted, and for failures nobody took note of."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "acknowledged_by",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
         {
           "column": "station_id",
           "refTable": "station",
@@ -14912,6 +14947,202 @@
         ]
       },
       "description": "Consent records for GDPR compliance."
+    },
+    "instance_usage_daily": {
+      "tableHash": "sha256:c0f916569e35148e1298f9787f169407503efc88438a8f149f699f736dd40f53",
+      "columns": [
+        {
+          "name": "day",
+          "type": "date",
+          "nullable": false,
+          "verified": true,
+          "description": "The day, in the database's calendar."
+        },
+        {
+          "name": "active_accounts",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Accounts that used the instance that day, counted as it happens: one for each account the first time it is seen that day."
+        },
+        {
+          "name": "accounts",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Accounts at the last snapshot of the day."
+        },
+        {
+          "name": "accounts_confirmed",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Accounts with a confirmed real address at the last snapshot of the day."
+        },
+        {
+          "name": "stations",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Stations at the last snapshot of the day, without the home stations of associations."
+        },
+        {
+          "name": "stations_set_up",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Stations whose setup was finished at the last snapshot of the day."
+        },
+        {
+          "name": "members",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Memberships that are not archived at the last snapshot of the day."
+        },
+        {
+          "name": "former_members",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Archived memberships at the last snapshot of the day."
+        },
+        {
+          "name": "events",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Appointments at the last snapshot of the day."
+        },
+        {
+          "name": "attendance_sessions",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Attendance sheets at the last snapshot of the day."
+        },
+        {
+          "name": "attendance_entries",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Entries on attendance sheets at the last snapshot of the day."
+        },
+        {
+          "name": "inventory_items",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Pieces of equipment at the last snapshot of the day."
+        },
+        {
+          "name": "profile_fields",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Profile questions of stations at the last snapshot of the day."
+        },
+        {
+          "name": "member_groups",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Member groups at the last snapshot of the day."
+        },
+        {
+          "name": "clusters",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Associations at the last snapshot of the day."
+        },
+        {
+          "name": "federation_partners_active",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Active partnerships between stations at the last snapshot of the day, counted once per pair side."
+        },
+        {
+          "name": "knowledge_base_articles",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Knowledge base files not in the trash at the last snapshot of the day."
+        },
+        {
+          "name": "mails_sent",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Emails the queue sent that day."
+        },
+        {
+          "name": "people",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Distinct people with at least one membership that is not archived, at the last snapshot of the day. A person is their account; a membership without an account is a person of its own."
+        },
+        {
+          "name": "people_trial",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Distinct people who are trial members in at least one station, not archived there."
+        },
+        {
+          "name": "people_member",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Distinct people who are members in at least one station, not archived there."
+        },
+        {
+          "name": "people_guardian",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Distinct people whose member type is guardian in at least one station, not archived there."
+        },
+        {
+          "name": "people_team",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Distinct people of the team in at least one station, not archived there."
+        },
+        {
+          "name": "people_manager",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Distinct people who are managers in at least one station, not archived there."
+        },
+        {
+          "name": "memberships",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Memberships that are not archived, so somebody in two stations counts twice."
+        }
+      ],
+      "foreignKeys": [],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Counts of the whole instance, not of any station; the new instance keeps its own."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Daily totals only; nothing in a row says who was counted."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Daily totals only; nothing in a row says who was counted."
+      },
+      "description": "One row per day: how many people used the instance that day, and how large the instance was. Holds counts only, never who. Kept for good.",
+      "feature": "statistics",
+      "scope": "INSTANCE"
     },
     "inventory": {
       "feature": "inventory",
@@ -26391,7 +26622,7 @@
     "station": {
       "feature": "station",
       "scope": "STATION",
-      "tableHash": "sha256:b9d25b16ef3619615ad19471081af5b3038edbe8b395c59195b41221c8f2095b",
+      "tableHash": "sha256:35f8c9a1ca6fdcda4d9143c5c5d59906be68ccb18747b9647dd941843e8fc39b",
       "columns": [
         {
           "name": "id",
@@ -26783,6 +27014,20 @@
           "nullable": false,
           "verified": true,
           "description": "AND or OR, how the parts of witness_reach_restriction combine."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the station was made. NULL for stations made before this was recorded."
+        },
+        {
+          "name": "waiting_since",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "Since when the station waits for its manager to set it up: set when a manager is named on a station that is not set up yet. The automatic reminders count from here. NULL for a station nobody waits for."
         }
       ],
       "foreignKeys": [
@@ -26834,7 +27079,9 @@
           "instance_mail_granted_at",
           "instance_mail_daily_limit",
           "moved_away_at",
-          "moved_to"
+          "moved_to",
+          "created_at",
+          "waiting_since"
         ],
         "rationale": "Single-row table; exported as an object via outputShape=SINGLE. The federation key is encrypted with the source instance's key, so it travels sealed with the transfer token beside the station page instead of as a column. Whether the station moved away describes the copy a move leaves on the source, never the station arriving."
       },
@@ -27845,6 +28092,102 @@
         "reason": "Station configuration, not personal data"
       },
       "description": "The mail providers a station sends through, in the order they are tried."
+    },
+    "station_manager_reminder": {
+      "tableHash": "sha256:8a2eb698c76376d3c6f05fa0b9810ef26d5929f9333b38e52c04879056e6a7d8",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station waiting for its manager. Deleting the station deletes its reminders."
+        },
+        {
+          "name": "account_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The manager the reminder was written to. NULL once that account is deleted."
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "SETUP_LINK: a fresh link to choose a password, for a manager who never signed in. SETUP_REMINDER: a note that the station waits to be set up, for a manager who can sign in."
+        },
+        {
+          "name": "trigger",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What sent it: MANUAL for an administrator, AFTER_7_DAYS and AFTER_21_DAYS for the automatic reminders."
+        },
+        {
+          "name": "waiting_since",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "The station's waiting_since when the reminder was written, so naming a new manager starts the automatic reminders afresh."
+        },
+        {
+          "name": "sent_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the mail was queued. NULL for an automatic reminder that was skipped because one had gone out by hand shortly before."
+        },
+        {
+          "name": "sent_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The administrator who sent it by hand. NULL for an automatic reminder, and once that account is deleted."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "sent_by",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Which reminders this instance sent; a moved station that still waits for its manager is reminded afresh by its new instance."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Records only that a setup mail went out to a station's manager and when; the mail itself is in the mail log, which the export already covers."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Both references to an account are set to NULL when the account is deleted, and the rows go with the station."
+      },
+      "description": "Every reminder sent, or deliberately skipped, to the manager of a station that is not set up yet. An automatic reminder is written once per trigger and waiting period, which is what keeps it from going out twice.",
+      "feature": "station",
+      "scope": "STATION"
     },
     "station_member": {
       "feature": "station",
