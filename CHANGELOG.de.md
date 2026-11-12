@@ -18,6 +18,21 @@ Ein einzelner Termin einer Serie lässt sich für sich ändern, eine Serie ab ei
 
 - **Geteilte Termine brauchen auf beiden Seiten diese Version.** Zwischen einer Wache auf dieser Version und einer Partnerwache auf einer älteren auf einem anderen Server funktionieren geteilte Termine, die Anmeldung dazu und ihre Kommentare nicht. Sobald beide 26.25.0 betreiben, geht es wieder.
 
+## v26.24.2
+
+Terminvorlagen tragen Anmelderegeln, Dateien, Startwerte für den Anwesenheitsbogen und die Freigabe für Partnerwachen. Der Filter "Anmeldung offen" bei den kommenden Terminen zeigt nur noch Termine, für die eine Anmeldung noch möglich ist.
+
+### Verbesserungen
+
+- **Vorlagen tragen Anmelderegeln.** Eine Terminvorlage legt den Anmeldeschluss als Tage und Stunden vor Beginn fest, eine Mindestzahl an Anmeldungen und wie viele Tage vor jedem Termin sie erreicht sein muss, und wie viele Tage vor jedem Termin die Anmeldung schließt. Ein Termin aus der Vorlage übernimmt das und rechnet den Anmeldeschluss von seinem eigenen Beginn aus.
+- **Vorlagen tragen Dateien, Feldwerte und Freigaben.** Eine Vorlage hält Dateien aus der Mediathek der Wache, Startwerte für die Felder ihres Anwesenheitsbogens und die Partnerwachen, für die sie freigibt. Termine aus der Vorlage übernehmen all das, die Freigabe allerdings nur, wenn die Person Termine mit Partnerwachen teilen darf.
+
+### Fehlerbehebungen
+
+- **Geschlossene Anmeldungen gelten nicht mehr als offen.** Mit "Anmeldung offen" zeigte die Liste der kommenden Termine auch Termine, deren Anmeldeschluss schon vorbei war. Jetzt erscheinen nur noch Termine, für die eine Anmeldung noch möglich ist.
+- **Terminvorlagen formatieren ihre Beschreibung.** Die Beschreibung einer Terminvorlage war ein einfaches Textfeld, während Termine Formatierung bieten. Vorlagen nutzen jetzt denselben Editor.
+- **Vorlagen geben ihr Teilnehmerlimit weiter.** Ein Termin aus einer Vorlage kam ohne das Teilnehmerlimit der Vorlage. Das Limit wird jetzt mit den anderen Einstellungen übernommen.
+
 ## v26.24.1
 
 Jede Zahl der Übersicht öffnet die passende Liste, fehlgeschlagene E-Mails lassen sich lesen und zur Kenntnis nehmen. Die Verwaltung einer wartenden Wache lässt sich erinnern und wird auch von selbst erinnert. Die Kontenliste filtert über alle Konten. Die Statistik zeigt, wie viele Personen die Instanz täglich nutzen und wie sie wächst, aufgezeichnet ab dieser Version. Knöpfe, die nur zu einer Ablehnung führen konnten, sind verschwunden oder erklären sich. Das Problemprotokoll übersteht einen Neustart, kann Bekanntes stummschalten und zeigt die Logzeilen um ein Problem. Diese Zeilen können auf Wunsch an einen Beacon gehen, Namen und Adressen werden dabei ersetzt.
@@ -65,7 +80,6 @@ Jede Zahl der Übersicht öffnet die passende Liste, fehlgeschlagene E-Mails las
 - **Konten ohne Adresse zählten als unbestätigt.** Konten für Personen ohne E-Mail-Adresse erhöhten die Zahl unbestätigter Konten, obwohl sie nie eine bestätigen können. Sie werden nicht mehr gezählt.
 - **Selbsteintragung auch Mitgliedern außerhalb der Auswahl angeboten.** Der Knopf „Eintragen" erschien bei Mitgliederfragen, die auf eine Gruppe, einen Mitgliedstyp oder einen Tag beschränkt sind, auch für Mitglieder außerhalb davon, und der Klick wurde dann abgelehnt. Er erscheint jetzt nur noch für Mitglieder, die sich eintragen dürfen, und nach dem Anmeldeschluss steht dort, dass die Eintragung geschlossen ist.
 - **Ja/Nein-Fragen mit abhängigen Fragen ließen sich nicht löschen.** Das Löschen einer solchen Frage oder ein anderer Typ für sie wurde abgelehnt, mit dem Rat, die Seite neu zu laden. Der Dialog nennt jetzt die abhängigen Fragen und kann ihre Bedingung im selben Schritt entfernen, ihre Antworten bleiben erhalten.
-
 
 ## v26.24.0
 

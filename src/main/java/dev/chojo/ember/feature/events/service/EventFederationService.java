@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
 import dev.chojo.ember.feature.events.entity.EventField;
@@ -626,7 +627,7 @@ public class EventFederationService implements FederationServer {
             ServingPartner partner, int eventId, int attachmentId) {
         requireShared(partner, eventId);
         var attachment = attachmentService
-                .find(attachmentId)
+                .find(AppointmentOwner.EVENT, attachmentId)
                 .filter(found -> found.eventId() == eventId)
                 .filter(found -> !found.internal())
                 .orElseThrow(EventRefusal.SHARED_EVENT_FILE_NOT_HERE::raise);

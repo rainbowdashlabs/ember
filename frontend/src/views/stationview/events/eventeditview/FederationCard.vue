@@ -16,6 +16,10 @@ import {ShareScope, type PartnerResponse} from '@/api/generated/schema'
 const props = defineProps<{
   partners: PartnerResponse[]
   canFederate: boolean
+  /** What sharing does, where the owner is not an event: an event template says so in its own words. */
+  hint?: string
+  /** A note on the share as it was taken over from a template, shown above the picker. */
+  note?: string
 }>()
 
 const shared = defineModel<boolean>('shared', {required: true})
@@ -26,12 +30,13 @@ const partnerIds = defineModel<number[]>('partnerIds', {required: true})
  * What each partner may do with this appointment, keyed by partner.
  *
  * <p>Only the partners this is actually shared with are worth arranging anything for, so the list
- * follows the share above rather than naming everybody the station has ever federated with.
+ * follows the share above rather than naming everybody the station has ever federated with. An
+ * owner that hands out no places, such as an event template, binds none and the list is not shown.
  */
-const places = defineModel<Record<number, {decides: boolean; budget: number | null}>>('places', {required: true})
+const places = defineModel<Record<number, {decides: boolean; budget: number | null}>>('places')
 
 const sharedWith = computed(() => {
-  if (!shared.value) return []
+  if (!shared.value || !places.value) return []
   if (scope.value === ShareScope.SPECIFIC) {
     return props.partners.filter(entry => partnerIds.value.includes(entry.partner.id))
   }
@@ -39,7 +44,7 @@ const sharedWith = computed(() => {
 })
 
 function placesFor(partnerId: number) {
-  return places.value[partnerId] ?? {decides: false, budget: null}
+  return places.value?.[partnerId] ?? {decides: false, budget: null}
 }
 
 function setPlaces(partnerId: number, next: {decides: boolean; budget: number | null}) {
@@ -52,7 +57,8 @@ const {t} = useI18n()
 <template>
   <NeutralContainer class="space-y-2">
     <SubHeader>{{ t('events.federation') }}</SubHeader>
-    <p class="text-xs text-(--text-muted)">{{ t('events.federationShareHint') }}</p>
+    <p class="text-xs text-(--text-muted)">{{ hint ?? t('events.federationShareHint') }}</p>
+    <p v-if="note" class="text-xs text-(--text-muted)" data-testid="federation-template-note">{{ note }}</p>
     <FederationSharePicker
         v-model:shared="shared"
         v-model:scope="scope"

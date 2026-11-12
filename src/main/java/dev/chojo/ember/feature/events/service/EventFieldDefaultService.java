@@ -10,14 +10,19 @@ import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
+import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldDefaultRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.question.Question;
 import dev.chojo.ember.feature.question.QuestionCheck;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,8 +32,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Owns the prefilled attendance field values an event contributes, including resolving links to
- * event properties into concrete values.
+ * Owns the prefilled attendance field values an event contributes, and the ones a template holds for
+ * the events made from it, including resolving links to event properties into concrete values.
  */
 @Singleton
 public class EventFieldDefaultService {
@@ -36,6 +41,7 @@ public class EventFieldDefaultService {
 
     private final EventFieldDefaultRepository fieldDefaultRepository;
     private final EventRepository eventRepository;
+    private final EventTemplateRepository templateRepository;
     private final AttendanceRepository attendanceRepository;
     private final AttendanceTemplateGuards attendanceTemplateGuards;
 
@@ -43,35 +49,52 @@ public class EventFieldDefaultService {
     public EventFieldDefaultService(
             EventFieldDefaultRepository fieldDefaultRepository,
             EventRepository eventRepository,
+            EventTemplateRepository templateRepository,
             AttendanceRepository attendanceRepository,
             AttendanceTemplateGuards attendanceTemplateGuards) {
         this.fieldDefaultRepository = fieldDefaultRepository;
         this.eventRepository = eventRepository;
+        this.templateRepository = templateRepository;
         this.attendanceRepository = attendanceRepository;
         this.attendanceTemplateGuards = attendanceTemplateGuards;
     }
 
     /**
-     * Retrieves all field default configurations for an event.
+     * Retrieves all field default configurations of an event or a template.
      *
-     * @param eventId the event ID
+     * @param owner   whose values these are
+     * @param ownerId the event or template
      * @return the list of field defaults
      */
-    public List<EventFieldDefault> findByEvent(int eventId) {
-        return fieldDefaultRepository.findByEvent(eventId);
+    public List<EventFieldDefault> find(AppointmentOwner owner, int ownerId) {
+        return fieldDefaultRepository.findByOwner(owner, ownerId);
     }
 
     /**
-     * Replaces all field defaults for an event.
+     * Replaces all field defaults of an event or a template.
      *
-     * @param eventId  the event ID
+     * <p>A template keeps only values for fields in use on its attendance sheet, and none while it
+     * has no sheet: it is written before any event exists, so a value for a field of some other
+     * sheet would fill in a sheet nobody opens. Such a value is dropped rather than stored, the way a
+     * template question's tie to another sheet is.
+     *
+     * @param owner    whose values these are
+     * @param ownerId  the event or template
      * @param defaults the new field default configurations
      */
-    public void setForEvent(int eventId, List<EventFieldDefault> defaults) {
-        requireFieldsInUse(eventId, defaults);
-        requireAnswerable(eventId, defaults);
-        fieldDefaultRepository.replaceForEvent(eventId, defaults);
-        log.info("Set field defaults for event {} ({} defaults)", eventId, defaults.size());
+    public void set(AppointmentOwner owner, int ownerId, List<EventFieldDefault> defaults) {
+        Integer sheetId = sheetOf(owner, ownerId);
+        if (sheetId != null)
+            defaults.forEach(chosen -> attendanceTemplateGuards.requireFieldInUse(sheetId, chosen.fieldId()));
+        var questions = sheetQuestions(sheetId);
+        requireAnswerable(questions, defaults);
+        var kept = owner == AppointmentOwner.TEMPLATE
+                ? defaults.stream()
+                        .filter(chosen -> questions.containsKey(chosen.fieldId()))
+                        .toList()
+                : defaults;
+        Transactions.run(() -> fieldDefaultRepository.replace(owner, ownerId, kept));
+        log.info("Set field defaults for {} {} ({} defaults)", owner, ownerId, kept.size());
     }
 
     /**
@@ -84,8 +107,7 @@ public class EventFieldDefaultService {
      *
      * @throws RefusalResponse naming the field and what is wrong with the value
      */
-    private void requireAnswerable(int eventId, List<EventFieldDefault> defaults) {
-        var questions = sheetQuestions(eventId);
+    private static void requireAnswerable(Map<Integer, Question> questions, List<EventFieldDefault> defaults) {
         for (var chosen : defaults) {
             if (!"VALUE".equals(chosen.source())) continue;
             var question = questions.get(chosen.fieldId());
@@ -96,28 +118,24 @@ public class EventFieldDefaultService {
         }
     }
 
-    /**
-     * Refuses a starting value for a field of the sheet that was deleted, which no new sheet gets.
-     *
-     * @throws io.javalin.http.HttpResponseException {@link
-     *     dev.chojo.ember.api.refusal.AttendanceRefusal#ATTENDANCE_FIELD_ARCHIVED}
-     */
-    private void requireFieldsInUse(int eventId, List<EventFieldDefault> defaults) {
-        eventRepository
-                .findById(eventId)
-                .map(StationEvent::templateId)
-                .ifPresent(sheetId -> defaults.forEach(
-                        chosen -> attendanceTemplateGuards.requireFieldInUse(sheetId, chosen.fieldId())));
+    /** The attendance sheet an event is taken on, or a template hands its events, if any. */
+    private @Nullable Integer sheetOf(AppointmentOwner owner, int ownerId) {
+        return switch (owner) {
+            case EVENT ->
+                eventRepository.findById(ownerId).map(StationEvent::templateId).orElse(null);
+            case TEMPLATE ->
+                templateRepository
+                        .findById(ownerId)
+                        .map(EventTemplate::attendanceTemplateId)
+                        .orElse(null);
+        };
     }
 
-    /** The questions the sheet this appointment is taken on asks, by field. */
-    private Map<Integer, Question> sheetQuestions(int eventId) {
-        return eventRepository
-                .findById(eventId)
-                .map(StationEvent::templateId)
-                .map(sheetId -> attendanceRepository.findTemplateFields(sheetId).stream()
-                        .collect(Collectors.toMap(AttendanceTemplateField::id, AttendanceTemplateField::question)))
-                .orElse(Map.of());
+    /** The questions a sheet asks, by field, leaving out the fields it no longer uses. */
+    private Map<Integer, Question> sheetQuestions(@Nullable Integer sheetId) {
+        if (sheetId == null) return Map.of();
+        return attendanceRepository.findTemplateFields(sheetId).stream()
+                .collect(Collectors.toMap(AttendanceTemplateField::id, AttendanceTemplateField::question));
     }
 
     /**
@@ -127,7 +145,7 @@ public class EventFieldDefaultService {
         var event = eventRepository.findById(eventId).orElse(null);
         if (event == null) return Map.of();
 
-        var defaults = fieldDefaultRepository.findByEvent(eventId);
+        var defaults = fieldDefaultRepository.findByOwner(AppointmentOwner.EVENT, eventId);
         var result = new HashMap<Integer, String>();
         for (var def : defaults) {
             String resolved =

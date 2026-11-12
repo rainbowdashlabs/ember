@@ -30,6 +30,14 @@ repositories {
     mavenCentral()
 }
 
+configurations.configureEach {
+    resolutionStrategy.componentSelection.all {
+        if (candidate.version.endsWith("-SNAPSHOT")) {
+            reject("A version range must resolve to a release, never to a snapshot the proxy may drop")
+        }
+    }
+}
+
 dependencies {
     implementation(libs.ocular)
     annotationProcessor(libs.ocular)

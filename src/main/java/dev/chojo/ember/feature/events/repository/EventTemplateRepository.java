@@ -8,13 +8,12 @@ package dev.chojo.ember.feature.events.repository;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateField;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
+import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationTemplateField;
-import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
-import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,9 +25,10 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class EventTemplateRepository {
 
     private static final String EVENT_TEMPLATE_COLUMNS = """
-            id, station_id, name, title, description, category_id, event_type,
-            requires_registration, registration_deadline_offset, requires_confirmation,
-            restriction_mode, view_restriction_mode, attendance_template_id, registration_limit""";
+            id, station_id, name, title, description, category_id, event_type, requires_registration,
+            (EXTRACT(EPOCH FROM registration_deadline_offset) / 3600)::INTEGER AS registration_deadline_offset_hours,
+            requires_confirmation, restriction_mode, view_restriction_mode, attendance_template_id,
+            registration_limit, min_registrations, threshold_days, registration_close_days""";
 
     public List<EventTemplate> findByStation(int stationId) {
         return query("""
@@ -54,19 +54,14 @@ public class EventTemplateRepository {
                 call().bind("station_id", stationId).bind("name", name), EventTemplate.map(), EVENT_TEMPLATE_COLUMNS);
     }
 
-    public boolean update(
-            int id,
-            String name,
-            @Nullable String title,
-            @Nullable String description,
-            @Nullable Integer categoryId,
-            StationEvent.@Nullable EventType eventType,
-            @Nullable Boolean requiresRegistration,
-            @Nullable String registrationDeadlineOffset,
-            @Nullable Boolean requiresConfirmation,
-            @Nullable RestrictionMode restrictionMode,
-            @Nullable Integer attendanceTemplateId,
-            @Nullable Integer registrationLimit) {
+    /**
+     * Writes the settings of a template, leaving its fields, questions, reminders and audiences alone.
+     *
+     * @param id       the template
+     * @param settings what it now sets
+     * @return whether the template was there to write
+     */
+    public boolean update(int id, EventTemplateSettings settings) {
         return query("""
                 UPDATE event_template SET
                     name = :name,
@@ -75,24 +70,30 @@ public class EventTemplateRepository {
                     category_id = :category_id,
                     event_type = :event_type,
                     requires_registration = :requires_registration,
-                    registration_deadline_offset = :registration_deadline_offset::INTERVAL,
+                    registration_deadline_offset = make_interval(hours => CAST(:offset_hours AS INTEGER)),
                     requires_confirmation = :requires_confirmation,
                     restriction_mode = :restriction_mode,
                     attendance_template_id = :attendance_template_id,
-                    registration_limit = :registration_limit
+                    registration_limit = :registration_limit,
+                    min_registrations = :min_registrations,
+                    threshold_days = :threshold_days,
+                    registration_close_days = :registration_close_days
                 WHERE id = :id;""")
                 .single(call().bind("id", id)
-                        .bind("name", name)
-                        .bind("title", title)
-                        .bind("description", description)
-                        .bind("category_id", categoryId)
-                        .bind("event_type", eventType)
-                        .bind("requires_registration", requiresRegistration)
-                        .bind("registration_deadline_offset", registrationDeadlineOffset)
-                        .bind("requires_confirmation", requiresConfirmation)
-                        .bind("restriction_mode", restrictionMode)
-                        .bind("attendance_template_id", attendanceTemplateId)
-                        .bind("registration_limit", registrationLimit))
+                        .bind("name", settings.name())
+                        .bind("title", settings.title())
+                        .bind("description", settings.description())
+                        .bind("category_id", settings.categoryId())
+                        .bind("event_type", settings.eventType())
+                        .bind("requires_registration", settings.requiresRegistration())
+                        .bind("offset_hours", settings.registrationDeadlineOffsetHours())
+                        .bind("requires_confirmation", settings.requiresConfirmation())
+                        .bind("restriction_mode", settings.restrictionMode())
+                        .bind("attendance_template_id", settings.attendanceTemplateId())
+                        .bind("registration_limit", settings.registrationLimit())
+                        .bind("min_registrations", settings.minRegistrations())
+                        .bind("threshold_days", settings.thresholdDays())
+                        .bind("registration_close_days", settings.registrationCloseDays()))
                 .update()
                 .changed();
     }
@@ -226,6 +227,24 @@ public class EventTemplateRepository {
                 .rows();
     }
 
+    /**
+     * Links every file a template attaches to an appointment made from it, in the template's order.
+     * The files are the same files; nothing is copied.
+     *
+     * @return how many files were linked
+     */
+    public int copyAttachments(int templateId, int eventId) {
+        return query("""
+                INSERT INTO event_attachment(event_id, file_id, label, internal, sort_order)
+                SELECT :event_id, file_id, label, internal, sort_order
+                FROM event_template_attachment
+                WHERE template_id = :template_id
+                ORDER BY sort_order, id;""")
+                .single(call().bind("template_id", templateId).bind("event_id", eventId))
+                .insert()
+                .rows();
+    }
+
     public List<Integer> findReminderDays(int templateId) {
         return query("""
                 SELECT days_before
@@ -249,5 +268,24 @@ public class EventTemplateRepository {
                     .single(call().bind("template_id", templateId).bind("days_before", days))
                     .insert();
         }
+    }
+
+    /**
+     * Drops the starting values a template holds for fields that are not in use on its attendance
+     * sheet, which is all of them once it has none. Run after the template's sheet changed.
+     *
+     * @param templateId the template
+     */
+    public void dropFieldDefaultsOffSheet(int templateId) {
+        query("""
+                DELETE FROM event_template_field_default d
+                WHERE d.template_id = :template_id
+                  AND NOT EXISTS (
+                    SELECT 1
+                    FROM event_template t
+                    JOIN attendance_template_field f ON f.template_id = t.attendance_template_id
+                    WHERE t.id = d.template_id
+                      AND f.id = d.field_id
+                      AND f.archived_at IS NULL);""").single(call().bind("template_id", templateId)).delete();
     }
 }

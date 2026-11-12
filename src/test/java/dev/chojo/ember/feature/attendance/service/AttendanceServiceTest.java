@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.attendance.entity.SessionAudience;
 import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.attendance.handler.EventAnswerRecordedHandler;
 import dev.chojo.ember.feature.attendance.repository.AttendanceTimeRuleRepository;
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
@@ -1568,7 +1569,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 .orElseThrow()
                 .id();
 
-        eventFieldDefaultRepo.replaceForEvent(
+        eventFieldDefaultRepo.replace(
+                AppointmentOwner.EVENT,
                 event.id(),
                 List.of(
                         new EventFieldDefault(event.id(), nameFieldId, "EVENT_NAME", null),
@@ -1592,7 +1594,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         assertTrue(sessionFields.stream().anyMatch(f -> f.fieldId() == endFieldId && f.value() != null));
 
         service.deleteSession(session.id());
-        eventFieldDefaultRepo.replaceForEvent(event.id(), List.of());
+        eventFieldDefaultRepo.replace(AppointmentOwner.EVENT, event.id(), List.of());
         eventRepo.delete(event.id());
         service.archiveTemplate(fieldTemplate.id());
     }

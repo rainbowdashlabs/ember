@@ -635,34 +635,38 @@ public enum EventRefusal implements Refusal {
     AGREEMENT_NOTHING_TO_SIGN(
             172, HttpStatus.BAD_REQUEST, "The appointment asks for no agreement in this document for them to sign"),
 
+    /** An appointment template whose sign-up rules count hours, days or places below zero. */
+    EVENT_TEMPLATE_RULE_NEGATIVE(
+            173, HttpStatus.BAD_REQUEST, "The sign-up rules of a template cannot be negative, so nothing was saved"),
+
     /** One date, or one date and the ones after it, edited on an appointment that does not repeat. */
     EVENT_SCOPE_NEEDS_A_SERIES(
-            173, HttpStatus.BAD_REQUEST, "Only a series has dates to edit on their own, so nothing was saved"),
+            174, HttpStatus.BAD_REQUEST, "Only a series has dates to edit on their own, so nothing was saved"),
 
     /** A date before today chosen to edit on its own or to edit the series from. */
     EVENT_SCOPE_DATE_PASSED(
-            174, HttpStatus.BAD_REQUEST, "A date that has passed stays as it was, so nothing was saved"),
+            175, HttpStatus.BAD_REQUEST, "A date that has passed stays as it was, so nothing was saved"),
 
     /** A date chosen to edit on its own or to edit the series from that the series does not fall on. */
     EVENT_SCOPE_DATE_NOT_AN_OCCURRENCE(
-            175, HttpStatus.BAD_REQUEST, "The series does not take place on that date, so nothing was saved"),
+            176, HttpStatus.BAD_REQUEST, "The series does not take place on that date, so nothing was saved"),
 
     /** An attendance sheet taken on a series for a date that became an appointment of its own. */
     ATTENDANCE_DAY_DETACHED(
-            176, HttpStatus.BAD_REQUEST, "That date became an appointment of its own, so attendance is taken there"),
+            177, HttpStatus.BAD_REQUEST, "That date became an appointment of its own, so attendance is taken there"),
 
     /** One date, or one date and the ones after it, edited without naming the date. */
-    EVENT_SCOPE_NEEDS_A_DATE(177, HttpStatus.BAD_REQUEST, "Name the date the change applies to, nothing was saved"),
+    EVENT_SCOPE_NEEDS_A_DATE(178, HttpStatus.BAD_REQUEST, "Name the date the change applies to, nothing was saved"),
 
     /** A scope sent without saying which dates it covers. */
-    EVENT_SCOPE_NEEDS_A_KIND(178, HttpStatus.BAD_REQUEST, "Say which dates the change applies to, nothing was saved"),
+    EVENT_SCOPE_NEEDS_A_KIND(179, HttpStatus.BAD_REQUEST, "Say which dates the change applies to, nothing was saved"),
 
     /** A note to go with a change notice that is longer than a notice carries. */
-    EVENT_NOTE_TOO_LONG(179, HttpStatus.BAD_REQUEST, "The note holds at most 500 characters, nothing was saved"),
+    EVENT_NOTE_TOO_LONG(180, HttpStatus.BAD_REQUEST, "The note holds at most 500 characters, nothing was saved"),
 
     /** A change notice sent on its own for an appointment that took over no dates of another one. */
     EVENT_NOTICE_NOT_A_CONTINUATION(
-            180,
+            181,
             HttpStatus.BAD_REQUEST,
             "Only an appointment that took over dates of another one sends its notice on its own");
 

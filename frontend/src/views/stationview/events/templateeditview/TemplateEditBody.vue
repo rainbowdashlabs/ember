@@ -14,6 +14,7 @@ import RegistrationFieldsEditor from '../eventshared/RegistrationFieldsEditor.vu
 import EventReminderEditor from '../eventshared/EventReminderEditor.vue'
 import EventDefaultsSection from './EventDefaultsSection.vue'
 import TemplateAudienceSection from './TemplateAudienceSection.vue'
+import TemplateSignUpSection from './TemplateSignUpSection.vue'
 import type {RestrictionSelection} from '@/api/types'
 import {isRecurringEvent} from '@/api/events'
 import type {
@@ -30,7 +31,7 @@ import type {
  * Everything a template is edited through, once it has been loaded.
  *
  * <p>Its own component because the view around it is the loading, the error and the way back, and
- * the template itself is five sections that have nothing to do with any of those. What the view adds
+ * the template itself is six sections that have nothing to do with any of those. What the view adds
  * of its own, such as the documents to bring, stands in the slot above the save button.
  */
 defineProps<{
@@ -51,6 +52,10 @@ const attendanceTemplateId = defineModel<string>('attendanceTemplateId', {requir
 const requiresRegistration = defineModel<boolean>('requiresRegistration', {required: true})
 const requiresConfirmation = defineModel<boolean>('requiresConfirmation', {required: true})
 const registrationLimit = defineModel<number | undefined>('registrationLimit')
+const deadlineOffsetHours = defineModel<number | null>('deadlineOffsetHours', {required: true})
+const minRegistrations = defineModel<number | undefined>('minRegistrations')
+const thresholdDays = defineModel<number | undefined>('thresholdDays')
+const registrationCloseDays = defineModel<number | undefined>('registrationCloseDays')
 const restriction = defineModel<RestrictionSelection>('restriction', {required: true})
 const viewRestriction = defineModel<RestrictionSelection>('viewRestriction', {required: true})
 const reminderDays = defineModel<number[]>('reminderDays', {required: true})
@@ -72,11 +77,19 @@ const {t} = useI18n()
       v-model:category-id="categoryId"
       v-model:event-type="eventType"
       v-model:attendance-template-id="attendanceTemplateId"
+      :categories="categories"
+      :attendance-templates="attendanceTemplates"
+  />
+
+  <TemplateSignUpSection
       v-model:requires-registration="requiresRegistration"
       v-model:requires-confirmation="requiresConfirmation"
       v-model:registration-limit="registrationLimit"
-      :categories="categories"
-      :attendance-templates="attendanceTemplates"
+      v-model:deadline-offset-hours="deadlineOffsetHours"
+      v-model:min-registrations="minRegistrations"
+      v-model:threshold-days="thresholdDays"
+      v-model:registration-close-days="registrationCloseDays"
+      :event-type="eventType"
   />
 
   <TemplateAudienceSection

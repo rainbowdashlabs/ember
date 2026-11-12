@@ -41,6 +41,9 @@ const SHIRT_SIZE: RegistrationFieldDefinition[] = [{
 
     <HelpSection :title="t('helpCenter.eventEdit.loadTemplateTitle')">
       <p>{{ t('helpCenter.eventEdit.loadTemplateText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.loadTemplateRulesText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.loadTemplateShareText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.loadTemplateFilesText') }}</p>
       <NeutralContainer class="mt-3">
         <div class="flex items-center justify-between flex-wrap gap-2">
           <SectionHeader>{{ t('events.editEvent') }}</SectionHeader>

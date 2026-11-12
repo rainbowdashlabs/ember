@@ -5,9 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import NumberInput from '@/components/input/number/NumberInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
-import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -26,9 +24,6 @@ const description = defineModel<string>('description', {required: true})
 const categoryId = defineModel<string>('categoryId', {required: true})
 const eventType = defineModel<string>('eventType', {required: true})
 const attendanceTemplateId = defineModel<string>('attendanceTemplateId', {required: true})
-const requiresRegistration = defineModel<boolean>('requiresRegistration', {required: true})
-const requiresConfirmation = defineModel<boolean>('requiresConfirmation', {required: true})
-const registrationLimit = defineModel<number | undefined>('registrationLimit')
 </script>
 
 <template>
@@ -46,20 +41,7 @@ const registrationLimit = defineModel<number | undefined>('registrationLimit')
 
     <div class="space-y-1">
       <FieldLabel>{{ t('eventTemplates.eventDescription') }}</FieldLabel>
-      <TextAreaInput v-model="description" :rows="3"/>
-    </div>
-
-    <div class="flex items-center justify-between">
-      <span class="text-sm font-medium">{{ t('events.requiresRegistration') }}</span>
-      <ToggleInput v-model="requiresRegistration"/>
-    </div>
-    <div class="flex items-center justify-between">
-      <span class="text-sm font-medium">{{ t('events.requiresConfirmation') }}</span>
-      <ToggleInput v-model="requiresConfirmation"/>
-    </div>
-    <div class="space-y-1">
-      <FieldLabel>{{ t('events.registrationLimit') }}</FieldLabel>
-      <NumberInput v-model="registrationLimit" :placeholder="t('events.registrationLimitHint')"/>
+      <MarkdownEditor v-model="description" :placeholder="t('events.descriptionPlaceholder')"/>
     </div>
   </NeutralContainer>
 </template>

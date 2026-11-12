@@ -21,6 +21,7 @@ import {
   EventChangePart,
   StationPermission,
   type ChangeNotice,
+  type EventAttachment,
   type RegistrationFieldDefinition,
 } from '@/api/generated/schema'
 import {isRecurringEvent} from '@/api/events'
@@ -34,6 +35,14 @@ import {useEventAttachments} from './eventeditview/useEventAttachments'
 import AttachmentsCard from './eventeditview/AttachmentsCard.vue'
 import EventSaveDialog from './eventeditview/EventSaveDialog.vue'
 import {useSaveChoice, type SaveChoice} from './eventeditview/useSaveChoice'
+import TemplateFilesNote from './eventeditview/TemplateFilesNote.vue'
+import {
+  eventAttachmentPort,
+  eventFederationPort,
+  eventFieldDefaultsPort,
+  templateFederationPort,
+  templateFieldDefaultsPort,
+} from './eventeditview/eventOwnerPorts'
 import DocumentRequirementsEditor from './eventshared/DocumentRequirementsEditor.vue'
 import {useDocumentRequirements} from './eventshared/useDocumentRequirements'
 import {asSaved} from './eventshared/eventQuestions'
@@ -61,7 +70,7 @@ const isEdit = computed(() => eventId.value !== null)
 const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 
 const form = useEventForm()
-const attachments = useEventAttachments(() => eventId.value, t)
+const attachments = useEventAttachments(() => (eventId.value === null ? null : eventAttachmentPort(eventId.value)), t)
 const data = useEventEditData(
     () => form.state.templateId,
     () => form.state.fields.map(f => f.attendanceFieldId).filter((id): id is number => id != null),
@@ -70,12 +79,28 @@ const fieldDefaults = useEventFieldDefaults()
 const federationShare = useEventFederationShare(canFederate)
 const documentRequirements = useDocumentRequirements()
 
+/** The ids of the fields on the attendance sheet the form names now. */
+function sheetFieldIds(): number[] {
+  return data.props.value.attendanceFields.map(field => field.id)
+}
+
+watch(sheetFieldIds, ids => fieldDefaults.keepOnly(ids))
+
 /**
  * What the editor itself turned down, as opposed to what the server did. An end before its own
  * start is the reader's own typing, so it is said plainly and never offered as a bug to report.
  */
 const refused = ref('')
 const registrationFields = ref<RegistrationFieldDefinition[]>([])
+
+/** What the share card says about the applied template's share it could not take over as it was. */
+const federationNote = ref('')
+
+/**
+ * The files of the applied template, which the server hangs on the appointment when it creates it.
+ * The appointment does not exist before that, so they are only named here.
+ */
+const templateFiles = ref<EventAttachment[]>([])
 const {message: templateAppliedMessage, flash: flashTemplateApplied} = useFlashMessage(3000)
 
 /**
@@ -108,11 +133,55 @@ async function applyEventTemplate(templateId: string | undefined) {
     form.applyTemplate(detail)
     registrationFields.value = [...registrationFields.value, ...detail.registrationFields.map(asDefinition)]
     await documentRequirements.takeFrom({kind: 'event-templates', id: Number(templateId)})
+    await takeOverCarried(Number(templateId))
     flashTemplateApplied(t('eventTemplates.applied'))
   } catch (e) {
     reportCaughtError(e, 'applyEventTemplate')
     failure.value = describeFailure(e, t)
   }
+}
+
+/**
+ * Takes the template's field starting values and its partner share into the form, which the save
+ * writes like any other. Its files are named for a new appointment, which the server attaches them
+ * to on creation, and attached straight away to an appointment that already exists.
+ *
+ * <p>Starting values for fields that are not on the form's attendance sheet are dropped. A share is
+ * skipped for somebody who may not share appointments, with a note in the share card, so the save
+ * does not fail on a share they could not have set by hand either.
+ */
+async function takeOverCarried(templateId: number) {
+  await fieldDefaults.takeFrom(templateFieldDefaultsPort(templateId))
+  fieldDefaults.keepOnly(sheetFieldIds())
+  const share = await federationShare.takeFrom(templateFederationPort(templateId))
+  if (share.skipped) {
+    federationNote.value = t('events.federationTemplateSkipped')
+  } else if (share.droppedPartners > 0) {
+    federationNote.value = t('events.federationTemplatePartnersDropped', {count: share.droppedPartners})
+  } else {
+    federationNote.value = ''
+  }
+  const files = await events.listTemplateAttachments(templateId)
+  if (isEdit.value) {
+    await attachTemplateFiles(files)
+  } else {
+    templateFiles.value = files
+  }
+}
+
+/**
+ * Hangs a template's files on the appointment being edited, in the template's order and with its
+ * labels. A saved appointment has its files written as they change, and the server only links a
+ * template's files when it creates an appointment, so an existing one gets them here. A file the
+ * appointment already carries is left as it is.
+ */
+async function attachTemplateFiles(files: EventAttachment[]) {
+  const port = eventAttachmentPort(eventId.value!)
+  const carried = new Set(attachments.attachments.value.map(attachment => attachment.fileId))
+  for (const file of files.filter(entry => !carried.has(entry.fileId))) {
+    await port.attach(file.fileId, file.label, file.internal)
+  }
+  await attachments.load()
 }
 
 /** A question as the editor works on it: its definition, without the id of wherever it is stored. */
@@ -143,8 +212,8 @@ const {loading, failure} = useAsyncLoader(async () => {
     if (isEdit.value) {
       await Promise.all([
         form.loadEvent(eventId.value!),
-        fieldDefaults.load(eventId.value!),
-        federationShare.load(eventId.value!),
+        fieldDefaults.load(eventFieldDefaultsPort(eventId.value!)),
+        federationShare.load(eventFederationPort(eventId.value!)),
         loadRegistrationFields(eventId.value!),
         attachments.load(),
       ])
@@ -190,11 +259,11 @@ async function writeEvent(choice: SaveChoice | null): Promise<number> {
     savedEventId = created.id
   }
 
-  await fieldDefaults.save(savedEventId, isEdit.value)
+  await fieldDefaults.save(eventFieldDefaultsPort(savedEventId), isEdit.value)
   await events.setEventReminders(savedEventId, form.state.reminders)
   await events.setEventFields(savedEventId, {fields: form.namedFields()})
   await events.setRegistrationFields(savedEventId, registrationFields.value.filter(f => f.name?.trim()).map(asSaved))
-  await federationShare.save(savedEventId)
+  await federationShare.save(eventFederationPort(savedEventId))
   await documentRequirements.save({kind: 'events', id: savedEventId})
   if (scoped) await tellLater(savedEventId, choice.notice)
   return savedEventId
@@ -306,6 +375,7 @@ const bodyProps = computed(() => ({
   isEdit: isEdit.value,
   saving: saving.value || confirming.value,
   canFederate: canFederate.value,
+  federationNote: federationNote.value,
   ...data.props.value,
   ...fieldDefaults.props.value,
   ...federationShare.props.value,
@@ -351,6 +421,8 @@ const bodyHandlers = {
           v-model="documentRequirements.chosen.value"
           :offered-count="documentRequirements.offeredCount.value"
       />
+
+      <TemplateFilesNote v-if="!loading && !isEdit && templateFiles.length > 0" :files="templateFiles"/>
 
       <AttachmentsCard
           v-if="!loading && isEdit"

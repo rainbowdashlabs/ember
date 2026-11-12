@@ -18,6 +18,21 @@ One date of a series can be changed on its own, or a series from one date on. Sa
 
 - **Shared appointments need this version on both sides.** Between a station on this version and a partner station on an older one on another server, shared appointments, signing up for them and their comments stop working. They work again once both run 26.25.0.
 
+## v26.24.2
+
+Appointment templates carry sign-up rules, files, starting values for the attendance sheet and sharing with partner stations. The upcoming list's "Registration open" filter shows only dates that can still be signed up for.
+
+### Improvements
+
+- **Templates carry sign-up rules.** An appointment template sets the sign-up deadline as days and hours before the start, a minimum of sign-ups and how many days before each date it has to be reached, and how many days before each date sign-up closes. An appointment made from the template takes them over and counts the deadline from its own start.
+- **Templates carry files, field values and sharing.** A template holds files from the station's media library, starting values for the fields of its attendance sheet and the partner stations it shares with. Appointments made from it take all of this over, the sharing only where the person may share appointments with partner stations.
+
+### Fixes
+
+- **Closed sign-ups no longer count as open.** With "Registration open" switched on, the upcoming appointments also listed appointments whose sign-up deadline had passed. The list now shows only dates that can still be signed up for.
+- **Appointment templates format their description.** The description of an appointment template was a plain text field, while appointments offer formatting. Templates now use the same editor.
+- **Templates pass on their participant limit.** An appointment created from a template came without the template's participant limit. The limit is now taken over with the other settings.
+
 ## v26.24.1
 
 Every count on the overview opens the matching list, and failed mails can be read and acknowledged. The manager of a station that waits can be reminded, also automatically. The account list filters over every account. The statistics show how many people use the instance each day and how it grows, recorded from this version on. Buttons that could only end in a refusal are gone or explain themselves. The problem log is kept across restarts, can mute what is known and shows the log lines around a problem. Those lines can go to a beacon on request, with names and addresses replaced.
@@ -65,7 +80,6 @@ Every count on the overview opens the matching list, and failed mails can be rea
 - **Accounts without an address counted as unconfirmed.** Accounts made for people without an email address raised the number of unconfirmed accounts, although they can never confirm one. They are no longer counted.
 - **Self-registration offered to members it was not meant for.** The sign-up button showed on member questions limited to a group, member type or tag, also for members outside it, and the click was then refused. It now appears only for members who may sign up, and an appointment past its registration deadline says so.
 - **Deleting a yes/no question others depend on failed.** Deleting such a question, or giving it another type, was refused with advice to reload the page. The dialog now names the dependent questions and can remove their condition in the same step, keeping their answers.
-
 
 ## v26.24.0
 
