@@ -70,4 +70,15 @@ describe('useEventFieldDefaults', () => {
 
         expect(api.events.setTemplateFieldDefaults).toHaveBeenCalledWith(31, [{fieldId: 4, source: 'VALUE', value: 'Hof'}])
     })
+
+    it('takes a template\'s values only for fields that hold none yet', async () => {
+        const defaults = useEventFieldDefaults()
+        defaults.setSource(4, 'VALUE')
+        defaults.setValue(4, 'Halle')
+
+        await defaults.takeFrom(templateFieldDefaultsPort(31))
+
+        expect(defaults.defaults.value.get(3)).toEqual({source: 'EVENT_NAME', value: ''})
+        expect(defaults.defaults.value.get(4)).toEqual({source: 'VALUE', value: 'Halle'})
+    })
 })

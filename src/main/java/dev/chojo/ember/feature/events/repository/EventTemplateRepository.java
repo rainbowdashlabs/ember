@@ -227,6 +227,24 @@ public class EventTemplateRepository {
                 .rows();
     }
 
+    /**
+     * Links every file a template attaches to an appointment made from it, in the template's order.
+     * The files are the same files; nothing is copied.
+     *
+     * @return how many files were linked
+     */
+    public int copyAttachments(int templateId, int eventId) {
+        return query("""
+                INSERT INTO event_attachment(event_id, file_id, label, internal, sort_order)
+                SELECT :event_id, file_id, label, internal, sort_order
+                FROM event_template_attachment
+                WHERE template_id = :template_id
+                ORDER BY sort_order, id;""")
+                .single(call().bind("template_id", templateId).bind("event_id", eventId))
+                .insert()
+                .rows();
+    }
+
     public List<Integer> findReminderDays(int templateId) {
         return query("""
                 SELECT days_before

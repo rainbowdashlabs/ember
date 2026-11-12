@@ -19,6 +19,7 @@ import {createEventFormState, eventTypeNamed} from './eventFormState'
 import {modelBindings} from './modelBindings'
 import {instantToLocalInput} from '@/util/format'
 import {asSaved} from '../eventshared/eventQuestions'
+import {offsetParts} from '../templateeditview/signUpRules'
 
 /**
  * Owns the event editor form: its state, the mapping onto the editor body, and
@@ -43,6 +44,42 @@ export function useEventForm() {
   })
 
   /**
+   * How many hours before the start the applied template closes registration, for as long as the
+   * deadline still follows the start. Null once nothing follows: no template offset was applied, or
+   * the deadline was changed by hand.
+   */
+  const deadlineOffsetHours = ref<number | null>(null)
+
+  /** The deadline last worked out from the start, which tells a hand edit apart from one of ours. */
+  let derivedDeadline = ''
+
+  /**
+   * Sets the deadline the template's offset gives for the start now entered. Without a start there
+   * is nothing to count back from, so the deadline waits for one.
+   *
+   * <p>Whole days are counted back on the calendar and only the hours left over by the clock, so
+   * "three days before 18:00" stays at 18:00 across a change to or from summer time.
+   */
+  function followStart() {
+    if (deadlineOffsetHours.value === null || !state.startTime) return
+    const deadline = new Date(state.startTime)
+    if (Number.isNaN(deadline.getTime())) return
+    const {days, hours} = offsetParts(deadlineOffsetHours.value)
+    deadline.setDate(deadline.getDate() - days)
+    deadline.setTime(deadline.getTime() - hours * 3_600_000)
+    derivedDeadline = instantToLocalInput(deadline.toISOString())
+    state.hasDeadline = true
+    state.registrationDeadline = derivedDeadline
+  }
+
+  watch(() => state.startTime, followStart, {flush: 'sync'})
+
+  watch(() => [state.registrationDeadline, state.hasDeadline] as const, ([deadline, hasDeadline]) => {
+    if (deadlineOffsetHours.value === null) return
+    if (!hasDeadline || deadline !== derivedDeadline) deadlineOffsetHours.value = null
+  }, {flush: 'sync'})
+
+  /**
    * Whether the appointment finishes before it begins.
    *
    * <p>An appointment may run past midnight and over several days, so only the one order that
@@ -58,6 +95,10 @@ export function useEventForm() {
    * <p>The attendance template comes with it. A template that says which sheet the attendance is
    * taken on and then leaves the appointment without one makes whoever applied it set the same thing
    * again by hand, which is the one thing a template is for.
+   *
+   * <p>A template knows no date, so its deadline is a number of hours before the start. The deadline
+   * is switched on and counted back from the start once one is entered, and it keeps following the
+   * start until it is changed by hand.
    */
   function applyTemplate(detail: TemplateDetailResponse) {
     const tpl = detail.template
@@ -74,6 +115,15 @@ export function useEventForm() {
     if (tpl.requiresRegistration != null) state.requiresRegistration = tpl.requiresRegistration
     if (tpl.requiresConfirmation != null) state.requiresConfirmation = tpl.requiresConfirmation
     if (tpl.registrationLimit != null) state.registrationLimit = tpl.registrationLimit
+    if (tpl.minRegistrations != null) state.minRegistrations = tpl.minRegistrations
+    if (tpl.thresholdDays != null) state.thresholdDays = tpl.thresholdDays
+    if (tpl.registrationCloseDays != null) state.registrationCloseDays = tpl.registrationCloseDays
+    if (tpl.registrationDeadlineOffsetHours != null) {
+      derivedDeadline = state.registrationDeadline
+      deadlineOffsetHours.value = tpl.registrationDeadlineOffsetHours
+      state.hasDeadline = true
+      followStart()
+    }
     if (detail.fields.length > 0) {
       const newFields: EventFieldEntry[] = detail.fields.map(f => ({
         name: f.name,
@@ -178,5 +228,5 @@ export function useEventForm() {
     return state.fields.filter(f => f.name?.trim()).map(asSaved)
   }
 
-  return {state, props, handlers, applyTemplate, loadEvent, buildPayload, namedFields, endsBeforeItStarts}
+  return {state, props, handlers, appliedTemplateId, applyTemplate, loadEvent, buildPayload, namedFields, endsBeforeItStarts}
 }

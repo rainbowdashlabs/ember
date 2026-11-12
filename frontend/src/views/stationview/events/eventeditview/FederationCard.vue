@@ -18,6 +18,8 @@ const props = defineProps<{
   canFederate: boolean
   /** What sharing does, where the owner is not an event: an event template says so in its own words. */
   hint?: string
+  /** A note on the share as it was taken over from a template, shown above the picker. */
+  note?: string
 }>()
 
 const shared = defineModel<boolean>('shared', {required: true})
@@ -56,6 +58,7 @@ const {t} = useI18n()
   <NeutralContainer class="space-y-2">
     <SubHeader>{{ t('events.federation') }}</SubHeader>
     <p class="text-xs text-(--text-muted)">{{ hint ?? t('events.federationShareHint') }}</p>
+    <p v-if="note" class="text-xs text-(--text-muted)" data-testid="federation-template-note">{{ note }}</p>
     <FederationSharePicker
         v-model:shared="shared"
         v-model:scope="scope"

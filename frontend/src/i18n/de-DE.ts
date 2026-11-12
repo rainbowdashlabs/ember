@@ -3441,6 +3441,7 @@ export default {
             internalHint: 'Intern: nur für alle mit dem Recht, interne Termindaten zu sehen. Sonst für alle, die den Termin sehen, Partnerwachen eingeschlossen.',
             remove: 'Datei entfernen',
             loadFailed: 'Die Dateien zu diesem Termin konnten nicht geladen werden.',
+            fromTemplate: 'Diese Dateien der Vorlage werden angehängt, sobald der Termin gespeichert ist.',
         },
         documents: {
             title: 'Mitzubringende Dokumente',
@@ -3660,6 +3661,8 @@ export default {
         partnerPlacesPartnerDecides: 'Die Wache entscheidet, ohne Begrenzung',
         partnerPlacesCapped: '{count} Plätze, die Wache entscheidet',
         federationNoPermission: 'Du benötigst die Berechtigung „Termine föderieren", um die Föderationseinstellungen zu ändern.',
+        federationTemplateSkipped: 'Die Freigabe der Vorlage für Partnerwachen wurde nicht übernommen, da die Berechtigung „Termine föderieren" fehlt.',
+        federationTemplatePartnersDropped: 'Partnerwachen der Vorlage, mit denen diese Wache nicht mehr föderiert, wurden entfernt: {count}.',
         fieldDefaults: 'Feld-Vorbelegung',
         fieldDefaultsHint: 'Felder der Anwesenheitsvorlage mit Standardwerten oder Termin-Eigenschaften vorbelegen.',
         noDefault: 'Keine Vorbelegung',

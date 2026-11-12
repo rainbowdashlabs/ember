@@ -6,7 +6,7 @@
 /** @vitest-environment happy-dom */
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {ref} from 'vue'
-import {ShareScope} from '@/api/generated/schema'
+import {FederationStatus, ShareScope} from '@/api/generated/schema'
 import {useEventFederationShare} from './useEventFederationShare'
 import {eventFederationPort, templateFederationPort} from './eventOwnerPorts'
 
@@ -82,5 +82,65 @@ describe('useEventFederationShare', () => {
         expect(api.events.getTemplateFederationShare).not.toHaveBeenCalled()
         expect(api.events.setTemplateFederationShare).not.toHaveBeenCalled()
         expect(api.events.removeTemplateFederationShare).not.toHaveBeenCalled()
+    })
+
+    it('takes a template share over for an event, keeping only known partners', async () => {
+        api.federation.listPartners.mockResolvedValue([{partner: {id: 6, status: FederationStatus.ACTIVE}, partnerStationName: 'Wache 6'}])
+        api.events.getTemplateFederationShare.mockResolvedValue({shared: true, scope: ShareScope.SPECIFIC, partnerIds: [6, 7]})
+        const share = useEventFederationShare(ref(true))
+
+        const taken = await share.takeFrom(templateFederationPort(31))
+
+        expect(taken).toEqual({skipped: false, droppedPartners: 1})
+        expect(share.state.federationShared).toBe(true)
+        expect(share.state.federationPartnerIds).toEqual([6])
+    })
+
+    it('shares nothing where none of the chosen partners is left', async () => {
+        api.events.getTemplateFederationShare.mockResolvedValue({shared: true, scope: ShareScope.SPECIFIC, partnerIds: [7]})
+        api.federation.listPartners.mockResolvedValue([{partner: {id: 6, status: FederationStatus.ACTIVE}, partnerStationName: 'Wache 6'}])
+        const share = useEventFederationShare(ref(true))
+
+        await share.takeFrom(templateFederationPort(31))
+
+        expect(share.state.federationShared).toBe(false)
+    })
+
+    it('drops and counts a partner that is not active, the way the picker leaves it out', async () => {
+        api.federation.listPartners.mockResolvedValue([
+            {partner: {id: 6, status: FederationStatus.ACTIVE}, partnerStationName: 'Wache 6'},
+            {partner: {id: 7, status: FederationStatus.SUSPENDED}, partnerStationName: 'Wache 7'},
+        ])
+        api.events.getTemplateFederationShare.mockResolvedValue({shared: true, scope: ShareScope.SPECIFIC, partnerIds: [6, 7]})
+        const share = useEventFederationShare(ref(true))
+
+        expect(await share.takeFrom(templateFederationPort(31))).toEqual({skipped: false, droppedPartners: 1})
+        expect(share.state.federationPartnerIds).toEqual([6])
+    })
+
+    it('shares nothing where only partners that are not active were chosen', async () => {
+        api.federation.listPartners.mockResolvedValue([
+            {partner: {id: 7, status: FederationStatus.PENDING}, partnerStationName: 'Wache 7'},
+        ])
+        api.events.getTemplateFederationShare.mockResolvedValue({shared: true, scope: ShareScope.SPECIFIC, partnerIds: [7]})
+        const share = useEventFederationShare(ref(true))
+
+        expect(await share.takeFrom(templateFederationPort(31))).toEqual({skipped: false, droppedPartners: 1})
+        expect(share.state.federationShared).toBe(false)
+    })
+
+    it('reports a shared template as skipped for somebody who may not federate, changing nothing', async () => {
+        const share = useEventFederationShare(ref(false))
+
+        expect(await share.takeFrom(templateFederationPort(31))).toEqual({skipped: true, droppedPartners: 0})
+        expect(share.state.federationShared).toBe(false)
+        expect(api.federation.listPartners).not.toHaveBeenCalled()
+    })
+
+    it('reports nothing skipped where the template shares nothing', async () => {
+        api.events.getTemplateFederationShare.mockResolvedValue({shared: false, scope: null, partnerIds: null})
+        const share = useEventFederationShare(ref(false))
+
+        expect(await share.takeFrom(templateFederationPort(31))).toEqual({skipped: false, droppedPartners: 0})
     })
 })

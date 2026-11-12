@@ -151,22 +151,4 @@ public class EventAttachmentRepository {
     public boolean detach(AppointmentOwner owner, int attachmentId) {
         return SqlSupport.deleteById(table(owner), attachmentId);
     }
-
-    /**
-     * Links every file a template attaches to an appointment made from it, in the template's order.
-     * The files are the same files; nothing is copied.
-     *
-     * @return how many files were linked
-     */
-    public int copyFromTemplate(int templateId, int eventId) {
-        return query("""
-                INSERT INTO event_attachment(event_id, file_id, label, internal, sort_order)
-                SELECT :event_id, file_id, label, internal, sort_order
-                FROM event_template_attachment
-                WHERE template_id = :template_id
-                ORDER BY sort_order, id;""")
-                .single(call().bind("template_id", templateId).bind("event_id", eventId))
-                .insert()
-                .rows();
-    }
 }

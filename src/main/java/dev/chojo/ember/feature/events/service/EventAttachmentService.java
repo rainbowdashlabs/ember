@@ -144,17 +144,6 @@ public class EventAttachmentService {
         return repository.detach(owner, attachmentId);
     }
 
-    /**
-     * Links the files a template attaches to an event just made from it.
-     *
-     * @return how many files were linked
-     */
-    public int copyFromTemplate(int templateId, int eventId) {
-        int linked = repository.copyFromTemplate(templateId, eventId);
-        if (linked > 0) log.info("Event {} took {} file(s) from template {}", eventId, linked, templateId);
-        return linked;
-    }
-
     private static List<EventAttachment> visible(List<EventAttachment> attachments, boolean withInternal) {
         return attachments.stream()
                 .filter(attachment -> withInternal || !attachment.internal())

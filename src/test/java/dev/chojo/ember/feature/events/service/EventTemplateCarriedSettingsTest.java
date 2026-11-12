@@ -199,6 +199,47 @@ class EventTemplateCarriedSettingsTest extends RepositoryTestBase {
     }
 
     /**
+     * An event made from a template is handed the template's files along with its questions and
+     * documents, and the template keeps them.
+     */
+    @Test
+    void anEventMadeFromATemplateTakesItsFiles() {
+        int file = mediaFileRepo
+                .create(null, station.id(), UUID.randomUUID().toString(), "plan.pdf", "application/pdf", 10)
+                .id();
+        int template = templateOn(null);
+        var attachments = new EventAttachmentRepository();
+        attachments.attach(AppointmentOwner.TEMPLATE, template, file, "Plan", true);
+        var event = eventRepo.create(
+                station.id(),
+                "Dienst aus Vorlage",
+                "",
+                dev.chojo.ember.feature.events.entity.StationEvent.EventType.ONE_TIME,
+                null,
+                java.time.Instant.parse("2026-05-12T18:00:00Z"),
+                java.time.Instant.parse("2026-05-12T20:00:00Z"),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+
+        templates.copyInto(templates.findById(template).orElseThrow(), event.id());
+
+        var taken = attachments.findByOwner(AppointmentOwner.EVENT, event.id());
+        assertEquals(1, taken.size());
+        assertEquals(file, taken.getFirst().fileId());
+        assertEquals("Plan", taken.getFirst().label());
+        assertTrue(taken.getFirst().internal());
+        assertEquals(
+                1, attachments.findByOwner(AppointmentOwner.TEMPLATE, template).size());
+    }
+
+    /**
      * A station whose templates and events attach files can still be deleted: the files are kept
      * from deletion only while something attaches them, and the station takes both with it.
      */

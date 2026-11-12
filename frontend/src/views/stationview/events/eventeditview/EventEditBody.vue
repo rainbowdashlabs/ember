@@ -48,6 +48,8 @@ const props = defineProps<{
   currentTemplateFields: AttendanceTemplateField[]
   fieldDefaults: Map<number, FieldDefaultEntry>
   partners: PartnerResponse[]
+  /** What the share card says about an applied template's share it could not take over as it was. */
+  federationNote?: string
 }>()
 
 const emit = defineEmits<{
@@ -138,6 +140,7 @@ const canSubmit = computed(() => !props.saving && !!name.value && !!startTime.va
       v-model:places="federationPlaces"
       :partners="props.partners"
       :can-federate="props.canFederate"
+      :note="props.federationNote"
   />
 
   <FieldDefaultsCard

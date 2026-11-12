@@ -5,7 +5,7 @@
  */
 import {computed, reactive, ref, type Ref} from 'vue'
 import {federation} from '@/api'
-import type {PartnerResponse, ShareScope} from '@/api/generated/schema'
+import {FederationStatus, type PartnerResponse, type ShareScope} from '@/api/generated/schema'
 import {modelBindings} from './modelBindings'
 import type {FederationSharePort} from './eventOwnerPorts'
 
@@ -66,6 +66,37 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
   }
 
   /**
+   * Takes over how an event template shares its appointments, which the next save then writes.
+   *
+   * <p>Only somebody who may share appointments may set a share, so for anybody else a template that
+   * shares is reported as skipped and the form is left as it is. A template that shares nothing
+   * leaves the form as it is too. Partners the template names that are not active partners of this
+   * station, the only ones the picker offers, are dropped and counted, and a choice of partners left
+   * with nobody shares nothing.
+   */
+  async function takeFrom(port: FederationSharePort): Promise<{skipped: boolean; droppedPartners: number}> {
+    const share = await port.get()
+    if (!share.shared) return {skipped: false, droppedPartners: 0}
+    if (!canFederate.value) return {skipped: true, droppedPartners: 0}
+    if (partners.value.length === 0) partners.value = await federation.listPartners()
+    const scope = shareScopeOf(share.scope ?? 'ALL_PARTNERS')
+    if (scope !== 'SPECIFIC') {
+      state.federationShared = true
+      state.federationScope = scope
+      return {skipped: false, droppedPartners: 0}
+    }
+    const known = new Set(partners.value
+        .filter(entry => entry.partner.status === FederationStatus.ACTIVE)
+        .map(entry => entry.partner.id))
+    const named = share.partnerIds ?? []
+    const kept = named.filter(id => known.has(id))
+    state.federationShared = kept.length > 0
+    state.federationScope = scope
+    state.federationPartnerIds = kept
+    return {skipped: false, droppedPartners: named.length - kept.length}
+  }
+
+  /**
    * Writes the share, and only then what each partner was given, because a partner that is no longer
    * shared with has nothing to arrange and the server would have nothing to hang it on.
    *
@@ -91,5 +122,5 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
     }
   }
 
-  return {props, handlers, state, partners, load, save}
+  return {props, handlers, state, partners, load, takeFrom, save}
 }

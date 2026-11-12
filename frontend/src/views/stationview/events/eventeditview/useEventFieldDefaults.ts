@@ -59,6 +59,19 @@ export function useEventFieldDefaults() {
     defaults.value = m
   }
 
+  /**
+   * Adds the starting values an event template gives, for the fields that hold none yet. A value
+   * already chosen in the form stays, the same way applying a template keeps what the form holds.
+   */
+  async function takeFrom(port: FieldDefaultsPort) {
+    const handed = await port.get()
+    const m = new Map(defaults.value)
+    for (const fd of handed) {
+      if (!m.get(fd.fieldId)?.source) m.set(fd.fieldId, {source: fd.source, value: fd.value ?? ''})
+    }
+    defaults.value = m
+  }
+
   async function save(port: FieldDefaultsPort, always: boolean) {
     const entries = [...defaults.value.entries()]
         .filter(([, v]) => v.source)
@@ -75,5 +88,5 @@ export function useEventFieldDefaults() {
     'update:fieldDefaultValue': setValue,
   }
 
-  return {props, handlers, defaults, setSource, setValue, keepOnly, load, save}
+  return {props, handlers, defaults, setSource, setValue, keepOnly, load, takeFrom, save}
 }

@@ -324,7 +324,7 @@ class EventAttachmentServiceTest extends RepositoryTestBase {
                 .id();
         service.reorder(AppointmentOwner.TEMPLATE, template.id(), List.of(second, first));
 
-        assertEquals(2, service.copyFromTemplate(template.id(), event.id()));
+        assertEquals(2, new EventTemplateRepository().copyAttachments(template.id(), event.id()));
 
         var taken = service.listAll(AppointmentOwner.EVENT, event.id());
         assertEquals(
