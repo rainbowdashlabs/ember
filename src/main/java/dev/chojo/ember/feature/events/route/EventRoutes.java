@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.events.entity.BatchFieldEntry;
 import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
+import dev.chojo.ember.feature.events.entity.ChangeNotice;
 import dev.chojo.ember.feature.events.entity.DatedEvent;
 import dev.chojo.ember.feature.events.entity.EditScope;
 import dev.chojo.ember.feature.events.entity.EventDraft;
@@ -27,6 +28,7 @@ import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import dev.chojo.ember.feature.events.service.BatchEventService;
+import dev.chojo.ember.feature.events.service.EventChangeNotifier;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventEditScopeService;
 import dev.chojo.ember.feature.events.service.EventExportService;
@@ -94,6 +96,7 @@ public class EventRoutes implements Routes {
     private final OccurrenceCalendar occurrenceCalendar;
     private final EventVisibility visibility;
     private final EventEditScopeService scopeService;
+    private final EventChangeNotifier changeNotifier;
 
     @Inject
     public EventRoutes(
@@ -108,8 +111,10 @@ public class EventRoutes implements Routes {
             EventFieldRegistrationService fieldRegistrationService,
             OccurrenceCalendar occurrenceCalendar,
             EventVisibility visibility,
-            EventEditScopeService scopeService) {
+            EventEditScopeService scopeService,
+            EventChangeNotifier changeNotifier) {
         this.scopeService = scopeService;
+        this.changeNotifier = changeNotifier;
         this.occurrenceCalendar = occurrenceCalendar;
         this.visibility = visibility;
         this.crudService = crudService;
@@ -149,6 +154,7 @@ public class EventRoutes implements Routes {
         routes.get(prefix + "/events/{id}", this::get, StationPermission.USER);
         routes.get(prefix + "/events/{id}/next-date", this::getNextDate, StationPermission.USER);
         routes.put(prefix + "/events/{id}", this::update, StationPermission.EVENT_EDIT);
+        routes.post(prefix + "/events/{id}/change-notice", this::sendChangeNotice, StationPermission.EVENT_EDIT);
         routes.delete(prefix + "/events/{id}", this::delete, StationPermission.EVENT_EDIT);
 
         routes.get(prefix + "/events/{id}/restrictions", this::getRestrictions, StationPermission.USER);
@@ -486,10 +492,35 @@ public class EventRoutes implements Routes {
         var current = requireOwnedEvent(crudService, pathInt(ctx, "id"), session);
         var req = ctx.bodyAsClass(EventRequest.class);
         validate(req);
+        changeNotifier.requireValid(req.changeNotice());
         var saved = scopeService.save(current, draftOf(req), Objects.requireNonNullElse(req.scope(), EditScope.ALL));
         applyAudiences(saved.id(), req);
         fieldRegistrationService.reconcile(saved.id());
-        ctx.json(crudService.findById(saved.id()).orElse(saved));
+        var answer = crudService.findById(saved.id()).orElse(saved);
+        if (answer.id() == current.id()) changeNotifier.tellChanged(current, answer, req.changeNotice());
+        ctx.json(answer);
+    }
+
+    /**
+     * Tells the people an appointment that took over dates of another one concerns, once the editor
+     * saved every part of it: a moved start always, and the change where the editor chose to.
+     */
+    @OpenApi(
+            path = "/api/v1/events/{id}/change-notice",
+            methods = HttpMethod.POST,
+            summary = "Tell the people an appointment concerns that it changed",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ChangeNotice.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void sendChangeNotice(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var event = requireOwnedEvent(crudService, pathInt(ctx, "id"), session);
+        changeNotifier.tellContinued(event, ctx.bodyAsClass(ChangeNotice.class));
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     /** The settings of the appointment itself, as the editor sent them. */
@@ -800,6 +831,9 @@ public class EventRoutes implements Routes {
      * @param scope           which dates of a series a change applies to, read only when it is
      *                        changed; none means every date. Only one date, and one date and those
      *                        after it, save into a new appointment, whose id the answer carries
+     * @param changeNotice    what the editor chose to tell the people the appointment concerns, read
+     *                        only when every date is changed; a save into a new appointment tells
+     *                        them through that appointment's change notice once every part is saved
      */
     public record EventRequest(
             String name,
@@ -823,7 +857,8 @@ public class EventRoutes implements Routes {
             @Nullable Integer registrationCloseDays,
             @Nullable LocalDate repeatUntil,
             @Nullable Integer repeatCount,
-            @Nullable EditScope scope) {}
+            @Nullable EditScope scope,
+            @Nullable ChangeNotice changeNotice) {}
 
     /**
      * The next day an appointment falls on, or nothing for one that has no date at all.

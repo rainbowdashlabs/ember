@@ -9,11 +9,14 @@ import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.feature.events.entity.ChangeNotice;
 import dev.chojo.ember.feature.events.entity.EditScope;
 import dev.chojo.ember.feature.events.entity.EditScopeKind;
+import dev.chojo.ember.feature.events.entity.EventChangePart;
 import dev.chojo.ember.feature.events.entity.EventDraft;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.BatchEventService;
+import dev.chojo.ember.feature.events.service.EventChangeNotifier;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventEditScopeService;
 import dev.chojo.ember.feature.events.service.EventExportService;
@@ -30,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
@@ -40,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -55,6 +60,8 @@ class EventUpdateScopeRouteTest {
     private EventEditScopeService scopeService;
     private EventRestrictionService restrictions;
     private EventFieldRegistrationService fieldRegistrations;
+    private EventChangeNotifier changeNotifier;
+    private StationEvent series;
     private RouteHarness harness;
 
     @BeforeEach
@@ -68,6 +75,8 @@ class EventUpdateScopeRouteTest {
         when(scopeService.save(eq(series), any(), any())).thenReturn(created);
         restrictions = mock(EventRestrictionService.class);
         fieldRegistrations = mock(EventFieldRegistrationService.class);
+        changeNotifier = mock(EventChangeNotifier.class);
+        this.series = series;
         var routes = new EventRoutes(
                 crudService,
                 mock(EventOccurrenceService.class),
@@ -80,7 +89,8 @@ class EventUpdateScopeRouteTest {
                 fieldRegistrations,
                 mock(OccurrenceCalendar.class),
                 new EventVisibility(crudService, restrictions, mock(GuardianPolicy.class)),
-                scopeService);
+                scopeService,
+                changeNotifier);
         harness = RouteHarness.serving(routes);
     }
 
@@ -135,5 +145,37 @@ class EventUpdateScopeRouteTest {
         var answer = update(", \"scope\": {\"date\": \"2027-04-06\"}");
 
         assertEquals(EventRefusal.EVENT_SCOPE_NEEDS_A_KIND, refusalOf(answer));
+    }
+
+    @Test
+    void aChangeToEveryDateTellsAfterEverythingIsSaved() {
+        when(scopeService.save(eq(series), any(), eq(EditScope.ALL))).thenReturn(series);
+
+        var answer =
+                update(", \"changeNotice\": {\"tell\": true, \"changedParts\": [\"DESCRIPTION\"], \"note\": \"Helm\"}");
+
+        assertEquals(200, answer.code());
+        var notice = new ChangeNotice(true, List.of(EventChangePart.DESCRIPTION), "Helm");
+        verify(changeNotifier).requireValid(notice);
+        verify(changeNotifier).tellChanged(series, series, notice);
+    }
+
+    @Test
+    void aChangeSavedIntoANewAppointmentTellsNothingYet() {
+        update(", \"scope\": {\"kind\": \"THIS\", \"date\": \"2027-04-06\"}, \"changeNotice\": {\"tell\": true}");
+
+        verify(changeNotifier, never()).tellChanged(any(), any(), any());
+    }
+
+    @Test
+    void theChangeNoticeOfANewAppointmentTellsWhatTheEditorChose() {
+        var answer = harness.request(client -> client.post(
+                PREFIX + "/events/" + NEW_ID + "/change-notice",
+                body("""
+                        {"tell": true, "changedParts": ["FIELDS"], "note": null}"""),
+                harness.as(TestSessions.member(STATION_ID, StationPermission.EVENT_EDIT))));
+
+        assertEquals(204, answer.code());
+        verify(changeNotifier).tellContinued(any(), eq(new ChangeNotice(true, List.of(EventChangePart.FIELDS), null)));
     }
 }

@@ -24630,6 +24630,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/change-notice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tell the people an appointment concerns that it changed */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ChangeNotice"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/dates/{date}/cancel": {
         parameters: {
             query?: never;
@@ -65518,6 +65567,11 @@ export interface components {
             releasedAt: components["schemas"]["Instant"] | null;
             version: string;
         };
+        ChangeNotice: {
+            changedParts?: components["schemas"]["EventChangePart"][] | null;
+            note?: string | null;
+            tell?: boolean;
+        };
         ChangePasswordRequest: {
             currentPassword?: string;
             newPassword?: string;
@@ -67274,6 +67328,8 @@ export interface components {
             /** Format: uuid */
             stationId: string;
         };
+        /** @enum {string} */
+        EventChangePart: "TIME" | "DATE" | "NAME" | "DESCRIPTION" | "FIELDS" | "REGISTRATION_QUESTIONS" | "ATTACHMENTS";
         EventExportRequest: {
             categoryIds?: number[];
             columns?: components["schemas"]["ExportColumnRequest"][];
@@ -67396,6 +67452,7 @@ export interface components {
         EventRequest: {
             /** Format: int32 */
             categoryId?: number | null;
+            changeNotice?: components["schemas"]["ChangeNotice"] | null;
             /** Format: int32 */
             dayOfWeek?: number | null;
             description?: string | null;
@@ -76681,6 +76738,7 @@ export type CertificateFacts = components['schemas']['CertificateFacts'];
 export type ChangedCountResponse = components['schemas']['ChangedCountResponse'];
 export type ChangedResponse = components['schemas']['ChangedResponse'];
 export type ChangelogEntry = components['schemas']['ChangelogEntry'];
+export type ChangeNotice = components['schemas']['ChangeNotice'];
 export type ChangePasswordRequest = components['schemas']['ChangePasswordRequest'];
 export type CheckItemResult = components['schemas']['CheckItemResult'];
 export type ChecklistDetailResponse = components['schemas']['ChecklistDetailResponse'];
@@ -76931,6 +76989,7 @@ export type EvaluationResponse = components['schemas']['EvaluationResponse'];
 export type EventAttachment = components['schemas']['EventAttachment'];
 export type EventBreak = components['schemas']['EventBreak'];
 export type EventCategory = components['schemas']['EventCategory'];
+export type EventChangePart = components['schemas']['EventChangePart'];
 export type EventExportRequest = components['schemas']['EventExportRequest'];
 export type EventFederationRegistration = components['schemas']['EventFederationRegistration'];
 export type EventFieldDefault = components['schemas']['EventFieldDefault'];
@@ -78519,6 +78578,16 @@ export const EmptyReason = {
 export const EntrySource = {
     EXPECTED: "EXPECTED",
     EXTRA: "EXTRA",
+} as const;
+
+export const EventChangePart = {
+    ATTACHMENTS: "ATTACHMENTS",
+    DATE: "DATE",
+    DESCRIPTION: "DESCRIPTION",
+    FIELDS: "FIELDS",
+    NAME: "NAME",
+    REGISTRATION_QUESTIONS: "REGISTRATION_QUESTIONS",
+    TIME: "TIME",
 } as const;
 
 export const EventType = {

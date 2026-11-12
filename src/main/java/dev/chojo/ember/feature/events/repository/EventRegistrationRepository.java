@@ -19,7 +19,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -599,6 +601,30 @@ public class EventRegistrationRepository {
                 .single(call().bind("id", eventId).bind("dates", List.copyOf(dates), PostgreSqlTypes.DATE))
                 .map(row -> row.getInt("member_id"))
                 .all();
+    }
+
+    /**
+     * The first date from one day on each member holds a place on, pending or accepted.
+     *
+     * @param eventId the event ID
+     * @param from    the first date looked at
+     * @return the first held date per member, in the order of those dates
+     */
+    public Map<Integer, LocalDate> findFirstHeldDatesFrom(int eventId, LocalDate from) {
+        var dates = new LinkedHashMap<Integer, LocalDate>();
+        query("""
+                SELECT member_id, min(event_date) AS first_date
+                FROM event_registration
+                WHERE event_id = :id
+                  AND event_date >= :from
+                  AND status IN ('PENDING', 'ACCEPTED')
+                GROUP BY member_id
+                ORDER BY first_date, member_id;""")
+                .single(call().bind("id", eventId).bind("from", from))
+                .map(row -> Map.entry(row.getInt("member_id"), row.getObject("first_date", LocalDate.class)))
+                .all()
+                .forEach(entry -> dates.put(entry.getKey(), entry.getValue()));
+        return dates;
     }
 
     /**

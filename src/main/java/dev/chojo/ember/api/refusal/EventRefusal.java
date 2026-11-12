@@ -655,7 +655,16 @@ public enum EventRefusal implements Refusal {
     EVENT_SCOPE_NEEDS_A_DATE(177, HttpStatus.BAD_REQUEST, "Name the date the change applies to, nothing was saved"),
 
     /** A scope sent without saying which dates it covers. */
-    EVENT_SCOPE_NEEDS_A_KIND(178, HttpStatus.BAD_REQUEST, "Say which dates the change applies to, nothing was saved");
+    EVENT_SCOPE_NEEDS_A_KIND(178, HttpStatus.BAD_REQUEST, "Say which dates the change applies to, nothing was saved"),
+
+    /** A note to go with a change notice that is longer than a notice carries. */
+    EVENT_NOTE_TOO_LONG(179, HttpStatus.BAD_REQUEST, "The note holds at most 500 characters, nothing was saved"),
+
+    /** A change notice sent on its own for an appointment that took over no dates of another one. */
+    EVENT_NOTICE_NOT_A_CONTINUATION(
+            180,
+            HttpStatus.BAD_REQUEST,
+            "Only an appointment that took over dates of another one sends its notice on its own");
 
     private final Definition definition;
 

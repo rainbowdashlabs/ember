@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.OccurrenceRule;
-import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventDateCancellationRepository;
@@ -28,9 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Objects;
 import java.util.TreeSet;
 
 /**
@@ -42,8 +39,8 @@ import java.util.TreeSet;
  * has, and whatever still pointed at that Tuesday kept pointing at it.
  *
  * <p>A one-off appointment is one occasion whichever day it falls on, so what is filed against it
- * moves along to the new day, and everybody holding a place is told the new time. A series is many
- * occasions, and a date it leaves is an occasion that no longer happens: the places still held on it
+ * moves along to the new day; telling them the new time is left to the save that moved it. A series
+ * is many occasions, and a date it leaves is an occasion that no longer happens: the places still held on it
  * are withdrawn, their members and whoever looks after them are told, with the next date the series
  * now falls on, and the answers, reminder records and cancellation filed against it go. The same holds for a series
  * whose end moved closer and for a one-off appointment that became a series or the other way round.
@@ -59,7 +56,6 @@ import java.util.TreeSet;
 @Singleton
 public class EventMoveService {
     private static final Logger log = LoggerFactory.getLogger(EventMoveService.class);
-    private static final DateTimeFormatter TIME_OF_DAY = DateTimeFormatter.ofPattern("HH:mm");
 
     private final EventRegistrationRepository registrationRepository;
     private final EventFieldRepository fieldRepository;
@@ -139,11 +135,8 @@ public class EventMoveService {
     }
 
     /**
-     * Moves the registrations and answers of a one-off appointment to its new day, and tells everybody
-     * holding a place when it now starts.
-     *
-     * <p>Told whenever the start moved, on the same day or to another one, because the time is what
-     * somebody who is coming has to know. A change to the end alone tells nobody.
+     * Moves the registrations and answers of a one-off appointment to its new day. Telling the people
+     * holding a place when it now starts is {@link EventChangeNotifier}'s, once the whole save landed.
      */
     private void carryOneOffDate(StationEvent before, StationEvent after, StationCalendar calendar, LocalDate today) {
         LocalDate from = calendar.ruleOf(before).map(OccurrenceRule::first).orElse(null);
@@ -154,18 +147,6 @@ public class EventMoveService {
             fieldRepository.moveDateValues(after.id(), from, to);
             cancellationRepository.moveDate(after.id(), from, to);
             log.info("Event {} moved from {} to {}, taking {} registrations along", after.id(), from, to, moved);
-        }
-        if (Objects.equals(before.startTime(), after.startTime())) return;
-
-        String startTime = after.startTime().atZone(calendar.zone()).format(TIME_OF_DAY);
-        for (var registration : registrationRepository.findByEventAndDate(after.id(), to)) {
-            if (!holdsPlace(registration)) continue;
-            tell(
-                    registration.memberId(),
-                    NotificationType.EVENT_MOVED,
-                    new NotificationParams.EventMoved(
-                            after.name(), to, startTime, nameResolver.called(registration.memberId())),
-                    NotificationLinks.eventDate(after.id(), to));
         }
     }
 
@@ -196,11 +177,6 @@ public class EventMoveService {
         cancellationRepository.deleteOn(after.id(), gone);
         log.info("Event {} no longer falls on {}, withdrew {} registrations there", after.id(), gone, withdrawn.size());
         return withdrawn;
-    }
-
-    private static boolean holdsPlace(EventRegistration registration) {
-        return registration.status() == RegistrationStatus.PENDING
-                || registration.status() == RegistrationStatus.ACCEPTED;
     }
 
     /**

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:9c0ab5dedb057f72ddb488775be42dc6936f67ed84852d56e062c02b6e6ef871",
-  "generatedAt": "2026-11-12T12:05:14Z",
+  "schemaHash": "sha256:23962f0834e727723f8f353b489abad92d57800808a5dc14c9bf39bec5929797",
+  "generatedAt": "2026-11-12T13:10:16Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -27588,7 +27588,7 @@
     "station_event": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:f85db89e309d5c7714873c7de129503564c710e3b928109b8d2d70d525581e1f",
+      "tableHash": "sha256:05d59e1f2a565a04024dcf34e66ceaf7851cf614b759116fb6942d3a89bde9ce",
       "columns": [
         {
           "name": "id",
@@ -27799,6 +27799,13 @@
           "nullable": true,
           "verified": true,
           "description": "The date of that appointment this one took over from: the single date taken out, or the first date of the continued series. NULL where continues_event_id never named one."
+        },
+        {
+          "name": "change_notice_due_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When an appointment that took over dates of another one became due to tell the people holding a place about it. Cleared once they are told, by the editor or, failing that, a few minutes later on its own. NULL for every other appointment."
         }
       ],
       "foreignKeys": [
@@ -27832,6 +27839,7 @@
         "ignoredColumns": [
           "station_id",
           "deadline_notified",
+          "change_notice_due_at",
           "registration_close_days"
         ]
       },

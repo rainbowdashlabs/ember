@@ -20649,6 +20649,45 @@
         } ]
       }
     },
+    "/api/v1/events/{id}/change-notice" : {
+      "post" : {
+        "summary" : "Tell the people an appointment concerns that it changed",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ChangeNotice"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/{id}/dates/{date}/cancel" : {
       "post" : {
         "summary" : "Cancel one date of an appointment",
@@ -53462,6 +53501,23 @@
         },
         "required" : [ "subject", "serialNumber", "sha256Fingerprint" ]
       },
+      "ChangeNotice" : {
+        "type" : "object",
+        "properties" : {
+          "tell" : {
+            "type" : "boolean"
+          },
+          "changedParts" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/EventChangePart"
+            }
+          },
+          "note" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
       "ChangePasswordRequest" : {
         "type" : "object",
         "properties" : {
@@ -58569,6 +58625,10 @@
         },
         "required" : [ "id", "stationId", "name", "position", "maxShownEvents", "isPublic", "color" ]
       },
+      "EventChangePart" : {
+        "type" : "string",
+        "enum" : [ "TIME", "DATE", "NAME", "DESCRIPTION", "FIELDS", "REGISTRATION_QUESTIONS", "ATTACHMENTS" ]
+      },
       "EventExportRequest" : {
         "type" : "object",
         "properties" : {
@@ -59003,6 +59063,13 @@
           "scope" : {
             "anyOf" : [ {
               "$ref" : "#/components/schemas/EditScope"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "changeNotice" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ChangeNotice"
             }, {
               "type" : "null"
             } ]

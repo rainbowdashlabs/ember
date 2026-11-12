@@ -135,6 +135,7 @@ import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
 import dev.chojo.ember.feature.events.route.PublicEventRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
 import dev.chojo.ember.feature.events.service.EventBlockReferences;
+import dev.chojo.ember.feature.events.service.EventChangeNotifier;
 import dev.chojo.ember.feature.events.service.EventCommentTarget;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFeedDetails;
@@ -861,6 +862,7 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(ProblemLogFlusher.class);
         taskSources.addBinding().to(RegistrationDeadlineChecker.class);
         taskSources.addBinding().to(EventReminderChecker.class);
+        taskSources.addBinding().to(EventChangeNotifier.class);
         taskSources.addBinding().to(EventThresholdChecker.class);
         taskSources.addBinding().to(FieldRegistrationSweeper.class);
         taskSources.addBinding().to(SettledRefusalSweeper.class);

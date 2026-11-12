@@ -168,32 +168,35 @@ public class EventEditScopeService {
         return calendar;
     }
 
+    /**
+     * Changes the appointment as a whole, the way it always was: the change and its end are saved one
+     * after the other, and what follows a move runs after each, so whoever is told about it is told
+     * about what was saved.
+     */
     private StationEvent changeWhole(StationEvent series, EventDraft draft) {
-        return Transactions.call(() -> {
-            var changed = crudService
-                    .update(
-                            series.id(),
-                            draft.name(),
-                            draft.description(),
-                            draft.eventType(),
-                            draft.dayOfWeek(),
-                            draft.startTime(),
-                            draft.endTime(),
-                            draft.templateId(),
-                            draft.requiresRegistration(),
-                            draft.registrationDeadline(),
-                            draft.requiresConfirmation(),
-                            draft.categoryId(),
-                            draft.isPublic(),
-                            draft.registrationLimit(),
-                            draft.minRegistrations(),
-                            draft.thresholdDays(),
-                            draft.registrationCloseDays())
-                    .orElseThrow(EventRefusal.EVENT_NOT_HERE_ON_CHANGE::raise);
-            return crudService
-                    .setRepeatEnd(series.id(), draft.repeatUntil(), draft.repeatCount())
-                    .orElse(changed);
-        });
+        var changed = crudService
+                .update(
+                        series.id(),
+                        draft.name(),
+                        draft.description(),
+                        draft.eventType(),
+                        draft.dayOfWeek(),
+                        draft.startTime(),
+                        draft.endTime(),
+                        draft.templateId(),
+                        draft.requiresRegistration(),
+                        draft.registrationDeadline(),
+                        draft.requiresConfirmation(),
+                        draft.categoryId(),
+                        draft.isPublic(),
+                        draft.registrationLimit(),
+                        draft.minRegistrations(),
+                        draft.thresholdDays(),
+                        draft.registrationCloseDays())
+                .orElseThrow(EventRefusal.EVENT_NOT_HERE_ON_CHANGE::raise);
+        return crudService
+                .setRepeatEnd(series.id(), draft.repeatUntil(), draft.repeatCount())
+                .orElse(changed);
     }
 
     /**
@@ -249,6 +252,7 @@ public class EventEditScopeService {
         if (until != null || count != null) eventRepository.updateRepeatEnd(created.id(), until, count);
         handoverRepository.copyConfiguration(source.id(), created.id());
         eventRepository.setContinues(created.id(), source.id(), takenFrom);
+        eventRepository.markChangeNoticeDue(created.id());
         return created;
     }
 

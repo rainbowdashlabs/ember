@@ -258,11 +258,11 @@ class EventMoveServiceTest extends RepositoryTestBase {
 
     /**
      * A one-off appointment moved to another day is the same occasion: the place goes with it,
-     * confirmed as it was, and so does what the question asked of that day. Everybody holding a
-     * place is told when it now starts.
+     * confirmed as it was, and so does what the question asked of that day. Telling the new time is
+     * left to the save, once every part of it landed.
      */
     @Test
-    void aOneOffAppointmentMovedKeepsItsPlacesAndTellsTheNewTime() {
+    void aOneOffAppointmentMovedKeepsItsPlaces() {
         LocalDate day = today.plusDays(3);
         LocalDate newDay = today.plusDays(5);
         oneOffOn(day);
@@ -276,14 +276,7 @@ class EventMoveServiceTest extends RepositoryTestBase {
         assertEquals(newDay, moved.eventDate());
         assertEquals(RegistrationStatus.ACCEPTED, moved.status());
         assertEquals("Bus", eventFieldRepo.findDateValues(event.id()).get(field).get(newDay));
-        verify(notifications)
-                .notify(
-                        eq(StationAudience.household(List.of(child.id()))),
-                        eq(NotificationType.EVENT_MOVED),
-                        argThat((NotificationData data) -> data.params() instanceof NotificationParams.EventMoved m
-                                && m.eventDate().equals(newDay)
-                                && m.startTime().equals("10:00")),
-                        eq(Delivery.EVERY_TIME));
+        verify(notifications, never()).notify(any(), eq(NotificationType.EVENT_MOVED), any(), any());
         verify(notifications, never()).notify(any(), eq(NotificationType.EVENT_DATE_DROPPED), any(), any());
     }
 

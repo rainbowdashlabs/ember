@@ -206,4 +206,6 @@ export default {
     'E-176': 'Dieser Tag ist ein eigener Termin geworden, die Anwesenheit wird dort erfasst',
     'E-177': 'Für welchen Tag die Änderung gilt, fehlt, es wurde nichts gespeichert',
     'E-178': 'Für welche Termine die Änderung gilt, fehlt, es wurde nichts gespeichert',
+    'E-179': 'Der Hinweis darf höchstens 500 Zeichen lang sein, es wurde nichts gespeichert',
+    'E-180': 'Nur ein Termin, der Tage eines anderen übernommen hat, verschickt seine Benachrichtigung einzeln',
 }
