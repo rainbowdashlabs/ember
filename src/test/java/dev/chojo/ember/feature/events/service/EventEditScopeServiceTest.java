@@ -100,7 +100,13 @@ class EventEditScopeServiceTest extends RepositoryTestBase {
                 mock(Notifier.class));
         crud = newEventServices(new DomainEventBus(Set.of())).crud();
         scope = new EventEditScopeService(
-                eventRepo, crud, new EventHandoverRepository(), eventDetachedDateRepo, occurrenceCalendar, moveService);
+                eventRepo,
+                crud,
+                new EventHandoverRepository(),
+                eventDetachedDateRepo,
+                occurrenceCalendar,
+                moveService,
+                mock(FederatedEventChangeService.class));
         var calendar = occurrenceCalendar.forStation(station.id());
         today = calendar.today();
         zone = calendar.zone();

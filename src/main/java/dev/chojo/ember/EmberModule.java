@@ -141,6 +141,7 @@ import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFeedDetails;
 import dev.chojo.ember.feature.events.service.EventReminderChecker;
 import dev.chojo.ember.feature.events.service.EventThresholdChecker;
+import dev.chojo.ember.feature.events.service.FederatedEventChangeService;
 import dev.chojo.ember.feature.events.service.FieldRegistrationSweeper;
 import dev.chojo.ember.feature.events.service.PartnerAppointmentSignatures;
 import dev.chojo.ember.feature.events.service.RegistrationDeadlineChecker;
@@ -822,6 +823,7 @@ public class EmberModule extends AbstractModule {
         bind(FederationTransport.class).to(RoutingFederationTransport.class);
         Multibinder<FederationServer> federationServers = Multibinder.newSetBinder(binder(), FederationServer.class);
         federationServers.addBinding().to(FederatedItemTagService.class);
+        federationServers.addBinding().to(FederatedEventChangeService.class);
         federationServers.addBinding().to(QuizFederationService.class);
         federationServers.addBinding().to(TestProtocolService.class);
         federationServers.addBinding().to(NewsFederationService.class);

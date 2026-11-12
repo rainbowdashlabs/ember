@@ -86,7 +86,8 @@ class EventChangePreviewServiceTest extends RepositoryTestBase {
                 eventRepo,
                 memberNameResolver,
                 notifications,
-                mock(StationReadOnlyGuard.class));
+                mock(StationReadOnlyGuard.class),
+                mock(FederatedEventChangeService.class));
         preview = new EventChangePreviewService(occurrenceCalendar, audience, eventRegistrationRepo, notifier);
         today = occurrenceCalendar.forStation(station.id()).today();
         zone = occurrenceCalendar.zoneOf(station.id());

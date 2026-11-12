@@ -76,6 +76,7 @@ public class EventChangeNotifier implements TaskSource {
     private final MemberNameResolver nameResolver;
     private final Notifier notifier;
     private final StationReadOnlyGuard readOnlyGuard;
+    private final FederatedEventChangeService federatedChanges;
 
     @Inject
     public EventChangeNotifier(
@@ -85,8 +86,10 @@ public class EventChangeNotifier implements TaskSource {
             EventRepository eventRepository,
             MemberNameResolver nameResolver,
             Notifier notifier,
-            StationReadOnlyGuard readOnlyGuard) {
+            StationReadOnlyGuard readOnlyGuard,
+            FederatedEventChangeService federatedChanges) {
         this.readOnlyGuard = readOnlyGuard;
+        this.federatedChanges = federatedChanges;
         this.occurrenceCalendar = occurrenceCalendar;
         this.audience = audience;
         this.registrationRepository = registrationRepository;
@@ -235,11 +238,30 @@ public class EventChangeNotifier implements TaskSource {
                         link);
             }
         }
+        tellPartners(after, first, effect, notice);
         log.info(
                 "Event {} changed: told {} about a moved start and {} about the change",
                 after.id(),
                 audiences.moved().size(),
                 audiences.told().size());
+    }
+
+    /** Tells the partner stations whose members hold a place, which tell those members themselves. */
+    private void tellPartners(StationEvent after, LocalDate first, ChangeEffect effect, @Nullable ChangeNotice notice) {
+        boolean told = tellsChange(effect, notice);
+        var parts = EnumSet.noneOf(EventChangePart.class);
+        parts.addAll(effect.parts());
+        if (told) parts.addAll(Objects.requireNonNull(notice).parts());
+        String joined = NotificationParams.EventChangeNotice.of(
+                        after.name(), first, parts, null, effect.startTime(), "")
+                .changedParts();
+        federatedChanges.tellPartners(
+                after,
+                first,
+                joined,
+                told ? Objects.requireNonNull(notice).trimmedNote() : null,
+                effect.startTime(),
+                told);
     }
 
     private static boolean tellsChange(ChangeEffect effect, @Nullable ChangeNotice notice) {

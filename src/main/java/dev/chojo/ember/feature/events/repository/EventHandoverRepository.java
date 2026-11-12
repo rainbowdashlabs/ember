@@ -22,7 +22,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * appointment that takes those dates over: a date of a series that became an appointment of its own,
  * or the later dates of a series that goes on as a new one.
  *
- * <p>Settings are copied, so both appointments keep them. What is filed against a date (places and
+ * <p>Settings are copied, so both appointments keep them, the sharing with partner stations and what
+ * each partner may do included. What is filed against a date (places, partners' places included, and
  * their answers, the answers a question carries for the day, a cancellation, a reminder sent,
  * documents asked for and handed in, generated documents, procedures, agreements, attendance sheets,
  * equipment, lending requests, checklists, trial dates of the waiting list, and dates the series
@@ -35,6 +36,7 @@ public class EventHandoverRepository {
     /** Tables whose rows name an appointment and one of its dates, as table, event column, date column. */
     private static final List<DatedTable> DATED_TABLES = List.of(
             new DatedTable("event_registration", "event_id", "event_date"),
+            new DatedTable("event_federation_registration", "event_id", "event_date"),
             new DatedTable("event_date_cancellation", "event_id", "event_date"),
             new DatedTable("event_reminder_sent", "event_id", "event_date"),
             new DatedTable("event_document_submission", "event_id", "event_date"),
@@ -51,8 +53,8 @@ public class EventHandoverRepository {
     /**
      * Copies everything an appointment is set up with to another one: both audiences and how they
      * combine, the reminders, the questions and their values, the registration questions, the
-     * defaults of the attendance sheet, the files, the documents to bring and the equipment every
-     * date needs.
+     * defaults of the attendance sheet, the files, the documents to bring, the sharing with partner
+     * stations with each partner's places, and the equipment every date needs.
      *
      * @param source the appointment copied from
      * @param target the appointment copied to, which has none of these yet
@@ -105,6 +107,19 @@ public class EventHandoverRepository {
                 FROM event_document_requirement
                 WHERE event_id = :source
                 ORDER BY position, id;""", """
+                WITH source AS (SELECT id, scope FROM event_federation_share WHERE event_id = :source),
+                     shared AS (INSERT INTO event_federation_share(event_id, scope)
+                                SELECT :target, scope FROM source
+                                RETURNING id)
+                INSERT INTO event_federation_share_target(share_id, partner_id)
+                SELECT shared.id, t.partner_id
+                FROM shared,
+                     source
+                         JOIN event_federation_share_target t ON t.share_id = source.id;""", """
+                INSERT INTO event_partner_places(event_id, partner_id, slot_budget, partner_confirms)
+                SELECT :target, partner_id, slot_budget, partner_confirms
+                FROM event_partner_places
+                WHERE event_id = :source;""", """
                 INSERT INTO event_equipment_need(event_id, event_date, item_id, art_id, inventory_id, quantity, lead_minutes, trail_minutes, position)
                 SELECT :target, NULL, item_id, art_id, inventory_id, quantity, lead_minutes, trail_minutes, position
                 FROM event_equipment_need

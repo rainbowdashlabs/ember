@@ -64,6 +64,7 @@ public class EventEditScopeService {
     private final EventDetachedDateRepository detachedDateRepository;
     private final OccurrenceCalendar occurrenceCalendar;
     private final EventMoveService moveService;
+    private final FederatedEventChangeService federatedChanges;
 
     @Inject
     public EventEditScopeService(
@@ -72,7 +73,9 @@ public class EventEditScopeService {
             EventHandoverRepository handoverRepository,
             EventDetachedDateRepository detachedDateRepository,
             OccurrenceCalendar occurrenceCalendar,
-            EventMoveService moveService) {
+            EventMoveService moveService,
+            FederatedEventChangeService federatedChanges) {
+        this.federatedChanges = federatedChanges;
         this.eventRepository = eventRepository;
         this.crudService = crudService;
         this.handoverRepository = handoverRepository;
@@ -129,13 +132,15 @@ public class EventEditScopeService {
     public StationEvent detach(StationEvent series, LocalDate date, EventDraft draft) {
         var calendar = requireOpenDate(series, date);
         var span = StationEvent.placeOn(draft.startTime(), draft.endTime(), date, calendar.zone());
-        return told(Transactions.call(() -> {
+        var detached = told(Transactions.call(() -> {
             var created = createFrom(series, draft, StationEvent.EventType.ONE_TIME, null, span, null, null, date);
             handOver(series, created, DateSpan.only(date), calendar.zone());
             detachedDateRepository.detach(series.id(), date);
             log.info("Event {} gave its date {} to event {}", series.id(), date, created.id());
             return settled(created);
         }));
+        federatedChanges.tellHandover(series.id(), detached.id(), DateSpan.only(date));
+        return detached;
     }
 
     /**
@@ -161,7 +166,7 @@ public class EventEditScopeService {
         var span = draft.isRecurring()
                 ? StationEvent.placeOn(draft.startTime(), draft.endTime(), from, calendar.zone())
                 : new StationEvent.Span(draft.startTime(), draft.endTime());
-        return told(Transactions.call(() -> {
+        var continued = told(Transactions.call(() -> {
             var created = draft.isRecurring()
                     ? createFrom(series, draft, draft.eventType(), draft.dayOfWeek(), span, until, count, from)
                     : createFrom(series, draft, draft.eventType(), null, span, null, null, from);
@@ -170,6 +175,8 @@ public class EventEditScopeService {
             log.info("Event {} ends before {} and goes on as event {}", series.id(), from, created.id());
             return settled(created);
         }));
+        federatedChanges.tellHandover(series.id(), continued.id(), DateSpan.onwardFrom(from));
+        return continued;
     }
 
     private StationCalendar requireOpenDate(StationEvent series, LocalDate date) {

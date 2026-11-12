@@ -53,6 +53,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -70,6 +72,7 @@ class EventChangeNotifierTest extends RepositoryTestBase {
     private final List<Integer> events = new ArrayList<>();
     private Notifier notifications;
     private StationReadOnlyGuard readOnlyGuard;
+    private FederatedEventChangeService federated;
     private EventChangeNotifier changeNotifier;
     private EventEditScopeService scope;
     private EventRestrictionService restrictions;
@@ -100,12 +103,20 @@ class EventChangeNotifierTest extends RepositoryTestBase {
     void wire() {
         notifications = mock(Notifier.class);
         readOnlyGuard = mock(StationReadOnlyGuard.class);
+        federated = mock(FederatedEventChangeService.class);
         when(readOnlyGuard.isWritable(anyInt())).thenReturn(true);
         restrictions = new EventRestrictionService(eventRepo, restrictionService);
         var calendar = occurrenceCalendar;
         var audience = new EventAudience(eventRegistrationRepo, stationMemberRepo, restrictions, calendar);
         changeNotifier = new EventChangeNotifier(
-                calendar, audience, eventRegistrationRepo, eventRepo, memberNameResolver, notifications, readOnlyGuard);
+                calendar,
+                audience,
+                eventRegistrationRepo,
+                eventRepo,
+                memberNameResolver,
+                notifications,
+                readOnlyGuard,
+                federated);
         var moveService = new EventMoveService(
                 eventRegistrationRepo,
                 eventFieldRepo,
@@ -117,7 +128,13 @@ class EventChangeNotifierTest extends RepositoryTestBase {
         var crud = newEventServices(new DomainEventBus(Set.of(new EventChangedHandler(() -> moveService))))
                 .crud();
         scope = new EventEditScopeService(
-                eventRepo, crud, new EventHandoverRepository(), eventDetachedDateRepo, calendar, moveService);
+                eventRepo,
+                crud,
+                new EventHandoverRepository(),
+                eventDetachedDateRepo,
+                calendar,
+                moveService,
+                mock(FederatedEventChangeService.class));
         today = calendar.forStation(station.id()).today();
         zone = calendar.zoneOf(station.id());
     }
@@ -270,6 +287,8 @@ class EventChangeNotifierTest extends RepositoryTestBase {
         assertEquals(NotificationType.EVENT_CHANGED, toAnna.getFirst().type());
         assertEquals(List.of(EventChangePart.TIME, EventChangePart.DESCRIPTION), notice.parts());
         assertEquals("20:00", notice.startTime());
+        verify(federated)
+                .tellPartners(any(), eq(today.plusDays(3)), eq("TIME,DESCRIPTION"), isNull(), eq("20:00"), eq(true));
     }
 
     /**

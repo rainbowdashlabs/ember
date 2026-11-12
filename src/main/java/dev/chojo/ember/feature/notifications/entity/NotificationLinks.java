@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData.Notificatio
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * The links that an announcement and its later withdrawal have to agree on.
@@ -58,6 +59,19 @@ public final class NotificationLinks {
     public static NotificationLink eventDate(int eventId, LocalDate date) {
         return new NotificationLink(
                 "event-detail-date", Map.of("id", String.valueOf(eventId), "date", date.toString()));
+    }
+
+    /**
+     * The link to an appointment a partner station shares, as the partner's members open it.
+     *
+     * @param stationUid the station that runs the appointment
+     * @param eventId    the appointment at that station
+     * @return the link its notifications carry
+     */
+    public static NotificationLink federatedEvent(UUID stationUid, int eventId) {
+        return new NotificationLink(
+                "federated-event-detail",
+                Map.of("stationUid", stationUid.toString(), "eventId", String.valueOf(eventId)));
     }
 
     /**
