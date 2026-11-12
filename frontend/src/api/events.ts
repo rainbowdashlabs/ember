@@ -121,6 +121,8 @@ export interface EventListParams {
 export interface OccurrenceParams {
     categoryId?: number
     requiresRegistration?: boolean
+    /** Upcoming list only: keep just the dates that can still be signed up for. */
+    registrationOpen?: boolean
     search?: string
     from?: string
     to?: string
@@ -430,6 +432,17 @@ export async function setFieldDefaults(eventId: number, data: FieldDefaultEntry[
     return res.data
 }
 
+/** The starting values an appointment template gives the fields of its attendance sheet. */
+export async function getTemplateFieldDefaults(templateId: number): Promise<EventFieldDefault[]> {
+    const res = await client.get<EventFieldDefault[]>(`/event-templates/${templateId}/field-defaults`)
+    return res.data
+}
+
+export async function setTemplateFieldDefaults(templateId: number, data: FieldDefaultEntry[]): Promise<EventFieldDefault[]> {
+    const res = await client.put<EventFieldDefault[]>(`/event-templates/${templateId}/field-defaults`, data)
+    return res.data
+}
+
 export const listBreaks = breaks.list
 export const createBreak = breaks.create
 export const updateBreak = breaks.update
@@ -628,6 +641,20 @@ export async function removeFederationShare(eventId: number): Promise<void> {
     await client.delete(`/events/${eventId}/federation`)
 }
 
+/** How the appointments made from an appointment template are shared with partner stations. */
+export async function getTemplateFederationShare(templateId: number): Promise<FederationShareResponse> {
+    const res = await client.get<FederationShareResponse>(`/event-templates/${templateId}/federation`)
+    return res.data
+}
+
+export async function setTemplateFederationShare(templateId: number, scope: ShareScope, partnerIds?: number[]): Promise<void> {
+    await client.put(`/event-templates/${templateId}/federation`, {scope, partnerIds: partnerIds ?? []})
+}
+
+export async function removeTemplateFederationShare(templateId: number): Promise<void> {
+    await client.delete(`/event-templates/${templateId}/federation`)
+}
+
 /**
  * What each partner station may do with a shared appointment.
  *
@@ -714,6 +741,39 @@ export async function reorderEventAttachments(eventId: number, attachmentIds: nu
 
 export async function detachEventFile(eventId: number, attachmentId: number): Promise<void> {
     await client.delete(`/events/${eventId}/attachments/${attachmentId}`)
+}
+
+/** The files an appointment template hands every appointment made from it. */
+export async function listTemplateAttachments(templateId: number): Promise<EventAttachment[]> {
+    const res = await client.get<EventAttachment[]>(`/event-templates/${templateId}/attachments`)
+    return res.data
+}
+
+export async function attachTemplateFile(
+    templateId: number,
+    fileId: number,
+    label: string | null,
+    internal: boolean,
+): Promise<EventAttachment> {
+    const res = await client.post<EventAttachment>(`/event-templates/${templateId}/attachments`, {fileId, label, internal})
+    return res.data
+}
+
+export async function updateTemplateAttachment(
+    templateId: number,
+    attachmentId: number,
+    label: string | null,
+    internal: boolean,
+): Promise<void> {
+    await client.put(`/event-templates/${templateId}/attachments/${attachmentId}`, {label, internal})
+}
+
+export async function reorderTemplateAttachments(templateId: number, attachmentIds: number[]): Promise<void> {
+    await client.put(`/event-templates/${templateId}/attachments/order`, {attachmentIds})
+}
+
+export async function detachTemplateFile(templateId: number, attachmentId: number): Promise<void> {
+    await client.delete(`/event-templates/${templateId}/attachments/${attachmentId}`)
 }
 
 /** Where the bytes of a file are fetched from, which is the event's own address rather than the library's. */

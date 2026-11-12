@@ -24,6 +24,8 @@ defineProps<{
   stationUid: string
   /** What went wrong the last time something was written, or null while everything has landed. */
   failure?: Failure | null
+  /** What the files are for, where the owner is not an event: an event template says so in its own words. */
+  hint?: string
 }>()
 
 const emit = defineEmits<{
@@ -53,7 +55,7 @@ function keepBack(attachment: EventAttachment, internal: boolean) {
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
       <div>
         <SubHeader>{{ t('events.attachments.title') }}</SubHeader>
-        <p class="text-xs text-(--text-muted)">{{ t('events.attachments.hint') }}</p>
+        <p class="text-xs text-(--text-muted)">{{ hint ?? t('events.attachments.hint') }}</p>
       </div>
       <MediaBrowseButton
           :label="t('events.attachments.add')"

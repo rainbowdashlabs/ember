@@ -7,10 +7,19 @@ package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
+import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
+import dev.chojo.ember.feature.events.entity.EventFieldDefault;
+import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
+import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.federation.service.LendingUidClashes;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
@@ -36,6 +45,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -192,6 +202,7 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
 
         eventCategoryRepo.create(sourceStationId, "Cat", 0, null);
         inventoryRepo.create(sourceStationId, "Inv", InventoryType.INTERNAL, false);
+        seedEventTemplateCarrying(sourceStationId);
 
         Map<String, Integer> sourceCounts = new LinkedHashMap<>();
         for (String table : exportService.getTableOrder()) {
@@ -268,5 +279,34 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
             case List<?> l -> l.size();
             default -> 1;
         };
+    }
+
+    /**
+     * An event template with what it carries for the events made from it: a share naming a partner,
+     * an attached file and a starting value for a field of its sheet. Each of these points at
+     * another row of the station by id, so each is a case of the importer finding the new id.
+     */
+    private static void seedEventTemplateCarrying(int stationId) {
+        var partner = new FederationRepository().createPartner(stationId, UUID.randomUUID(), null, null, null);
+        var sheet = attendanceRepo.createTemplate(stationId, "Bogen");
+        attendanceRepo.createTemplateField(sheet.id(), "Leitung", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
+        int fieldId = attendanceRepo.findTemplateFields(sheet.id()).getFirst().id();
+        var templates = new EventTemplateRepository();
+        int templateId = templates.create(stationId, "Vorlage").id();
+        templates.update(
+                templateId,
+                new EventTemplateSettings(
+                        "Vorlage", null, null, null, null, null, null, null, null, sheet.id(), null, null, null, null));
+        var shares = new EventFederationRepository();
+        var share = shares.setShare(AppointmentOwner.TEMPLATE, templateId, ShareScope.SPECIFIC);
+        shares.setShareTargets(AppointmentOwner.TEMPLATE, share.id(), List.of(partner.id()));
+        int fileId = mediaFileRepo
+                .create(null, stationId, UUID.randomUUID().toString(), "plan.pdf", "application/pdf", 10)
+                .id();
+        new EventAttachmentRepository().attach(AppointmentOwner.TEMPLATE, templateId, fileId, null, true);
+        eventFieldDefaultRepo.replace(
+                AppointmentOwner.TEMPLATE,
+                templateId,
+                List.of(new EventFieldDefault(templateId, fieldId, "VALUE", "Greta")));
     }
 }

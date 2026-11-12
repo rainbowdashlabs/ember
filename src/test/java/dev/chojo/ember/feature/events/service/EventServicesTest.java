@@ -12,6 +12,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationOpening;
@@ -47,6 +48,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -101,17 +103,17 @@ class EventServicesTest extends RepositoryTestBase {
 
     /** A page of a listing with no filter and no window, which is what most of these lookups ask for. */
     private static OccurrenceQuery page(int limit, int offset) {
-        return new OccurrenceQuery(null, null, null, null, null, limit, offset);
+        return new OccurrenceQuery(null, null, false, null, null, null, limit, offset);
     }
 
     /** The same page, narrowed to what a search field was typed into. */
     private static OccurrenceQuery searchPage(String search) {
-        return new OccurrenceQuery(null, null, search, null, null, 100, 0);
+        return new OccurrenceQuery(null, null, false, search, null, null, 100, 0);
     }
 
     /** The same page, narrowed to a stretch of days. */
     private static OccurrenceQuery window(LocalDate from, LocalDate to) {
-        return new OccurrenceQuery(null, null, null, from, to, 100, 0);
+        return new OccurrenceQuery(null, null, false, null, from, to, 100, 0);
     }
 
     /** A page of appointments themselves, of one half and one kind. */
@@ -1101,11 +1103,11 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var found = fieldDefaultService.findByEvent(event.id());
+        var found = fieldDefaultService.find(AppointmentOwner.EVENT, event.id());
         assertTrue(found.isEmpty());
 
-        fieldDefaultService.setForEvent(event.id(), List.of());
-        assertTrue(fieldDefaultService.findByEvent(event.id()).isEmpty());
+        fieldDefaultService.set(AppointmentOwner.EVENT, event.id(), List.of());
+        assertTrue(fieldDefaultService.find(AppointmentOwner.EVENT, event.id()).isEmpty());
     }
 
     /**
@@ -1145,13 +1147,21 @@ class EventServicesTest extends RepositoryTestBase {
 
         assertThrows(
                 RefusalResponse.class,
-                () -> fieldDefaultService.setForEvent(
-                        event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "VALUE", "Schnee"))));
+                () -> fieldDefaultService.set(
+                        AppointmentOwner.EVENT,
+                        event.id(),
+                        List.of(new EventFieldDefault(event.id(), fieldId, "VALUE", "Schnee"))));
 
-        fieldDefaultService.setForEvent(
-                event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "VALUE", "nass")));
+        fieldDefaultService.set(
+                AppointmentOwner.EVENT,
+                event.id(),
+                List.of(new EventFieldDefault(event.id(), fieldId, "VALUE", "nass")));
         assertEquals(
-                "nass", fieldDefaultService.findByEvent(event.id()).getFirst().value());
+                "nass",
+                fieldDefaultService
+                        .find(AppointmentOwner.EVENT, event.id())
+                        .getFirst()
+                        .value());
 
         attendanceRepo.archiveTemplate(sheet.id());
     }
@@ -1444,7 +1454,9 @@ class EventServicesTest extends RepositoryTestBase {
     @Order(124)
     void findUpcomingOccurrencesWithFilters() {
         var occurrences = occurrenceService.findUpcomingOccurrences(
-                station.id(), List.of(member.id()), new OccurrenceQuery(categoryId, false, null, null, null, 100, 0));
+                station.id(),
+                List.of(member.id()),
+                new OccurrenceQuery(categoryId, false, false, null, null, null, 100, 0));
         assertNotNull(occurrences);
     }
 
@@ -1504,6 +1516,110 @@ class EventServicesTest extends RepositoryTestBase {
 
         var occurrences = occurrenceService.findUpcomingOccurrences(station.id(), null, page(100, 0));
         assertNotNull(occurrences);
+    }
+
+    /**
+     * Asked for open registrations only, the list leaves out appointments whose deadline has passed and
+     * the dates of a series that already closed, and keeps everything a member can still sign up for.
+     */
+    @Test
+    @Order(126)
+    void findUpcomingOccurrencesWithOpenRegistrationOnly() {
+        LocalDate inAWeek = stationToday().plusDays(7);
+        Instant start = inAWeek.atTime(18, 0).atZone(stationZone()).toInstant();
+        Instant end = start.plus(2, ChronoUnit.HOURS);
+        Instant yesterday = Instant.now().minus(1, ChronoUnit.DAYS);
+        Instant tomorrow = Instant.now().plus(1, ChronoUnit.DAYS);
+
+        var closed = crudService.create(
+                station.id(),
+                "Closed Signup",
+                null,
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                end,
+                null,
+                true,
+                yesterday,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        var open = crudService.create(
+                station.id(),
+                "Open Signup",
+                null,
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                end,
+                null,
+                true,
+                tomorrow,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        var noSignup = crudService.create(
+                station.id(),
+                "No Signup",
+                null,
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                end,
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        LocalDate seriesStart = stationToday().plusDays(1);
+        var series = crudService.create(
+                station.id(),
+                "Weekly Signup",
+                null,
+                StationEvent.EventType.RECURRING,
+                seriesStart.getDayOfWeek().getValue(),
+                seriesStart.atTime(18, 0).atZone(stationZone()).toInstant(),
+                seriesStart.atTime(20, 0).atZone(stationZone()).toInstant(),
+                null,
+                true,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                3);
+        try {
+            var query = new OccurrenceQuery(null, null, true, null, null, null, 500, 0);
+            var found = occurrenceService.findUpcomingOccurrences(station.id(), null, query);
+            var ids = found.stream().map(o -> o.event().id()).collect(Collectors.toSet());
+            var seriesDates = found.stream()
+                    .filter(o -> o.event().id() == series.id())
+                    .map(UpcomingEventOccurrence::date)
+                    .toList();
+
+            assertTrue(ids.contains(open.id()));
+            assertFalse(ids.contains(closed.id()));
+            assertFalse(ids.contains(noSignup.id()));
+            assertFalse(seriesDates.contains(seriesStart));
+            assertTrue(seriesDates.contains(seriesStart.plusWeeks(1)));
+        } finally {
+            crudService.delete(closed.id());
+            crudService.delete(open.id());
+            crudService.delete(noSignup.id());
+            crudService.delete(series.id());
+        }
     }
 
     @Test
@@ -2180,8 +2296,10 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        fieldDefaultService.setForEvent(
-                event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_START_TIME", null)));
+        fieldDefaultService.set(
+                AppointmentOwner.EVENT,
+                event.id(),
+                List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_START_TIME", null)));
 
         var resolved = fieldDefaultService.resolve(event.id());
         assertNotNull(resolved.get(fieldId));
@@ -2217,8 +2335,10 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        fieldDefaultService.setForEvent(
-                event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_END_TIME", null)));
+        fieldDefaultService.set(
+                AppointmentOwner.EVENT,
+                event.id(),
+                List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_END_TIME", null)));
 
         var resolved = fieldDefaultService.resolve(event.id());
         assertNotNull(resolved.get(fieldId));
@@ -2258,8 +2378,10 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        fieldDefaultService.setForEvent(
-                event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_START_TIME", null)));
+        fieldDefaultService.set(
+                AppointmentOwner.EVENT,
+                event.id(),
+                List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_START_TIME", null)));
 
         var resolved = fieldDefaultService.resolve(event.id());
         assertTrue(resolved.containsKey(fieldId));
@@ -2295,8 +2417,10 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        fieldDefaultService.setForEvent(
-                event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_END_TIME", null)));
+        fieldDefaultService.set(
+                AppointmentOwner.EVENT,
+                event.id(),
+                List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_END_TIME", null)));
 
         var resolved = fieldDefaultService.resolve(event.id());
         assertTrue(resolved.containsKey(fieldId));
@@ -2623,7 +2747,8 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        fieldDefaultService.setForEvent(
+        fieldDefaultService.set(
+                AppointmentOwner.EVENT,
                 event.id(),
                 List.of(
                         new EventFieldDefault(event.id(), fieldAId, "VALUE", "\"hardcoded\""),
@@ -2664,8 +2789,10 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        fieldDefaultService.setForEvent(
-                event.id(), List.of(new EventFieldDefault(event.id(), attendanceFieldId, "UNKNOWN_SOURCE", null)));
+        fieldDefaultService.set(
+                AppointmentOwner.EVENT,
+                event.id(),
+                List.of(new EventFieldDefault(event.id(), attendanceFieldId, "UNKNOWN_SOURCE", null)));
 
         var resolved = fieldDefaultService.resolve(event.id());
         assertFalse(resolved.containsKey(attendanceFieldId));
@@ -2700,8 +2827,10 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        fieldDefaultService.setForEvent(
-                event.id(), List.of(new EventFieldDefault(event.id(), attendanceFieldId, "EVENT_DESCRIPTION", null)));
+        fieldDefaultService.set(
+                AppointmentOwner.EVENT,
+                event.id(),
+                List.of(new EventFieldDefault(event.id(), attendanceFieldId, "EVENT_DESCRIPTION", null)));
 
         var resolved = fieldDefaultService.resolve(event.id());
         assertNotNull(resolved);

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, ref} from 'vue'
-import {events} from '@/api'
+import type {FieldDefaultsPort} from './eventOwnerPorts'
 
 interface FieldDefaultEntry {
   source: string
@@ -12,8 +12,8 @@ interface FieldDefaultEntry {
 }
 
 /**
- * Prefilled values the event hands to its attendance template fields, keyed by
- * field id.
+ * Prefilled values an event or an event template hands to its attendance template fields, keyed by
+ * field id. Whose values they are comes in as a port with every read and write.
  */
 export function useEventFieldDefaults() {
   const defaults = ref<Map<number, FieldDefaultEntry>>(new Map())
@@ -40,8 +40,18 @@ export function useEventFieldDefaults() {
     defaults.value = m
   }
 
-  async function load(eventId: number) {
-    const loaded = await events.getFieldDefaults(eventId)
+  /**
+   * Drops the values of every field not named, which is what a change of attendance sheet does to
+   * the fields of the sheet left behind.
+   */
+  function keepOnly(fieldIds: number[]) {
+    const kept = new Set(fieldIds)
+    const m = new Map([...defaults.value].filter(([fieldId]) => kept.has(fieldId)))
+    if (m.size !== defaults.value.size) defaults.value = m
+  }
+
+  async function load(port: FieldDefaultsPort) {
+    const loaded = await port.get()
     const m = new Map<number, FieldDefaultEntry>()
     for (const fd of loaded) {
       m.set(fd.fieldId, {source: fd.source, value: fd.value ?? ''})
@@ -49,12 +59,25 @@ export function useEventFieldDefaults() {
     defaults.value = m
   }
 
-  async function save(eventId: number, always: boolean) {
+  /**
+   * Adds the starting values an event template gives, for the fields that hold none yet. A value
+   * already chosen in the form stays, the same way applying a template keeps what the form holds.
+   */
+  async function takeFrom(port: FieldDefaultsPort) {
+    const handed = await port.get()
+    const m = new Map(defaults.value)
+    for (const fd of handed) {
+      if (!m.get(fd.fieldId)?.source) m.set(fd.fieldId, {source: fd.source, value: fd.value ?? ''})
+    }
+    defaults.value = m
+  }
+
+  async function save(port: FieldDefaultsPort, always: boolean) {
     const entries = [...defaults.value.entries()]
         .filter(([, v]) => v.source)
         .map(([fieldId, v]) => ({fieldId, source: v.source, value: v.value || undefined}))
     if (entries.length > 0 || always) {
-      await events.setFieldDefaults(eventId, entries)
+      await port.set(entries)
     }
   }
 
@@ -65,5 +88,5 @@ export function useEventFieldDefaults() {
     'update:fieldDefaultValue': setValue,
   }
 
-  return {props, handlers, load, save}
+  return {props, handlers, defaults, setSource, setValue, keepOnly, load, takeFrom, save}
 }

@@ -293,7 +293,7 @@ class EventCancellationServiceTest extends RepositoryTestBase {
     void aCancelledDateStaysOnTheListsAndSaysWhy() {
         weekly();
         service.cancelDate(event, firstDate(), "Sturm", null);
-        var query = new EventOccurrenceService.OccurrenceQuery(null, null, "Übung", null, null, 2, 0);
+        var query = new EventOccurrenceService.OccurrenceQuery(null, null, false, "Übung", null, null, 2, 0);
 
         var upcoming = occurrences.findUpcomingOccurrences(station.id(), null, query);
 
@@ -333,7 +333,7 @@ class EventCancellationServiceTest extends RepositoryTestBase {
     void everyDateOfACancelledSeriesSaysSo() {
         weekly();
         service.cancelSeries(station.id(), event.id(), "Aufgelöst");
-        var query = new EventOccurrenceService.OccurrenceQuery(null, null, "Übung", null, null, 2, 0);
+        var query = new EventOccurrenceService.OccurrenceQuery(null, null, false, "Übung", null, null, 2, 0);
 
         var upcoming = occurrences.findUpcomingOccurrences(station.id(), null, query);
 

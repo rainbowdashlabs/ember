@@ -64,7 +64,8 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
   function occurrenceParams(offset: number) {
     return {
       categoryId: categoryId.value ? Number(categoryId.value) : undefined,
-      requiresRegistration: showNeedsAction.value ? true : undefined,
+      requiresRegistration: showNeedsAction.value && isPast.value ? true : undefined,
+      registrationOpen: showNeedsAction.value && !isPast.value ? true : undefined,
       search: searchInput.value.trim() || undefined,
       from: from.value || undefined,
       to: to.value || undefined,

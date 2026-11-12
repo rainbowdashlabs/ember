@@ -4,13 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {ref} from 'vue'
-import {events} from '@/api'
 import type {EventAttachment, StationFile} from '@/api/generated/schema'
 import {moveWithin} from '@/util/reorder'
 import {describeFailure, type Failure, type Translate} from '@/util/failure'
+import type {AttachmentPort} from './eventOwnerPorts'
 
 /**
- * The files an event hands over, while somebody is editing it.
+ * The files an event or an event template hands over, while somebody is editing it.
  *
  * <p>Every change is written as it is made rather than gathered into the save: an event being
  * edited already exists, and a file that only lands when the form is saved is a file somebody
@@ -25,20 +25,23 @@ import {describeFailure, type Failure, type Translate} from '@/util/failure'
  * file refused because it is too large and a file refused because the session had run out read the
  * same. The translator is handed in rather than looked up so this stays callable from a test.
  *
- * @param eventId the event being edited, or null while it is being created
- * @param t       the translator, for describing whatever the server refuses with
+ * <p>Whose files they are comes in as a port, fixed to one owner. A template's rows carry the
+ * template's id where an event's carry the event's, so nothing here reads an owner off a row.
+ *
+ * @param port the files of the event or template being edited, or null while an event is being created
+ * @param t    the translator, for describing whatever the server refuses with
  */
-export function useEventAttachments(eventId: () => number | null, t: Translate) {
+export function useEventAttachments(port: () => AttachmentPort | null, t: Translate) {
     const attachments = ref<EventAttachment[]>([])
     const loading = ref(false)
     const failure = ref<Failure | null>(null)
 
     async function load() {
-        const id = eventId()
-        if (id === null) return
+        const owner = port()
+        if (owner === null) return
         loading.value = true
         try {
-            attachments.value = await events.listEventAttachments(id)
+            attachments.value = await owner.list()
             failure.value = null
         } catch (e) {
             failure.value = describeFailure(e, t)
@@ -47,12 +50,12 @@ export function useEventAttachments(eventId: () => number | null, t: Translate) 
         }
     }
 
-    /** Hangs a file of the library on the event, open to the room until somebody says otherwise. */
+    /** Hangs a file of the library on the owner, open to the room until somebody says otherwise. */
     async function add(file: StationFile) {
-        const id = eventId()
-        if (id === null) return
+        const owner = port()
+        if (owner === null) return
         try {
-            attachments.value = [...attachments.value, await events.attachEventFile(id, file.id, null, false)]
+            attachments.value = [...attachments.value, await owner.attach(file.id, null, false)]
             failure.value = null
         } catch (e) {
             failure.value = describeFailure(e, t)
@@ -60,10 +63,10 @@ export function useEventAttachments(eventId: () => number | null, t: Translate) 
     }
 
     async function save(attachment: EventAttachment) {
-        const id = eventId()
-        if (id === null) return
+        const owner = port()
+        if (owner === null) return
         try {
-            await events.updateEventAttachment(id, attachment.id, attachment.label, attachment.internal)
+            await owner.update(attachment.id, attachment.label, attachment.internal)
             failure.value = null
         } catch (e) {
             const refused = describeFailure(e, t)
@@ -73,11 +76,11 @@ export function useEventAttachments(eventId: () => number | null, t: Translate) 
     }
 
     async function remove(index: number) {
-        const id = eventId()
+        const owner = port()
         const attachment = attachments.value[index]
-        if (id === null || !attachment) return
+        if (owner === null || !attachment) return
         try {
-            await events.detachEventFile(id, attachment.id)
+            await owner.detach(attachment.id)
             attachments.value = attachments.value.filter((_, at) => at !== index)
             failure.value = null
         } catch (e) {
@@ -86,12 +89,12 @@ export function useEventAttachments(eventId: () => number | null, t: Translate) 
     }
 
     async function reorder(fromIndex: number, toIndex: number) {
-        const id = eventId()
-        if (id === null) return
+        const owner = port()
+        if (owner === null) return
         const before = attachments.value
         attachments.value = moveWithin(attachments.value, fromIndex, toIndex)
         try {
-            await events.reorderEventAttachments(id, attachments.value.map(attachment => attachment.id))
+            await owner.reorder(attachments.value.map(attachment => attachment.id))
             failure.value = null
         } catch (e) {
             attachments.value = before

@@ -17758,6 +17758,16 @@
               }
             }
           },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
           "404" : {
             "description" : "Not Found",
             "content" : {
@@ -17808,6 +17818,162 @@
         },
         "parameters" : [ {
           "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/event-templates/{id}/attachments" : {
+      "post" : {
+        "summary" : "Attach a file of the station library to an event template",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventAttachment"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AttachmentRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "List the files an event template hands every event made from it",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/EventAttachment"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/event-templates/{id}/attachments/order" : {
+      "put" : {
+        "summary" : "Write the order a template hands its files over in",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AttachmentOrderRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/event-templates/{id}/attachments/{attachmentId}" : {
+      "put" : {
+        "summary" : "Write what a template's file is called and whether it is kept back from the room",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "attachmentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AttachmentRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Take a file off an event template, leaving it in the library",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "attachmentId",
           "in" : "path",
           "required" : true,
           "schema" : {
@@ -17888,6 +18054,185 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/RequirementsRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/event-templates/{id}/federation" : {
+      "get" : {
+        "summary" : "How the events made from an event template are shared with partner stations",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FederationShareResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Share the events made from an event template with partner stations",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FederationShareResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetFederationShareRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Stop sharing the events made from an event template",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/event-templates/{id}/field-defaults" : {
+      "get" : {
+        "summary" : "Get the starting values an event template gives the fields of its attendance sheet",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/EventFieldDefault"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Set the starting values an event template gives the fields of its attendance sheet",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/EventFieldDefault"
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "array",
+                "items" : {
+                  "$ref" : "#/components/schemas/FieldDefaultEntry"
+                }
               }
             }
           }
@@ -19251,6 +19596,12 @@
           }
         }, {
           "name" : "requiresRegistration",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "registrationOpen",
           "in" : "query",
           "schema" : {
             "type" : "boolean"
@@ -60395,8 +60746,9 @@
           "requiresRegistration" : {
             "type" : [ "boolean", "null" ]
           },
-          "registrationDeadlineOffset" : {
-            "type" : [ "string", "null" ]
+          "registrationDeadlineOffsetHours" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           },
           "requiresConfirmation" : {
             "type" : [ "boolean", "null" ]
@@ -60418,9 +60770,21 @@
           "registrationLimit" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "minRegistrations" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "thresholdDays" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "registrationCloseDays" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "stationId", "name", "title", "description", "categoryId", "eventType", "requiresRegistration", "registrationDeadlineOffset", "requiresConfirmation", "restrictionMode", "viewRestrictionMode", "attendanceTemplateId", "registrationLimit" ]
+        "required" : [ "id", "stationId", "name", "title", "description", "categoryId", "eventType", "requiresRegistration", "registrationDeadlineOffsetHours", "requiresConfirmation", "restrictionMode", "viewRestrictionMode", "attendanceTemplateId", "registrationLimit", "minRegistrations", "thresholdDays", "registrationCloseDays" ]
       },
       "EventTemplateFieldData" : {
         "type" : "object",
@@ -85164,8 +85528,9 @@
           "requiresRegistration" : {
             "type" : [ "boolean", "null" ]
           },
-          "registrationDeadlineOffset" : {
-            "type" : [ "string", "null" ]
+          "registrationDeadlineOffsetHours" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           },
           "requiresConfirmation" : {
             "type" : [ "boolean", "null" ]
@@ -85182,6 +85547,18 @@
             "format" : "int32"
           },
           "registrationLimit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "minRegistrations" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "thresholdDays" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "registrationCloseDays" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
           }

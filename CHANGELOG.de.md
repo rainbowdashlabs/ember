@@ -12,6 +12,21 @@ Wer eine Wache teilt, kann sich direkt oder in Gruppen schreiben, egal welche Wa
 - **Leute lassen sich für Nachrichten blockieren.** Eine blockierte Person kann keine direkte Unterhaltung mehr mit der blockierenden Person starten und sie in keine Gruppe holen, ihre Nachrichten in gemeinsamen Gruppen sind eingeklappt. Sie erfährt davon nichts.
 - **Erziehungsberechtigte entscheiden über Nachrichten.** Ein Mitglied mit Erziehungsberechtigten in irgendeiner Wache hat keine Nachrichten, bis eine erziehungsberechtigte Person sie unter Profil → Verwaltete Profile freischaltet. Wird das wieder abgeschaltet, verschwinden die Unterhaltungen, gelöscht wird nichts.
 
+## v26.24.2
+
+Terminvorlagen tragen Anmelderegeln, Dateien, Startwerte für den Anwesenheitsbogen und die Freigabe für Partnerwachen. Der Filter "Anmeldung offen" bei den kommenden Terminen zeigt nur noch Termine, für die eine Anmeldung noch möglich ist.
+
+### Verbesserungen
+
+- **Vorlagen tragen Anmelderegeln.** Eine Terminvorlage legt den Anmeldeschluss als Tage und Stunden vor Beginn fest, eine Mindestzahl an Anmeldungen und wie viele Tage vor jedem Termin sie erreicht sein muss, und wie viele Tage vor jedem Termin die Anmeldung schließt. Ein Termin aus der Vorlage übernimmt das und rechnet den Anmeldeschluss von seinem eigenen Beginn aus.
+- **Vorlagen tragen Dateien, Feldwerte und Freigaben.** Eine Vorlage hält Dateien aus der Mediathek der Wache, Startwerte für die Felder ihres Anwesenheitsbogens und die Partnerwachen, für die sie freigibt. Termine aus der Vorlage übernehmen all das, die Freigabe allerdings nur, wenn die Person Termine mit Partnerwachen teilen darf.
+
+### Fehlerbehebungen
+
+- **Geschlossene Anmeldungen gelten nicht mehr als offen.** Mit "Anmeldung offen" zeigte die Liste der kommenden Termine auch Termine, deren Anmeldeschluss schon vorbei war. Jetzt erscheinen nur noch Termine, für die eine Anmeldung noch möglich ist.
+- **Terminvorlagen formatieren ihre Beschreibung.** Die Beschreibung einer Terminvorlage war ein einfaches Textfeld, während Termine Formatierung bieten. Vorlagen nutzen jetzt denselben Editor.
+- **Vorlagen geben ihr Teilnehmerlimit weiter.** Ein Termin aus einer Vorlage kam ohne das Teilnehmerlimit der Vorlage. Das Limit wird jetzt mit den anderen Einstellungen übernommen.
+
 ## v26.24.1
 
 Jede Zahl der Übersicht öffnet die passende Liste, fehlgeschlagene E-Mails lassen sich lesen und zur Kenntnis nehmen. Die Verwaltung einer wartenden Wache lässt sich erinnern und wird auch von selbst erinnert. Die Kontenliste filtert über alle Konten. Die Statistik zeigt, wie viele Personen die Instanz täglich nutzen und wie sie wächst, aufgezeichnet ab dieser Version. Knöpfe, die nur zu einer Ablehnung führen konnten, sind verschwunden oder erklären sich. Das Problemprotokoll übersteht einen Neustart, kann Bekanntes stummschalten und zeigt die Logzeilen um ein Problem. Diese Zeilen können auf Wunsch an einen Beacon gehen, Namen und Adressen werden dabei ersetzt.

@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
+import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.question.FieldType;
@@ -89,21 +90,81 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     void updateTemplate() {
         boolean updated = service.update(
                 templateId,
-                "Updated Template",
-                "Weekly Training",
-                "Regular training session",
-                null,
-                StationEvent.EventType.RECURRING,
-                true,
-                "1 day",
-                false,
-                RestrictionMode.AND,
-                null,
-                null);
+                new EventTemplateSettings(
+                        "Updated Template",
+                        "Weekly Training",
+                        "Regular training session",
+                        null,
+                        StationEvent.EventType.RECURRING,
+                        true,
+                        30,
+                        false,
+                        RestrictionMode.AND,
+                        null,
+                        12,
+                        4,
+                        3,
+                        2));
         assertTrue(updated);
         var found = service.findById(templateId).orElseThrow();
         assertEquals("Updated Template", found.name());
         assertEquals("Weekly Training", found.title());
+        assertEquals(30, found.registrationDeadlineOffsetHours());
+        assertEquals(12, found.registrationLimit());
+        assertEquals(4, found.minRegistrations());
+        assertEquals(3, found.thresholdDays());
+        assertEquals(2, found.registrationCloseDays());
+
+        service.update(
+                templateId,
+                new EventTemplateSettings(
+                        found.name(),
+                        found.title(),
+                        found.description(),
+                        null,
+                        found.eventType(),
+                        true,
+                        null,
+                        false,
+                        RestrictionMode.AND,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null));
+        assertNull(service.findById(templateId).orElseThrow().registrationDeadlineOffsetHours());
+    }
+
+    /** A template whose sign-up rules count below zero is refused and left as it was. */
+    @Test
+    @Order(6)
+    void negativeSignUpRulesAreRefused() {
+        var before = service.findById(templateId).orElseThrow();
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.update(
+                        templateId,
+                        new EventTemplateSettings(
+                                before.name(),
+                                null,
+                                null,
+                                null,
+                                null,
+                                true,
+                                -1,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null)));
+
+        assertEquals(
+                EventRefusal.EVENT_TEMPLATE_RULE_NEGATIVE.code(),
+                refused.refusal().code());
+        assertEquals(before, service.findById(templateId).orElseThrow());
     }
 
     @Test
@@ -188,7 +249,23 @@ class EventTemplateServiceTest extends RepositoryTestBase {
                 theirs.id(), "Ausbilder", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
         int foreign = attendanceRepo.findTemplateFields(theirs.id()).getFirst().id();
 
-        service.update(templateId, "Bogenprobe", null, null, null, null, null, null, null, null, ours.id(), null);
+        service.update(
+                templateId,
+                new EventTemplateSettings(
+                        "Bogenprobe",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        ours.id(),
+                        null,
+                        null,
+                        null,
+                        null));
         service.replaceFields(
                 templateId,
                 List.of(
@@ -391,17 +468,21 @@ class EventTemplateServiceTest extends RepositoryTestBase {
     void updateNotFound() {
         boolean updated = service.update(
                 999999,
-                "Nope",
-                "Nope",
-                "Nope",
-                null,
-                StationEvent.EventType.ONE_TIME,
-                false,
-                null,
-                false,
-                RestrictionMode.AND,
-                null,
-                null);
+                new EventTemplateSettings(
+                        "Nope",
+                        "Nope",
+                        "Nope",
+                        null,
+                        StationEvent.EventType.ONE_TIME,
+                        false,
+                        null,
+                        false,
+                        RestrictionMode.AND,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null));
         assertFalse(updated);
     }
 

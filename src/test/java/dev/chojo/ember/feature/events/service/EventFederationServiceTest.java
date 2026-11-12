@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.service.CommentService;
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -1468,8 +1469,10 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 .thenReturn(Optional.of(
                         new MediaContent("Laufzettel".getBytes(StandardCharsets.UTF_8), "application/pdf")));
 
-        var open = attachmentService.attach(eventId, stationA.id(), stationFile.id(), "Laufzettel", false);
-        var internal = attachmentService.attach(eventId, stationA.id(), kept.id(), "Einsatzplan", true);
+        var open = attachmentService.attach(
+                AppointmentOwner.EVENT, eventId, stationA.id(), stationFile.id(), "Laufzettel", false);
+        var internal = attachmentService.attach(
+                AppointmentOwner.EVENT, eventId, stationA.id(), kept.id(), "Einsatzplan", true);
         service.setShare(eventId, ShareScope.ALL_PARTNERS, List.of());
 
         try {
@@ -1495,8 +1498,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
                     () -> service.listFederatedAttachments(stationB.id(), stationA.uid(), eventId),
                     "an event that is no longer shared hands over nothing");
         } finally {
-            attachmentService.detach(open.id());
-            attachmentService.detach(internal.id());
+            attachmentService.detach(AppointmentOwner.EVENT, open.id());
+            attachmentService.detach(AppointmentOwner.EVENT, internal.id());
         }
     }
 

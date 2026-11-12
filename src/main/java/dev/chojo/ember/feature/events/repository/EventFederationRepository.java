@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.repository;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
 import dev.chojo.ember.feature.events.entity.EventPartnerPlaces;
@@ -35,9 +36,26 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 @Singleton
 public class EventFederationRepository {
-    private static final String EVENT_FEDERATION_SHARE_COLUMNS = "id, event_id, scope";
     private static final String EVENT_FEDERATION_REGISTRATION_COLUMNS =
             "id, event_id, partner_id, remote_member_id, event_date, status, created_at, agreement_withdrawn_at";
+
+    private static String shareTable(AppointmentOwner owner) {
+        return switch (owner) {
+            case EVENT -> "event_federation_share";
+            case TEMPLATE -> "event_template_federation_share";
+        };
+    }
+
+    private static String shareTargetTable(AppointmentOwner owner) {
+        return shareTable(owner) + "_target";
+    }
+
+    private static String shareOwnerColumn(AppointmentOwner owner) {
+        return switch (owner) {
+            case EVENT -> "event_id";
+            case TEMPLATE -> "template_id";
+        };
+    }
 
     /**
      * Finds the federation share configuration for an event.
@@ -46,9 +64,22 @@ public class EventFederationRepository {
      * @return the share, if configured
      */
     public Optional<EventFederationShare> findShareByEvent(int eventId) {
-        return query("""
-                SELECT %s FROM event_federation_share WHERE event_id = :event_id;""", EVENT_FEDERATION_SHARE_COLUMNS)
-                .single(call().bind("event_id", eventId))
+        return findShare(AppointmentOwner.EVENT, eventId);
+    }
+
+    /**
+     * Finds how an event or a template is shared with partner stations. A template's share carries
+     * the template's id where an event's carries the event's.
+     *
+     * @param owner   whose share this is
+     * @param ownerId the event or template
+     * @return the share, if configured
+     */
+    public Optional<EventFederationShare> findShare(AppointmentOwner owner, int ownerId) {
+        return query(
+                        "SELECT id, %s AS event_id, scope FROM %s WHERE %1$s = :owner_id;",
+                        shareOwnerColumn(owner), shareTable(owner))
+                .single(call().bind("owner_id", ownerId))
                 .map(EventFederationShare.map())
                 .first();
     }
@@ -61,15 +92,26 @@ public class EventFederationRepository {
      * @return the created or updated share
      */
     public EventFederationShare setShare(int eventId, ShareScope scope) {
+        return setShare(AppointmentOwner.EVENT, eventId, scope);
+    }
+
+    /**
+     * Creates or updates the federation share of an event or a template.
+     *
+     * @param owner   whose share this is
+     * @param ownerId the event or template
+     * @param scope   the sharing scope
+     * @return the created or updated share
+     */
+    public EventFederationShare setShare(AppointmentOwner owner, int ownerId, ShareScope scope) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO event_federation_share(event_id, scope)
-                VALUES (:event_id, :scope)
-                ON CONFLICT (event_id) DO UPDATE SET scope = :scope
-                RETURNING %s;""",
-                call().bind("event_id", eventId).bind("scope", scope),
-                EventFederationShare.map(),
-                EVENT_FEDERATION_SHARE_COLUMNS);
+                INSERT INTO %1$s(%2$s, scope)
+                VALUES (:owner_id, :scope)
+                ON CONFLICT (%2$s) DO UPDATE SET scope = :scope
+                RETURNING id, %2$s AS event_id, scope;""".formatted(shareTable(owner), shareOwnerColumn(owner)),
+                call().bind("owner_id", ownerId).bind("scope", scope),
+                EventFederationShare.map());
     }
 
     /**
@@ -79,16 +121,27 @@ public class EventFederationRepository {
      * @param partnerIds the partner IDs to target
      */
     public void setShareTargets(int shareId, List<Integer> partnerIds) {
-        query("DELETE FROM event_federation_share_target WHERE share_id = :share_id;")
+        setShareTargets(AppointmentOwner.EVENT, shareId, partnerIds);
+    }
+
+    /**
+     * Replaces the partners an event's or a template's share names.
+     *
+     * @param owner      whose share this is
+     * @param shareId    the share ID
+     * @param partnerIds the partner IDs to target
+     */
+    public void setShareTargets(AppointmentOwner owner, int shareId, List<Integer> partnerIds) {
+        query("DELETE FROM %s WHERE share_id = :share_id;", shareTargetTable(owner))
                 .single(call().bind("share_id", shareId))
                 .delete();
         for (int partnerId : partnerIds) {
             query("""
                     INSERT
                     INTO
-                        event_federation_share_target(share_id, partner_id)
+                        %s(share_id, partner_id)
                     VALUES
-                        (:share_id, :partner_id);""")
+                        (:share_id, :partner_id);""", shareTargetTable(owner))
                     .single(call().bind("share_id", shareId).bind("partner_id", partnerId))
                     .insert();
         }
@@ -101,7 +154,18 @@ public class EventFederationRepository {
      * @return the list of partner IDs
      */
     public List<Integer> findShareTargets(int shareId) {
-        return query("SELECT partner_id FROM event_federation_share_target WHERE share_id = :share_id;")
+        return findShareTargets(AppointmentOwner.EVENT, shareId);
+    }
+
+    /**
+     * Retrieves the partners an event's or a template's share names.
+     *
+     * @param owner   whose share this is
+     * @param shareId the share ID
+     * @return the list of partner IDs
+     */
+    public List<Integer> findShareTargets(AppointmentOwner owner, int shareId) {
+        return query("SELECT partner_id FROM %s WHERE share_id = :share_id;", shareTargetTable(owner))
                 .single(call().bind("share_id", shareId))
                 .map(row -> row.getInt("partner_id"))
                 .all();
@@ -113,8 +177,18 @@ public class EventFederationRepository {
      * @param eventId the event ID
      */
     public void removeShare(int eventId) {
-        query("DELETE FROM event_federation_share WHERE event_id = :event_id;")
-                .single(call().bind("event_id", eventId))
+        removeShare(AppointmentOwner.EVENT, eventId);
+    }
+
+    /**
+     * Removes the federation share of an event or a template. Cascades to share targets.
+     *
+     * @param owner   whose share this is
+     * @param ownerId the event or template
+     */
+    public void removeShare(AppointmentOwner owner, int ownerId) {
+        query("DELETE FROM %s WHERE %s = :owner_id;", shareTable(owner), shareOwnerColumn(owner))
+                .single(call().bind("owner_id", ownerId))
                 .delete();
     }
 

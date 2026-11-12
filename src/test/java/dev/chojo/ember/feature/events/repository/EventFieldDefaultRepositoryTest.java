@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.repository;
 
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.question.FieldType;
@@ -61,16 +62,20 @@ class EventFieldDefaultRepositoryTest extends RepositoryTestBase {
                 null,
                 null);
         try {
-            eventFieldDefaultRepo.replaceForEvent(
-                    event.id(), List.of(new EventFieldDefault(event.id(), templateFieldId, "VALUE", "value1")));
-            var found = eventFieldDefaultRepo.findByEvent(event.id());
+            eventFieldDefaultRepo.replace(
+                    AppointmentOwner.EVENT,
+                    event.id(),
+                    List.of(new EventFieldDefault(event.id(), templateFieldId, "VALUE", "value1")));
+            var found = eventFieldDefaultRepo.findByOwner(AppointmentOwner.EVENT, event.id());
             assertFalse(found.isEmpty());
             assertEquals(templateFieldId, found.getFirst().fieldId());
             assertEquals("VALUE", found.getFirst().source());
             assertEquals("value1", found.getFirst().value());
 
-            eventFieldDefaultRepo.replaceForEvent(event.id(), List.of());
-            assertTrue(eventFieldDefaultRepo.findByEvent(event.id()).isEmpty());
+            eventFieldDefaultRepo.replace(AppointmentOwner.EVENT, event.id(), List.of());
+            assertTrue(eventFieldDefaultRepo
+                    .findByOwner(AppointmentOwner.EVENT, event.id())
+                    .isEmpty());
         } finally {
             eventRepo.delete(event.id());
             attendanceRepo.archiveTemplate(template.id());
@@ -79,6 +84,7 @@ class EventFieldDefaultRepositoryTest extends RepositoryTestBase {
 
     @Test
     void findForUnknownEventIsEmpty() {
-        assertTrue(eventFieldDefaultRepo.findByEvent(99999).isEmpty());
+        assertTrue(
+                eventFieldDefaultRepo.findByOwner(AppointmentOwner.EVENT, 99999).isEmpty());
     }
 }

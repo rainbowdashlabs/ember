@@ -10,6 +10,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.EventAttachment;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -205,6 +206,7 @@ public class EventAttachmentRoutes implements Routes {
         if (request.fileId() == null) throw EventRefusal.EVENT_FILE_NOT_CHOSEN.raise();
         ctx.status(HttpStatus.CREATED)
                 .json(attachmentService.attach(
+                        AppointmentOwner.EVENT,
                         eventId,
                         session.stationId(),
                         request.fileId(),
@@ -227,7 +229,7 @@ public class EventAttachmentRoutes implements Routes {
         var attachment = requireOwnedAttachment(ctx);
         var request = ctx.bodyAsClass(AttachmentRequest.class);
         boolean internal = Objects.requireNonNullElse(request.internal(), attachment.internal());
-        if (!attachmentService.update(attachment.id(), request.label(), internal)) {
+        if (!attachmentService.update(AppointmentOwner.EVENT, attachment.id(), request.label(), internal)) {
             throw EventRefusal.EVENT_FILE_NOT_CHANGED.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
@@ -246,7 +248,8 @@ public class EventAttachmentRoutes implements Routes {
         int eventId = pathInt(ctx, "id");
         requireOwnedEvent(crudService, eventId, session);
         var request = ctx.bodyAsClass(AttachmentOrderRequest.class);
-        attachmentService.reorder(eventId, request.attachmentIds() != null ? request.attachmentIds() : List.of());
+        attachmentService.reorder(
+                AppointmentOwner.EVENT, eventId, request.attachmentIds() != null ? request.attachmentIds() : List.of());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -262,7 +265,8 @@ public class EventAttachmentRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void detach(Context ctx) {
         var attachment = requireOwnedAttachment(ctx);
-        if (!attachmentService.detach(attachment.id())) throw EventRefusal.EVENT_FILE_NOT_REMOVED.raise();
+        if (!attachmentService.detach(AppointmentOwner.EVENT, attachment.id()))
+            throw EventRefusal.EVENT_FILE_NOT_REMOVED.raise();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -275,7 +279,7 @@ public class EventAttachmentRoutes implements Routes {
         int eventId = pathInt(ctx, "id");
         requireOwnedEvent(crudService, eventId, session);
         return attachmentService
-                .find(pathInt(ctx, "attachmentId"))
+                .find(AppointmentOwner.EVENT, pathInt(ctx, "attachmentId"))
                 .filter(attachment -> attachment.eventId() == eventId)
                 .orElseThrow(EventRefusal.EVENT_FILE_NOT_HERE_ON_WRITE::raise);
     }
