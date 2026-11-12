@@ -10,8 +10,11 @@ import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
+import dev.chojo.ember.feature.events.entity.EditScope;
+import dev.chojo.ember.feature.events.entity.EditScopeKind;
 import dev.chojo.ember.feature.events.entity.EventDraft;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
+import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventLink;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
@@ -348,6 +351,14 @@ class EventEditScopeServiceTest extends RepositoryTestBase {
         assertFalse(calendar.occursOn(continued, given));
         assertTrue(calendar.occursOn(continued, given.plusWeeks(1)));
         assertTrue(calendar.takesPlaceOn(detached, given));
+        assertEquals(
+                continued.id(),
+                eventRepo.findContinues(detached.id()).orElseThrow().eventId());
+        assertEquals(
+                List.of(continued.id()),
+                eventRepo.findContinuations(series.id()).stream()
+                        .map(EventLink::eventId)
+                        .toList());
     }
 
     /** Sheets before the date stay with the old series, sheets from it on go with the new one. */
@@ -423,6 +434,55 @@ class EventEditScopeServiceTest extends RepositoryTestBase {
                 EventRefusal.EVENT_SERIES_END_GIVEN_TWICE,
                 () -> scope.split(series, nextTuesday().plusWeeks(1), both));
         assertTrue(eventRepo.findContinuations(series.id()).isEmpty());
+    }
+
+    /**
+     * Saving names the dates: none means all of them, one date or one date and later need the date,
+     * and the questions the editor saves right after with the ids of the originals land on the copies.
+     */
+    @Test
+    void savingFollowsTheScopeAndKeepsTheCopiedQuestions() {
+        var series = weekly(null, null);
+        LocalDate date = nextTuesday();
+        var draft = edited(series, StationEvent.EventType.RECURRING);
+        var field = eventFieldRepo
+                .create(
+                        series.id(),
+                        "Fahrer",
+                        FieldType.TEXT,
+                        new EventFieldConfig(null, null, null, null, true, null, true).settings(),
+                        "",
+                        0,
+                        false,
+                        null,
+                        false)
+                .id();
+        eventFieldRepo.updateValueOn(field, date, "Bus");
+
+        assertRefused(
+                EventRefusal.EVENT_SCOPE_NEEDS_A_KIND, () -> scope.save(series, draft, new EditScope(null, date)));
+        assertRefused(
+                EventRefusal.EVENT_SCOPE_NEEDS_A_DATE,
+                () -> scope.save(series, draft, new EditScope(EditScopeKind.THIS, null)));
+        var detached = track(scope.save(series, draft, new EditScope(EditScopeKind.THIS, date)));
+        var copy = eventFieldRepo.findByEvent(detached.id()).getFirst().id();
+        eventFieldRepo.replaceFields(
+                detached.id(),
+                List.of(new EventFieldDraft(
+                        field,
+                        "Fahrer neu",
+                        FieldType.TEXT,
+                        new EventFieldConfig(null, null, null, null, true, null, true).settings(),
+                        "",
+                        false,
+                        null,
+                        false)));
+
+        var saved = eventFieldRepo.findByEvent(detached.id());
+        assertEquals(List.of(copy), saved.stream().map(f -> f.id()).toList());
+        assertEquals(
+                "Bus", eventFieldRepo.findDateValues(detached.id()).get(copy).get(date));
+        assertEquals("Dienst neu", scope.save(series, draft, EditScope.ALL).name());
     }
 
     /** Edited from its very first date, a series is changed as a whole and no new one is made. */

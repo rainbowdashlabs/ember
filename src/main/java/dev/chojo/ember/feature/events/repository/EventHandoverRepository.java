@@ -141,6 +141,22 @@ public class EventHandoverRepository {
                     .update();
         }
         moveAnswersOfRegistrations(source, target, span);
+        moveTakeovers(source, target, span);
+    }
+
+    /**
+     * Points the appointments that took over moved dates of the source at the target, which holds
+     * those dates now, so the series a date was taken out of is the one that names it.
+     */
+    private static void moveTakeovers(int source, int target, DateSpan span) {
+        query("""
+                UPDATE station_event
+                SET continues_event_id = :target
+                WHERE continues_event_id = :source
+                  AND id <> :target
+                  AND %s;""", within("continues_from", span))
+                .single(bound(call().bind("source", source).bind("target", target), span))
+                .update();
     }
 
     /**

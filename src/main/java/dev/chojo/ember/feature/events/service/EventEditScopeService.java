@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.DateSpan;
+import dev.chojo.ember.feature.events.entity.EditScope;
+import dev.chojo.ember.feature.events.entity.EditScopeKind;
 import dev.chojo.ember.feature.events.entity.EventDraft;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.OccurrenceRule;
@@ -76,6 +78,31 @@ public class EventEditScopeService {
         this.detachedDateRepository = detachedDateRepository;
         this.occurrenceCalendar = occurrenceCalendar;
         this.moveService = moveService;
+    }
+
+    /**
+     * Saves an appointment as the editor sent it, to the dates the scope names.
+     *
+     * @param current the appointment as it stands
+     * @param draft   the appointment as the editor saved it
+     * @param scope   which of its dates the change applies to
+     * @return the appointment the change was saved into: the same one for every date, a new one for
+     *     one date or one date and those after it
+     */
+    public StationEvent save(StationEvent current, EventDraft draft, EditScope scope) {
+        EditScopeKind kind = scope.kind();
+        if (kind == null) throw EventRefusal.EVENT_SCOPE_NEEDS_A_KIND.raise();
+        return switch (kind) {
+            case ALL -> changeWhole(current, draft);
+            case THIS -> detach(current, requireDate(scope), draft);
+            case THIS_AND_LATER -> split(current, requireDate(scope), draft);
+        };
+    }
+
+    private static LocalDate requireDate(EditScope scope) {
+        LocalDate date = scope.date();
+        if (date == null) throw EventRefusal.EVENT_SCOPE_NEEDS_A_DATE.raise();
+        return date;
     }
 
     /**

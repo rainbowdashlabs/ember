@@ -649,7 +649,13 @@ public enum EventRefusal implements Refusal {
 
     /** An attendance sheet taken on a series for a date that became an appointment of its own. */
     ATTENDANCE_DAY_DETACHED(
-            176, HttpStatus.BAD_REQUEST, "That date became an appointment of its own, so attendance is taken there");
+            176, HttpStatus.BAD_REQUEST, "That date became an appointment of its own, so attendance is taken there"),
+
+    /** One date, or one date and the ones after it, edited without naming the date. */
+    EVENT_SCOPE_NEEDS_A_DATE(177, HttpStatus.BAD_REQUEST, "Name the date the change applies to, nothing was saved"),
+
+    /** A scope sent without saying which dates it covers. */
+    EVENT_SCOPE_NEEDS_A_KIND(178, HttpStatus.BAD_REQUEST, "Say which dates the change applies to, nothing was saved");
 
     private final Definition definition;
 

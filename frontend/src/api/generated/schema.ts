@@ -66944,6 +66944,12 @@ export interface components {
             /** Format: int32 */
             templateId?: number | null;
         };
+        EditScope: {
+            date?: components["schemas"]["LocalDate"] | null;
+            kind?: components["schemas"]["EditScopeKind"] | null;
+        };
+        /** @enum {string} */
+        EditScopeKind: "ALL" | "THIS" | "THIS_AND_LATER";
         EligibleMembers: {
             eligibleManagedMemberIds: number[];
             selfEligible: boolean;
@@ -67412,6 +67418,7 @@ export interface components {
             requiresConfirmation?: boolean | null;
             requiresRegistration?: boolean | null;
             restriction?: components["schemas"]["RestrictionSelection"] | null;
+            scope?: components["schemas"]["EditScope"] | null;
             startTime?: components["schemas"]["Instant"];
             /** Format: int32 */
             templateId?: number | null;
@@ -76879,6 +76886,8 @@ export type DocumentTemplateResponse = components['schemas']['DocumentTemplateRe
 export type DocumentTemplateSummary = components['schemas']['DocumentTemplateSummary'];
 export type DocumentTimestampCheck = components['schemas']['DocumentTimestampCheck'];
 export type DraftPreviewRequest = components['schemas']['DraftPreviewRequest'];
+export type EditScope = components['schemas']['EditScope'];
+export type EditScopeKind = components['schemas']['EditScopeKind'];
 export type EligibleMembers = components['schemas']['EligibleMembers'];
 export type EmailChangeResponse = components['schemas']['EmailChangeResponse'];
 export type EmailChangeResult = components['schemas']['EmailChangeResult'];
@@ -78475,6 +78484,12 @@ export const DocumentLanguage = {
 export const DocumentTemplateKind = {
     LETTER: "LETTER",
     PDF: "PDF",
+} as const;
+
+export const EditScopeKind = {
+    ALL: "ALL",
+    THIS: "THIS",
+    THIS_AND_LATER: "THIS_AND_LATER",
 } as const;
 
 export const EmailChangeResult = {

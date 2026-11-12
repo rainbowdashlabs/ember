@@ -57644,6 +57644,29 @@
           }
         }
       },
+      "EditScope" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/EditScopeKind"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "date" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
+      },
+      "EditScopeKind" : {
+        "type" : "string",
+        "enum" : [ "ALL", "THIS", "THIS_AND_LATER" ]
+      },
       "EligibleMembers" : {
         "type" : "object",
         "properties" : {
@@ -58976,6 +58999,13 @@
           "repeatCount" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "scope" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/EditScope"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },

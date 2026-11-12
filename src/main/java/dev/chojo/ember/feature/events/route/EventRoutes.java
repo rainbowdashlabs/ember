@@ -15,6 +15,8 @@ import dev.chojo.ember.feature.events.entity.BatchFieldEntry;
 import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
 import dev.chojo.ember.feature.events.entity.DatedEvent;
+import dev.chojo.ember.feature.events.entity.EditScope;
+import dev.chojo.ember.feature.events.entity.EventDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationOpening;
 import dev.chojo.ember.feature.events.entity.EventSummary;
@@ -26,6 +28,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventEditScopeService;
 import dev.chojo.ember.feature.events.service.EventExportService;
 import dev.chojo.ember.feature.events.service.EventFieldRegistrationService;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService;
@@ -90,6 +93,7 @@ public class EventRoutes implements Routes {
     private final EventFieldRegistrationService fieldRegistrationService;
     private final OccurrenceCalendar occurrenceCalendar;
     private final EventVisibility visibility;
+    private final EventEditScopeService scopeService;
 
     @Inject
     public EventRoutes(
@@ -103,7 +107,9 @@ public class EventRoutes implements Routes {
             EventTemplateService templateService,
             EventFieldRegistrationService fieldRegistrationService,
             OccurrenceCalendar occurrenceCalendar,
-            EventVisibility visibility) {
+            EventVisibility visibility,
+            EventEditScopeService scopeService) {
+        this.scopeService = scopeService;
         this.occurrenceCalendar = occurrenceCalendar;
         this.visibility = visibility;
         this.crudService = crudService;
@@ -477,42 +483,36 @@ public class EventRoutes implements Routes {
             })
     private void update(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        int id = pathInt(ctx, "id");
-        requireOwnedEvent(crudService, id, session);
+        var current = requireOwnedEvent(crudService, pathInt(ctx, "id"), session);
         var req = ctx.bodyAsClass(EventRequest.class);
         validate(req);
-        var eventType = req.eventType();
-        crudService
-                .update(
-                        id,
-                        req.name(),
-                        req.description(),
-                        eventType,
-                        req.dayOfWeek(),
-                        req.startTime(),
-                        req.endTime(),
-                        req.templateId(),
-                        Boolean.TRUE.equals(req.requiresRegistration()),
-                        req.registrationDeadline(),
-                        Boolean.TRUE.equals(req.requiresConfirmation()),
-                        req.categoryId(),
-                        req.isPublic(),
-                        req.registrationLimit(),
-                        req.minRegistrations(),
-                        req.thresholdDays(),
-                        req.registrationCloseDays())
-                .ifPresentOrElse(
-                        event -> {
-                            applyAudiences(id, req);
-                            var saved = crudService
-                                    .setRepeatEnd(id, req.repeatUntil(), req.repeatCount())
-                                    .orElse(event);
-                            fieldRegistrationService.reconcile(id);
-                            ctx.json(saved);
-                        },
-                        () -> {
-                            throw EventRefusal.EVENT_NOT_HERE_ON_CHANGE.raise();
-                        });
+        var saved = scopeService.save(current, draftOf(req), Objects.requireNonNullElse(req.scope(), EditScope.ALL));
+        applyAudiences(saved.id(), req);
+        fieldRegistrationService.reconcile(saved.id());
+        ctx.json(crudService.findById(saved.id()).orElse(saved));
+    }
+
+    /** The settings of the appointment itself, as the editor sent them. */
+    private static EventDraft draftOf(EventRequest req) {
+        return new EventDraft(
+                req.name(),
+                req.description(),
+                req.eventType(),
+                req.dayOfWeek(),
+                req.startTime(),
+                req.endTime(),
+                req.templateId(),
+                Boolean.TRUE.equals(req.requiresRegistration()),
+                req.registrationDeadline(),
+                Boolean.TRUE.equals(req.requiresConfirmation()),
+                req.categoryId(),
+                req.isPublic(),
+                req.registrationLimit(),
+                req.minRegistrations(),
+                req.thresholdDays(),
+                req.registrationCloseDays(),
+                req.repeatUntil(),
+                req.repeatCount());
     }
 
     @OpenApi(
@@ -797,6 +797,9 @@ public class EventRoutes implements Routes {
      * @param templateId      the attendance sheet the appointment is taken on
      * @param eventTemplateId the appointment template it is made from, read only when it is created;
      *                        it has to be one of the station's own
+     * @param scope           which dates of a series a change applies to, read only when it is
+     *                        changed; none means every date. Only one date, and one date and those
+     *                        after it, save into a new appointment, whose id the answer carries
      */
     public record EventRequest(
             String name,
@@ -819,7 +822,8 @@ public class EventRoutes implements Routes {
             @Nullable Integer thresholdDays,
             @Nullable Integer registrationCloseDays,
             @Nullable LocalDate repeatUntil,
-            @Nullable Integer repeatCount) {}
+            @Nullable Integer repeatCount,
+            @Nullable EditScope scope) {}
 
     /**
      * The next day an appointment falls on, or nothing for one that has no date at all.

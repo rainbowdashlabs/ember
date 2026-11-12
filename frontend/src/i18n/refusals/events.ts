@@ -204,4 +204,6 @@ export default {
     'E-174': 'Ein vergangener Termin bleibt, wie er war, es wurde nichts gespeichert',
     'E-175': 'Die Serie findet an diesem Tag nicht statt, es wurde nichts gespeichert',
     'E-176': 'Dieser Tag ist ein eigener Termin geworden, die Anwesenheit wird dort erfasst',
+    'E-177': 'Für welchen Tag die Änderung gilt, fehlt, es wurde nichts gespeichert',
+    'E-178': 'Für welche Termine die Änderung gilt, fehlt, es wurde nichts gespeichert',
 }
