@@ -170,7 +170,6 @@ public class NotificationText {
         String localeKey = n.type().localeKey();
         var params = new LinkedHashMap<>(n.data().paramsAsMap());
         localizeStatusParam(locale, params);
-        localizeModuleParam(locale, params);
         localizeDateParams(locale, params);
         localizeChangedParts(locale, params);
 
@@ -335,8 +334,8 @@ public class NotificationText {
 
     /**
      * Replaces the params that carry a raw enum name with the label for it in the reader's
-     * language: a status (e.g. {@code "ACCEPTED"}, {@code "DONE"}, {@code "APPROVED"}) and the
-     * answer somebody gave to a waiting-list invitation.
+     * language: a status (e.g. {@code "ACCEPTED"}, {@code "DONE"}, {@code "APPROVED"}), the
+     * answer somebody gave to a waiting-list invitation and the module a cluster switched off.
      *
      * <p>That lets the message templates use a single {@code {status}} or {@code {answer}}
      * placeholder for every type carrying one. No-op when the param is absent or the bundle has no
@@ -345,6 +344,7 @@ public class NotificationText {
     private static void localizeStatusParam(String locale, Map<String, String> params) {
         localizeLabelParam(locale, params, "status", "ical", "status.");
         localizeLabelParam(locale, params, "answer", "waitlistAnswer", "");
+        localizeModuleParam(locale, params);
     }
 
     /**

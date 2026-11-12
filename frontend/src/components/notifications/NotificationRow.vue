@@ -11,9 +11,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import LinkButton from '@/components/button/LinkButton.vue'
 import type {NotificationResponse, NotificationType} from '@/api/generated/schema'
-import {formatDate, formatDateTime} from '@/util/format'
-import {notificationMessageKey} from '@/util/notificationMessageKey'
-import {STATION_MODULE_OPTIONS} from '@/data/stationModules'
+import {formatDateTime} from '@/util/format'
+import {notificationMessage} from '@/util/notificationMessage'
 
 const props = defineProps<{
   notification: NotificationResponse
@@ -93,62 +92,8 @@ const typeIcons: Partial<Record<NotificationType, string>> = {
   PARTNER_SIGNATURE_WITHDRAWN: 'file-signature',
 }
 
-/** A day as the database writes one, which is not how anybody here reads one. */
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
-
-/**
- * The days in a notification's parameters, written the way the rest of the product writes them.
- *
- * <p>A date reaches the screen as the plain day it is stored as, and four kinds of notification
- * carry one: an appointment coming up, a batch of new appointments, an answer still wanted, a check
- * to hand back. Every one of them read "2026-09-19" in the middle of a German sentence. Done here
- * rather than at each of the four, because the next notification to carry a date would otherwise
- * read that way too until somebody noticed.
- */
-function withReadableDates(params: Record<string, string>): Record<string, string> {
-  return Object.fromEntries(
-      Object.entries(params).map(([key, value]) =>
-          [key, typeof value === 'string' && ISO_DATE.test(value) ? formatDate(value) : value]),
-  )
-}
-
-/** A module the notification names, by its name in the module list, or as it came where it names none. */
-function moduleLabel(name: string): string {
-  const option = STATION_MODULE_OPTIONS.find(candidate => candidate.value === name)
-  return option ? t(option.labelKey) : name
-}
-
-/**
- * The sentence for the notification.
- *
- * <p>Most of it is the message the type carries, with the enums in its parameters routed through
- * their locale namespace so they read in German. A movement called off is the exception with two
- * sentences rather than one: whether the piece came home cannot be said in a word, and it is the
- * half the reader cannot guess.
- *
- * <p>The row shows this sentence and no body, so it stays scannable; the full body lives in the feed.
- */
-const message = computed(() => {
-  const n = props.notification
-  const params = withReadableDates(n.params)
-  if (n.type === 'EVENT_REGISTRATION_STATUS' && params.status) {
-    params.status = t(`dashboard.registrationStatus.${params.status}`)
-  }
-  if (n.type === 'LENDING_STATUS_CHANGE' && params.status) {
-    params.status = t(`dashboard.lendingStatus.${params.status}`)
-  }
-  if (n.type === 'CLUSTER_MODULE_DENIED' && params.module) {
-    params.module = moduleLabel(params.module)
-  }
-  if (n.type === 'EVENT_CHANGED' && params.changedParts) {
-    params.changedParts = params.changedParts.split(',').map(part => t(`notification.changedPart.${part}`)).join(', ')
-  }
-  if (n.type === 'MOVEMENT_CANCELLED') {
-    const key = params.itemStayedAway === 'true' ? 'movementCancelledAway' : 'movementCancelled'
-    return t(`notification.${key}`, params)
-  }
-  return t(notificationMessageKey(n.type, n.localeKey, params), params)
-})
+/** The sentence for the notification; the row shows it and no body, so it stays scannable, and the full body lives in the feed. */
+const message = computed(() => notificationMessage(t, props.notification))
 
 /**
  * What the notification is about, or nothing where it is about nothing the app can open. A link

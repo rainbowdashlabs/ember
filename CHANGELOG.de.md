@@ -2,10 +2,15 @@
 
 ## v26.25.0
 
-Ein einzelner Termin einer Serie lässt sich für sich ändern, eine Serie ab einem Termin. Beim Speichern einer Änderung können die Betroffenen benachrichtigt werden, auf Wunsch mit einem Hinweis. Teile des Inventars wie der Verleih oder die Beschaffung lassen sich einzeln abschalten, und ein abgeschaltetes Modul nimmt seine Benachrichtigungen und Berechtigungen mit. Geteilte Termine mit einer Partnerwache auf einem anderen Server brauchen auf beiden Seiten diese Version.
+Wer eine Wache teilt, kann sich direkt oder in Gruppen Nachrichten schreiben. Ein einzelner Termin einer Serie oder eine Serie ab einem Termin lässt sich für sich ändern, und beim Speichern können die Betroffenen benachrichtigt werden. Teile des Inventars wie der Verleih oder die Beschaffung lassen sich einzeln abschalten, und ein abgeschaltetes Modul nimmt seine Benachrichtigungen und Berechtigungen mit. Geteilte Termine mit einer Partnerwache auf einem anderen Server brauchen auf beiden Seiten diese Version.
 
 ### Neue Funktionen
 
+- **Nachrichten zwischen den Leuten einer Wache.** Alle können den Leuten schreiben, mit denen sie eine Wache teilen, direkt oder in Gruppen bis 25 Personen, über den Nachrichten-Knopf in der Kopfzeile. Eine Unterhaltung sieht gleich aus, egal welche Wache gewählt ist, und ein Name darin öffnet das Kurzprofil auf jeder gemeinsamen Wache.
+- **Neue Nachrichten kommen ohne Neuladen.** Nachrichten, Änderungen und Reaktionen erscheinen, sobald sie geschrieben werden, und die Kopfzeile zeigt, wie viele ungelesen warten. Eine Nachricht lässt sich beantworten, ändern, löschen und mit jedem üblichen Emoji kommentieren, in Gruppen lassen sich Leute erwähnen.
+- **Eine Mail für ungelesene Nachrichten.** Bleibt eine Nachricht 15 Minuten ungelesen, geht pro Unterhaltung eine Mail mit den ersten Zeilen raus, und bis zum Lesen keine weitere. Die Mail lässt sich in den Einstellungen für Nachrichten abschalten, stumm geschaltete Unterhaltungen schicken keine.
+- **Leute lassen sich für Nachrichten blockieren.** Eine blockierte Person kann keine direkte Unterhaltung mehr mit der blockierenden Person starten und sie in keine Gruppe holen, ihre Nachrichten in gemeinsamen Gruppen sind eingeklappt. Sie erfährt davon nichts.
+- **Erziehungsberechtigte entscheiden über Nachrichten.** Ein Mitglied mit Erziehungsberechtigten in irgendeiner Wache hat keine Nachrichten, bis eine erziehungsberechtigte Person sie unter Profil → Verwaltete Profile freischaltet. Wird das wieder abgeschaltet, verschwinden die Unterhaltungen, gelöscht wird nichts.
 - **Einzelne Termine oder Serien ab einem Datum ändern.** Beim Speichern einer Serie wird gefragt, ob die Änderung nur für diesen Termin, für diesen und alle späteren oder für alle Termine gilt. Ein einzelner Termin wird ein eigener Termin und spätere Termine gehen als neue Serie weiter; Anmeldungen und Anwesenheitslisten ziehen mit, und beide Termine verweisen aufeinander.
 - **Betroffene über Änderungen benachrichtigen.** Beim Speichern einer Änderung lassen sich alle Angemeldeten benachrichtigen, bei Terminen ohne Anmeldung alle, die den Termin sehen, mit einem Hinweis von bis zu 500 Zeichen. Die Nachricht nennt, was sich geändert hat, und Partnerwachen geben sie an ihre Mitglieder weiter.
 - **Aufgeteilte Serien zählen als eine.** In der Statistik der Wache zählen eine Serie, die als neue Serie weitergeht, und die aus ihr gelösten Termine als ein Termin unter dem neuesten Namen.
@@ -23,6 +28,10 @@ Ein einzelner Termin einer Serie lässt sich für sich ändern, eine Serie ab ei
 - **Geteilte Termine brauchen auf beiden Seiten diese Version.** Zwischen einer Wache auf dieser Version und einer Partnerwache auf einer älteren auf einem anderen Server funktionieren geteilte Termine, die Anmeldung dazu und ihre Kommentare nicht. Sobald beide 26.25.0 betreiben, geht es wieder.
 
 ### Fehlerbehebungen
+
+- **Kurzprofile zeigen nur, was der Lesende sehen darf.** Nach einer Anmeldung als jemand anderes, einem Profilwechsel oder einem entzogenen Recht konnte ein schon geöffnetes Kurzprofil ohne Neuladen der Seite noch private Tags zeigen. Es wird jetzt für die Person neu geladen, die gerade schaut.
+
+- **Wörter statt technischer Werte.** An einigen Stellen erschienen technische Werte statt Wörtern, etwa die Antwort auf eine Einladung von der Warteliste, ein vom Verband abgeschaltetes Modul, die Mitgliedsarten in der Einrichtung der Wache und zugeordnete Werte beim Mitgliederimport, und dem letzten Einrichtungsschritt fehlte sein Hinweis. Alles erscheint jetzt in der Sprache der Oberfläche.
 
 - **Abgeschaltete Module blieben erreichbar.** Seiten eines abgeschalteten Moduls öffneten sich weiter über einen gespeicherten Link, und Dokumente und das öffentliche Wiki blieben offen, wenn nur der Verband sie abgeschaltet hatte. Jede Seite eines abgeschalteten Moduls sagt jetzt, dass dieser Bereich an der Wache ausgeschaltet ist.
 
@@ -189,7 +198,6 @@ Profilfelder lassen sich nur dann anzeigen, wenn eine Ja/Nein-Frage mit Ja beant
 ### Fehlerbehebungen
 
 - **Neu ausgegebene Ausrüstung im gemischten Inventar gehörte immer dem Träger.** Ein beim Ausgeben neu angelegtes Stück eines gemischten Inventars wurde dem Träger zugeschrieben, auch wenn es der Wache gehören sollte. Der Eigentümer wird jetzt beim Ausgeben gewählt.
-
 - **Bereiche der Seitenleiste ließen sich nicht in einem neuen Tab öffnen.** Die Bereiche in der Liste aller Bereiche reagierten nicht auf einen Mittelklick oder einen Klick mit gedrückter Zusatztaste. Sie sind jetzt Links, die ihre erste Seite wie jeder andere Link in einem neuen Tab öffnen.
 
 ## v26.23.0

@@ -57,6 +57,8 @@ export default defineNuxtConfig({
     '/cluster/**': {ssr: false},
     '/account': {ssr: false},
     '/account/**': {ssr: false},
+    '/messages': {ssr: false},
+    '/messages/**': {ssr: false},
     '/cross-station': {ssr: false},
     '/reconsent': {ssr: false},
     '/station-select': {ssr: false},

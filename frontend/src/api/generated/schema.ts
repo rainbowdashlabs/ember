@@ -40780,6 +40780,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/managed-members/{memberId}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Turn messages between people on or off for a managed member */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    memberId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SetMessagesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ManagedAccess"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/managed-members/{memberId}/passkey-code": {
         parameters: {
             query?: never;
@@ -42607,6 +42649,1174 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["MemberSearchResult"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/blocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The people the reader blocked */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessagePersonResponse"][];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Block somebody for messages; they are not told */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["BlockPersonRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/blocks/{personUid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Take a block back */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    personUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the reader's conversations, the most recently active first */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversationSummaryResponse"][];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Open the direct conversation with somebody, or start a group */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["StartConversationRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversationResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations/{conversationUid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One conversation of the reader's, with everybody in it */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversationResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations/{conversationUid}/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Leave a group, or put a direct conversation away until its next message */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations/{conversationUid}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A page of a conversation, oldest first */
+        get: {
+            parameters: {
+                query?: {
+                    after?: number;
+                    before?: number;
+                };
+                header?: never;
+                path: {
+                    conversationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversationMessagePage"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Write a message */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WriteMessageRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversationMessageResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations/{conversationUid}/messages/{messageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One message of a conversation */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                    messageId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversationMessageResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Change the text of one's own message */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                    messageId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EditMessageRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversationMessageResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Delete one's own message; its place stays */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                    messageId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations/{conversationUid}/messages/{messageId}/reactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** React to a message with a standard emoji */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                    messageId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ReactionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversationMessageResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Take one's own reaction to a message back */
+        delete: {
+            parameters: {
+                query: {
+                    emoji: string;
+                };
+                header?: never;
+                path: {
+                    conversationUid: string;
+                    messageId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversationMessageResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations/{conversationUid}/mute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mute or unmute a conversation for the reader */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ConversationMuteRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations/{conversationUid}/name": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Rename a group, which only its owner does */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ConversationNameRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations/{conversationUid}/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add people to a group */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ConversationPeopleRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations/{conversationUid}/people/{personUid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove somebody from a group, which only its owner does */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                    personUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations/{conversationUid}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Note that the reader has read a conversation up to a message */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ConversationReadRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream the reader's message signals as server-sent events */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageEvent"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Find people the reader may write to: everybody sharing a station with them */
+        get: {
+            parameters: {
+                query?: {
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReachablePersonResponse"][];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/people/{personUid}/cards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A person's member cards at the stations the reader shares with them */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    personUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SharedMemberCard"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Turn the mail about unread messages on or off */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MessageMailRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessagesStatus"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether the reader can use messages and how many wait unread */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessagesStatus"];
                     };
                 };
             };
@@ -65518,6 +66728,10 @@ export interface components {
             note: string | null;
             value: string;
         };
+        BlockPersonRequest: {
+            /** Format: uuid */
+            person?: string | null;
+        };
         BlockRowRequest: {
             cells?: components["schemas"]["BlockCellRequest"][];
             columnLines?: boolean | null;
@@ -66580,6 +67794,79 @@ export interface components {
             content?: string;
         };
         /** @enum {string} */
+        ConversationKind: "DIRECT" | "GROUP";
+        ConversationMemberResponse: {
+            firstName: string;
+            joinedAt: components["schemas"]["Instant"];
+            lastName: string;
+            /** Format: uuid */
+            uid: string;
+        };
+        ConversationMessagePage: {
+            hasMore: boolean;
+            messages: components["schemas"]["ConversationMessageResponse"][];
+        };
+        ConversationMessageResponse: {
+            author: components["schemas"]["MessagePersonResponse"] | null;
+            content: string;
+            createdAt: components["schemas"]["Instant"];
+            deleted: boolean;
+            editedAt: components["schemas"]["Instant"] | null;
+            /** Format: int32 */
+            id: number;
+            reactions: components["schemas"]["ReactionGroupResponse"][];
+            replyTo: components["schemas"]["ReplyPreviewResponse"] | null;
+            subject: components["schemas"]["MessagePersonResponse"] | null;
+            systemKind: components["schemas"]["SystemKind"] | null;
+        };
+        ConversationMuteRequest: {
+            muted?: boolean;
+        };
+        ConversationNameRequest: {
+            name?: string | null;
+        };
+        ConversationPeopleRequest: {
+            people?: string[] | null;
+        };
+        ConversationPreview: {
+            author: components["schemas"]["MessagePersonResponse"] | null;
+            createdAt: components["schemas"]["Instant"];
+            deleted: boolean;
+            /** Format: int32 */
+            id: number;
+            subject: components["schemas"]["MessagePersonResponse"] | null;
+            systemKind: components["schemas"]["SystemKind"] | null;
+            text: string;
+        };
+        ConversationReadRequest: {
+            /** Format: int32 */
+            messageId?: number;
+        };
+        ConversationResponse: {
+            kind: components["schemas"]["ConversationKind"];
+            /** Format: int32 */
+            lastReadMessageId: number | null;
+            members: components["schemas"]["ConversationMemberResponse"][];
+            muted: boolean;
+            name: string | null;
+            /** Format: uuid */
+            ownerUid: string | null;
+            /** Format: uuid */
+            uid: string;
+        };
+        ConversationSummaryResponse: {
+            kind: components["schemas"]["ConversationKind"];
+            lastActivityAt: components["schemas"]["Instant"];
+            muted: boolean;
+            name: string | null;
+            newest: components["schemas"]["ConversationPreview"] | null;
+            others: components["schemas"]["MessagePersonResponse"][];
+            /** Format: uuid */
+            uid: string;
+            /** Format: int32 */
+            unread: number;
+        };
+        /** @enum {string} */
         ConversionStatus: "PENDING" | "SUCCESS" | "FAILED";
         CorrectionResponse: {
             generatedAt: components["schemas"]["Instant"];
@@ -67456,6 +68743,9 @@ export interface components {
             template?: components["schemas"]["DocumentTemplateRequest"] | null;
             /** Format: int32 */
             templateId?: number | null;
+        };
+        EditMessageRequest: {
+            text?: string | null;
         };
         EditScope: {
             date?: components["schemas"]["LocalDate"] | null;
@@ -70668,6 +71958,7 @@ export interface components {
             canSignIn: boolean;
             email: string | null;
             loginEnabled: boolean;
+            messagesAllowed: boolean;
             username: string | null;
         };
         ManagedFieldResponse: {
@@ -71223,8 +72514,32 @@ export interface components {
         MessageBody: {
             message?: string;
         };
+        MessageEvent: {
+            /** Format: uuid */
+            conversationUid: string;
+            kind: components["schemas"]["MessageEventKind"];
+            /** Format: int32 */
+            messageId: number | null;
+        };
+        /** @enum {string} */
+        MessageEventKind: "MESSAGE" | "CONVERSATION" | "READ";
+        MessageMailRequest: {
+            mail?: boolean;
+        };
+        MessagePersonResponse: {
+            firstName: string;
+            lastName: string;
+            /** Format: uuid */
+            uid: string;
+        };
         MessageResponse: {
             message: string;
+        };
+        MessagesStatus: {
+            available: boolean;
+            mail: boolean;
+            /** Format: int32 */
+            unread: number;
         };
         MetricsBatch: {
             day: string;
@@ -73486,6 +74801,23 @@ export interface components {
             narrowly: number[];
             publicly: number[];
         };
+        ReachablePersonResponse: {
+            firstName: string;
+            lastName: string;
+            stationName: string;
+            /** Format: uuid */
+            uid: string;
+        };
+        ReactionGroupResponse: {
+            /** Format: int32 */
+            count: number;
+            emoji: string;
+            mine: boolean;
+            people: components["schemas"]["MessagePersonResponse"][];
+        };
+        ReactionRequest: {
+            emoji?: string | null;
+        };
         RecentApplication: {
             created_at: components["schemas"]["Instant"];
             /** Format: int32 */
@@ -73812,6 +75144,13 @@ export interface components {
         ReplaceQuestionRequest: {
             /** Format: int32 */
             questionId?: number;
+        };
+        ReplyPreviewResponse: {
+            author: components["schemas"]["MessagePersonResponse"] | null;
+            deleted: boolean;
+            /** Format: int32 */
+            id: number;
+            text: string;
         };
         ReportData: {
             filterLabel: string;
@@ -74670,6 +76009,9 @@ export interface components {
             memberIds?: number[];
             move?: boolean;
         };
+        SetMessagesRequest: {
+            allowed?: boolean;
+        };
         SetNewsFederationShareRequest: {
             partnerIds?: number[];
             scope?: components["schemas"]["ShareScope"];
@@ -74831,6 +76173,12 @@ export interface components {
             requiresConfirmation: boolean;
             requiresRegistration: boolean;
             startTime: string;
+        };
+        SharedMemberCard: {
+            card: components["schemas"]["MemberCard"];
+            stationName: string;
+            /** Format: uuid */
+            stationUid: string;
         };
         SharedPage: {
             ownAddressLive: boolean;
@@ -75136,6 +76484,11 @@ export interface components {
         SpacerConfig: {
             /** Format: int32 */
             heightPx?: number;
+        };
+        StartConversationRequest: {
+            kind?: components["schemas"]["ConversationKind"];
+            name?: string | null;
+            people?: string[] | null;
         };
         StationAiProvider: {
             apiKey: string;
@@ -75701,6 +77054,8 @@ export interface components {
             /** Format: int32 */
             parentId: number | null;
         };
+        /** @enum {string} */
+        SystemKind: "ADDED" | "LEFT" | "REMOVED" | "RENAMED" | "OWNER_PASSED";
         SystemNewsRequest: {
             contentMarkdown?: string;
             contentMode?: components["schemas"]["ContentMode"];
@@ -77002,6 +78357,11 @@ export interface components {
             template: components["schemas"]["DocumentTemplateResponse"];
             unplaced: string[];
         };
+        WriteMessageRequest: {
+            /** Format: int32 */
+            replyToId?: number | null;
+            text?: string | null;
+        };
         YoutubeFileRequest: {
             description?: string;
             /** Format: int32 */
@@ -77150,6 +78510,7 @@ export type BlockCellRequest = components['schemas']['BlockCellRequest'];
 export type BlocklistKind = components['schemas']['BlocklistKind'];
 export type BlocklistRequest = components['schemas']['BlocklistRequest'];
 export type BlocklistResponse = components['schemas']['BlocklistResponse'];
+export type BlockPersonRequest = components['schemas']['BlockPersonRequest'];
 export type BlockRowRequest = components['schemas']['BlockRowRequest'];
 export type BlocksResponse = components['schemas']['BlocksResponse'];
 export type BlogSignupConfig = components['schemas']['BlogSignupConfig'];
@@ -77303,6 +78664,17 @@ export type ContentCell = components['schemas']['ContentCell'];
 export type ContentMode = components['schemas']['ContentMode'];
 export type ContentRow = components['schemas']['ContentRow'];
 export type ContentUpdateRequest = components['schemas']['ContentUpdateRequest'];
+export type ConversationKind = components['schemas']['ConversationKind'];
+export type ConversationMemberResponse = components['schemas']['ConversationMemberResponse'];
+export type ConversationMessagePage = components['schemas']['ConversationMessagePage'];
+export type ConversationMessageResponse = components['schemas']['ConversationMessageResponse'];
+export type ConversationMuteRequest = components['schemas']['ConversationMuteRequest'];
+export type ConversationNameRequest = components['schemas']['ConversationNameRequest'];
+export type ConversationPeopleRequest = components['schemas']['ConversationPeopleRequest'];
+export type ConversationPreview = components['schemas']['ConversationPreview'];
+export type ConversationReadRequest = components['schemas']['ConversationReadRequest'];
+export type ConversationResponse = components['schemas']['ConversationResponse'];
+export type ConversationSummaryResponse = components['schemas']['ConversationSummaryResponse'];
 export type ConversionStatus = components['schemas']['ConversionStatus'];
 export type CorrectionResponse = components['schemas']['CorrectionResponse'];
 export type CorrectItemRequest = components['schemas']['CorrectItemRequest'];
@@ -77429,6 +78801,7 @@ export type DocumentTemplateResponse = components['schemas']['DocumentTemplateRe
 export type DocumentTemplateSummary = components['schemas']['DocumentTemplateSummary'];
 export type DocumentTimestampCheck = components['schemas']['DocumentTimestampCheck'];
 export type DraftPreviewRequest = components['schemas']['DraftPreviewRequest'];
+export type EditMessageRequest = components['schemas']['EditMessageRequest'];
 export type EditScope = components['schemas']['EditScope'];
 export type EditScopeKind = components['schemas']['EditScopeKind'];
 export type EligibleMembers = components['schemas']['EligibleMembers'];
@@ -77938,7 +79311,12 @@ export type MemberWithName = components['schemas']['MemberWithName'];
 export type MergedField = components['schemas']['MergedField'];
 export type MergedValue = components['schemas']['MergedValue'];
 export type MessageBody = components['schemas']['MessageBody'];
+export type MessageEvent = components['schemas']['MessageEvent'];
+export type MessageEventKind = components['schemas']['MessageEventKind'];
+export type MessageMailRequest = components['schemas']['MessageMailRequest'];
+export type MessagePersonResponse = components['schemas']['MessagePersonResponse'];
 export type MessageResponse = components['schemas']['MessageResponse'];
+export type MessagesStatus = components['schemas']['MessagesStatus'];
 export type MetricsBatch = components['schemas']['MetricsBatch'];
 export type MetricsSubject = components['schemas']['MetricsSubject'];
 export type MigrationResponse = components['schemas']['MigrationResponse'];
@@ -78248,6 +79626,9 @@ export type Rating = components['schemas']['Rating'];
 export type RatingAnswer = components['schemas']['RatingAnswer'];
 export type RatingIcon = components['schemas']['RatingIcon'];
 export type Reach = components['schemas']['Reach'];
+export type ReachablePersonResponse = components['schemas']['ReachablePersonResponse'];
+export type ReactionGroupResponse = components['schemas']['ReactionGroupResponse'];
+export type ReactionRequest = components['schemas']['ReactionRequest'];
 export type RecentApplication = components['schemas']['RecentApplication'];
 export type RecentProblemReport = components['schemas']['RecentProblemReport'];
 export type RechainPlan = components['schemas']['RechainPlan'];
@@ -78299,6 +79680,7 @@ export type ReorderRequest = components['schemas']['ReorderRequest'];
 export type ReplaceFormShareLinkRequest = components['schemas']['ReplaceFormShareLinkRequest'];
 export type ReplacePageShareLinkRequest = components['schemas']['ReplacePageShareLinkRequest'];
 export type ReplaceQuestionRequest = components['schemas']['ReplaceQuestionRequest'];
+export type ReplyPreviewResponse = components['schemas']['ReplyPreviewResponse'];
 export type ReportData = components['schemas']['ReportData'];
 export type ReportPayload = components['schemas']['ReportPayload'];
 export type ReportRequest = components['schemas']['ReportRequest'];
@@ -78413,6 +79795,7 @@ export type SetManagedPasswordRequest = components['schemas']['SetManagedPasswor
 export type SetManagedRequest = components['schemas']['SetManagedRequest'];
 export type SetManagersRequest = components['schemas']['SetManagersRequest'];
 export type SetMembersRequest = components['schemas']['SetMembersRequest'];
+export type SetMessagesRequest = components['schemas']['SetMessagesRequest'];
 export type SetNewsFederationShareRequest = components['schemas']['SetNewsFederationShareRequest'];
 export type SetPartnerPlacesRequest = components['schemas']['SetPartnerPlacesRequest'];
 export type SetPasswordRequest = components['schemas']['SetPasswordRequest'];
@@ -78439,6 +79822,7 @@ export type ShareCount = components['schemas']['ShareCount'];
 export type SharedBrand = components['schemas']['SharedBrand'];
 export type ShareDetail = components['schemas']['ShareDetail'];
 export type SharedEvent = components['schemas']['SharedEvent'];
+export type SharedMemberCard = components['schemas']['SharedMemberCard'];
 export type SharedPage = components['schemas']['SharedPage'];
 export type SharedProtocolView = components['schemas']['SharedProtocolView'];
 export type SharedQuizCatalog = components['schemas']['SharedQuizCatalog'];
@@ -78483,6 +79867,7 @@ export type SmtpEncryption = components['schemas']['SmtpEncryption'];
 export type SourceOccurrenceRequest = components['schemas']['SourceOccurrenceRequest'];
 export type SourceOccurrenceResponse = components['schemas']['SourceOccurrenceResponse'];
 export type SpacerConfig = components['schemas']['SpacerConfig'];
+export type StartConversationRequest = components['schemas']['StartConversationRequest'];
 export type StationAiProvider = components['schemas']['StationAiProvider'];
 export type StationApplication = components['schemas']['StationApplication'];
 export type StationCertificateInfo = components['schemas']['StationCertificateInfo'];
@@ -78559,6 +79944,7 @@ export type SwitchBlockerKind = components['schemas']['SwitchBlockerKind'];
 export type SwitchRefusal = components['schemas']['SwitchRefusal'];
 export type SwitchRequest = components['schemas']['SwitchRequest'];
 export type SystemCommentResponse = components['schemas']['SystemCommentResponse'];
+export type SystemKind = components['schemas']['SystemKind'];
 export type SystemNewsRequest = components['schemas']['SystemNewsRequest'];
 export type SystemNewsResponse = components['schemas']['SystemNewsResponse'];
 export type TabItem = components['schemas']['TabItem'];
@@ -78742,6 +80128,7 @@ export type WitnessPersonResponse = components['schemas']['WitnessPersonResponse
 export type WitnessStartRequest = components['schemas']['WitnessStartRequest'];
 export type WitnessTemplateResponse = components['schemas']['WitnessTemplateResponse'];
 export type WordFormImport = components['schemas']['WordFormImport'];
+export type WriteMessageRequest = components['schemas']['WriteMessageRequest'];
 export type YoutubeFileRequest = components['schemas']['YoutubeFileRequest'];
 export type $defs = Record<string, never>;
 export type operations = Record<string, never>;
@@ -78960,6 +80347,11 @@ export const ContainerEventKind = {
 export const ContentMode = {
     RICH: "RICH",
     SIMPLE: "SIMPLE",
+} as const;
+
+export const ConversationKind = {
+    DIRECT: "DIRECT",
+    GROUP: "GROUP",
 } as const;
 
 export const ConversionStatus = {
@@ -79500,6 +80892,12 @@ export const MemberTableColumnKind = {
     BUILTIN: "BUILTIN",
     PROFILE_FIELD: "PROFILE_FIELD",
     REGISTRATION_FIELD: "REGISTRATION_FIELD",
+} as const;
+
+export const MessageEventKind = {
+    CONVERSATION: "CONVERSATION",
+    MESSAGE: "MESSAGE",
+    READ: "READ",
 } as const;
 
 export const Mode = {
@@ -80314,6 +81712,14 @@ export const SwitchBlockerKind = {
     PROCUREMENT: "PROCUREMENT",
     REQUIREMENT: "REQUIREMENT",
     SIZE: "SIZE",
+} as const;
+
+export const SystemKind = {
+    ADDED: "ADDED",
+    LEFT: "LEFT",
+    OWNER_PASSED: "OWNER_PASSED",
+    REMOVED: "REMOVED",
+    RENAMED: "RENAMED",
 } as const;
 
 export const TagVisibility = {

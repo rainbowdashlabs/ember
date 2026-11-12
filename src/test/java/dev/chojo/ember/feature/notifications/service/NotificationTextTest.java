@@ -118,6 +118,20 @@ class NotificationTextTest {
         assertTrue(text.resolveMessage("de", storage).contains("95"));
     }
 
+    /** A module the cluster switched off is named in the reader's language, in the message and the feed. */
+    @Test
+    void aDeniedModuleIsNamedInTheReadersLanguage() {
+        var denied = notificationWith(
+                NotificationType.CLUSTER_MODULE_DENIED,
+                new NotificationParams.ClusterModuleDenied("Kreisverband", "LOST_AND_FOUND"),
+                3);
+
+        String message = text.resolveMessage("de", denied);
+        assertFalse(message.contains("LOST_AND_FOUND"), message);
+        assertTrue(message.contains(text.resolveLocalized("de", "module", "LOST_AND_FOUND", null)), message);
+        assertFalse(text.resolveFeedTitle("de", denied).contains("LOST_AND_FOUND"));
+    }
+
     /**
      * An expiry reminder is worded by what it is about: a date still ahead, the last valid day, a date
      * passed, or member management's list, each counted in its plural.
@@ -563,7 +577,7 @@ class NotificationTextTest {
 
     /** A switched-off module, a part of the inventory included, is named the way the reader knows it. */
     @Test
-    void aDeniedModuleIsNamedInTheReadersLanguage() {
+    void aDeniedInventoryPartIsNamedInTheReadersLanguage() {
         var denied = notificationWith(
                 NotificationType.CLUSTER_MODULE_DENIED,
                 new NotificationParams.ClusterModuleDenied("Kreisverband Nord", "INVENTORY_LENDING"),
