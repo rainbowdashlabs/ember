@@ -9,9 +9,11 @@ import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.DateCancellations;
+import dev.chojo.ember.feature.events.entity.DetachedDates;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventDateCancellation;
+import dev.chojo.ember.feature.events.entity.EventDetachedDate;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRecurrence;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -331,6 +333,29 @@ class IcalEventRendererTest {
         assertEquals(
                 "FREQ=WEEKLY;BYDAY=WE", ve.getProperty("RRULE").orElseThrow().getValue());
         assertEquals("20260909T180000", ve.getProperty("EXDATE").orElseThrow().getValue());
+    }
+
+    /**
+     * A date the series gave away to an appointment of its own reaches the calendar as an exception,
+     * since that appointment carries it as an entry of its own.
+     */
+    @Test
+    void aDetachedDateIsAnException() {
+        var weekly = series(26, StationEvent.EventType.RECURRING, 3, Instant.parse("2026-08-31T16:00:00Z"), null);
+        var detached = DetachedDates.of(List.of(new EventDetachedDate(26, LocalDate.parse("2026-09-16"))));
+        var ctx = new IcalEventRenderer.Context(
+                station,
+                "de",
+                "https://ember.example.com",
+                true,
+                Map.of(),
+                Map.of(),
+                Map.of(),
+                new StationCalendar(BERLIN, List.of(), DateCancellations.NONE, detached));
+
+        var ve = renderer.render(weekly, ctx).getFirst();
+
+        assertEquals("20260916T180000", ve.getProperty("EXDATE").orElseThrow().getValue());
     }
 
     /**

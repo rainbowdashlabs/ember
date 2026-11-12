@@ -18,8 +18,11 @@ import org.jspecify.annotations.Nullable;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -577,6 +580,76 @@ public class EventRegistrationRepository {
                 .single(call().bind("id", eventId).bind("from", from))
                 .map(row -> row.getInt("member_id"))
                 .all();
+    }
+
+    /**
+     * Finds the members holding a place, pending or accepted, on any of these dates of an event.
+     *
+     * @param eventId the event ID
+     * @param dates   the dates the places are held for
+     * @return the member IDs, each once, in the order of their first place
+     */
+    public List<Integer> findRegisteredMemberIdsOn(int eventId, Collection<LocalDate> dates) {
+        if (dates.isEmpty()) return List.of();
+        return query("""
+                SELECT member_id
+                FROM event_registration
+                WHERE event_id = :id
+                  AND event_date = ANY(:dates)
+                  AND status IN ('PENDING', 'ACCEPTED')
+                GROUP BY member_id
+                ORDER BY min(event_date), member_id;""")
+                .single(call().bind("id", eventId).bind("dates", List.copyOf(dates), PostgreSqlTypes.DATE))
+                .map(row -> row.getInt("member_id"))
+                .all();
+    }
+
+    /**
+     * Every date from one day on each member holds a place on, pending or accepted.
+     *
+     * @param eventId the event ID
+     * @param from    the first date looked at
+     * @return the held dates per member, earliest first, in the order of each member's first date
+     */
+    public Map<Integer, List<LocalDate>> findHeldDatesFrom(int eventId, LocalDate from) {
+        var dates = new LinkedHashMap<Integer, List<LocalDate>>();
+        query("""
+                SELECT member_id, event_date
+                FROM event_registration
+                WHERE event_id = :id
+                  AND event_date >= :from
+                  AND status IN ('PENDING', 'ACCEPTED')
+                ORDER BY event_date, member_id;""")
+                .single(call().bind("id", eventId).bind("from", from))
+                .map(row -> Map.entry(row.getInt("member_id"), row.getObject("event_date", LocalDate.class)))
+                .all()
+                .forEach(entry -> dates.computeIfAbsent(entry.getKey(), member -> new ArrayList<>())
+                        .add(entry.getValue()));
+        return dates;
+    }
+
+    /**
+     * The first date from one day on each member holds a place on, pending or accepted.
+     *
+     * @param eventId the event ID
+     * @param from    the first date looked at
+     * @return the first held date per member, in the order of those dates
+     */
+    public Map<Integer, LocalDate> findFirstHeldDatesFrom(int eventId, LocalDate from) {
+        var dates = new LinkedHashMap<Integer, LocalDate>();
+        query("""
+                SELECT member_id, min(event_date) AS first_date
+                FROM event_registration
+                WHERE event_id = :id
+                  AND event_date >= :from
+                  AND status IN ('PENDING', 'ACCEPTED')
+                GROUP BY member_id
+                ORDER BY first_date, member_id;""")
+                .single(call().bind("id", eventId).bind("from", from))
+                .map(row -> Map.entry(row.getInt("member_id"), row.getObject("first_date", LocalDate.class)))
+                .all()
+                .forEach(entry -> dates.put(entry.getKey(), entry.getValue()));
+        return dates;
     }
 
     /**

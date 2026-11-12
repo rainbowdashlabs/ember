@@ -2,7 +2,7 @@
 
 ## v26.25.0
 
-Wer eine Wache teilt, kann sich direkt oder in Gruppen schreiben, egal welche Wache gerade gewählt ist. Neue Nachrichten, Änderungen und Reaktionen erscheinen, ohne dass die Seite neu geladen wird, und was ungelesen bleibt, kommt per Mail. Mitglieder mit Erziehungsberechtigten bekommen Nachrichten erst, wenn eine erziehungsberechtigte Person sie freischaltet.
+Wer eine Wache teilt, kann sich direkt oder in Gruppen Nachrichten schreiben. Ein einzelner Termin einer Serie lässt sich für sich ändern, eine Serie ab einem Termin. Beim Speichern einer Änderung können die Betroffenen benachrichtigt werden. Geteilte Termine mit einer Partnerwache auf einem anderen Server brauchen auf beiden Seiten diese Version.
 
 ### Neue Funktionen
 
@@ -11,6 +11,17 @@ Wer eine Wache teilt, kann sich direkt oder in Gruppen schreiben, egal welche Wa
 - **Eine Mail für ungelesene Nachrichten.** Bleibt eine Nachricht 15 Minuten ungelesen, geht pro Unterhaltung eine Mail mit den ersten Zeilen raus, und bis zum Lesen keine weitere. Die Mail lässt sich in den Einstellungen für Nachrichten abschalten, stumm geschaltete Unterhaltungen schicken keine.
 - **Leute lassen sich für Nachrichten blockieren.** Eine blockierte Person kann keine direkte Unterhaltung mehr mit der blockierenden Person starten und sie in keine Gruppe holen, ihre Nachrichten in gemeinsamen Gruppen sind eingeklappt. Sie erfährt davon nichts.
 - **Erziehungsberechtigte entscheiden über Nachrichten.** Ein Mitglied mit Erziehungsberechtigten in irgendeiner Wache hat keine Nachrichten, bis eine erziehungsberechtigte Person sie unter Profil → Verwaltete Profile freischaltet. Wird das wieder abgeschaltet, verschwinden die Unterhaltungen, gelöscht wird nichts.
+- **Einzelne Termine oder Serien ab einem Datum ändern.** Beim Speichern einer Serie wird gefragt, ob die Änderung nur für diesen Termin, für diesen und alle späteren oder für alle Termine gilt. Ein einzelner Termin wird ein eigener Termin und spätere Termine gehen als neue Serie weiter; Anmeldungen und Anwesenheitslisten ziehen mit, und beide Termine verweisen aufeinander.
+- **Betroffene über Änderungen benachrichtigen.** Beim Speichern einer Änderung lassen sich alle Angemeldeten benachrichtigen, bei Terminen ohne Anmeldung alle, die den Termin sehen, mit einem Hinweis von bis zu 500 Zeichen. Die Nachricht nennt, was sich geändert hat, und Partnerwachen geben sie an ihre Mitglieder weiter.
+- **Aufgeteilte Serien zählen als eine.** In der Statistik der Wache zählen eine Serie, die als neue Serie weitergeht, und die aus ihr gelösten Termine als ein Termin unter dem neuesten Namen.
+
+### Verbesserungen
+
+- **Neue Anfangszeit beim Speichern sichtbar.** Die Abfrage beim Speichern zeigt, wie viele Angemeldete eine neue Anfangszeit erfahren, jetzt auch bei Serienterminen. Wer zusätzlich über die Änderung benachrichtigt wird, bekommt eine Nachricht statt zwei.
+
+### Änderungen
+
+- **Geteilte Termine brauchen auf beiden Seiten diese Version.** Zwischen einer Wache auf dieser Version und einer Partnerwache auf einer älteren auf einem anderen Server funktionieren geteilte Termine, die Anmeldung dazu und ihre Kommentare nicht. Sobald beide 26.25.0 betreiben, geht es wieder.
 
 ## v26.24.2
 
@@ -74,7 +85,6 @@ Jede Zahl der Übersicht öffnet die passende Liste, fehlgeschlagene E-Mails las
 - **Konten ohne Adresse zählten als unbestätigt.** Konten für Personen ohne E-Mail-Adresse erhöhten die Zahl unbestätigter Konten, obwohl sie nie eine bestätigen können. Sie werden nicht mehr gezählt.
 - **Selbsteintragung auch Mitgliedern außerhalb der Auswahl angeboten.** Der Knopf „Eintragen" erschien bei Mitgliederfragen, die auf eine Gruppe, einen Mitgliedstyp oder einen Tag beschränkt sind, auch für Mitglieder außerhalb davon, und der Klick wurde dann abgelehnt. Er erscheint jetzt nur noch für Mitglieder, die sich eintragen dürfen, und nach dem Anmeldeschluss steht dort, dass die Eintragung geschlossen ist.
 - **Ja/Nein-Fragen mit abhängigen Fragen ließen sich nicht löschen.** Das Löschen einer solchen Frage oder ein anderer Typ für sie wurde abgelehnt, mit dem Rat, die Seite neu zu laden. Der Dialog nennt jetzt die abhängigen Fragen und kann ihre Bedingung im selben Schritt entfernen, ihre Antworten bleiben erhalten.
-
 
 ## v26.24.0
 

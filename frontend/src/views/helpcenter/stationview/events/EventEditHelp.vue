@@ -188,6 +188,14 @@ const SHIRT_SIZE: RegistrationFieldDefinition[] = [{
       <HelpTip>{{ t('eventFields.selfRegistration') }}</HelpTip>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.eventEdit.saveTitle')">
+      <p>{{ t('helpCenter.eventEdit.saveText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.saveScopeText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.saveNoticeText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.saveMovedText') }}</p>
+      <HelpTip>{{ t('helpCenter.eventEdit.saveTip') }}</HelpTip>
+    </HelpSection>
+
     <HelpTip>{{ t('helpCenter.eventEdit.tip') }}</HelpTip>
   </HelpArticle>
 </template>

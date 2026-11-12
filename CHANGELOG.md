@@ -2,7 +2,7 @@
 
 ## v26.25.0
 
-People who share a station can write to each other directly or in groups, whichever station is chosen. New messages, changes and reactions appear without reloading the page, and a mail follows for what stays unread. Members with a guardian get messages only once a guardian turns them on.
+People who share a station can write to each other directly or in groups. One date of a series, or a series from one date on, can be changed on its own. Saving a change can tell the people an appointment concerns. Shared appointments with a partner station on another server need both stations on this version.
 
 ### New Features
 
@@ -11,6 +11,17 @@ People who share a station can write to each other directly or in groups, whiche
 - **A mail for messages left unread.** A message unread for 15 minutes sends one mail per conversation with its first lines, and no further one until it is read. The mail can be turned off in the message settings, and muted conversations send none.
 - **People can be blocked for messages.** A blocked person can no longer start a direct conversation with the blocker or add them to a group, and their messages in shared groups are folded away. They are not told.
 - **Guardians decide about messages.** A member with a guardian at any station has no messages until a guardian turns them on under Profile → Managed profiles. Turning them off again hides the conversations without deleting anything.
+- **Change one date or later dates.** Saving a change to a series asks whether it applies to only this date, to this and all later dates, or to all dates. A single date becomes an appointment of its own and later dates go on as a new series; places and attendance sheets move along, and both appointments link to each other.
+- **Tell the people an appointment concerns.** Saving a change can notify everybody holding a place, or everybody who may see an appointment without registration, with an optional note of up to 500 characters. The message names what changed, and partner stations pass it on to their members.
+- **Split series count as one.** In the station statistics, a series that goes on as a new one and the dates taken out of it count as one appointment under its newest name.
+
+### Improvements
+
+- **New start times show on save.** The save dialog says how many people holding a place are told a new start time, which now also reaches series dates. Somebody who is also told about the change gets one message instead of two.
+
+### Changes
+
+- **Shared appointments need this version on both sides.** Between a station on this version and a partner station on an older one on another server, shared appointments, signing up for them and their comments stop working. They work again once both run 26.25.0.
 
 ## v26.24.2
 
@@ -74,7 +85,6 @@ Every count on the overview opens the matching list, and failed mails can be rea
 - **Accounts without an address counted as unconfirmed.** Accounts made for people without an email address raised the number of unconfirmed accounts, although they can never confirm one. They are no longer counted.
 - **Self-registration offered to members it was not meant for.** The sign-up button showed on member questions limited to a group, member type or tag, also for members outside it, and the click was then refused. It now appears only for members who may sign up, and an appointment past its registration deadline says so.
 - **Deleting a yes/no question others depend on failed.** Deleting such a question, or giving it another type, was refused with advice to reload the page. The dialog now names the dependent questions and can remove their condition in the same step, keeping their answers.
-
 
 ## v26.24.0
 

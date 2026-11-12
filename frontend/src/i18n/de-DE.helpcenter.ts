@@ -3299,6 +3299,8 @@ volumes:
             },
         },
         eventDetail: {
+            linksTitle: 'Fortgeführte und herausgelöste Termine',
+            linksText: 'Wurde eine Serie ab einem Termin als neue Serie weitergeführt oder ein einzelner Termin aus ihr gelöst, steht das oben auf der Seite: welcher Termin fortgeführt wird, als was die Serie weitergeht und welcher Tag ein eigener Termin geworden ist. Ein Klick auf den Namen öffnet den anderen Termin.',
             answeringTitle: 'An- und abmelden, auch für mehrere',
             answeringText: 'Wer nur für sich selbst antwortet, drückt auf Anmelden oder Abmelden. Wer für mehrere antwortet, etwa für sich und die eigenen Kinder, bekommt zusätzlich Für alle anmelden: dort wird angehakt, für wen die Antwort gilt. Stellt der Termin Fragen, bekommt jede angehakte Person eine eigene Kachel, denn die Antworten gehören der einzelnen Person.',
             changingTitle: 'Antwort ändern',
@@ -5694,6 +5696,12 @@ volumes:
             tip: 'Mitglieder mit aktivierten E-Mail-Benachrichtigungen werden automatisch informiert.',
         },
         eventEdit: {
+            saveTitle: 'Speichern und Benachrichtigen',
+            saveText: 'Wer einen bestehenden Termin speichert, der noch Termine ab heute hat, bekommt vor dem Speichern eine Abfrage. Abbrechen führt zurück zum Formular, ohne etwas zu speichern.',
+            saveScopeText: 'Bei einer Serie wird gefragt, wofür die Änderung gilt: nur für diesen Termin, für diesen und alle späteren Termine oder für alle Termine. Nur dieser Termin löst den Tag aus der Serie und macht ihn zu einem eigenen Termin. Ab diesem Termin beendet die Serie davor und führt sie als neue Serie weiter. Anmeldungen, Antworten und Anwesenheitslisten der betroffenen Tage ziehen mit, Kommentare bleiben bei der alten Serie.',
+            saveNoticeText: 'Danach wird gewählt, ob die Betroffenen benachrichtigt werden. Voreingestellt ist keine Benachrichtigung. Wer benachrichtigt, kann einen Hinweis von bis zu 500 Zeichen mitschicken. Die Nachricht nennt, was sich geändert hat, aber nicht die alten und neuen Inhalte.',
+            saveMovedText: 'Ändert sich die Anfangszeit eines Termins, für den sich jemand angemeldet hat, erfahren die Angemeldeten die neue Zeit in jedem Fall. Die Abfrage zeigt das an, und wer zusätzlich benachrichtigt wird, bekommt nur eine Nachricht.',
+            saveTip: 'Der Termin, von dem aus der Editor geöffnet wurde, ist in der Abfrage schon ausgewählt. Vergangene Termine lassen sich nicht auswählen, sie bleiben, wie sie waren.',
             fromAttendanceTitle: 'Felder aus der Anwesenheitsvorlage',
             fromAttendanceText: 'Hast du eine Anwesenheitsvorlage gewählt, kannst du deren Felder direkt übernehmen - einzeln oder alle auf einmal. Sie kommen mit Namen, Typ und Einstellungen an und sind gleich mit dem Feld auf dem Bogen verknüpft, sodass die Antwort vom Termin später dort landet. Ein schon übernommenes Feld wird nicht noch einmal angeboten.',
             registrationFieldsTitle: 'Fragen bei der Anmeldung',

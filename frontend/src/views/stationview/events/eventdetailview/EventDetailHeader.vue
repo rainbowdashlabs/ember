@@ -90,7 +90,11 @@ function back() {
 }
 
 function goEdit() {
-  router.push({name: eventRoutes.edit, params: {id: props.event.id}})
+  router.push({
+    name: eventRoutes.edit,
+    params: {id: props.event.id},
+    query: props.effectiveDate ? {date: props.effectiveDate} : {},
+  })
 }
 
 /**
