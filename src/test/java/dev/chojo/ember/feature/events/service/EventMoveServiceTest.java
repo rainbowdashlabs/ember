@@ -258,11 +258,11 @@ class EventMoveServiceTest extends RepositoryTestBase {
 
     /**
      * A one-off appointment moved to another day is the same occasion: the place goes with it,
-     * confirmed as it was, and so does what the question asked of that day. Everybody holding a
-     * place is told when it now starts.
+     * confirmed as it was, and so does what the question asked of that day. Telling the new time is
+     * left to the save, once every part of it landed.
      */
     @Test
-    void aOneOffAppointmentMovedKeepsItsPlacesAndTellsTheNewTime() {
+    void aOneOffAppointmentMovedKeepsItsPlaces() {
         LocalDate day = today.plusDays(3);
         LocalDate newDay = today.plusDays(5);
         oneOffOn(day);
@@ -276,14 +276,7 @@ class EventMoveServiceTest extends RepositoryTestBase {
         assertEquals(newDay, moved.eventDate());
         assertEquals(RegistrationStatus.ACCEPTED, moved.status());
         assertEquals("Bus", eventFieldRepo.findDateValues(event.id()).get(field).get(newDay));
-        verify(notifications)
-                .notify(
-                        eq(StationAudience.household(List.of(child.id()))),
-                        eq(NotificationType.EVENT_MOVED),
-                        argThat((NotificationData data) -> data.params() instanceof NotificationParams.EventMoved m
-                                && m.eventDate().equals(newDay)
-                                && m.startTime().equals("10:00")),
-                        eq(Delivery.EVERY_TIME));
+        verify(notifications, never()).notify(any(), eq(NotificationType.EVENT_MOVED), any(), any());
         verify(notifications, never()).notify(any(), eq(NotificationType.EVENT_DATE_DROPPED), any(), any());
     }
 
@@ -298,6 +291,22 @@ class EventMoveServiceTest extends RepositoryTestBase {
 
         assertEquals(RegistrationStatus.ACCEPTED, reread(kept).status());
         assertTrue(eventDateCancellationRepo.isCancelled(event.id(), nextTuesday()));
+    }
+
+    /**
+     * A date the series gave away to an appointment of its own is not a date it left: whatever is
+     * still found on it stays, and nobody is told the date is gone.
+     */
+    @Test
+    void aDetachedDateIsLeftAloneWhenTheSeriesChanges() {
+        weeklyOn(DayOfWeek.TUESDAY);
+        var kept = register(child, nextTuesday(), RegistrationStatus.ACCEPTED);
+        eventDetachedDateRepo.detach(event.id(), nextTuesday());
+
+        change(event, event.name(), event.dayOfWeek(), event.startTime().plus(1, ChronoUnit.HOURS));
+
+        assertEquals(RegistrationStatus.ACCEPTED, reread(kept).status());
+        verify(notifications, never()).notify(any(), eq(NotificationType.EVENT_DATE_DROPPED), any(), any());
     }
 
     /** A one-off that was called off stays called off on the day it moved to. */

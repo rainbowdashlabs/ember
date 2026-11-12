@@ -1,5 +1,23 @@
 # Changelog
 
+## v26.25.0
+
+One date of a series can be changed on its own, or a series from one date on. Saving a change can tell the people an appointment concerns, with a note. People holding a place always hear about a new start time, also on series dates, and in one message. Shared appointments with a partner station on another server need both stations on this version.
+
+### New Features
+
+- **Change one date or later dates.** Saving a change to a series asks whether it applies to only this date, to this and all later dates, or to all dates. A single date becomes an appointment of its own and later dates go on as a new series; places and attendance sheets move along, and both appointments link to each other.
+- **Tell the people an appointment concerns.** Saving a change can notify everybody holding a place, or everybody who may see an appointment without registration, with an optional note of up to 500 characters. The message names what changed, and partner stations pass it on to their members.
+- **Split series count as one.** In the station statistics, a series that goes on as a new one and the dates taken out of it count as one appointment under its newest name.
+
+### Improvements
+
+- **New start times show on save.** The save dialog says how many people holding a place are told a new start time, which now also reaches series dates. Somebody who is also told about the change gets one message instead of two.
+
+### Changes
+
+- **Shared appointments need this version on both sides.** Between a station on this version and a partner station on an older one on another server, shared appointments, signing up for them and their comments stop working. They work again once both run 26.25.0.
+
 ## v26.24.2
 
 Appointment templates carry sign-up rules, files, starting values for the attendance sheet and sharing with partner stations. The upcoming list's "Registration open" filter shows only dates that can still be signed up for.
@@ -62,7 +80,6 @@ Every count on the overview opens the matching list, and failed mails can be rea
 - **Accounts without an address counted as unconfirmed.** Accounts made for people without an email address raised the number of unconfirmed accounts, although they can never confirm one. They are no longer counted.
 - **Self-registration offered to members it was not meant for.** The sign-up button showed on member questions limited to a group, member type or tag, also for members outside it, and the click was then refused. It now appears only for members who may sign up, and an appointment past its registration deadline says so.
 - **Deleting a yes/no question others depend on failed.** Deleting such a question, or giving it another type, was refused with advice to reload the page. The dialog now names the dependent questions and can remove their condition in the same step, keeping their answers.
-
 
 ## v26.24.0
 

@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -28,6 +29,7 @@ import java.util.Map;
 import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * How a notification reads: its message, its feed title, its category and the address it leads to,
@@ -168,6 +170,7 @@ public class NotificationText {
         var params = new LinkedHashMap<>(n.data().paramsAsMap());
         localizeStatusParam(locale, params);
         localizeDateParams(locale, params);
+        localizeChangedParts(locale, params);
 
         String template = templateFor(templates, localeKey, n, params);
         if (template == null) {
@@ -356,6 +359,21 @@ public class NotificationText {
                             ? LocalDate.parse(value).format(format)
                             : value);
         }
+    }
+
+    /**
+     * Writes the parts of an appointment a change notice names in the reader's language, joined the
+     * way a list is read, in place of the names they are stored by.
+     */
+    private static void localizeChangedParts(String locale, Map<String, String> params) {
+        String names = params.get("changedParts");
+        if (names == null || names.isBlank()) return;
+        var words = LOCALIZER.get("notifications", locale, "changedPart");
+        params.put(
+                "changedParts",
+                Arrays.stream(names.split(","))
+                        .map(name -> words.getOrDefault(name, name))
+                        .collect(Collectors.joining(", ")));
     }
 
     private static void localizeLabelParam(

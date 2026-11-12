@@ -79,6 +79,10 @@ public class RemoteEventRoutes implements Routes {
             "/remote/webhook/event-registration-status",
             Void.class,
             FederatedEventRoutes.StatusResponse.class);
+    public static final FederationEndpoint EVENT_CHANGED_WEBHOOK = FederationEndpoint.post(
+            FederationSurface.EVENT_SHARE, "/remote/webhook/event-changed", RemoteEventChange.class, Void.class);
+    public static final FederationEndpoint EVENT_CONTINUED_WEBHOOK = FederationEndpoint.post(
+            FederationSurface.EVENT_SHARE, "/remote/webhook/event-continued", RemoteEventHandover.class, Void.class);
     public static final FederationEndpoint LIST_COMMENTS = FederationEndpoint.getList(
             FederationSurface.EVENT_SHARE, "/remote/events/{eventId}/comments", CommentResponse.class);
     public static final FederationEndpoint CREATE_COMMENT = FederationEndpoint.post(
@@ -130,6 +134,8 @@ public class RemoteEventRoutes implements Routes {
             LIST_REGISTRATIONS,
             LIST_MEMBER_REGISTRATIONS,
             REGISTRATION_STATUS_WEBHOOK,
+            EVENT_CHANGED_WEBHOOK,
+            EVENT_CONTINUED_WEBHOOK,
             LIST_COMMENTS,
             CREATE_COMMENT,
             UPDATE_COMMENT,
@@ -155,6 +161,8 @@ public class RemoteEventRoutes implements Routes {
                 .serve(LIST_REGISTRATIONS)
                 .serve(LIST_MEMBER_REGISTRATIONS)
                 .serve(REGISTRATION_STATUS_WEBHOOK)
+                .serve(EVENT_CHANGED_WEBHOOK)
+                .serve(EVENT_CONTINUED_WEBHOOK)
                 .serve(LIST_COMMENTS)
                 .serveCreated(CREATE_COMMENT)
                 .serve(UPDATE_COMMENT)
@@ -208,6 +216,52 @@ public class RemoteEventRoutes implements Routes {
             int eventId, String remoteMemberId, String eventDate, RegistrationStatus status, int partnerId) {}
 
     public record RemoteRegistrationRequest(UUID remoteMemberId, LocalDate eventDate) {}
+
+    /**
+     * A shared appointment changed, told to the partner station whose members hold a place on it, so
+     * the partner tells them.
+     *
+     * @param eventId      the appointment at the station that runs it
+     * @param eventName    its name after the change
+     * @param changedParts the parts that changed, as the names the change notice uses joined by commas
+     * @param note         what the editor wrote to go with it, or null
+     * @param startTime    the time of day it now starts at where the start moved, or null
+     * @param told         whether the editor chose to tell about the change; otherwise only the moved
+     *                     start is told
+     * @param members      the partner's members holding a place, each with the first date they hold
+     */
+    public record RemoteEventChange(
+            int eventId,
+            String eventName,
+            String changedParts,
+            @Nullable String note,
+            @Nullable String startTime,
+            boolean told,
+            List<RemoteChangedMember> members) {}
+
+    /**
+     * A member of the partner station a change concerns.
+     *
+     * @param memberUid the member, as the partner station knows them
+     * @param eventDate the first date they hold a place on that the change touches
+     */
+    public record RemoteChangedMember(UUID memberUid, LocalDate eventDate) {}
+
+    /**
+     * A shared appointment handed some of its dates to another appointment: one date taken out on its
+     * own, or a series gone on as a new one from a date. The partner's records of its members' places
+     * on those dates follow.
+     *
+     * @param fromEventId the appointment the dates were taken from
+     * @param toEventId   the appointment that holds them now
+     * @param from        the first date handed over
+     * @param until       the last date handed over, or null for every later one
+     */
+    public record RemoteEventHandover(
+            int fromEventId,
+            int toEventId,
+            LocalDate from,
+            @Nullable LocalDate until) {}
 
     public record RemoteCommentRequest(
             UUID remoteMemberUid, String displayName, Integer parentId, String content, String eventDate) {}

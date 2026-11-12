@@ -1,5 +1,23 @@
 # Änderungsprotokoll
 
+## v26.25.0
+
+Ein einzelner Termin einer Serie lässt sich für sich ändern, eine Serie ab einem Termin. Beim Speichern einer Änderung können die Betroffenen benachrichtigt werden, auf Wunsch mit einem Hinweis. Wer angemeldet ist, erfährt eine neue Anfangszeit immer, auch bei Serienterminen, und in nur einer Nachricht. Geteilte Termine mit einer Partnerwache auf einem anderen Server brauchen auf beiden Seiten diese Version.
+
+### Neue Funktionen
+
+- **Einzelne Termine oder Serien ab einem Datum ändern.** Beim Speichern einer Serie wird gefragt, ob die Änderung nur für diesen Termin, für diesen und alle späteren oder für alle Termine gilt. Ein einzelner Termin wird ein eigener Termin und spätere Termine gehen als neue Serie weiter; Anmeldungen und Anwesenheitslisten ziehen mit, und beide Termine verweisen aufeinander.
+- **Betroffene über Änderungen benachrichtigen.** Beim Speichern einer Änderung lassen sich alle Angemeldeten benachrichtigen, bei Terminen ohne Anmeldung alle, die den Termin sehen, mit einem Hinweis von bis zu 500 Zeichen. Die Nachricht nennt, was sich geändert hat, und Partnerwachen geben sie an ihre Mitglieder weiter.
+- **Aufgeteilte Serien zählen als eine.** In der Statistik der Wache zählen eine Serie, die als neue Serie weitergeht, und die aus ihr gelösten Termine als ein Termin unter dem neuesten Namen.
+
+### Verbesserungen
+
+- **Neue Anfangszeit beim Speichern sichtbar.** Die Abfrage beim Speichern zeigt, wie viele Angemeldete eine neue Anfangszeit erfahren, jetzt auch bei Serienterminen. Wer zusätzlich über die Änderung benachrichtigt wird, bekommt eine Nachricht statt zwei.
+
+### Änderungen
+
+- **Geteilte Termine brauchen auf beiden Seiten diese Version.** Zwischen einer Wache auf dieser Version und einer Partnerwache auf einer älteren auf einem anderen Server funktionieren geteilte Termine, die Anmeldung dazu und ihre Kommentare nicht. Sobald beide 26.25.0 betreiben, geht es wieder.
+
 ## v26.24.2
 
 Terminvorlagen tragen Anmelderegeln, Dateien, Startwerte für den Anwesenheitsbogen und die Freigabe für Partnerwachen. Der Filter "Anmeldung offen" bei den kommenden Terminen zeigt nur noch Termine, für die eine Anmeldung noch möglich ist.
@@ -62,7 +80,6 @@ Jede Zahl der Übersicht öffnet die passende Liste, fehlgeschlagene E-Mails las
 - **Konten ohne Adresse zählten als unbestätigt.** Konten für Personen ohne E-Mail-Adresse erhöhten die Zahl unbestätigter Konten, obwohl sie nie eine bestätigen können. Sie werden nicht mehr gezählt.
 - **Selbsteintragung auch Mitgliedern außerhalb der Auswahl angeboten.** Der Knopf „Eintragen" erschien bei Mitgliederfragen, die auf eine Gruppe, einen Mitgliedstyp oder einen Tag beschränkt sind, auch für Mitglieder außerhalb davon, und der Klick wurde dann abgelehnt. Er erscheint jetzt nur noch für Mitglieder, die sich eintragen dürfen, und nach dem Anmeldeschluss steht dort, dass die Eintragung geschlossen ist.
 - **Ja/Nein-Fragen mit abhängigen Fragen ließen sich nicht löschen.** Das Löschen einer solchen Frage oder ein anderer Typ für sie wurde abgelehnt, mit dem Rat, die Seite neu zu laden. Der Dialog nennt jetzt die abhängigen Fragen und kann ihre Bedingung im selben Schritt entfernen, ihre Antworten bleiben erhalten.
-
 
 ## v26.24.0
 

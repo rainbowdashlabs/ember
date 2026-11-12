@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.OccurrenceRule;
-import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventDateCancellationRepository;
@@ -28,9 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Objects;
 import java.util.TreeSet;
 
 /**
@@ -42,13 +39,16 @@ import java.util.TreeSet;
  * has, and whatever still pointed at that Tuesday kept pointing at it.
  *
  * <p>A one-off appointment is one occasion whichever day it falls on, so what is filed against it
- * moves along to the new day, and everybody holding a place is told the new time. A series is many
- * occasions, and a date it leaves is an occasion that no longer happens: the places still held on it
+ * moves along to the new day; telling them the new time is left to the save that moved it. A series
+ * is many occasions, and a date it leaves is an occasion that no longer happens: the places still held on it
  * are withdrawn, their members and whoever looks after them are told, with the next date the series
  * now falls on, and the answers, reminder records and cancellation filed against it go. The same holds for a series
  * whose end moved closer and for a one-off appointment that became a series or the other way round.
  * Dates the appointment still falls on are left exactly as they are, and so is a place already given
  * up or turned down, which says the member is not coming either way.
+ *
+ * <p>A date a series gave away to an appointment of its own is not a date it left: what was filed
+ * against it went along to that appointment, and anything still found there is left alone.
  *
  * <p>Dates before today are never touched. They are what happened, and an appointment moved today
  * does not change who was there last week.
@@ -56,7 +56,6 @@ import java.util.TreeSet;
 @Singleton
 public class EventMoveService {
     private static final Logger log = LoggerFactory.getLogger(EventMoveService.class);
-    private static final DateTimeFormatter TIME_OF_DAY = DateTimeFormatter.ofPattern("HH:mm");
 
     private final EventRegistrationRepository registrationRepository;
     private final EventFieldRepository fieldRepository;
@@ -98,11 +97,46 @@ public class EventMoveService {
     }
 
     /**
-     * Moves the registrations and answers of a one-off appointment to its new day, and tells everybody
-     * holding a place when it now starts.
+     * Withdraws the places held from today on that an appointment does not fall on, for an appointment
+     * that just took over dates of another one and may not fall on all of them. Nobody is told yet:
+     * the caller tells them with {@link #tellDropped} once what it writes is saved.
      *
-     * <p>Told whenever the start moved, on the same day or to another one, because the time is what
-     * somebody who is coming has to know. A change to the end alone tells nobody.
+     * @param event the appointment as it now stands
+     * @return the places withdrawn
+     */
+    public List<EventRegistration> settle(StationEvent event) {
+        var calendar = occurrenceCalendar.forStation(event.stationId());
+        return withdrawOnDatesGone(event, calendar, calendar.today());
+    }
+
+    /**
+     * Tells the members whose places were withdrawn, and whoever looks after them, that their date
+     * went away, with the next date the appointment falls on.
+     *
+     * @param event     the appointment as it now stands
+     * @param withdrawn the places withdrawn
+     */
+    public void tellDropped(StationEvent event, List<EventRegistration> withdrawn) {
+        var calendar = occurrenceCalendar.forStation(event.stationId());
+        for (var registration : withdrawn) {
+            LocalDate nextDate = calendar.next(event, registration.eventDate()).orElse(null);
+            tell(
+                    registration.memberId(),
+                    NotificationType.EVENT_DATE_DROPPED,
+                    new NotificationParams.EventDateDropped(
+                            event.name(),
+                            registration.eventDate(),
+                            nameResolver.called(registration.memberId()),
+                            nextDate),
+                    nextDate != null
+                            ? NotificationLinks.eventDate(event.id(), nextDate)
+                            : NotificationLinks.event(event.id()));
+        }
+    }
+
+    /**
+     * Moves the registrations and answers of a one-off appointment to its new day. Telling the people
+     * holding a place when it now starts is {@link EventChangeNotifier}'s, once the whole save landed.
      */
     private void carryOneOffDate(StationEvent before, StationEvent after, StationCalendar calendar, LocalDate today) {
         LocalDate from = calendar.ruleOf(before).map(OccurrenceRule::first).orElse(null);
@@ -114,18 +148,6 @@ public class EventMoveService {
             cancellationRepository.moveDate(after.id(), from, to);
             log.info("Event {} moved from {} to {}, taking {} registrations along", after.id(), from, to, moved);
         }
-        if (Objects.equals(before.startTime(), after.startTime())) return;
-
-        String startTime = after.startTime().atZone(calendar.zone()).format(TIME_OF_DAY);
-        for (var registration : registrationRepository.findByEventAndDate(after.id(), to)) {
-            if (!holdsPlace(registration)) continue;
-            tell(
-                    registration.memberId(),
-                    NotificationType.EVENT_MOVED,
-                    new NotificationParams.EventMoved(
-                            after.name(), to, startTime, nameResolver.called(registration.memberId())),
-                    NotificationLinks.eventDate(after.id(), to));
-        }
     }
 
     /**
@@ -136,39 +158,25 @@ public class EventMoveService {
      * somebody signed up, that date is checked, and nothing is asked about dates nobody used.
      */
     private void withdrawDatesGone(StationEvent after, StationCalendar calendar, LocalDate today) {
+        tellDropped(after, withdrawOnDatesGone(after, calendar, today));
+    }
+
+    private List<EventRegistration> withdrawOnDatesGone(StationEvent after, StationCalendar calendar, LocalDate today) {
         var filed = new TreeSet<LocalDate>();
         filed.addAll(registrationRepository.findDatesFrom(after.id(), today));
         filed.addAll(fieldRepository.findDateValueDatesFrom(after.id(), today));
         filed.addAll(reminderRepository.findSentDatesFrom(after.id(), today));
-        List<LocalDate> gone =
-                filed.stream().filter(date -> !calendar.occursOn(after, date)).toList();
-        if (gone.isEmpty()) return;
+        List<LocalDate> gone = filed.stream()
+                .filter(date -> !calendar.occursOn(after, date) && !calendar.isDetached(after, date))
+                .toList();
+        if (gone.isEmpty()) return List.of();
 
         var withdrawn = registrationRepository.withdrawOnDates(after.id(), gone);
         fieldRepository.deleteDateValuesOn(after.id(), gone);
         reminderRepository.deleteSentOn(after.id(), gone);
         cancellationRepository.deleteOn(after.id(), gone);
         log.info("Event {} no longer falls on {}, withdrew {} registrations there", after.id(), gone, withdrawn.size());
-
-        for (var registration : withdrawn) {
-            LocalDate nextDate = calendar.next(after, registration.eventDate()).orElse(null);
-            tell(
-                    registration.memberId(),
-                    NotificationType.EVENT_DATE_DROPPED,
-                    new NotificationParams.EventDateDropped(
-                            after.name(),
-                            registration.eventDate(),
-                            nameResolver.called(registration.memberId()),
-                            nextDate),
-                    nextDate != null
-                            ? NotificationLinks.eventDate(after.id(), nextDate)
-                            : NotificationLinks.event(after.id()));
-        }
-    }
-
-    private static boolean holdsPlace(EventRegistration registration) {
-        return registration.status() == RegistrationStatus.PENDING
-                || registration.status() == RegistrationStatus.ACCEPTED;
+        return withdrawn;
     }
 
     /**

@@ -24980,6 +24980,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/change-notice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tell the people an appointment concerns that it changed */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ChangeNotice"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/change-notice/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Count who saving an appointment would tell */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ChangePreview"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/dates/{date}/cancel": {
         parameters: {
             query?: never;
@@ -26005,6 +26105,53 @@ export interface paths {
                 };
             };
         };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The appointments an appointment took dates from and gave dates to */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventLinks"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -65869,9 +66016,24 @@ export interface components {
             releasedAt: components["schemas"]["Instant"] | null;
             version: string;
         };
+        ChangeNotice: {
+            changedParts?: components["schemas"]["EventChangePart"][] | null;
+            note?: string | null;
+            tell?: boolean;
+        };
         ChangePasswordRequest: {
             currentPassword?: string;
             newPassword?: string;
+        };
+        ChangePreview: {
+            /** Format: int32 */
+            everybody: number;
+            /** Format: int32 */
+            moveAudience: number;
+            newStart: string | null;
+            /** Format: int32 */
+            noticeAudience: number;
+            startMoves: boolean;
         };
         CheckItemResult: {
             /** Format: int32 */
@@ -67295,6 +67457,12 @@ export interface components {
             /** Format: int32 */
             templateId?: number | null;
         };
+        EditScope: {
+            date?: components["schemas"]["LocalDate"] | null;
+            kind?: components["schemas"]["EditScopeKind"] | null;
+        };
+        /** @enum {string} */
+        EditScopeKind: "ALL" | "THIS" | "THIS_AND_LATER";
         EligibleMembers: {
             eligibleManagedMemberIds: number[];
             selfEligible: boolean;
@@ -67619,6 +67787,8 @@ export interface components {
             /** Format: uuid */
             stationId: string;
         };
+        /** @enum {string} */
+        EventChangePart: "TIME" | "DATE" | "NAME" | "DESCRIPTION" | "FIELDS" | "REGISTRATION_QUESTIONS" | "ATTACHMENTS";
         EventExportRequest: {
             categoryIds?: number[];
             columns?: components["schemas"]["ExportColumnRequest"][];
@@ -67665,6 +67835,17 @@ export interface components {
             location?: string;
             title?: string;
             url?: string;
+        };
+        EventLink: {
+            date: components["schemas"]["LocalDate"];
+            /** Format: int32 */
+            eventId: number;
+            name: string;
+            series: boolean;
+        };
+        EventLinks: {
+            continuations: components["schemas"]["EventLink"][];
+            continues: components["schemas"]["EventLink"] | null;
         };
         EventQuestionSettings: {
             defaultValue?: string;
@@ -67741,6 +67922,7 @@ export interface components {
         EventRequest: {
             /** Format: int32 */
             categoryId?: number | null;
+            changeNotice?: components["schemas"]["ChangeNotice"] | null;
             /** Format: int32 */
             dayOfWeek?: number | null;
             description?: string | null;
@@ -67763,6 +67945,7 @@ export interface components {
             requiresConfirmation?: boolean | null;
             requiresRegistration?: boolean | null;
             restriction?: components["schemas"]["RestrictionSelection"] | null;
+            scope?: components["schemas"]["EditScope"] | null;
             startTime?: components["schemas"]["Instant"];
             /** Format: int32 */
             templateId?: number | null;
@@ -71566,7 +71749,7 @@ export interface components {
             feed: boolean;
         };
         /** @enum {string} */
-        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_COMMENT" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "PROCEDURE_DOCUMENT_WITHDRAWN" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "WAITLIST_TRIAL_ENDED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED" | "SIGNATURE_REQUESTED" | "SIGNATURE_REMINDER" | "DOCUMENT_SIGNED" | "DOCUMENT_SCAN_REJECTED" | "ACCOUNT_LINK_ACCEPTED" | "ASSOCIATION_LINK_ACCEPTED" | "SIGNATURE_WITHDRAWN" | "PARTNER_SIGNATURE_WITHDRAWN";
+        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_COMMENT" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "EVENT_CHANGED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "PROCEDURE_DOCUMENT_WITHDRAWN" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "WAITLIST_TRIAL_ENDED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED" | "SIGNATURE_REQUESTED" | "SIGNATURE_REMINDER" | "DOCUMENT_SIGNED" | "DOCUMENT_SCAN_REJECTED" | "ACCOUNT_LINK_ACCEPTED" | "ASSOCIATION_LINK_ACCEPTED" | "SIGNATURE_WITHDRAWN" | "PARTNER_SIGNATURE_WITHDRAWN";
         NumberConfig: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -77039,7 +77222,9 @@ export type CertificateFacts = components['schemas']['CertificateFacts'];
 export type ChangedCountResponse = components['schemas']['ChangedCountResponse'];
 export type ChangedResponse = components['schemas']['ChangedResponse'];
 export type ChangelogEntry = components['schemas']['ChangelogEntry'];
+export type ChangeNotice = components['schemas']['ChangeNotice'];
 export type ChangePasswordRequest = components['schemas']['ChangePasswordRequest'];
+export type ChangePreview = components['schemas']['ChangePreview'];
 export type CheckItemResult = components['schemas']['CheckItemResult'];
 export type ChecklistDetailResponse = components['schemas']['ChecklistDetailResponse'];
 export type ChecklistItemRequest = components['schemas']['ChecklistItemRequest'];
@@ -77244,6 +77429,8 @@ export type DocumentTemplateResponse = components['schemas']['DocumentTemplateRe
 export type DocumentTemplateSummary = components['schemas']['DocumentTemplateSummary'];
 export type DocumentTimestampCheck = components['schemas']['DocumentTimestampCheck'];
 export type DraftPreviewRequest = components['schemas']['DraftPreviewRequest'];
+export type EditScope = components['schemas']['EditScope'];
+export type EditScopeKind = components['schemas']['EditScopeKind'];
 export type EligibleMembers = components['schemas']['EligibleMembers'];
 export type EmailChangeResponse = components['schemas']['EmailChangeResponse'];
 export type EmailChangeResult = components['schemas']['EmailChangeResult'];
@@ -77287,11 +77474,14 @@ export type EvaluationResponse = components['schemas']['EvaluationResponse'];
 export type EventAttachment = components['schemas']['EventAttachment'];
 export type EventBreak = components['schemas']['EventBreak'];
 export type EventCategory = components['schemas']['EventCategory'];
+export type EventChangePart = components['schemas']['EventChangePart'];
 export type EventExportRequest = components['schemas']['EventExportRequest'];
 export type EventFederationRegistration = components['schemas']['EventFederationRegistration'];
 export type EventFieldDefault = components['schemas']['EventFieldDefault'];
 export type EventFieldEntry = components['schemas']['EventFieldEntry'];
 export type EventItem = components['schemas']['EventItem'];
+export type EventLink = components['schemas']['EventLink'];
+export type EventLinks = components['schemas']['EventLinks'];
 export type EventQuestionSettings = components['schemas']['EventQuestionSettings'];
 export type EventRegisterRequest = components['schemas']['EventRegisterRequest'];
 export type EventRegistration = components['schemas']['EventRegistration'];
@@ -78842,6 +79032,12 @@ export const DocumentTemplateKind = {
     PDF: "PDF",
 } as const;
 
+export const EditScopeKind = {
+    ALL: "ALL",
+    THIS: "THIS",
+    THIS_AND_LATER: "THIS_AND_LATER",
+} as const;
+
 export const EmailChangeResult = {
     COMMITTED: "COMMITTED",
     DUPLICATE: "DUPLICATE",
@@ -78869,6 +79065,16 @@ export const EmptyReason = {
 export const EntrySource = {
     EXPECTED: "EXPECTED",
     EXTRA: "EXTRA",
+} as const;
+
+export const EventChangePart = {
+    ATTACHMENTS: "ATTACHMENTS",
+    DATE: "DATE",
+    DESCRIPTION: "DESCRIPTION",
+    FIELDS: "FIELDS",
+    NAME: "NAME",
+    REGISTRATION_QUESTIONS: "REGISTRATION_QUESTIONS",
+    TIME: "TIME",
 } as const;
 
 export const EventType = {
@@ -79361,6 +79567,7 @@ export const NotificationType = {
     DOCUMENT_SCAN_REJECTED: "DOCUMENT_SCAN_REJECTED",
     DOCUMENT_SIGNED: "DOCUMENT_SIGNED",
     EVENT_CANCELLED: "EVENT_CANCELLED",
+    EVENT_CHANGED: "EVENT_CHANGED",
     EVENT_COMMENT: "EVENT_COMMENT",
     EVENT_DATE_DROPPED: "EVENT_DATE_DROPPED",
     EVENT_DATE_RESTORED: "EVENT_DATE_RESTORED",
