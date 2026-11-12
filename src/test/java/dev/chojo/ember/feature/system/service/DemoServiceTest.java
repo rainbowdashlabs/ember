@@ -89,6 +89,7 @@ import dev.chojo.ember.feature.news.repository.NewsAttachmentRepository;
 import dev.chojo.ember.feature.news.repository.NewsFederationRepository;
 import dev.chojo.ember.feature.news.service.NewsAttachmentService;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
+import dev.chojo.ember.feature.notifications.entity.HiddenNotifications;
 import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.page.entity.PageVisibility;
@@ -881,7 +882,9 @@ class DemoServiceTest extends RepositoryTestBase {
                 .orElseThrow(() -> new AssertionError("The cluster should have an administrator"));
         assertEquals(
                 3,
-                notificationRepo.findRecent(Recipient.clusterMember(admin.id())).size(),
+                notificationRepo
+                        .findRecent(Recipient.clusterMember(admin.id()), HiddenNotifications.NONE)
+                        .size(),
                 "The administrator should have been told about the cluster's own business");
     }
 }

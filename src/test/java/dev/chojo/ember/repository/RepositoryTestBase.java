@@ -883,7 +883,7 @@ public abstract class RepositoryTestBase {
 
     /** A notifier over the shared repository, resolving cluster holders through the shared cluster service. */
     protected static Notifier newNotifier() {
-        return new Notifier(notificationRepo, () -> clusterService);
+        return new Notifier(notificationRepo, () -> clusterService, new ModuleAvailability(stationRepo, clusterRepo));
     }
 
     /**

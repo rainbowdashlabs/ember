@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.notifications.entity.HiddenNotifications;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -100,11 +101,14 @@ class EventCancelledHandlerTest extends RepositoryTestBase {
         cancelled = new EventCancelledHandler(notifier, eventRegistrationRepo, occurrenceCalendar);
         restored = new EventDateRestoredHandler(notifier, eventRegistrationRepo);
         List.of(onTheDate, guardian, onAnotherDate, inThePast)
-                .forEach(member -> notificationRepo.acknowledgeAll(Recipient.stationMember(member.id())));
+                .forEach(member -> notificationRepo.acknowledgeAll(
+                        Recipient.stationMember(member.id()), HiddenNotifications.NONE));
     }
 
     private static List<Notification> told(StationMember member, NotificationType type) {
-        return notificationRepo.findUnacknowledged(Recipient.stationMember(member.id())).stream()
+        return notificationRepo
+                .findUnacknowledged(Recipient.stationMember(member.id()), HiddenNotifications.NONE)
+                .stream()
                 .filter(notification -> notification.type() == type)
                 .toList();
     }
@@ -169,7 +173,7 @@ class EventCancelledHandlerTest extends RepositoryTestBase {
 
         for (var member : List.of(onTheDate, guardian, onAnotherDate, inThePast)) {
             assertTrue(notificationRepo
-                    .findUnacknowledged(Recipient.stationMember(member.id()))
+                    .findUnacknowledged(Recipient.stationMember(member.id()), HiddenNotifications.NONE)
                     .isEmpty());
         }
     }

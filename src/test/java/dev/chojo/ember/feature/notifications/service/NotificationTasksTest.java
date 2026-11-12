@@ -39,7 +39,7 @@ class NotificationTasksTest {
 
     @Test
     void theTaskRunsTheSweep() {
-        var digest = spy(new NotificationDigest(null, null, null, null, null, null, null, digestEvery(60)));
+        var digest = spy(new NotificationDigest(null, null, null, null, null, null, null, digestEvery(60), null));
         doNothing().when(digest).sweep(any());
         var task = digest.scheduledTasks().getFirst();
 

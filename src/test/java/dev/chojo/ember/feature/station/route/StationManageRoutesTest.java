@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.mail.service.StationMailSettingsService.WebhookUr
 import dev.chojo.ember.feature.members.entity.UserSettings;
 import dev.chojo.ember.feature.members.route.UserSettingsRoutes;
 import dev.chojo.ember.feature.members.service.UserSettingsService;
+import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationPreferences;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -36,6 +37,7 @@ import io.javalin.testtools.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -252,6 +254,7 @@ class StationManageRoutesTest {
         when(userSettings.getSettings(TestSessions.MEMBER_ID)).thenReturn(own);
         var preferences = mock(NotificationPreferences.class);
         when(preferences.settingsOf(TestSessions.MEMBER_ID)).thenReturn(Map.of());
+        when(preferences.offeredAt(anyInt())).thenReturn(EnumSet.allOf(NotificationType.class));
         when(mail.senders(STATION_ID)).thenReturn(List.of());
         var settingsHarness = RouteHarness.serving(new UserSettingsRoutes(userSettings, preferences, mail));
 
