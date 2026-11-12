@@ -18,7 +18,7 @@ import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SetupMailChoice from '@/components/input/toggle/SetupMailChoice.vue'
 import {memberGroups, stationMemberInvites} from '@/api'
-import type {GuardianEntry, InviteEntry, MemberGroup} from '@/api/generated/schema'
+import {StationUserType, type GuardianEntry, type InviteEntry, type MemberGroup} from '@/api/generated/schema'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {goToNextStep, nextStepHref} from '@/views/stationview/setup/steps'
@@ -31,14 +31,14 @@ const tab = ref<'bulk' | 'rich' | 'csv'>('rich')
 const sendSetupMail = ref(true)
 
 const bulkText = ref('')
-const bulkUserType = ref('MEMBER')
+const bulkUserType = ref<StationUserType>(StationUserType.MEMBER)
 const bulkGroupId = ref<number | null>(null)
 
 interface RichRow {
     firstName: string
     lastName: string
     email: string
-    userType: string
+    userType: StationUserType
     groupId: number | null
     guardians: GuardianEntry[]
 }
@@ -47,7 +47,7 @@ const richRows = ref<RichRow[]>([])
 const groups = ref<MemberGroup[]>([])
 const successCount = ref(0)
 
-const USER_TYPES = ['MEMBER', 'TEAM', 'MANAGER', 'GUARDIAN']
+const USER_TYPES: StationUserType[] = [StationUserType.MEMBER, StationUserType.TEAM, StationUserType.MANAGER, StationUserType.GUARDIAN]
 
 function openMemberImport() {
     router.push({path: '/station/members/import', query: {returnTo: nextStepHref(router, 'invites')}})
@@ -63,7 +63,7 @@ function addRichRow() {
         firstName: '',
         lastName: '',
         email: '',
-        userType: 'MEMBER',
+        userType: StationUserType.MEMBER,
         groupId: null,
         guardians: [],
     })
@@ -146,7 +146,7 @@ function save() {
         <label class="block text-sm flex-1">
           {{ t('setup.steps.invites.userType') }}
           <SelectInput v-model="bulkUserType">
-            <option v-for="ut in USER_TYPES" :key="ut" :value="ut">{{ ut }}</option>
+            <option v-for="ut in USER_TYPES" :key="ut" :value="ut">{{ t(`setup.steps.member-types.types.${ut}`) }}</option>
           </SelectInput>
         </label>
         <label class="block text-sm flex-1">
@@ -180,7 +180,7 @@ function save() {
           <label class="block text-xs flex-1">
             {{ t('setup.steps.invites.userType') }}
             <SelectInput v-model="row.userType">
-              <option v-for="ut in USER_TYPES" :key="ut" :value="ut">{{ ut }}</option>
+              <option v-for="ut in USER_TYPES" :key="ut" :value="ut">{{ t(`setup.steps.member-types.types.${ut}`) }}</option>
             </SelectInput>
           </label>
           <label class="block text-xs flex-1">
@@ -191,7 +191,7 @@ function save() {
             </SelectInput>
           </label>
         </div>
-        <details v-if="row.userType === 'MEMBER'">
+        <details v-if="row.userType === StationUserType.MEMBER">
           <summary class="text-xs cursor-pointer">
             {{ t('setup.steps.invites.guardiansToggle', {n: row.guardians.length}) }}
           </summary>

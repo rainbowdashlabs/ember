@@ -2,10 +2,15 @@
 
 ## v26.25.0
 
-One date of a series can be changed on its own, or a series from one date on. Saving a change can tell the people an appointment concerns, with a note. People holding a place always hear about a new start time, also on series dates, and in one message. Shared appointments with a partner station on another server need both stations on this version.
+People who share a station can write to each other directly or in groups. One date of a series, or a series from one date on, can be changed on its own. Saving a change can tell the people an appointment concerns. Shared appointments with a partner station on another server need both stations on this version.
 
 ### New Features
 
+- **Messages between people of a station.** Everybody can write to the people they share a station with, directly or in groups of up to 25, from the messages button in the header. A conversation looks the same whichever station is chosen, and a name in it opens the short profile at every station both share.
+- **New messages arrive without reloading.** Messages, changes and reactions appear as they are written, and the header shows how many wait unread. A message can be answered, changed, deleted and reacted to with any standard emoji, and people in a group can be mentioned.
+- **A mail for messages left unread.** A message unread for 15 minutes sends one mail per conversation with its first lines, and no further one until it is read. The mail can be turned off in the message settings, and muted conversations send none.
+- **People can be blocked for messages.** A blocked person can no longer start a direct conversation with the blocker or add them to a group, and their messages in shared groups are folded away. They are not told.
+- **Guardians decide about messages.** A member with a guardian at any station has no messages until a guardian turns them on under Profile → Managed profiles. Turning them off again hides the conversations without deleting anything.
 - **Change one date or later dates.** Saving a change to a series asks whether it applies to only this date, to this and all later dates, or to all dates. A single date becomes an appointment of its own and later dates go on as a new series; places and attendance sheets move along, and both appointments link to each other.
 - **Tell the people an appointment concerns.** Saving a change can notify everybody holding a place, or everybody who may see an appointment without registration, with an optional note of up to 500 characters. The message names what changed, and partner stations pass it on to their members.
 - **Split series count as one.** In the station statistics, a series that goes on as a new one and the dates taken out of it count as one appointment under its newest name.
@@ -17,6 +22,11 @@ One date of a series can be changed on its own, or a series from one date on. Sa
 ### Changes
 
 - **Shared appointments need this version on both sides.** Between a station on this version and a partner station on an older one on another server, shared appointments, signing up for them and their comments stop working. They work again once both run 26.25.0.
+
+### Fixes
+
+- **Short profiles show only what the reader may see.** After signing in as somebody else, switching profile or losing a right without reloading the page, a short profile already opened could still show private tags. It is now loaded again for whoever is looking.
+- **Words instead of raw values.** In some places technical values showed instead of words, such as the answer to a waiting-list invitation, a module the cluster switched off, member types in the station setup and mapped values in the member import, and the last setup step missed its hint. They now read in the interface language.
 
 ## v26.24.2
 

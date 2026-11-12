@@ -115,6 +115,21 @@
     "NOT_INTERESTED": "Kein Interesse",
     "DATE_DOES_NOT_SUIT": "Der Termin passt nicht"
   },
+  "module": {
+    "ATTENDANCE": "Anwesenheit",
+    "BOARDS": "Boards",
+    "DOCUMENTS": "Dokumente",
+    "EVENTS": "Termine",
+    "FORMS": "Umfragen",
+    "INVENTORY": "Inventar",
+    "KNOWLEDGE_BASE": "Wiki",
+    "LOST_AND_FOUND": "Fundbüro",
+    "NEWS": "Neuigkeiten",
+    "PROCEDURES": "Abläufe",
+    "QUIZ": "Quiz",
+    "TEST_PROTOCOL": "Prüfprotokolle",
+    "WAITING_LIST": "Warteliste"
+  },
   "changedPart": {
     "TIME": "Uhrzeit",
     "DATE": "Datum",

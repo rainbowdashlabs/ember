@@ -47,6 +47,7 @@
     "axios": "^1.16.0",
     "diff": "^9.0.0",
     "echarts": "^6.0.0",
+    "emojibase-data": "^17.0.0",
     "isomorphic-dompurify": "^4.4.0",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
