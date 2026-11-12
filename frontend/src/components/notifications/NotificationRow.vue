@@ -66,6 +66,7 @@ const typeIcons: Partial<Record<NotificationType, string>> = {
   EVENT_REMINDER: 'bell',
   EVENT_DATE_DROPPED: 'calendar-xmark',
   EVENT_MOVED: 'calendar-days',
+  EVENT_CHANGED: 'calendar-days',
   EVENT_DATE_RESTORED: 'rotate-left',
   PROCEDURE_ASSIGNED: 'clipboard-list',
   PROCEDURE_RESOLVED: 'clipboard-check',
@@ -128,6 +129,9 @@ const message = computed(() => {
   }
   if (n.type === 'LENDING_STATUS_CHANGE' && params.status) {
     params.status = t(`dashboard.lendingStatus.${params.status}`)
+  }
+  if (n.type === 'EVENT_CHANGED' && params.changedParts) {
+    params.changedParts = params.changedParts.split(',').map(part => t(`notification.changedPart.${part}`)).join(', ')
   }
   if (n.type === 'MOVEMENT_CANCELLED') {
     const key = params.itemStayedAway === 'true' ? 'movementCancelledAway' : 'movementCancelled'

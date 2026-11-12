@@ -118,4 +118,71 @@ class StationCalendarTest {
         assertTrue(CALENDAR.next(twice, CALENDAR.today()).isEmpty());
         assertEquals(date("2026-09-09"), CALENDAR.dateInView(twice).orElseThrow());
     }
+
+    @Test
+    void aDetachedDateIsNoLongerADateOfTheSeries() {
+        var weekly = event(EventType.RECURRING, 3, null);
+        var calendar = new StationCalendar(
+                ZoneOffset.UTC,
+                List.of(AUTUMN),
+                DateCancellations.NONE,
+                DetachedDates.of(List.of(new EventDetachedDate(weekly.id(), date("2026-10-07")))));
+
+        assertEquals(DateCheck.NOT_AN_OCCURRENCE, calendar.check(weekly, date("2026-10-07")));
+        assertTrue(calendar.isDetached(weekly, date("2026-10-07")));
+        assertFalse(calendar.occursOn(weekly, date("2026-10-07")));
+        assertFalse(calendar.isCancelled(weekly, date("2026-10-07")));
+        assertEquals(
+                List.of(date("2026-09-30"), date("2026-10-28")),
+                calendar.between(weekly, date("2026-09-28"), date("2026-10-31")));
+        assertEquals(
+                date("2026-10-28"), calendar.next(weekly, date("2026-10-07")).orElseThrow());
+        assertEquals(
+                date("2026-09-30"),
+                calendar.previous(weekly, date("2026-10-08")).orElseThrow());
+    }
+
+    @Test
+    void aDetachedDateDoesNotLengthenACountedSeries() {
+        var fourTimes = event(EventType.RECURRING, 3, 4);
+        var calendar = new StationCalendar(
+                ZoneOffset.UTC,
+                List.of(),
+                DateCancellations.NONE,
+                DetachedDates.of(List.of(new EventDetachedDate(fourTimes.id(), date("2026-09-09")))));
+
+        assertEquals(
+                List.of(date("2026-09-02"), date("2026-09-16"), date("2026-09-23")),
+                calendar.between(fourTimes, date("2026-09-01"), date("2026-12-31")));
+        assertEquals(List.of(date("2026-09-09")), calendar.skippedDates(fourTimes));
+    }
+
+    @Test
+    void skippedDatesNameBreaksAndDetachedDatesTogether() {
+        var weekly = event(EventType.RECURRING, 3, null);
+        var calendar = new StationCalendar(
+                ZoneOffset.UTC,
+                List.of(AUTUMN),
+                DateCancellations.NONE,
+                DetachedDates.of(List.of(
+                        new EventDetachedDate(weekly.id(), date("2026-11-04")),
+                        new EventDetachedDate(weekly.id(), date("2026-11-05")))));
+
+        assertEquals(
+                List.of(date("2026-10-14"), date("2026-10-21"), date("2026-11-04")), calendar.skippedDates(weekly));
+    }
+
+    @Test
+    void aDetachedDateLeavesAOneOffAlone() {
+        var once = event(EventType.ONE_TIME, null, null);
+        var calendar = new StationCalendar(
+                ZoneOffset.UTC,
+                List.of(),
+                DateCancellations.NONE,
+                DetachedDates.of(List.of(new EventDetachedDate(once.id(), date("2026-10-14")))));
+
+        assertFalse(calendar.isDetached(once, date("2026-10-14")));
+        assertEquals(DateCheck.OCCURRENCE, calendar.check(once, date("2026-10-14")));
+        assertTrue(calendar.skippedDates(once).isEmpty());
+    }
 }

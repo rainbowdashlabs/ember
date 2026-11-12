@@ -120,6 +120,12 @@ public class EventFeedDetails implements FeedDetailsContributor {
                 if (eventDate != null) details.put(details.label("eventDate"), details.date(eventDate));
                 addEventContext(details);
             }
+            case NotificationParams.EventChangeNotice changed -> {
+                details.putIfPresent(details.label("event", "Event"), changed.eventName());
+                details.putIfPresent(details.label("member", "Member"), changed.memberName());
+                details.put(details.label("eventDate"), details.date(changed.eventDate()));
+                addEventContext(details);
+            }
             case NotificationParams.RegistrationDeadlineExpired(String eventName, int pendingCount) -> {
                 details.putIfPresent(details.label("event", "Event"), eventName);
                 details.put(details.label("pendingCount"), String.valueOf(pendingCount));

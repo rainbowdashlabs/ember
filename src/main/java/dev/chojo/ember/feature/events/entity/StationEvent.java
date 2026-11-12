@@ -153,6 +153,21 @@ public record StationEvent(
         if (startTime == null) return Optional.empty();
         Instant end = endTime != null && endTime.isAfter(startTime) ? endTime : startTime;
         if (eventType == EventType.ONE_TIME) return Optional.of(new Span(startTime, end));
+        return Optional.of(placeOn(startTime, end, date, zone));
+    }
+
+    /**
+     * Places the time of day and the length of an occasion on a given day: the start keeps its time
+     * of day, and the end keeps its time of day and its distance in days from the start.
+     *
+     * @param startTime when the configured occasion starts
+     * @param endTime   when it ends, not before the start
+     * @param date      the day to place it on
+     * @param zone      the station's clock
+     * @return the two moments it runs between on that day
+     */
+    public static Span placeOn(Instant startTime, Instant endTime, LocalDate date, ZoneId zone) {
+        Instant end = endTime.isAfter(startTime) ? endTime : startTime;
         ZonedDateTime configuredStart = startTime.atZone(zone);
         ZonedDateTime configuredEnd = end.atZone(zone);
         long days = ChronoUnit.DAYS.between(configuredStart.toLocalDate(), configuredEnd.toLocalDate());
@@ -161,7 +176,7 @@ public record StationEvent(
                 .atTime(configuredEnd.toLocalTime())
                 .atZone(zone)
                 .toInstant();
-        return Optional.of(new Span(start, placedEnd.isBefore(start) ? start : placedEnd));
+        return new Span(start, placedEnd.isBefore(start) ? start : placedEnd);
     }
 
     /**

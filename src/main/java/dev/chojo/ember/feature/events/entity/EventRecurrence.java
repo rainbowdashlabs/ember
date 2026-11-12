@@ -120,7 +120,7 @@ public final class EventRecurrence {
         var vevent = new VEvent(
                 onClock(first.get().start(), zone), onClock(first.get().end(), zone), summary);
         vevent.add(new RRule<>(calendarRule.get()));
-        List<Temporal> exceptions = calendar.suspendedDates(event).stream()
+        List<Temporal> exceptions = calendar.skippedDates(event).stream()
                 .flatMap(date -> event.occurrenceOn(date, zone).stream())
                 .map(span -> onClock(span.start(), zone))
                 .toList();

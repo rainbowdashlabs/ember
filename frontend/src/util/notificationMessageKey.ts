@@ -22,11 +22,19 @@ import {expiryReminderKey} from './expiry'
 export function notificationMessageKey(type: string, localeKey: string, params: Record<string, string>): string {
     if (type === 'EXPIRY_REMINDER') return expiryReminderKey(params)
     if (type === 'EVENT_DATE_DROPPED' && !params.nextDate) return 'notification.eventDateDroppedLast'
+    if (type === 'EVENT_CHANGED') return eventChangedKey(params)
     if (type === 'EVENT_CANCELLED') return eventCancelledKey(localeKey, params)
     if (type === 'NAME_CHANGE_DENIED' && params.reason) return 'notification.nameChangeDeniedWithReason'
     if (type === 'DOCUMENT_SIGNED' && params.memberName) return 'notification.documentSignedForMember'
     if (type === 'PARTNER_SIGNATURE_WITHDRAWN' && params.memberName) return 'notification.partnerSignatureWithdrawnNamed'
     return localeKey
+}
+
+/** The sentence a change notice is worded by: with the new start where it moved, with the note where one was written. */
+function eventChangedKey(params: Record<string, string>): string {
+    const moved = params.startTime ? 'Moved' : ''
+    const noted = params.note ? 'Note' : ''
+    return `notification.eventChanged${moved}${noted}`
 }
 
 /**

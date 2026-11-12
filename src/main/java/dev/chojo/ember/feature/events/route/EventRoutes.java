@@ -14,7 +14,13 @@ import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.events.entity.BatchFieldEntry;
 import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
+import dev.chojo.ember.feature.events.entity.ChangeNotice;
+import dev.chojo.ember.feature.events.entity.ChangePreview;
 import dev.chojo.ember.feature.events.entity.DatedEvent;
+import dev.chojo.ember.feature.events.entity.EditScope;
+import dev.chojo.ember.feature.events.entity.EventDraft;
+import dev.chojo.ember.feature.events.entity.EventLink;
+import dev.chojo.ember.feature.events.entity.EventLinks;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationOpening;
 import dev.chojo.ember.feature.events.entity.EventSummary;
@@ -25,7 +31,10 @@ import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import dev.chojo.ember.feature.events.service.BatchEventService;
+import dev.chojo.ember.feature.events.service.EventChangeNotifier;
+import dev.chojo.ember.feature.events.service.EventChangePreviewService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventEditScopeService;
 import dev.chojo.ember.feature.events.service.EventExportService;
 import dev.chojo.ember.feature.events.service.EventFieldRegistrationService;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService;
@@ -90,6 +99,9 @@ public class EventRoutes implements Routes {
     private final EventFieldRegistrationService fieldRegistrationService;
     private final OccurrenceCalendar occurrenceCalendar;
     private final EventVisibility visibility;
+    private final EventEditScopeService scopeService;
+    private final EventChangeNotifier changeNotifier;
+    private final EventChangePreviewService previewService;
 
     @Inject
     public EventRoutes(
@@ -103,7 +115,13 @@ public class EventRoutes implements Routes {
             EventTemplateService templateService,
             EventFieldRegistrationService fieldRegistrationService,
             OccurrenceCalendar occurrenceCalendar,
-            EventVisibility visibility) {
+            EventVisibility visibility,
+            EventEditScopeService scopeService,
+            EventChangeNotifier changeNotifier,
+            EventChangePreviewService previewService) {
+        this.previewService = previewService;
+        this.scopeService = scopeService;
+        this.changeNotifier = changeNotifier;
         this.occurrenceCalendar = occurrenceCalendar;
         this.visibility = visibility;
         this.crudService = crudService;
@@ -143,6 +161,10 @@ public class EventRoutes implements Routes {
         routes.get(prefix + "/events/{id}", this::get, StationPermission.USER);
         routes.get(prefix + "/events/{id}/next-date", this::getNextDate, StationPermission.USER);
         routes.put(prefix + "/events/{id}", this::update, StationPermission.EVENT_EDIT);
+        routes.post(prefix + "/events/{id}/change-notice", this::sendChangeNotice, StationPermission.EVENT_EDIT);
+        routes.get(prefix + "/events/{id}/links", this::getLinks, StationPermission.USER);
+        routes.post(
+                prefix + "/events/{id}/change-notice/preview", this::previewChangeNotice, StationPermission.EVENT_EDIT);
         routes.delete(prefix + "/events/{id}", this::delete, StationPermission.EVENT_EDIT);
 
         routes.get(prefix + "/events/{id}/restrictions", this::getRestrictions, StationPermission.USER);
@@ -484,42 +506,110 @@ public class EventRoutes implements Routes {
             })
     private void update(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        int id = pathInt(ctx, "id");
-        requireOwnedEvent(crudService, id, session);
+        var current = requireOwnedEvent(crudService, pathInt(ctx, "id"), session);
         var req = ctx.bodyAsClass(EventRequest.class);
         validate(req);
-        var eventType = req.eventType();
-        crudService
-                .update(
-                        id,
-                        req.name(),
-                        req.description(),
-                        eventType,
-                        req.dayOfWeek(),
-                        req.startTime(),
-                        req.endTime(),
-                        req.templateId(),
-                        Boolean.TRUE.equals(req.requiresRegistration()),
-                        req.registrationDeadline(),
-                        Boolean.TRUE.equals(req.requiresConfirmation()),
-                        req.categoryId(),
-                        req.isPublic(),
-                        req.registrationLimit(),
-                        req.minRegistrations(),
-                        req.thresholdDays(),
-                        req.registrationCloseDays())
-                .ifPresentOrElse(
-                        event -> {
-                            applyAudiences(id, req);
-                            var saved = crudService
-                                    .setRepeatEnd(id, req.repeatUntil(), req.repeatCount())
-                                    .orElse(event);
-                            fieldRegistrationService.reconcile(id);
-                            ctx.json(saved);
-                        },
-                        () -> {
-                            throw EventRefusal.EVENT_NOT_HERE_ON_CHANGE.raise();
-                        });
+        changeNotifier.requireValid(req.changeNotice());
+        var saved = scopeService.save(current, draftOf(req), Objects.requireNonNullElse(req.scope(), EditScope.ALL));
+        applyAudiences(saved.id(), req);
+        fieldRegistrationService.reconcile(saved.id());
+        var answer = crudService.findById(saved.id()).orElse(saved);
+        if (answer.id() == current.id()) changeNotifier.tellChanged(current, answer, req.changeNotice());
+        ctx.json(answer);
+    }
+
+    /**
+     * The appointments this one took dates from and gave dates to, as far as the reader may see them.
+     */
+    @OpenApi(
+            path = "/api/v1/events/{id}/links",
+            methods = HttpMethod.GET,
+            summary = "The appointments an appointment took dates from and gave dates to",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventLinks.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void getLinks(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var event = visibility.requireVisibleEvent(session, pathInt(ctx, "id"));
+        var links = scopeService.linksOf(event.id());
+        var continues = links.continues();
+        var seen = continues == null
+                ? List.<EventLink>of()
+                : visibility.keepVisible(session, List.of(continues), EventLink::eventId);
+        ctx.json(new EventLinks(
+                seen.isEmpty() ? null : seen.getFirst(),
+                visibility.keepVisible(session, links.continuations(), EventLink::eventId)));
+    }
+
+    /**
+     * What saving the editor's draft would tell, for the save dialog to show before anything is saved.
+     */
+    @OpenApi(
+            path = "/api/v1/events/{id}/change-notice/preview",
+            methods = HttpMethod.POST,
+            summary = "Count who saving an appointment would tell",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = EventRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ChangePreview.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void previewChangeNotice(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var current = requireOwnedEvent(crudService, pathInt(ctx, "id"), session);
+        var req = ctx.bodyAsClass(EventRequest.class);
+        validate(req);
+        var scope = Objects.requireNonNullElse(req.scope(), EditScope.ALL);
+        ctx.json(previewService.preview(current, draftOf(req), scope));
+    }
+
+    /**
+     * Tells the people an appointment that took over dates of another one concerns, once the editor
+     * saved every part of it: a moved start always, and the change where the editor chose to.
+     */
+    @OpenApi(
+            path = "/api/v1/events/{id}/change-notice",
+            methods = HttpMethod.POST,
+            summary = "Tell the people an appointment concerns that it changed",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ChangeNotice.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void sendChangeNotice(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var event = requireOwnedEvent(crudService, pathInt(ctx, "id"), session);
+        changeNotifier.tellContinued(event, ctx.bodyAsClass(ChangeNotice.class));
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /** The settings of the appointment itself, as the editor sent them. */
+    private static EventDraft draftOf(EventRequest req) {
+        return new EventDraft(
+                req.name(),
+                req.description(),
+                req.eventType(),
+                req.dayOfWeek(),
+                req.startTime(),
+                req.endTime(),
+                req.templateId(),
+                Boolean.TRUE.equals(req.requiresRegistration()),
+                req.registrationDeadline(),
+                Boolean.TRUE.equals(req.requiresConfirmation()),
+                req.categoryId(),
+                req.isPublic(),
+                req.registrationLimit(),
+                req.minRegistrations(),
+                req.thresholdDays(),
+                req.registrationCloseDays(),
+                req.repeatUntil(),
+                req.repeatCount());
     }
 
     @OpenApi(
@@ -804,6 +894,12 @@ public class EventRoutes implements Routes {
      * @param templateId      the attendance sheet the appointment is taken on
      * @param eventTemplateId the appointment template it is made from, read only when it is created;
      *                        it has to be one of the station's own
+     * @param scope           which dates of a series a change applies to, read only when it is
+     *                        changed; none means every date. Only one date, and one date and those
+     *                        after it, save into a new appointment, whose id the answer carries
+     * @param changeNotice    what the editor chose to tell the people the appointment concerns, read
+     *                        only when every date is changed; a save into a new appointment tells
+     *                        them through that appointment's change notice once every part is saved
      */
     public record EventRequest(
             String name,
@@ -826,7 +922,9 @@ public class EventRoutes implements Routes {
             @Nullable Integer thresholdDays,
             @Nullable Integer registrationCloseDays,
             @Nullable LocalDate repeatUntil,
-            @Nullable Integer repeatCount) {}
+            @Nullable Integer repeatCount,
+            @Nullable EditScope scope,
+            @Nullable ChangeNotice changeNotice) {}
 
     /**
      * The next day an appointment falls on, or nothing for one that has no date at all.

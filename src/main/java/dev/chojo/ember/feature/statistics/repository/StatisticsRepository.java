@@ -162,21 +162,44 @@ public class StatisticsRepository {
                 .all();
     }
 
+    /**
+     * The places held on the station's coming appointments, one row per appointment.
+     *
+     * <p>An appointment that took over dates of another one, a date taken out of a series or a series
+     * gone on as a new one, counts in one row with the appointment it came from, under the name of the
+     * newest of them: to the reader it is still the one appointment. Only the appointments that are
+     * coming count, as before; one that already began does not join the row of its continuation.
+     */
     private List<EventRegistrations> eventRegistrations(int stationId) {
         return query("""
+                        WITH RECURSIVE chain AS (
+                            SELECT id, id AS root
+                            FROM station_event
+                            WHERE station_id = :station_id
+                              AND continues_event_id IS NULL
+                            UNION ALL
+                            SELECT e.id, c.root
+                            FROM station_event e
+                                JOIN chain c ON e.continues_event_id = c.id
+                        )
                         SELECT
-                            se.name,
+                            (SELECT newest.name
+                             FROM chain member
+                                 JOIN station_event newest ON newest.id = member.id
+                             WHERE member.root = c.root
+                             ORDER BY newest.id DESC
+                             LIMIT 1)                                                         AS name,
                             count(er.id) FILTER (WHERE er.status = :accepted)                 AS accepted,
                             count(er.id) FILTER (WHERE er.status = :pending)                  AS pending,
                             count(er.id) FILTER (WHERE %s)                                    AS declined
                         FROM
-                            station_event se
+                            chain c
+                            JOIN station_event se ON se.id = c.id
                             LEFT JOIN event_registration er ON er.event_id = se.id
-                        WHERE se.station_id = :station_id
-                          AND se.start_time >= now()
-                        GROUP BY se.id, se.name
+                        WHERE se.start_time >= now()
+                        GROUP BY c.root
                         HAVING count(er.id) > 0
-                        ORDER BY se.start_time;""", RefusalSql.NOT_COMING)
+                        ORDER BY min(se.start_time);""", RefusalSql.NOT_COMING)
                 .single(call().bind("station_id", stationId)
                         .bind("accepted", RegistrationStatus.ACCEPTED)
                         .bind("pending", RegistrationStatus.PENDING))
