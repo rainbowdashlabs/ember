@@ -60,6 +60,9 @@ class ClusterServiceTest extends RepositoryTestBase {
         assertFalse(disabled.contains(StationModule.EVENTS));
         assertTrue(disabled.contains(StationModule.ATTENDANCE), "a shell nobody joins keeps no attendance");
         assertTrue(disabled.contains(StationModule.WAITING_LIST));
+        for (StationModule part : StationModule.withChildren(Set.of(StationModule.INVENTORY))) {
+            assertFalse(disabled.contains(part), "the inventory keeps its parts: " + part);
+        }
     }
 
     @Test

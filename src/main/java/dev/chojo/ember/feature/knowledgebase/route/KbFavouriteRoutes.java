@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbFavourite;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFavouriteTarget;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbFavouriteService;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -47,9 +48,10 @@ public class KbFavouriteRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/kb/favourites", this::list, StationPermission.USER);
-        routes.post(prefix + "/kb/favourites", this::mark, StationPermission.USER);
-        routes.delete(prefix + "/kb/favourites/{id}", this::unmark, StationPermission.USER);
+        routes.get(prefix + "/kb/favourites", this::list, StationPermission.USER, StationModule.KNOWLEDGE_BASE);
+        routes.post(prefix + "/kb/favourites", this::mark, StationPermission.USER, StationModule.KNOWLEDGE_BASE);
+        routes.delete(
+                prefix + "/kb/favourites/{id}", this::unmark, StationPermission.USER, StationModule.KNOWLEDGE_BASE);
     }
 
     @OpenApi(

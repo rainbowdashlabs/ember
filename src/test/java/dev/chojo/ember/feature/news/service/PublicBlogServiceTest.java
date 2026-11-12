@@ -9,10 +9,13 @@ import dev.chojo.ember.api.refusal.NewsRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -21,7 +24,8 @@ import static org.mockito.Mockito.when;
 
 class PublicBlogServiceTest {
     private final StationRepository stations = mock(StationRepository.class);
-    private final PublicBlogService blogs = new PublicBlogService(stations);
+    private final ModuleAvailability modules = mock(ModuleAvailability.class);
+    private final PublicBlogService blogs = new PublicBlogService(stations, modules);
 
     private Refusal refusalOf(String address) {
         return assertThrows(
@@ -53,5 +57,17 @@ class PublicBlogServiceTest {
         assertEquals(NewsRefusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_LIST, refusalOf("closed"));
         assertEquals(NewsRefusal.STATION_NOT_HERE_BEHIND_BLOG_LIST, refusalOf("vanished"));
         assertEquals(NewsRefusal.STATION_NOT_HERE_BEHIND_BLOG, refusalOf("unknown"));
+    }
+
+    /** A blog whose news are switched off, by the station or its cluster, is closed however it is set. */
+    @Test
+    void aBlogWithoutNewsIsClosed() {
+        var open = mock(Station.class);
+        when(open.publicBlogEnabled()).thenReturn(true);
+        when(stations.resolveAddressedId("off")).thenReturn(Optional.of(6));
+        when(stations.findById(6)).thenReturn(Optional.of(open));
+        when(modules.disabledAt(6)).thenReturn(Set.of(StationModule.NEWS));
+
+        assertEquals(NewsRefusal.PUBLIC_BLOG_SWITCHED_OFF_FOR_LIST, refusalOf("off"));
     }
 }

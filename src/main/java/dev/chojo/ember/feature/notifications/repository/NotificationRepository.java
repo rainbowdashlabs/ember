@@ -10,6 +10,7 @@ import de.chojo.sadu.queries.api.call.Call;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.DigestGroup;
 import dev.chojo.ember.feature.notifications.entity.DigestItem;
+import dev.chojo.ember.feature.notifications.entity.HiddenNotifications;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -21,6 +22,7 @@ import jakarta.inject.Singleton;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -79,42 +81,55 @@ public class NotificationRepository {
                     WHERE mm.managed_id = ANY(:ward_ids::INT[])
             ) AS reached(member_id)
             JOIN station_member sm ON sm.id = reached.member_id AND NOT sm.former
-            WHERE NOT exists (
+            WHERE sm.station_id <> ALL(:off_station_ids::INT[])
+              AND NOT exists (
                     SELECT 1 FROM user_notification_settings s
                     WHERE s.member_id = sm.id AND s.notification_type = :type AND NOT s.app_enabled)""".formatted(PermissionHolderSql.HOLDS_PERMISSION);
+
+    /**
+     * Leaves out the notifications a station's switched-off modules hide: their types, and the mentions
+     * made on their pages.
+     */
+    private static final String VISIBLE = """
+            AND NOT (type = ANY(:hidden_types::TEXT[])
+                     OR (type = 'COMMENT_MENTION' AND data->'link'->>'route' = ANY(:hidden_routes::TEXT[])))""";
 
     private static final String CLUSTER_READERS = "SELECT cm.id FROM cluster_member cm WHERE cm.id = ANY(:ids::INT[])";
 
     /**
-     * Retrieves all unacknowledged notifications of a reader, ordered by creation time descending.
+     * Retrieves the unacknowledged notifications of a reader that are not hidden, newest first.
      *
      * @param recipient whose feed
+     * @param hidden    what the reader's station hides
      * @return list of unacknowledged notifications
      */
-    public List<Notification> findUnacknowledged(Recipient recipient) {
+    public List<Notification> findUnacknowledged(Recipient recipient, HiddenNotifications hidden) {
         var feed = Feed.of(recipient);
         return query("""
                 SELECT %s FROM notification
                 WHERE %s = :reader AND acknowledged_at IS NULL
-                ORDER BY created_at DESC;""", NOTIFICATION_COLUMNS, feed.column())
-                .single(call().bind("reader", feed.id()))
+                %s
+                ORDER BY created_at DESC;""", NOTIFICATION_COLUMNS, feed.column(), VISIBLE)
+                .single(hiding(call().bind("reader", feed.id()), hidden))
                 .map(Notification.map())
                 .all();
     }
 
     /**
-     * Retrieves the most recent 50 notifications of a reader, regardless of acknowledgement status.
+     * Retrieves the most recent 50 notifications of a reader that are not hidden, read or not.
      *
      * @param recipient whose feed
+     * @param hidden    what the reader's station hides
      * @return list of notifications
      */
-    public List<Notification> findRecent(Recipient recipient) {
+    public List<Notification> findRecent(Recipient recipient, HiddenNotifications hidden) {
         var feed = Feed.of(recipient);
         return query("""
                 SELECT %s FROM notification
                 WHERE %s = :reader
-                ORDER BY created_at DESC LIMIT 50;""", NOTIFICATION_COLUMNS, feed.column())
-                .single(call().bind("reader", feed.id()))
+                %s
+                ORDER BY created_at DESC LIMIT 50;""", NOTIFICATION_COLUMNS, feed.column(), VISIBLE)
+                .single(hiding(call().bind("reader", feed.id()), hidden))
                 .map(Notification.map())
                 .all();
     }
@@ -138,16 +153,18 @@ public class NotificationRepository {
     }
 
     /**
-     * Counts the unacknowledged notifications of a reader.
+     * Counts the unacknowledged notifications of a reader that are not hidden.
      *
      * @param recipient whose feed
+     * @param hidden    what the reader's station hides
      * @return count of unacknowledged notifications
      */
-    public int countUnacknowledged(Recipient recipient) {
+    public int countUnacknowledged(Recipient recipient, HiddenNotifications hidden) {
         var feed = Feed.of(recipient);
         return count("""
                 SELECT count(*) AS cnt FROM notification
-                WHERE %s = :reader AND acknowledged_at IS NULL;""", call().bind("reader", feed.id()), feed.column());
+                WHERE %s = :reader AND acknowledged_at IS NULL
+                %s;""", hiding(call().bind("reader", feed.id()), hidden), feed.column(), VISIBLE);
     }
 
     /**
@@ -168,17 +185,20 @@ public class NotificationRepository {
     }
 
     /**
-     * Acknowledges all unacknowledged notifications of a reader.
+     * Acknowledges the unacknowledged notifications of a reader that are not hidden. The hidden ones stay
+     * unread, so they are there to read once their module is back.
      *
      * @param recipient whose feed
+     * @param hidden    what the reader's station hides
      * @return the number of notifications acknowledged
      */
-    public int acknowledgeAll(Recipient recipient) {
+    public int acknowledgeAll(Recipient recipient, HiddenNotifications hidden) {
         var feed = Feed.of(recipient);
         return query("""
                 UPDATE notification SET acknowledged_at = :now
-                WHERE %s = :reader AND acknowledged_at IS NULL;""", feed.column())
-                .single(call().bind("reader", feed.id()).bind("now", Instant.now(), INSTANT_TIMESTAMP))
+                WHERE %s = :reader AND acknowledged_at IS NULL
+                %s;""", feed.column(), VISIBLE)
+                .single(hiding(call().bind("reader", feed.id()), hidden).bind("now", Instant.now(), INSTANT_TIMESTAMP))
                 .update()
                 .rows();
     }
@@ -346,7 +366,28 @@ public class NotificationRepository {
      */
     public int insertForStation(
             StationAudience audience, NotificationType type, NotificationData data, Delivery delivery) {
+        return insertForStation(audience, type, data, delivery, Set.of());
+    }
+
+    /**
+     * Writes one notification per station member the audience reaches, leaving out the members of the
+     * given stations, where the notification's module is switched off.
+     *
+     * @param audience    who is meant
+     * @param type        the notification category
+     * @param data        the message data
+     * @param delivery    whether an identical unread notification suppresses this one
+     * @param offStations the stations whose members are left out
+     * @return how many rows were written
+     */
+    public int insertForStation(
+            StationAudience audience,
+            NotificationType type,
+            NotificationData data,
+            Delivery delivery,
+            Collection<Integer> offStations) {
         var call = call().bind("member_ids", List.copyOf(audience.memberIds()), PostgreSqlTypes.INTEGER)
+                .bind("off_station_ids", List.copyOf(offStations), PostgreSqlTypes.INTEGER)
                 .bind("whole_station_id", audience.wholeStationId())
                 .bind("holders_station_id", audience.holdersStationId())
                 .bind("ward_ids", List.copyOf(audience.wardIds()), PostgreSqlTypes.INTEGER)
@@ -392,6 +433,35 @@ public class NotificationRepository {
                 .map(row -> row.getInt(1))
                 .all()
                 .size();
+    }
+
+    /**
+     * The stations an audience can reach a member of: the station it names, and the stations of the
+     * members and of the guardians of the wards it names.
+     *
+     * @param audience who is meant
+     * @return the station ids
+     */
+    public Set<Integer> findStationsReachedBy(StationAudience audience) {
+        Set<Integer> stations = new HashSet<>(query("""
+                SELECT DISTINCT sm.station_id
+                FROM station_member sm
+                WHERE sm.id = ANY(:member_ids::INT[])
+                   OR sm.id IN (SELECT mm.manager_id FROM member_manager mm WHERE mm.managed_id = ANY(:ward_ids::INT[]));""")
+                .single(call().bind("member_ids", List.copyOf(audience.memberIds()), PostgreSqlTypes.INTEGER)
+                        .bind("ward_ids", List.copyOf(audience.wardIds()), PostgreSqlTypes.INTEGER))
+                .map(row -> row.getInt("station_id"))
+                .all());
+        Integer whole = audience.wholeStationId();
+        if (whole != null) stations.add(whole);
+        Integer holders = audience.holdersStationId();
+        if (holders != null) stations.add(holders);
+        return stations;
+    }
+
+    private static Call hiding(Call call, HiddenNotifications hidden) {
+        return call.bind("hidden_types", hidden.types().stream().map(Enum::name).toList(), PostgreSqlTypes.TEXT)
+                .bind("hidden_routes", List.copyOf(hidden.mentionRoutes()), PostgreSqlTypes.TEXT);
     }
 
     /**

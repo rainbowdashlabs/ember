@@ -44,6 +44,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbTrashService.TrashView;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.members.entity.NameParts;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.util.PandocConverter;
 import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
@@ -154,71 +155,238 @@ public class KnowledgeBaseRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/kb/folders", this::listFolders, StationPermission.USER);
-        routes.get(prefix + "/kb/folders/tree", this::folderTree, StationPermission.KNOWLEDGE_EDIT);
-        routes.post(prefix + "/kb/folders", this::createFolder, StationPermission.KNOWLEDGE_EDIT);
-        routes.get(prefix + "/kb/folders/{id}", this::getFolder, StationPermission.USER);
-        routes.put(prefix + "/kb/folders/{id}/parent", this::moveFolder, StationPermission.KNOWLEDGE_EDIT);
-        routes.put(prefix + "/kb/folders/{id}", this::updateFolder, StationPermission.KNOWLEDGE_EDIT);
-        routes.delete(prefix + "/kb/folders/{id}", this::deleteFolder, StationPermission.KNOWLEDGE_EDIT);
+        routes.get(prefix + "/kb/folders", this::listFolders, StationPermission.USER, StationModule.KNOWLEDGE_BASE);
+        routes.get(
+                prefix + "/kb/folders/tree",
+                this::folderTree,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
+        routes.post(
+                prefix + "/kb/folders",
+                this::createFolder,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
+        routes.get(prefix + "/kb/folders/{id}", this::getFolder, StationPermission.USER, StationModule.KNOWLEDGE_BASE);
+        routes.put(
+                prefix + "/kb/folders/{id}/parent",
+                this::moveFolder,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
+        routes.put(
+                prefix + "/kb/folders/{id}",
+                this::updateFolder,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
+        routes.delete(
+                prefix + "/kb/folders/{id}",
+                this::deleteFolder,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
 
-        routes.get(prefix + "/kb/files", this::listFiles, StationPermission.USER);
-        routes.get(prefix + "/kb/files/recent", this::listRecentFiles, StationPermission.USER);
-        routes.get(prefix + "/kb/files/{id}", this::getFile, StationPermission.USER);
-        routes.put(prefix + "/kb/files/{id}", this::updateFile, StationPermission.KNOWLEDGE_EDIT);
-        routes.put(prefix + "/kb/files/{id}/folder", this::moveFile, StationPermission.KNOWLEDGE_EDIT);
-        routes.delete(prefix + "/kb/files/{id}", this::deleteFile, StationPermission.KNOWLEDGE_EDIT);
+        routes.get(prefix + "/kb/files", this::listFiles, StationPermission.USER, StationModule.KNOWLEDGE_BASE);
+        routes.get(
+                prefix + "/kb/files/recent",
+                this::listRecentFiles,
+                StationPermission.USER,
+                StationModule.KNOWLEDGE_BASE);
+        routes.get(prefix + "/kb/files/{id}", this::getFile, StationPermission.USER, StationModule.KNOWLEDGE_BASE);
+        routes.put(
+                prefix + "/kb/files/{id}",
+                this::updateFile,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
+        routes.put(
+                prefix + "/kb/files/{id}/folder",
+                this::moveFile,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
+        routes.delete(
+                prefix + "/kb/files/{id}",
+                this::deleteFile,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
 
-        routes.get(prefix + "/kb/move/preview", this::movePreview, StationPermission.KNOWLEDGE_EDIT);
-        routes.post(prefix + "/kb/bulk/move", this::bulkMove, StationPermission.KNOWLEDGE_EDIT);
-        routes.post(prefix + "/kb/bulk/tags", this::bulkTags, StationPermission.KNOWLEDGE_EDIT);
-        routes.post(prefix + "/kb/bulk/delete", this::bulkDelete, StationPermission.KNOWLEDGE_EDIT);
-        routes.post(prefix + "/kb/bulk/delete/impact", this::bulkDeleteImpact, StationPermission.KNOWLEDGE_EDIT);
+        routes.get(
+                prefix + "/kb/move/preview",
+                this::movePreview,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
+        routes.post(
+                prefix + "/kb/bulk/move",
+                this::bulkMove,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
+        routes.post(
+                prefix + "/kb/bulk/tags",
+                this::bulkTags,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
+        routes.post(
+                prefix + "/kb/bulk/delete",
+                this::bulkDelete,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
+        routes.post(
+                prefix + "/kb/bulk/delete/impact",
+                this::bulkDeleteImpact,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
 
-        routes.get(prefix + "/kb/trash", this::listTrash, StationPermission.KNOWLEDGE_EDIT);
-        routes.delete(prefix + "/kb/trash", this::emptyTrash, StationPermission.KNOWLEDGE_EDIT);
-        routes.post(prefix + "/kb/trash/folders/{id}/restore", this::restoreFolder, StationPermission.KNOWLEDGE_EDIT);
-        routes.post(prefix + "/kb/trash/files/{id}/restore", this::restoreFile, StationPermission.KNOWLEDGE_EDIT);
-        routes.delete(prefix + "/kb/trash/folders/{id}", this::purgeFolder, StationPermission.KNOWLEDGE_EDIT);
-        routes.delete(prefix + "/kb/trash/files/{id}", this::purgeFile, StationPermission.KNOWLEDGE_EDIT);
+        routes.get(
+                prefix + "/kb/trash", this::listTrash, StationPermission.KNOWLEDGE_EDIT, StationModule.KNOWLEDGE_BASE);
+        routes.delete(
+                prefix + "/kb/trash", this::emptyTrash, StationPermission.KNOWLEDGE_EDIT, StationModule.KNOWLEDGE_BASE);
+        routes.post(
+                prefix + "/kb/trash/folders/{id}/restore",
+                this::restoreFolder,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
+        routes.post(
+                prefix + "/kb/trash/files/{id}/restore",
+                this::restoreFile,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
+        routes.delete(
+                prefix + "/kb/trash/folders/{id}",
+                this::purgeFolder,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
+        routes.delete(
+                prefix + "/kb/trash/files/{id}",
+                this::purgeFile,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
 
-        routes.post(prefix + "/kb/files/markdown", this::createMarkdownFile, StationPermission.KNOWLEDGE_EDIT);
-        routes.post(prefix + "/kb/files/youtube", this::createYoutubeFile, StationPermission.KNOWLEDGE_EDIT);
-        routes.post(prefix + "/kb/files/upload", this::uploadFile, StationPermission.KNOWLEDGE_EDIT);
-        routes.post(prefix + "/kb/files/import-document", this::importDocument, StationPermission.KNOWLEDGE_EDIT);
-        routes.post(prefix + "/kb/files/link", this::createLinkFile, StationPermission.KNOWLEDGE_EDIT);
+        routes.post(
+                prefix + "/kb/files/markdown",
+                this::createMarkdownFile,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
+        routes.post(
+                prefix + "/kb/files/youtube",
+                this::createYoutubeFile,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
+        routes.post(
+                prefix + "/kb/files/upload",
+                this::uploadFile,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
+        routes.post(
+                prefix + "/kb/files/import-document",
+                this::importDocument,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
+        routes.post(
+                prefix + "/kb/files/link",
+                this::createLinkFile,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
 
-        routes.get(prefix + "/kb/files/{id}/content", this::getFileContent, StationPermission.USER);
-        routes.get(prefix + "/kb/files/{id}/picture", this::getFilePicture, StationPermission.USER);
-        routes.get(prefix + "/kb/files/{id}/html", this::getMarkdownHtml, StationPermission.USER);
-        routes.put(prefix + "/kb/files/{id}/content", this::updateMarkdownContent, StationPermission.KNOWLEDGE_EDIT);
-        routes.get(prefix + "/kb/files/{id}/blocks", this::getBlocks, StationPermission.LOGIN);
-        routes.put(prefix + "/kb/files/{id}/blocks", this::saveBlocks, StationPermission.KNOWLEDGE_EDIT);
-        routes.post(prefix + "/kb/files/{id}/blocks/enable", this::enableBlocks, StationPermission.KNOWLEDGE_EDIT);
+        routes.get(
+                prefix + "/kb/files/{id}/content",
+                this::getFileContent,
+                StationPermission.USER,
+                StationModule.KNOWLEDGE_BASE);
+        routes.get(
+                prefix + "/kb/files/{id}/picture",
+                this::getFilePicture,
+                StationPermission.USER,
+                StationModule.KNOWLEDGE_BASE);
+        routes.get(
+                prefix + "/kb/files/{id}/html",
+                this::getMarkdownHtml,
+                StationPermission.USER,
+                StationModule.KNOWLEDGE_BASE);
+        routes.put(
+                prefix + "/kb/files/{id}/content",
+                this::updateMarkdownContent,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
+        routes.get(
+                prefix + "/kb/files/{id}/blocks",
+                this::getBlocks,
+                StationPermission.LOGIN,
+                StationModule.KNOWLEDGE_BASE);
+        routes.put(
+                prefix + "/kb/files/{id}/blocks",
+                this::saveBlocks,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
+        routes.post(
+                prefix + "/kb/files/{id}/blocks/enable",
+                this::enableBlocks,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
 
-        routes.get(prefix + "/kb/files/{id}/pdf", this::getPdfExport, StationPermission.USER);
+        routes.get(
+                prefix + "/kb/files/{id}/pdf",
+                this::getPdfExport,
+                StationPermission.USER,
+                StationModule.KNOWLEDGE_BASE);
 
-        routes.get(prefix + "/kb/files/{id}/original", this::getOriginalFile, StationPermission.USER);
-        routes.put(prefix + "/kb/files/{id}/original", this::reuploadOriginal, StationPermission.KNOWLEDGE_EDIT);
+        routes.get(
+                prefix + "/kb/files/{id}/original",
+                this::getOriginalFile,
+                StationPermission.USER,
+                StationModule.KNOWLEDGE_BASE);
+        routes.put(
+                prefix + "/kb/files/{id}/original",
+                this::reuploadOriginal,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
 
-        routes.get(prefix + "/kb/files/{id}/versions", this::listVersions, StationPermission.USER);
-        routes.get(prefix + "/kb/files/{id}/versions/{version}", this::getVersion, StationPermission.USER);
+        routes.get(
+                prefix + "/kb/files/{id}/versions",
+                this::listVersions,
+                StationPermission.USER,
+                StationModule.KNOWLEDGE_BASE);
+        routes.get(
+                prefix + "/kb/files/{id}/versions/{version}",
+                this::getVersion,
+                StationPermission.USER,
+                StationModule.KNOWLEDGE_BASE);
         routes.post(
                 prefix + "/kb/files/{id}/versions/{version}/revert",
                 this::revertToVersion,
-                StationPermission.KNOWLEDGE_EDIT);
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
 
-        routes.get(prefix + "/kb/files/{id}/related", this::getRelatedFiles, StationPermission.USER);
-        routes.put(prefix + "/kb/files/{id}/related", this::setRelatedFiles, StationPermission.KNOWLEDGE_EDIT);
+        routes.get(
+                prefix + "/kb/files/{id}/related",
+                this::getRelatedFiles,
+                StationPermission.USER,
+                StationModule.KNOWLEDGE_BASE);
+        routes.put(
+                prefix + "/kb/files/{id}/related",
+                this::setRelatedFiles,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
 
-        routes.get(prefix + "/kb/search", this::search, StationPermission.USER);
-        routes.get(prefix + "/kb/browse", this::browse, StationPermission.USER);
+        routes.get(prefix + "/kb/search", this::search, StationPermission.USER, StationModule.KNOWLEDGE_BASE);
+        routes.get(prefix + "/kb/browse", this::browse, StationPermission.USER, StationModule.KNOWLEDGE_BASE);
 
-        routes.get(prefix + "/kb/folders/{id}/icon", this::getFolderIcon, StationPermission.USER);
-        routes.post(prefix + "/kb/folders/{id}/icon", this::uploadFolderIcon, StationPermission.KNOWLEDGE_EDIT);
+        routes.get(
+                prefix + "/kb/folders/{id}/icon",
+                this::getFolderIcon,
+                StationPermission.USER,
+                StationModule.KNOWLEDGE_BASE);
+        routes.post(
+                prefix + "/kb/folders/{id}/icon",
+                this::uploadFolderIcon,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
 
-        routes.post(prefix + "/kb/files/{id}/images", this::uploadKbImage, StationPermission.KNOWLEDGE_EDIT);
-        routes.get(prefix + "/kb/images/{imageId}", this::getKbImage, StationPermission.USER);
+        routes.post(
+                prefix + "/kb/files/{id}/images",
+                this::uploadKbImage,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
+        routes.get(
+                prefix + "/kb/images/{imageId}",
+                this::getKbImage,
+                StationPermission.USER,
+                StationModule.KNOWLEDGE_BASE);
     }
 
     @OpenApi(

@@ -10,6 +10,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.ModuleFree;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.AttendanceRefusal;
@@ -35,6 +36,7 @@ import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.util.CsvWriter;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -103,14 +105,20 @@ public class AttendanceRoutes implements Routes {
                 this::listTemplates,
                 StationPermission.ATTENDANCE_READ,
                 StationPermission.ATTENDANCE_CONFIGURE,
-                StationPermission.EVENT_EDIT);
+                StationPermission.EVENT_EDIT,
+                StationModule.ATTENDANCE);
         routes.get(
                 prefix + "/attendance/templates/detail",
                 this::listTemplateDetails,
                 StationPermission.ATTENDANCE_READ,
                 StationPermission.ATTENDANCE_CONFIGURE,
-                StationPermission.EVENT_EDIT);
-        routes.post(prefix + "/attendance/templates", this::createTemplate, StationPermission.ATTENDANCE_CONFIGURE);
+                StationPermission.EVENT_EDIT,
+                StationModule.ATTENDANCE);
+        routes.post(
+                prefix + "/attendance/templates",
+                this::createTemplate,
+                StationPermission.ATTENDANCE_CONFIGURE,
+                StationModule.ATTENDANCE);
         routes.get(
                 prefix + "/attendance/templates/{id}",
                 this::getTemplate,
@@ -134,11 +142,13 @@ public class AttendanceRoutes implements Routes {
                 this::listTemplateFields,
                 StationPermission.ATTENDANCE_READ,
                 StationPermission.ATTENDANCE_CONFIGURE,
-                StationPermission.EVENT_EDIT);
+                StationPermission.EVENT_EDIT,
+                StationModule.ATTENDANCE);
         routes.post(
                 prefix + "/attendance/templates/{templateId}/fields",
                 this::createTemplateField,
-                StationPermission.ATTENDANCE_CONFIGURE);
+                StationPermission.ATTENDANCE_CONFIGURE,
+                StationModule.ATTENDANCE);
         routes.put(
                 prefix + "/attendance/templates/{templateId}/fields/{fieldId}",
                 this::updateTemplateField,
@@ -1208,6 +1218,8 @@ public class AttendanceRoutes implements Routes {
             summary = "List active absences for the current station",
             tags = {"Attendance"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberAbsence[].class)))
+    @ModuleFree(
+            "Absences are kept on the profile and the member page, which every station has, and events read them too")
     private void listActiveAbsences(Context ctx) {
         StationSession session = StationSession.from(ctx);
         ctx.json(attendanceService.findActiveAbsencesByStation(session.stationId()));
@@ -1220,6 +1232,8 @@ public class AttendanceRoutes implements Routes {
             tags = {"Attendance"},
             pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberAbsence[].class)))
+    @ModuleFree(
+            "Absences are kept on the profile and the member page, which every station has, and events read them too")
     private void listMemberAbsences(Context ctx) {
         StationSession session = StationSession.from(ctx);
         int memberId = pathInt(ctx, "memberId");
@@ -1239,6 +1253,8 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = MemberAbsence.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
+    @ModuleFree(
+            "Absences are kept on the profile and the member page, which every station has, and events read them too")
     private void createAbsence(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(AbsenceRequest.class);
@@ -1267,6 +1283,8 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "204"),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
+    @ModuleFree(
+            "Absences are kept on the profile and the member page, which every station has, and events read them too")
     private void deleteAbsence(Context ctx) {
         StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
@@ -1285,6 +1303,8 @@ public class AttendanceRoutes implements Routes {
             summary = "List own and managed members' absences",
             tags = {"Attendance"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AbsenceResponse[].class)))
+    @ModuleFree(
+            "Absences are kept on the profile and the member page, which every station has, and events read them too")
     private void listMyAbsences(Context ctx) {
         var atStation = StationSession.optional(UserSession.from(ctx));
         if (atStation.isEmpty()) {
@@ -1313,6 +1333,8 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = AbsenceResponse[].class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
+    @ModuleFree(
+            "Absences are kept on the profile and the member page, which every station has, and events read them too")
     private void createMyAbsence(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var req = ctx.bodyAsClass(MyAbsenceRequest.class);
@@ -1360,6 +1382,8 @@ public class AttendanceRoutes implements Routes {
                 @OpenApiResponse(status = "204"),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
+    @ModuleFree(
+            "Absences are kept on the profile and the member page, which every station has, and events read them too")
     private void deleteMyAbsence(Context ctx) {
         StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");

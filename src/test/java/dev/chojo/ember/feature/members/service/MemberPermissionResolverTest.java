@@ -9,9 +9,12 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -108,5 +111,46 @@ class MemberPermissionResolverTest extends RepositoryTestBase {
     @Test
     void no_such_member_holds_nothing() {
         assertFalse(memberPermissionResolver.resolve(-1).contains(StationPermission.MEMBER_GUARDIAN));
+    }
+
+    /**
+     * A module the station switched off grants nothing, and switching it back on gives back what was
+     * granted, which stayed stored all along.
+     */
+    @Test
+    void a_switched_off_module_grants_nothing_until_it_is_back() {
+        var manager = memberOfType(StationUserType.MANAGER, "Manager");
+        stationRepo.setDisabledModules(station.id(), Set.of(StationModule.INVENTORY_LENDING, StationModule.NEWS));
+
+        var held = memberPermissionResolver.resolve(manager);
+        assertFalse(held.contains(StationPermission.INVENTORY_LENDING_MANAGER));
+        assertFalse(held.contains(StationPermission.NEWS_EDIT));
+        assertTrue(held.contains(StationPermission.INVENTORY_READ));
+        assertTrue(held.contains(StationPermission.MEMBER_MANAGER));
+
+        stationRepo.setDisabledModules(station.id(), Set.of());
+
+        assertTrue(
+                memberPermissionResolver.resolve(manager.id()).contains(StationPermission.INVENTORY_LENDING_MANAGER));
+    }
+
+    /** A module the station's cluster denies grants nothing either, whatever the station says. */
+    @Test
+    void a_module_the_cluster_denies_grants_nothing() {
+        var manager = memberOfType(StationUserType.MANAGER, "Manager");
+        var home = stationRepo.create("Träger Rechte " + System.nanoTime());
+        var cluster = clusterRepo.create("Kreisverband Rechte " + System.nanoTime(), null, home.id());
+        stationRepo.setCluster(station.id(), cluster.id());
+        clusterRepo.setDeniedModules(cluster.id(), null, Set.of(StationModule.INVENTORY));
+        try {
+            var held = memberPermissionResolver.resolve(manager);
+            assertFalse(held.contains(StationPermission.INVENTORY_READ));
+            assertFalse(held.contains(StationPermission.INVENTORY_MOVEMENTS), "the parts go with the module");
+            assertTrue(held.contains(StationPermission.EVENT_MANAGER));
+        } finally {
+            stationRepo.setCluster(station.id(), null);
+            clusterRepo.delete(cluster.id());
+            stationRepo.delete(home.id());
+        }
     }
 }

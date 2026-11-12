@@ -439,26 +439,6 @@ public class ClusterRepository {
     }
 
     /**
-     * The clusters that deny a given module, which is how a station's own check finds out about it.
-     *
-     * @param stationId the station asking
-     * @param module    the module in question
-     * @return {@code true} when the station's cluster denies it
-     */
-    public boolean isModuleDeniedForStation(int stationId, StationModule module) {
-        return SqlSupport.exists("""
-                SELECT 1 FROM cluster_denied_module cdm
-                JOIN station s ON s.cluster_id = cdm.cluster_id
-                WHERE s.id = :station_id
-                  AND cdm.module = :module
-                  AND (cdm.station_group_id IS NULL
-                       OR EXISTS (SELECT 1
-                                  FROM cluster_station_group_membership m
-                                  WHERE m.group_id = cdm.station_group_id
-                                    AND m.station_id = s.id));""", call().bind("station_id", stationId).bind("module", module));
-    }
-
-    /**
      * The look the cluster hands its stations, and which parts of it they may not change.
      *
      * @param clusterId         the cluster

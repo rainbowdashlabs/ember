@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCancellationService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -65,11 +66,28 @@ public class EventCancellationRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/events/cancellations", this::listStationCancelledDates, StationPermission.USER);
-        routes.post(prefix + "/events/{id}/cancel", this::cancelSeries, StationPermission.EVENT_EDIT);
-        routes.post(prefix + "/events/{id}/dates/{date}/cancel", this::cancelDate, StationPermission.EVENT_EDIT);
-        routes.post(prefix + "/events/{id}/dates/{date}/restore", this::restoreDate, StationPermission.EVENT_EDIT);
-        routes.get(prefix + "/events/{id}/cancellations", this::listCancelledDates, StationPermission.USER);
+        routes.get(
+                prefix + "/events/cancellations",
+                this::listStationCancelledDates,
+                StationPermission.USER,
+                StationModule.EVENTS);
+        routes.post(
+                prefix + "/events/{id}/cancel", this::cancelSeries, StationPermission.EVENT_EDIT, StationModule.EVENTS);
+        routes.post(
+                prefix + "/events/{id}/dates/{date}/cancel",
+                this::cancelDate,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS);
+        routes.post(
+                prefix + "/events/{id}/dates/{date}/restore",
+                this::restoreDate,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS);
+        routes.get(
+                prefix + "/events/{id}/cancellations",
+                this::listCancelledDates,
+                StationPermission.USER,
+                StationModule.EVENTS);
     }
 
     @OpenApi(

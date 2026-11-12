@@ -14,9 +14,9 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import StationModuleToggle from '@/components/modules/StationModuleToggle.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import {STATION_MODULE_OPTIONS} from '@/data/stationModules'
+import {STATION_MODULE_OPTIONS, moduleRuns, parentAllows} from '@/data/stationModules'
 import {clusterGovernance, clusterStationGroups} from '@/api'
-import type {StationGroupResponse} from '@/api/generated/schema'
+import type {StationGroupResponse, StationModule} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const {t} = useI18n()
@@ -57,8 +57,13 @@ watch(stationGroupId, () => {
   void runWith(async () => (await clusterGovernance.getDeniedModules(stationGroupId.value)).deniedModules, {busy})
 })
 
-function allowed(module: string): boolean {
+function isAllowed(module: StationModule): boolean {
   return !denied.value.includes(module)
+}
+
+/** Whether a module is left to the stations; a part of a denied module is denied with it. */
+function allowed(module: StationModule): boolean {
+  return moduleRuns(module, isAllowed)
 }
 
 function toggle(module: string, allow: boolean) {
@@ -97,6 +102,7 @@ async function save() {
               :key="mod.value"
               :module="mod"
               :model-value="allowed(mod.value)"
+              :disabled="!parentAllows(mod.value, isAllowed)"
               @update:model-value="v => toggle(mod.value, v)"
           />
         </NeutralContainer>

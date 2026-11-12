@@ -125,7 +125,7 @@ public class PublicKnowledgeBaseRoutes implements Routes {
         if (station.publicKbMode() == PublicKbMode.OFF) {
             throw KnowledgeBaseRefusal.PUBLIC_KB_SWITCHED_OFF.raise();
         }
-        if (stationService.findDisabledModules(station.id()).contains(StationModule.KNOWLEDGE_BASE)) {
+        if (!stationService.isModuleEnabled(station.id(), StationModule.KNOWLEDGE_BASE)) {
             throw KnowledgeBaseRefusal.PUBLIC_KB_SWITCHED_OFF.raise();
         }
         return station;

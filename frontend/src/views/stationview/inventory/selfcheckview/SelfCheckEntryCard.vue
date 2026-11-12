@@ -27,7 +27,8 @@ import {
   type SelfCheckDraft,
   type SelfCheckEntry,
 } from '@/composables/useSelfCheck'
-import {SelfCheckAnswer} from '@/api/generated/schema'
+import {SelfCheckAnswer, StationModule} from '@/api/generated/schema'
+import {useSession} from '@/composables/useSession'
 
 /**
  * One thing the member is asked about, and everything they may say about it.
@@ -65,6 +66,7 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+const {isModuleEnabled} = useSession()
 
 const answers = computed(() => answersFor(props.entry))
 const piece = computed(() => (props.entry.type === 'piece' ? props.entry.item : null))
@@ -77,9 +79,13 @@ const mayReportLost = computed(
   () => piece.value != null && !borrowed(piece.value) && !recordedLost(piece.value) && !props.readOnly,
 )
 
-/** An exchange needs an inventory holding one thing in many copies, and a piece the station owns. */
+/**
+ * An exchange needs an inventory holding one thing in many copies, a piece the station owns, and the
+ * station's movements, since an exchange is one.
+ */
 const mayRequestExchange = computed(
-  () => piece.value != null && !borrowed(piece.value) && !recordedLost(piece.value) && props.entry.req.homogeneous && !props.readOnly,
+  () => piece.value != null && !borrowed(piece.value) && !recordedLost(piece.value) && props.entry.req.homogeneous && !props.readOnly
+      && isModuleEnabled(StationModule.INVENTORY_MOVEMENTS),
 )
 
 const lossStanding = computed(() => standingOf(props.raised, 'LOSS'))

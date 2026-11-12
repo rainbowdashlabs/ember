@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.inventory.entity.SelfCheckRow;
 import dev.chojo.ember.feature.inventory.entity.SelfCheckState;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -63,12 +64,30 @@ public class SelfCheckRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.post(prefix + "/self-checks", this::handOut, StationPermission.INVENTORY_CHECK);
-        routes.get(prefix + "/self-checks/mine", this::mine, StationPermission.USER);
-        routes.get(prefix + "/self-checks/{id}", this::read, StationPermission.USER);
-        routes.put(prefix + "/self-checks/{id}/answers", this::answer, StationPermission.USER);
-        routes.post(prefix + "/self-checks/{id}/submit", this::submit, StationPermission.USER);
-        routes.post(prefix + "/self-checks/{id}/held-reports", this::holdBack, StationPermission.USER);
+        routes.post(
+                prefix + "/self-checks",
+                this::handOut,
+                StationPermission.INVENTORY_CHECK,
+                StationModule.INVENTORY_SELF_CHECKS);
+        routes.get(
+                prefix + "/self-checks/mine", this::mine, StationPermission.USER, StationModule.INVENTORY_SELF_CHECKS);
+        routes.get(
+                prefix + "/self-checks/{id}", this::read, StationPermission.USER, StationModule.INVENTORY_SELF_CHECKS);
+        routes.put(
+                prefix + "/self-checks/{id}/answers",
+                this::answer,
+                StationPermission.USER,
+                StationModule.INVENTORY_SELF_CHECKS);
+        routes.post(
+                prefix + "/self-checks/{id}/submit",
+                this::submit,
+                StationPermission.USER,
+                StationModule.INVENTORY_SELF_CHECKS);
+        routes.post(
+                prefix + "/self-checks/{id}/held-reports",
+                this::holdBack,
+                StationPermission.USER,
+                StationModule.INVENTORY_SELF_CHECKS);
     }
 
     @OpenApi(

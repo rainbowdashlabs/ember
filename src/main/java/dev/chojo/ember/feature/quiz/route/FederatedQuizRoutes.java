@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.quiz.entity.QuizCatalog;
 import dev.chojo.ember.feature.quiz.route.RemoteQuizRoutes.RemoteCatalogDetail;
 import dev.chojo.ember.feature.quiz.service.QuizFederationService;
 import dev.chojo.ember.feature.quiz.service.QuizFederationService.SharedQuizCatalog;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -42,15 +43,18 @@ public class FederatedQuizRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/federated/quiz/catalogs", this::browseCatalogs, StationPermission.USER);
+        routes.get(
+                prefix + "/federated/quiz/catalogs", this::browseCatalogs, StationPermission.USER, StationModule.QUIZ);
         routes.get(
                 prefix + "/federated/{stationuid}/quiz/catalogs/{id}",
                 this::getCatalog,
-                StationPermission.TEST_CATALOG_VIEW);
+                StationPermission.TEST_CATALOG_VIEW,
+                StationModule.QUIZ);
         routes.post(
                 prefix + "/federated/{stationuid}/quiz/catalogs/{id}/copy",
                 this::copyCatalog,
-                StationPermission.TEST_CATALOG_EDIT);
+                StationPermission.TEST_CATALOG_EDIT,
+                StationModule.QUIZ);
     }
 
     @OpenApi(

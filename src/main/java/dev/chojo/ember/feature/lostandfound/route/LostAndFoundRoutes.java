@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.lostandfound.service.LostAndFoundImageService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -74,15 +75,44 @@ public class LostAndFoundRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/lost-and-found", this::list, StationPermission.LOGIN);
-        routes.post(prefix + "/lost-and-found", this::create, StationPermission.LOST_AND_FOUND_CREATE);
-        routes.get(prefix + "/lost-and-found/{id}", this::getById, StationPermission.LOGIN);
-        routes.get(prefix + "/lost-and-found/{id}/image", this::getImage, StationPermission.LOGIN);
-        routes.post(prefix + "/lost-and-found/{id}/image", this::uploadImage, StationPermission.LOST_AND_FOUND_CREATE);
-        routes.post(prefix + "/lost-and-found/{id}/claim", this::claim, StationPermission.LOGIN);
-        routes.post(prefix + "/lost-and-found/{id}/release", this::release, StationPermission.LOGIN);
-        routes.post(prefix + "/lost-and-found/{id}/provided", this::provided, StationPermission.LOST_AND_FOUND_MANAGE);
-        routes.delete(prefix + "/lost-and-found/{id}", this::delete, StationPermission.LOST_AND_FOUND_MANAGE);
+        routes.get(prefix + "/lost-and-found", this::list, StationPermission.LOGIN, StationModule.LOST_AND_FOUND);
+        routes.post(
+                prefix + "/lost-and-found",
+                this::create,
+                StationPermission.LOST_AND_FOUND_CREATE,
+                StationModule.LOST_AND_FOUND);
+        routes.get(
+                prefix + "/lost-and-found/{id}", this::getById, StationPermission.LOGIN, StationModule.LOST_AND_FOUND);
+        routes.get(
+                prefix + "/lost-and-found/{id}/image",
+                this::getImage,
+                StationPermission.LOGIN,
+                StationModule.LOST_AND_FOUND);
+        routes.post(
+                prefix + "/lost-and-found/{id}/image",
+                this::uploadImage,
+                StationPermission.LOST_AND_FOUND_CREATE,
+                StationModule.LOST_AND_FOUND);
+        routes.post(
+                prefix + "/lost-and-found/{id}/claim",
+                this::claim,
+                StationPermission.LOGIN,
+                StationModule.LOST_AND_FOUND);
+        routes.post(
+                prefix + "/lost-and-found/{id}/release",
+                this::release,
+                StationPermission.LOGIN,
+                StationModule.LOST_AND_FOUND);
+        routes.post(
+                prefix + "/lost-and-found/{id}/provided",
+                this::provided,
+                StationPermission.LOST_AND_FOUND_MANAGE,
+                StationModule.LOST_AND_FOUND);
+        routes.delete(
+                prefix + "/lost-and-found/{id}",
+                this::delete,
+                StationPermission.LOST_AND_FOUND_MANAGE,
+                StationModule.LOST_AND_FOUND);
     }
 
     @OpenApi(

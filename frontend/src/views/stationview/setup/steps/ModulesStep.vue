@@ -15,7 +15,7 @@ import {useSession} from '@/composables/useSession'
 import {useSetupStatus} from '@/composables/useSetupStatus'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {goToNextStep} from '@/views/stationview/setup/steps'
-import {STATION_MODULE_OPTIONS} from '@/data/stationModules'
+import {STATION_MODULE_OPTIONS, moduleRuns, parentAllows} from '@/data/stationModules'
 import {StationModule} from '@/api/generated/schema'
 
 const {t} = useI18n()
@@ -37,8 +37,13 @@ onMounted(async () => {
   loading.value = false
 })
 
-function isEnabled(key: StationModule): boolean {
+function isOn(key: StationModule): boolean {
   return !disabled.value.has(key)
+}
+
+/** Whether a module shows on; a part of a module that is off shows off too and cannot be switched. */
+function isEnabled(key: StationModule): boolean {
+  return moduleRuns(key, isOn)
 }
 
 function toggle(key: StationModule) {
@@ -66,6 +71,7 @@ const {running: saving, failure, run: save} = useAsyncAction(async () => {
           :key="mod.value"
           :module="mod"
           :model-value="isEnabled(mod.value)"
+          :disabled="!parentAllows(mod.value, isOn)"
           @update:model-value="toggle(mod.value)"
       />
     </div>

@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.DigestItem;
+import dev.chojo.ember.feature.notifications.entity.HiddenNotifications;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
@@ -21,6 +22,8 @@ import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationScheduleRepository;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -152,7 +156,11 @@ class NotificationDigestTest extends RepositoryTestBase {
                 cluster.id(),
                 accountRepo.create("still@test.com", "Stella", "Still").id(),
                 ClusterUserType.CLUSTER_USER);
-        var preferences = new NotificationPreferences(notificationSettingsRepo, clusterRepo, email);
+        var preferences = new NotificationPreferences(
+                notificationSettingsRepo,
+                clusterRepo,
+                email,
+                new NotificationVisibility(new ModuleAvailability(stationRepo, clusterRepo), stationMemberRepo));
         assertFalse(preferences.clusterMailOf(wantsMail.id()).emailEnabled(), "mail is off until asked for");
         assertTrue(preferences.setClusterMail(wantsMail.id(), true).emailEnabled());
         assertTrue(preferences.clusterMailOf(wantsMail.id()).mailAvailable());
@@ -181,6 +189,33 @@ class NotificationDigestTest extends RepositoryTestBase {
         assertTrue(mails.getFirst().contains("subject=Kreisverband Nord: 1 neue Benachrichtigung"));
         assertTrue(notificationRepo.findWaitingForDigest().isEmpty(), "both are marked, mailed or not");
         clusterRepo.delete(cluster.id());
+    }
+
+    /**
+     * What a switched-off module hides is not mailed, and it is marked as handled, so switching the module
+     * back on brings it back to the inbox and not, late, to the mail.
+     */
+    @Test
+    void aSwitchedOffModuleIsNotMailedButMarked() {
+        var station = station("Wache Ohne Nachrichten", "de-DE", "Europe/Berlin");
+        var reader = memberWithMail(station, "ohne-news@test.com", "Nora", "Nachricht");
+        notificationSettingsRepo.upsert(reader.id(), NotificationType.NEW_NEWS, true, true, true);
+        notificationSettingsRepo.upsert(reader.id(), NotificationType.NEW_EVENT, true, true, true);
+        notify(reader, NotificationType.NEW_NEWS, news("Verborgen"));
+        notify(
+                reader,
+                NotificationType.NEW_EVENT,
+                NotificationData.of(
+                        new NotificationParams.NewEvent("Abendprobe", "Vorschau"),
+                        new NotificationData.NotificationLink("event-detail", Map.of("id", 5))));
+        stationRepo.setDisabledModules(station.id(), Set.of(StationModule.NEWS));
+
+        digest.sweep(Instant.now());
+
+        assertEquals(1, mails.size());
+        assertTrue(mails.getFirst().contains("Abendprobe"));
+        assertFalse(mails.getFirst().contains("Verborgen"), "the news are not mailed while news are off");
+        assertTrue(waiting(reader).isEmpty(), "both are marked, mailed or not");
     }
 
     /** A member who has not switched mail on is not mailed, and their notification is not tried again. */
@@ -291,7 +326,10 @@ class NotificationDigestTest extends RepositoryTestBase {
         int statements = countStatements(() -> digest.sweep(Instant.now()));
 
         assertEquals(20, mails.size());
-        assertEquals(6, statements, "read waiting, groups, accounts; mark mailed, mark sent; prune");
+        assertEquals(
+                8,
+                statements,
+                "read waiting, groups, accounts, the station's modules (two); mark mailed, mark sent; prune");
     }
 
     /** Zero minutes switches the mail off; the sweep still prunes. */
@@ -352,7 +390,8 @@ class NotificationDigestTest extends RepositoryTestBase {
                 email,
                 logos,
                 new NotificationText(),
-                mailing);
+                mailing,
+                new NotificationVisibility(new ModuleAvailability(stationRepo, clusterRepo), stationMemberRepo));
     }
 
     private static void flushWaiting() {
@@ -505,7 +544,8 @@ class NotificationDigestTest extends RepositoryTestBase {
         var mail = mails.getFirst();
         assertTrue(mail.contains("count=1"), "only the news the guardian has not read yet");
         assertTrue(mail.contains("Für Leo<"));
-        assertEquals(2, notificationRepo.countUnacknowledged(Recipient.stationMember(leo.id())));
+        assertEquals(
+                2, notificationRepo.countUnacknowledged(Recipient.stationMember(leo.id()), HiddenNotifications.NONE));
     }
 
     /** Only the address owner's own items mark themselves read when opened, never a child's. */
@@ -560,7 +600,7 @@ class NotificationDigestTest extends RepositoryTestBase {
 
     private static Notification onlyUnread(StationMember member) {
         return notificationRepo
-                .findUnacknowledged(Recipient.stationMember(member.id()))
+                .findUnacknowledged(Recipient.stationMember(member.id()), HiddenNotifications.NONE)
                 .getFirst();
     }
 

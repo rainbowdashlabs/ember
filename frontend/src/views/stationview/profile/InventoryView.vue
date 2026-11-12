@@ -8,6 +8,7 @@ import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import MovementsPanel from '@/components/inventory/MovementsPanel.vue'
+import {StationModule} from '@/api/generated/schema'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -28,7 +29,7 @@ import type {WizardPrefill} from '@/views/stationview/inventory/movementwizard/u
 import ReportLostModal from './inventoryview/ReportLostModal.vue'
 
 const {t} = useI18n()
-const {isGuardian, sessionInfo, loaded} = useSession()
+const {isGuardian, sessionInfo, loaded, isModuleEnabled} = useSession()
 
 const items = ref<MyInventoryItem[]>([])
 const requirements = ref<MyRequirement[]>([])
@@ -264,7 +265,7 @@ const {
     <div class="space-y-6">
       <MemberTabSelector :tabs="tabs" :selected-id="selectedMemberId" @select="selectedMemberId = $event"/>
 
-      <MovementsPanel @changed="loadOwnInventory"/>
+      <MovementsPanel v-if="isModuleEnabled(StationModule.INVENTORY_MOVEMENTS)" @changed="loadOwnInventory"/>
 
       <Spinner v-if="loading" size="lg"/>
       <FailureAlert :failure="failure"/>

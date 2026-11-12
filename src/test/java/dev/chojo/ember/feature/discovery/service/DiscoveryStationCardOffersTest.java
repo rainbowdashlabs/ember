@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.signing.service.PublishedCertificates;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.station.service.PublicStationInfoService;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
@@ -64,7 +65,8 @@ class DiscoveryStationCardOffersTest extends RepositoryTestBase {
                 waitingLists,
                 news,
                 mock(FormService.class),
-                mock(PublishedCertificates.class));
+                mock(PublishedCertificates.class),
+                mock(ModuleAvailability.class));
         service = new DiscoveryStationProjectionService(
                 stationRepo,
                 clusterRepo,

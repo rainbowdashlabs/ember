@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.station.service.PublicStationInfoService;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
@@ -87,7 +88,8 @@ class PublicStationInfoTimezoneTest {
                 mock(WaitingListService.class),
                 mock(NewsService.class),
                 mock(FormService.class),
-                mock(PublishedCertificates.class)));
+                mock(PublishedCertificates.class),
+                mock(ModuleAvailability.class)));
 
         return read(
                 RouteHarness.serving(routes)

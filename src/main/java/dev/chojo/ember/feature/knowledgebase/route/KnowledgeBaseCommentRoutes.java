@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbAuthorNameService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -66,10 +67,26 @@ public class KnowledgeBaseCommentRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/kb/files/{fileId}/comments", this::listComments, StationPermission.LOGIN);
-        routes.post(prefix + "/kb/files/{fileId}/comments", this::createComment, StationPermission.LOGIN);
-        routes.put(prefix + "/kb/comments/{commentId}", this::updateComment, StationPermission.LOGIN);
-        routes.delete(prefix + "/kb/comments/{commentId}", this::deleteComment, StationPermission.LOGIN);
+        routes.get(
+                prefix + "/kb/files/{fileId}/comments",
+                this::listComments,
+                StationPermission.LOGIN,
+                StationModule.KNOWLEDGE_BASE);
+        routes.post(
+                prefix + "/kb/files/{fileId}/comments",
+                this::createComment,
+                StationPermission.LOGIN,
+                StationModule.KNOWLEDGE_BASE);
+        routes.put(
+                prefix + "/kb/comments/{commentId}",
+                this::updateComment,
+                StationPermission.LOGIN,
+                StationModule.KNOWLEDGE_BASE);
+        routes.delete(
+                prefix + "/kb/comments/{commentId}",
+                this::deleteComment,
+                StationPermission.LOGIN,
+                StationModule.KNOWLEDGE_BASE);
     }
 
     @OpenApi(

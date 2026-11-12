@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.testtools.Response;
 import org.junit.jupiter.api.AfterAll;
@@ -90,7 +91,7 @@ class NewsCommentBehaviourTest extends RepositoryTestBase {
                         comments,
                         mock(NewsAttachmentService.class),
                         mock(NewsFederationService.class),
-                        new PublicBlogService(stationRepo),
+                        new PublicBlogService(stationRepo, mock(ModuleAvailability.class)),
                         memberNameResolver,
                         memberIdentityFactory,
                         mock(EmailService.class)))

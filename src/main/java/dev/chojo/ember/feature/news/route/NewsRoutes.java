@@ -48,6 +48,7 @@ import dev.chojo.ember.feature.news.service.NewsAttachmentService;
 import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.news.service.PublicBlogService;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.util.Markdown;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -131,41 +132,78 @@ public class NewsRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/news", this::list, StationPermission.LOGIN);
+        routes.get(prefix + "/news", this::list, StationPermission.LOGIN, StationModule.NEWS);
         routes.get(
                 prefix + "/news/search",
                 this::search,
                 StationPermission.PAGE_EDIT,
                 StationPermission.NEWS_EDIT,
-                StationPermission.KNOWLEDGE_EDIT);
-        routes.get(prefix + "/news/embed/{newsUid}", this::memberNewsTeaser, StationPermission.LOGIN);
-        routes.get(prefix + "/news/{id}", this::get, StationPermission.LOGIN);
-        routes.post(prefix + "/news", this::create, StationPermission.NEWS_EDIT);
-        routes.put(prefix + "/news/{id}", this::update, StationPermission.NEWS_EDIT);
-        routes.delete(prefix + "/news/{id}", this::delete, StationPermission.NEWS_EDIT);
-        routes.get(prefix + "/news/{id}/comments", this::listComments, StationPermission.LOGIN);
-        routes.post(prefix + "/news/{id}/comments", this::createComment, StationPermission.LOGIN);
-        routes.put(prefix + "/news/comments/{commentId}", this::updateComment, StationPermission.LOGIN);
-        routes.delete(prefix + "/news/comments/{commentId}", this::deleteComment, StationPermission.LOGIN);
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.NEWS);
+        routes.get(
+                prefix + "/news/embed/{newsUid}", this::memberNewsTeaser, StationPermission.LOGIN, StationModule.NEWS);
+        routes.get(prefix + "/news/{id}", this::get, StationPermission.LOGIN, StationModule.NEWS);
+        routes.post(prefix + "/news", this::create, StationPermission.NEWS_EDIT, StationModule.NEWS);
+        routes.put(prefix + "/news/{id}", this::update, StationPermission.NEWS_EDIT, StationModule.NEWS);
+        routes.delete(prefix + "/news/{id}", this::delete, StationPermission.NEWS_EDIT, StationModule.NEWS);
+        routes.get(prefix + "/news/{id}/comments", this::listComments, StationPermission.LOGIN, StationModule.NEWS);
+        routes.post(prefix + "/news/{id}/comments", this::createComment, StationPermission.LOGIN, StationModule.NEWS);
+        routes.put(
+                prefix + "/news/comments/{commentId}",
+                this::updateComment,
+                StationPermission.LOGIN,
+                StationModule.NEWS);
+        routes.delete(
+                prefix + "/news/comments/{commentId}",
+                this::deleteComment,
+                StationPermission.LOGIN,
+                StationModule.NEWS);
 
-        routes.put(prefix + "/news/{id}/blocks", this::saveBlocks, StationPermission.NEWS_EDIT);
-        routes.post(prefix + "/news/{id}/blocks/enable", this::enableBlocks, StationPermission.NEWS_EDIT);
+        routes.put(prefix + "/news/{id}/blocks", this::saveBlocks, StationPermission.NEWS_EDIT, StationModule.NEWS);
+        routes.post(
+                prefix + "/news/{id}/blocks/enable",
+                this::enableBlocks,
+                StationPermission.NEWS_EDIT,
+                StationModule.NEWS);
 
         routes.post(
                 prefix + "/news/attachments/{attachmentId}/label",
                 this::relabelAttachment,
-                StationPermission.NEWS_EDIT);
-        routes.delete(prefix + "/news/attachments/{attachmentId}", this::detachAttachment, StationPermission.NEWS_EDIT);
-        routes.post(prefix + "/news/{id}/attachments", this::attachFile, StationPermission.NEWS_EDIT);
-        routes.put(prefix + "/news/{id}/attachments/order", this::reorderAttachments, StationPermission.NEWS_EDIT);
+                StationPermission.NEWS_EDIT,
+                StationModule.NEWS);
+        routes.delete(
+                prefix + "/news/attachments/{attachmentId}",
+                this::detachAttachment,
+                StationPermission.NEWS_EDIT,
+                StationModule.NEWS);
+        routes.post(
+                prefix + "/news/{id}/attachments", this::attachFile, StationPermission.NEWS_EDIT, StationModule.NEWS);
+        routes.put(
+                prefix + "/news/{id}/attachments/order",
+                this::reorderAttachments,
+                StationPermission.NEWS_EDIT,
+                StationModule.NEWS);
 
-        routes.post(prefix + "/news/{id}/view", this::recordView, StationPermission.LOGIN);
-        routes.get(prefix + "/news/{id}/view-count", this::getViewCount, StationPermission.NEWS_EDIT);
-        routes.get(prefix + "/news/{id}/views", this::listViewers, StationPermission.NEWS_EDIT);
+        routes.post(prefix + "/news/{id}/view", this::recordView, StationPermission.LOGIN, StationModule.NEWS);
+        routes.get(
+                prefix + "/news/{id}/view-count", this::getViewCount, StationPermission.NEWS_EDIT, StationModule.NEWS);
+        routes.get(prefix + "/news/{id}/views", this::listViewers, StationPermission.NEWS_EDIT, StationModule.NEWS);
 
-        routes.get(prefix + "/news/{id}/federation", this::getFederationShare, StationPermission.NEWS_FEDERATE);
-        routes.put(prefix + "/news/{id}/federation", this::setFederationShare, StationPermission.NEWS_FEDERATE);
-        routes.delete(prefix + "/news/{id}/federation", this::removeFederationShare, StationPermission.NEWS_FEDERATE);
+        routes.get(
+                prefix + "/news/{id}/federation",
+                this::getFederationShare,
+                StationPermission.NEWS_FEDERATE,
+                StationModule.NEWS);
+        routes.put(
+                prefix + "/news/{id}/federation",
+                this::setFederationShare,
+                StationPermission.NEWS_FEDERATE,
+                StationModule.NEWS);
+        routes.delete(
+                prefix + "/news/{id}/federation",
+                this::removeFederationShare,
+                StationPermission.NEWS_FEDERATE,
+                StationModule.NEWS);
 
         routes.get(prefix + "/public/station/{stationUid}/blog", this::publicBlogList);
         routes.get(prefix + "/public/station/{stationUid}/blog/{blogId}", this::publicBlogDetail);

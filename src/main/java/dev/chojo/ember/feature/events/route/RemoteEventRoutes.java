@@ -75,14 +75,20 @@ public class RemoteEventRoutes implements Routes {
     public static final FederationEndpoint LIST_MEMBER_REGISTRATIONS = FederationEndpoint.getList(
             FederationSurface.EVENT_SHARE, "/remote/registrations/{memberUid}", RemoteMemberRegistration.class);
     public static final FederationEndpoint REGISTRATION_STATUS_WEBHOOK = FederationEndpoint.post(
-            FederationSurface.EVENT_SHARE,
-            "/remote/webhook/event-registration-status",
-            Void.class,
-            FederatedEventRoutes.StatusResponse.class);
+                    FederationSurface.EVENT_SHARE,
+                    "/remote/webhook/event-registration-status",
+                    Void.class,
+                    FederatedEventRoutes.StatusResponse.class)
+            .keepingInStep();
     public static final FederationEndpoint EVENT_CHANGED_WEBHOOK = FederationEndpoint.post(
-            FederationSurface.EVENT_SHARE, "/remote/webhook/event-changed", RemoteEventChange.class, Void.class);
+                    FederationSurface.EVENT_SHARE, "/remote/webhook/event-changed", RemoteEventChange.class, Void.class)
+            .keepingInStep();
     public static final FederationEndpoint EVENT_CONTINUED_WEBHOOK = FederationEndpoint.post(
-            FederationSurface.EVENT_SHARE, "/remote/webhook/event-continued", RemoteEventHandover.class, Void.class);
+                    FederationSurface.EVENT_SHARE,
+                    "/remote/webhook/event-continued",
+                    RemoteEventHandover.class,
+                    Void.class)
+            .keepingInStep();
     public static final FederationEndpoint LIST_COMMENTS = FederationEndpoint.getList(
             FederationSurface.EVENT_SHARE, "/remote/events/{eventId}/comments", CommentResponse.class);
     public static final FederationEndpoint CREATE_COMMENT = FederationEndpoint.post(

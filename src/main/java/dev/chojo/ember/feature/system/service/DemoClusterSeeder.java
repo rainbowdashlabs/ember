@@ -56,6 +56,7 @@ import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.ClusterQuotaDefaults;
 import jakarta.inject.Inject;
@@ -770,7 +771,7 @@ public class DemoClusterSeeder implements DemoSeeder {
         tell(
                 toMember,
                 NotificationType.CLUSTER_MODULE_DENIED,
-                new NotificationParams.ClusterModuleDenied(name, "Fundsachen"),
+                new NotificationParams.ClusterModuleDenied(name, StationModule.LOST_AND_FOUND.name()),
                 "station-modules");
         tell(
                 toMember,

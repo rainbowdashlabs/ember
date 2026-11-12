@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -58,7 +59,9 @@ class NotificationInboxTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        inbox = new NotificationInbox(notificationRepo);
+        inbox = new NotificationInbox(
+                notificationRepo,
+                new NotificationVisibility(new ModuleAvailability(stationRepo, clusterRepo), stationMemberRepo));
         notifier = newNotifier();
 
         station = stationRepo.create("NotifStation");
@@ -172,7 +175,11 @@ class NotificationInboxTest extends RepositoryTestBase {
     @Test
     @Order(26)
     void getNotificationSettings() {
-        var settings = new NotificationPreferences(notificationSettingsRepo, clusterRepo, mock(EmailService.class))
+        var settings = new NotificationPreferences(
+                        notificationSettingsRepo,
+                        clusterRepo,
+                        mock(EmailService.class),
+                        new NotificationVisibility(new ModuleAvailability(stationRepo, clusterRepo), stationMemberRepo))
                 .settingsOf(member1.id());
         assertNotNull(settings);
     }

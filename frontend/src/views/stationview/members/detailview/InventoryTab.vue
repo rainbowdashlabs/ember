@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, toRef } from 'vue'
+import { computed, ref, toRef } from 'vue'
 import InventorySection from './InventorySection.vue'
 import HandOutModal from './inventorytab/HandOutModal.vue'
 import ReturnEverythingBar from './inventorytab/ReturnEverythingBar.vue'
@@ -12,7 +12,8 @@ import ScanHandOutPanel from './inventorytab/ScanHandOutPanel.vue'
 import { useScanHandOut } from './inventorytab/useScanHandOut'
 import MovementsPanel from '@/components/inventory/MovementsPanel.vue'
 import UnknownScanModal from '@/views/stationview/inventory/UnknownScanModal.vue'
-import type { MemberRequirements, MyInventoryItem, RequiredInventoryItem } from '@/api/generated/schema'
+import { StationModule, type MemberRequirements, type MyInventoryItem, type RequiredInventoryItem } from '@/api/generated/schema'
+import { useSession } from '@/composables/useSession'
 
 /**
  * Everything about the member's gear in one place: a scanner to hand pieces over, what they hold and
@@ -45,6 +46,10 @@ const emit = defineEmits<{
   changed: []
 }>()
 
+const {isModuleEnabled} = useSession()
+/** Movements are a part of the inventory a station can switch off, which takes their controls along. */
+const runsMovements = computed(() => isModuleEnabled(StationModule.INVENTORY_MOVEMENTS))
+
 const scan = useScanHandOut(toRef(props, 'memberId'), toRef(props, 'memberName'), () => emit('changed'))
 const { scanValue, handOutMode, unknownCode } = scan
 
@@ -72,7 +77,7 @@ function openHandOut(requirement: RequiredInventoryItem | null) {
     />
 
     <ReturnEverythingBar
-        v-if="canReturnEverything && memberInventory.length > 0"
+        v-if="canReturnEverything && runsMovements && memberInventory.length > 0"
         :member-id="memberId"
         @done="emit('changed')"
     />
@@ -81,7 +86,7 @@ function openHandOut(requirement: RequiredInventoryItem | null) {
         :member-inventory="memberInventory"
         :requirements="memberRequirements.required"
         :can-assign="canAssign"
-        :can-manage-inventory="canManageInventory"
+        :can-manage-inventory="canManageInventory && runsMovements"
         @assign-item="openHandOut(null)"
         @fill-gap="openHandOut"
         @request-exchange="emit('request-exchange', $event)"
@@ -89,7 +94,7 @@ function openHandOut(requirement: RequiredInventoryItem | null) {
         @reassign="emit('reassign', $event)"
     />
 
-    <MovementsPanel :member-id="memberId" @changed="emit('changed')"/>
+    <MovementsPanel v-if="runsMovements" :member-id="memberId" @changed="emit('changed')"/>
 
     <HandOutModal
         v-model="handingOut"

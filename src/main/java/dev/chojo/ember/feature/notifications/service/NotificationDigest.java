@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.notifications.entity.DigestGroup;
 import dev.chojo.ember.feature.notifications.entity.DigestItem;
 import dev.chojo.ember.feature.notifications.entity.DigestMail;
+import dev.chojo.ember.feature.notifications.entity.HiddenNotifications;
 import dev.chojo.ember.feature.notifications.entity.LinkHome;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationScheduleRepository;
@@ -81,6 +82,7 @@ public class NotificationDigest implements TaskSource {
     private final EmailService emailService;
     private final StationLogoService logoService;
     private final NotificationText text;
+    private final NotificationVisibility visibility;
 
     /** The shortest gap the operator allows between two mails to the same group. */
     private final Duration floor;
@@ -102,7 +104,9 @@ public class NotificationDigest implements TaskSource {
             EmailService emailService,
             StationLogoService logoService,
             NotificationText text,
-            Mailing mailing) {
+            Mailing mailing,
+            NotificationVisibility visibility) {
+        this.visibility = visibility;
         this.notificationRepository = notificationRepository;
         this.scheduleRepository = scheduleRepository;
         this.accountRepository = accountRepository;
@@ -243,13 +247,28 @@ public class NotificationDigest implements TaskSource {
     private void send(DigestGroup group, List<DigestItem> items, Map<Integer, Account> accounts) {
         if (!canSend(group)) return;
         for (var mail : DigestAddresses.gather(
-                items, accounts, mailRecipientService::forAccount, NotificationDigest::firstNameOf)) {
+                shown(group, items), accounts, mailRecipientService::forAccount, NotificationDigest::firstNameOf)) {
             try {
                 sendTo(group, mail);
             } catch (RuntimeException e) {
                 log.warn("Failed to send the digest of {} to one address", group.key(), e);
             }
         }
+    }
+
+    /**
+     * The items of a group that are mailed: at a station, those its switched-off modules do not hide.
+     * The hidden ones are marked as handled with the rest, so a module switched back on brings them back
+     * to the inbox and not, late and out of context, to the mail.
+     */
+    private List<DigestItem> shown(DigestGroup group, List<DigestItem> items) {
+        if (group.key().kind() != DigestGroup.Kind.STATION) return items;
+        HiddenNotifications hidden = visibility.hiddenAt(group.key().id());
+        if (hidden.isEmpty()) return items;
+        return items.stream()
+                .filter(item -> !hidden.hides(
+                        item.notification().type(), item.notification().data().link()))
+                .toList();
     }
 
     private boolean canSend(DigestGroup group) {
