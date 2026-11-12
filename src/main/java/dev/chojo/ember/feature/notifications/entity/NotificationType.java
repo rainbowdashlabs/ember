@@ -186,10 +186,12 @@ public enum NotificationType {
     private final @Nullable StationModule module;
 
     NotificationType(Class<? extends NotificationParams> paramsType, String localeKey) {
-        this(paramsType, localeKey, null);
+        this.paramsType = paramsType;
+        this.localeKey = localeKey;
+        this.module = null;
     }
 
-    NotificationType(Class<? extends NotificationParams> paramsType, String localeKey, @Nullable StationModule module) {
+    NotificationType(Class<? extends NotificationParams> paramsType, String localeKey, StationModule module) {
         this.paramsType = paramsType;
         this.localeKey = localeKey;
         this.module = module;

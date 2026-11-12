@@ -38,7 +38,6 @@ public class ModuleGuard {
     /**
      * The modules a route belongs to, read from its roles.
      *
-     * @param roles    the roles the route declares
      * @param declared whether the modules were declared, which means every one of them has to be on,
      *                 rather than read from the permissions, which means one of them is enough
      * @param modules  the modules, empty for a route of no module
