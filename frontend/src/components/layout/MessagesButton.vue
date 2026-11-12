@@ -14,7 +14,8 @@ import {useMessageStream} from '@/composables/useMessageStream'
 /**
  * The header's way into messages, with the number of unread messages beside it. It is the same in
  * every place, because messages belong to the person and not to the place they are in, and it is
- * not there at all for somebody whose guardian has not turned messages on.
+ * not there at all for somebody whose guardian has not turned messages on. It is drawn muted like the
+ * search beside it and turns to the primary colour only while something is unread.
  *
  * <p>The tab's message stream is opened here, since the header is on every signed-in page; while it
  * does not get through, the count is asked for once a minute.
@@ -33,7 +34,7 @@ useMessageStream(() => { void refresh() }, 60_000, () => { void refresh() })
         :label="status.unread > 0 ? t('messages.openUnread', {count: status.unread}) : t('messages.open')"
         to="/messages"
         data-testid="messages-button"
-        class="text-[var(--text)] hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent"
+        :class="['row-link hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent', status.unread > 0 ? 'text-primary' : 'text-(--text-muted) hover:text-(--text)']"
     />
     <CountBadge v-if="status.unread > 0" :count="status.unread" small
                 class="pointer-events-none absolute -top-1 -right-1"/>
