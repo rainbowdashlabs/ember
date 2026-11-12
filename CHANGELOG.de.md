@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.24.2
+
+Die Liste der kommenden Termine zeigt auf Wunsch nur noch, wofür eine Anmeldung noch möglich ist.
+
+### Fehlerbehebungen
+
+- **Geschlossene Anmeldungen gelten nicht mehr als offen.** Mit "Anmeldung offen" zeigte die Liste der kommenden Termine auch Termine, deren Anmeldeschluss schon vorbei war. Jetzt erscheinen nur noch Termine, für die eine Anmeldung noch möglich ist.
+
 ## v26.24.1
 
 Jede Zahl der Übersicht öffnet die passende Liste, fehlgeschlagene E-Mails lassen sich lesen und zur Kenntnis nehmen. Die Verwaltung einer wartenden Wache lässt sich erinnern und wird auch von selbst erinnert. Die Kontenliste filtert über alle Konten. Die Statistik zeigt, wie viele Personen die Instanz täglich nutzen und wie sie wächst, aufgezeichnet ab dieser Version. Knöpfe, die nur zu einer Ablehnung führen konnten, sind verschwunden oder erklären sich. Das Problemprotokoll übersteht einen Neustart, kann Bekanntes stummschalten und zeigt die Logzeilen um ein Problem. Diese Zeilen können auf Wunsch an einen Beacon gehen, Namen und Adressen werden dabei ersetzt.

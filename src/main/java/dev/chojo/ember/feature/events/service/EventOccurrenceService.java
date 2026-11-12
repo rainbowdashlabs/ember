@@ -80,12 +80,27 @@ public class EventOccurrenceService {
         LocalDate first = notBefore(calendar.today(), query.from());
         LocalDate last = notAfter(first.plusDays(OccurrenceCalendar.LOOKAHEAD_DAYS), query.to());
 
-        var walk = new Walk(
-                (event, day) -> calendar.next(event, day),
-                day -> day.plusDays(1),
-                day -> !day.isAfter(last),
-                Comparator.naturalOrder());
+        BiFunction<StationEvent, LocalDate, Optional<LocalDate>> next =
+                query.registrationOpen() ? (event, day) -> nextOpenDate(event, day, last, calendar) : calendar::next;
+        var walk = new Walk(next, day -> day.plusDays(1), day -> !day.isAfter(last), Comparator.naturalOrder());
         return page(walk.from(first, events, query.offset() + query.limit(), calendar), query);
+    }
+
+    /**
+     * The first date on or after a day that an appointment falls on and still takes sign-ups for,
+     * no later than the last day the list reaches. A date that was called off takes none.
+     */
+    private static Optional<LocalDate> nextOpenDate(
+            StationEvent event, LocalDate day, LocalDate last, StationCalendar calendar) {
+        LocalDate today = calendar.today();
+        Instant now = Instant.now();
+        Optional<LocalDate> candidate = calendar.next(event, day);
+        while (candidate.isPresent() && !candidate.get().isAfter(last)) {
+            LocalDate date = candidate.get();
+            if (event.registrationOpenOn(date, today, now) && !calendar.isCancelled(event, date)) return candidate;
+            candidate = calendar.next(event, date.plusDays(1));
+        }
+        return Optional.empty();
     }
 
     /**
@@ -308,7 +323,9 @@ public class EventOccurrenceService {
      *
      * @param categoryId           the category to keep, null for all of them
      * @param requiresRegistration whether to keep only the ones that must be answered, null for all
-     * @param search               free text matched against name and description, null for all
+     * @param registrationOpen     whether the upcoming list keeps only the dates a member can still
+     *                             sign up for; the other listings do not read it
+     * @param search              free text matched against name and description, null for all
      * @param from                 the earliest date to consider, null where the list starts where it
      *                             naturally starts
      * @param to                   the latest date to consider, null where it ends where it naturally
@@ -319,6 +336,7 @@ public class EventOccurrenceService {
     public record OccurrenceQuery(
             @Nullable Integer categoryId,
             @Nullable Boolean requiresRegistration,
+            boolean registrationOpen,
             @Nullable String search,
             @Nullable LocalDate from,
             @Nullable LocalDate to,

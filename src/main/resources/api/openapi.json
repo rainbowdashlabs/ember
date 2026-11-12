@@ -19256,6 +19256,12 @@
             "type" : "boolean"
           }
         }, {
+          "name" : "registrationOpen",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
           "name" : "search",
           "in" : "query",
           "schema" : {

@@ -27418,6 +27418,7 @@ export interface paths {
                     from?: string;
                     limit?: number;
                     offset?: number;
+                    registrationOpen?: boolean;
                     requiresRegistration?: boolean;
                     search?: string;
                     to?: string;

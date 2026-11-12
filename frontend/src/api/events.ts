@@ -121,6 +121,8 @@ export interface EventListParams {
 export interface OccurrenceParams {
     categoryId?: number
     requiresRegistration?: boolean
+    /** Upcoming list only: keep just the dates that can still be signed up for. */
+    registrationOpen?: boolean
     search?: string
     from?: string
     to?: string
