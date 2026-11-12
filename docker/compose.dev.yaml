@@ -28,7 +28,7 @@ x-rustfs: &rustfs
     RUSTFS_CONSOLE_ADDRESS: ":9001"
 
 x-rustfs-init: &rustfs-init
-  image: amazon/aws-cli:2.38.6
+  image: public.ecr.aws/aws-cli/aws-cli:2.39.1
   entrypoint: ["/bin/sh", "-c"]
   # Credentials go in the command, not in `environment`: both services using this anchor bring an
   # `environment` of their own, and a YAML merge replaces that key whole rather than adding to it.
@@ -62,7 +62,7 @@ x-smb: &smb
 
 services:
   postgres:
-    image: postgres:18-alpine
+    image: public.ecr.aws/docker/library/postgres:18-alpine
     command: ["postgres", "-c", "max_locks_per_transaction=1024"]
     container_name: ember_dev_db
     environment:
@@ -97,7 +97,7 @@ services:
   # path and exports both before it calls compose; the defaults below are the ports the stack has
   # always used, so a single checkout, or CI, sees no change at all.
   postgres-e2e:
-    image: postgres:18-alpine
+    image: public.ecr.aws/docker/library/postgres:18-alpine
     # The reset before the stories empties every table of both instances in one transaction, and a
     # transaction takes a lock per table it touches. The default room for those is sixty-four, which the
     # schema outgrew: the reset answered 500 and postgres said it was out of shared memory, which reads
@@ -469,7 +469,7 @@ services:
   #   docker compose -f docker/compose.dev.yaml --profile transfer down -v
 
   ember_target_db:
-    image: postgres:18-alpine
+    image: public.ecr.aws/docker/library/postgres:18-alpine
     container_name: ember_dev_target_db
     environment:
       POSTGRES_DB: ember

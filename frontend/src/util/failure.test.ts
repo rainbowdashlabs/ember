@@ -131,6 +131,24 @@ describe('the value a refusal was about', () => {
     })
 })
 
+describe('advice a refusal brings with it', () => {
+    it('tells how to let a question go others depend on, not to reload', () => {
+        const failure = describeFailure(rejected(409, {
+            code: 'M-245',
+            message: 'Other questions depend on this question: JuLeiCa bis',
+        }), german())
+
+        expect(failure.kind).toBe(FailureKind.CONFLICT)
+        expect(failure.guidance).toContain('nennt jetzt die abhängigen Fragen')
+    })
+
+    it('keeps the advice of its kind for any other conflict', () => {
+        const failure = describeFailure(rejected(409, {code: 'F-012', message: 'Already answered'}), german())
+
+        expect(failure.guidance).toContain('Lade die Seite neu')
+    })
+})
+
 describe('refusalSentence', () => {
     it('says a recorded refusal in German with what it was about', () => {
         expect(refusalSentence('D-091', {kind: 'TEXT', text: 'Schule'}, german()))

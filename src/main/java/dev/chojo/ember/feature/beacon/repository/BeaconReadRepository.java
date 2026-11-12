@@ -7,7 +7,10 @@ package dev.chojo.ember.feature.beacon.repository;
 
 import dev.chojo.ember.feature.beacon.entity.BeaconFault;
 import dev.chojo.ember.feature.beacon.entity.BeaconMetricsRow;
+import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
+import dev.chojo.ember.feature.beacon.entity.BeaconProblemContext;
 import dev.chojo.ember.feature.beacon.entity.BeaconReport;
+import dev.chojo.ember.util.Json;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
@@ -56,6 +59,31 @@ public class BeaconReadRepository {
                         row.get("last_seen", INSTANT_TIMESTAMP),
                         row.getBoolean("acknowledged"),
                         row.getString("resolved_in")))
+                .all();
+    }
+
+    /**
+     * The log lines instances sent with one fault, the newest first.
+     *
+     * @param problemId the fault
+     * @return what each instance sent, with the name it gave to be answered on
+     */
+    public List<BeaconProblemContext> problemContext(int problemId) {
+        return query("""
+                        SELECT c.instance_id, i.contact_name, i.last_version, c.occurred_at, c.received_at,
+                               c.lines::TEXT AS lines
+                        FROM beacon_problem_context c
+                        JOIN beacon_instance i ON i.instance_id = c.instance_id
+                        WHERE c.problem_id = :problem
+                        ORDER BY c.received_at DESC, c.id DESC;""")
+                .single(call().bind("problem", problemId))
+                .map(row -> new BeaconProblemContext(
+                        row.getString("instance_id"),
+                        row.getString("contact_name"),
+                        row.getString("last_version"),
+                        row.get("occurred_at", INSTANT_TIMESTAMP),
+                        row.get("received_at", INSTANT_TIMESTAMP),
+                        List.of(Json.MAPPER.readValue(row.getString("lines"), BeaconPayloads.LogLinePayload[].class))))
                 .all();
     }
 

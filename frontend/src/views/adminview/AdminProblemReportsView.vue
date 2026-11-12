@@ -17,8 +17,10 @@ import {beacon} from '@/api'
 import {acknowledgeAllReports, acknowledgeReport, deleteReport, listReports} from '@/api/problemReports'
 import type {ProblemReport} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
+import {useMonitoringCounts} from '@/composables/useMonitoringCounts'
 
 const {t} = useI18n()
+const {refresh: refreshCounts} = useMonitoringCounts()
 
 const includeAcknowledged = ref(false)
 const expandedId = ref<number | null>(null)
@@ -92,6 +94,7 @@ async function ack(id: number) {
   if (!includeAcknowledged.value) {
     reports.value = reports.value.filter(r => r.id !== id)
   }
+  void refreshCounts()
 }
 
 async function ackAll() {
@@ -101,11 +104,13 @@ async function ackAll() {
   } else {
     reports.value = reports.value.map(r => ({...r, acknowledged: true}))
   }
+  void refreshCounts()
 }
 
 async function remove(id: number) {
   await deleteReport(id)
   reports.value = reports.value.filter(r => r.id !== id)
+  void refreshCounts()
 }
 
 function toggle(id: number) {

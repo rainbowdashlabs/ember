@@ -7,8 +7,12 @@ package dev.chojo.ember.feature.mail.repository;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.mail.entity.EmailQueueStatus;
+import dev.chojo.ember.feature.mail.entity.FailedMail;
+import dev.chojo.ember.feature.mail.entity.FailedMailCause;
 import dev.chojo.ember.feature.mail.entity.MailAttachment;
 import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
+import dev.chojo.ember.feature.mail.entity.MailFailureReason;
+import dev.chojo.ember.feature.mail.entity.StationFailedMails;
 import dev.chojo.ember.feature.mail.entity.StationPoolUse;
 import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.Transactions;
@@ -19,10 +23,13 @@ import org.jspecify.annotations.Nullable;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -43,7 +50,26 @@ public class EmailQueueRepository {
      * was left behind rather than delayed. Counting from when the mail was written instead would
      * call every old mail on a retry stuck.
      */
-    private static final int STUCK_MINUTES = 10;
+    public static final int STUCK_MINUTES = 10;
+
+    private static final String FAILED_MAIL_COLUMNS = """
+            id, recipient, subject, created_at, delivery_detail,
+            %s AS cause,
+            %s AS failed_at,
+            (status = 'FAILED' AND failure_reason IS NOT NULL) AS requeueable""".formatted(MailFailureSql.CAUSE, MailFailureSql.FAILED_AT);
+
+    private static final RowMapping<FailedMail> FAILED_MAIL = row -> {
+        var cause = row.getEnum("cause", FailedMailCause.class);
+        return new FailedMail(
+                row.getInt("id"),
+                row.getString("recipient"),
+                row.getString("subject"),
+                row.get("created_at", INSTANT_TIMESTAMP),
+                row.get("failed_at", INSTANT_TIMESTAMP),
+                cause,
+                cause.givenUp() ? null : row.getString("delivery_detail"),
+                row.getBoolean("requeueable"));
+    };
 
     private static final RowMapping<QueuedEmail> QUEUED_EMAIL = row -> new QueuedEmail(
             row.getInt("id"),
@@ -450,15 +476,217 @@ public class EmailQueueRepository {
     }
 
     /**
-     * Marks an email as failed to send and lets go of the files it carried, since a failed mail is
-     * never sent again.
+     * Marks an email as failed to send and keeps why. The files it carries stay with it, so an
+     * administrator can send it again; the usual cleanup removes them with the mail.
      *
-     * @param id the queued email ID
+     * @param id     the queued email ID
+     * @param reason why the queue gave up on it
      */
-    public void markFailed(int id) {
+    public void markFailed(int id, MailFailureReason reason) {
+        query("UPDATE email_queue SET status = 'FAILED', failure_reason = :reason, failed_at = now() WHERE id = :id;")
+                .single(call().bind("id", id).bind("reason", reason))
+                .update();
+    }
+
+    /**
+     * @return how many mails of the instance and every station did not arrive and nobody has taken
+     *         note of yet
+     */
+    public int countUnacknowledgedFailures() {
+        return count("SELECT count(*) FROM email_queue WHERE %s;".formatted(MailFailureSql.UNACKNOWLEDGED), call());
+    }
+
+    /**
+     * @return how many of the instance's own mails did not arrive and nobody has taken note of yet
+     */
+    public int countUnacknowledgedInstanceFailures() {
+        return count(
+                "SELECT count(*) FROM email_queue WHERE station_id IS NULL AND %s;"
+                        .formatted(MailFailureSql.UNACKNOWLEDGED),
+                call());
+    }
+
+    /**
+     * The instance's own mails that did not arrive and nobody has taken note of, the latest failure
+     * first.
+     *
+     * @param limit  how many to return
+     * @param offset how many to skip
+     */
+    public List<FailedMail> unacknowledgedInstanceFailures(int limit, int offset) {
+        return query("""
+                        SELECT
+                            %s
+                        FROM
+                            email_queue
+                        WHERE
+                            station_id IS NULL
+                            AND %s
+                        ORDER BY
+                            failed_at DESC, id DESC
+                        LIMIT :limit OFFSET :offset;""", FAILED_MAIL_COLUMNS, MailFailureSql.UNACKNOWLEDGED)
+                .single(call().bind("limit", limit).bind("offset", offset))
+                .map(FAILED_MAIL)
+                .all();
+    }
+
+    /**
+     * One of the instance's own mails that did not arrive, whether or not somebody has taken note of it.
+     *
+     * @param id the mail
+     * @return the mail, or empty when it is a station's, arrived, or does not exist
+     */
+    public Optional<FailedMail> findInstanceFailure(int id) {
+        return query("""
+                        SELECT
+                            %s
+                        FROM
+                            email_queue
+                        WHERE
+                            id = :id
+                            AND station_id IS NULL
+                            AND %s;""", FAILED_MAIL_COLUMNS, MailFailureSql.DID_NOT_ARRIVE)
+                .single(call().bind("id", id))
+                .map(FAILED_MAIL)
+                .first();
+    }
+
+    /**
+     * The stations' mails that did not arrive and nobody has taken note of, one row per station and
+     * cause. Nothing about a single mail leaves here.
+     *
+     * @return the stations, the one whose latest failure is newest first
+     */
+    public List<StationFailedMails> unacknowledgedStationFailures() {
+        Map<UUID, StationGroup> stations = new LinkedHashMap<>();
         query("""
-                WITH failed AS (UPDATE email_queue SET status = 'FAILED' WHERE id = :id RETURNING id)
-                DELETE FROM email_queue_attachment WHERE email_id IN (SELECT id FROM failed);""").single(call().bind("id", id)).update();
+                        SELECT
+                            s.uid, s.name, f.cause,
+                            count(*)                             AS count,
+                            min(f.failed_at)                     AS oldest,
+                            max(f.failed_at)                     AS newest,
+                            max(max(f.failed_at)) OVER (PARTITION BY s.id) AS station_newest
+                        FROM
+                            (SELECT station_id, %s AS cause, %s AS failed_at
+                             FROM email_queue
+                             WHERE station_id IS NOT NULL AND %s) f
+                            JOIN station s ON s.id = f.station_id
+                        GROUP BY
+                            s.id, s.uid, s.name, f.cause
+                        ORDER BY
+                            station_newest DESC, s.name, count DESC, f.cause;""", MailFailureSql.CAUSE, MailFailureSql.FAILED_AT, MailFailureSql.UNACKNOWLEDGED)
+                .single(call())
+                .map(row -> new StationCauseRow(
+                        row.get("uid", UUID_STRING),
+                        row.getString("name"),
+                        row.getEnum("cause", FailedMailCause.class),
+                        row.getInt("count"),
+                        row.get("oldest", INSTANT_TIMESTAMP),
+                        row.get("newest", INSTANT_TIMESTAMP)))
+                .all()
+                .forEach(row -> stations.computeIfAbsent(
+                                row.stationUid(), uid -> new StationGroup(row.stationUid(), row.name()))
+                        .add(row));
+        return stations.values().stream().map(StationGroup::toFailedMails).toList();
+    }
+
+    /**
+     * Takes note of one of the instance's own mails that did not arrive. Taking note twice keeps the
+     * first note.
+     *
+     * @param id the mail
+     * @param by the administrator taking note
+     * @return whether the mail is one of the instance's own that did not arrive
+     */
+    public boolean acknowledgeInstanceFailure(int id, int by) {
+        return query("""
+                        UPDATE email_queue
+                        SET
+                            acknowledged_at = coalesce(acknowledged_at, now()),
+                            acknowledged_by = CASE WHEN acknowledged_at IS NULL THEN :by ELSE acknowledged_by END
+                        WHERE
+                            id = :id
+                            AND station_id IS NULL
+                            AND %s;""", MailFailureSql.DID_NOT_ARRIVE)
+                        .single(call().bind("id", id).bind("by", by))
+                        .update()
+                        .rows()
+                > 0;
+    }
+
+    /**
+     * Takes note of every one of the instance's own mails that did not arrive, up to a moment, so a
+     * failure that came in after the administrator looked stays unnoticed until they see it.
+     *
+     * @param upTo the latest failure the administrator saw
+     * @param by   the administrator taking note
+     * @return how many mails were taken note of
+     */
+    public int acknowledgeInstanceFailures(Instant upTo, int by) {
+        return query("""
+                        UPDATE email_queue
+                        SET acknowledged_at = now(), acknowledged_by = :by
+                        WHERE station_id IS NULL
+                          AND %s
+                          AND %s <= :up_to;""", MailFailureSql.UNACKNOWLEDGED, MailFailureSql.FAILED_AT)
+                .single(call().bind("up_to", upTo, INSTANT_TIMESTAMP).bind("by", by))
+                .update()
+                .rows();
+    }
+
+    /**
+     * Takes note of one station's mails that did not arrive, up to a moment, so a failure that came
+     * in after the administrator looked stays unnoticed until they see it.
+     *
+     * @param stationId the station
+     * @param upTo      the latest failure the administrator saw
+     * @param by        the administrator taking note
+     * @return how many mails were taken note of
+     */
+    public int acknowledgeStationFailures(int stationId, Instant upTo, int by) {
+        return query("""
+                        UPDATE email_queue
+                        SET acknowledged_at = now(), acknowledged_by = :by
+                        WHERE station_id = :station_id
+                          AND %s
+                          AND %s <= :up_to;""", MailFailureSql.UNACKNOWLEDGED, MailFailureSql.FAILED_AT)
+                .single(call().bind("station_id", stationId)
+                        .bind("up_to", upTo, INSTANT_TIMESTAMP)
+                        .bind("by", by))
+                .update()
+                .rows();
+    }
+
+    /**
+     * Puts one of the instance's own mails the queue gave up on back in the queue, at the first
+     * provider with a fresh set of attempts, and forgets that it failed. Only a mail that failed since
+     * the queue keeps its reason qualifies: before then the files it carried were dropped on failure.
+     *
+     * @param id the mail
+     * @return whether the mail was put back
+     */
+    public boolean requeueInstanceFailure(int id) {
+        return query("""
+                        UPDATE email_queue
+                        SET
+                            status              = 'PENDING',
+                            claimed_at          = NULL,
+                            provider_position   = 0,
+                            attempts            = 0,
+                            next_attempt_at     = now(),
+                            failure_reason      = NULL,
+                            failed_at           = NULL,
+                            acknowledged_at     = NULL,
+                            acknowledged_by     = NULL,
+                            delivery_status     = 'UNKNOWN',
+                            delivery_detail     = NULL,
+                            delivery_updated_at = NULL,
+                            provider_message_id = NULL
+                        WHERE
+                            id = :id
+                            AND station_id IS NULL
+                            AND status = 'FAILED'
+                            AND failure_reason IS NOT NULL;""").single(call().bind("id", id)).update().rows() > 0;
     }
 
     /**
@@ -768,5 +996,43 @@ public class EmailQueueRepository {
                 .single((stationId == null ? call() : where.apply(call())).bind("limit", limit))
                 .map(QUEUE_ENTRY)
                 .all();
+    }
+
+    private record StationCauseRow(
+            UUID stationUid, String name, FailedMailCause cause, int count, Instant oldest, Instant newest) {}
+
+    /** One station's failed mails, gathered from its rows per cause. */
+    private static final class StationGroup {
+        private final UUID stationUid;
+        private final String name;
+        private final List<StationFailedMails.CauseCount> causes = new ArrayList<>();
+        private int count;
+        private @Nullable Instant oldest;
+        private @Nullable Instant newest;
+
+        StationGroup(UUID stationUid, String name) {
+            this.stationUid = stationUid;
+            this.name = name;
+        }
+
+        StationGroup add(StationCauseRow row) {
+            causes.add(new StationFailedMails.CauseCount(row.cause(), row.count()));
+            count += row.count();
+            Instant first = oldest;
+            Instant last = newest;
+            oldest = first == null || row.oldest().isBefore(first) ? row.oldest() : first;
+            newest = last == null || row.newest().isAfter(last) ? row.newest() : last;
+            return this;
+        }
+
+        StationFailedMails toFailedMails() {
+            return new StationFailedMails(
+                    stationUid,
+                    name,
+                    count,
+                    Objects.requireNonNull(oldest, "a group holds at least one row"),
+                    Objects.requireNonNull(newest, "a group holds at least one row"),
+                    List.copyOf(causes));
+        }
     }
 }

@@ -123,6 +123,26 @@ public class AttendanceRepository {
     }
 
     /**
+     * Whether a template of the station in use already carries the name. A deleted template frees its
+     * name, as the unique index allows.
+     *
+     * @param stationId the station
+     * @param name      the name
+     * @param exceptId  a template to leave out, the one being renamed, or null
+     * @return whether another template in use has that name
+     */
+    public boolean templateNameInUse(int stationId, String name, @Nullable Integer exceptId) {
+        return query("""
+                        SELECT EXISTS(SELECT 1 FROM attendance_template
+                                      WHERE station_id = :station AND name = :name AND archived_at IS NULL
+                                        AND id <> coalesce(:except, -1)) AS taken;""")
+                .single(call().bind("station", stationId).bind("name", name).bind("except", exceptId))
+                .map(row -> row.getBoolean("taken"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
      * Updates the name of an attendance template.
      *
      * @param id   the template ID

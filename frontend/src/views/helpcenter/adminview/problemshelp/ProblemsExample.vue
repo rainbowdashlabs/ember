@@ -9,6 +9,7 @@ import InfoContainer from '@/components/container/InfoContainer.vue'
 import ProblemsToolbar from './ProblemsToolbar.vue'
 import ProblemEntry from './ProblemEntry.vue'
 import ProblemStacktrace from './ProblemStacktrace.vue'
+import ProblemContextExample from './ProblemContextExample.vue'
 
 const stacktrace = `MailService.send(MailService.java:42)
 SmtpTransport.connect(SmtpTransport.java:118)
@@ -24,6 +25,7 @@ java.net.ConnectException: Connection refused`
                     timestamp="12.05.2026, 14:32 - 12.05.2026, 16:10"
                     :count="3" expanded/>
       <ProblemStacktrace :trace="stacktrace"/>
+      <ProblemContextExample/>
     </ErrorContainer>
     <InfoContainer>
       <ProblemEntry level="WARN" source="KbRepository"

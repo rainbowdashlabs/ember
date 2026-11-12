@@ -3,6 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import type {RouteLocationRaw} from 'vue-router'
+
 export interface RecentApplication {
     id: number
     name: string
@@ -34,7 +36,8 @@ export interface AdminOverview {
 
 /**
  * One tile of the attention grid: what it counts, when it turns warning or
- * critical and which admin page it links to.
+ * critical and which admin page it links to, with the filter that shows the
+ * records it counts.
  */
 export interface AttentionCardSpec {
     key: string
@@ -43,7 +46,7 @@ export interface AttentionCardSpec {
     count: number
     warnAt?: number
     critAt?: number
-    routeName?: string
+    to?: RouteLocationRaw
 }
 
 /**

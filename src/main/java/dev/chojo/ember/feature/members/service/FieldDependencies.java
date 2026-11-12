@@ -76,6 +76,17 @@ public final class FieldDependencies {
                 dependents.stream().map(Node::name).collect(Collectors.joining(", ")));
     }
 
+    /**
+     * The questions shown only under this one.
+     *
+     * @param fieldId the question
+     * @param owned   every question of the same owner
+     * @return the questions that depend on it, empty for none
+     */
+    public static List<Node> dependentsOf(int fieldId, List<Node> owned) {
+        return dependents(fieldId, owned);
+    }
+
     private static List<Node> dependents(int fieldId, List<Node> owned) {
         if (fieldId == 0) return List.of();
         return owned.stream()

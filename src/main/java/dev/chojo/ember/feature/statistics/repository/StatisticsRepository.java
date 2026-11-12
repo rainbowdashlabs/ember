@@ -5,22 +5,24 @@
  */
 package dev.chojo.ember.feature.statistics.repository;
 
+import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry.AttendanceStatus;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.repository.RefusalSql;
 import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
 import dev.chojo.ember.feature.mail.entity.EmailQueueStatus;
+import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
+import dev.chojo.ember.feature.mail.repository.MailFailureSql;
 import dev.chojo.ember.feature.station.entity.ApplicationStatus;
 import dev.chojo.ember.feature.statistics.entity.AdminCounts;
 import dev.chojo.ember.feature.statistics.entity.AdminOverview;
 import dev.chojo.ember.feature.statistics.entity.AdminOverview.RecentApplication;
 import dev.chojo.ember.feature.statistics.entity.AdminOverview.RecentProblemReport;
-import dev.chojo.ember.feature.statistics.entity.AdminStatistics;
-import dev.chojo.ember.feature.statistics.entity.AdminStatistics.AttendanceStatusCount;
 import dev.chojo.ember.feature.statistics.entity.AdminStatistics.DayCount;
 import dev.chojo.ember.feature.statistics.entity.AdminStatistics.EmailStatusCount;
 import dev.chojo.ember.feature.statistics.entity.AdminStatistics.StationMembers;
+import dev.chojo.ember.feature.statistics.entity.InstanceTotals;
 import dev.chojo.ember.feature.statistics.entity.StationStatistics;
 import dev.chojo.ember.feature.statistics.entity.StationStatistics.AttendanceMonth;
 import dev.chojo.ember.feature.statistics.entity.StationStatistics.EventRegistrations;
@@ -184,19 +186,12 @@ public class StatisticsRepository {
     }
 
     /**
-     * The figures of the instance statistics page.
+     * The figures of the instance statistics page that do not depend on a window of time.
      *
      * @return the figures
      */
-    public AdminStatistics adminStatistics() {
-        return new AdminStatistics(
-                adminCounts(),
-                emailByDay(),
-                emailByStatus(),
-                attendanceByStatus(),
-                registrationsByDay(),
-                sessionsByDay(),
-                topStationsByMembers());
+    public InstanceTotals adminStatistics() {
+        return new InstanceTotals(adminCounts(), emailByDay(), emailByStatus(), signUpsByDay(), topStationsByMembers());
     }
 
     private AdminCounts adminCounts() {
@@ -238,7 +233,8 @@ public class StatisticsRepository {
                             (SELECT
                                  count(*) FILTER (WHERE station_kind = :regular)          AS regular,
                                  count(*) FILTER (WHERE setup_completed_at IS NOT NULL) AS setup_complete,
-                                 count(*) FILTER (WHERE setup_completed_at IS NULL)     AS setup_pending
+                                 count(*) FILTER (WHERE setup_completed_at IS NULL
+                                                  AND station_kind = :regular)          AS setup_pending
                              FROM station) s,
                             (SELECT
                                  count(*)                                                         AS total,
@@ -301,15 +297,7 @@ public class StatisticsRepository {
                 .all();
     }
 
-    private List<AttendanceStatusCount> attendanceByStatus() {
-        return query("""
-                        SELECT status, count(*) AS cnt FROM attendance_entry GROUP BY status ORDER BY status;""")
-                .single()
-                .map(row -> new AttendanceStatusCount(row.getEnum("status", AttendanceStatus.class), row.getInt("cnt")))
-                .all();
-    }
-
-    private List<DayCount> registrationsByDay() {
+    private List<DayCount> signUpsByDay() {
         return query("""
                         SELECT
                             to_char(d.day, 'YYYY-MM-DD') AS day,
@@ -317,21 +305,6 @@ public class StatisticsRepository {
                         FROM
                             %s
                             LEFT JOIN event_registration er ON er.created_at::DATE = d.day
-                        GROUP BY d.day
-                        ORDER BY d.day;""", DAILY_SERIES)
-                .single()
-                .map(row -> new DayCount(row.getString("day"), row.getInt("count")))
-                .all();
-    }
-
-    private List<DayCount> sessionsByDay() {
-        return query("""
-                        SELECT
-                            to_char(d.day, 'YYYY-MM-DD') AS day,
-                            count(se.id)                 AS count
-                        FROM
-                            %s
-                            LEFT JOIN account_session se ON se.created_at::DATE = d.day
                         GROUP BY d.day
                         ORDER BY d.day;""", DAILY_SERIES)
                 .single()
@@ -369,9 +342,10 @@ public class StatisticsRepository {
                             e.failed, e.pending, e.stuck,
                             (SELECT count(*) FROM station_application
                              WHERE status = :application_pending)                      AS applications_pending,
-                            (SELECT count(*) FROM station
-                             WHERE setup_completed_at IS NULL)                         AS setup_pending,
-                            (SELECT count(*) FROM account WHERE email_verified = FALSE) AS unverified,
+                            (SELECT count(*) FROM account
+                             WHERE email_verified = FALSE
+                               AND email IS NOT NULL AND email <> ''
+                               AND lower(email) NOT LIKE :synthetic)                   AS unverified,
                             (SELECT count(*) FROM federation_partner
                              WHERE status = :partner_pending)                          AS partners_pending,
                             (SELECT count(*) FROM discovery_peer
@@ -380,22 +354,24 @@ public class StatisticsRepository {
                              WHERE acknowledged = FALSE)                               AS reports_open
                         FROM
                             (SELECT
-                                 count(*) FILTER (WHERE status = :email_failed)  AS failed,
-                                 count(*) FILTER (WHERE status = :email_pending) AS pending,
+                                 count(*) FILTER (WHERE %s)                      AS failed,
+                                 count(*) FILTER (WHERE status = :email_pending
+                                                  AND station_id IS NULL)        AS pending,
                                  count(*) FILTER (WHERE status = :email_sending
-                                                  AND created_at < now() - interval '10 minutes') AS stuck
-                             FROM email_queue) e;""")
-                .single(call().bind("email_failed", EmailQueueStatus.FAILED)
-                        .bind("email_pending", EmailQueueStatus.PENDING)
+                                                  AND station_id IS NULL
+                                                  AND claimed_at < now() - make_interval(mins => %d)) AS stuck
+                             FROM email_queue) e;""", MailFailureSql.UNACKNOWLEDGED, EmailQueueRepository.STUCK_MINUTES)
+                .single(call().bind("email_pending", EmailQueueStatus.PENDING)
                         .bind("email_sending", EmailQueueStatus.SENDING)
                         .bind("application_pending", ApplicationStatus.PENDING)
-                        .bind("partner_pending", FederationStatus.PENDING))
+                        .bind("partner_pending", FederationStatus.PENDING)
+                        .bind("synthetic", "%" + Account.SYNTHETIC_EMAIL_SUFFIX))
                 .map(row -> new AdminOverview(
                         row.getInt("failed"),
                         row.getInt("pending"),
                         row.getInt("stuck"),
                         row.getInt("applications_pending"),
-                        row.getInt("setup_pending"),
+                        0,
                         row.getInt("unverified"),
                         row.getInt("partners_pending"),
                         row.getInt("peers_unreachable"),

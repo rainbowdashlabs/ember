@@ -33,7 +33,8 @@
     "signed-copy": "Signed copy: {documentTitle}",
     "account-link-request": "{stationName} asks to link your account",
     "association-link-request": "{associationName} offers you a role",
-    "unread-messages": "Unread messages from {sender}"
+    "unread-messages": "Unread messages from {sender}",
+    "station-setup-reminder": "{stationName} is waiting to be set up"
   },
   "body": {
     "twoFactorReset.defaultActor": "an administrator"

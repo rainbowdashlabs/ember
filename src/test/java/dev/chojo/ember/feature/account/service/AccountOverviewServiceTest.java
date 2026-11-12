@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.account.service;
 
+import dev.chojo.ember.feature.account.entity.AccountListQuery;
 import dev.chojo.ember.feature.account.repository.AccountOverviewRepository;
 import org.junit.jupiter.api.Test;
 
@@ -23,16 +24,17 @@ class AccountOverviewServiceTest {
     @Test
     void aPageOutOfRangeIsBroughtBackIntoIt() {
         var repository = mock(AccountOverviewRepository.class);
-        when(repository.page("x", AccountOverviewService.MAX_SIZE, 0)).thenReturn(List.of());
-        when(repository.count("x")).thenReturn(7);
+        var query = AccountListQuery.search("x");
+        when(repository.page(query, AccountOverviewService.MAX_SIZE, 0)).thenReturn(List.of());
+        when(repository.count(query)).thenReturn(7);
         var service = new AccountOverviewService(repository);
 
-        var page = service.list("x", -4, 5000);
+        var page = service.list(query, -4, 5000);
 
         assertEquals(0, page.page());
         assertEquals(AccountOverviewService.MAX_SIZE, page.size());
         assertEquals(7, page.total());
-        service.list("x", 3, 0);
-        verify(repository).page("x", 1, 3);
+        service.list(query, 3, 0);
+        verify(repository).page(query, 1, 3);
     }
 }

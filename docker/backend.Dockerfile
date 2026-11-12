@@ -1,4 +1,4 @@
-FROM gradle:jdk25-alpine AS build
+FROM public.ecr.aws/docker/library/gradle:jdk25-alpine AS build
 
 ARG GITHUB_ACTIONS=false
 ARG GITHUB_REF_TYPE=null
@@ -27,7 +27,7 @@ COPY . .
 
 RUN gradle clean installDist --no-daemon -x test -x javadocJar -x sourcesJar
 
-FROM eclipse-temurin:25-alpine AS runtime
+FROM public.ecr.aws/docker/library/eclipse-temurin:25-alpine AS runtime
 
 ARG GITHUB_ACTIONS=false
 ARG GITHUB_REF_TYPE=null

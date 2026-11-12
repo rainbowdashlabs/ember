@@ -95,6 +95,9 @@ export function useConfirmAction<T>(options: UseConfirmActionOptions<T>): Confir
     /**
      * Carries the action out, then tells whoever asked to catch up.
      *
+     * <p>The dialog closes either way. A refusal is said by the page's alert, which sits behind the
+     * dialog's overlay; a dialog left open over it looked as if nothing had happened.
+     *
      * <p>The two are answered for separately, which is not tidiness. They used to share one `try`,
      * and `onSuccess` is the list reloading almost everywhere it is passed, so a deletion that
      * worked and a list that then failed to refresh said the same sentence. A reader told that
@@ -105,11 +108,12 @@ export function useConfirmAction<T>(options: UseConfirmActionOptions<T>): Confir
         if (!item) return
         try {
             await options.onConfirm(item)
-            show.value = false
-            target.value = null
         } catch (e) {
             record(e)
             return
+        } finally {
+            show.value = false
+            target.value = null
         }
 
         if (!options.onSuccess) return

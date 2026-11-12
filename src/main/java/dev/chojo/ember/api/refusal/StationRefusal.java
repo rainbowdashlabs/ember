@@ -324,7 +324,20 @@ public enum StationRefusal implements Refusal {
             81,
             HttpStatus.CONFLICT,
             "The copy this station left here when it moved away is still here, so nothing was imported. "
-                    + "Delete that copy first");
+                    + "Delete that copy first"),
+
+    /** A reminder to the manager of a station whose setup is already finished. */
+    STATION_ALREADY_SET_UP(82, HttpStatus.CONFLICT, "This station is already set up, so nobody was reminded"),
+
+    /** A reminder for a station that has no manager with an account to write to. */
+    STATION_HAS_NO_MANAGER(
+            83, HttpStatus.CONFLICT, "This station has no manager yet, so there is nobody to remind. Name one first"),
+
+    /** A second reminder by hand within a few minutes of the last one, such as from a double click. */
+    MANAGER_REMINDED_JUST_NOW(
+            84,
+            HttpStatus.TOO_MANY_REQUESTS,
+            "The manager was reminded only a few minutes ago, so no second mail went out");
 
     private final Definition definition;
 

@@ -5,8 +5,10 @@
  */
 <script lang="ts" setup>
 import {computed} from 'vue'
+import {useI18n} from 'vue-i18n'
 import ProblemLevelBadge from './ProblemLevelBadge.vue'
 import PillBadge from '@/components/badge/PillBadge.vue'
+import BareButton from '@/components/button/BareButton.vue'
 import {formatDateTime} from '@/util/format'
 
 /**
@@ -15,6 +17,9 @@ import {formatDateTime} from '@/util/format'
  *
  * <p>The `badges` slot takes whatever a source knows on top of that, the `notes` slot the lines
  * that do not fit beside the heading, and the `actions` slot the buttons in front of the chevron.
+ *
+ * <p>The chevron is a button so the card opens from the keyboard too. It has no handler of its own: its
+ * click reaches the card around it, which is what opens and closes, wherever the card is used.
  */
 const props = withDefaults(defineProps<{
   level: string
@@ -30,6 +35,8 @@ const props = withDefaults(defineProps<{
   expandable: false,
   expanded: false,
 })
+
+const {t} = useI18n()
 
 const shortLogger = computed(() => props.logger?.split('.').pop() ?? '')
 </script>
@@ -54,11 +61,14 @@ const shortLogger = computed(() => props.logger?.split('.').pop() ?? '')
     </div>
     <div class="flex items-center gap-1 shrink-0">
       <slot name="actions"/>
-      <font-awesome-icon
+      <BareButton
           v-if="expandable"
-          :icon="['fas', expanded ? 'chevron-up' : 'chevron-down']"
-          class="text-xs text-(--text-muted)"
-      />
+          :aria-expanded="expanded"
+          :aria-label="t(expanded ? 'problemCard.collapse' : 'problemCard.expand')"
+          class="rounded p-1 text-xs text-(--text-muted)"
+      >
+        <font-awesome-icon :icon="['fas', expanded ? 'chevron-up' : 'chevron-down']"/>
+      </BareButton>
     </div>
   </div>
 </template>

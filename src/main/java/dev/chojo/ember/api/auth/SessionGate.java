@@ -12,6 +12,7 @@ import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.statistics.service.UsageRecorder;
 import io.javalin.http.Context;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -28,6 +29,10 @@ import java.util.Optional;
  * cookies written again. That is what replaced the browser asking for a fresh token on a timer. A
  * cookie that names no live session is cleared, so the browser stops presenting it.
  *
+ * <p>Whenever the session's last use is written, which happens at most once a minute, the account is
+ * also counted as using the instance today. That count writes at most once a day per account, and a
+ * failure in it never reaches the request.
+ *
  * <p>Routes open to everybody take the session along when it is there and the request may use it,
  * and simply go without otherwise. That is what exempts sign-in, public forms, feeds, federation and
  * mail provider callbacks from the header without a list of them.
@@ -39,6 +44,7 @@ public class SessionGate {
     private final Auth authConfig;
     private final SessionCookies sessionCookies;
     private final CsrfGuard csrfGuard;
+    private final UsageRecorder usageRecorder;
 
     @Inject
     public SessionGate(
@@ -46,12 +52,14 @@ public class SessionGate {
             AccountRepository accountRepository,
             Auth authConfig,
             SessionCookies sessionCookies,
-            CsrfGuard csrfGuard) {
+            CsrfGuard csrfGuard,
+            UsageRecorder usageRecorder) {
         this.accessManager = accessManager;
         this.accountRepository = accountRepository;
         this.authConfig = authConfig;
         this.sessionCookies = sessionCookies;
         this.csrfGuard = csrfGuard;
+        this.usageRecorder = usageRecorder;
     }
 
     /**
@@ -67,7 +75,9 @@ public class SessionGate {
             Context ctx, String token, @Nullable Station station, @Nullable Cluster cluster) {
         Optional<UserSession> session = admitPassively(ctx, token, station, cluster);
         if (session.isEmpty()) return session;
-        accountRepository.touchSession(token, ctx.userAgent(), ctx.header("CF-IPCountry"));
+        if (accountRepository.touchSession(token, ctx.userAgent(), ctx.header("CF-IPCountry"))) {
+            usageRecorder.markActive(session.get().accountId());
+        }
         accountRepository
                 .renewSession(token, authConfig.sessionMinutes(false), authConfig.sessionMinutes(true))
                 .ifPresent(expiresAt -> sessionCookies.issue(ctx, token, expiresAt));

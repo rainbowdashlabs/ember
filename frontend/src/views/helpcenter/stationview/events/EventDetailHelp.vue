@@ -155,6 +155,10 @@ const sampleCancellation: CancellationNotice = {
       </HelpSection>
     </HelpPermissionGuard>
 
+    <HelpSection :title="t('helpCenter.eventDetail.probeVisitorsTitle')">
+      <p>{{ t('helpCenter.eventDetail.probeVisitorsText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.eventDetail.badgesTitle')">
       <p>{{ t('helpCenter.eventDetail.badgesText') }}</p>
       <div class="flex flex-wrap gap-2 mt-3">

@@ -3,7 +3,7 @@
 # the in-container one. Runs the Nuxt dev server with HMR; chokidar uses polling
 # because the inotify events from a bind mount are not always reliable across
 # host filesystems.
-FROM node:26-alpine
+FROM public.ecr.aws/docker/library/node:26-alpine
 
 WORKDIR /build
 

@@ -13,6 +13,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -166,6 +167,52 @@ public class ApplicationLogRepository {
                 .single(filter.call().bind("limit", limit))
                 .map(LOG_ENTRY)
                 .all();
+    }
+
+    /**
+     * The lines logged around a moment: up to the given number at or before it, back to {@code from},
+     * and up to the given number after it, until {@code until}, oldest first. Both ends are included.
+     * The lines come without their stack traces, which nobody reading the surroundings needs.
+     *
+     * @param at          the moment
+     * @param thread      the only thread to list, or null for every thread
+     * @param from        how far back to look
+     * @param until       how far ahead to look
+     * @param beforeLimit how many lines at or before the moment at most, the closest ones kept
+     * @param afterLimit  how many lines after the moment at most, the closest ones kept
+     * @return the lines, oldest first
+     */
+    public List<LogEntry> around(
+            Instant at, @Nullable String thread, Instant from, Instant until, int beforeLimit, int afterLimit) {
+        String threadFilter = thread == null ? "" : "AND thread = :thread";
+        var before = query("""
+                        SELECT id, logged_at, level, logger, thread, message, NULL AS throwable
+                        FROM application_log
+                        WHERE logged_at BETWEEN :edge AND :at %s
+                        ORDER BY logged_at DESC, id DESC
+                        LIMIT :limit;""", threadFilter)
+                .single(window(at, thread, from, beforeLimit))
+                .map(LOG_ENTRY)
+                .all();
+        var after = query("""
+                        SELECT id, logged_at, level, logger, thread, message, NULL AS throwable
+                        FROM application_log
+                        WHERE logged_at > :at AND logged_at <= :edge %s
+                        ORDER BY logged_at, id
+                        LIMIT :limit;""", threadFilter)
+                .single(window(at, thread, until, afterLimit))
+                .map(LOG_ENTRY)
+                .all();
+        var lines = new ArrayList<>(before.reversed());
+        lines.addAll(after);
+        return lines;
+    }
+
+    private static Call window(Instant at, @Nullable String thread, Instant edge, int limit) {
+        var call = call().bind("at", at, INSTANT_TIMESTAMP)
+                .bind("edge", edge, INSTANT_TIMESTAMP)
+                .bind("limit", limit);
+        return thread == null ? call : call.bind("thread", thread);
     }
 
     /**

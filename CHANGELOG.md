@@ -12,6 +12,55 @@ People who share a station can write to each other directly or in groups, whiche
 - **People can be blocked for messages.** A blocked person can no longer start a direct conversation with the blocker or add them to a group, and their messages in shared groups are folded away. They are not told.
 - **Guardians decide about messages.** A member with a guardian at any station has no messages until a guardian turns them on under Profile → Managed profiles. Turning them off again hides the conversations without deleting anything.
 
+## v26.24.1
+
+Every count on the overview opens the matching list, and failed mails can be read and acknowledged. The manager of a station that waits can be reminded, also automatically. The account list filters over every account. The statistics show how many people use the instance each day and how it grows, recorded from this version on. Buttons that could only end in a refusal are gone or explain themselves. The problem log is kept across restarts, can mute what is known and shows the log lines around a problem. Those lines can go to a beacon on request, with names and addresses replaced.
+
+### New Features
+
+- **Usage and growth over time.** The statistics show how many people use the instance each day and how accounts, members, stations and records grow, recorded from this version on. People are counted by member type, attendance appears per month and federation has a section of its own.
+- **Reminders for station managers.** The manager of a station that waits can be sent the invitation again or a reminder to finish the setup, from the station list and the station page. The manager is also reminded automatically after 7 and after 21 days of waiting, counted from the update for stations that were already waiting.
+
+### Improvements
+
+- **Account filters cover every account.** Filters and sorting on the account list apply to all accounts instead of the page on screen, and the list can be filtered by confirmed address. The setup or confirmation mail of an account can be sent again from the account's details.
+- **Overview counts open their records.** Each count on the overview opens the matching list, such as the unconfirmed accounts or the stations waiting for setup.
+- **Failed mails can be read and acknowledged.** The mail log lists every mail that did not arrive with its reason, including bounces and spam reports from a provider, and counts the stations' failures per station. Acknowledging a mail ends its warning, and one the instance gave up on can be sent again.
+- **A clearer station list.** Stations show their logo, state, member count and manager, can be filtered by state and can be shown as tiles or as a table.
+- **Monitoring shows what is waiting.** The Monitoring entry in the sidebar counts open problems, reports and failed mails, and the count updates while moving between pages.
+- **The problem log survives a restart.** Warnings and errors are stored and kept until they have not happened for 30 days, set by the new `metrics.problemRetentionDays` config key. A resolved problem that happens again is open again and shows how often it came back.
+- **Problems can be muted.** A muted problem keeps counting but never shows as open again and is never forwarded on its own. Problems can also be deleted right away.
+- **Log lines around a problem.** Where the application log is stored in the database, an opened problem shows the lines of its thread from 30 seconds before to 5 seconds after it, with its own line marked. All threads and each of its last five occurrences can be shown on request.
+- **Problems can go to a beacon with their log lines.** Sending a problem by hand offers to include the lines around it, shown in the preview exactly as they leave. The new beacon switch "Send log lines automatically", off by default, adds them to problems forwarded on their own.
+- **A beacon shows the lines sent with a fault.** Each entry of a beacon's fault log opens with the log lines every instance sent, by instance and occurrence.
+- **Console logs a log collector can read.** The new `LOG_FORMAT` environment variable set to `json` makes the backend write one JSON object per log entry to the console, stack trace included. Collectors such as Loki then keep the trace with its line instead of storing every line on its own.
+- **Failed database queries say what failed.** The log line of a failed query carries the database's own error instead of only "Database query error".
+- **The picked probe date on the waiting list.** The waiting list shows in its own column which date someone picked to come to the probe, with the appointment and the time they were asked for, and can be sorted and filtered by it. Before, it stood only on each entry's page.
+- **Who comes to the probe on the appointment.** The page of an appointment lists who from the waiting list picked that date, with their time and list, for those who may read the waiting list. They stay off the attendee lists.
+- **Group member types warn while they are chosen.** Narrowing a group to member types lists the members who no longer fit right away, and the save button takes them out of the group.
+
+### Security
+
+- **Less about people reaches a beacon.** Everything sent to a beacon about a problem has mail addresses, IP addresses, long identifiers, passwords and tokens written as a setting, and the names of this instance's accounts replaced. Before, only mail addresses were.
+
+### Changes
+
+- **Refusals are listed apart from faults.** Requests that were refused on purpose appear in the problem log under their own filter, most frequent first, one entry per page of the application and kind. They never count toward the waiting number and never go to a beacon.
+- **Unknown addresses no longer appear in the problem log.** Requests to addresses the application does not have are answered as before but no longer recorded. "Not found" on a real page counts once per page instead of once per record.
+- **Acknowledge becomes Resolve.** Problems are resolved instead of acknowledged, and "Resolve all" applies to faults or to refusals, whichever is shown.
+- **The new sessions chart is removed.** The chart counted sign-ins and lost past days as sessions ended. People per day replaces it.
+- **A deleted station takes its mail log along.** The mails of a station are deleted with the station instead of staying behind as mails of the instance.
+
+### Fixes
+
+- **A second attendance template with the same name failed.** Creating or renaming an attendance template to a name another template of the station already had ended in an error. It is now refused with a message saying the name is taken.
+- **Stack traces said "at" twice.** Every line of a stack trace in the problem log and the stored application log started with "at at". Each line now says it once.
+- **Associations counted as stations awaiting setup.** The overview and the statistics counted each association as a station that still had to be set up. They count stations only.
+- **Accounts without an address counted as unconfirmed.** Accounts made for people without an email address raised the number of unconfirmed accounts, although they can never confirm one. They are no longer counted.
+- **Self-registration offered to members it was not meant for.** The sign-up button showed on member questions limited to a group, member type or tag, also for members outside it, and the click was then refused. It now appears only for members who may sign up, and an appointment past its registration deadline says so.
+- **Deleting a yes/no question others depend on failed.** Deleting such a question, or giving it another type, was refused with advice to reload the page. The dialog now names the dependent questions and can remove their condition in the same step, keeping their answers.
+
+
 ## v26.24.0
 
 Attendance can credit time spent before and after an appointment, and the report counts those minutes in each person's hours. A member's equipment is handed out and taken back on the member's own page, which opens with the tabs each reader may see. Tabs on the main pages can be linked by their address. Missing equipment stands among the pieces a member holds and is handed out from a searchable window. The German interface uses one name for equipment movements throughout. Appointments that need a sign-up can be declined, which ends the reminders that registration is closing. Appointment managers are notified about every new conversation on an appointment. Signatures can be collected in person from trial users and members without a login, confirmed by the account of whoever collects them. Templates say for whom they are meant, wherever a document is made from them. Procedures are about one member, run by groups, member types or tags, and can ask that member and their guardians to sign a document as one of their steps.

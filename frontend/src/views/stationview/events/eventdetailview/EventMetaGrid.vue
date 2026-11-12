@@ -14,7 +14,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import PerDateFieldValue from './PerDateFieldValue.vue'
 import {namesMembers, namesSeveralMembers} from '@/api/fieldTypes'
-import type {AppointmentField} from '@/api/generated/schema'
+import {SelfRegistration, type AppointmentField} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
 import {events} from '@/api'
 import {memberIdsOf} from '@/util/questions'
@@ -43,15 +43,22 @@ const {t} = useI18n()
 const memberNames = computed(() =>
     new Map(props.allMembers.map(m => [m.id, m.name ?? m.email ?? `#${m.id}`] as const)))
 
-function offersSelfRegistration(field: AppointmentField): boolean {
-  return namesMembers(field.fieldType) && field.config.selfRegistration
-}
+type SelfRegState = 'CAN_REGISTER' | 'CAN_REMOVE' | 'OCCUPIED' | 'CLOSED' | 'NOT_OFFERED'
 
-type SelfRegState = 'CAN_REGISTER' | 'CAN_REMOVE' | 'OCCUPIED'
-
+/**
+ * What the reader can do about a member question that takes self-registration.
+ *
+ * Stepping out is always offered to whoever stands in it, because the server never refuses it.
+ * Stepping in follows the state the server worked out for this reader and is offered only where it
+ * says open, so a question narrowed to people the reader is not among, or one that reached the screen
+ * without a state, offers nothing rather than a button that is then refused.
+ */
 function selfRegState(field: AppointmentField): SelfRegState {
+  if (!namesMembers(field.fieldType) || !field.config.selfRegistration) return 'NOT_OFFERED'
   const ids = memberIdsOf(field.value).map(Number)
   if (ids.includes(props.currentMemberId)) return 'CAN_REMOVE'
+  if (field.selfRegistrationState === SelfRegistration.CLOSED) return 'CLOSED'
+  if (field.selfRegistrationState !== SelfRegistration.OPEN) return 'NOT_OFFERED'
   if (!namesSeveralMembers(field.fieldType) && ids.length > 0) return 'OCCUPIED'
   return 'CAN_REGISTER'
 }
@@ -90,7 +97,7 @@ async function toggle(field: AppointmentField) {
       <p class="text-sm">
         <QuestionValueDisplay :field-type="field.fieldType" :member-names="memberNames" :value="field.value"/>
       </p>
-      <div v-if="offersSelfRegistration(field)" class="mt-1">
+      <div v-if="selfRegState(field) !== 'NOT_OFFERED'" class="mt-1">
         <PrimaryButton
             v-if="selfRegState(field) === 'CAN_REGISTER'"
             :disabled="submitting.has(field.id)"
@@ -109,7 +116,7 @@ async function toggle(field: AppointmentField) {
             v-else
             :disabled="true"
         >
-          {{ t('eventFields.slotTaken') }}
+          {{ selfRegState(field) === 'CLOSED' ? t('eventFields.selfRegisterClosed') : t('eventFields.slotTaken') }}
         </SecondaryButton>
       </div>
       <PerDateFieldValue

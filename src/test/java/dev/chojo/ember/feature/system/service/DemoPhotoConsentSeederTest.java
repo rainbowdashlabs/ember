@@ -78,6 +78,8 @@ import dev.chojo.ember.feature.signing.service.TemplateDocumentStatements;
 import dev.chojo.ember.feature.signing.service.TestKeyStamps;
 import dev.chojo.ember.feature.signing.service.TestSealing;
 import dev.chojo.ember.feature.signing.service.WitnessReach;
+import dev.chojo.ember.feature.statistics.repository.UsageRepository;
+import dev.chojo.ember.feature.statistics.service.UsageRecorder;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
@@ -291,7 +293,8 @@ class DemoPhotoConsentSeederTest extends DemoTestBase {
                 twoFactorRepo,
                 new TrustedDeviceService(
                         twoFactorRepo, TokenHasher.forTesting("demo-consent-device"), new TwoFactorSettings()),
-                passkeyModeService);
+                passkeyModeService,
+                new UsageRecorder(new UsageRepository()));
     }
 
     @Test

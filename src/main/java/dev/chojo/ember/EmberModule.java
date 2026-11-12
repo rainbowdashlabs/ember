@@ -229,6 +229,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationServ
 import dev.chojo.ember.feature.legal.route.ConsentRoutes;
 import dev.chojo.ember.feature.lostandfound.route.LostAndFoundRoutes;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundFeedDetails;
+import dev.chojo.ember.feature.mail.route.FailedMailRoutes;
 import dev.chojo.ember.feature.mail.route.InstanceMailGrantRoutes;
 import dev.chojo.ember.feature.mail.route.MailWebhookRoutes;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -354,6 +355,7 @@ import dev.chojo.ember.feature.signing.service.SignatureReminders;
 import dev.chojo.ember.feature.signing.service.SignatureRetentionSweeper;
 import dev.chojo.ember.feature.signing.service.SigningStateSweeper;
 import dev.chojo.ember.feature.signing.service.TemplateDocumentStatements;
+import dev.chojo.ember.feature.station.route.AdminStationRoutes;
 import dev.chojo.ember.feature.station.route.DiscoveryRoutes;
 import dev.chojo.ember.feature.station.route.FirstStationRoutes;
 import dev.chojo.ember.feature.station.route.PublicStationRoutes;
@@ -361,6 +363,7 @@ import dev.chojo.ember.feature.station.route.SetupRoutes;
 import dev.chojo.ember.feature.station.route.StationApplicationRoutes;
 import dev.chojo.ember.feature.station.route.StationManageRoutes;
 import dev.chojo.ember.feature.station.route.StationRoutes;
+import dev.chojo.ember.feature.station.service.ManagerReminderTask;
 import dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog;
 import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
@@ -369,6 +372,7 @@ import dev.chojo.ember.feature.station.transfer.DocumentSearchTableImporter;
 import dev.chojo.ember.feature.station.transfer.StationTableImporter;
 import dev.chojo.ember.feature.station.transfer.TableImporter;
 import dev.chojo.ember.feature.statistics.route.StatisticsRoutes;
+import dev.chojo.ember.feature.statistics.service.UsageSnapshotTask;
 import dev.chojo.ember.feature.storage.handler.StorageWarningHandler;
 import dev.chojo.ember.feature.storage.route.StationStorageBackendRoutes;
 import dev.chojo.ember.feature.storage.route.StorageRoutes;
@@ -404,6 +408,7 @@ import dev.chojo.ember.feature.system.service.DemoClusterSeeder;
 import dev.chojo.ember.feature.system.service.DemoDocumentTemplateSeeder;
 import dev.chojo.ember.feature.system.service.DemoEquipmentSeeder;
 import dev.chojo.ember.feature.system.service.DemoEventSeeder;
+import dev.chojo.ember.feature.system.service.DemoFailedMailSeeder;
 import dev.chojo.ember.feature.system.service.DemoFederationSeeder;
 import dev.chojo.ember.feature.system.service.DemoFormSeeder;
 import dev.chojo.ember.feature.system.service.DemoFreshStationSeeder;
@@ -430,6 +435,8 @@ import dev.chojo.ember.feature.system.service.DemoStationSeeder;
 import dev.chojo.ember.feature.system.service.DemoTwoFactorSeeder;
 import dev.chojo.ember.feature.system.service.DemoVideoSeeder;
 import dev.chojo.ember.feature.system.service.DemoWaitingListSeeder;
+import dev.chojo.ember.feature.system.service.ProblemLogFlusher;
+import dev.chojo.ember.feature.system.service.ProblemLogService;
 import dev.chojo.ember.feature.system.service.ProblemReportSweeper;
 import dev.chojo.ember.feature.system.service.SchemaFingerprint;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
@@ -451,6 +458,7 @@ import dev.chojo.ember.feature.waitinglist.service.WaitingListFeedDetails;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
 import dev.chojo.ember.lifecycle.ShutdownFlush;
 import dev.chojo.ember.lifecycle.TaskSource;
+import dev.chojo.ember.util.sql.QueryErrors;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -505,6 +513,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(AvatarRoutes.class);
         routesBinder.addBinding().to(AccountDataRoutes.class);
         routesBinder.addBinding().to(StationRoutes.class);
+        routesBinder.addBinding().to(AdminStationRoutes.class);
         routesBinder.addBinding().to(FirstStationRoutes.class);
         routesBinder.addBinding().to(StationMemberRoutes.class);
         routesBinder.addBinding().to(MemberCardRoutes.class);
@@ -581,6 +590,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(SharedPageRoutes.class);
         routesBinder.addBinding().to(MailWebhookRoutes.class);
         routesBinder.addBinding().to(InstanceMailGrantRoutes.class);
+        routesBinder.addBinding().to(FailedMailRoutes.class);
         routesBinder.addBinding().to(UserSettingsRoutes.class);
         routesBinder.addBinding().to(MovementRoutes.class);
         routesBinder.addBinding().to(MovementFlowRoutes.class);
@@ -734,6 +744,7 @@ public class EmberModule extends AbstractModule {
         demoSeederBinder.addBinding().to(DemoAvatarSeeder.class);
         demoSeederBinder.addBinding().to(DemoFederationSeeder.class);
         demoSeederBinder.addBinding().to(DemoSettingsSeeder.class);
+        demoSeederBinder.addBinding().to(DemoFailedMailSeeder.class);
         demoSeederBinder.addBinding().to(DemoChecklistSeeder.class);
         demoSeederBinder.addBinding().to(DemoDocumentTemplateSeeder.class);
         demoSeederBinder.addBinding().to(DemoPhotoConsentSeeder.class);
@@ -854,8 +865,10 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(PageHitRecorder.class);
         taskSources.addBinding().to(OutgoingPairRequestService.class);
         taskSources.addBinding().to(StationTrafficRecorder.class);
+        taskSources.addBinding().to(UsageSnapshotTask.class);
         taskSources.addBinding().to(ApiRequestLogger.class);
         taskSources.addBinding().to(ApplicationLogWriter.class);
+        taskSources.addBinding().to(ProblemLogFlusher.class);
         taskSources.addBinding().to(RegistrationDeadlineChecker.class);
         taskSources.addBinding().to(EventReminderChecker.class);
         taskSources.addBinding().to(EventThresholdChecker.class);
@@ -871,6 +884,7 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(MailImportPoller.class);
         taskSources.addBinding().to(AuthCleanupSweeper.class);
         taskSources.addBinding().to(ProblemReportSweeper.class);
+        taskSources.addBinding().to(ProblemLogService.class);
         taskSources.addBinding().to(UpdateCheckService.class);
         taskSources.addBinding().to(DemoService.class);
         taskSources.addBinding().to(FederationPartnerSeeder.class);
@@ -888,6 +902,7 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(SigningStateSweeper.class);
         taskSources.addBinding().to(SealedVersionTimestamps.class);
         taskSources.addBinding().to(SignatureReminders.class);
+        taskSources.addBinding().to(ManagerReminderTask.class);
         taskSources.addBinding().to(ProcedureDueReminders.class);
         taskSources.addBinding().to(PartnerAuthorities.class);
         taskSources.addBinding().to(PartnerAgreements.class);
@@ -904,6 +919,7 @@ public class EmberModule extends AbstractModule {
         flushes.addBinding().to(ApiRequestLogger.class);
         flushes.addBinding().to(FeedMetricsService.class);
         flushes.addBinding().to(ApplicationLogWriter.class);
+        flushes.addBinding().to(ProblemLogFlusher.class);
     }
 
     @Provides
@@ -1113,7 +1129,8 @@ public class EmberModule extends AbstractModule {
      * Before 1.60 merges duplicate profile fields, their answers and definitions are copied to the data
      * volume, not to a table, because a table would travel with a station export. The configuration is
      * thread-scoped so that services grouping writes with {@code Transactions.run} reach their
-     * repositories inside the same transaction.
+     * repositories inside the same transaction. A failed query is logged with the database's own error
+     * in its line, not only in its stack trace.
      */
     @Provides
     @Singleton
@@ -1131,7 +1148,7 @@ public class EmberModule extends AbstractModule {
         }
 
         var config = QueryConfiguration.builder(dataSource)
-                .setExceptionHandler(err -> log.error("Database query error", err))
+                .setExceptionHandler(err -> log.error("Database query error: {}", QueryErrors.summary(err), err))
                 .setThrowExceptions(true)
                 .setRowMapperRegistry(new RowMapperRegistry().register(PostgresqlMapper.getDefaultMapper()))
                 .build();

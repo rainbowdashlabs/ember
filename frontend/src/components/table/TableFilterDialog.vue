@@ -23,6 +23,7 @@ defineProps<{
       :column-label="table.filterDialog.label"
       :include-empty="table.filterDialog.includeEmpty"
       :kind="table.filterDialog.kind"
+      :offers-empty="table.filterDialog.offersEmpty"
       :model-value="true"
       :selected-values="table.filterDialog.selected"
       @apply="(selected, includeEmpty) => table.setFilter(table.filterDialog!.key, selected, includeEmpty)"

@@ -10,6 +10,7 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.mail.entity.MailAttachment;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
+import dev.chojo.ember.feature.mail.entity.MailFailureReason;
 import dev.chojo.ember.feature.mail.entity.SignatureInvitation;
 import dev.chojo.ember.feature.mail.entity.SignedCopy;
 import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
@@ -37,6 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Central email service handling both global system emails and per-station notification emails.
@@ -397,6 +399,29 @@ public class EmailService implements TaskSource {
         var vars = baseVars(name, null);
         vars.put("url", url);
         enqueueGlobal(email, subject("set-password", locale, null), loadTemplate("set-password.html", locale, vars));
+    }
+
+    /**
+     * Reminds a station's manager who can already sign in that the station still waits to be set up, through
+     * the instance-wide relay, with a link that opens the setup of that station.
+     *
+     * @param email       where the mail goes
+     * @param name        the person it is about, for the greeting
+     * @param stationId   the station, for its logo in the header
+     * @param stationName the station that waits
+     * @param stationUid  the station, for the link
+     * @param locale      the language to write in
+     */
+    public void sendStationSetupReminder(
+            String email, String name, int stationId, String stationName, UUID stationUid, String locale) {
+        var vars = baseVars(name, null);
+        putStationLogo(vars, stationId);
+        vars.put("stationName", stationName);
+        vars.put("url", api.baseUrl() + "/station/setup?station=" + stationUid);
+        enqueueGlobal(
+                email,
+                subject("station-setup-reminder", locale, stationPlaceholders(stationName)),
+                loadTemplate("station-setup-reminder.html", locale, vars));
     }
 
     /**
@@ -1213,7 +1238,7 @@ public class EmailService implements TaskSource {
             chain = chainService.forStation(stationId);
             if (chain.isEmpty()) {
                 log.warn("Email {} failed: station {} has no provider to send through", email.id(), stationId);
-                queueRepository.markFailed(email.id());
+                queueRepository.markFailed(email.id(), MailFailureReason.NO_PROVIDER);
                 return Outcome.FAILED;
             }
             if (!allowance.anyRoomToday(stationId, chain)) {
@@ -1241,7 +1266,7 @@ public class EmailService implements TaskSource {
                 return Outcome.REQUEUED;
             }
             log.warn("Email {} failed: station {} has no provider left to try", email.id(), stationId);
-            queueRepository.markFailed(email.id());
+            queueRepository.markFailed(email.id(), MailFailureReason.NO_PROVIDER_LEFT);
             return Outcome.FAILED;
         }
         return send(email, inTurn.get());
@@ -1250,7 +1275,7 @@ public class EmailService implements TaskSource {
     private Outcome send(EmailQueueRepository.QueuedEmail email, MailChainEntry entry) {
         MailProvider provider = buildProvider(entry);
         if (provider == null) {
-            queueRepository.markFailed(email.id());
+            queueRepository.markFailed(email.id(), MailFailureReason.PROVIDER_BROKEN);
             return Outcome.FAILED;
         }
         queueRepository.renewClaim(email.id());
@@ -1272,7 +1297,7 @@ public class EmailService implements TaskSource {
                         : Outcome.REQUEUED;
             case PERMANENT_FAILURE -> {
                 log.warn("Email {} delivery to {} failed permanently; marking failed", email.id(), email.recipient());
-                queueRepository.markFailed(email.id());
+                queueRepository.markFailed(email.id(), MailFailureReason.PROVIDER_REFUSED);
                 yield Outcome.FAILED;
             }
         };

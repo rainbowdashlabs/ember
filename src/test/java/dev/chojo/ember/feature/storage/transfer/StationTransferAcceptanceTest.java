@@ -90,6 +90,7 @@ import dev.chojo.ember.feature.quiz.service.AiCredentialService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionImageService;
 import dev.chojo.ember.feature.signing.entity.SealLevel;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.repository.StationOverviewRepository;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
 import dev.chojo.ember.feature.station.service.StationTransferService;
@@ -604,6 +605,32 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         var refusal = assertThrows(RefusalResponse.class, () -> importService.retryFailedImport(failed.stationUid()));
         assertEquals(StationRefusal.STATION_IMPORT_INTO_NOT_RETRIED, refusal.refusal());
         assertTrue(stationRepo.findById(target.id()).isPresent());
+    }
+
+    /**
+     * A station pulled from another instance does not bring along since when it waited for its manager.
+     * One that still waits, with a manager who has an account, starts waiting when the pull completes, so
+     * its automatic reminders count from its arrival.
+     */
+    @Test
+    void aPulledStationThatStillWaitsForItsManagerWaitsFromItsArrival() throws Exception {
+        Station source = stationRepo.create("Source WAITING");
+        Station target = stationRepo.create("Target WAITING");
+        var manager = accountRepo.create("waiting-" + UUID.randomUUID() + "@test.example", "Mara", "Nager", false);
+        var member = stationMemberRepo.create(target.id(), manager.id());
+        int administrator = stationMemberRepo
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow()
+                .id();
+        stationMemberRepo.grantPermission(member.id(), administrator);
+        String token = rawToken(exportService.createTransferToken(source.id()));
+
+        importService.startRemoteImportInto(target.id(), baseUrl, token);
+        waitForImport(target.id());
+
+        assertNotNull(
+                new StationOverviewRepository().find(target.id()).orElseThrow().waitingSince(),
+                "the pulled station waits for its manager from its arrival");
     }
 
     /** A failed import that made its station takes that station away again, as before. */

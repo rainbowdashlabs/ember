@@ -18,8 +18,12 @@ import type {AccountOverview} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
 /**
- * What the instance's administration can do to one account: hand it a one-time password, reset its
- * second factor and retire its password. Each asks first, and the list is read again afterwards.
+ * What the instance's administration can do to one account: send the mail it waits for while it is
+ * not yet ready, hand it a one-time password, reset its second factor and retire its password. The
+ * last three ask first, and the list is read again afterwards.
+ *
+ * <p>The setup mail, the reset and the retirement run as one action, so the page shows the outcome
+ * of the latest of them only: starting one clears the success and the failure of the one before.
  */
 const props = defineProps<{
   account: AccountOverview
@@ -36,27 +40,56 @@ function issue() {
   return adminAccounts.issueOneTimePassword(props.account.id).finally(() => props.onChanged())
 }
 
-const {running: resetting, failure: resetFailure, run: confirmReset} = useAsyncAction(async () => {
-  await twoFactorAdmin.resetAccount2FAByInstanceAdmin(props.account.id)
-  confirmingReset.value = false
-  notice.value = t('twoFactor.admin.resetSuccess', {name: props.account.name})
-  props.onChanged()
-})
+type Action = 'setupMail' | 'reset' | 'retire'
 
-const {running: retiring, failure: retireFailure, run: confirmRetire} = useAsyncAction(async () => {
+const running = ref<Action | null>(null)
+
+async function perform(action: Action): Promise<string> {
+  const name = props.account.name
+  if (action === 'setupMail') {
+    const sent = await adminAccounts.sendSetupMail(props.account.id)
+    return t(`adminAccounts.setupMail.sent.${sent.outcome}`, {name})
+  }
+  if (action === 'reset') {
+    await twoFactorAdmin.resetAccount2FAByInstanceAdmin(props.account.id)
+    confirmingReset.value = false
+    return t('twoFactor.admin.resetSuccess', {name})
+  }
   await adminSettings.retirePassword(props.account.id)
   confirmingRetire.value = false
-  notice.value = t('adminAccounts.retire.success', {name: props.account.name})
-  props.onChanged()
+  return t('adminAccounts.retire.success', {name})
+}
+
+const {failure, run} = useAsyncAction(async (action: Action) => {
+  notice.value = ''
+  running.value = action
+  try {
+    notice.value = await perform(action)
+    props.onChanged()
+  } finally {
+    running.value = null
+  }
 })
 </script>
 
 <template>
   <div class="space-y-4">
     <Alert v-if="notice" variant="success">{{ notice }}</Alert>
-    <FailureAlert :failure="resetFailure ?? retireFailure"/>
+    <FailureAlert :failure="failure"/>
 
-    <div class="space-y-2">
+    <div v-if="account.setupMail" class="space-y-2">
+      <MutedText tag="p" size="sm">{{ t(`adminAccounts.setupMail.hint.${account.setupMail}`) }}</MutedText>
+      <SecondaryButton
+          :icon="['fas', 'paper-plane']"
+          :disabled="running !== null"
+          data-testid="account-setup-mail"
+          @click="run('setupMail')"
+      >
+        {{ t(`adminAccounts.setupMail.action.${account.setupMail}`) }}
+      </SecondaryButton>
+    </div>
+
+    <div class="space-y-2" :class="{'border-t border-(--border) pt-4': account.setupMail}">
       <MutedText tag="p" size="sm">{{ t('oneTimePassword.actionHint') }}</MutedText>
       <OneTimePasswordAction :name="account.name" :issue="issue"/>
     </div>
@@ -80,8 +113,8 @@ const {running: retiring, failure: retireFailure, run: confirmRetire} = useAsync
         :title="t('twoFactor.admin.resetConfirmTitle')"
         :message="t('twoFactor.admin.resetConfirmText', {name: account.name})"
         :confirm-label="t('twoFactor.admin.reset')"
-        :busy="resetting"
-        @confirm="confirmReset"
+        :busy="running === 'reset'"
+        @confirm="run('reset')"
     >
       <Alert variant="error">{{ t('twoFactor.admin.resetWarning') }}</Alert>
     </ConfirmDeleteModal>
@@ -90,8 +123,8 @@ const {running: retiring, failure: retireFailure, run: confirmRetire} = useAsync
         :title="t('adminAccounts.retire.confirmTitle')"
         :message="t('adminAccounts.retire.confirmText', {name: account.name})"
         :confirm-label="t('adminAccounts.retire.action')"
-        :busy="retiring"
-        @confirm="confirmRetire"
+        :busy="running === 'retire'"
+        @confirm="run('retire')"
     />
   </div>
 </template>

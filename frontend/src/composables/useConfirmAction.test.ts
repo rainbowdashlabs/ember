@@ -26,6 +26,22 @@ function actionOn(done: string[]) {
   return api as unknown as ReturnType<typeof useConfirmAction<string>>
 }
 
+/** The same, for an action the server refuses. */
+function refusedActionOn() {
+  let api: ReturnType<typeof useConfirmAction<string>> | null = null
+  mount(defineComponent({
+    setup() {
+      api = useConfirmAction<string>({
+        onConfirm: async () => {
+          throw new Error('refused')
+        },
+      })
+      return () => null
+    },
+  }))
+  return api as unknown as ReturnType<typeof useConfirmAction<string>>
+}
+
 /** Presses and releases shift the way a reader holding it down would. */
 function holdShift(held: boolean) {
   window.dispatchEvent(new KeyboardEvent(held ? 'keydown' : 'keyup', {key: 'Shift'}))
@@ -62,6 +78,17 @@ describe('useConfirmAction', () => {
 
     expect(action.show.value, 'nothing was asked').toBe(false)
     expect(done, 'and it happened').toEqual(['Helm'])
+  })
+
+  /** The page's alert says what went wrong, and an open dialog over it hid it. */
+  it('closes the question when the action is refused, and says why', async () => {
+    const action = refusedActionOn()
+
+    action.request('Helm')
+    await action.confirm()
+
+    expect(action.show.value).toBe(false)
+    expect(action.failure.value).not.toBeNull()
   })
 
   it('asks again once shift is let go', async () => {

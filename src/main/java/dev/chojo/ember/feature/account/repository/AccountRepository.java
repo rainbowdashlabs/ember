@@ -25,11 +25,16 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -42,6 +47,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING
  */
 @Singleton
 public class AccountRepository {
+
+    /** What separates the words of a name: anything that is not a letter. */
+    private static final Pattern NOT_A_LETTER = Pattern.compile("[^\\p{L}]+");
 
     private static final String ACCOUNT_COLUMNS =
             "id, uid, email, username, first_name, last_name, email_verified, instance_user_type, full_name, creating_station_id, setup_completed_at";
@@ -165,6 +173,30 @@ public class AccountRepository {
                 .single(call().bind("id", accountId).bind("username", username))
                 .update()
                 .changed();
+    }
+
+    /**
+     * Every word of every account's first name, last name and user name and of every name asked for in
+     * a change, lower case: what a text leaving the instance is searched
+     * for so that nobody known here is named in it.
+     *
+     * @return the words, each at least three letters long
+     */
+    public Set<String> nameWords() {
+        var words = new HashSet<String>();
+        query("SELECT first_name, last_name, username FROM account"
+                        + " UNION ALL SELECT first_name, last_name, NULL FROM name_change_request;")
+                .single(call())
+                .map(row -> Arrays.asList(
+                        row.getString("first_name"), row.getString("last_name"), row.getString("username")))
+                .all()
+                .stream()
+                .flatMap(List::stream)
+                .filter(Objects::nonNull)
+                .flatMap(name -> NOT_A_LETTER.splitAsStream(name.toLowerCase(Locale.ROOT)))
+                .filter(word -> word.codePointCount(0, word.length()) >= 3)
+                .forEach(words::add);
+        return words;
     }
 
     /**

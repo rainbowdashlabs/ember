@@ -9,14 +9,17 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.feature.statistics.entity.AdminOverview;
 import dev.chojo.ember.feature.statistics.entity.AdminStatistics;
 import dev.chojo.ember.feature.statistics.entity.StationStatistics;
+import dev.chojo.ember.feature.statistics.entity.StatisticsWindow;
 import dev.chojo.ember.feature.statistics.service.StatisticsService;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -58,9 +61,23 @@ public class StatisticsRoutes implements Routes {
             methods = HttpMethod.GET,
             summary = "Get admin-level statistics",
             tags = {"Statistics"},
+            queryParams = @OpenApiParam(name = "window", type = StatisticsWindow.class),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AdminStatistics.class)))
     private void getAdminStatistics(Context ctx) {
-        ctx.json(statistics.forInstance());
+        ctx.json(statistics.forInstance(windowOf(ctx)));
+    }
+
+    /**
+     * The window the statistics are asked for, the last thirty days when none is named.
+     */
+    private static StatisticsWindow windowOf(Context ctx) {
+        String raw = ctx.queryParam("window");
+        if (raw == null || raw.isBlank()) return StatisticsWindow.DAYS_30;
+        try {
+            return StatisticsWindow.valueOf(raw);
+        } catch (IllegalArgumentException e) {
+            throw SystemRefusal.STATISTICS_WINDOW_UNKNOWN.raise();
+        }
     }
 
     @OpenApi(

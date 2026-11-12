@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed, nextTick, ref} from 'vue'
+import {useRoute} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -52,9 +53,24 @@ const actionFailure = ref<Failure | null>(null)
 
 const statusFilter = ref('')
 
+const route = useRoute()
+const scrolledToStuck = ref(false)
+
 const {loading, failure: loadFailure, reload} = useAsyncLoader(async () => {
   data.value = await props.load()
+  await revealStuckWhenAskedFor()
 })
+
+/**
+ * Scrolls to the stuck mails once, when the page was opened at `#stuck`: the block only exists once
+ * the dashboard is in, which is after the router tried to scroll to it.
+ */
+async function revealStuckWhenAskedFor() {
+  if (scrolledToStuck.value || route.hash !== '#stuck') return
+  scrolledToStuck.value = true
+  await nextTick()
+  document.getElementById('stuck')?.scrollIntoView?.({behavior: 'smooth', block: 'start'})
+}
 
 /**
  * Fetching the dashboard again after something was done to it, which is not part of doing it.
@@ -150,7 +166,7 @@ const stuckTable = useMailRecordTable('mail-stuck', () => data.value?.stuckMails
       <Alert v-if="data.stuck > 0" variant="error">{{ t('mailDashboard.stuckWarning', {count: data.stuck}) }}</Alert>
 
       <template v-if="data.stuckMails.length > 0">
-        <div class="flex items-center justify-between gap-2 flex-wrap">
+        <div id="stuck" class="flex items-center justify-between gap-2 flex-wrap scroll-mt-4">
           <SubHeader>{{ t('mailDashboard.stuckTitle') }}</SubHeader>
           <SecondaryButton
               v-if="props.requeue"

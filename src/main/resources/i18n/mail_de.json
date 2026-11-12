@@ -33,7 +33,8 @@
     "signed-copy": "Kopie mit Unterschrift: {documentTitle}",
     "account-link-request": "{stationName} möchte dein Konto verknüpfen",
     "association-link-request": "{associationName} bietet dir eine Rolle an",
-    "unread-messages": "Ungelesene Nachrichten von {sender}"
+    "unread-messages": "Ungelesene Nachrichten von {sender}",
+    "station-setup-reminder": "{stationName} wartet darauf, eingerichtet zu werden"
   },
   "body": {
     "twoFactorReset.defaultActor": "einem Administrator"

@@ -996,7 +996,7 @@
     },
     "/api/v1/admin/accounts" : {
       "get" : {
-        "summary" : "List every account of the instance, a page at a time",
+        "summary" : "List every account of the instance, filtered, sorted and a page at a time",
         "tags" : [ "Admin Accounts" ],
         "responses" : {
           "200" : {
@@ -1005,6 +1005,16 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AccountOverviewPage"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
                 }
               }
             }
@@ -1029,6 +1039,104 @@
           "schema" : {
             "type" : "integer",
             "format" : "int32"
+          }
+        }, {
+          "name" : "role",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/InstanceUserType"
+          }
+        }, {
+          "name" : "password",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/AccountPasswordState"
+          }
+        }, {
+          "name" : "twoFactor",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "passkeysMin",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "passkeysMax",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "confirmed",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "withoutAddress",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "signedInFrom",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "signedInTo",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "neverSignedIn",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "station",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "withoutStation",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "association",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "withoutAssociation",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/AccountSort"
+          }
+        }, {
+          "name" : "direction",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
           }
         } ]
       }
@@ -1116,6 +1224,43 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/accounts/{id}/setup-mail" : {
+      "post" : {
+        "summary" : "Send an account that is not yet ready the mail it waits for",
+        "tags" : [ "Admin Accounts" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AccountSetupMail"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
                 }
               }
             }
@@ -1404,6 +1549,36 @@
         }
       }
     },
+    "/api/v1/admin/beacon/collected/faults/{id}/context" : {
+      "get" : {
+        "summary" : "The log lines instances sent with one gathered fault, the newest first",
+        "tags" : [ "Beacon" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/BeaconProblemContext"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/admin/beacon/collected/figures" : {
       "get" : {
         "summary" : "The bucketed figures this beacon collected over the last days",
@@ -1542,6 +1717,13 @@
             }
           }
         },
+        "parameters" : [ {
+          "name" : "withContext",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -1563,7 +1745,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/ProblemPayload"
+                  "$ref" : "#/components/schemas/ProblemPreview"
                 }
               }
             }
@@ -1576,6 +1758,12 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "withContext",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
           }
         } ]
       }
@@ -1603,6 +1791,12 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "name" : "contextAt",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
           }
         } ]
       }
@@ -2200,6 +2394,169 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/admin/config/mailing/failed" : {
+      "get" : {
+        "summary" : "The instance's own mails that did not arrive and nobody has taken note of, a page at a time",
+        "tags" : [ "Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FailedMailPage"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "page",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/config/mailing/failed/acknowledge-all" : {
+      "post" : {
+        "summary" : "Take note of the instance's own mails that did not arrive, up to the latest failure seen",
+        "tags" : [ "Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AcknowledgedMails"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "A body without upTo is refused with ML-006; no body at all is refused as a request that cannot be read"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FailedMailsUpTo"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/mailing/failed/stations" : {
+      "get" : {
+        "summary" : "The stations with mails that did not arrive, counted per station without naming any mail",
+        "tags" : [ "Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StationFailedMails"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/mailing/failed/stations/{stationUid}/acknowledge" : {
+      "post" : {
+        "summary" : "Take note of one station's mails that did not arrive, up to the latest failure seen",
+        "tags" : [ "Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AcknowledgedMails"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "A body without upTo is refused with ML-006; no body at all is refused as a request that cannot be read"
+          }
+        },
+        "parameters" : [ {
+          "name" : "stationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FailedMailsUpTo"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/mailing/failed/{id}/acknowledge" : {
+      "post" : {
+        "summary" : "Take note of one of the instance's own mails that did not arrive",
+        "tags" : [ "Settings" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/config/mailing/failed/{id}/requeue" : {
+      "post" : {
+        "summary" : "Send one of the instance's own mails the queue gave up on again, from the first provider",
+        "tags" : [ "Settings" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
       }
     },
     "/api/v1/admin/config/mailing/providers" : {
@@ -4223,7 +4580,7 @@
     },
     "/api/v1/admin/problems" : {
       "get" : {
-        "summary" : "List application problems (errors and warnings)",
+        "summary" : "List the recorded problems",
         "tags" : [ "Problems" ],
         "responses" : {
           "200" : {
@@ -4233,7 +4590,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/ProblemSnapshot"
+                    "$ref" : "#/components/schemas/StoredProblem"
                   }
                 }
               }
@@ -4241,7 +4598,13 @@
           }
         },
         "parameters" : [ {
-          "name" : "includeAcknowledged",
+          "name" : "state",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "refusals",
           "in" : "query",
           "schema" : {
             "type" : "boolean"
@@ -4249,9 +4612,9 @@
         } ]
       }
     },
-    "/api/v1/admin/problems/acknowledge-all" : {
+    "/api/v1/admin/problems/resolve-all" : {
       "post" : {
-        "summary" : "Acknowledge all unacknowledged problems",
+        "summary" : "Mark every open fault, or every open refusal, as dealt with",
         "tags" : [ "Problems" ],
         "responses" : {
           "200" : {
@@ -4259,17 +4622,173 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/AcknowledgeResult"
+                  "$ref" : "#/components/schemas/ResolveResult"
                 }
               }
             }
           }
-        }
+        },
+        "parameters" : [ {
+          "name" : "refusals",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        } ]
       }
     },
-    "/api/v1/admin/problems/{id}/acknowledge" : {
+    "/api/v1/admin/problems/{id}" : {
+      "delete" : {
+        "summary" : "Delete a problem now",
+        "tags" : [ "Problems" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/problems/{id}/context" : {
+      "get" : {
+        "summary" : "The stored log around one occurrence of a problem",
+        "tags" : [ "Problems" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemContext"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "at",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "allThreads",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/problems/{id}/mute" : {
       "post" : {
-        "summary" : "Acknowledge a specific problem",
+        "summary" : "Keep a problem out of the waiting count and the beacon for good",
+        "tags" : [ "Problems" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/problems/{id}/resolve" : {
+      "post" : {
+        "summary" : "Mark a problem as dealt with",
+        "tags" : [ "Problems" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/problems/{id}/unmute" : {
+      "post" : {
+        "summary" : "Take a muted problem back to open",
         "tags" : [ "Problems" ],
         "responses" : {
           "204" : {
@@ -4553,6 +5072,121 @@
         }
       }
     },
+    "/api/v1/admin/stations" : {
+      "get" : {
+        "summary" : "List every station with its state, manager, member count and last reminder",
+        "tags" : [ "Admin Stations" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AdminStationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/stations/{uid}" : {
+      "get" : {
+        "summary" : "One station with its state, manager, member count and last reminder",
+        "tags" : [ "Admin Stations" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AdminStationSummary"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "uid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ]
+      }
+    },
+    "/api/v1/admin/stations/{uid}/remind-manager" : {
+      "post" : {
+        "summary" : "Remind the manager of a station that waits",
+        "tags" : [ "Admin Stations" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ManagerReminderAnswer"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too Many Requests",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "uid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ]
+      }
+    },
     "/api/v1/admin/statistics" : {
       "get" : {
         "summary" : "Get admin-level statistics",
@@ -4568,7 +5202,14 @@
               }
             }
           }
-        }
+        },
+        "parameters" : [ {
+          "name" : "window",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/StatisticsWindow"
+          }
+        } ]
       }
     },
     "/api/v1/admin/storage/audit" : {
@@ -12384,6 +13025,16 @@
         "responses" : {
           "204" : {
             "description" : "No Content"
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -12393,6 +13044,12 @@
           "schema" : {
             "type" : "integer",
             "format" : "int32"
+          }
+        }, {
+          "name" : "unlinkDependents",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
           }
         } ],
         "requestBody" : {
@@ -12411,6 +13068,16 @@
         "responses" : {
           "204" : {
             "description" : "No Content"
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -12420,6 +13087,12 @@
           "schema" : {
             "type" : "integer",
             "format" : "int32"
+          }
+        }, {
+          "name" : "unlinkDependents",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
           }
         } ]
       }
@@ -37413,6 +38086,16 @@
                 }
               }
             }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -37422,6 +38105,12 @@
           "schema" : {
             "type" : "integer",
             "format" : "int32"
+          }
+        }, {
+          "name" : "unlinkDependents",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
           }
         } ],
         "requestBody" : {
@@ -37450,6 +38139,16 @@
                 }
               }
             }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -37459,6 +38158,12 @@
           "schema" : {
             "type" : "integer",
             "format" : "int32"
+          }
+        }, {
+          "name" : "unlinkDependents",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
           }
         } ]
       }
@@ -48808,6 +49513,42 @@
         }
       }
     },
+    "/api/v1/waiting-lists/visitors" : {
+      "get" : {
+        "summary" : "Who from the waiting lists said they come to one date of an appointment",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/WaitingListVisitor"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "event",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "date",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
     "/api/v1/waiting-lists/{id}" : {
       "get" : {
         "summary" : "Get waiting list",
@@ -49582,9 +50323,19 @@
           },
           "twoFactor" : {
             "type" : "boolean"
+          },
+          "confirmed" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "setupMail" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/SetupMailKind"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "uid", "name", "email", "loginName", "instanceUserType", "lastSignInAt", "stations", "associations", "hasPassword", "passwordSignIn", "oneTimePasswordExpiresAt", "passkeys", "twoFactor" ]
+        "required" : [ "id", "uid", "name", "email", "loginName", "instanceUserType", "lastSignInAt", "stations", "associations", "hasPassword", "passwordSignIn", "oneTimePasswordExpiresAt", "passkeys", "twoFactor", "confirmed", "setupMail" ]
       },
       "AccountOverviewPage" : {
         "type" : "object",
@@ -49609,6 +50360,10 @@
           }
         },
         "required" : [ "accounts", "total", "page", "size" ]
+      },
+      "AccountPasswordState" : {
+        "type" : "string",
+        "enum" : [ "NONE", "ON", "OFF", "ONE_TIME" ]
       },
       "AccountSearchResult" : {
         "type" : "object",
@@ -49635,6 +50390,19 @@
           }
         },
         "required" : [ "id", "uid", "displayName", "firstName", "lastName", "email" ]
+      },
+      "AccountSetupMail" : {
+        "type" : "object",
+        "properties" : {
+          "outcome" : {
+            "$ref" : "#/components/schemas/Outcome"
+          }
+        },
+        "required" : [ "outcome" ]
+      },
+      "AccountSort" : {
+        "type" : "string",
+        "enum" : [ "NAME", "LAST_SIGN_IN", "PASSKEYS" ]
       },
       "AchievementItem" : {
         "type" : "object",
@@ -49686,16 +50454,6 @@
           }
         }
       },
-      "AcknowledgeResult" : {
-        "type" : "object",
-        "properties" : {
-          "acknowledged" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        },
-        "required" : [ "acknowledged" ]
-      },
       "AcknowledgeStepRequest" : {
         "type" : "object",
         "properties" : {
@@ -49718,6 +50476,16 @@
             } ]
           }
         }
+      },
+      "AcknowledgedMails" : {
+        "type" : "object",
+        "properties" : {
+          "acknowledged" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "acknowledged" ]
       },
       "ActiveSession" : {
         "type" : "object",
@@ -49889,6 +50657,59 @@
         },
         "required" : [ "emailFailed", "emailPending", "emailStuckSending", "stationApplicationsPending", "stationsSetupPending", "accountsUnverified", "federationPartnersPending", "discoveryPeersUnreachable", "problemReportsOpen", "signingKeysLocked", "recentApplications", "recentProblemReports" ]
       },
+      "AdminStationSummary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "state" : {
+            "$ref" : "#/components/schemas/StationState"
+          },
+          "memberCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "managerName" : {
+            "type" : [ "string", "null" ]
+          },
+          "managerEmail" : {
+            "type" : [ "string", "null" ]
+          },
+          "waitingSince" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "createdAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "associationName" : {
+            "type" : [ "string", "null" ]
+          },
+          "lastReminder" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ManagerReminderSummary"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "movedAway" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "name", "state", "memberCount", "managerName", "managerEmail", "waitingSince", "createdAt", "associationName", "lastReminder", "movedAway" ]
+      },
       "AdminStationUsage" : {
         "type" : "object",
         "properties" : {
@@ -50039,6 +50860,9 @@
             "type" : "integer",
             "format" : "int32"
           },
+          "window" : {
+            "$ref" : "#/components/schemas/StatisticsWindow"
+          },
           "emailByDay" : {
             "type" : "array",
             "items" : {
@@ -50051,19 +50875,7 @@
               "$ref" : "#/components/schemas/EmailStatusCount"
             }
           },
-          "attendanceByStatus" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/AttendanceStatusCount"
-            }
-          },
-          "registrationsByDay" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/DayCount"
-            }
-          },
-          "sessionsByDay" : {
+          "signUpsByDay" : {
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/DayCount"
@@ -50074,9 +50886,27 @@
             "items" : {
               "$ref" : "#/components/schemas/StationMembers"
             }
+          },
+          "activeByDay" : {
+            "$ref" : "#/components/schemas/UsageSeries"
+          },
+          "growth" : {
+            "$ref" : "#/components/schemas/GrowthSeries"
+          },
+          "attendanceByMonth" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AttendanceMonth"
+            }
+          },
+          "federation" : {
+            "$ref" : "#/components/schemas/FederationFigures"
+          },
+          "peopleByType" : {
+            "$ref" : "#/components/schemas/PeopleFigures"
           }
         },
-        "required" : [ "emailPending", "emailSending", "emailSentToday", "emailFailed", "emailSent", "mailProviderBlocks", "totalAccounts", "totalStations", "totalClusters", "totalMembers", "activeSessions", "pendingApplications", "sessionsThisMonth", "totalInventoryItems", "totalEvents", "totalAttendanceSessions", "totalAttendanceEntries", "totalProfileFields", "totalGroups", "accountsVerified", "accountsUnverified", "stationsSetupComplete", "stationsSetupPending", "accountsWith2fa", "eventsUpcoming", "totalEventRegistrations", "emailByDay", "emailByStatus", "attendanceByStatus", "registrationsByDay", "sessionsByDay", "topStationsByMembers" ]
+        "required" : [ "emailPending", "emailSending", "emailSentToday", "emailFailed", "emailSent", "mailProviderBlocks", "totalAccounts", "totalStations", "totalClusters", "totalMembers", "activeSessions", "pendingApplications", "sessionsThisMonth", "totalInventoryItems", "totalEvents", "totalAttendanceSessions", "totalAttendanceEntries", "totalProfileFields", "totalGroups", "accountsVerified", "accountsUnverified", "stationsSetupComplete", "stationsSetupPending", "accountsWith2fa", "eventsUpcoming", "totalEventRegistrations", "window", "emailByDay", "emailByStatus", "signUpsByDay", "topStationsByMembers", "activeByDay", "growth", "attendanceByMonth", "federation", "peopleByType" ]
       },
       "AgreementSigner" : {
         "type" : "object",
@@ -50548,9 +51378,16 @@
           },
           "isPublic" : {
             "type" : "boolean"
+          },
+          "selfRegistrationState" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/SelfRegistration"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "eventId", "name", "fieldType", "config", "value", "position", "overview", "attendanceFieldId", "isPublic" ]
+        "required" : [ "id", "eventId", "name", "fieldType", "config", "value", "position", "overview", "attendanceFieldId", "isPublic", "selfRegistrationState" ]
       },
       "AppointmentTemplateField" : {
         "type" : "object",
@@ -51117,19 +51954,6 @@
       "AttendanceStatus" : {
         "type" : "string",
         "enum" : [ "UNCONFIRMED", "PRESENT", "ABSENT", "DECLINED" ]
-      },
-      "AttendanceStatusCount" : {
-        "type" : "object",
-        "properties" : {
-          "status" : {
-            "$ref" : "#/components/schemas/AttendanceStatus"
-          },
-          "cnt" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        },
-        "required" : [ "status", "cnt" ]
       },
       "AttendanceTemplate" : {
         "type" : "object",
@@ -51930,6 +52754,33 @@
         },
         "required" : [ "metricsUid", "subject", "day", "members", "accounts", "stations", "inventory" ]
       },
+      "BeaconProblemContext" : {
+        "type" : "object",
+        "properties" : {
+          "instanceId" : {
+            "type" : "string"
+          },
+          "contactName" : {
+            "type" : [ "string", "null" ]
+          },
+          "version" : {
+            "type" : [ "string", "null" ]
+          },
+          "occurredAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "receivedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "lines" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LogLinePayload"
+            }
+          }
+        },
+        "required" : [ "instanceId", "contactName", "version", "occurredAt", "receivedAt", "lines" ]
+      },
       "BeaconReport" : {
         "type" : "object",
         "properties" : {
@@ -51995,6 +52846,9 @@
           "forwardReports" : {
             "type" : "boolean"
           },
+          "forwardLogContext" : {
+            "type" : "boolean"
+          },
           "reviewReportPictures" : {
             "type" : "boolean"
           },
@@ -52027,6 +52881,9 @@
           "forwardReports" : {
             "type" : "boolean"
           },
+          "forwardLogContext" : {
+            "type" : "boolean"
+          },
           "reviewReportPictures" : {
             "type" : "boolean"
           },
@@ -52043,7 +52900,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "enabled", "url", "forwardProblems", "forwardReports", "reviewReportPictures", "metricsEnabled", "receiving", "contactName", "contactMail" ]
+        "required" : [ "enabled", "url", "forwardProblems", "forwardReports", "forwardLogContext", "reviewReportPictures", "metricsEnabled", "receiving", "contactName", "contactMail" ]
       },
       "BindRequest" : {
         "type" : "object",
@@ -53375,6 +54232,19 @@
           }
         },
         "required" : [ "category", "totalBytes", "fileCount" ]
+      },
+      "CauseCount" : {
+        "type" : "object",
+        "properties" : {
+          "cause" : {
+            "$ref" : "#/components/schemas/FailedMailCause"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "cause", "count" ]
       },
       "CellConfig" : {
         "oneOf" : [ {
@@ -59769,6 +60639,77 @@
         },
         "required" : [ "email", "reason" ]
       },
+      "FailedMail" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "recipient" : {
+            "type" : "string"
+          },
+          "subject" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "failedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "cause" : {
+            "$ref" : "#/components/schemas/FailedMailCause"
+          },
+          "detail" : {
+            "type" : [ "string", "null" ]
+          },
+          "requeueable" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "recipient", "subject", "createdAt", "failedAt", "cause", "detail", "requeueable" ]
+      },
+      "FailedMailCause" : {
+        "type" : "string",
+        "enum" : [ "NO_PROVIDER", "NO_PROVIDER_LEFT", "PROVIDER_REFUSED", "PROVIDER_BROKEN", "RETRIES_EXHAUSTED", "UNRECORDED", "HARD_BOUNCE", "BLOCKED", "SPAM" ]
+      },
+      "FailedMailPage" : {
+        "type" : "object",
+        "properties" : {
+          "mails" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FailedMail"
+            }
+          },
+          "total" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "mails", "total", "page", "size" ]
+      },
+      "FailedMailsUpTo" : {
+        "type" : "object",
+        "properties" : {
+          "upTo" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
+      },
       "FeaturedEventConfig" : {
         "type" : "object",
         "properties" : {
@@ -60108,6 +61049,62 @@
         },
         "required" : [ "core", "features" ]
       },
+      "FederationFigures" : {
+        "type" : "object",
+        "properties" : {
+          "partnersByStatus" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PartnerStatusCount"
+            }
+          },
+          "localPartners" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "remotePartners" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationsWithPartner" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "partnerInstances" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "sharesByKind" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ShareCount"
+            }
+          },
+          "lendingByMonth" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MonthCount"
+            }
+          },
+          "peersKnown" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "peersReachable" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "associations" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationsInAssociations" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "partnersByStatus", "localPartners", "remotePartners", "stationsWithPartner", "partnerInstances", "sharesByKind", "lendingByMonth", "peersKnown", "peersReachable", "associations", "stationsInAssociations" ]
+      },
       "FederationInfoResponse" : {
         "type" : "object",
         "properties" : {
@@ -60183,6 +61180,10 @@
             "format" : "uuid"
           }
         }
+      },
+      "FederationShareKind" : {
+        "type" : "string",
+        "enum" : [ "KNOWLEDGE_BASE", "BOARD", "QUIZ", "PROTOCOL", "EVENT", "INVENTORY" ]
       },
       "FederationShareResponse" : {
         "type" : "object",
@@ -62686,6 +63687,58 @@
             "type" : "string"
           }
         }
+      },
+      "GrowthDay" : {
+        "type" : "object",
+        "properties" : {
+          "day" : {
+            "type" : "string"
+          },
+          "accounts" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "members" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stations" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "events" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "attendanceEntries" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "inventoryItems" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "associations" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "day", "accounts", "members", "stations", "events", "attendanceEntries", "inventoryItems", "associations" ]
+      },
+      "GrowthSeries" : {
+        "type" : "object",
+        "properties" : {
+          "recordedSince" : {
+            "type" : [ "string", "null" ]
+          },
+          "days" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/GrowthDay"
+            }
+          }
+        },
+        "required" : [ "recordedSince", "days" ]
       },
       "GuardianCondition" : {
         "type" : "string",
@@ -66225,6 +67278,27 @@
         },
         "required" : [ "value", "count" ]
       },
+      "LogLinePayload" : {
+        "type" : "object",
+        "properties" : {
+          "loggedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "level" : {
+            "type" : "string"
+          },
+          "logger" : {
+            "type" : "string"
+          },
+          "thread" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "loggedAt", "level", "logger", "thread", "message" ]
+      },
       "LogPageResponse" : {
         "type" : "object",
         "properties" : {
@@ -67174,6 +68248,30 @@
             }
           }
         }
+      },
+      "ManagerReminderAnswer" : {
+        "type" : "object",
+        "properties" : {
+          "station" : {
+            "$ref" : "#/components/schemas/AdminStationSummary"
+          },
+          "result" : {
+            "$ref" : "#/components/schemas/ReminderResult"
+          }
+        },
+        "required" : [ "station", "result" ]
+      },
+      "ManagerReminderSummary" : {
+        "type" : "object",
+        "properties" : {
+          "sentAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "trigger" : {
+            "$ref" : "#/components/schemas/ReminderTrigger"
+          }
+        },
+        "required" : [ "sentAt", "trigger" ]
       },
       "MapConfig" : {
         "type" : "object",
@@ -68786,9 +69884,26 @@
           "beaconReports" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "failedMails" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "problemLog", "problemReports", "beaconActive", "beaconFaults", "beaconReports" ]
+        "required" : [ "problemLog", "problemReports", "beaconActive", "beaconFaults", "beaconReports", "failedMails" ]
+      },
+      "MonthCount" : {
+        "type" : "object",
+        "properties" : {
+          "month" : {
+            "type" : "string"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "month", "count" ]
       },
       "MonthSummary" : {
         "type" : "object",
@@ -70409,6 +71524,10 @@
         },
         "required" : [ "items" ]
       },
+      "Outcome" : {
+        "type" : "string",
+        "enum" : [ "INVITATION_SENT", "CONFIRMATION_SENT", "CONFIRMED" ]
+      },
       "OutgoingPairRequestResponse" : {
         "type" : "object",
         "properties" : {
@@ -71134,6 +72253,19 @@
           }
         }
       },
+      "PartnerStatusCount" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "$ref" : "#/components/schemas/FederationStatus"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "status", "count" ]
+      },
       "PasskeyCodeResponse" : {
         "type" : "object",
         "properties" : {
@@ -71582,6 +72714,67 @@
       "PeerSource" : {
         "type" : "string",
         "enum" : [ "BOOTSTRAP", "GOSSIP", "MANUAL" ]
+      },
+      "PeopleByType" : {
+        "type" : "object",
+        "properties" : {
+          "people" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "trial" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "member" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "guardian" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "team" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "manager" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "memberships" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "people", "trial", "member", "guardian", "team", "manager", "memberships" ]
+      },
+      "PeopleDay" : {
+        "type" : "object",
+        "properties" : {
+          "day" : {
+            "type" : "string"
+          },
+          "counts" : {
+            "$ref" : "#/components/schemas/PeopleByType"
+          }
+        },
+        "required" : [ "day", "counts" ]
+      },
+      "PeopleFigures" : {
+        "type" : "object",
+        "properties" : {
+          "current" : {
+            "$ref" : "#/components/schemas/PeopleByType"
+          },
+          "byDay" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PeopleDay"
+            }
+          }
+        },
+        "required" : [ "current", "byDay" ]
       },
       "Permission" : {
         "type" : "object",
@@ -72046,6 +73239,81 @@
         },
         "required" : [ "healthy", "error", "checkedAt" ]
       },
+      "ProblemContext" : {
+        "type" : "object",
+        "properties" : {
+          "state" : {
+            "$ref" : "#/components/schemas/ProblemContextState"
+          },
+          "databaseLogging" : {
+            "type" : "boolean"
+          },
+          "occurrences" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ProblemOccurrence"
+            }
+          },
+          "occurrence" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "allThreads" : {
+            "type" : "boolean"
+          },
+          "lines" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ProblemContextLine"
+            }
+          }
+        },
+        "required" : [ "state", "databaseLogging", "occurrences", "occurrence", "allThreads", "lines" ]
+      },
+      "ProblemContextLine" : {
+        "type" : "object",
+        "properties" : {
+          "loggedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "level" : {
+            "type" : "string"
+          },
+          "logger" : {
+            "type" : "string"
+          },
+          "thread" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "problem" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "loggedAt", "level", "logger", "thread", "message", "problem" ]
+      },
+      "ProblemContextState" : {
+        "type" : "string",
+        "enum" : [ "LINES", "LOGGING_OFF", "NOTHING_KEPT", "NO_OCCURRENCE" ]
+      },
+      "ProblemLevel" : {
+        "type" : "string",
+        "enum" : [ "WARN", "ERROR", "REFUSAL" ]
+      },
+      "ProblemOccurrence" : {
+        "type" : "object",
+        "properties" : {
+          "occurredAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "thread" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "occurredAt", "thread" ]
+      },
       "ProblemPayload" : {
         "type" : "object",
         "properties" : {
@@ -72088,9 +73356,31 @@
           },
           "lastOccurrence" : {
             "$ref" : "#/components/schemas/Instant"
+          },
+          "context" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LogLinePayload"
+            }
           }
         },
         "required" : [ "envelope", "version", "contactName", "contactMail", "fingerprint", "level", "logger", "exceptionClass", "message", "frames", "occurrences", "firstOccurrence", "lastOccurrence" ]
+      },
+      "ProblemPreview" : {
+        "type" : "object",
+        "properties" : {
+          "payload" : {
+            "$ref" : "#/components/schemas/ProblemPayload"
+          },
+          "contextAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "payload", "contextAt" ]
       },
       "ProblemReport" : {
         "type" : "object",
@@ -72155,49 +73445,9 @@
         },
         "required" : [ "id", "stationId", "memberId", "reporterName", "message", "pageUrl", "userRoles", "recentRequests", "browserInfo", "screenSize", "screenshotFileId", "acknowledged", "acknowledgedAt", "forwardedAt", "createdAt" ]
       },
-      "ProblemSnapshot" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "level" : {
-            "type" : "string"
-          },
-          "logger" : {
-            "type" : "string"
-          },
-          "exceptionClass" : {
-            "type" : [ "string", "null" ]
-          },
-          "exceptionMessage" : {
-            "type" : [ "string", "null" ]
-          },
-          "stacktrace" : {
-            "type" : [ "string", "null" ]
-          },
-          "firstOccurrence" : {
-            "$ref" : "#/components/schemas/Instant"
-          },
-          "lastOccurrence" : {
-            "$ref" : "#/components/schemas/Instant"
-          },
-          "count" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "acknowledged" : {
-            "type" : "boolean"
-          },
-          "distinctMessages" : {
-            "type" : "array",
-            "items" : {
-              "type" : "string"
-            }
-          }
-        },
-        "required" : [ "id", "level", "logger", "exceptionClass", "exceptionMessage", "stacktrace", "firstOccurrence", "lastOccurrence", "count", "acknowledged", "distinctMessages" ]
+      "ProblemState" : {
+        "type" : "string",
+        "enum" : [ "OPEN", "RESOLVED", "MUTED" ]
       },
       "Procedure" : {
         "type" : "object",
@@ -75765,6 +77015,14 @@
         },
         "required" : [ "related", "backlinks" ]
       },
+      "ReminderResult" : {
+        "type" : "string",
+        "enum" : [ "SENT", "CONFIRMED_WITHOUT_MAIL" ]
+      },
+      "ReminderTrigger" : {
+        "type" : "string",
+        "enum" : [ "MANUAL", "AFTER_7_DAYS", "AFTER_21_DAYS" ]
+      },
       "RemoteAttachment" : {
         "type" : "object",
         "properties" : {
@@ -76591,6 +77849,16 @@
             "type" : [ "string", "null" ]
           }
         }
+      },
+      "ResolveResult" : {
+        "type" : "object",
+        "properties" : {
+          "resolved" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "resolved" ]
       },
       "ResolvedMember" : {
         "type" : "object",
@@ -78206,6 +79474,10 @@
         },
         "required" : [ "id", "memberId", "memberName", "dueOn", "state", "handedOutAt", "submittedAt", "handedOutByName", "checkId" ]
       },
+      "SelfRegistration" : {
+        "type" : "string",
+        "enum" : [ "OPEN", "NOT_ELIGIBLE", "CLOSED" ]
+      },
       "SelfServiceOffer" : {
         "type" : "object",
         "properties" : {
@@ -79030,6 +80302,10 @@
         },
         "required" : [ "emailEnabled", "theme", "darkMode", "feel", "notifications", "mailConfigured", "mailProviders" ]
       },
+      "SetupMailKind" : {
+        "type" : "string",
+        "enum" : [ "INVITATION", "CONFIRMATION" ]
+      },
       "SetupStatus" : {
         "type" : "object",
         "properties" : {
@@ -79147,6 +80423,19 @@
           }
         },
         "required" : [ "type", "host", "port", "username", "knownHostsPinned", "basePath", "credentialFingerprint" ]
+      },
+      "ShareCount" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "$ref" : "#/components/schemas/FederationShareKind"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "kind", "count" ]
       },
       "ShareDetail" : {
         "type" : "object",
@@ -80375,6 +81664,35 @@
         },
         "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "templateId", "requiresRegistration", "registrationDeadline", "requiresConfirmation", "categoryId", "restrictionMode", "viewRestrictionMode", "restricted", "isPublic", "registrationLimit", "cancelled", "cancelledAt", "cancelReason", "minRegistrations", "thresholdDays", "registrationCloseDays", "repeatUntil", "repeatCount", "recurring" ]
       },
+      "StationFailedMails" : {
+        "type" : "object",
+        "properties" : {
+          "stationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "oldest" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "newest" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "causes" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CauseCount"
+            }
+          }
+        },
+        "required" : [ "stationUid", "stationName", "count", "oldest", "newest", "causes" ]
+      },
       "StationFile" : {
         "type" : "object",
         "properties" : {
@@ -80921,6 +82239,10 @@
         },
         "required" : [ "stationUid", "stationName", "quotaBytes", "ownStore", "granted", "resolved", "usedBytes", "usage", "presetId", "presetName" ]
       },
+      "StationState" : {
+        "type" : "string",
+        "enum" : [ "NO_MANAGER", "WAITING_FOR_MANAGER", "SETTING_UP", "SET_UP" ]
+      },
       "StationStatistics" : {
         "type" : "object",
         "properties" : {
@@ -81008,6 +82330,10 @@
             "type" : "string"
           }
         }
+      },
+      "StatisticsWindow" : {
+        "type" : "string",
+        "enum" : [ "DAYS_30", "MONTHS_12", "ALL" ]
       },
       "StatsCounterConfig" : {
         "type" : "object",
@@ -81361,6 +82687,67 @@
           }
         },
         "required" : [ "id", "name", "total", "kb", "board", "images", "pages", "perFile", "perImage" ]
+      },
+      "StoredProblem" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "fingerprint" : {
+            "type" : "string"
+          },
+          "level" : {
+            "$ref" : "#/components/schemas/ProblemLevel"
+          },
+          "logger" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "exceptionClass" : {
+            "type" : [ "string", "null" ]
+          },
+          "exceptionMessage" : {
+            "type" : [ "string", "null" ]
+          },
+          "stacktrace" : {
+            "type" : [ "string", "null" ]
+          },
+          "distinctMessages" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "firstSeen" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "lastSeen" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "state" : {
+            "$ref" : "#/components/schemas/ProblemState"
+          },
+          "stateChangedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "reopenedCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "id", "fingerprint", "level", "logger", "message", "exceptionClass", "exceptionMessage", "stacktrace", "distinctMessages", "count", "firstSeen", "lastSeen", "state", "stateChangedAt", "reopenedCount" ]
       },
       "Strategy" : {
         "type" : "string",
@@ -83859,6 +85246,28 @@
         },
         "required" : [ "type", "locale", "section" ]
       },
+      "UsageSeries" : {
+        "type" : "object",
+        "properties" : {
+          "today" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "average30" : {
+            "type" : "number"
+          },
+          "recordedSince" : {
+            "type" : [ "string", "null" ]
+          },
+          "days" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DayCount"
+            }
+          }
+        },
+        "required" : [ "today", "average30", "recordedSince", "days" ]
+      },
       "UserAgentsResponse" : {
         "type" : "object",
         "properties" : {
@@ -84793,6 +86202,39 @@
             }
           }
         }
+      },
+      "WaitingListVisitor" : {
+        "type" : "object",
+        "properties" : {
+          "entryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "listId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "listName" : {
+            "type" : "string"
+          },
+          "firstname" : {
+            "type" : "string"
+          },
+          "lastname" : {
+            "type" : "string"
+          },
+          "date" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "arrivalTime" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalTime"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "entryId", "listId", "listName", "firstname", "lastname", "date", "arrivalTime" ]
       },
       "WaitingListWithCount" : {
         "type" : "object",

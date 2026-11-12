@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.mail.repository;
 
 import dev.chojo.ember.feature.mail.entity.MailAttachment;
+import dev.chojo.ember.feature.mail.entity.MailFailureReason;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -82,7 +83,7 @@ class EmailQueueRepositoryTest extends RepositoryTestBase {
     void markFailed() {
         emailQueueRepo.enqueue("fail@example.com", "Fail Test", "Body");
         var pending = emailQueueRepo.fetchPending(1, true);
-        emailQueueRepo.markFailed(pending.getFirst().id());
+        emailQueueRepo.markFailed(pending.getFirst().id(), MailFailureReason.RETRIES_EXHAUSTED);
         assertEquals(0, emailQueueRepo.pendingCount());
     }
 
@@ -91,7 +92,7 @@ class EmailQueueRepositoryTest extends RepositoryTestBase {
     void requeue() {
         emailQueueRepo.enqueue("requeue@example.com", "Requeue Test", "Body");
         var pending = emailQueueRepo.fetchPending(1, true);
-        emailQueueRepo.markFailed(pending.getFirst().id());
+        emailQueueRepo.markFailed(pending.getFirst().id(), MailFailureReason.RETRIES_EXHAUSTED);
         emailQueueRepo.requeue(pending.getFirst().id());
         assertEquals(1, emailQueueRepo.pendingCount());
         var refetched = emailQueueRepo.fetchPending(1, true);
@@ -461,7 +462,7 @@ class EmailQueueRepositoryTest extends RepositoryTestBase {
 
     @Test
     @Order(26)
-    void aMailKeepsItsFilesUntilItIsSentOrFailed() {
+    void aMailKeepsItsFilesUntilItIsSentAndAFailedOneKeepsThemToBeSentAgain() {
         drain();
         byte[] first = {1, 2, 3};
         byte[] second = {4, 5};
@@ -490,10 +491,14 @@ class EmailQueueRepositoryTest extends RepositoryTestBase {
         assertEquals(List.of(), emailQueueRepo.attachmentsOf(queuedId("plain@example.com")));
 
         emailQueueRepo.markSent(sent);
-        emailQueueRepo.markFailed(failed);
+        emailQueueRepo.markFailed(failed, MailFailureReason.PROVIDER_REFUSED);
 
         assertEquals(List.of(), emailQueueRepo.attachmentsOf(sent));
-        assertEquals(List.of(), emailQueueRepo.attachmentsOf(failed));
+        assertEquals(
+                List.of("c.pdf"),
+                emailQueueRepo.attachmentsOf(failed).stream()
+                        .map(MailAttachment::fileName)
+                        .toList());
         assertEquals("SENT", statusOf("files@example.com"));
         assertEquals("FAILED", statusOf("failing@example.com"));
     }

@@ -22,6 +22,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Set;
 import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -555,5 +556,15 @@ class AccountRepositoryTest extends RepositoryTestBase {
     void deleteAccount() {
         assertTrue(accountRepo.delete(accountId));
         assertTrue(accountRepo.findById(accountId).isEmpty());
+    }
+
+    @Test
+    void theWordsOfEveryNameAreOffered() {
+        accountRepo.create("name-words-" + UUID.randomUUID() + "@test.com", "Anna-Lena", "Öz Brückner");
+
+        var words = accountRepo.nameWords();
+
+        assertTrue(words.containsAll(Set.of("anna", "lena", "brückner")), words.toString());
+        assertFalse(words.contains("öz"), "a word shorter than three letters is left alone");
     }
 }

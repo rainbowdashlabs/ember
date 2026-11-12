@@ -106,7 +106,7 @@ export function describeFailure(e: unknown, t: Translate): Failure {
     return {
         kind,
         message: messageFor(kind, said, t),
-        guidance: guidanceFor(kind, t),
+        guidance: refusalGuidance(code, t) ?? guidanceFor(kind, t),
         reportable: kind === FailureKind.SERVER_FAULT
             || kind === FailureKind.UNKNOWN
             || kind === FailureKind.TIMEOUT,
@@ -222,6 +222,23 @@ export function formatRefusalDetail(detail: RefusalDetail, t: Translate): string
 function messageFor(kind: FailureKindName, said: string | undefined, t: Translate): string {
     if (kind === FailureKind.SERVER_FAULT) return t(`${KEY}.${kind}.message`)
     return said ?? t(`${KEY}.${kind}.message`)
+}
+
+/**
+ * Refusals whose kind gives the wrong advice, with the advice that fits them.
+ *
+ * A refusal answered with 409 reads as somebody else having changed the thing in the meantime, which
+ * is what most of them are. Some are a rule instead, and telling the reader to reload sends them
+ * round in a circle; those name what to do here.
+ */
+const GUIDANCE_BY_REFUSAL: Readonly<Record<string, string>> = {
+    'M-245': 'failure.dependentQuestions.guidance',
+}
+
+/** The advice a refusal brings with it, where its kind would give the wrong one. */
+function refusalGuidance(code: string | undefined, t: Translate): string | undefined {
+    const key = code ? GUIDANCE_BY_REFUSAL[code] : undefined
+    return key ? t(key) : undefined
 }
 
 /**

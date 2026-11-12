@@ -45,7 +45,7 @@ const canRemove = computed(() => props.conflict?.code === BINDING_EXCLUDES_MEMBE
           <NuxtLink :to="{name: 'members-edit', params: {id: entry.memberId}}" class="text-primary hover:underline">
             {{ entry.memberName }}
           </NuxtLink>
-          <span class="text-(--text-muted)">: {{ entry.groups.join(', ') }}</span>
+          <span v-if="!canRemove" class="text-(--text-muted)">: {{ entry.groups.join(', ') }}</span>
         </li>
       </BulletList>
       <ButtonRow pair align="end">

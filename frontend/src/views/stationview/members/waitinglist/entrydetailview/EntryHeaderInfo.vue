@@ -14,6 +14,7 @@ import WaitingListAnswerBadge from '@/components/badge/WaitingListAnswerBadge.vu
 import type { WaitingListEntryWithScore } from '@/api/generated/schema'
 import { computed } from 'vue'
 import { formatDate, formatDateTime } from '@/util/format'
+import { pickedOption, type OfferedDate } from '../pickedDate'
 
 const props = defineProps<{
   entry: WaitingListEntryWithScore
@@ -30,7 +31,6 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-type OfferedDate = NonNullable<WaitingListEntryWithScore['entry']['invitation']>['options'][number]
 
 /** An offered date as the station reads it: the appointment and the day, since one day can hold two. */
 function describeOffered(option: OfferedDate): string {
@@ -45,9 +45,7 @@ const offeredDates = computed(() => (props.entry.entry.invitation?.options ?? []
 
 /** The date a coming answer picked, written out, or empty when nothing was picked. */
 const pickedDate = computed(() => {
-  const position = props.entry.entry.answer?.position
-  if (position === null || position === undefined) return ''
-  const picked = props.entry.entry.invitation?.options.find(option => option.position === position)
+  const picked = pickedOption(props.entry.entry)
   return picked ? describeOffered(picked) : ''
 })
 </script>

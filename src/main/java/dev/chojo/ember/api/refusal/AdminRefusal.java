@@ -34,7 +34,11 @@ public enum AdminRefusal implements Refusal {
 
     /** A one-time password asked for an account without a password on an instance that signs in with passkeys only. */
     ONE_TIME_PASSWORD_PASSWORDS_SWITCHED_OFF(
-            5, HttpStatus.CONFLICT, "This instance signs in with passkeys only, so no one-time password was issued");
+            5, HttpStatus.CONFLICT, "This instance signs in with passkeys only, so no one-time password was issued"),
+
+    /** A filter or an order of the account list that names something that does not exist. */
+    ACCOUNT_LIST_UNKNOWN_CHOICE(
+            6, HttpStatus.BAD_REQUEST, "A filter or the order of the account list names something that does not exist");
 
     private final Definition definition;
 

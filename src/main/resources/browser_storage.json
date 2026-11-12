@@ -277,6 +277,15 @@
       }
     },
     {
+      "key": "adminStations.viewMode",
+      "necessity": "COMFORT",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Ob Sie die Wachen in der Verwaltung der Instanz als Kacheln oder als Tabelle ansehen.",
+        "en": "Whether you view the stations in the instance administration as tiles or as a table."
+      }
+    },
+    {
       "key": "stationPages.filesPerPage",
       "necessity": "COMFORT",
       "retention": "UNTIL_CLEARED",

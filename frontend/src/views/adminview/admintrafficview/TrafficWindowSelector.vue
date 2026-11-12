@@ -8,6 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import {AuthBucket} from '@/api/generated/schema'
+import WindowField from './WindowField.vue'
 
 /** Allowed metrics, mirrors {@code TrafficChart}'s prop type. */
 type Metric = 'ingressBytes' | 'egressBytes' | 'requests' | 'inout'
@@ -17,6 +18,13 @@ const metric = defineModel<Metric>('metric', {required: true})
 const authFilter = defineModel<AuthBucket | ''>('authFilter', {required: true})
 
 const {t} = useI18n()
+
+const windowOptions = computed(() => [
+  {value: '24', label: t('traffic.window.last24h')},
+  {value: '72', label: t('traffic.window.last3d')},
+  {value: '168', label: t('traffic.window.last7d')},
+  {value: '720', label: t('traffic.window.last30d')},
+])
 
 const windowHoursModel = computed({
   get: () => String(windowHours.value),
@@ -34,15 +42,7 @@ const authModel = computed({
 
 <template>
   <div class="flex flex-wrap gap-3 items-end">
-    <label class="flex flex-col gap-1 text-sm">
-      <span class="text-(--text-muted)">{{ t('traffic.controls.window') }}</span>
-      <SelectInput v-model="windowHoursModel">
-        <option value="24">{{ t('traffic.window.last24h') }}</option>
-        <option value="72">{{ t('traffic.window.last3d') }}</option>
-        <option value="168">{{ t('traffic.window.last7d') }}</option>
-        <option value="720">{{ t('traffic.window.last30d') }}</option>
-      </SelectInput>
-    </label>
+    <WindowField v-model="windowHoursModel" :options="windowOptions"/>
     <label class="flex flex-col gap-1 text-sm">
       <span class="text-(--text-muted)">{{ t('traffic.controls.metric') }}</span>
       <SelectInput v-model="metricModel">

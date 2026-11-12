@@ -288,10 +288,12 @@ public class ProfileFieldRoutes implements Routes {
             summary = "Update a profile field definition",
             tags = {"Profile Fields"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            queryParams = @OpenApiParam(name = "unlinkDependents", type = Boolean.class),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProfileFieldRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProfileField.class)),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
         int id = pathInt(ctx, "id");
@@ -301,27 +303,55 @@ public class ProfileFieldRoutes implements Routes {
         }
         requireOwnedField(ctx, id);
         int stationId = StationSession.from(ctx).stationId();
-        profileFieldService.requireDependencyAllowed(stationId, id, request.shownIfFieldId());
         profileFieldService.requireSetAllowed(stationId, request.fieldSetId());
+        var change = changeOf(request);
+        if (unlinksDependents(ctx) && change.fieldType() != FieldType.BOOLEAN) {
+            var changed = profileFieldService.changeUnlinkingDependents(stationId, id, change);
+            ctx.json(profileFieldService.findById(id).orElse(changed));
+            return;
+        }
+        profileFieldService.requireDependencyAllowed(stationId, id, change.shownIfFieldId());
         profileFieldService
                 .update(
                         id,
-                        request.name(),
-                        request.fieldType(),
-                        configOf(request),
-                        request.required() != null && request.required(),
-                        request.readonly() != null && request.readonly(),
-                        request.width(),
-                        request.keepOnArchive() != null && request.keepOnArchive())
+                        change.name(),
+                        change.fieldType(),
+                        change.config(),
+                        change.required(),
+                        change.readonly(),
+                        change.width(),
+                        change.keepOnArchive())
                 .ifPresentOrElse(
                         updated -> {
-                            profileFieldService.dependOn(id, request.shownIfFieldId());
-                            profileFieldService.joinSet(id, request.fieldSetId());
+                            profileFieldService.dependOn(id, change.shownIfFieldId());
+                            profileFieldService.joinSet(id, change.fieldSetId());
                             ctx.json(profileFieldService.findById(id).orElse(updated));
                         },
                         () -> {
                             throw MemberRefusal.PROFILE_FIELD_NOT_HERE_ON_CHANGE.raise();
                         });
+    }
+
+    /** Everything a change of a question asks for, with the flags a request may leave out read as off. */
+    private static ProfileFieldService.FieldChange changeOf(ProfileFieldRequest request) {
+        return new ProfileFieldService.FieldChange(
+                request.name(),
+                request.fieldType(),
+                configOf(request),
+                request.required() != null && request.required(),
+                request.readonly() != null && request.readonly(),
+                request.width(),
+                request.keepOnArchive() != null && request.keepOnArchive(),
+                request.shownIfFieldId(),
+                request.fieldSetId());
+    }
+
+    /**
+     * Whether the caller asked for the questions shown under this one to be shown unconditionally, so
+     * that deleting it or changing its type is not refused because of them.
+     */
+    private static boolean unlinksDependents(Context ctx) {
+        return "true".equals(ctx.queryParam("unlinkDependents"));
     }
 
     /**
@@ -354,18 +384,21 @@ public class ProfileFieldRoutes implements Routes {
             summary = "Delete a profile field definition",
             tags = {"Profile Fields"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            queryParams = @OpenApiParam(name = "unlinkDependents", type = Boolean.class),
             responses = {
                 @OpenApiResponse(status = "204"),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedField(ctx, id);
-        if (profileFieldService.delete(id)) {
-            ctx.status(HttpStatus.NO_CONTENT);
-        } else {
-            throw MemberRefusal.PROFILE_FIELD_NOT_HERE_ON_DELETE.raise();
-        }
+        int stationId = StationSession.from(ctx).stationId();
+        boolean deleted = unlinksDependents(ctx)
+                ? profileFieldService.deleteUnlinkingDependents(stationId, id)
+                : profileFieldService.delete(id);
+        if (!deleted) throw MemberRefusal.PROFILE_FIELD_NOT_HERE_ON_DELETE.raise();
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     @OpenApi(

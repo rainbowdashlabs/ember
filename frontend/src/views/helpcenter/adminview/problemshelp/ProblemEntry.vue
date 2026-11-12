@@ -33,7 +33,9 @@ const {t} = useI18n()
       <p class="text-xs text-(--text-muted)">{{ timestamp }}</p>
     </div>
     <div class="flex items-center gap-1 shrink-0">
-      <IconButton :icon="['fas', 'check']" :label="t('adminProblems.acknowledge')"/>
+      <IconButton :icon="['fas', 'check']" :label="t('adminProblems.resolve')"/>
+      <IconButton :icon="['fas', 'bell-slash']" :label="t('adminProblems.mute')"/>
+      <IconButton :icon="['fas', 'trash']" :label="t('adminProblems.delete')"/>
       <font-awesome-icon :icon="['fas', expanded ? 'chevron-up' : 'chevron-down']" class="text-xs text-(--text-muted)"/>
     </div>
   </div>

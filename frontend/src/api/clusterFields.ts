@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {AssignmentTarget, EditableFieldRequest} from './profileFields'
+import {unlinkParams, type AssignmentTarget, type EditableFieldRequest} from './profileFields'
 import type {
     AssignmentRequest,
     ClusterFieldResponse,
@@ -37,12 +37,14 @@ export async function createField(data: EditableFieldRequest): Promise<ClusterFi
     return res.data
 }
 
-export async function updateField(fieldId: number, data: EditableFieldRequest): Promise<void> {
-    await client.put(`/cluster/fields/${fieldId}`, data)
+/** Changes a question, unlinking the questions shown under it first where asked to. */
+export async function updateField(fieldId: number, data: EditableFieldRequest, unlinkDependents = false): Promise<void> {
+    await client.put(`/cluster/fields/${fieldId}`, data, {params: unlinkParams(unlinkDependents)})
 }
 
-export async function deleteField(fieldId: number): Promise<void> {
-    await client.delete(`/cluster/fields/${fieldId}`)
+/** Withdraws a question, unlinking the questions shown under it first where asked to. */
+export async function deleteField(fieldId: number, unlinkDependents = false): Promise<void> {
+    await client.delete(`/cluster/fields/${fieldId}`, {params: unlinkParams(unlinkDependents)})
 }
 
 /** Puts one audience's questions in a given order in one request, named by role as a station's order is. */

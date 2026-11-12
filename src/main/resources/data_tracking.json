@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "schemaHash": "sha256:27262d78c9114f1a2aae76cc59a5cdc827a39d0759498569d2f0a3e187d2cb52",
-  "generatedAt": "2026-11-11T08:58:09Z",
+  "schemaHash": "sha256:e8d1caca6059aa8e544b35be6f625c549012d994e8d5a9bd2f350ffd12de5fa4",
+  "generatedAt": "2026-11-11T14:57:35Z",
   "tables": {
     "account": {
       "feature": "account",
       "scope": "USER",
-      "tableHash": "sha256:3ffedc0af1af5d368b3433f23c10094b2aaa7441953610a07388fe9e0bdcf65d",
+      "tableHash": "sha256:b78b215f084db9226afd5c11a573dff23ff3766f1eedd0866f6cc4b59344a65d",
       "columns": [
         {
           "name": "id",
@@ -119,6 +119,13 @@
           "description": "When a station import created this account under its address. Until the owner sets a password or a passkey through a link sent to that address, no station may change the account's address or how it signs in. NULL for every account whose owner confirmed it, and for every account made any other way."
         },
         {
+          "name": "last_active_on",
+          "type": "date",
+          "nullable": true,
+          "verified": true,
+          "description": "The last day the account used the instance, in the database's calendar. Written at most once a day per account; it is what the daily count of people using the instance is made from."
+        },
+        {
           "name": "messages_guardian_allowed",
           "type": "bool",
           "nullable": false,
@@ -154,7 +161,8 @@
           "email_verified",
           "instance_user_type",
           "full_name",
-          "unconfirmed_since"
+          "unconfirmed_since",
+          "last_active_on"
         ],
         "rationale": "Reached via station_member.account_id; engine uses customScope to filter accounts referenced by this station's members. Importer matches by email or creates anew."
       },
@@ -750,75 +758,6 @@
         ]
       },
       "description": "The AI provider key a person keeps for generating quiz content, one per account. It follows them to every browser and every station they work at."
-    },
-    "account_block": {
-      "tableHash": "sha256:9c4c40370358a89f37bd04908d6bb5154d9df586d4834114b4291b3a5ab19240",
-      "columns": [
-        {
-          "name": "blocker_account_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "The account that blocked."
-        },
-        {
-          "name": "blocked_account_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "The account that was blocked."
-        },
-        {
-          "name": "created_at",
-          "type": "timestamptz",
-          "nullable": false,
-          "verified": true,
-          "description": "When the block was set."
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "blocked_account_id",
-          "refTable": "account",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        },
-        {
-          "column": "blocker_account_id",
-          "refTable": "account",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        }
-      ],
-      "stationTransfer": {
-        "status": "IGNORED",
-        "reason": "A block is one account's choice about another and belongs to no station"
-      },
-      "gdprExport": {
-        "status": "TRACKED",
-        "identityColumns": [
-          {
-            "type": "ACCOUNT_ID",
-            "column": "blocker_account_id"
-          }
-        ]
-      },
-      "gdprDeletion": {
-        "status": "TRACKED",
-        "strategies": [
-          {
-            "column": "blocker_account_id",
-            "strategy": "CASCADE",
-            "reason": "FK ON DELETE CASCADE on account delete"
-          },
-          {
-            "column": "blocked_account_id",
-            "strategy": "CASCADE",
-            "reason": "FK ON DELETE CASCADE on account delete; the blocked person is never told, so their export does not show it either"
-          }
-        ]
-      },
-      "description": "An account that blocked another for messages. The blocked account cannot start a direct conversation with the blocker or add them to a group, and is not told."
     },
     "account_credential": {
       "feature": "account",
@@ -2832,6 +2771,82 @@
         "reason": "Stacktraces and frame names, no personal data."
       },
       "description": "A fault as the beacon knows it, gathered from every instance that reported it."
+    },
+    "beacon_problem_context": {
+      "tableHash": "sha256:e6c3b3713980049d53b18ff9ba864f7b336e86289bd9db3e1fae8623f59f82bd",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int8",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "problem_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The problem the lines belong to. Deleting it deletes them."
+        },
+        {
+          "name": "instance_id",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The instance that sent them. Forgetting it deletes them."
+        },
+        {
+          "name": "occurred_at",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "When the occurrence the lines surround happened, on the sending instance."
+        },
+        {
+          "name": "received_at",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "When the beacon received them."
+        },
+        {
+          "name": "lines",
+          "type": "jsonb",
+          "nullable": false,
+          "verified": true,
+          "description": "The lines, oldest first: time, level, logger, thread and the redacted message of each."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "instance_id",
+          "refTable": "beacon_instance",
+          "refColumn": "instance_id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "problem_id",
+          "refTable": "beacon_problem",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Belongs to this beacon, not to any station here."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Log lines another instance sent after replacing mail addresses, identifiers and the names of its accounts; nothing here identifies a person of this instance."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Carries no key to a person; it goes with its problem and with the instance that sent it."
+      },
+      "description": "On a beacon: the log lines an instance sent with a problem, the last five per problem and instance. The sender replaced mail addresses, identifiers and names before sending.",
+      "feature": "beacon",
+      "scope": "INSTANCE"
     },
     "beacon_problem_instance": {
       "feature": "beacon",
@@ -6600,200 +6615,6 @@
       },
       "description": "The rows and cells of one piece of authored content. A page, a news entry or a knowledge-base article owns one; the container itself knows nothing about which."
     },
-    "conversation": {
-      "tableHash": "sha256:b38d95ea69040ddfeea2c3feedcc5c62ee447fc7a1de7a751749a7ed128aa2ba",
-      "columns": [
-        {
-          "name": "id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "Primary key."
-        },
-        {
-          "name": "uid",
-          "type": "uuid",
-          "nullable": false,
-          "verified": true,
-          "description": "The identity the conversation is addressed by."
-        },
-        {
-          "name": "kind",
-          "type": "text",
-          "nullable": false,
-          "verified": true,
-          "description": "DIRECT for exactly two accounts, GROUP for several."
-        },
-        {
-          "name": "name",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "The name a group was given; NULL for a direct conversation and for a group named after its members."
-        },
-        {
-          "name": "owner_account_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "The account that owns a group: it alone removes people and renames it. NULL for a direct conversation and once the owner is gone."
-        },
-        {
-          "name": "direct_pair",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "For a direct conversation, the two account ids, the lower first, joined by a colon, which keeps one conversation per pair. Cleared when either account is deleted."
-        },
-        {
-          "name": "created_at",
-          "type": "timestamptz",
-          "nullable": false,
-          "verified": true,
-          "description": "When the conversation was started."
-        },
-        {
-          "name": "last_activity_at",
-          "type": "timestamptz",
-          "nullable": false,
-          "verified": true,
-          "description": "When anything was last written in it, which orders the list of conversations."
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "owner_account_id",
-          "refTable": "account",
-          "refColumn": "id",
-          "onDelete": "SET NULL"
-        }
-      ],
-      "stationTransfer": {
-        "status": "IGNORED",
-        "reason": "A conversation belongs to the accounts in it, not to a station, and stays on this installation"
-      },
-      "gdprExport": {
-        "status": "TRACKED",
-        "identityColumns": [
-          {
-            "type": "ACCOUNT_ID",
-            "column": "owner_account_id"
-          }
-        ],
-        "ignoredColumns": [
-          "direct_pair"
-        ]
-      },
-      "gdprDeletion": {
-        "status": "TRACKED",
-        "strategies": [
-          {
-            "column": "owner_account_id",
-            "strategy": "NULL",
-            "reason": "FK ON DELETE SET NULL keeps the group for the others, its owner cleared; MessageErasure clears direct_pair and deletes a conversation nobody is left in before the engine runs"
-          }
-        ]
-      },
-      "description": "A conversation between accounts: a direct one between two people, or a group. It belongs to the people in it, not to a station."
-    },
-    "conversation_member": {
-      "tableHash": "sha256:9bf06097eba9f793f88fac4445e33765b0c978fad2fe011af45b99b1254d714b",
-      "columns": [
-        {
-          "name": "conversation_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "The conversation."
-        },
-        {
-          "name": "account_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "The account taking part."
-        },
-        {
-          "name": "joined_at",
-          "type": "timestamptz",
-          "nullable": false,
-          "verified": true,
-          "description": "When the account started or was added, the last time if it came back."
-        },
-        {
-          "name": "left_at",
-          "type": "timestamptz",
-          "nullable": true,
-          "verified": true,
-          "description": "When the account left or was removed; NULL while it takes part. A direct conversation that was left comes back with the next message."
-        },
-        {
-          "name": "last_read_message_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "The last message the account has read, which unread counts start after. NULL before anything was read."
-        },
-        {
-          "name": "muted",
-          "type": "bool",
-          "nullable": false,
-          "verified": true,
-          "description": "Whether the account muted the conversation: no badge count and no mail."
-        },
-        {
-          "name": "mailed_at",
-          "type": "timestamptz",
-          "nullable": true,
-          "verified": true,
-          "description": "When the account was last mailed about unread messages here. Cleared once it reads again, so one mail goes out per unread stretch."
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "account_id",
-          "refTable": "account",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        },
-        {
-          "column": "conversation_id",
-          "refTable": "conversation",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        },
-        {
-          "column": "last_read_message_id",
-          "refTable": "message",
-          "refColumn": "id",
-          "onDelete": "SET NULL"
-        }
-      ],
-      "stationTransfer": {
-        "status": "IGNORED",
-        "reason": "Taking part in a conversation belongs to the account, not to a station"
-      },
-      "gdprExport": {
-        "status": "TRACKED",
-        "identityColumns": [
-          {
-            "type": "ACCOUNT_ID",
-            "column": "account_id"
-          }
-        ]
-      },
-      "gdprDeletion": {
-        "status": "TRACKED",
-        "strategies": [
-          {
-            "column": "account_id",
-            "strategy": "CASCADE",
-            "reason": "FK ON DELETE CASCADE on account delete; MessageErasure removes the memberships first so an emptied conversation goes too"
-          }
-        ]
-      },
-      "description": "An account taking part in a conversation, with how far it has read."
-    },
     "device_request": {
       "tableHash": "sha256:d33a692bc9fea0c224f56cdcbd5c7a4c3b697ab14b16921b340cd4bd8074ecdc",
       "columns": [
@@ -9044,7 +8865,7 @@
     "email_queue": {
       "feature": "mail",
       "scope": "INSTANCE",
-      "tableHash": "sha256:85138b3b4314e2276c8a22f95814fdcae6d0560b826c6dcb9d0d33b9f027e888",
+      "tableHash": "sha256:ef1a5b64ebd70492d4b7bab419afbbde8d0cdf01121aae3591763fb93f06dbaf",
       "columns": [
         {
           "name": "id",
@@ -9058,7 +8879,7 @@
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "References the sending station. NULL for system emails."
+          "description": "References the sending station. NULL for system emails. Deleting the station deletes its emails, so they never count as the instance's own."
         },
         {
           "name": "recipient",
@@ -9164,14 +8985,48 @@
           "nullable": true,
           "verified": true,
           "description": "Which provider of the instance's list carried the mail, counted from zero, whether the mail was the instance's own or a station's. NULL while unsent and for mail a station's own provider carried. The daily allowance of an instance provider and the share stations may use of it are counted from this."
+        },
+        {
+          "name": "failure_reason",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Why the queue gave up on the email: NO_PROVIDER, NO_PROVIDER_LEFT, PROVIDER_REFUSED, PROVIDER_BROKEN or RETRIES_EXHAUSTED. NULL for an email the queue did not give up on, and for failures recorded before the reason was kept."
+        },
+        {
+          "name": "acknowledged_at",
+          "type": "timestamp",
+          "nullable": true,
+          "verified": true,
+          "description": "When an instance administrator took note that the email did not arrive. Ends the warning for it; the email stays until the usual cleanup removes it."
+        },
+        {
+          "name": "acknowledged_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The administrator who took note of the failure. NULL once that account is deleted, and for failures nobody took note of."
+        },
+        {
+          "name": "failed_at",
+          "type": "timestamp",
+          "nullable": true,
+          "verified": true,
+          "description": "When the queue gave up on the email. NULL for an email the queue did not give up on, and for failures recorded before this was kept."
         }
       ],
       "foreignKeys": [
         {
+          "column": "acknowledged_by",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
           "column": "station_id",
           "refTable": "station",
           "refColumn": "id",
-          "onDelete": "SET NULL"
+          "onDelete": "CASCADE"
         }
       ],
       "stationTransfer": {
@@ -9239,17 +9094,17 @@
       ],
       "stationTransfer": {
         "status": "IGNORED",
-        "reason": "Files of queued emails, instance-scoped and gone once their email is sent or failed"
+        "reason": "Files of queued emails, instance-scoped and gone once their email is sent, or with it by the 30-day cleanup when it failed"
       },
       "gdprExport": {
         "status": "IGNORED",
-        "reason": "Files of queued emails, held only until their email is sent or failed; the sealed document itself is in the member documents export"
+        "reason": "Files of queued emails, held until their email is sent, or until the 30-day cleanup when it failed; the sealed document itself is in the member documents export"
       },
       "gdprDeletion": {
         "status": "IGNORED",
-        "reason": "Files of queued emails, deleted once their email is sent or failed, and with the email by cascade"
+        "reason": "Files of queued emails, deleted once their email is sent, and with the email by cascade, which the 30-day cleanup removes when it failed"
       },
-      "description": "Files a queued email carries, such as the sealed PDF a signer gets as their own copy. Deleted as soon as the email was handed to a provider or failed for good, so a file never stays here longer than its email waits."
+      "description": "Files a queued email carries, such as the sealed PDF a signer gets as their own copy. Deleted as soon as the email was handed to a provider. A failed email keeps its files so it can be sent again, until the usual 30-day cleanup removes them with the email."
     },
     "entity_note": {
       "feature": "members",
@@ -15190,6 +15045,202 @@
       },
       "description": "Consent records for GDPR compliance."
     },
+    "instance_usage_daily": {
+      "feature": "statistics",
+      "scope": "INSTANCE",
+      "tableHash": "sha256:c0f916569e35148e1298f9787f169407503efc88438a8f149f699f736dd40f53",
+      "columns": [
+        {
+          "name": "day",
+          "type": "date",
+          "nullable": false,
+          "verified": true,
+          "description": "The day, in the database's calendar."
+        },
+        {
+          "name": "active_accounts",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Accounts that used the instance that day, counted as it happens: one for each account the first time it is seen that day."
+        },
+        {
+          "name": "accounts",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Accounts at the last snapshot of the day."
+        },
+        {
+          "name": "accounts_confirmed",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Accounts with a confirmed real address at the last snapshot of the day."
+        },
+        {
+          "name": "stations",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Stations at the last snapshot of the day, without the home stations of associations."
+        },
+        {
+          "name": "stations_set_up",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Stations whose setup was finished at the last snapshot of the day."
+        },
+        {
+          "name": "members",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Memberships that are not archived at the last snapshot of the day."
+        },
+        {
+          "name": "former_members",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Archived memberships at the last snapshot of the day."
+        },
+        {
+          "name": "events",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Appointments at the last snapshot of the day."
+        },
+        {
+          "name": "attendance_sessions",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Attendance sheets at the last snapshot of the day."
+        },
+        {
+          "name": "attendance_entries",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Entries on attendance sheets at the last snapshot of the day."
+        },
+        {
+          "name": "inventory_items",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Pieces of equipment at the last snapshot of the day."
+        },
+        {
+          "name": "profile_fields",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Profile questions of stations at the last snapshot of the day."
+        },
+        {
+          "name": "member_groups",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Member groups at the last snapshot of the day."
+        },
+        {
+          "name": "clusters",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Associations at the last snapshot of the day."
+        },
+        {
+          "name": "federation_partners_active",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Active partnerships between stations at the last snapshot of the day, counted once per pair side."
+        },
+        {
+          "name": "knowledge_base_articles",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Knowledge base files not in the trash at the last snapshot of the day."
+        },
+        {
+          "name": "mails_sent",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Emails the queue sent that day."
+        },
+        {
+          "name": "people",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Distinct people with at least one membership that is not archived, at the last snapshot of the day. A person is their account; a membership without an account is a person of its own."
+        },
+        {
+          "name": "people_trial",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Distinct people who are trial members in at least one station, not archived there."
+        },
+        {
+          "name": "people_member",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Distinct people who are members in at least one station, not archived there."
+        },
+        {
+          "name": "people_guardian",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Distinct people whose member type is guardian in at least one station, not archived there."
+        },
+        {
+          "name": "people_team",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Distinct people of the team in at least one station, not archived there."
+        },
+        {
+          "name": "people_manager",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Distinct people who are managers in at least one station, not archived there."
+        },
+        {
+          "name": "memberships",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Memberships that are not archived, so somebody in two stations counts twice."
+        }
+      ],
+      "foreignKeys": [],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Counts of the whole instance, not of any station; the new instance keeps its own."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Daily totals only; nothing in a row says who was counted."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Daily totals only; nothing in a row says who was counted."
+      },
+      "description": "One row per day: how many people used the instance that day, and how large the instance was. Holds counts only, never who. Kept for good."
+    },
     "inventory": {
       "feature": "inventory",
       "scope": "STATION",
@@ -20708,208 +20759,6 @@
       },
       "description": "A named set of columns a station wants when it lists people, used both for who is coming to an appointment and for the register. Saved per station rather than per screen, so the two never drift apart."
     },
-    "message": {
-      "tableHash": "sha256:e596f22dfd3f1f5d677ee9dad70eff799d5c3e6530dbf60b6a1835e97ade0440",
-      "columns": [
-        {
-          "name": "id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "Primary key, which also orders the messages of a conversation."
-        },
-        {
-          "name": "conversation_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "The conversation the message was written in."
-        },
-        {
-          "name": "author_account_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "The account that wrote it, or that did what a system line says. NULL once that account is deleted; the message stays for the others."
-        },
-        {
-          "name": "content",
-          "type": "text",
-          "nullable": false,
-          "verified": true,
-          "description": "The text, plain with line breaks and mentions. Empty once deleted and for system lines; a RENAMED line holds the new name."
-        },
-        {
-          "name": "reply_to_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "The message this one answers, in the same conversation. NULL for no answer and once that message is gone."
-        },
-        {
-          "name": "system_kind",
-          "type": "text",
-          "nullable": true,
-          "verified": true,
-          "description": "What a system line says: ADDED, LEFT, REMOVED, RENAMED or OWNER_PASSED. NULL for a message somebody wrote."
-        },
-        {
-          "name": "system_subject_account_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "The account a system line is about: who was added, removed, or became the owner. NULL otherwise and once that account is deleted."
-        },
-        {
-          "name": "created_at",
-          "type": "timestamptz",
-          "nullable": false,
-          "verified": true,
-          "description": "When it was written."
-        },
-        {
-          "name": "edited_at",
-          "type": "timestamptz",
-          "nullable": true,
-          "verified": true,
-          "description": "When its author last changed it; NULL if never."
-        },
-        {
-          "name": "deleted_at",
-          "type": "timestamptz",
-          "nullable": true,
-          "verified": true,
-          "description": "When its author deleted it; the text is emptied then. NULL while it stands."
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "author_account_id",
-          "refTable": "account",
-          "refColumn": "id",
-          "onDelete": "SET NULL"
-        },
-        {
-          "column": "conversation_id",
-          "refTable": "conversation",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        },
-        {
-          "column": "reply_to_id",
-          "refTable": "message",
-          "refColumn": "id",
-          "onDelete": "SET NULL"
-        },
-        {
-          "column": "system_subject_account_id",
-          "refTable": "account",
-          "refColumn": "id",
-          "onDelete": "SET NULL"
-        }
-      ],
-      "stationTransfer": {
-        "status": "IGNORED",
-        "reason": "Messages belong to the conversations of accounts, not to a station"
-      },
-      "gdprExport": {
-        "status": "TRACKED",
-        "reason": "Only the account's own messages; what others wrote in the same conversations is theirs",
-        "identityColumns": [
-          {
-            "type": "ACCOUNT_ID",
-            "column": "author_account_id"
-          }
-        ]
-      },
-      "gdprDeletion": {
-        "status": "TRACKED",
-        "strategies": [
-          {
-            "column": "author_account_id",
-            "strategy": "NULL",
-            "reason": "FK ON DELETE SET NULL keeps the message for the others, shown as written by a deleted account"
-          },
-          {
-            "column": "system_subject_account_id",
-            "strategy": "NULL",
-            "reason": "FK ON DELETE SET NULL keeps the system line, whom it was about cleared"
-          }
-        ]
-      },
-      "description": "One message in a conversation, or a quiet system line saying who joined, left, was removed, or renamed a group."
-    },
-    "message_reaction": {
-      "tableHash": "sha256:4afaf4a8ac0c0a35fcd693f11edfb2fefe4838d3eaec69d743b51f268f63d01d",
-      "columns": [
-        {
-          "name": "message_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "The message reacted to."
-        },
-        {
-          "name": "account_id",
-          "type": "int4",
-          "nullable": false,
-          "verified": true,
-          "description": "The account that reacted."
-        },
-        {
-          "name": "emoji",
-          "type": "text",
-          "nullable": false,
-          "verified": true,
-          "description": "The standard Unicode emoji reacted with."
-        },
-        {
-          "name": "created_at",
-          "type": "timestamptz",
-          "nullable": false,
-          "verified": true,
-          "description": "When the reaction was added."
-        }
-      ],
-      "foreignKeys": [
-        {
-          "column": "account_id",
-          "refTable": "account",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        },
-        {
-          "column": "message_id",
-          "refTable": "message",
-          "refColumn": "id",
-          "onDelete": "CASCADE"
-        }
-      ],
-      "stationTransfer": {
-        "status": "IGNORED",
-        "reason": "Reactions belong to messages between accounts, not to a station"
-      },
-      "gdprExport": {
-        "status": "TRACKED",
-        "identityColumns": [
-          {
-            "type": "ACCOUNT_ID",
-            "column": "account_id"
-          }
-        ]
-      },
-      "gdprDeletion": {
-        "status": "TRACKED",
-        "strategies": [
-          {
-            "column": "account_id",
-            "strategy": "CASCADE",
-            "reason": "FK ON DELETE CASCADE on account delete"
-          }
-        ]
-      },
-      "description": "An emoji somebody reacted to a message with, at most once per emoji and message."
-    },
     "movement_flow": {
       "feature": "inventory",
       "scope": "STATION",
@@ -22893,6 +22742,202 @@
         "reason": "Goes with the member, who is deleted with it, and with a withdrawal of the sign-up."
       },
       "description": "A member of this station signed up here for one date of a partner station's appointment. The partner holds the registration itself; this is this station's own word that it was given, so that a partner telling it which of its members are registered is believed only for members it signed up. Removed when the member withdraws."
+    },
+    "problem_log": {
+      "tableHash": "sha256:88b14fd426d442b6707b92bb9dbd604c472b2dab1e4cca246faeaf775d1453f6",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int8",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "fingerprint",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What makes two log events the same problem: logger, exception class and first frame, or logger, level and message without an exception, or route and refusal for a refusal."
+        },
+        {
+          "name": "level",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "WARN, ERROR, or REFUSAL for a request the application refused."
+        },
+        {
+          "name": "logger",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Which logger reported the problem."
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The message of the first occurrence. May contain request paths and identifiers."
+        },
+        {
+          "name": "exception_class",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The class of the exception, NULL for a problem logged without one."
+        },
+        {
+          "name": "exception_message",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The message of the latest exception, NULL without one."
+        },
+        {
+          "name": "stacktrace",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The stacktrace of the latest occurrence, causes included. NULL without an exception."
+        },
+        {
+          "name": "distinct_messages",
+          "type": "_text",
+          "nullable": false,
+          "verified": true,
+          "description": "Up to 20 different messages the problem was logged with, oldest first. May contain request paths and identifiers."
+        },
+        {
+          "name": "count",
+          "type": "int8",
+          "nullable": false,
+          "verified": true,
+          "description": "How often the problem happened."
+        },
+        {
+          "name": "first_seen",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "When it happened first."
+        },
+        {
+          "name": "last_seen",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "When it happened last; the retention counts from here."
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "OPEN: waiting for an administrator. RESOLVED: taken care of; happening again opens it. MUTED: known noise; happening again only counts."
+        },
+        {
+          "name": "state_changed_at",
+          "type": "timestamp",
+          "nullable": true,
+          "verified": true,
+          "description": "When the state was last changed by hand or by happening again."
+        },
+        {
+          "name": "state_changed_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The administrator who last changed the state. NULL when it changed by happening again, and once that account is deleted."
+        },
+        {
+          "name": "reopened_count",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "How often the problem came back after it was resolved."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "state_changed_by",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Faults this instance logged; a moved station brings none of them along."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "An operational record of faults. Its only reference to a person is the administrator who last changed a state, which is set to NULL when that account is deleted; messages may quote request paths but are not about a person."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "The administrator reference is set to NULL with the account, and every row is deleted once the retention passes."
+      },
+      "description": "Warnings, errors and refusals the application logged, one row per problem, kept across restarts until the retention removes them.",
+      "feature": "system",
+      "scope": "INSTANCE"
+    },
+    "problem_occurrence": {
+      "tableHash": "sha256:eadc4e33ff64fa9c0c5079c65bfb65006efb4a0d7c4b943c13fa8418af8c27d1",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int8",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "problem_id",
+          "type": "int8",
+          "nullable": false,
+          "verified": true,
+          "description": "The problem. Deleting it deletes its occurrences."
+        },
+        {
+          "name": "occurred_at",
+          "type": "timestamp",
+          "nullable": false,
+          "verified": true,
+          "description": "When it happened."
+        },
+        {
+          "name": "thread",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The thread that logged it."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "problem_id",
+          "refTable": "problem_log",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Belongs to a problem of this instance."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Only a time and a thread name; nothing about a person."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Only a time and a thread name; it goes with its problem."
+      },
+      "description": "The last five occurrences of each problem: when and on which thread. Holds no message text; the log lines around an occurrence are looked up by it.",
+      "feature": "system",
+      "scope": "INSTANCE"
     },
     "problem_report": {
       "feature": "system",
@@ -26870,7 +26915,7 @@
     "station": {
       "feature": "station",
       "scope": "STATION",
-      "tableHash": "sha256:b9d25b16ef3619615ad19471081af5b3038edbe8b395c59195b41221c8f2095b",
+      "tableHash": "sha256:35f8c9a1ca6fdcda4d9143c5c5d59906be68ccb18747b9647dd941843e8fc39b",
       "columns": [
         {
           "name": "id",
@@ -27262,6 +27307,20 @@
           "nullable": false,
           "verified": true,
           "description": "AND or OR, how the parts of witness_reach_restriction combine."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the station was made. NULL for stations made before this was recorded."
+        },
+        {
+          "name": "waiting_since",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "Since when the station waits for its manager to set it up: set when a manager is named on a station that is not set up yet. The automatic reminders count from here. NULL for a station nobody waits for."
         }
       ],
       "foreignKeys": [
@@ -27313,7 +27372,9 @@
           "instance_mail_granted_at",
           "instance_mail_daily_limit",
           "moved_away_at",
-          "moved_to"
+          "moved_to",
+          "created_at",
+          "waiting_since"
         ],
         "rationale": "Single-row table; exported as an object via outputShape=SINGLE. The federation key is encrypted with the source instance's key, so it travels sealed with the transfer token beside the station page instead of as a column. Whether the station moved away describes the copy a move leaves on the source, never the station arriving."
       },
@@ -28324,6 +28385,102 @@
         "reason": "Station configuration, not personal data"
       },
       "description": "The mail providers a station sends through, in the order they are tried."
+    },
+    "station_manager_reminder": {
+      "feature": "station",
+      "scope": "STATION",
+      "tableHash": "sha256:8a2eb698c76376d3c6f05fa0b9810ef26d5929f9333b38e52c04879056e6a7d8",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station waiting for its manager. Deleting the station deletes its reminders."
+        },
+        {
+          "name": "account_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The manager the reminder was written to. NULL once that account is deleted."
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "SETUP_LINK: a fresh link to choose a password or to confirm the address, for a manager who cannot sign in yet. SETUP_REMINDER: a note that the station waits to be set up, for a manager who can sign in."
+        },
+        {
+          "name": "trigger",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What sent it: MANUAL for an administrator, AFTER_7_DAYS and AFTER_21_DAYS for the automatic reminders."
+        },
+        {
+          "name": "waiting_since",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "The station's waiting_since when the reminder was written, so naming a new manager starts the automatic reminders afresh."
+        },
+        {
+          "name": "sent_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the mail was queued. NULL for an automatic reminder that was skipped because one had gone out by hand shortly before."
+        },
+        {
+          "name": "sent_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The administrator who sent it by hand. NULL for an automatic reminder, and once that account is deleted."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "sent_by",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Which reminders this instance sent; a moved station that still waits for its manager is reminded afresh by its new instance."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Records only that a setup mail went out to a station's manager and when; the mail itself is in the mail log, which the export already covers."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Both references to an account are set to NULL when the account is deleted, and the rows go with the station."
+      },
+      "description": "Every reminder sent, or deliberately skipped, to the manager of a station that is not set up yet. An automatic reminder is written once per trigger and waiting period, which is what keeps it from going out twice."
     },
     "station_member": {
       "feature": "station",
@@ -31646,6 +31803,471 @@
         "reason": "Station configuration, not per-member data; a member named in it goes with the member by cascade"
       },
       "description": "Whom the holders of DOCUMENT_SIGN_OTHERS at a station may collect signatures from in person, among its current members and trial users. Empty means all of them. Shaped like event_restriction."
+    },
+    "account_block": {
+      "tableHash": "sha256:9c4c40370358a89f37bd04908d6bb5154d9df586d4834114b4291b3a5ab19240",
+      "columns": [
+        {
+          "name": "blocker_account_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The account that blocked."
+        },
+        {
+          "name": "blocked_account_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The account that was blocked."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the block was set."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "blocked_account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "blocker_account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "A block is one account's choice about another and belongs to no station"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "ACCOUNT_ID",
+            "column": "blocker_account_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "blocker_account_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on account delete"
+          },
+          {
+            "column": "blocked_account_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on account delete; the blocked person is never told, so their export does not show it either"
+          }
+        ]
+      },
+      "description": "An account that blocked another for messages. The blocked account cannot start a direct conversation with the blocker or add them to a group, and is not told."
+    },
+    "conversation": {
+      "tableHash": "sha256:b38d95ea69040ddfeea2c3feedcc5c62ee447fc7a1de7a751749a7ed128aa2ba",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key."
+        },
+        {
+          "name": "uid",
+          "type": "uuid",
+          "nullable": false,
+          "verified": true,
+          "description": "The identity the conversation is addressed by."
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "DIRECT for exactly two accounts, GROUP for several."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The name a group was given; NULL for a direct conversation and for a group named after its members."
+        },
+        {
+          "name": "owner_account_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The account that owns a group: it alone removes people and renames it. NULL for a direct conversation and once the owner is gone."
+        },
+        {
+          "name": "direct_pair",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "For a direct conversation, the two account ids, the lower first, joined by a colon, which keeps one conversation per pair. Cleared when either account is deleted."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the conversation was started."
+        },
+        {
+          "name": "last_activity_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When anything was last written in it, which orders the list of conversations."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "owner_account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "A conversation belongs to the accounts in it, not to a station, and stays on this installation"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "ACCOUNT_ID",
+            "column": "owner_account_id"
+          }
+        ],
+        "ignoredColumns": [
+          "direct_pair"
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "owner_account_id",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the group for the others, its owner cleared; MessageErasure clears direct_pair and deletes a conversation nobody is left in before the engine runs"
+          }
+        ]
+      },
+      "description": "A conversation between accounts: a direct one between two people, or a group. It belongs to the people in it, not to a station."
+    },
+    "conversation_member": {
+      "tableHash": "sha256:9bf06097eba9f793f88fac4445e33765b0c978fad2fe011af45b99b1254d714b",
+      "columns": [
+        {
+          "name": "conversation_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The conversation."
+        },
+        {
+          "name": "account_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The account taking part."
+        },
+        {
+          "name": "joined_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the account started or was added, the last time if it came back."
+        },
+        {
+          "name": "left_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the account left or was removed; NULL while it takes part. A direct conversation that was left comes back with the next message."
+        },
+        {
+          "name": "last_read_message_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The last message the account has read, which unread counts start after. NULL before anything was read."
+        },
+        {
+          "name": "muted",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the account muted the conversation: no badge count and no mail."
+        },
+        {
+          "name": "mailed_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the account was last mailed about unread messages here. Cleared once it reads again, so one mail goes out per unread stretch."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "conversation_id",
+          "refTable": "conversation",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "last_read_message_id",
+          "refTable": "message",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Taking part in a conversation belongs to the account, not to a station"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "ACCOUNT_ID",
+            "column": "account_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "account_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on account delete; MessageErasure removes the memberships first so an emptied conversation goes too"
+          }
+        ]
+      },
+      "description": "An account taking part in a conversation, with how far it has read."
+    },
+    "message": {
+      "tableHash": "sha256:e596f22dfd3f1f5d677ee9dad70eff799d5c3e6530dbf60b6a1835e97ade0440",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key, which also orders the messages of a conversation."
+        },
+        {
+          "name": "conversation_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The conversation the message was written in."
+        },
+        {
+          "name": "author_account_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The account that wrote it, or that did what a system line says. NULL once that account is deleted; the message stays for the others."
+        },
+        {
+          "name": "content",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The text, plain with line breaks and mentions. Empty once deleted and for system lines; a RENAMED line holds the new name."
+        },
+        {
+          "name": "reply_to_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The message this one answers, in the same conversation. NULL for no answer and once that message is gone."
+        },
+        {
+          "name": "system_kind",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What a system line says: ADDED, LEFT, REMOVED, RENAMED or OWNER_PASSED. NULL for a message somebody wrote."
+        },
+        {
+          "name": "system_subject_account_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The account a system line is about: who was added, removed, or became the owner. NULL otherwise and once that account is deleted."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When it was written."
+        },
+        {
+          "name": "edited_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When its author last changed it; NULL if never."
+        },
+        {
+          "name": "deleted_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When its author deleted it; the text is emptied then. NULL while it stands."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "author_account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "conversation_id",
+          "refTable": "conversation",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "reply_to_id",
+          "refTable": "message",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "system_subject_account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Messages belong to the conversations of accounts, not to a station"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "reason": "Only the account's own messages; what others wrote in the same conversations is theirs",
+        "identityColumns": [
+          {
+            "type": "ACCOUNT_ID",
+            "column": "author_account_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "author_account_id",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the message for the others, shown as written by a deleted account"
+          },
+          {
+            "column": "system_subject_account_id",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the system line, whom it was about cleared"
+          }
+        ]
+      },
+      "description": "One message in a conversation, or a quiet system line saying who joined, left, was removed, or renamed a group."
+    },
+    "message_reaction": {
+      "tableHash": "sha256:4afaf4a8ac0c0a35fcd693f11edfb2fefe4838d3eaec69d743b51f268f63d01d",
+      "columns": [
+        {
+          "name": "message_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The message reacted to."
+        },
+        {
+          "name": "account_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The account that reacted."
+        },
+        {
+          "name": "emoji",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The standard Unicode emoji reacted with."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the reaction was added."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "message_id",
+          "refTable": "message",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Reactions belong to messages between accounts, not to a station"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "ACCOUNT_ID",
+            "column": "account_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "account_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on account delete"
+          }
+        ]
+      },
+      "description": "An emoji somebody reacted to a message with, at most once per emoji and message."
     }
   },
   "fileStores": {

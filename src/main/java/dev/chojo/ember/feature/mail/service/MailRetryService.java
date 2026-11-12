@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.mail.service;
 
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
+import dev.chojo.ember.feature.mail.entity.MailFailureReason;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -87,7 +88,7 @@ public class MailRetryService {
     }
 
     private void giveUp(EmailQueueRepository.QueuedEmail email) {
-        queueRepository.markFailed(email.id());
+        queueRepository.markFailed(email.id(), MailFailureReason.RETRIES_EXHAUSTED);
         log.warn("Email {} to {} has exhausted every provider; marking failed", email.id(), email.recipient());
     }
 }

@@ -1,154 +1,184 @@
+-- What the instance administration needs to say what is waiting and how the instance is used.
+--
+-- A failed mail keeps why and when it failed and whether an administrator has taken note of it, so
+-- the warning on the overview can end without deleting the mail, and it keeps its files so it can
+-- be sent again. A station's mails go with the station, so they never turn into the instance's own.
+-- A station remembers when it was made and since when it waits for its manager, and every reminder
+-- sent to that manager is written down, which is what keeps an automatic reminder from going out
+-- twice. An account remembers the last day it was used, and one row a day holds how many people
+-- used the instance and how large it was, because nothing else keeps a history of either.
+
+ALTER TABLE ember_schema.email_queue
+    ADD COLUMN failure_reason  TEXT      NULL,
+    ADD COLUMN acknowledged_at TIMESTAMP NULL,
+    ADD COLUMN acknowledged_by INT       NULL REFERENCES ember_schema.account (id) ON DELETE SET NULL,
+    ADD COLUMN failed_at       TIMESTAMP NULL;
+
+ALTER TABLE ember_schema.email_queue
+    DROP CONSTRAINT email_queue_station_id_fkey,
+    ADD CONSTRAINT email_queue_station_id_fkey
+        FOREIGN KEY (station_id) REFERENCES ember_schema.station (id) ON DELETE CASCADE;
+
+CREATE INDEX idx_email_queue_acknowledged_by
+    ON ember_schema.email_queue (acknowledged_by)
+    WHERE acknowledged_by IS NOT NULL;
+
+CREATE INDEX idx_email_queue_unacknowledged_failures
+    ON ember_schema.email_queue (station_id, created_at)
+    WHERE acknowledged_at IS NULL AND (status = 'FAILED' OR delivery_status IN ('HARD_BOUNCE', 'BLOCKED', 'SPAM'));
+
+CREATE INDEX idx_email_queue_recipient_lower
+    ON ember_schema.email_queue (lower(recipient), created_at DESC);
+
+COMMENT ON COLUMN ember_schema.email_queue.failure_reason IS
+    'Why the queue gave up on the email: NO_PROVIDER, NO_PROVIDER_LEFT, PROVIDER_REFUSED, PROVIDER_BROKEN or RETRIES_EXHAUSTED. NULL for an email the queue did not give up on, and for failures recorded before the reason was kept.';
+COMMENT ON COLUMN ember_schema.email_queue.acknowledged_at IS
+    'When an instance administrator took note that the email did not arrive. Ends the warning for it; the email stays until the usual cleanup removes it.';
+COMMENT ON COLUMN ember_schema.email_queue.acknowledged_by IS
+    'The administrator who took note of the failure. NULL once that account is deleted, and for failures nobody took note of.';
+COMMENT ON COLUMN ember_schema.email_queue.failed_at IS
+    'When the queue gave up on the email. NULL for an email the queue did not give up on, and for failures recorded before this was kept.';
+COMMENT ON COLUMN ember_schema.email_queue.station_id IS
+    'References the sending station. NULL for system emails. Deleting the station deletes its emails, so they never count as the instance''s own.';
+COMMENT ON TABLE ember_schema.email_queue_attachment IS
+    'Files a queued email carries, such as the sealed PDF a signer gets as their own copy. Deleted as soon as the email was handed to a provider. A failed email keeps its files so it can be sent again, until the usual 30-day cleanup removes them with the email.';
+
+ALTER TABLE ember_schema.station
+    ADD COLUMN created_at    TIMESTAMPTZ NULL,
+    ADD COLUMN waiting_since TIMESTAMPTZ NULL;
+
+ALTER TABLE ember_schema.station
+    ALTER COLUMN created_at SET DEFAULT now();
+
+UPDATE ember_schema.station
+SET waiting_since = now()
+WHERE setup_completed_at IS NULL
+  AND moved_away_at IS NULL
+  AND station_kind <> 'CLUSTER_HOME';
+
+COMMENT ON COLUMN ember_schema.station.created_at IS
+    'When the station was made. NULL for stations made before this was recorded.';
+COMMENT ON COLUMN ember_schema.station.waiting_since IS
+    'Since when the station waits for its manager to set it up: set when a manager is named on a station that is not set up yet. The automatic reminders count from here. NULL for a station nobody waits for.';
+
+CREATE TABLE ember_schema.station_manager_reminder
+(
+    id            SERIAL PRIMARY KEY,
+    station_id    INT         NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    account_id    INT         NULL REFERENCES ember_schema.account (id) ON DELETE SET NULL,
+    kind          TEXT        NOT NULL CHECK (kind IN ('SETUP_LINK', 'SETUP_REMINDER')),
+    trigger       TEXT        NOT NULL CHECK (trigger IN ('MANUAL', 'AFTER_7_DAYS', 'AFTER_21_DAYS')),
+    waiting_since TIMESTAMPTZ NOT NULL,
+    sent_at       TIMESTAMPTZ NULL,
+    sent_by       INT         NULL REFERENCES ember_schema.account (id) ON DELETE SET NULL
+);
+
+CREATE UNIQUE INDEX uq_station_manager_reminder_automatic
+    ON ember_schema.station_manager_reminder (station_id, trigger, waiting_since)
+    WHERE trigger <> 'MANUAL';
+
+CREATE INDEX idx_station_manager_reminder_station
+    ON ember_schema.station_manager_reminder (station_id, sent_at DESC);
+
+COMMENT ON TABLE ember_schema.station_manager_reminder IS
+    'Every reminder sent, or deliberately skipped, to the manager of a station that is not set up yet. An automatic reminder is written once per trigger and waiting period, which is what keeps it from going out twice.';
+COMMENT ON COLUMN ember_schema.station_manager_reminder.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.station_manager_reminder.station_id IS
+    'The station waiting for its manager. Deleting the station deletes its reminders.';
+COMMENT ON COLUMN ember_schema.station_manager_reminder.account_id IS
+    'The manager the reminder was written to. NULL once that account is deleted.';
+COMMENT ON COLUMN ember_schema.station_manager_reminder.kind IS
+    'SETUP_LINK: a fresh link to choose a password or to confirm the address, for a manager who cannot sign in yet. SETUP_REMINDER: a note that the station waits to be set up, for a manager who can sign in.';
+COMMENT ON COLUMN ember_schema.station_manager_reminder.trigger IS
+    'What sent it: MANUAL for an administrator, AFTER_7_DAYS and AFTER_21_DAYS for the automatic reminders.';
+COMMENT ON COLUMN ember_schema.station_manager_reminder.waiting_since IS
+    'The station''s waiting_since when the reminder was written, so naming a new manager starts the automatic reminders afresh.';
+COMMENT ON COLUMN ember_schema.station_manager_reminder.sent_at IS
+    'When the mail was queued. NULL for an automatic reminder that was skipped because one had gone out by hand shortly before.';
+COMMENT ON COLUMN ember_schema.station_manager_reminder.sent_by IS
+    'The administrator who sent it by hand. NULL for an automatic reminder, and once that account is deleted.';
+
 ALTER TABLE ember_schema.account
-    ADD COLUMN messages_guardian_allowed BOOLEAN NOT NULL DEFAULT FALSE,
-    ADD COLUMN messages_mail             BOOLEAN NOT NULL DEFAULT TRUE;
+    ADD COLUMN last_active_on DATE NULL;
 
-COMMENT ON COLUMN ember_schema.account.messages_guardian_allowed
-    IS 'Whether a guardian turned messages on for this account. Only read while the account has a guardian at any station; an account without one can use messages regardless.';
-COMMENT ON COLUMN ember_schema.account.messages_mail
-    IS 'Whether the account is sent a mail about messages that stayed unread for a while.';
+COMMENT ON COLUMN ember_schema.account.last_active_on IS
+    'The last day the account used the instance, in the database''s calendar. Written at most once a day per account; it is what the daily count of people using the instance is made from.';
 
-CREATE TABLE IF NOT EXISTS ember_schema.conversation
+CREATE TABLE ember_schema.instance_usage_daily
 (
-    id               SERIAL PRIMARY KEY,
-    uid              UUID        NOT NULL DEFAULT gen_random_uuid() UNIQUE,
-    kind             TEXT        NOT NULL CHECK (kind IN ('DIRECT', 'GROUP')),
-    name             TEXT,
-    owner_account_id INT REFERENCES ember_schema.account (id) ON DELETE SET NULL,
-    direct_pair      TEXT UNIQUE,
-    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
-    last_activity_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CHECK (kind = 'GROUP' OR name IS NULL)
+    day                        DATE PRIMARY KEY,
+    active_accounts            INT NOT NULL DEFAULT 0,
+    accounts                   INT NOT NULL DEFAULT 0,
+    accounts_confirmed         INT NOT NULL DEFAULT 0,
+    stations                   INT NOT NULL DEFAULT 0,
+    stations_set_up            INT NOT NULL DEFAULT 0,
+    members                    INT NOT NULL DEFAULT 0,
+    former_members             INT NOT NULL DEFAULT 0,
+    events                     INT NOT NULL DEFAULT 0,
+    attendance_sessions        INT NOT NULL DEFAULT 0,
+    attendance_entries         INT NOT NULL DEFAULT 0,
+    inventory_items            INT NOT NULL DEFAULT 0,
+    profile_fields             INT NOT NULL DEFAULT 0,
+    member_groups              INT NOT NULL DEFAULT 0,
+    clusters                   INT NOT NULL DEFAULT 0,
+    federation_partners_active INT NOT NULL DEFAULT 0,
+    knowledge_base_articles    INT NOT NULL DEFAULT 0,
+    mails_sent                 INT NOT NULL DEFAULT 0,
+    people                     INT NOT NULL DEFAULT 0,
+    people_trial               INT NOT NULL DEFAULT 0,
+    people_member              INT NOT NULL DEFAULT 0,
+    people_guardian            INT NOT NULL DEFAULT 0,
+    people_team                INT NOT NULL DEFAULT 0,
+    people_manager             INT NOT NULL DEFAULT 0,
+    memberships                INT NOT NULL DEFAULT 0
 );
 
-COMMENT ON TABLE ember_schema.conversation
-    IS 'A conversation between accounts: a direct one between two people, or a group. It belongs to the people in it, not to a station.';
-COMMENT ON COLUMN ember_schema.conversation.id
-    IS 'Primary key.';
-COMMENT ON COLUMN ember_schema.conversation.uid
-    IS 'The identity the conversation is addressed by.';
-COMMENT ON COLUMN ember_schema.conversation.kind
-    IS 'DIRECT for exactly two accounts, GROUP for several.';
-COMMENT ON COLUMN ember_schema.conversation.name
-    IS 'The name a group was given; NULL for a direct conversation and for a group named after its members.';
-COMMENT ON COLUMN ember_schema.conversation.owner_account_id
-    IS 'The account that owns a group: it alone removes people and renames it. NULL for a direct conversation and once the owner is gone.';
-COMMENT ON COLUMN ember_schema.conversation.direct_pair
-    IS 'For a direct conversation, the two account ids, the lower first, joined by a colon, which keeps one conversation per pair. Cleared when either account is deleted.';
-COMMENT ON COLUMN ember_schema.conversation.created_at
-    IS 'When the conversation was started.';
-COMMENT ON COLUMN ember_schema.conversation.last_activity_at
-    IS 'When anything was last written in it, which orders the list of conversations.';
-
-CREATE TABLE IF NOT EXISTS ember_schema.message
-(
-    id                        SERIAL PRIMARY KEY,
-    conversation_id           INT         NOT NULL REFERENCES ember_schema.conversation (id) ON DELETE CASCADE,
-    author_account_id         INT REFERENCES ember_schema.account (id) ON DELETE SET NULL,
-    content                   TEXT        NOT NULL DEFAULT '',
-    reply_to_id               INT REFERENCES ember_schema.message (id) ON DELETE SET NULL,
-    system_kind               TEXT CHECK (system_kind IN ('ADDED', 'LEFT', 'REMOVED', 'RENAMED', 'OWNER_PASSED')),
-    system_subject_account_id INT REFERENCES ember_schema.account (id) ON DELETE SET NULL,
-    created_at                TIMESTAMPTZ NOT NULL DEFAULT now(),
-    edited_at                 TIMESTAMPTZ,
-    deleted_at                TIMESTAMPTZ
-);
-
-CREATE INDEX IF NOT EXISTS message_conversation_idx
-    ON ember_schema.message (conversation_id, id);
-
-COMMENT ON TABLE ember_schema.message
-    IS 'One message in a conversation, or a quiet system line saying who joined, left, was removed, or renamed a group.';
-COMMENT ON COLUMN ember_schema.message.id
-    IS 'Primary key, which also orders the messages of a conversation.';
-COMMENT ON COLUMN ember_schema.message.conversation_id
-    IS 'The conversation the message was written in.';
-COMMENT ON COLUMN ember_schema.message.author_account_id
-    IS 'The account that wrote it, or that did what a system line says. NULL once that account is deleted; the message stays for the others.';
-COMMENT ON COLUMN ember_schema.message.content
-    IS 'The text, plain with line breaks and mentions. Empty once deleted and for system lines; a RENAMED line holds the new name.';
-COMMENT ON COLUMN ember_schema.message.reply_to_id
-    IS 'The message this one answers, in the same conversation. NULL for no answer and once that message is gone.';
-COMMENT ON COLUMN ember_schema.message.system_kind
-    IS 'What a system line says: ADDED, LEFT, REMOVED, RENAMED or OWNER_PASSED. NULL for a message somebody wrote.';
-COMMENT ON COLUMN ember_schema.message.system_subject_account_id
-    IS 'The account a system line is about: who was added, removed, or became the owner. NULL otherwise and once that account is deleted.';
-COMMENT ON COLUMN ember_schema.message.created_at
-    IS 'When it was written.';
-COMMENT ON COLUMN ember_schema.message.edited_at
-    IS 'When its author last changed it; NULL if never.';
-COMMENT ON COLUMN ember_schema.message.deleted_at
-    IS 'When its author deleted it; the text is emptied then. NULL while it stands.';
-
-CREATE TABLE IF NOT EXISTS ember_schema.conversation_member
-(
-    conversation_id      INT         NOT NULL REFERENCES ember_schema.conversation (id) ON DELETE CASCADE,
-    account_id           INT         NOT NULL REFERENCES ember_schema.account (id) ON DELETE CASCADE,
-    joined_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
-    left_at              TIMESTAMPTZ,
-    last_read_message_id INT REFERENCES ember_schema.message (id) ON DELETE SET NULL,
-    muted                BOOLEAN     NOT NULL DEFAULT FALSE,
-    mailed_at            TIMESTAMPTZ,
-    PRIMARY KEY (conversation_id, account_id)
-);
-
-CREATE INDEX IF NOT EXISTS conversation_member_account_idx
-    ON ember_schema.conversation_member (account_id)
-    WHERE left_at IS NULL;
-
-COMMENT ON TABLE ember_schema.conversation_member
-    IS 'An account taking part in a conversation, with how far it has read.';
-COMMENT ON COLUMN ember_schema.conversation_member.conversation_id
-    IS 'The conversation.';
-COMMENT ON COLUMN ember_schema.conversation_member.account_id
-    IS 'The account taking part.';
-COMMENT ON COLUMN ember_schema.conversation_member.joined_at
-    IS 'When the account started or was added, the last time if it came back.';
-COMMENT ON COLUMN ember_schema.conversation_member.left_at
-    IS 'When the account left or was removed; NULL while it takes part. A direct conversation that was left comes back with the next message.';
-COMMENT ON COLUMN ember_schema.conversation_member.last_read_message_id
-    IS 'The last message the account has read, which unread counts start after. NULL before anything was read.';
-COMMENT ON COLUMN ember_schema.conversation_member.muted
-    IS 'Whether the account muted the conversation: no badge count and no mail.';
-COMMENT ON COLUMN ember_schema.conversation_member.mailed_at
-    IS 'When the account was last mailed about unread messages here. Cleared once it reads again, so one mail goes out per unread stretch.';
-
-CREATE TABLE IF NOT EXISTS ember_schema.message_reaction
-(
-    message_id INT         NOT NULL REFERENCES ember_schema.message (id) ON DELETE CASCADE,
-    account_id INT         NOT NULL REFERENCES ember_schema.account (id) ON DELETE CASCADE,
-    emoji      TEXT        NOT NULL CHECK (length(emoji) BETWEEN 1 AND 32),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (message_id, account_id, emoji)
-);
-
-COMMENT ON TABLE ember_schema.message_reaction
-    IS 'An emoji somebody reacted to a message with, at most once per emoji and message.';
-COMMENT ON COLUMN ember_schema.message_reaction.message_id
-    IS 'The message reacted to.';
-COMMENT ON COLUMN ember_schema.message_reaction.account_id
-    IS 'The account that reacted.';
-COMMENT ON COLUMN ember_schema.message_reaction.emoji
-    IS 'The standard Unicode emoji reacted with.';
-COMMENT ON COLUMN ember_schema.message_reaction.created_at
-    IS 'When the reaction was added.';
-
-CREATE TABLE IF NOT EXISTS ember_schema.account_block
-(
-    blocker_account_id INT         NOT NULL REFERENCES ember_schema.account (id) ON DELETE CASCADE,
-    blocked_account_id INT         NOT NULL REFERENCES ember_schema.account (id) ON DELETE CASCADE,
-    created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (blocker_account_id, blocked_account_id),
-    CHECK (blocker_account_id <> blocked_account_id)
-);
-
-CREATE INDEX IF NOT EXISTS account_block_blocked_idx
-    ON ember_schema.account_block (blocked_account_id);
-
-COMMENT ON TABLE ember_schema.account_block
-    IS 'An account that blocked another for messages. The blocked account cannot start a direct conversation with the blocker or add them to a group, and is not told.';
-COMMENT ON COLUMN ember_schema.account_block.blocker_account_id
-    IS 'The account that blocked.';
-COMMENT ON COLUMN ember_schema.account_block.blocked_account_id
-    IS 'The account that was blocked.';
-COMMENT ON COLUMN ember_schema.account_block.created_at
-    IS 'When the block was set.';
+COMMENT ON TABLE ember_schema.instance_usage_daily IS
+    'One row per day: how many people used the instance that day, and how large the instance was. Holds counts only, never who. Kept for good.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.day IS 'The day, in the database''s calendar.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.active_accounts IS
+    'Accounts that used the instance that day, counted as it happens: one for each account the first time it is seen that day.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.accounts IS 'Accounts at the last snapshot of the day.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.accounts_confirmed IS
+    'Accounts with a confirmed real address at the last snapshot of the day.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.stations IS
+    'Stations at the last snapshot of the day, without the home stations of associations.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.stations_set_up IS
+    'Stations whose setup was finished at the last snapshot of the day.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.members IS
+    'Memberships that are not archived at the last snapshot of the day.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.former_members IS
+    'Archived memberships at the last snapshot of the day.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.events IS 'Appointments at the last snapshot of the day.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.attendance_sessions IS
+    'Attendance sheets at the last snapshot of the day.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.attendance_entries IS
+    'Entries on attendance sheets at the last snapshot of the day.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.inventory_items IS
+    'Pieces of equipment at the last snapshot of the day.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.profile_fields IS
+    'Profile questions of stations at the last snapshot of the day.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.member_groups IS
+    'Member groups at the last snapshot of the day.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.clusters IS
+    'Associations at the last snapshot of the day.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.federation_partners_active IS
+    'Active partnerships between stations at the last snapshot of the day, counted once per pair side.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.knowledge_base_articles IS
+    'Knowledge base files not in the trash at the last snapshot of the day.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.mails_sent IS
+    'Emails the queue sent that day.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.people IS
+    'Distinct people with at least one membership that is not archived, at the last snapshot of the day. A person is their account; a membership without an account is a person of its own.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.people_trial IS
+    'Distinct people who are trial members in at least one station, not archived there.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.people_member IS
+    'Distinct people who are members in at least one station, not archived there.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.people_guardian IS
+    'Distinct people whose member type is guardian in at least one station, not archived there.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.people_team IS
+    'Distinct people of the team in at least one station, not archived there.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.people_manager IS
+    'Distinct people who are managers in at least one station, not archived there.';
+COMMENT ON COLUMN ember_schema.instance_usage_daily.memberships IS
+    'Memberships that are not archived, so somebody in two stations counts twice.';

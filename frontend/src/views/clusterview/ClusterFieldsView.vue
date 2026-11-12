@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import DeleteFieldModal from '@/views/stationview/manage/membersconfig/DeleteFieldModal.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import ProfileFieldModal from '@/views/stationview/manage/membersconfig/FieldModal.vue'
 import FieldsWorkspace from '@/views/stationview/manage/membersconfig/FieldsWorkspace.vue'
@@ -33,8 +33,8 @@ const port: FieldsPort = {
   list: () => clusterFields.listFields(),
   listAssignments: () => clusterFields.listAssignments(),
   create: (field) => clusterFields.createField(field),
-  update: (id, field) => clusterFields.updateField(id, field),
-  remove: (id) => clusterFields.deleteField(id),
+  update: (id, field, unlinkDependents) => clusterFields.updateField(id, field, unlinkDependents),
+  remove: (id, unlinkDependents) => clusterFields.deleteField(id, unlinkDependents),
   assign: (fieldId, assignment) => clusterFields.assignField(fieldId, assignment),
   unassign: (fieldId, target) => clusterFields.unassignField(fieldId, target),
   reorder: (role, fieldIds) => clusterFields.reorderFields(role, fieldIds),
@@ -52,7 +52,7 @@ const config = useFieldsConfig(port)
 const {
   availableStationGroups, selectedStationGroupId,
   birthDateField, genderField, dateFields, booleanFields, sets, showFieldModal, editingField, loading, failure,
-  saveField, showDeleteModal, deleteTarget, confirmDelete,
+  saveField, showDeleteModal, deleteTarget, confirmDelete, dependentsOf,
 } = config
 
 /**
@@ -91,12 +91,14 @@ const activeStationGroup = computed({
           :boolean-fields="booleanFields"
           :sets="sets"
           :field="editingField"
+          :dependents="dependentsOf(editingField)"
           @save="saveField"
       />
 
-      <ConfirmDeleteModal
+      <DeleteFieldModal
           v-model="showDeleteModal"
-          :message="t('membersConfig.deleteConfirm', { name: deleteTarget?.name })"
+          :name="deleteTarget?.name ?? ''"
+          :dependents="dependentsOf(deleteTarget)"
           @confirm="confirmDelete"
       />
     </div>

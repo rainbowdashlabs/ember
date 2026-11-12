@@ -4,12 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {FieldType, WaitingListEntryStatus, type WaitingListEntryWithScore, type WaitingListField} from '@/api/generated/schema'
+import {pickedOption} from '../../pickedDate'
 import {ColumnTypes, columnTypeOf, toCellValue, type CellValue, type TableColumn} from '@/components/table/tableColumn'
 
 type Row = WaitingListEntryWithScore
 
 export const SCORE_KEY = 'score'
 export const BIRTH_DATE_KEY = 'birthDate'
+export const PICKED_DATE_KEY = 'pickedDate'
 const FIELD_KEY_PREFIX = 'field-'
 
 /** What the waiting list's columns need to know beyond the entries themselves. */
@@ -55,7 +57,8 @@ function birthDateColumn(field: WaitingListField): TableColumn<Row> {
 
 /**
  * The columns of the people waiting: their names, since when they wait, the date of birth where the
- * list asks for one, the questions the list shows, their status and their score.
+ * list asks for one, the questions the list shows, their status, the date they picked to come to the
+ * probe and their score.
  *
  * <p>Only the questions are offered to be shown or hidden. The date of birth has a column of its own
  * because the list works out ages from it, so it is never offered a second time.
@@ -76,6 +79,13 @@ export function waitingColumns(sources: WaitingColumnSources): TableColumn<Row>[
             type: ColumnTypes.ENUM,
             value: row => row.entry.status,
             options: statuses.map(status => ({value: status, label: t(`waitingList.status_${status}`)})),
+            pinned: true,
+        },
+        {
+            key: PICKED_DATE_KEY,
+            label: t('waitingList.pickedDate'),
+            type: ColumnTypes.DATE,
+            value: row => pickedOption(row.entry)?.date ?? null,
             pinned: true,
         },
         {key: SCORE_KEY, label: t('waitingList.score'), type: ColumnTypes.NUMBER, value: row => row.score, pinned: true, align: 'right'},

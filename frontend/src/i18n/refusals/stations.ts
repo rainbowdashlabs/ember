@@ -97,4 +97,7 @@ export default {
     'S-075': 'Ein Import in eine bestehende Wache lässt sich hier nicht wiederholen, weil dafür die Wache entfernt würde',
     'S-080': 'Diese Wache ist auf eine andere Instanz umgezogen',
     'S-081': 'Die Kopie, die diese Wache bei ihrem Umzug hier zurückgelassen hat, ist noch da, es wurde nichts übernommen. Lösch zuerst diese Kopie',
+    'S-082': 'Diese Wache ist schon eingerichtet, es wurde niemand erinnert',
+    'S-083': 'Diese Wache hat noch keine Verwaltung, die erinnert werden könnte. Trag zuerst eine ein',
+    'S-084': 'Die Verwaltung wurde erst vor wenigen Minuten erinnert, es ging keine zweite E-Mail raus',
 }

@@ -12,7 +12,7 @@ export const SAMPLE_OPENED_ACCOUNT: AccountOverview = {
     email: 'lena.weber@example.org', loginName: 'lena.weber@example.org', instanceUserType: 'USER',
     lastSignInAt: null, stations: ['Feuerwache Nord'], associations: [],
     hasPassword: true, passwordSignIn: true, oneTimePasswordExpiresAt: '2026-10-09T18:00:00Z',
-    passkeys: 0, twoFactor: false,
+    passkeys: 0, twoFactor: false, confirmed: true, setupMail: 'INVITATION',
 }
 
 /** Three accounts the help article shows: one with a one-time password, one with passkeys, one administrator. */
@@ -24,12 +24,14 @@ export const SAMPLE_ACCOUNTS: readonly AccountOverview[] = [
         lastSignInAt: '2026-09-28T07:45:00Z', stations: ['Feuerwache Nord', 'Feuerwache Süd'],
         associations: [{association: 'Kreisfeuerwehrverband', role: 'CLUSTER_ADMIN'}],
         hasPassword: true, passwordSignIn: false, oneTimePasswordExpiresAt: null, passkeys: 2, twoFactor: true,
+        confirmed: true, setupMail: null,
     },
     {
         id: 3, uid: '00000000-0000-0000-0000-000000000003', name: 'Miriam Schulz',
         email: 'miriam.schulz@example.org', loginName: 'miriam.schulz@example.org', instanceUserType: 'ADMINISTRATOR',
         lastSignInAt: '2026-10-01T19:12:00Z', stations: [], associations: [],
         hasPassword: true, passwordSignIn: true, oneTimePasswordExpiresAt: null, passkeys: 1, twoFactor: true,
+        confirmed: true, setupMail: null,
     },
 ]
 

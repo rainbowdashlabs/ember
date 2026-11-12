@@ -2,7 +2,7 @@
 # (~/.gradle) and the project's build/ live in named volumes so incremental
 # compilation survives container restarts. Building inside this container is
 # as fast as building on the host once the cache is warm.
-FROM gradle:jdk25-alpine
+FROM public.ecr.aws/docker/library/gradle:jdk25-alpine
 
 WORKDIR /home/gradle/project
 

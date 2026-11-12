@@ -58,6 +58,7 @@ const NECESSITY: Record<string, StorageNecessityName> = {
     landing_area: StorageNecessity.COMFORT,
     onboarding_tour_completed: StorageNecessity.COMFORT,
     'eventsUpcoming.viewMode': StorageNecessity.COMFORT,
+    'adminStations.viewMode': StorageNecessity.COMFORT,
     'stationPages.filesPerPage': StorageNecessity.COMFORT,
     'ember.feedPreset': StorageNecessity.COMFORT,
     'inv-members-show-name': StorageNecessity.COMFORT,
@@ -181,19 +182,37 @@ export function isStorageAllowed(key: string): boolean {
     return getGrantedScopes().includes(necessity)
 }
 
+/**
+ * Stores a value where it is allowed. A browser that blocks site data throws on any access to its storage;
+ * the value is then not kept, as if storage had not been allowed.
+ */
 export function setItem(key: string, value: string): void {
-    if (!isClient || !isStorageAllowed(key)) return
-    localStorage.setItem(key, value)
+    if (!isClient) return
+    try {
+        if (isStorageAllowed(key)) localStorage.setItem(key, value)
+    } catch {
+        return
+    }
 }
 
+/** Reads a stored value, or `null` where nothing is stored or the browser blocks site data. */
 export function getItem(key: string): string | null {
     if (!isClient) return null
-    return localStorage.getItem(key)
+    try {
+        return localStorage.getItem(key)
+    } catch {
+        return null
+    }
 }
 
+/** Removes a stored value, doing nothing where the browser blocks site data. */
 export function removeItem(key: string): void {
     if (!isClient) return
-    localStorage.removeItem(key)
+    try {
+        localStorage.removeItem(key)
+    } catch {
+        return
+    }
 }
 
 export function clearStoredData(): void {

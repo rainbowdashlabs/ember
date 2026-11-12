@@ -145,7 +145,7 @@ public class DatabaseLogAppender extends AppenderBase<ILoggingEvent> {
                     .append(current.getMessage())
                     .append('\n');
             for (StackTraceElementProxy element : current.getStackTraceElementProxyArray()) {
-                out.append("\tat ").append(element.getSTEAsString()).append('\n');
+                out.append('\t').append(element.getSTEAsString()).append('\n');
             }
             current = current.getCause();
             if (current != null) out.append("Caused by: ");

@@ -38,10 +38,12 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
 import static dev.chojo.ember.api.RouteHarness.body;
+import static dev.chojo.ember.api.RouteHarness.header;
 import static dev.chojo.ember.api.RouteHarness.json;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -113,6 +115,23 @@ class StationManageRoutesTest {
             case "POST" -> client.post(PREFIX + path, json, manager);
             default -> client.delete(PREFIX + path, json, manager);
         };
+    }
+
+    /**
+     * A station without a logo answers so with no picture, and that answer is kept like the picture would
+     * be: a list of stations asks for every logo, and without the header it asked again on every visit.
+     */
+    @Test
+    void theAnswerThatAStationHasNoLogoIsCachedLikeTheLogo() {
+        UUID uid = UUID.fromString("00000000-0000-0000-0000-000000000003");
+        var station = mock(Station.class);
+        when(station.id()).thenReturn(STATION_ID);
+        when(stations.findByUid(uid)).thenReturn(Optional.of(station));
+
+        var answer = harness.request(client -> client.get(PREFIX + "/public/stations/" + uid + "/logo?size=128"));
+
+        assertEquals(204, answer.code());
+        assertEquals("public, max-age=3600", header(answer, "Cache-Control"));
     }
 
     @Test

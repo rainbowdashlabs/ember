@@ -37,6 +37,7 @@ function field(over: Partial<AppointmentField>): AppointmentField {
         overview: true,
         isPublic: false,
         attendanceFieldId: null,
+        selfRegistrationState: null,
         ...over,
     }
 }

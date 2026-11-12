@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.beacon.entity;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
@@ -55,6 +56,9 @@ public final class BeaconPayloads {
      * @param message     what was logged, which for a warning without an exception is the whole of
      *                    what there is to know: a logger name and a count name no fault
      * @param occurrences what the sender counted, not an increment
+     * @param context     the log lines around the latest occurrence, redacted, or null where none were
+     *                    sent. Left out of the delivery altogether when null, so a fault sent without
+     *                    lines reads exactly as it did before beacons knew of them
      */
     public record ProblemPayload(
             Envelope envelope,
@@ -69,7 +73,76 @@ public final class BeaconPayloads {
             String frames,
             int occurrences,
             Instant firstOccurrence,
-            Instant lastOccurrence) {}
+            Instant lastOccurrence,
+
+            @JsonInclude(JsonInclude.Include.NON_NULL) @Nullable
+            List<LogLinePayload> context) {
+
+        /** A fault sent without the lines around it. */
+        public ProblemPayload(
+                Envelope envelope,
+                String version,
+                @Nullable String contactName,
+                @Nullable String contactMail,
+                String fingerprint,
+                String level,
+                String logger,
+                @Nullable String exceptionClass,
+                @Nullable String message,
+                String frames,
+                int occurrences,
+                Instant firstOccurrence,
+                Instant lastOccurrence) {
+            this(
+                    envelope,
+                    version,
+                    contactName,
+                    contactMail,
+                    fingerprint,
+                    level,
+                    logger,
+                    exceptionClass,
+                    message,
+                    frames,
+                    occurrences,
+                    firstOccurrence,
+                    lastOccurrence,
+                    null);
+        }
+
+        /**
+         * The same fault without its lines, in a fresh envelope: what goes to a beacon too old to take
+         * them.
+         */
+        public ProblemPayload withoutContext(Envelope fresh) {
+            return new ProblemPayload(
+                    fresh,
+                    version,
+                    contactName,
+                    contactMail,
+                    fingerprint,
+                    level,
+                    logger,
+                    exceptionClass,
+                    message,
+                    frames,
+                    occurrences,
+                    firstOccurrence,
+                    lastOccurrence);
+        }
+    }
+
+    /**
+     * One log line sent with a fault, as it may leave the instance: its message redacted, its stack
+     * trace left behind, since the fault's frames already travel.
+     *
+     * @param loggedAt when it was logged
+     * @param level    its severity
+     * @param logger   which logger emitted it
+     * @param thread   the thread it came from, redacted like the message
+     * @param message  the line, redacted
+     */
+    public record LogLinePayload(Instant loggedAt, String level, String logger, String thread, String message) {}
 
     /**
      * Somebody's own words about what went wrong, and what they were looking at while writing them.
