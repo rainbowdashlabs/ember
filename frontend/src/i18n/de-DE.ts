@@ -11935,6 +11935,14 @@ export default {
             + 'Wird beim Anwenden ebenfalls in den Termin übernommen.',
         applied: 'Vorlage angewendet.',
         loadTemplate: 'Vorlage laden...',
+        deadlineOffset: 'Anmeldeschluss vor dem Beginn',
+        deadlineDays: 'Tage',
+        deadlineHours: 'Stunden',
+        deadlineOffsetHint: 'So lange vor dem Beginn eines Termins aus dieser Vorlage schließt die Anmeldung. '
+            + 'Die Anmeldefrist des Termins wird daraus berechnet, sobald sein Beginn feststeht.',
+        attachmentsHint: 'Dateien aus der Mediathek, die jeder Termin aus dieser Vorlage mitbekommt: Laufzettel, Formulare, Pläne.',
+        federationHint: 'Wenn aktiviert, werden Termine aus dieser Vorlage mit Partnerwachen geteilt. '
+            + 'Mitglieder der Partnerwachen können sie dann sehen und sich dafür anmelden.',
     },
     eventFields: {
         name: 'Feldname',

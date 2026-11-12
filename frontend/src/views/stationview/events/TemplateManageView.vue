@@ -19,7 +19,7 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {EventTemplate} from '@/api/generated/schema'
+import {StationPermission, type EventTemplate} from '@/api/generated/schema'
 import {events} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -27,7 +27,7 @@ import {describeFailure} from '@/util/failure'
 
 const {t} = useI18n()
 const router = useRouter()
-const {loaded} = useSession()
+const {loaded, hasPermission} = useSession()
 
 const templates = ref<EventTemplate[]>([])
 
@@ -59,8 +59,8 @@ async function createTemplate() {
  *
  * <p>Most templates a station writes are a small change to one it already has, and writing the second
  * one from nothing means typing every question again. What is copied is everything the template says
- * about an event; the copy is opened straight away because the first thing anybody does with it is
- * change the part that differs.
+ * about an event, its files, field starting values and partner share included; the copy is opened
+ * straight away because the first thing anybody does with it is change the part that differs.
  *
  * <p>The two audience modes are left out of the settings the copy is written with, because setting
  * the audiences carries them over already. Sending them here as well would offer the server a field
@@ -98,8 +98,39 @@ async function duplicateTemplate(id: number) {
     if (reminderDays.length > 0) {
       await events.setTemplateReminders(copy.id, reminderDays)
     }
+    await copyAttachments(id, copy.id)
+    await copyFieldDefaults(id, copy.id)
+    await copyFederationShare(id, copy.id)
     router.push({name: 'event-template-edit', params: {id: copy.id}})
   } catch (e) { record(e) }
+}
+
+/**
+ * Hangs the same files of the library on the copy, with their labels and in their order. Nothing is
+ * copied in the library: both templates name the one file.
+ */
+async function copyAttachments(fromId: number, toId: number) {
+  for (const attachment of await events.listTemplateAttachments(fromId)) {
+    await events.attachTemplateFile(toId, attachment.fileId, attachment.label, attachment.internal)
+  }
+}
+
+/** Gives the copy the same starting values for the fields of its attendance sheet, which it shares with the original. */
+async function copyFieldDefaults(fromId: number, toId: number) {
+  const defaults = await events.getTemplateFieldDefaults(fromId)
+  if (defaults.length === 0) return
+  await events.setTemplateFieldDefaults(toId, defaults.map(({fieldId, source, value}) => ({fieldId, source, value})))
+}
+
+/**
+ * Shares the copy the way the original is shared. Only somebody who may share appointments may set
+ * that, so for anybody else the copy is left unshared rather than the whole copy failing over it.
+ */
+async function copyFederationShare(fromId: number, toId: number) {
+  if (!hasPermission(StationPermission.EVENTS_FEDERATE)) return
+  const share = await events.getTemplateFederationShare(fromId)
+  if (!share.shared || !share.scope) return
+  await events.setTemplateFederationShare(toId, share.scope, share.partnerIds ?? undefined)
 }
 
 /**

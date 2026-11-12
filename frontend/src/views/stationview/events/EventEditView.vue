@@ -24,6 +24,7 @@ import {useEventFieldDefaults} from './eventeditview/useEventFieldDefaults'
 import {useEventFederationShare} from './eventeditview/useEventFederationShare'
 import {useEventAttachments} from './eventeditview/useEventAttachments'
 import AttachmentsCard from './eventeditview/AttachmentsCard.vue'
+import {eventAttachmentPort, eventFederationPort, eventFieldDefaultsPort} from './eventeditview/eventOwnerPorts'
 import DocumentRequirementsEditor from './eventshared/DocumentRequirementsEditor.vue'
 import {useDocumentRequirements} from './eventshared/useDocumentRequirements'
 import {asSaved} from './eventshared/eventQuestions'
@@ -45,7 +46,7 @@ const isEdit = computed(() => eventId.value !== null)
 const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 
 const form = useEventForm()
-const attachments = useEventAttachments(() => eventId.value, t)
+const attachments = useEventAttachments(() => (eventId.value === null ? null : eventAttachmentPort(eventId.value)), t)
 const data = useEventEditData(
     () => form.state.templateId,
     () => form.state.fields.map(f => f.attendanceFieldId).filter((id): id is number => id != null),
@@ -127,8 +128,8 @@ const {loading, failure} = useAsyncLoader(async () => {
     if (isEdit.value) {
       await Promise.all([
         form.loadEvent(eventId.value!),
-        fieldDefaults.load(eventId.value!),
-        federationShare.load(eventId.value!),
+        fieldDefaults.load(eventFieldDefaultsPort(eventId.value!)),
+        federationShare.load(eventFederationPort(eventId.value!)),
         loadRegistrationFields(eventId.value!),
         attachments.load(),
       ])
@@ -150,11 +151,11 @@ async function writeEvent() {
     savedEventId = created.id
   }
 
-  await fieldDefaults.save(savedEventId, isEdit.value)
+  await fieldDefaults.save(eventFieldDefaultsPort(savedEventId), isEdit.value)
   await events.setEventReminders(savedEventId, form.state.reminders)
   await events.setEventFields(savedEventId, {fields: form.namedFields()})
   await events.setRegistrationFields(savedEventId, registrationFields.value.filter(f => f.name?.trim()).map(asSaved))
-  await federationShare.save(savedEventId)
+  await federationShare.save(eventFederationPort(savedEventId))
   await documentRequirements.save({kind: 'events', id: savedEventId})
 }
 

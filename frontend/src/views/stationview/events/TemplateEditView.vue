@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed, reactive, ref, watch} from 'vue'
 import {until} from '@vueuse/core'
 import {useI18n} from 'vue-i18n'
 import {useRoute, useRouter} from 'vue-router'
@@ -17,20 +17,28 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import TemplateEditBody from './templateeditview/TemplateEditBody.vue'
 import DocumentRequirementsEditor from './eventshared/DocumentRequirementsEditor.vue'
 import {useDocumentRequirements} from './eventshared/useDocumentRequirements'
+import TemplateCarriedCards from './templateeditview/TemplateCarriedCards.vue'
+import {useEventAttachments} from './eventeditview/useEventAttachments'
+import {useEventFieldDefaults} from './eventeditview/useEventFieldDefaults'
+import {useEventFederationShare} from './eventeditview/useEventFederationShare'
+import {templateAttachmentPort, templateFederationPort, templateFieldDefaultsPort} from './eventeditview/eventOwnerPorts'
 import {emptyRestriction, toRestriction} from '@/components/input/restriction'
 import type {RestrictionSelection} from '@/api/types'
-import type {
-    AttendanceTemplate,
-    AttendanceTemplateField,
-    EventCategory,
-    EventFieldEntry,
-    MemberGroup,
-    RegistrationFieldDefinition,
-    TemplateDetailResponse,
-    UserTag,
+import {
+    EventType,
+    StationPermission,
+    type AttendanceTemplate,
+    type AttendanceTemplateField,
+    type EventCategory,
+    type EventFieldEntry,
+    type MemberGroup,
+    type RegistrationFieldDefinition,
+    type TemplateDetailResponse,
+    type UserTag,
 } from '@/api/generated/schema'
 import {attendance, events, memberGroups as memberGroupsApi, userTags as userTagsApi} from '@/api'
 import {eventTypeNamed} from './eventeditview/eventFormState'
+import {modelBindings} from './eventeditview/modelBindings'
 import {asSaved} from './eventshared/eventQuestions'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -39,10 +47,15 @@ import {describeFailure} from '@/util/failure'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {loaded} = useSession()
+const {loaded, hasPermission, sessionInfo} = useSession()
 
 const templateId = computed(() => Number(route.params.id))
+const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
+const canFederate = computed(() => hasPermission(StationPermission.EVENTS_FEDERATE))
 const documentRequirements = useDocumentRequirements()
+const attachments = useEventAttachments(() => templateAttachmentPort(templateId.value), t)
+const fieldDefaults = useEventFieldDefaults()
+const federationShare = useEventFederationShare(canFederate)
 
 const categories = ref<EventCategory[]>([])
 const attendanceTemplates = ref<AttendanceTemplate[]>([])
@@ -58,23 +71,46 @@ const attendanceFields = ref<AttendanceTemplateField[]>([])
  */
 const sheetFields = computed(() => attendanceFields.value
     .filter(field => String(field.templateId) === attendanceTemplateId.value))
+/**
+ * The fields of the template's sheet that still need a starting value. A field one of the template's
+ * own questions answers is filled by that answer, so it is not offered a second source here, the
+ * same as in the appointment editor.
+ */
+const prefillableFields = computed(() => {
+  const answered = new Set(fields.value.map(field => field.attendanceFieldId).filter(id => id != null))
+  return sheetFields.value.filter(field => !answered.has(field.id))
+})
+
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
 
 const name = ref('')
-const title = ref('')
-const description = ref('')
-const categoryId = ref('')
-const eventType = ref('')
-const requiresRegistration = ref(false)
-const requiresConfirmation = ref(false)
-const registrationLimit = ref<number | undefined>(undefined)
+/**
+ * The settings the template hands an appointment that the body edits one by one, bound to it as
+ * one bag of models.
+ */
+const settings = reactive({
+  title: '',
+  description: '',
+  categoryId: '',
+  eventType: '',
+  requiresRegistration: false,
+  requiresConfirmation: false,
+  registrationLimit: undefined as number | undefined,
+  deadlineOffsetHours: null as number | null,
+  minRegistrations: undefined as number | undefined,
+  thresholdDays: undefined as number | undefined,
+  registrationCloseDays: undefined as number | undefined,
+})
+const settingsModel = modelBindings(settings)
 const attendanceTemplateId = ref('')
 const fields = ref<EventFieldEntry[]>([])
 const registrationFields = ref<RegistrationFieldDefinition[]>([])
 const reminderDays = ref<number[]>([])
 const restriction = ref<RestrictionSelection>(emptyRestriction())
 const viewRestriction = ref<RestrictionSelection>(emptyRestriction())
+
+watch(sheetFields, sheet => fieldDefaults.keepOnly(sheet.map(field => field.id)))
 
 /**
  * What the template was called when the editor opened, which is what the head of the page says
@@ -91,13 +127,17 @@ function seedForm(detail: TemplateDetailResponse) {
   const tpl = detail.template
   name.value = tpl.name
   openedName.value = tpl.name
-  title.value = tpl.title ?? ''
-  description.value = tpl.description ?? ''
-  categoryId.value = tpl.categoryId ? String(tpl.categoryId) : ''
-  eventType.value = tpl.eventType ?? ''
-  requiresRegistration.value = tpl.requiresRegistration ?? false
-  requiresConfirmation.value = tpl.requiresConfirmation ?? false
-  registrationLimit.value = tpl.registrationLimit ?? undefined
+  settings.title = tpl.title ?? ''
+  settings.description = tpl.description ?? ''
+  settings.categoryId = tpl.categoryId ? String(tpl.categoryId) : ''
+  settings.eventType = tpl.eventType ?? ''
+  settings.requiresRegistration = tpl.requiresRegistration ?? false
+  settings.requiresConfirmation = tpl.requiresConfirmation ?? false
+  settings.registrationLimit = tpl.registrationLimit ?? undefined
+  settings.deadlineOffsetHours = tpl.registrationDeadlineOffsetHours ?? null
+  settings.minRegistrations = tpl.minRegistrations ?? undefined
+  settings.thresholdDays = tpl.thresholdDays ?? undefined
+  settings.registrationCloseDays = tpl.registrationCloseDays ?? undefined
   attendanceTemplateId.value = tpl.attendanceTemplateId ? String(tpl.attendanceTemplateId) : ''
   reminderDays.value = detail.reminderDays ?? []
   restriction.value = toRestriction(detail.restriction?.register)
@@ -137,7 +177,12 @@ const {loading, failure} = useAsyncLoader(async () => {
 
     const fieldResults = await Promise.all(attTpls.map(t => attendance.listTemplateFields(t.id)))
     attendanceFields.value = fieldResults.flat()
-    await documentRequirements.load({kind: 'event-templates', id: templateId.value})
+    await Promise.all([
+      documentRequirements.load({kind: 'event-templates', id: templateId.value}),
+      fieldDefaults.load(templateFieldDefaultsPort(templateId.value)),
+      federationShare.load(templateFederationPort(templateId.value)),
+      attachments.load(),
+    ])
 
     seedForm(detail)
   } catch (e) {
@@ -151,15 +196,21 @@ async function save() {
   try {
     await events.updateTemplate(templateId.value, {
       name: name.value,
-      title: title.value || null,
-      description: description.value || null,
-      categoryId: categoryId.value ? Number(categoryId.value) : null,
-      eventType: eventTypeNamed(eventType.value) ?? null,
-      requiresRegistration: requiresRegistration.value || null,
-      requiresConfirmation: requiresConfirmation.value || null,
-      registrationLimit: registrationLimit.value ?? null,
+      title: settings.title || null,
+      description: settings.description || null,
+      categoryId: settings.categoryId ? Number(settings.categoryId) : null,
+      eventType: eventTypeNamed(settings.eventType) ?? null,
+      requiresRegistration: settings.requiresRegistration || null,
+      requiresConfirmation: settings.requiresConfirmation || null,
+      registrationLimit: settings.registrationLimit ?? null,
+      registrationDeadlineOffsetHours: settings.deadlineOffsetHours,
+      minRegistrations: settings.minRegistrations ?? null,
+      thresholdDays: settings.minRegistrations ? settings.thresholdDays ?? null : null,
+      registrationCloseDays: settings.eventType !== EventType.ONE_TIME ? settings.registrationCloseDays ?? null : null,
       attendanceTemplateId: attendanceTemplateId.value ? Number(attendanceTemplateId.value) : null,
     })
+    await fieldDefaults.save(templateFieldDefaultsPort(templateId.value), true)
+    await federationShare.save(templateFederationPort(templateId.value))
     await events.setTemplateReminders(templateId.value, reminderDays.value)
     await events.setTemplateRestrictions(templateId.value, {
       register: restriction.value,
@@ -207,14 +258,8 @@ async function save() {
       <TemplateEditBody
           v-if="!loading"
           v-model:name="name"
-          v-model:title="title"
-          v-model:description="description"
-          v-model:category-id="categoryId"
-          v-model:event-type="eventType"
+          v-bind="settingsModel.props.value"
           v-model:attendance-template-id="attendanceTemplateId"
-          v-model:requires-registration="requiresRegistration"
-          v-model:requires-confirmation="requiresConfirmation"
-          v-model:registration-limit="registrationLimit"
           v-model:restriction="restriction"
           v-model:view-restriction="viewRestriction"
           v-model:reminder-days="reminderDays"
@@ -226,7 +271,16 @@ async function save() {
           :groups="groups"
           :tags="tags"
           :save="save"
+          v-on="settingsModel.handlers"
       >
+        <TemplateCarriedCards
+            :federation-share="federationShare"
+            :field-defaults="fieldDefaults"
+            :prefillable-fields="prefillableFields"
+            :can-federate="canFederate"
+            :attachments="attachments"
+            :station-uid="stationUid"
+        />
         <DocumentRequirementsEditor
             v-model="documentRequirements.chosen.value"
             :offered-count="documentRequirements.offeredCount.value"

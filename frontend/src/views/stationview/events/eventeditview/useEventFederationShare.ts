@@ -4,9 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, reactive, ref, type Ref} from 'vue'
-import {events, federation} from '@/api'
+import {federation} from '@/api'
 import type {PartnerResponse, ShareScope} from '@/api/generated/schema'
 import {modelBindings} from './modelBindings'
+import type {FederationSharePort} from './eventOwnerPorts'
 
 /** The scope the share picker's choice names, everybody unless it names a choice of partners. */
 function shareScopeOf(pickerScope: string): ShareScope {
@@ -14,7 +15,8 @@ function shareScopeOf(pickerScope: string): ShareScope {
 }
 
 /**
- * Whether and with which partner stations the edited event is shared.
+ * Whether and with which partner stations the edited event or event template is shared. Whose share
+ * it is comes in as a port with every read and write; only an event's port arranges partner places.
  */
 export function useEventFederationShare(canFederate: Ref<boolean>) {
   const partners = ref<PartnerResponse[]>([])
@@ -36,7 +38,7 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
 
   const props = computed(() => ({partners: partners.value, ...modelProps.value}))
 
-  async function load(eventId: number) {
+  async function load(port: FederationSharePort) {
     try {
       partners.value = await federation.listPartners()
     } catch {
@@ -44,7 +46,7 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
     }
     if (!canFederate.value) return
     try {
-      const share = await events.getFederationShare(eventId)
+      const share = await port.get()
       state.federationShared = share.shared
       if (share.shared) {
         state.federationScope = share.scope ?? 'ALL_PARTNERS'
@@ -53,8 +55,9 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
     } catch {
       state.federationShared = false
     }
+    if (!port.places) return
     try {
-      const places = await events.getPartnerPlaces(eventId)
+      const places = await port.places.list()
       state.federationPlaces = Object.fromEntries(
           places.map(place => [place.partnerId, {decides: place.partnerConfirms, budget: place.slotBudget}]))
     } catch {
@@ -73,19 +76,20 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
    * another station, a missing permission, or a fault. Un-sharing an appointment and being told it
    * worked whatever happened is the failure this whole change is about.
    */
-  async function save(eventId: number) {
+  async function save(port: FederationSharePort) {
     if (!canFederate.value) return
     if (state.federationShared) {
       const scope = shareScopeOf(state.federationScope)
       const partnerIds = scope === 'SPECIFIC' ? state.federationPartnerIds : undefined
-      await events.setFederationShare(eventId, scope, partnerIds)
+      await port.set(scope, partnerIds)
     } else {
-      await events.removeFederationShare(eventId)
+      await port.remove()
     }
+    if (!port.places) return
     for (const [partnerId, place] of Object.entries(state.federationPlaces)) {
-      await events.setPartnerPlaces(eventId, Number(partnerId), place.budget, place.decides)
+      await port.places.set(Number(partnerId), place.budget, place.decides)
     }
   }
 
-  return {props, handlers, load, save}
+  return {props, handlers, state, partners, load, save}
 }
