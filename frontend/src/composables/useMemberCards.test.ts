@@ -3,10 +3,10 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-/** @vitest-environment happy-dom */
 import {describe, expect, it, vi} from 'vitest'
 import type {MemberCard} from '@/api/generated/schema'
-import {createIdentity} from '@/test/mocks/factories'
+import {createIdentity, createSessionInfo} from '@/test/mocks/factories'
+import {sessionWriter} from '@/util/sessionState'
 
 const getMemberCard = vi.fn<(memberUid: string) => Promise<MemberCard>>()
 
@@ -43,6 +43,30 @@ describe('loadMemberCard', () => {
 
     await expect(loadMemberCard('failed-first')).rejects.toThrow('offline')
     await expect(loadMemberCard('failed-first')).resolves.toMatchObject({name: 'Anna'})
+    expect(getMemberCard).toHaveBeenCalledTimes(2)
+  })
+
+  it('asks again for somebody else, so one viewer never sees the card another one was shown', async () => {
+    getMemberCard.mockReset()
+    getMemberCard.mockImplementation(uid => Promise.resolve(cardFor(uid)))
+    sessionWriter().setInfo(createSessionInfo({account: {id: 1}, permissions: ['MEMBER_READ']}))
+    await loadMemberCard('seen-by-two')
+
+    sessionWriter().setInfo(createSessionInfo({account: {id: 2}, permissions: []}))
+    await loadMemberCard('seen-by-two')
+
+    expect(getMemberCard).toHaveBeenCalledTimes(2)
+  })
+
+  it('asks again once the viewer\'s permissions change', async () => {
+    getMemberCard.mockReset()
+    getMemberCard.mockImplementation(uid => Promise.resolve(cardFor(uid)))
+    sessionWriter().setInfo(createSessionInfo({account: {id: 3}, permissions: ['MEMBER_READ']}))
+    await loadMemberCard('permission-change')
+
+    sessionWriter().setInfo(createSessionInfo({account: {id: 3}, permissions: []}))
+    await loadMemberCard('permission-change')
+
     expect(getMemberCard).toHaveBeenCalledTimes(2)
   })
 })

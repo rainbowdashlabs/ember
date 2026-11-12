@@ -25,6 +25,8 @@ Wer eine Wache teilt, kann sich direkt oder in Gruppen Nachrichten schreiben. Ei
 
 ### Fehlerbehebungen
 
+- **Kurzprofile zeigen nur, was der Lesende sehen darf.** Nach einer Anmeldung als jemand anderes, einem Profilwechsel oder einem entzogenen Recht konnte ein schon geöffnetes Kurzprofil ohne Neuladen der Seite noch private Tags zeigen. Es wird jetzt für die Person neu geladen, die gerade schaut.
+
 - **Wörter statt technischer Werte.** An einigen Stellen erschienen technische Werte statt Wörtern, etwa die Antwort auf eine Einladung von der Warteliste, ein vom Verband abgeschaltetes Modul, die Mitgliedsarten in der Einrichtung der Wache und zugeordnete Werte beim Mitgliederimport, und dem letzten Einrichtungsschritt fehlte sein Hinweis. Alles erscheint jetzt in der Sprache der Oberfläche.
 
 ## v26.24.2
@@ -190,7 +192,6 @@ Profilfelder lassen sich nur dann anzeigen, wenn eine Ja/Nein-Frage mit Ja beant
 ### Fehlerbehebungen
 
 - **Neu ausgegebene Ausrüstung im gemischten Inventar gehörte immer dem Träger.** Ein beim Ausgeben neu angelegtes Stück eines gemischten Inventars wurde dem Träger zugeschrieben, auch wenn es der Wache gehören sollte. Der Eigentümer wird jetzt beim Ausgeben gewählt.
-
 - **Bereiche der Seitenleiste ließen sich nicht in einem neuen Tab öffnen.** Die Bereiche in der Liste aller Bereiche reagierten nicht auf einen Mittelklick oder einen Klick mit gedrückter Zusatztaste. Sie sind jetzt Links, die ihre erste Seite wie jeder andere Link in einem neuen Tab öffnen.
 
 ## v26.23.0

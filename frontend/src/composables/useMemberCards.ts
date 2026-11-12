@@ -7,10 +7,32 @@ import {inject, provide, type InjectionKey} from 'vue'
 import {getMemberCard} from '@/api/members'
 import type {MemberCard} from '@/api/generated/schema'
 import {browserShallowRef} from '@/util/browserState'
+import {sessionState} from '@/util/sessionState'
 
 const MEMBER_CARDS_SHOWN: InjectionKey<boolean> = Symbol('memberCardsShown')
 
-const cards = browserShallowRef<Readonly<Record<string, Promise<MemberCard>>>>({})
+interface HeldCards {
+    viewer: string
+    byMember: Readonly<Record<string, Promise<MemberCard>>>
+}
+
+const held = browserShallowRef<HeldCards>({viewer: '', byMember: {}})
+
+/**
+ * Who is looking, as far as it changes what a card shows: the account, the profile it acts as, the
+ * station and the permissions there. A card read by one viewer is never handed to another.
+ */
+function currentViewer(): string {
+    const info = sessionState().value.info
+    if (!info) return ''
+    return [info.account.id, info.member?.id ?? '', info.stationId ?? '', [...info.permissions].sort().join(',')].join('|')
+}
+
+function cardsOfViewer(): Readonly<Record<string, Promise<MemberCard>>> {
+    const viewer = currentViewer()
+    if (held.value.viewer !== viewer) held.value = {viewer, byMember: {}}
+    return held.value.byMember
+}
 
 /**
  * Turns member cards off for everything below, for screens whose names belong to nobody real.
@@ -31,18 +53,23 @@ export function useMemberCardsShown(): boolean {
  * The card of a member of the reader's station, asked once per member while the page is open.
  *
  * <p>Hovering down a list of twenty names asks for at most twenty cards, and hovering back up asks
- * for none. A request that failed is forgotten, so the next look tries again.
+ * for none. A request that failed is forgotten, so the next look tries again. The cards are kept per
+ * viewer: signing in as somebody else, switching profile or station, or a change of permissions
+ * starts over, so nobody sees what the card showed to the one before.
  *
  * @param memberUid the member looked at
  * @return their card
  */
 export function loadMemberCard(memberUid: string): Promise<MemberCard> {
-    const known = cards.value[memberUid]
+    const known = cardsOfViewer()[memberUid]
     if (known) return known
+    const viewer = held.value.viewer
     const request = getMemberCard(memberUid)
-    cards.value = {...cards.value, [memberUid]: request}
+    held.value = {viewer, byMember: {...held.value.byMember, [memberUid]: request}}
     request.catch(() => {
-        cards.value = Object.fromEntries(Object.entries(cards.value).filter(([uid]) => uid !== memberUid))
+        if (held.value.viewer !== viewer) return
+        const byMember = Object.fromEntries(Object.entries(held.value.byMember).filter(([uid]) => uid !== memberUid))
+        held.value = {viewer, byMember}
     })
     return request
 }
