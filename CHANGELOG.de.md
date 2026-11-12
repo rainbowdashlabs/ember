@@ -2,7 +2,12 @@
 
 ## v26.24.2
 
-Die Liste der kommenden Termine zeigt auf Wunsch nur noch, wofür eine Anmeldung noch möglich ist. Terminvorlagen formatieren ihre Beschreibung wie Termine und geben ihr Teilnehmerlimit weiter.
+Terminvorlagen tragen Anmelderegeln, Dateien, Startwerte für den Anwesenheitsbogen und die Freigabe für Partnerwachen. Der Filter "Anmeldung offen" bei den kommenden Terminen zeigt nur noch Termine, für die eine Anmeldung noch möglich ist.
+
+### Verbesserungen
+
+- **Vorlagen tragen Anmelderegeln.** Eine Terminvorlage legt den Anmeldeschluss als Tage und Stunden vor Beginn fest, eine Mindestzahl an Anmeldungen und wie viele Tage vor jedem Termin sie erreicht sein muss, und wie viele Tage vor jedem Termin die Anmeldung schließt. Ein Termin aus der Vorlage übernimmt das und rechnet den Anmeldeschluss von seinem eigenen Beginn aus.
+- **Vorlagen tragen Dateien, Feldwerte und Freigaben.** Eine Vorlage hält Dateien aus der Mediathek der Wache, Startwerte für die Felder ihres Anwesenheitsbogens und die Partnerwachen, für die sie freigibt. Termine aus der Vorlage übernehmen all das, die Freigabe allerdings nur, wenn die Person Termine mit Partnerwachen teilen darf.
 
 ### Fehlerbehebungen
 

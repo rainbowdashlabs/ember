@@ -2,7 +2,12 @@
 
 ## v26.24.2
 
-The list of upcoming appointments shows only what can still be signed up for when asked to. Appointment templates format their description like appointments do and pass on their participant limit.
+Appointment templates carry sign-up rules, files, starting values for the attendance sheet and sharing with partner stations. The upcoming list's "Registration open" filter shows only dates that can still be signed up for.
+
+### Improvements
+
+- **Templates carry sign-up rules.** An appointment template sets the sign-up deadline as days and hours before the start, a minimum of sign-ups and how many days before each date it has to be reached, and how many days before each date sign-up closes. An appointment made from the template takes them over and counts the deadline from its own start.
+- **Templates carry files, field values and sharing.** A template holds files from the station's media library, starting values for the fields of its attendance sheet and the partner stations it shares with. Appointments made from it take all of this over, the sharing only where the person may share appointments with partner stations.
 
 ### Fixes
 
