@@ -124,6 +124,26 @@
     "REGISTRATION_QUESTIONS": "Fragen zur Anmeldung",
     "ATTACHMENTS": "Dateien"
   },
+  "module": {
+    "INVENTORY": "Inventar",
+    "NEWS": "Neuigkeiten",
+    "EVENTS": "Termine",
+    "ATTENDANCE": "Anwesenheit",
+    "FORMS": "Umfragen",
+    "LOST_AND_FOUND": "Fundbüro",
+    "WAITING_LIST": "Warteliste",
+    "QUIZ": "Quiz",
+    "KNOWLEDGE_BASE": "Wiki",
+    "TEST_PROTOCOL": "Prüfprotokolle",
+    "BOARDS": "Boards",
+    "PROCEDURES": "Abläufe",
+    "DOCUMENTS": "Dokumente",
+    "INVENTORY_MOVEMENTS": "Inventarvorgänge",
+    "INVENTORY_LENDING": "Verleih",
+    "INVENTORY_PROCUREMENT": "Beschaffung",
+    "INVENTORY_SELF_CHECKS": "Ausrüstung selbst prüfen",
+    "INVENTORY_CHECKS": "Inventarprüfungen"
+  },
   "feedTitle": {
     "NEW_NEWS": "Neuigkeit: {title}",
     "NEWS_COMMENT": "Kommentar zu „{newsTitle}\"",

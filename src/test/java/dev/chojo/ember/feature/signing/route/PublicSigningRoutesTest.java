@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.signing.service.StationKeyRevocations;
 import dev.chojo.ember.feature.signing.service.StationSigningKeys;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.route.PublicStationRoutes;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.station.service.PublicStationInfoService;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
@@ -95,7 +96,8 @@ class PublicSigningRoutesTest extends RepositoryTestBase {
                     mock(WaitingListService.class),
                     mock(NewsService.class),
                     mock(FormService.class),
-                    published)));
+                    published,
+                    mock(ModuleAvailability.class))));
     private final List<Integer> stations = new ArrayList<>();
 
     @BeforeEach

@@ -10,7 +10,9 @@ import dev.chojo.ember.feature.quiz.entity.QuestionConfig;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -26,15 +28,25 @@ import java.util.UUID;
 public class PublicQuizService {
     private final QuizCatalogRepository catalogs;
     private final StationRepository stations;
+    private final ModuleAvailability modules;
 
     @Inject
-    public PublicQuizService(QuizCatalogRepository catalogs, StationRepository stations) {
+    public PublicQuizService(QuizCatalogRepository catalogs, StationRepository stations, ModuleAvailability modules) {
         this.catalogs = catalogs;
         this.stations = stations;
+        this.modules = modules;
     }
 
+    /**
+     * The station behind a public quiz address. One whose quiz is switched off, by itself or its
+     * cluster, has no public quiz and answers as if it were not here.
+     */
     private Station station(UUID stationUid) {
-        return stations.findByUid(stationUid).orElseThrow(QuizRefusal.PUBLIC_QUIZ_STATION_NOT_HERE::raise);
+        var station = stations.findByUid(stationUid).orElseThrow(QuizRefusal.PUBLIC_QUIZ_STATION_NOT_HERE::raise);
+        if (StationModule.QUIZ.isOffIn(modules.disabledAt(station.id()))) {
+            throw QuizRefusal.PUBLIC_QUIZ_STATION_NOT_HERE.raise();
+        }
+        return station;
     }
 
     /**

@@ -140,6 +140,7 @@ public class NotificationText {
         var params = new LinkedHashMap<>(n.data().paramsAsMap());
         augmentTitleParams(locale, n, params);
         localizeDateParams(locale, params);
+        localizeModuleParam(locale, params);
 
         String template = templateFor(templates, typeKey, n, params);
         if (template == null) return resolveCategory(locale, n.type());
@@ -169,6 +170,7 @@ public class NotificationText {
         String localeKey = n.type().localeKey();
         var params = new LinkedHashMap<>(n.data().paramsAsMap());
         localizeStatusParam(locale, params);
+        localizeModuleParam(locale, params);
         localizeDateParams(locale, params);
         localizeChangedParts(locale, params);
 
@@ -343,6 +345,14 @@ public class NotificationText {
     private static void localizeStatusParam(String locale, Map<String, String> params) {
         localizeLabelParam(locale, params, "status", "ical", "status.");
         localizeLabelParam(locale, params, "answer", "waitlistAnswer", "");
+    }
+
+    /**
+     * Writes a module a notification names, such as the one a cluster switched off, by the name the
+     * reader knows it by rather than the name it is stored by.
+     */
+    private static void localizeModuleParam(String locale, Map<String, String> params) {
+        localizeLabelParam(locale, params, "module", "module", "");
     }
 
     /**

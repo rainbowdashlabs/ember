@@ -124,6 +124,26 @@
     "REGISTRATION_QUESTIONS": "registration questions",
     "ATTACHMENTS": "files"
   },
+  "module": {
+    "INVENTORY": "Inventory",
+    "NEWS": "News",
+    "EVENTS": "Events",
+    "ATTENDANCE": "Attendance",
+    "FORMS": "Polls",
+    "LOST_AND_FOUND": "Lost and found",
+    "WAITING_LIST": "Waiting list",
+    "QUIZ": "Quiz",
+    "KNOWLEDGE_BASE": "Wiki",
+    "TEST_PROTOCOL": "Test protocols",
+    "BOARDS": "Boards",
+    "PROCEDURES": "Procedures",
+    "DOCUMENTS": "Documents",
+    "INVENTORY_MOVEMENTS": "Inventory movements",
+    "INVENTORY_LENDING": "Lending",
+    "INVENTORY_PROCUREMENT": "Procurement",
+    "INVENTORY_SELF_CHECKS": "Equipment self-checks",
+    "INVENTORY_CHECKS": "Inventory checks"
+  },
   "feedTitle": {
     "NEW_NEWS": "News: {title}",
     "NEWS_COMMENT": "Comment on \"{newsTitle}\"",
