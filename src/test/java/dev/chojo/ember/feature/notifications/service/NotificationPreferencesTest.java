@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.NotificationSetting;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -35,7 +36,11 @@ class NotificationPreferencesTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        preferences = new NotificationPreferences(notificationSettingsRepo, clusterRepo, mock(EmailService.class));
+        preferences = new NotificationPreferences(
+                notificationSettingsRepo,
+                clusterRepo,
+                mock(EmailService.class),
+                new NotificationVisibility(new ModuleAvailability(stationRepo, clusterRepo), stationMemberRepo));
         station = stationRepo.create("Preferences Station");
         account = accountRepo.create("preferences@test.com", "Pref", "Erence");
         member = stationMemberRepo.create(station.id(), account.id());

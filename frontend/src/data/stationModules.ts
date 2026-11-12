@@ -13,6 +13,8 @@ export interface StationModuleOption {
     icon: string[]
     /** The i18n key of the sentence saying what it is for. */
     descriptionKey: string
+    /** The module this one is a part of, which takes it along when it is switched off. */
+    parent?: StationModule
 }
 
 type ModuleDetails = Omit<StationModuleOption, 'value'>
@@ -24,6 +26,11 @@ type ModuleDetails = Omit<StationModuleOption, 'value'>
  */
 const DETAILS: Record<StationModule, ModuleDetails> = {
     [StationModule.INVENTORY]: {labelKey: 'stationManage.moduleInventory', icon: ['fas', 'boxes-stacked'], descriptionKey: 'stationManage.moduleInventoryText'},
+    [StationModule.INVENTORY_MOVEMENTS]: {labelKey: 'stationManage.moduleInventoryMovements', icon: ['fas', 'rotate'], descriptionKey: 'stationManage.moduleInventoryMovementsText', parent: StationModule.INVENTORY},
+    [StationModule.INVENTORY_LENDING]: {labelKey: 'stationManage.moduleInventoryLending', icon: ['fas', 'handshake'], descriptionKey: 'stationManage.moduleInventoryLendingText', parent: StationModule.INVENTORY},
+    [StationModule.INVENTORY_PROCUREMENT]: {labelKey: 'stationManage.moduleInventoryProcurement', icon: ['fas', 'folder-plus'], descriptionKey: 'stationManage.moduleInventoryProcurementText', parent: StationModule.INVENTORY},
+    [StationModule.INVENTORY_SELF_CHECKS]: {labelKey: 'stationManage.moduleInventorySelfChecks', icon: ['fas', 'user-check'], descriptionKey: 'stationManage.moduleInventorySelfChecksText', parent: StationModule.INVENTORY},
+    [StationModule.INVENTORY_CHECKS]: {labelKey: 'stationManage.moduleInventoryChecks', icon: ['fas', 'clipboard-check'], descriptionKey: 'stationManage.moduleInventoryChecksText', parent: StationModule.INVENTORY},
     [StationModule.NEWS]: {labelKey: 'stationManage.moduleNews', icon: ['fas', 'newspaper'], descriptionKey: 'stationManage.moduleNewsText'},
     [StationModule.EVENTS]: {labelKey: 'stationManage.moduleEvents', icon: ['fas', 'calendar-days'], descriptionKey: 'stationManage.moduleEventsText'},
     [StationModule.ATTENDANCE]: {labelKey: 'stationManage.moduleAttendance', icon: ['fas', 'clipboard-user'], descriptionKey: 'stationManage.moduleAttendanceText'},
@@ -45,3 +52,26 @@ const DETAILS: Record<StationModule, ModuleDetails> = {
  */
 export const STATION_MODULE_OPTIONS: readonly StationModuleOption[] = Object.entries(DETAILS)
     .map(([value, details]) => ({value: value as StationModule, ...details}))
+
+/**
+ * Whether a module is on, given a test for one module on its own: a part of a module is off whenever
+ * the module is, so its parent is asked as well.
+ *
+ * @param module the module or part asked about
+ * @param isOn whether one module, taken alone, is on
+ */
+export function moduleRuns(module: StationModule, isOn: (module: StationModule) => boolean): boolean {
+    const parent = DETAILS[module].parent
+    return isOn(module) && (parent === undefined || isOn(parent))
+}
+
+/**
+ * Whether a module's switch can be used: a part of a module that is off stays off and is not offered.
+ *
+ * @param module the module or part
+ * @param isOn whether one module, taken alone, is on
+ */
+export function parentAllows(module: StationModule, isOn: (module: StationModule) => boolean): boolean {
+    const parent = DETAILS[module].parent
+    return parent === undefined || isOn(parent)
+}

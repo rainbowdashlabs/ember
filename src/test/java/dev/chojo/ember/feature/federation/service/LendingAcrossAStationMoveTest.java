@@ -31,6 +31,7 @@ import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestFederationServices;
 import dev.chojo.ember.util.TestStationKeys;
@@ -248,7 +249,8 @@ class LendingAcrossAStationMoveTest extends RepositoryTestBase {
         int ladder = gearOf(moved, "SL-2");
         var loan = lend(moved, ladder, stayed);
         moveAway();
-        var harness = RouteHarness.serving(new RemoteLendingRoutes(new FederationEndpoints(Set.of(lending))));
+        var harness = RouteHarness.serving(
+                new RemoteLendingRoutes(new FederationEndpoints(Set.of(lending), mock(ModuleAvailability.class))));
         var asMoved = harness.asPartner(new FederationSession(partnershipWithMoved(), moved.uid()))
                 .andThen(request -> request.header(
                         FederationHeaders.HEADER_SURFACE,

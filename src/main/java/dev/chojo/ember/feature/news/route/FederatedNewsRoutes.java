@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.news.service.NewsFederationService;
 import dev.chojo.ember.feature.news.service.NewsFederationService.FederatedCommentAuthor;
 import dev.chojo.ember.feature.news.service.NewsFederationService.FederatedNewsData;
 import dev.chojo.ember.feature.news.service.NewsFederationService.FederatedNewsItem;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -51,24 +52,32 @@ public class FederatedNewsRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/federated/news", this::federatedListNews, StationPermission.LOGIN);
-        routes.get(prefix + "/federated/{stationuid}/news/{newsId}", this::federatedGetNews, StationPermission.LOGIN);
+        routes.get(prefix + "/federated/news", this::federatedListNews, StationPermission.LOGIN, StationModule.NEWS);
+        routes.get(
+                prefix + "/federated/{stationuid}/news/{newsId}",
+                this::federatedGetNews,
+                StationPermission.LOGIN,
+                StationModule.NEWS);
         routes.get(
                 prefix + "/federated/{stationuid}/news/{newsId}/comments",
                 this::federatedListComments,
-                StationPermission.LOGIN);
+                StationPermission.LOGIN,
+                StationModule.NEWS);
         routes.post(
                 prefix + "/federated/{stationuid}/news/{newsId}/comments",
                 this::federatedCreateComment,
-                StationPermission.LOGIN);
+                StationPermission.LOGIN,
+                StationModule.NEWS);
         routes.put(
                 prefix + "/federated/{stationuid}/news/comments/{commentId}",
                 this::federatedUpdateComment,
-                StationPermission.LOGIN);
+                StationPermission.LOGIN,
+                StationModule.NEWS);
         routes.delete(
                 prefix + "/federated/{stationuid}/news/comments/{commentId}",
                 this::federatedDeleteComment,
-                StationPermission.LOGIN);
+                StationPermission.LOGIN,
+                StationModule.NEWS);
     }
 
     @OpenApi(

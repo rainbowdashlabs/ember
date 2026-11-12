@@ -6,7 +6,10 @@
 package dev.chojo.ember.feature.federation.contract;
 
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import org.jspecify.annotations.Nullable;
+
+import java.util.Optional;
 
 /**
  * A versioned slice of the federation API contract. {@link #CORE} is the envelope every
@@ -40,6 +43,26 @@ public enum FederationSurface {
      */
     public @Nullable CapabilityType capability() {
         return capability;
+    }
+
+    /**
+     * The module of the serving station a surface shares from. A station that switched the module off
+     * serves nothing of it to its partners.
+     *
+     * @return the module, empty for {@link #CORE}
+     */
+    public Optional<StationModule> module() {
+        return Optional.ofNullable(
+                switch (this) {
+                    case CORE -> null;
+                    case KB_SHARE -> StationModule.KNOWLEDGE_BASE;
+                    case QUIZ_SHARE -> StationModule.QUIZ;
+                    case PROTOCOL_SHARE -> StationModule.TEST_PROTOCOL;
+                    case INVENTORY_LEND -> StationModule.INVENTORY_LENDING;
+                    case EVENT_SHARE -> StationModule.EVENTS;
+                    case BOARD_SHARE -> StationModule.BOARDS;
+                    case NEWS_SHARE -> StationModule.NEWS;
+                });
     }
 
     /**

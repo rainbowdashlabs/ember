@@ -10,6 +10,7 @@ import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.feed.synd.SyndFeedImpl;
 import com.rometools.rome.io.SyndFeedOutput;
 import dev.chojo.ember.api.refusal.FeedRefusal;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventRecurrence;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -35,7 +36,9 @@ import dev.chojo.ember.feature.notifications.service.NotificationInbox;
 import dev.chojo.ember.feature.notifications.service.NotificationPreferences;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import net.fortuna.ical4j.model.Calendar;
@@ -99,6 +102,7 @@ public class PersonalFeedService {
     private final NotificationFeedRenderer notificationRenderer;
     private final MemberNameResolver memberNameResolver;
     private final OccurrenceCalendar occurrenceCalendar;
+    private final ModuleAvailability modules;
 
     @Inject
     public PersonalFeedService(
@@ -117,7 +121,9 @@ public class PersonalFeedService {
             LostAndFoundImageService imageService,
             NotificationFeedRenderer notificationRenderer,
             MemberNameResolver memberNameResolver,
-            OccurrenceCalendar occurrenceCalendar) {
+            OccurrenceCalendar occurrenceCalendar,
+            ModuleAvailability modules) {
+        this.modules = modules;
         this.tokenService = tokenService;
         this.crudService = crudService;
         this.categoryService = categoryService;
@@ -153,9 +159,15 @@ public class PersonalFeedService {
      * <p>The fingerprint covers event changes and registration changes across the household, which
      * is what a conditional request is answered by.
      *
+     * <p>A station whose appointments are switched off, by itself or its cluster, has no calendar to
+     * subscribe to.
+     *
      * @param verbose whether descriptions carry everything rather than the essentials
      */
     public Feed calendar(StationMember member, boolean verbose) {
+        if (StationModule.EVENTS.isOffIn(modules.disabledAt(member.stationId()))) {
+            throw GeneralRefusal.MODULE_SWITCHED_OFF.raise();
+        }
         tokenService.recordIcalPoll(member.id());
         var station =
                 stationRepository.findById(member.stationId()).orElseThrow(FeedRefusal.FEED_STATION_NOT_HERE::raise);
@@ -329,11 +341,15 @@ public class PersonalFeedService {
 
     /**
      * The picture of a lost-and-found item, for a feed reader to embed. An item of another station
-     * answers exactly as a missing one, so a link holder cannot probe for pictures elsewhere.
+     * answers exactly as a missing one, so a link holder cannot probe for pictures elsewhere, and so does
+     * an item of a station whose lost and found is switched off.
      *
      * @param stationId the station of the member the feed link belongs to
      */
     public MediaContent lostAndFoundImage(int stationId, int itemId, int size) {
+        if (StationModule.LOST_AND_FOUND.isOffIn(modules.disabledAt(stationId))) {
+            throw FeedRefusal.FEED_ITEM_NOT_HERE.raise();
+        }
         var item = lostAndFoundService.findById(itemId).orElseThrow(FeedRefusal.FEED_ITEM_NOT_HERE::raise);
         if (item.stationId() != stationId) {
             throw FeedRefusal.FEED_ITEM_NOT_HERE.raise();

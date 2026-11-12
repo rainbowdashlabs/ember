@@ -35,6 +35,7 @@ import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import io.javalin.testtools.HttpClient;
 import io.javalin.testtools.Response;
 import org.junit.jupiter.api.BeforeEach;
@@ -107,7 +108,8 @@ class UserFeedRoutesIntegrationTest {
                 mock(LostAndFoundImageService.class),
                 mock(NotificationFeedRenderer.class),
                 memberNameResolver,
-                mock(OccurrenceCalendar.class));
+                mock(OccurrenceCalendar.class),
+                mock(ModuleAvailability.class));
         harness = RouteHarness.serving(
                 new UserFeedRoutes(feeds, new FeedRateLimiter(clock), mock(FeedMetricsService.class)));
 

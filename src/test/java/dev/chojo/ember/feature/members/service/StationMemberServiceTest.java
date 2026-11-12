@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -427,8 +429,22 @@ class StationMemberServiceTest extends RepositoryTestBase {
                 .contains(StationPermission.STATION_ADMINISTRATOR.name()));
     }
 
+    /** A user type's rights at a station leave out what a switched-off module would grant. */
     @Test
     @Order(30)
+    void userTypePermissionsLeaveOutSwitchedOffModules() {
+        stationRepo.setDisabledModules(station.id(), Set.of(StationModule.NEWS));
+        try {
+            var effective = service.effectiveUserTypePermissions(station.id(), StationUserType.MANAGER);
+            assertFalse(effective.contains(StationPermission.NEWS_EDIT.name()));
+            assertTrue(effective.contains(StationPermission.EVENT_EDIT.name()));
+        } finally {
+            stationRepo.setDisabledModules(station.id(), Set.of());
+        }
+    }
+
+    @Test
+    @Order(31)
     void delete() {
         var account3 = accountRepo.create("svc3@test.com", "Third", "Member");
         var member3 = service.create(station.id(), account3.id());

@@ -18,14 +18,19 @@ import java.util.List;
  *
  * <p>One set of methods for both kinds of recipient: the recipient says whose feed is meant, so a
  * route for station members and one for cluster members ask the same questions the same way.
+ *
+ * <p>A station member's feed leaves out what the station's switched-off modules hide; marking everything
+ * read leaves those unread, so they are waiting once the module is back.
  */
 @Singleton
 public class NotificationInbox {
     private final NotificationRepository notificationRepository;
+    private final NotificationVisibility visibility;
 
     @Inject
-    public NotificationInbox(NotificationRepository notificationRepository) {
+    public NotificationInbox(NotificationRepository notificationRepository, NotificationVisibility visibility) {
         this.notificationRepository = notificationRepository;
+        this.visibility = visibility;
     }
 
     /**
@@ -35,7 +40,7 @@ public class NotificationInbox {
      * @return newest first
      */
     public List<Notification> recent(Recipient recipient) {
-        return notificationRepository.findRecent(recipient);
+        return notificationRepository.findRecent(recipient, visibility.hiddenFor(recipient));
     }
 
     /**
@@ -45,7 +50,7 @@ public class NotificationInbox {
      * @return newest first
      */
     public List<Notification> unread(Recipient recipient) {
-        return notificationRepository.findUnacknowledged(recipient);
+        return notificationRepository.findUnacknowledged(recipient, visibility.hiddenFor(recipient));
     }
 
     /**
@@ -55,7 +60,7 @@ public class NotificationInbox {
      * @return the count
      */
     public int countUnread(Recipient recipient) {
-        return notificationRepository.countUnacknowledged(recipient);
+        return notificationRepository.countUnacknowledged(recipient, visibility.hiddenFor(recipient));
     }
 
     /**
@@ -86,7 +91,7 @@ public class NotificationInbox {
      * @return how many were marked
      */
     public int acknowledgeAll(Recipient recipient) {
-        return notificationRepository.acknowledgeAll(recipient);
+        return notificationRepository.acknowledgeAll(recipient, visibility.hiddenFor(recipient));
     }
 
     /**

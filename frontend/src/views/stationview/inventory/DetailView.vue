@@ -11,7 +11,7 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {InventoryType, StationPermission} from '@/api/generated/schema'
+import {InventoryType, StationModule, StationPermission} from '@/api/generated/schema'
 import type {
   InventoryArt,
   InventoryContainer,
@@ -40,7 +40,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { currentStationId } = useStations()
-const { hasPermission } = useSession()
+const { hasPermission, isModuleEnabled } = useSession()
 
 const inventoryId = computed(() => Number(route.params.id))
 const detail = ref<InventoryDetail | null>(null)
@@ -94,7 +94,8 @@ const itemTable = useItemTable({
 const pageTitle = computed(() => detail.value?.name || t('pages.inventory-detail.title'))
 
 const canEdit = computed(() => hasPermission(StationPermission.INVENTORY_EDIT))
-const canProcure = computed(() => hasPermission(StationPermission.INVENTORY_PROCUREMENT))
+const canProcure = computed(() =>
+    isModuleEnabled(StationModule.INVENTORY_PROCUREMENT) && hasPermission(StationPermission.INVENTORY_PROCUREMENT))
 const canCreateInternal = computed(() => hasPermission(StationPermission.INVENTORY_CREATE_INTERNAL))
 const canCreateExternal = computed(() => hasPermission(StationPermission.INVENTORY_CREATE_EXTERNAL))
 
@@ -220,13 +221,19 @@ const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   const map = new Map<number, MemberWithName>()
   for (const m of members) map.set(m.id, m)
   memberMap.value = map
-  try {
-    const allProc = await procurement.listOpen()
-    openProcurement.value = allProc.filter(p => p.inventoryId === inventoryId.value)
-  } catch { openProcurement.value = [] }
-  try {
-    lentOutItems.value = await getLentOutByInventory(inventoryId.value)
-  } catch { lentOutItems.value = [] }
+  openProcurement.value = []
+  if (isModuleEnabled(StationModule.INVENTORY_PROCUREMENT)) {
+    try {
+      const allProc = await procurement.listOpen()
+      openProcurement.value = allProc.filter(p => p.inventoryId === inventoryId.value)
+    } catch { openProcurement.value = [] }
+  }
+  lentOutItems.value = []
+  if (isModuleEnabled(StationModule.INVENTORY_LENDING)) {
+    try {
+      lentOutItems.value = await getLentOutByInventory(inventoryId.value)
+    } catch { lentOutItems.value = [] }
+  }
 })
 
 function goBack() { router.push({ name: routes.manage }) }

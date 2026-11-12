@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.quiz.service.QuizImportService.CsvDraft;
 import dev.chojo.ember.feature.quiz.service.QuizImportService.CsvMappings;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
 import dev.chojo.ember.feature.quiz.service.QuizRouteGuards;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -86,35 +87,97 @@ public class QuizCatalogRoutes implements Routes {
                 prefix + "/quiz/catalogs",
                 this::listCatalogs,
                 StationPermission.TEST_CATALOG_VIEW,
-                StationPermission.TEST_RESULT_READ);
-        routes.post(prefix + "/quiz/catalogs", this::createCatalog, StationPermission.TEST_CATALOG_EDIT);
-        routes.get(prefix + "/quiz/catalogs/sharing", this::listSharing, StationPermission.TEST_CATALOG_SHARE);
-        routes.put(prefix + "/quiz/catalogs/{id}/sharing", this::setSharing, StationPermission.TEST_CATALOG_SHARE);
+                StationPermission.TEST_RESULT_READ,
+                StationModule.QUIZ);
+        routes.post(
+                prefix + "/quiz/catalogs",
+                this::createCatalog,
+                StationPermission.TEST_CATALOG_EDIT,
+                StationModule.QUIZ);
+        routes.get(
+                prefix + "/quiz/catalogs/sharing",
+                this::listSharing,
+                StationPermission.TEST_CATALOG_SHARE,
+                StationModule.QUIZ);
+        routes.put(
+                prefix + "/quiz/catalogs/{id}/sharing",
+                this::setSharing,
+                StationPermission.TEST_CATALOG_SHARE,
+                StationModule.QUIZ);
         routes.get(
                 prefix + "/quiz/catalogs/{id}",
                 this::getCatalog,
                 StationPermission.TEST_CATALOG_VIEW,
-                StationPermission.TEST_RESULT_READ);
-        routes.put(prefix + "/quiz/catalogs/{id}", this::updateCatalog, StationPermission.TEST_CATALOG_EDIT);
-        routes.delete(prefix + "/quiz/catalogs/{id}", this::deleteCatalog, StationPermission.TEST_CATALOG_EDIT);
+                StationPermission.TEST_RESULT_READ,
+                StationModule.QUIZ);
+        routes.put(
+                prefix + "/quiz/catalogs/{id}",
+                this::updateCatalog,
+                StationPermission.TEST_CATALOG_EDIT,
+                StationModule.QUIZ);
+        routes.delete(
+                prefix + "/quiz/catalogs/{id}",
+                this::deleteCatalog,
+                StationPermission.TEST_CATALOG_EDIT,
+                StationModule.QUIZ);
 
-        routes.get(prefix + "/quiz/categories", this::listCategories, StationPermission.TEST_CATALOG_VIEW);
-        routes.post(prefix + "/quiz/categories", this::createCategory, StationPermission.TEST_CATALOG_EDIT);
-        routes.put(prefix + "/quiz/categories/{id}", this::updateCategory, StationPermission.TEST_CATALOG_EDIT);
-        routes.delete(prefix + "/quiz/categories/{id}", this::deleteCategory, StationPermission.TEST_CATALOG_EDIT);
-
-        routes.get(prefix + "/quiz/training/catalogs", this::listTrainingCatalogs, StationPermission.USER);
         routes.get(
-                prefix + "/quiz/training/catalogs/{id}/questions", this::getTrainingQuestions, StationPermission.USER);
+                prefix + "/quiz/categories",
+                this::listCategories,
+                StationPermission.TEST_CATALOG_VIEW,
+                StationModule.QUIZ);
+        routes.post(
+                prefix + "/quiz/categories",
+                this::createCategory,
+                StationPermission.TEST_CATALOG_EDIT,
+                StationModule.QUIZ);
+        routes.put(
+                prefix + "/quiz/categories/{id}",
+                this::updateCategory,
+                StationPermission.TEST_CATALOG_EDIT,
+                StationModule.QUIZ);
+        routes.delete(
+                prefix + "/quiz/categories/{id}",
+                this::deleteCategory,
+                StationPermission.TEST_CATALOG_EDIT,
+                StationModule.QUIZ);
 
-        routes.get(prefix + "/quiz/catalogs/{id}/export", this::exportCatalog, StationPermission.TEST_CATALOG_EDIT);
-        routes.post(prefix + "/quiz/catalogs/import", this::importCatalog, StationPermission.TEST_CATALOG_EDIT);
-        routes.post(prefix + "/quiz/catalogs/{id}/import", this::appendToCatalog, StationPermission.TEST_CATALOG_EDIT);
-        routes.post(prefix + "/quiz/catalogs/csv-draft", this::draftFromCsv, StationPermission.TEST_CATALOG_EDIT);
+        routes.get(
+                prefix + "/quiz/training/catalogs",
+                this::listTrainingCatalogs,
+                StationPermission.USER,
+                StationModule.QUIZ);
+        routes.get(
+                prefix + "/quiz/training/catalogs/{id}/questions",
+                this::getTrainingQuestions,
+                StationPermission.USER,
+                StationModule.QUIZ);
+
+        routes.get(
+                prefix + "/quiz/catalogs/{id}/export",
+                this::exportCatalog,
+                StationPermission.TEST_CATALOG_EDIT,
+                StationModule.QUIZ);
+        routes.post(
+                prefix + "/quiz/catalogs/import",
+                this::importCatalog,
+                StationPermission.TEST_CATALOG_EDIT,
+                StationModule.QUIZ);
+        routes.post(
+                prefix + "/quiz/catalogs/{id}/import",
+                this::appendToCatalog,
+                StationPermission.TEST_CATALOG_EDIT,
+                StationModule.QUIZ);
+        routes.post(
+                prefix + "/quiz/catalogs/csv-draft",
+                this::draftFromCsv,
+                StationPermission.TEST_CATALOG_EDIT,
+                StationModule.QUIZ);
         routes.get(
                 prefix + "/quiz/catalogs/template/{format}",
                 this::downloadTemplate,
-                StationPermission.TEST_CATALOG_EDIT);
+                StationPermission.TEST_CATALOG_EDIT,
+                StationModule.QUIZ);
     }
 
     /**

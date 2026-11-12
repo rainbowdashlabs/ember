@@ -51,8 +51,8 @@ const profileIncomplete = computed(() => sessionInfo.value?.profileComplete === 
       <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
         <TrialPanel v-if="isModuleEnabled(StationModule.WAITING_LIST)"/>
         <NotificationsPanel/>
-        <OpenMovementsPanel v-if="isModuleEnabled(StationModule.INVENTORY)"/>
-        <SelfChecksPanel v-if="isModuleEnabled(StationModule.INVENTORY)"/>
+        <OpenMovementsPanel v-if="isModuleEnabled(StationModule.INVENTORY_MOVEMENTS)"/>
+        <SelfChecksPanel v-if="isModuleEnabled(StationModule.INVENTORY_SELF_CHECKS)"/>
         <AwaitingAnswerPanel v-if="isModuleEnabled(StationModule.EVENTS)" ref="awaitingAnswer"/>
         <RegistrationsPanel v-if="isModuleEnabled(StationModule.EVENTS)"/>
         <UpcomingEventsPanel v-if="isModuleEnabled(StationModule.EVENTS)" @answered="awaitingAnswer?.reload()"/>

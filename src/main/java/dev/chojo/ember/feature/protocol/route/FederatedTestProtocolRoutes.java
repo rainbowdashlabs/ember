@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.protocol.route.RemoteTestProtocolRoutes.RemoteProtocolDetail;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService.SharedProtocolView;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -41,15 +42,21 @@ public class FederatedTestProtocolRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/federated/protocols", this::federatedBrowseProtocols, StationPermission.USER);
+        routes.get(
+                prefix + "/federated/protocols",
+                this::federatedBrowseProtocols,
+                StationPermission.USER,
+                StationModule.TEST_PROTOCOL);
         routes.get(
                 prefix + "/federated/{stationuid}/protocols/{id}",
                 this::federatedGetProtocol,
-                StationPermission.PROTOCOL_MANAGER);
+                StationPermission.PROTOCOL_MANAGER,
+                StationModule.TEST_PROTOCOL);
         routes.post(
                 prefix + "/federated/{stationuid}/protocols/{id}/copy",
                 this::federatedCopyProtocol,
-                StationPermission.PROTOCOL_MANAGER);
+                StationPermission.PROTOCOL_MANAGER,
+                StationModule.TEST_PROTOCOL);
     }
 
     @OpenApi(

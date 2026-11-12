@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.api.auth;
 
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.security.RouteRole;
 
 import java.util.EnumSet;
@@ -190,10 +191,14 @@ public enum ClusterPermission implements RouteRole {
      * The cluster's federation right is what shares its content out to its stations. The right to write
      * the cluster's document templates reaches the station's media library, where their pictures are kept.
      *
-     * @param held every cluster permission the member holds, already expanded
+     * <p>A right of a module that station has switched off grants nothing there, nor anything it would
+     * imply, the same as for a member.
+     *
+     * @param held     every cluster permission the member holds, already expanded
+     * @param disabled the modules the cluster's own station has switched off, with their parts
      * @return what they may do at the station the cluster owns
      */
-    public static Set<StationPermission> atOwnStation(Set<ClusterPermission> held) {
+    public static Set<StationPermission> atOwnStation(Set<ClusterPermission> held, Set<StationModule> disabled) {
         Set<StationPermission> granted = EnumSet.noneOf(StationPermission.class);
         if (held.isEmpty()) return granted;
 
@@ -239,6 +244,6 @@ public enum ClusterPermission implements RouteRole {
             granted.add(StationPermission.TEST_CATALOG_SHARE);
         }
 
-        return StationPermission.expand(granted);
+        return StationPermission.expand(granted, disabled);
     }
 }

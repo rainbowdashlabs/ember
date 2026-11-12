@@ -13,17 +13,21 @@ import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
 import dev.chojo.ember.feature.mail.service.StationMailSettingsService;
 import dev.chojo.ember.feature.members.entity.UserSettings;
 import dev.chojo.ember.feature.members.service.UserSettingsService;
+import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationPreferences;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
 import static dev.chojo.ember.api.RouteHarness.body;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -33,6 +37,7 @@ class UserSettingsRoutesTest {
     private static final int STATION_ID = 3;
 
     private RouteHarness harness;
+    private NotificationPreferences preferences;
 
     @BeforeEach
     void setup() {
@@ -40,8 +45,9 @@ class UserSettingsRoutesTest {
         var own = new UserSettings(TestSessions.MEMBER_ID, false, "ember", "system", "DEFAULT");
         when(settings.getSettings(anyInt())).thenReturn(own);
         when(settings.findOrCreate(anyInt())).thenReturn(own);
-        var preferences = mock(NotificationPreferences.class);
+        preferences = mock(NotificationPreferences.class);
         when(preferences.settingsOf(anyInt())).thenReturn(Map.of());
+        when(preferences.offeredAt(anyInt())).thenReturn(EnumSet.allOf(NotificationType.class));
         var mail = mock(StationMailSettingsService.class);
         when(mail.senders(STATION_ID)).thenReturn(List.of(own(), instanceProvider()));
         harness = RouteHarness.serving(new UserSettingsRoutes(settings, preferences, mail));
@@ -126,5 +132,21 @@ class UserSettingsRoutesTest {
                             "NEW_NEWS": {"app": true, "email": false, "feed": true}}}"""), harness.as(TestSessions.member(STATION_ID, StationPermission.LOGIN))));
 
         assertEquals(200, answer.code());
+    }
+
+    /** The settings list no type of a module the station switched off, and every other one. */
+    @Test
+    void theSettingsLeaveOutTypesOfSwitchedOffModules() {
+        var offered = EnumSet.allOf(NotificationType.class);
+        offered.remove(NotificationType.MOVEMENT_RAISED);
+        when(preferences.offeredAt(STATION_ID)).thenReturn(offered);
+
+        var answer = harness.request(client ->
+                client.get(PREFIX + "/settings", harness.as(TestSessions.member(STATION_ID, StationPermission.LOGIN))));
+
+        var notifications = RouteHarness.json(answer).get("notifications");
+        assertFalse(notifications.has("MOVEMENT_RAISED"));
+        assertTrue(notifications.has("MOVEMENT_ADVANCED"));
+        assertEquals(offered.size(), notifications.size());
     }
 }

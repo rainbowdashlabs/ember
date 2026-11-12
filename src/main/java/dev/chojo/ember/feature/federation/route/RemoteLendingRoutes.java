@@ -40,17 +40,19 @@ public class RemoteLendingRoutes implements Routes {
             RemoteLendingRequest.class,
             RemoteLendingAccepted.class);
     public static final FederationEndpoint CHANGE_STATUS = FederationEndpoint.post(
-            FederationSurface.INVENTORY_LEND,
-            "/remote/lending/requests/{requestUid}/status",
-            RemoteLendingStatus.class,
-            Void.class);
+                    FederationSurface.INVENTORY_LEND,
+                    "/remote/lending/requests/{requestUid}/status",
+                    RemoteLendingStatus.class,
+                    Void.class)
+            .keepingInStep();
     public static final FederationEndpoint GET_MESSAGES = FederationEndpoint.getList(
             FederationSurface.INVENTORY_LEND, "/remote/lending/requests/{requestUid}/messages", LendingMessage.class);
     public static final FederationEndpoint MESSAGE_NOTICE = FederationEndpoint.post(
-            FederationSurface.INVENTORY_LEND,
-            "/remote/lending/requests/{requestUid}/notices",
-            RemoteLendingNotice.class,
-            Void.class);
+                    FederationSurface.INVENTORY_LEND,
+                    "/remote/lending/requests/{requestUid}/notices",
+                    RemoteLendingNotice.class,
+                    Void.class)
+            .keepingInStep();
 
     public static final List<FederationEndpoint> CONTRACT =
             List.of(GET_AVAILABLE, CREATE_REQUEST, CHANGE_STATUS, GET_MESSAGES, MESSAGE_NOTICE);

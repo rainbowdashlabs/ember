@@ -45,6 +45,7 @@ import dev.chojo.ember.feature.inventory.service.SelfCheckService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.util.CsvWriter;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -128,34 +129,53 @@ public class InventoryRoutes implements Routes {
      */
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/my-inventory-items", this::myItems, StationPermission.USER);
-        routes.get(prefix + "/my-inventory-requirements", this::myRequirements, StationPermission.USER);
+        routes.get(prefix + "/my-inventory-items", this::myItems, StationPermission.USER, StationModule.INVENTORY);
+        routes.get(
+                prefix + "/my-inventory-requirements",
+                this::myRequirements,
+                StationPermission.USER,
+                StationModule.INVENTORY);
         routes.get(
                 prefix + "/station-members/{memberId}/inventory-items",
                 this::memberItems,
                 StationPermission.MEMBER_READ,
-                StationPermission.INVENTORY_READ);
+                StationPermission.INVENTORY_READ,
+                StationModule.INVENTORY);
         routes.get(
                 prefix + "/station-members/{memberId}/inventory-requirements",
                 this::memberRequirements,
                 StationPermission.MEMBER_READ,
-                StationPermission.INVENTORY_READ);
+                StationPermission.INVENTORY_READ,
+                StationModule.INVENTORY);
         routes.post(
                 prefix + "/station-members/{memberId}/inventory-items",
                 this::createAndHandOut,
                 StationPermission.INVENTORY_CREATE_EXTERNAL,
-                StationPermission.INVENTORY_CREATE_INTERNAL);
+                StationPermission.INVENTORY_CREATE_INTERNAL,
+                StationModule.INVENTORY);
         routes.get(prefix + "/inventories", this::list, StationPermission.INVENTORY_READ);
         routes.post(prefix + "/inventories", this::create, StationPermission.INVENTORY_CREATE);
         routes.get(prefix + "/inventories/all-items", this::listAllItems, StationPermission.INVENTORY_READ);
-        routes.get(prefix + "/inventories/all-sizes", this::listAllSizes, StationPermission.LOGIN);
+        routes.get(
+                prefix + "/inventories/all-sizes",
+                this::listAllSizes,
+                StationPermission.LOGIN,
+                StationModule.INVENTORY);
         routes.get(prefix + "/inventories/summary", this::listSummaries, StationPermission.INVENTORY_READ);
         routes.get(prefix + "/inventories/{id}", this::get, StationPermission.INVENTORY_READ);
         routes.put(prefix + "/inventories/{id}", this::update, StationPermission.INVENTORY_EDIT);
         routes.delete(prefix + "/inventories/{id}", this::delete, StationPermission.INVENTORY_MANAGER);
 
-        routes.get(prefix + "/inventories/{inventoryId}/sizes", this::listSizes, StationPermission.LOGIN);
-        routes.post(prefix + "/inventories/{inventoryId}/sizes", this::createSize, StationPermission.INVENTORY_CREATE);
+        routes.get(
+                prefix + "/inventories/{inventoryId}/sizes",
+                this::listSizes,
+                StationPermission.LOGIN,
+                StationModule.INVENTORY);
+        routes.post(
+                prefix + "/inventories/{inventoryId}/sizes",
+                this::createSize,
+                StationPermission.INVENTORY_CREATE,
+                StationModule.INVENTORY);
         routes.put(
                 prefix + "/inventories/{inventoryId}/sizes/{sizeId}",
                 this::updateSize,
@@ -191,8 +211,13 @@ public class InventoryRoutes implements Routes {
                 this::setItemContainer,
                 StationPermission.INVENTORY_STORAGE);
         routes.get(prefix + "/inventory-items/{id}/history", this::getHistory, StationPermission.INVENTORY_READ);
-        routes.put(prefix + "/inventory-items/{id}/lost", this::markLost, StationPermission.USER);
-        routes.delete(prefix + "/inventory-items/{id}/lost", this::markFound, StationPermission.INVENTORY_EDIT);
+        routes.put(
+                prefix + "/inventory-items/{id}/lost", this::markLost, StationPermission.USER, StationModule.INVENTORY);
+        routes.delete(
+                prefix + "/inventory-items/{id}/lost",
+                this::markFound,
+                StationPermission.INVENTORY_EDIT,
+                StationModule.INVENTORY);
         routes.get(
                 prefix + "/inventory-items/{id}/loss-report",
                 this::lossReportTerms,
@@ -201,7 +226,11 @@ public class InventoryRoutes implements Routes {
                 prefix + "/inventory-items/{id}/loss-report", this::reportLoss, StationPermission.INVENTORY_MANAGER);
         routes.delete(prefix + "/inventory-items/{id}", this::deleteItem, StationPermission.INVENTORY_EDIT);
 
-        routes.get(prefix + "/inventory-borrowed", this::listBorrowed, StationPermission.INVENTORY_READ);
+        routes.get(
+                prefix + "/inventory-borrowed",
+                this::listBorrowed,
+                StationPermission.INVENTORY_READ,
+                StationModule.INVENTORY_LENDING);
 
         routes.get(prefix + "/inventory-requirements", this::listAllRequirements, StationPermission.INVENTORY_READ);
         routes.get(prefix + "/inventory-owner-above", this::ownerAbove, StationPermission.INVENTORY_READ);
@@ -217,8 +246,16 @@ public class InventoryRoutes implements Routes {
 
         routes.post(prefix + "/inventories/members/export", this::exportMembers, StationPermission.INVENTORY_READ);
 
-        routes.get(prefix + "/inventory-settings", this::getInventorySettings, StationPermission.USER);
-        routes.put(prefix + "/inventory-settings", this::updateInventorySettings, StationPermission.INVENTORY_MANAGER);
+        routes.get(
+                prefix + "/inventory-settings",
+                this::getInventorySettings,
+                StationPermission.USER,
+                StationModule.INVENTORY);
+        routes.put(
+                prefix + "/inventory-settings",
+                this::updateInventorySettings,
+                StationPermission.INVENTORY_MANAGER,
+                StationModule.INVENTORY);
     }
 
     /**

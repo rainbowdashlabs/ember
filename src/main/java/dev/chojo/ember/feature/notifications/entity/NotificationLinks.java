@@ -7,10 +7,12 @@ package dev.chojo.ember.feature.notifications.entity;
 
 import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
 import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
+import dev.chojo.ember.feature.station.entity.StationModule;
 
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -25,6 +27,11 @@ public final class NotificationLinks {
     private static final String EVENT_DETAIL = "event-detail";
     private static final String KB_FILE = "kb-file";
     private static final String TICKET_DETAIL = "ticket-detail";
+    private static final Map<String, StationModule> COMMENT_PAGES = Map.of(
+            NEWS_DETAIL, StationModule.NEWS,
+            EVENT_DETAIL, StationModule.EVENTS,
+            KB_FILE, StationModule.KNOWLEDGE_BASE,
+            TICKET_DETAIL, StationModule.BOARDS);
 
     private NotificationLinks() {}
 
@@ -311,5 +318,24 @@ public final class NotificationLinks {
         query.put("document", documentId);
         query.put("record", version);
         return new NotificationLink("documents-own", Map.of(), query);
+    }
+
+    /**
+     * The module of the page a link opens, for the links a comment can hang under.
+     *
+     * @param link the link
+     * @return the module of an article, an appointment, a wiki file or a ticket, empty for anything else
+     */
+    public static Optional<StationModule> moduleOf(NotificationLink link) {
+        return Optional.ofNullable(COMMENT_PAGES.get(link.route()));
+    }
+
+    /**
+     * The routes of the pages a comment can hang under, by the module each belongs to.
+     *
+     * @return route name to module
+     */
+    public static Map<String, StationModule> commentPages() {
+        return COMMENT_PAGES;
     }
 }

@@ -30,6 +30,7 @@ import dev.chojo.ember.feature.inventory.service.InventoryService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -114,43 +115,76 @@ public class InventoryCheckRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/inventory-checks", this::overview, StationPermission.INVENTORY_CHECK);
-        routes.post(prefix + "/inventory-checks/{memberId}/start", this::startCheck, StationPermission.INVENTORY_CHECK);
+        routes.get(
+                prefix + "/inventory-checks",
+                this::overview,
+                StationPermission.INVENTORY_CHECK,
+                StationModule.INVENTORY_CHECKS);
+        routes.post(
+                prefix + "/inventory-checks/{memberId}/start",
+                this::startCheck,
+                StationPermission.INVENTORY_CHECK,
+                StationModule.INVENTORY_CHECKS);
         routes.post(
                 prefix + "/inventory-checks/{memberId}/complete",
                 this::completeCheck,
-                StationPermission.INVENTORY_CHECK);
+                StationPermission.INVENTORY_CHECK,
+                StationModule.INVENTORY_CHECKS);
         routes.post(
-                prefix + "/inventory-checks/{memberId}/cancel", this::cancelCheck, StationPermission.INVENTORY_CHECK);
-        routes.get(prefix + "/inventory-checks/{memberId}/last", this::lastCheck, StationPermission.INVENTORY_CHECK);
-        routes.put(prefix + "/inventory-checks/{memberId}/assign", this::assignItem, StationPermission.INVENTORY_CHECK);
+                prefix + "/inventory-checks/{memberId}/cancel",
+                this::cancelCheck,
+                StationPermission.INVENTORY_CHECK,
+                StationModule.INVENTORY_CHECKS);
+        routes.get(
+                prefix + "/inventory-checks/{memberId}/last",
+                this::lastCheck,
+                StationPermission.INVENTORY_CHECK,
+                StationModule.INVENTORY_CHECKS);
+        routes.put(
+                prefix + "/inventory-checks/{memberId}/assign",
+                this::assignItem,
+                StationPermission.INVENTORY_CHECK,
+                StationModule.INVENTORY_CHECKS);
         routes.put(
                 prefix + "/inventory-checks/{memberId}/unassign",
                 this::unassignItem,
-                StationPermission.INVENTORY_CHECK);
+                StationPermission.INVENTORY_CHECK,
+                StationModule.INVENTORY_CHECKS);
         routes.post(
                 prefix + "/inventory-checks/{memberId}/create-assign",
                 this::createAndAssign,
-                StationPermission.INVENTORY_CHECK);
+                StationPermission.INVENTORY_CHECK,
+                StationModule.INVENTORY_CHECKS);
         routes.post(
-                prefix + "/inventory-checks/{memberId}/correct", this::correctItem, StationPermission.INVENTORY_CHECK);
-        routes.get(prefix + "/inventory-checks/next", this::nextMember, StationPermission.INVENTORY_CHECK);
+                prefix + "/inventory-checks/{memberId}/correct",
+                this::correctItem,
+                StationPermission.INVENTORY_CHECK,
+                StationModule.INVENTORY_CHECKS);
+        routes.get(
+                prefix + "/inventory-checks/next",
+                this::nextMember,
+                StationPermission.INVENTORY_CHECK,
+                StationModule.INVENTORY_CHECKS);
         routes.get(
                 prefix + "/inventory-checks/container/{containerId}/expected",
                 this::containerExpectedItems,
-                StationPermission.INVENTORY_CHECK);
+                StationPermission.INVENTORY_CHECK,
+                StationModule.INVENTORY_CHECKS);
         routes.get(
                 prefix + "/inventory-checks/container/{containerId}/last-results",
                 this::containerLastItemResults,
-                StationPermission.INVENTORY_CHECK);
+                StationPermission.INVENTORY_CHECK,
+                StationModule.INVENTORY_CHECKS);
         routes.get(
                 prefix + "/inventory-checks/item/{itemId}/history",
                 this::itemCheckHistory,
-                StationPermission.INVENTORY_CHECK);
+                StationPermission.INVENTORY_CHECK,
+                StationModule.INVENTORY_CHECKS);
         routes.post(
                 prefix + "/inventory-checks/container/{containerId}/complete",
                 this::completeContainerCheck,
-                StationPermission.INVENTORY_CHECK);
+                StationPermission.INVENTORY_CHECK,
+                StationModule.INVENTORY_CHECKS);
     }
 
     @OpenApi(

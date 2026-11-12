@@ -10,6 +10,7 @@ import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.federation.service.LendingService.AvailableInventoryResult;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -41,7 +42,8 @@ public class FederatedLendingRoutes implements Routes {
         routes.get(
                 prefix + "/federated/lending/available",
                 this::listAvailable,
-                StationPermission.INVENTORY_LENDING_REQUEST);
+                StationPermission.INVENTORY_LENDING_REQUEST,
+                StationModule.INVENTORY_LENDING);
     }
 
     @OpenApi(

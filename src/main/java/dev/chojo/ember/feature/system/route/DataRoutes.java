@@ -5,22 +5,28 @@
  */
 package dev.chojo.ember.feature.system.route;
 
+import dev.chojo.ember.api.ApiServer;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.auth.ClusterPermission;
-import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.feature.members.entity.PermissionNode;
+import dev.chojo.ember.feature.members.service.PermissionHierarchyService;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-
-import java.util.Arrays;
-import java.util.List;
 
 @Singleton
 public class DataRoutes implements Routes {
+    private final PermissionHierarchyService hierarchies;
+
+    @Inject
+    public DataRoutes(PermissionHierarchyService hierarchies) {
+        this.hierarchies = hierarchies;
+    }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
@@ -32,15 +38,13 @@ public class DataRoutes implements Routes {
             path = "/api/v1/data/permissions",
             methods = HttpMethod.GET,
             summary = "Get the station permission hierarchy",
-            description = "Returns all station permissions with their direct children. No authentication required.",
+            description = "Returns the station permissions with their direct children. No authentication required."
+                    + " When the request names a station, the permissions of modules it switched off are left out.",
             tags = {"Data"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PermissionNode[].class)))
     private void getPermissionHierarchy(Context ctx) {
-        List<PermissionNode> nodes = Arrays.stream(StationPermission.values())
-                .map(p -> new PermissionNode(
-                        p.name(), Arrays.stream(p.getChildren()).map(Enum::name).toList()))
-                .toList();
-        ctx.json(nodes);
+        UserSession session = ctx.attribute(ApiServer.ATTR_SESSION);
+        ctx.json(hierarchies.stationHierarchy(session == null ? null : session.stationId()));
     }
 
     /**
@@ -57,12 +61,6 @@ public class DataRoutes implements Routes {
             tags = {"Data"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PermissionNode[].class)))
     private void getClusterPermissionHierarchy(Context ctx) {
-        List<PermissionNode> nodes = Arrays.stream(ClusterPermission.values())
-                .map(p -> new PermissionNode(
-                        p.name(), Arrays.stream(p.getChildren()).map(Enum::name).toList()))
-                .toList();
-        ctx.json(nodes);
+        ctx.json(hierarchies.clusterHierarchy());
     }
-
-    public record PermissionNode(String name, List<String> children) {}
 }

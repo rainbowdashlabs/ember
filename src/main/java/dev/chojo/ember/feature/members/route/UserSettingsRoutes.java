@@ -133,8 +133,10 @@ public class UserSettingsRoutes implements Routes {
                 mailSettings.senders(stationId).stream().map(MailProvider::of).toList();
         boolean mailConfigured = mailSettings.sendsMail(stationId);
 
+        var offered = preferences.offeredAt(stationId);
         var responseMap = new LinkedHashMap<NotificationType, NotificationToggle>();
         for (var type : NotificationType.values()) {
+            if (!offered.contains(type)) continue;
             var setting = notifSettings.get(type);
             boolean app = setting == null || setting.appEnabled();
             boolean email = setting != null && setting.emailEnabled();

@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -60,12 +61,13 @@ public class EventEmbedRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/events/embed/{uid}", this::get, StationPermission.LOGIN);
+        routes.get(prefix + "/events/embed/{uid}", this::get, StationPermission.LOGIN, StationModule.EVENTS);
         routes.get(
                 prefix + "/events/{id}/embed-reference",
                 this::reference,
                 StationPermission.NEWS_EDIT,
-                StationPermission.PAGE_EDIT);
+                StationPermission.PAGE_EDIT,
+                StationModule.EVENTS);
     }
 
     /**

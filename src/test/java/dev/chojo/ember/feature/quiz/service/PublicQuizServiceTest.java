@@ -12,12 +12,15 @@ import dev.chojo.ember.feature.quiz.entity.QuizQuestion;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -33,12 +36,13 @@ class PublicQuizServiceTest {
     private QuizCatalogRepository catalogs;
     private StationRepository stations;
     private PublicQuizService service;
+    private final ModuleAvailability modules = mock(ModuleAvailability.class);
 
     @BeforeEach
     void setup() {
         catalogs = mock(QuizCatalogRepository.class);
         stations = mock(StationRepository.class);
-        service = new PublicQuizService(catalogs, stations);
+        service = new PublicQuizService(catalogs, stations, modules);
         var station = mock(Station.class);
         when(station.id()).thenReturn(3);
         when(stations.findByUid(STATION)).thenReturn(Optional.of(station));
@@ -84,6 +88,17 @@ class PublicQuizServiceTest {
         assertEquals(
                 QuizRefusal.PUBLIC_QUIZ_STATION_NOT_HERE,
                 assertThrows(RefusalResponse.class, () -> service.catalogs(UUID.randomUUID()))
+                        .refusal());
+    }
+
+    /** A station whose quiz is switched off has no public quiz. */
+    @Test
+    void aSwitchedOffQuizHasNoPublicSide() {
+        when(modules.disabledAt(3)).thenReturn(Set.of(StationModule.QUIZ));
+
+        assertEquals(
+                QuizRefusal.PUBLIC_QUIZ_STATION_NOT_HERE,
+                assertThrows(RefusalResponse.class, () -> service.catalogs(STATION))
                         .refusal());
     }
 }

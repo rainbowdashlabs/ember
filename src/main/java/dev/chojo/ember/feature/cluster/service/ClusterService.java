@@ -48,12 +48,12 @@ public class ClusterService {
     private static final Logger log = LoggerFactory.getLogger(ClusterService.class);
 
     /**
-     * The four things a cluster owns. Everything else is turned off on the home station at creation and the
-     * cluster's module screen cannot turn it back on: a shell nobody joins has no use for attendance sheets
-     * or a waiting list.
+     * The four things a cluster owns, with their parts. Everything else is turned off on the home station
+     * at creation and the cluster's module screen cannot turn it back on: a shell nobody joins has no use
+     * for attendance sheets or a waiting list.
      */
-    private static final Set<StationModule> CLUSTER_MODULES =
-            EnumSet.of(StationModule.KNOWLEDGE_BASE, StationModule.NEWS, StationModule.EVENTS, StationModule.INVENTORY);
+    private static final Set<StationModule> CLUSTER_MODULES = StationModule.withChildren(EnumSet.of(
+            StationModule.KNOWLEDGE_BASE, StationModule.NEWS, StationModule.EVENTS, StationModule.INVENTORY));
 
     private final ClusterRepository clusterRepository;
     private final StationRepository stationRepository;

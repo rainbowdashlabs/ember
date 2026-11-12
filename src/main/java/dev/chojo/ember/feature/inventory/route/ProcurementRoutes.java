@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.inventory.service.ProcurementService;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -75,19 +76,34 @@ public class ProcurementRoutes implements Routes {
                 prefix + "/procurement",
                 this::list,
                 StationPermission.INVENTORY_PROCUREMENT,
-                StationPermission.INVENTORY_READ);
+                StationPermission.INVENTORY_READ,
+                StationModule.INVENTORY_PROCUREMENT);
         routes.get(
                 prefix + "/procurement/open",
                 this::listOpen,
                 StationPermission.INVENTORY_PROCUREMENT,
-                StationPermission.INVENTORY_READ);
-        routes.post(prefix + "/procurement", this::create, StationPermission.INVENTORY_PROCUREMENT);
-        routes.put(prefix + "/procurement/{id}/fulfill", this::fulfill, StationPermission.INVENTORY_PROCUREMENT);
+                StationPermission.INVENTORY_READ,
+                StationModule.INVENTORY_PROCUREMENT);
+        routes.post(
+                prefix + "/procurement",
+                this::create,
+                StationPermission.INVENTORY_PROCUREMENT,
+                StationModule.INVENTORY_PROCUREMENT);
+        routes.put(
+                prefix + "/procurement/{id}/fulfill",
+                this::fulfill,
+                StationPermission.INVENTORY_PROCUREMENT,
+                StationModule.INVENTORY_PROCUREMENT);
         routes.post(
                 prefix + "/procurement/{id}/issue-from-stock",
                 this::issueFromStock,
-                StationPermission.INVENTORY_PROCUREMENT);
-        routes.delete(prefix + "/procurement/{id}", this::delete, StationPermission.INVENTORY_PROCUREMENT);
+                StationPermission.INVENTORY_PROCUREMENT,
+                StationModule.INVENTORY_PROCUREMENT);
+        routes.delete(
+                prefix + "/procurement/{id}",
+                this::delete,
+                StationPermission.INVENTORY_PROCUREMENT,
+                StationModule.INVENTORY_PROCUREMENT);
     }
 
     @OpenApi(

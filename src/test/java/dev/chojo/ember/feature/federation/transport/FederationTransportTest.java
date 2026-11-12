@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.federation.transport;
 
 import dev.chojo.ember.api.refusal.FederationRefusal;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import dev.chojo.ember.feature.federation.contract.FederationSurface;
@@ -15,7 +16,9 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationWebhookService;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -89,22 +92,26 @@ class FederationTransportTest {
         stationRepo = mock(StationRepository.class);
         when(stationRepo.resolveUid(1)).thenReturn(askingUid);
         when(stationRepo.findHereByUid(servingUid)).thenReturn(Optional.of(mock(Station.class)));
-        var registry = new FederationEndpoints(Set.of(endpoints -> {
-            endpoints.serve(GET_ONE, (partner, params, body) -> {
-                lastServed.set(partner);
-                return new Answer(params.integer("id"), "one", 5);
-            });
-            endpoints.serve(GET_MANY, (partner, params, body) -> List.of(new Answer(1, "a", 5), new Answer(2, "b", 5)));
-            endpoints.serve(POST_ONE, (partner, params, body) -> {
-                lastBody.set(body);
-                return new Answer(params.integer("id"), ((Body) body).text(), 5);
-            });
-            endpoints.serve(POST_MANY, (partner, params, body) -> List.of(new Answer(3, ((Body) body).text(), 5)));
-            endpoints.serve(PUT_NOTHING, (partner, params, body) -> null);
-            endpoints.serve(POST_NOTHING, (partner, params, body) -> {
-                throw FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER.raise();
-            });
-        }));
+        var registry = new FederationEndpoints(
+                Set.of(endpoints -> {
+                    endpoints.serve(GET_ONE, (partner, params, body) -> {
+                        lastServed.set(partner);
+                        return new Answer(params.integer("id"), "one", 5);
+                    });
+                    endpoints.serve(
+                            GET_MANY, (partner, params, body) -> List.of(new Answer(1, "a", 5), new Answer(2, "b", 5)));
+                    endpoints.serve(POST_ONE, (partner, params, body) -> {
+                        lastBody.set(body);
+                        return new Answer(params.integer("id"), ((Body) body).text(), 5);
+                    });
+                    endpoints.serve(
+                            POST_MANY, (partner, params, body) -> List.of(new Answer(3, ((Body) body).text(), 5)));
+                    endpoints.serve(PUT_NOTHING, (partner, params, body) -> null);
+                    endpoints.serve(POST_NOTHING, (partner, params, body) -> {
+                        throw FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER.raise();
+                    });
+                }),
+                mock(ModuleAvailability.class));
         var local = new LocalFederationTransport(() -> registry, federationRepo, stationRepo);
         transport = new RoutingFederationTransport(new HttpFederationTransport(httpClient, webhooks), local);
     }
@@ -300,10 +307,63 @@ class FederationTransportTest {
 
     @Test
     void theRegistryHoldsOneFunctionPerEndpoint() {
-        var registry = new FederationEndpoints(Set.of());
+        var registry = new FederationEndpoints(Set.of(), mock(ModuleAvailability.class));
         assertThrows(IllegalStateException.class, () -> registry.handlerFor(GET_ONE));
         registry.serve(GET_ONE, (partner, params, body) -> null);
         assertTrue(registry.serves(GET_ONE));
         assertThrows(IllegalStateException.class, () -> registry.serve(GET_ONE, (partner, params, body) -> null));
+    }
+
+    /**
+     * A station that switched a module off serves nothing of it to any partner; what is no module's,
+     * such as the core, it serves as before.
+     */
+    @Test
+    void aSwitchedOffModuleServesNothing() {
+        var modules = mock(ModuleAvailability.class);
+        var core = FederationEndpoint.get(FederationSurface.CORE, "/remote/test-core", Answer.class);
+        var registry = new FederationEndpoints(Set.of(), modules);
+        registry.serve(GET_ONE, (partner, params, body) -> new Answer(1, "news", 5));
+        registry.serve(core, (partner, params, body) -> new Answer(2, "core", 5));
+        var serving = new ServingPartner(servingRow(FederationStatus.ACTIVE), askingUid);
+
+        when(modules.disabledAt(2)).thenReturn(Set.of(StationModule.NEWS));
+        var refused = assertThrows(RefusalResponse.class, () -> registry.handlerFor(GET_ONE)
+                .serve(serving, PathParams.of(GET_ONE.at(1)), null));
+        assertEquals(GeneralRefusal.MODULE_SWITCHED_OFF, refused.refusal());
+        assertEquals(
+                new Answer(2, "core", 5), registry.handlerFor(core).serve(serving, PathParams.of(core.at()), null));
+
+        when(modules.disabledAt(2)).thenReturn(Set.of());
+        assertEquals(
+                new Answer(1, "news", 5),
+                registry.handlerFor(GET_ONE).serve(serving, PathParams.of(GET_ONE.at(1)), null));
+    }
+
+    /**
+     * A push that only keeps the station's own copy in step is taken in while the module is off, so the
+     * copy is right once it is back.
+     */
+    @Test
+    void aPushThatKeepsACopyInStepIsTakenInWhileTheModuleIsOff() {
+        var modules = mock(ModuleAvailability.class);
+        when(modules.disabledAt(2)).thenReturn(Set.of(StationModule.NEWS));
+        var push = POST_NOTHING.keepingInStep();
+        var registry = new FederationEndpoints(Set.of(), modules);
+        var taken = new AtomicReference<Object>();
+        registry.serve(push, (partner, params, body) -> {
+            taken.set(body);
+            return null;
+        });
+
+        registry.handlerFor(push)
+                .serve(
+                        new ServingPartner(servingRow(FederationStatus.ACTIVE), askingUid),
+                        PathParams.of(push.at()),
+                        "x");
+
+        assertEquals("x", taken.get());
+        assertTrue(push.keepsInStep());
+        assertEquals(POST_NOTHING.signatureLine(), push.signatureLine(), "the contract does not change");
     }
 }

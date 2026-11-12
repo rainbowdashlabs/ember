@@ -4,18 +4,21 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {mount} from '@vue/test-utils'
-import {describe, expect, it} from 'vitest'
+import {afterEach, describe, expect, it} from 'vitest'
 import {
     InventoryType,
     ItemCustody,
     ItemOwner,
     MovementState,
+    StationModule,
     StepActor,
     type InventoryItem,
     type MovementStanding,
     type RequiredInventoryItem,
 } from '@/api/generated/schema'
 import RapidCheckMode from './RapidCheckMode.vue'
+import {sessionWriter} from '@/util/sessionState'
+import {createSessionInfo} from '@/test/mocks/factories'
 
 const jackets: RequiredInventoryItem = {
     inventoryId: 1, inventoryName: 'Jacken', assignedQuantity: 1, requiredQuantity: 1, inExchangeQuantity: 0,
@@ -59,5 +62,15 @@ describe('RapidCheckMode', () => {
 
         expect(wrapper.find('[data-testid="rapid-on-the-move"]').exists()).toBe(false)
         expect(wrapper.find('[data-testid="rapid-exchange"]').exists()).toBe(true)
+    })
+
+    describe('with the station\'s movements switched off', () => {
+        afterEach(() => sessionWriter().setInfo(null))
+
+        it('offers no swap, since a swap is a movement', () => {
+            sessionWriter().setInfo(createSessionInfo({disabledModules: [StationModule.INVENTORY_MOVEMENTS]}))
+
+            expect(walkOver(null).find('[data-testid="rapid-exchange"]').exists()).toBe(false)
+        })
     })
 })

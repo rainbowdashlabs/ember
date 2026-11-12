@@ -16,6 +16,8 @@ import dev.chojo.ember.feature.quiz.service.QuizService;
 import dev.chojo.ember.feature.signing.entity.PendingSignature;
 import dev.chojo.ember.feature.signing.entity.SignerCapacity;
 import dev.chojo.ember.feature.signing.service.SignatureRequestService;
+import dev.chojo.ember.feature.station.entity.StationModule;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -23,6 +25,7 @@ import org.jspecify.annotations.Nullable;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * The work a member still owes the station.
@@ -44,6 +47,7 @@ public class RequirementsService {
     private final StationMemberService stationMemberService;
     private final MemberNameResolver memberNameResolver;
     private final SignatureRequestService signatureRequests;
+    private final ModuleAvailability modules;
 
     @Inject
     public RequirementsService(
@@ -54,7 +58,9 @@ public class RequirementsService {
             EventRegistrationService registrationService,
             StationMemberService stationMemberService,
             MemberNameResolver memberNameResolver,
-            SignatureRequestService signatureRequests) {
+            SignatureRequestService signatureRequests,
+            ModuleAvailability modules) {
+        this.modules = modules;
         this.formService = formService;
         this.quizService = quizService;
         this.profileFieldService = profileFieldService;
@@ -65,28 +71,47 @@ public class RequirementsService {
         this.signatureRequests = signatureRequests;
     }
 
+    /**
+     * What the member owes the station. A module the station does not have asks for nothing: a forced
+     * form or quiz of a switched-off module would otherwise hold the member at a page that refuses them.
+     */
     public RequirementsResponse getRequirements(int memberId, int stationId, List<String> roleNames) {
-        var forcedForms = formService.findForcedPending(stationId, household(memberId, guardian(roleNames)));
-        var forcedQuizzes = quizService.findForcedPending(stationId, memberId);
+        Set<StationModule> off = modules.disabledAt(stationId);
+        var forcedForms = StationModule.FORMS.isOffIn(off)
+                ? List.<RequirementItem>of()
+                : formService.findForcedPending(stationId, household(memberId, guardian(roleNames)));
+        var forcedQuizzes = StationModule.QUIZ.isOffIn(off)
+                ? List.<RequirementItem>of()
+                : quizService.findForcedPending(stationId, memberId);
         boolean profileIncomplete = !profileFieldService.isProfileComplete(memberId);
         return new RequirementsResponse(
                 forcedForms,
                 forcedQuizzes,
                 profileIncomplete,
-                selfChecks(memberId, roleNames),
-                registrationUpdates(memberId, guardian(roleNames)),
+                StationModule.INVENTORY_SELF_CHECKS.isOffIn(off) ? List.of() : selfChecks(memberId, roleNames),
+                StationModule.EVENTS.isOffIn(off) ? List.of() : registrationUpdates(memberId, guardian(roleNames)),
                 pendingSignatures(memberId, stationId));
     }
 
+    /**
+     * How many things the member owes the station, counted the way {@link #getRequirements} lists them.
+     */
     public int countPending(int memberId, int stationId, List<String> roleNames) {
+        Set<StationModule> off = modules.disabledAt(stationId);
         int count = 0;
-        count += formService
-                .findForcedPending(stationId, household(memberId, guardian(roleNames)))
-                .size();
-        count += quizService.findForcedPending(stationId, memberId).size();
+        if (!StationModule.FORMS.isOffIn(off)) {
+            count += formService
+                    .findForcedPending(stationId, household(memberId, guardian(roleNames)))
+                    .size();
+        }
+        if (!StationModule.QUIZ.isOffIn(off))
+            count += quizService.findForcedPending(stationId, memberId).size();
         if (!profileFieldService.isProfileComplete(memberId)) count++;
-        count += selfCheckService.countOutstandingFor(memberId, guardian(roleNames));
-        count += registrationUpdates(memberId, guardian(roleNames)).size();
+        if (!StationModule.INVENTORY_SELF_CHECKS.isOffIn(off)) {
+            count += selfCheckService.countOutstandingFor(memberId, guardian(roleNames));
+        }
+        if (!StationModule.EVENTS.isOffIn(off))
+            count += registrationUpdates(memberId, guardian(roleNames)).size();
         count += signatureRequests.pendingFor(stationId, memberId).size();
         return count;
     }

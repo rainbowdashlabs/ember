@@ -55,7 +55,8 @@ class StationServiceTest extends RepositoryTestBase {
                         newGroupMemberships(),
                         new AccountInviteService(accountRepo, mock(AuthService.class)),
                         TestAccountLinks.service(accountRepo, stationRepo, stationMemberRepo)),
-                clusterRepo);
+                clusterRepo,
+                new ModuleAvailability(stationRepo, clusterRepo));
     }
 
     @Test
@@ -597,6 +598,55 @@ class StationServiceTest extends RepositoryTestBase {
         assertEquals(Set.of(StationModule.NEWS), service.findDisabledModules(member.id()));
         assertEquals(
                 Set.of(StationModule.NEWS, StationModule.BOARDS), service.findEffectiveDisabledModules(member.id()));
+
+        stationRepo.setCluster(member.id(), null);
+        stationRepo.delete(member.id());
+        clusterRepo.delete(cluster.id());
+        stationRepo.delete(home.id());
+    }
+
+    /** A module the station switched off takes its parts with it, and a part can be off on its own. */
+    @Test
+    @Order(63)
+    void aSwitchedOffModuleTakesItsPartsAlong() {
+        var station = stationRepo.create("Wache Teile");
+
+        stationRepo.setDisabledModules(station.id(), Set.of(StationModule.INVENTORY));
+        assertEquals(
+                StationModule.withChildren(Set.of(StationModule.INVENTORY)),
+                service.findEffectiveDisabledModules(station.id()));
+        assertFalse(service.isModuleEnabled(station.id(), StationModule.INVENTORY_LENDING));
+
+        stationRepo.setDisabledModules(station.id(), Set.of(StationModule.INVENTORY_PROCUREMENT));
+        assertEquals(Set.of(StationModule.INVENTORY_PROCUREMENT), service.findEffectiveDisabledModules(station.id()));
+        assertTrue(service.isModuleEnabled(station.id(), StationModule.INVENTORY));
+        assertTrue(service.isModuleEnabled(station.id(), StationModule.INVENTORY_MOVEMENTS));
+        assertFalse(service.isModuleEnabled(station.id(), StationModule.INVENTORY_PROCUREMENT));
+
+        stationRepo.delete(station.id());
+    }
+
+    /** A part of a module or the whole module denied by the cluster is off, whatever the station says. */
+    @Test
+    @Order(64)
+    void aClusterDenialReachesPartsOfAModule() {
+        var home = stationRepo.create("Träger Teile");
+        var cluster = clusterRepo.create("Kreisverband Teile", null, home.id());
+        var member = stationRepo.create("Wache Kreis Teile");
+        stationRepo.setCluster(member.id(), cluster.id());
+
+        clusterRepo.setDeniedModules(cluster.id(), null, Set.of(StationModule.INVENTORY_SELF_CHECKS));
+        assertFalse(service.isModuleEnabled(member.id(), StationModule.INVENTORY_SELF_CHECKS));
+        assertTrue(service.isModuleEnabled(member.id(), StationModule.INVENTORY_CHECKS));
+
+        stationRepo.setDisabledModules(home.id(), Set.of(StationModule.INVENTORY_LENDING));
+        assertEquals(Set.of(StationModule.INVENTORY_LENDING), service.findClusterStationDisabledModules(cluster.id()));
+        assertTrue(service.findClusterStationDisabledModules(-1).isEmpty());
+
+        clusterRepo.setDeniedModules(cluster.id(), null, Set.of(StationModule.INVENTORY));
+        assertFalse(service.isModuleEnabled(member.id(), StationModule.INVENTORY_CHECKS));
+        assertTrue(service.findEffectiveDisabledModules(member.id()).contains(StationModule.INVENTORY_MOVEMENTS));
+        assertTrue(service.findDisabledModules(member.id()).isEmpty());
 
         stationRepo.setCluster(member.id(), null);
         stationRepo.delete(member.id());

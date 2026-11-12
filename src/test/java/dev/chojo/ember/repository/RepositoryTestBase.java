@@ -213,6 +213,7 @@ import dev.chojo.ember.feature.signing.repository.AccountSignatureRepository;
 import dev.chojo.ember.feature.signing.service.SignatureImageService;
 import dev.chojo.ember.feature.station.repository.StationApplicationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.storage.backend.StorageBackendFactory;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
@@ -531,7 +532,8 @@ public abstract class RepositoryTestBase {
                 storage,
                 new ImageVariants(storage),
                 stationRepo,
-                newDocumentIntake());
+                newDocumentIntake(),
+                new ModuleAvailability(stationRepo, clusterRepo));
     }
 
     /**
@@ -707,7 +709,8 @@ public abstract class RepositoryTestBase {
         lostAndFoundRepo = new LostAndFoundRepository();
         emailQueueRepo = new EmailQueueRepository();
         profileFieldChangeRepo = new ProfileFieldChangeRepository();
-        memberPermissionResolver = new MemberPermissionResolver(stationMemberRepo, memberGroupRepo);
+        memberPermissionResolver = new MemberPermissionResolver(
+                stationMemberRepo, memberGroupRepo, new ModuleAvailability(stationRepo, clusterRepo));
         profileFieldCore = newProfileFieldCore(mock(Notifier.class), new DomainEventBus(Set.of()));
         profileFieldService = newProfileFieldService(profileFieldCore);
         clusterStationGroupRepo = new ClusterStationGroupRepository();
@@ -883,7 +886,7 @@ public abstract class RepositoryTestBase {
 
     /** A notifier over the shared repository, resolving cluster holders through the shared cluster service. */
     protected static Notifier newNotifier() {
-        return new Notifier(notificationRepo, () -> clusterService);
+        return new Notifier(notificationRepo, () -> clusterService, new ModuleAvailability(stationRepo, clusterRepo));
     }
 
     /**
@@ -1090,7 +1093,8 @@ public abstract class RepositoryTestBase {
                 authService,
                 memberLookupService,
                 documentService,
-                new AccountReach(accountRepository));
+                new AccountReach(accountRepository),
+                new ModuleAvailability(stationRepo, clusterRepo));
     }
 
     /**

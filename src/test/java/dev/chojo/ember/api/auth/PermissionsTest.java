@@ -137,7 +137,7 @@ class PermissionsTest {
     @Test
     void clusterContentRightsBecomeStationContentRightsAtItsOwnStation() {
         Set<StationPermission> granted = ClusterPermission.atOwnStation(
-                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_KNOWLEDGE_MANAGER)));
+                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_KNOWLEDGE_MANAGER)), Set.of());
 
         assertTrue(granted.contains(StationPermission.KNOWLEDGE_MANAGER), "may run the knowledge base there");
         assertTrue(granted.contains(StationPermission.KNOWLEDGE_EDIT), "which carries writing in it");
@@ -157,13 +157,13 @@ class PermissionsTest {
     @Test
     void clusterGearRightsBecomeStationGearRightsAtItsOwnStation() {
         Set<StationPermission> reader = ClusterPermission.atOwnStation(
-                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_INVENTORY_READ)));
+                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_INVENTORY_READ)), Set.of());
 
         assertTrue(reader.contains(StationPermission.INVENTORY_READ), "may see the gear");
         assertFalse(reader.contains(StationPermission.INVENTORY_EDIT), "but not change it");
 
         Set<StationPermission> editor = ClusterPermission.atOwnStation(
-                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_INVENTORY_EDIT)));
+                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_INVENTORY_EDIT)), Set.of());
 
         assertTrue(editor.contains(StationPermission.INVENTORY_EDIT), "may change it");
         assertTrue(editor.contains(StationPermission.INVENTORY_CREATE), "which carries creating in it");
@@ -176,7 +176,7 @@ class PermissionsTest {
     @Test
     void theAssociationsTemplateRightReachesItsOwnStationsTemplatesAndPictures() {
         Set<StationPermission> granted = ClusterPermission.atOwnStation(
-                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_DOCUMENT_TEMPLATE_EDIT)));
+                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_DOCUMENT_TEMPLATE_EDIT)), Set.of());
 
         assertTrue(granted.contains(StationPermission.DOCUMENT_TEMPLATE_EDIT));
         assertFalse(granted.contains(StationPermission.DOCUMENT_EDIT_MEMBER), "but no member's documents");
@@ -186,7 +186,7 @@ class PermissionsTest {
     @Test
     void theRightToMoveGearReachesBothAssigningAndStorage() {
         Set<StationPermission> granted = ClusterPermission.atOwnStation(
-                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_INVENTORY_TRANSFER)));
+                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_INVENTORY_TRANSFER)), Set.of());
 
         assertTrue(granted.contains(StationPermission.INVENTORY_ASSIGN));
         assertTrue(granted.contains(StationPermission.INVENTORY_STORAGE));
@@ -204,7 +204,7 @@ class PermissionsTest {
     @Test
     void aClusterGearManagerGetsTheWholeStationRightOverItsOwnStore() {
         Set<StationPermission> granted = ClusterPermission.atOwnStation(
-                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_INVENTORY_MANAGER)));
+                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_INVENTORY_MANAGER)), Set.of());
 
         assertTrue(granted.contains(StationPermission.INVENTORY_EDIT));
         assertTrue(granted.contains(StationPermission.INVENTORY_ASSIGN));
@@ -227,7 +227,7 @@ class PermissionsTest {
     @Test
     void aClusterEventEditorReadsWhatThoseEventsKeepInternal() {
         Set<StationPermission> granted = ClusterPermission.atOwnStation(
-                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_EVENT_EDIT)));
+                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_EVENT_EDIT)), Set.of());
 
         assertTrue(granted.contains(StationPermission.EVENT_EDIT), "may write the events there");
         assertTrue(granted.contains(StationPermission.EVENT_INTERNAL), "which carries reading what they keep back");
@@ -237,7 +237,7 @@ class PermissionsTest {
     @Test
     void aClusterAdministratorIsNotAStationAdministrator() {
         Set<StationPermission> granted = ClusterPermission.atOwnStation(
-                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_ADMINISTRATOR)));
+                ClusterPermission.expand(EnumSet.of(ClusterPermission.CLUSTER_ADMINISTRATOR)), Set.of());
 
         assertFalse(granted.contains(StationPermission.STATION_ADMINISTRATOR));
         assertFalse(granted.contains(StationPermission.STATION_GENERAL));
@@ -249,7 +249,7 @@ class PermissionsTest {
     /** Somebody who holds nothing at the association holds nothing at its station either. */
     @Test
     void holdingNothingAtAClusterGrantsNothingAtItsStation() {
-        assertTrue(ClusterPermission.atOwnStation(EnumSet.noneOf(ClusterPermission.class))
+        assertTrue(ClusterPermission.atOwnStation(EnumSet.noneOf(ClusterPermission.class), Set.of())
                 .isEmpty());
     }
 }

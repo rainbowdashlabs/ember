@@ -12,7 +12,8 @@ import type {StationModuleOption} from '@/data/stationModules'
 /**
  * One module with its switch: its icon, its name and a line on what it is for. Every list of
  * modules draws its rows with this, the help pages included, so they all read the same. The slot
- * takes a remark after the name, such as who locked the module.
+ * takes a remark after the name, such as who locked the module. A part of a module is drawn indented
+ * under it.
  */
 const enabled = defineModel<boolean>({required: true})
 
@@ -25,7 +26,7 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <div data-testid="module-toggle" :data-module="module.value" class="flex items-start gap-3">
+  <div data-testid="module-toggle" :data-module="module.value" class="flex items-start gap-3" :class="{'ml-8': module.parent}">
     <ToggleInput v-model="enabled" :disabled="disabled"/>
     <AppIcon :icon="module.icon" class="mt-1 h-4 w-4 shrink-0 text-(--text-muted)"/>
     <div class="min-w-0">

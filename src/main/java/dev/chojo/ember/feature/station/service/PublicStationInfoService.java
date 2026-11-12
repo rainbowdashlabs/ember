@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.signing.service.PublishedCertificates;
 import dev.chojo.ember.feature.station.entity.PublicOffer;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
 import jakarta.inject.Inject;
@@ -48,6 +49,7 @@ public class PublicStationInfoService {
     private final NewsService newsService;
     private final FormService formService;
     private final PublishedCertificates sealCertificates;
+    private final ModuleAvailability modules;
 
     @Inject
     public PublicStationInfoService(
@@ -57,7 +59,9 @@ public class PublicStationInfoService {
             WaitingListService waitingListService,
             NewsService newsService,
             FormService formService,
-            PublishedCertificates sealCertificates) {
+            PublishedCertificates sealCertificates,
+            ModuleAvailability modules) {
+        this.modules = modules;
         this.stations = stations;
         this.logoService = logoService;
         this.pageService = pageService;
@@ -101,29 +105,36 @@ public class PublicStationInfoService {
     /**
      * What of each station is on the public web, the same as {@link #offer(Station)} answers for one,
      * with one query per kind of content for all of them together. A station is only asked about a kind
-     * it has switched on.
+     * it has switched on, and a kind whose module the station or its cluster switched off is not offered.
      *
      * @param stations the stations
      * @return each station's offer by station id
      */
     public Map<Integer, PublicOffer> offers(Collection<Station> stations) {
+        Map<Integer, Set<StationModule>> off = new HashMap<>();
+        for (var station : stations) off.put(station.id(), modules.disabledAt(station.id()));
         var regular = stations.stream()
                 .filter(station -> station.stationKind() != StationKind.CLUSTER_HOME)
                 .toList();
         Set<Integer> pages = pageService.withListedPages(idsWhere(regular, Station::publicPagesEnabled));
-        Set<Integer> waitlists =
-                waitingListService.withPublicWaitlists(idsWhere(regular, Station::publicWaitlistEnabled));
-        Set<Integer> blogs = newsService.withPublicBlogEntries(idsWhere(regular, Station::publicBlogEnabled));
+        Set<Integer> waitlists = waitingListService.withPublicWaitlists(idsWhere(
+                regular,
+                station ->
+                        station.publicWaitlistEnabled() && !StationModule.WAITING_LIST.isOffIn(off.get(station.id()))));
+        Set<Integer> blogs = newsService.withPublicBlogEntries(idsWhere(
+                regular, station -> station.publicBlogEnabled() && !StationModule.NEWS.isOffIn(off.get(station.id()))));
         Map<Integer, PublicOffer> offers = new HashMap<>();
         for (var station : stations) {
-            boolean hasPublicKb = station.publicKbMode() != PublicKbMode.OFF;
+            Set<StationModule> stationOff = off.get(station.id());
+            boolean hasPublicKb =
+                    station.publicKbMode() != PublicKbMode.OFF && !StationModule.KNOWLEDGE_BASE.isOffIn(stationOff);
             offers.put(
                     station.id(),
                     station.stationKind() == StationKind.CLUSTER_HOME
                             ? new PublicOffer(hasPublicKb, false, false, false, false)
                             : new PublicOffer(
                                     hasPublicKb,
-                                    station.publicCalendarEnabled(),
+                                    station.publicCalendarEnabled() && !StationModule.EVENTS.isOffIn(stationOff),
                                     pages.contains(station.id()),
                                     waitlists.contains(station.id()),
                                     blogs.contains(station.id())));

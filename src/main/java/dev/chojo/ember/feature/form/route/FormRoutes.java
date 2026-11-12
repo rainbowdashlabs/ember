@@ -48,6 +48,7 @@ import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.util.CsvWriter;
 import io.javalin.http.Context;
@@ -131,54 +132,130 @@ public class FormRoutes implements Routes {
      */
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/forms", this::list, StationPermission.POLL_VIEW_RESULTS);
-        routes.post(prefix + "/forms", this::create, StationPermission.POLL_CREATE);
-        routes.get(prefix + "/forms/available", this::listAvailable, StationPermission.USER);
-        routes.get(prefix + "/forms/search", this::search, StationPermission.PAGE_EDIT);
-        routes.get(prefix + "/forms/{id}", this::get, StationPermission.USER);
-        routes.put(prefix + "/forms/{id}", this::update, StationPermission.POLL_CREATE);
-        routes.delete(prefix + "/forms/{id}", this::delete, StationPermission.POLL_CREATE);
-        routes.post(prefix + "/forms/{id}/publish", this::publish, StationPermission.POLL_CREATE);
-        routes.post(prefix + "/forms/{id}/close", this::close, StationPermission.POLL_CREATE);
-        routes.post(prefix + "/forms/{id}/duplicate", this::duplicate, StationPermission.POLL_CREATE);
-        routes.delete(prefix + "/forms/{id}/responses", this::clearResponses, StationPermission.POLL_CREATE);
-        routes.put(prefix + "/forms/{id}/visibility", this::setVisibility, StationPermission.POLL_CREATE);
-        routes.get(prefix + "/forms/{id}/share-link", this::getShareLink, StationPermission.POLL_CREATE);
-        routes.post(prefix + "/forms/{id}/share-link", this::replaceShareLink, StationPermission.POLL_CREATE);
+        routes.get(prefix + "/forms", this::list, StationPermission.POLL_VIEW_RESULTS, StationModule.FORMS);
+        routes.post(prefix + "/forms", this::create, StationPermission.POLL_CREATE, StationModule.FORMS);
+        routes.get(prefix + "/forms/available", this::listAvailable, StationPermission.USER, StationModule.FORMS);
+        routes.get(prefix + "/forms/search", this::search, StationPermission.PAGE_EDIT, StationModule.FORMS);
+        routes.get(prefix + "/forms/{id}", this::get, StationPermission.USER, StationModule.FORMS);
+        routes.put(prefix + "/forms/{id}", this::update, StationPermission.POLL_CREATE, StationModule.FORMS);
+        routes.delete(prefix + "/forms/{id}", this::delete, StationPermission.POLL_CREATE, StationModule.FORMS);
+        routes.post(prefix + "/forms/{id}/publish", this::publish, StationPermission.POLL_CREATE, StationModule.FORMS);
+        routes.post(prefix + "/forms/{id}/close", this::close, StationPermission.POLL_CREATE, StationModule.FORMS);
+        routes.post(
+                prefix + "/forms/{id}/duplicate", this::duplicate, StationPermission.POLL_CREATE, StationModule.FORMS);
+        routes.delete(
+                prefix + "/forms/{id}/responses",
+                this::clearResponses,
+                StationPermission.POLL_CREATE,
+                StationModule.FORMS);
+        routes.put(
+                prefix + "/forms/{id}/visibility",
+                this::setVisibility,
+                StationPermission.POLL_CREATE,
+                StationModule.FORMS);
+        routes.get(
+                prefix + "/forms/{id}/share-link",
+                this::getShareLink,
+                StationPermission.POLL_CREATE,
+                StationModule.FORMS);
+        routes.post(
+                prefix + "/forms/{id}/share-link",
+                this::replaceShareLink,
+                StationPermission.POLL_CREATE,
+                StationModule.FORMS);
 
-        routes.get(prefix + "/forms/{id}/questions", this::listQuestions, StationPermission.USER);
-        routes.get(prefix + "/forms/{id}/pages", this::listPages, StationPermission.USER);
-        routes.put(prefix + "/forms/{id}/questions", this::setQuestions, StationPermission.POLL_CREATE);
+        routes.get(prefix + "/forms/{id}/questions", this::listQuestions, StationPermission.USER, StationModule.FORMS);
+        routes.get(prefix + "/forms/{id}/pages", this::listPages, StationPermission.USER, StationModule.FORMS);
+        routes.put(
+                prefix + "/forms/{id}/questions",
+                this::setQuestions,
+                StationPermission.POLL_CREATE,
+                StationModule.FORMS);
         routes.get(
                 prefix + "/forms/{id}/questions/answer-counts",
                 this::countAnswersPerQuestion,
-                StationPermission.POLL_CREATE);
+                StationPermission.POLL_CREATE,
+                StationModule.FORMS);
 
-        routes.get(prefix + "/forms/{id}/restrictions", this::getRestrictions, StationPermission.USER);
-        routes.put(prefix + "/forms/{id}/restrictions", this::setRestrictions, StationPermission.POLL_CREATE);
+        routes.get(
+                prefix + "/forms/{id}/restrictions",
+                this::getRestrictions,
+                StationPermission.USER,
+                StationModule.FORMS);
+        routes.put(
+                prefix + "/forms/{id}/restrictions",
+                this::setRestrictions,
+                StationPermission.POLL_CREATE,
+                StationModule.FORMS);
 
-        routes.get(prefix + "/forms/{id}/my-response", this::getMyResponse, StationPermission.USER);
-        routes.get(prefix + "/forms/{id}/eligible-members", this::getEligibleMembers, StationPermission.USER);
-        routes.post(prefix + "/forms/{id}/respond", this::submitResponse, StationPermission.USER);
-        routes.put(prefix + "/forms/{id}/respond", this::updateResponse, StationPermission.USER);
-        routes.get(prefix + "/forms/{id}/respond/{memberId}", this::getMemberResponse, StationPermission.USER);
-        routes.post(prefix + "/forms/{id}/respond/{memberId}", this::submitForMember, StationPermission.USER);
-        routes.put(prefix + "/forms/{id}/respond/{memberId}", this::updateForMember, StationPermission.USER);
-        routes.get(prefix + "/forms/{id}/draft", this::getDraft, StationPermission.USER);
-        routes.put(prefix + "/forms/{id}/draft", this::saveDraft, StationPermission.USER);
-        routes.delete(prefix + "/forms/{id}/draft", this::discardDraft, StationPermission.USER);
-        routes.get(prefix + "/forms/{id}/draft/{memberId}", this::getDraftFor, StationPermission.USER);
-        routes.put(prefix + "/forms/{id}/draft/{memberId}", this::saveDraftFor, StationPermission.USER);
-        routes.delete(prefix + "/forms/{id}/draft/{memberId}", this::discardDraftFor, StationPermission.USER);
+        routes.get(
+                prefix + "/forms/{id}/my-response", this::getMyResponse, StationPermission.USER, StationModule.FORMS);
+        routes.get(
+                prefix + "/forms/{id}/eligible-members",
+                this::getEligibleMembers,
+                StationPermission.USER,
+                StationModule.FORMS);
+        routes.post(prefix + "/forms/{id}/respond", this::submitResponse, StationPermission.USER, StationModule.FORMS);
+        routes.put(prefix + "/forms/{id}/respond", this::updateResponse, StationPermission.USER, StationModule.FORMS);
+        routes.get(
+                prefix + "/forms/{id}/respond/{memberId}",
+                this::getMemberResponse,
+                StationPermission.USER,
+                StationModule.FORMS);
+        routes.post(
+                prefix + "/forms/{id}/respond/{memberId}",
+                this::submitForMember,
+                StationPermission.USER,
+                StationModule.FORMS);
+        routes.put(
+                prefix + "/forms/{id}/respond/{memberId}",
+                this::updateForMember,
+                StationPermission.USER,
+                StationModule.FORMS);
+        routes.get(prefix + "/forms/{id}/draft", this::getDraft, StationPermission.USER, StationModule.FORMS);
+        routes.put(prefix + "/forms/{id}/draft", this::saveDraft, StationPermission.USER, StationModule.FORMS);
+        routes.delete(prefix + "/forms/{id}/draft", this::discardDraft, StationPermission.USER, StationModule.FORMS);
+        routes.get(
+                prefix + "/forms/{id}/draft/{memberId}",
+                this::getDraftFor,
+                StationPermission.USER,
+                StationModule.FORMS);
+        routes.put(
+                prefix + "/forms/{id}/draft/{memberId}",
+                this::saveDraftFor,
+                StationPermission.USER,
+                StationModule.FORMS);
+        routes.delete(
+                prefix + "/forms/{id}/draft/{memberId}",
+                this::discardDraftFor,
+                StationPermission.USER,
+                StationModule.FORMS);
 
-        routes.get(prefix + "/forms/{id}/analytics", this::getAnalytics, StationPermission.POLL_VIEW_RESULTS);
-        routes.post(prefix + "/forms/{id}/analytics/query", this::queryAnalytics, StationPermission.POLL_VIEW_RESULTS);
-        routes.get(prefix + "/forms/{id}/responses/export", this::exportResponses, StationPermission.POLL_VIEW_RESULTS);
-        routes.get(prefix + "/forms/{id}/responses", this::listResponses, StationPermission.POLL_VIEW_RESULTS);
+        routes.get(
+                prefix + "/forms/{id}/analytics",
+                this::getAnalytics,
+                StationPermission.POLL_VIEW_RESULTS,
+                StationModule.FORMS);
+        routes.post(
+                prefix + "/forms/{id}/analytics/query",
+                this::queryAnalytics,
+                StationPermission.POLL_VIEW_RESULTS,
+                StationModule.FORMS);
+        routes.get(
+                prefix + "/forms/{id}/responses/export",
+                this::exportResponses,
+                StationPermission.POLL_VIEW_RESULTS,
+                StationModule.FORMS);
+        routes.get(
+                prefix + "/forms/{id}/responses",
+                this::listResponses,
+                StationPermission.POLL_VIEW_RESULTS,
+                StationModule.FORMS);
         routes.get(
                 prefix + "/forms/{id}/responses/{responseId}",
                 this::getResponseDetail,
-                StationPermission.POLL_VIEW_RESULTS);
+                StationPermission.POLL_VIEW_RESULTS,
+                StationModule.FORMS);
     }
 
     @OpenApi(

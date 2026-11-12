@@ -14,6 +14,8 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
+import dev.chojo.ember.feature.station.entity.StationModule;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import jakarta.inject.Inject;
 import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
@@ -21,6 +23,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * The one way to tell people something.
@@ -39,11 +43,16 @@ public class Notifier {
 
     private final NotificationRepository notificationRepository;
     private final Provider<ClusterService> clusterService;
+    private final ModuleAvailability modules;
 
     @Inject
-    public Notifier(NotificationRepository notificationRepository, Provider<ClusterService> clusterService) {
+    public Notifier(
+            NotificationRepository notificationRepository,
+            Provider<ClusterService> clusterService,
+            ModuleAvailability modules) {
         this.notificationRepository = notificationRepository;
         this.clusterService = clusterService;
+        this.modules = modules;
     }
 
     /**
@@ -59,8 +68,7 @@ public class Notifier {
     public int notify(Audience audience, NotificationType type, NotificationData data, Delivery delivery) {
         requireLink(type, data);
         return switch (audience) {
-            case StationAudience station ->
-                station.reachesNobody() ? 0 : notificationRepository.insertForStation(station, type, data, delivery);
+            case StationAudience station -> station.reachesNobody() ? 0 : notifyStation(station, type, data, delivery);
             case ClusterAudience cluster -> notifyCluster(cluster, type, data, delivery);
         };
     }
@@ -86,6 +94,21 @@ public class Notifier {
     public void withdrawAll(NotificationData.NotificationLink link) {
         int removed = notificationRepository.deleteAllPointingAt(link);
         log.debug("Removed {} notifications pointing at the deleted {}", removed, link.routeParams());
+    }
+
+    /**
+     * Writes a station notification to everybody it reaches at a station that has its module. Nobody at a
+     * station that switched the module off is told, so nothing waits there to show up later.
+     */
+    private int notifyStation(
+            StationAudience audience, NotificationType type, NotificationData data, Delivery delivery) {
+        Optional<StationModule> module = type.moduleOf(data.link());
+        if (module.isEmpty()) return notificationRepository.insertForStation(audience, type, data, delivery);
+        Set<Integer> off = new HashSet<>();
+        for (int stationId : notificationRepository.findStationsReachedBy(audience)) {
+            if (!modules.isOn(stationId, module.get())) off.add(stationId);
+        }
+        return notificationRepository.insertForStation(audience, type, data, delivery, off);
     }
 
     private int notifyCluster(
