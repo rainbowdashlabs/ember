@@ -1,5 +1,23 @@
 # Änderungsprotokoll
 
+## v26.25.0
+
+Ein einzelner Termin einer Serie lässt sich für sich ändern, eine Serie ab einem Termin. Beim Speichern einer Änderung können die Betroffenen benachrichtigt werden, auf Wunsch mit einem Hinweis. Wer angemeldet ist, erfährt eine neue Anfangszeit immer, auch bei Serienterminen, und in nur einer Nachricht. Geteilte Termine mit einer Partnerwache auf einem anderen Server brauchen auf beiden Seiten diese Version.
+
+### Neue Funktionen
+
+- **Einzelne Termine oder Serien ab einem Datum ändern.** Beim Speichern einer Serie wird gefragt, ob die Änderung nur für diesen Termin, für diesen und alle späteren oder für alle Termine gilt. Ein einzelner Termin wird ein eigener Termin und spätere Termine gehen als neue Serie weiter; Anmeldungen und Anwesenheitslisten ziehen mit, und beide Termine verweisen aufeinander.
+- **Betroffene über Änderungen benachrichtigen.** Beim Speichern einer Änderung lassen sich alle Angemeldeten benachrichtigen, bei Terminen ohne Anmeldung alle, die den Termin sehen, mit einem Hinweis von bis zu 500 Zeichen. Die Nachricht nennt, was sich geändert hat, und Partnerwachen geben sie an ihre Mitglieder weiter.
+- **Aufgeteilte Serien zählen als eine.** In der Statistik der Wache zählen eine Serie, die als neue Serie weitergeht, und die aus ihr gelösten Termine als ein Termin unter dem neuesten Namen.
+
+### Verbesserungen
+
+- **Neue Anfangszeit beim Speichern sichtbar.** Die Abfrage beim Speichern zeigt, wie viele Angemeldete eine neue Anfangszeit erfahren, jetzt auch bei Serienterminen. Wer zusätzlich über die Änderung benachrichtigt wird, bekommt eine Nachricht statt zwei.
+
+### Änderungen
+
+- **Geteilte Termine brauchen auf beiden Seiten diese Version.** Zwischen einer Wache auf dieser Version und einer Partnerwache auf einer älteren auf einem anderen Server funktionieren geteilte Termine, die Anmeldung dazu und ihre Kommentare nicht. Sobald beide 26.25.0 betreiben, geht es wieder.
+
 ## v26.24.1
 
 Jede Zahl der Übersicht öffnet die passende Liste, fehlgeschlagene E-Mails lassen sich lesen und zur Kenntnis nehmen. Die Verwaltung einer wartenden Wache lässt sich erinnern und wird auch von selbst erinnert. Die Kontenliste filtert über alle Konten. Die Statistik zeigt, wie viele Personen die Instanz täglich nutzen und wie sie wächst, aufgezeichnet ab dieser Version. Knöpfe, die nur zu einer Ablehnung führen konnten, sind verschwunden oder erklären sich. Das Problemprotokoll übersteht einen Neustart, kann Bekanntes stummschalten und zeigt die Logzeilen um ein Problem. Diese Zeilen können auf Wunsch an einen Beacon gehen, Namen und Adressen werden dabei ersetzt.

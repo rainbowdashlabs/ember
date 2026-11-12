@@ -1,5 +1,23 @@
 # Changelog
 
+## v26.25.0
+
+One date of a series can be changed on its own, or a series from one date on. Saving a change can tell the people an appointment concerns, with a note. People holding a place always hear about a new start time, also on series dates, and in one message. Shared appointments with a partner station on another server need both stations on this version.
+
+### New Features
+
+- **Change one date or later dates.** Saving a change to a series asks whether it applies to only this date, to this and all later dates, or to all dates. A single date becomes an appointment of its own and later dates go on as a new series; places and attendance sheets move along, and both appointments link to each other.
+- **Tell the people an appointment concerns.** Saving a change can notify everybody holding a place, or everybody who may see an appointment without registration, with an optional note of up to 500 characters. The message names what changed, and partner stations pass it on to their members.
+- **Split series count as one.** In the station statistics, a series that goes on as a new one and the dates taken out of it count as one appointment under its newest name.
+
+### Improvements
+
+- **New start times show on save.** The save dialog says how many people holding a place are told a new start time, which now also reaches series dates. Somebody who is also told about the change gets one message instead of two.
+
+### Changes
+
+- **Shared appointments need this version on both sides.** Between a station on this version and a partner station on an older one on another server, shared appointments, signing up for them and their comments stop working. They work again once both run 26.25.0.
+
 ## v26.24.1
 
 Every count on the overview opens the matching list, and failed mails can be read and acknowledged. The manager of a station that waits can be reminded, also automatically. The account list filters over every account. The statistics show how many people use the instance each day and how it grows, recorded from this version on. Buttons that could only end in a refusal are gone or explain themselves. The problem log is kept across restarts, can mute what is known and shows the log lines around a problem. Those lines can go to a beacon on request, with names and addresses replaced.
