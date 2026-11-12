@@ -12,6 +12,7 @@ import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
@@ -299,7 +300,7 @@ public class EventStructureRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         visibility.requireVisibleEvent(session, id);
-        ctx.json(fieldDefaultService.findByEvent(id));
+        ctx.json(fieldDefaultService.find(AppointmentOwner.EVENT, id));
     }
 
     @OpenApi(
@@ -318,8 +319,8 @@ public class EventStructureRoutes implements Routes {
         var defaults = Arrays.stream(req)
                 .map(e -> new EventFieldDefault(id, e.fieldId(), e.source(), e.value()))
                 .toList();
-        fieldDefaultService.setForEvent(id, defaults);
-        ctx.json(fieldDefaultService.findByEvent(id));
+        fieldDefaultService.set(AppointmentOwner.EVENT, id, defaults);
+        ctx.json(fieldDefaultService.find(AppointmentOwner.EVENT, id));
     }
 
     @OpenApi(

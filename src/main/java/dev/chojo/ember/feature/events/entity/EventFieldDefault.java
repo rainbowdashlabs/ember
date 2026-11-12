@@ -12,7 +12,7 @@ import org.jspecify.annotations.Nullable;
  * Represents a default value configuration for an event field, allowing fields to be auto-populated
  * from event properties or static values.
  *
- * @param eventId the event this default belongs to
+ * @param eventId the event this default belongs to, or for a template's default the template
  * @param fieldId the attendance field to populate
  * @param source  the source type (e.g. "VALUE", "EVENT_NAME", "EVENT_DESCRIPTION", "EVENT_START_TIME", "EVENT_END_TIME")
  * @param value   the static value when source is "VALUE", otherwise unused

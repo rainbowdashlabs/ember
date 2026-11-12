@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.question.FieldTypes;
 import dev.chojo.ember.feature.question.MemberEligibility;
 import dev.chojo.ember.feature.question.Question;
 import dev.chojo.ember.feature.question.QuestionCheck;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -107,7 +108,8 @@ public class EventTemplateService {
     }
 
     /**
-     * Writes the settings of a template.
+     * Writes the settings of a template. Starting values it holds for fields that are not on its
+     * attendance sheet any more go with the same write.
      *
      * @param id       the template
      * @param settings what it now sets
@@ -118,7 +120,12 @@ public class EventTemplateService {
     public boolean update(int id, EventTemplateSettings settings) {
         if (settings.hasNegativeRule()) throw EventRefusal.EVENT_TEMPLATE_RULE_NEGATIVE.raise();
         attendanceTemplateGuards.requireOpenForNewWork(settings.attendanceTemplateId());
-        if (repository.update(id, settings)) {
+        boolean updated = Transactions.call(() -> {
+            if (!repository.update(id, settings)) return false;
+            repository.dropFieldDefaultsOffSheet(id);
+            return true;
+        });
+        if (updated) {
             log.info("Updated event template {}", id);
             return true;
         }

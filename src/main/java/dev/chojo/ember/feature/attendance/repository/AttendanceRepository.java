@@ -162,7 +162,8 @@ public class AttendanceRepository {
      * <p>Nothing is removed: the template keeps its fields, groups and user types, and every sheet
      * made from it keeps reading them, so its sheets show and count exactly as before. It only leaves
      * every list a template is chosen from, and the appointments and appointment templates that
-     * pointed at it let go of it, as they did when a template was really deleted.
+     * pointed at it let go of it, as they did when a template was really deleted. An appointment
+     * template also drops the starting values it held for the fields of that sheet.
      *
      * @param id the template ID
      * @return {@code true} if a template in use was archived
@@ -178,6 +179,11 @@ public class AttendanceRepository {
             query("UPDATE station_event SET template_id = NULL WHERE template_id = :id;")
                     .single(call().bind("id", id))
                     .update();
+            query("""
+                    DELETE FROM event_template_field_default d
+                    USING event_template t
+                    WHERE t.id = d.template_id
+                      AND t.attendance_template_id = :id;""").single(call().bind("id", id)).delete();
             query("UPDATE event_template SET attendance_template_id = NULL WHERE attendance_template_id = :id;")
                     .single(call().bind("id", id))
                     .update();
@@ -307,7 +313,7 @@ public class AttendanceRepository {
      * <p>The field and every answer given to it stay, so the sheets that answered it show and export
      * the answer as before. It leaves the template's configuration and every new sheet, and what
      * pointed at it for new work lets go of it, as it did when a field was really deleted: an
-     * appointment's starting value for it is removed, and appointment and appointment template
+     * appointment's or appointment template's starting value for it is removed, and appointment and appointment template
      * questions tied to it are untied.
      *
      * @param templateId the template the field belongs to
@@ -327,6 +333,9 @@ public class AttendanceRepository {
                     .changed();
             if (!archived) return false;
             query("DELETE FROM event_field_default WHERE field_id = :id;")
+                    .single(call().bind("id", id))
+                    .delete();
+            query("DELETE FROM event_template_field_default WHERE field_id = :id;")
                     .single(call().bind("id", id))
                     .delete();
             query("UPDATE event_field SET attendance_field_id = NULL WHERE attendance_field_id = :id;")

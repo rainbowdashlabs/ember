@@ -12,6 +12,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationOpening;
@@ -1102,11 +1103,11 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        var found = fieldDefaultService.findByEvent(event.id());
+        var found = fieldDefaultService.find(AppointmentOwner.EVENT, event.id());
         assertTrue(found.isEmpty());
 
-        fieldDefaultService.setForEvent(event.id(), List.of());
-        assertTrue(fieldDefaultService.findByEvent(event.id()).isEmpty());
+        fieldDefaultService.set(AppointmentOwner.EVENT, event.id(), List.of());
+        assertTrue(fieldDefaultService.find(AppointmentOwner.EVENT, event.id()).isEmpty());
     }
 
     /**
@@ -1146,13 +1147,21 @@ class EventServicesTest extends RepositoryTestBase {
 
         assertThrows(
                 RefusalResponse.class,
-                () -> fieldDefaultService.setForEvent(
-                        event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "VALUE", "Schnee"))));
+                () -> fieldDefaultService.set(
+                        AppointmentOwner.EVENT,
+                        event.id(),
+                        List.of(new EventFieldDefault(event.id(), fieldId, "VALUE", "Schnee"))));
 
-        fieldDefaultService.setForEvent(
-                event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "VALUE", "nass")));
+        fieldDefaultService.set(
+                AppointmentOwner.EVENT,
+                event.id(),
+                List.of(new EventFieldDefault(event.id(), fieldId, "VALUE", "nass")));
         assertEquals(
-                "nass", fieldDefaultService.findByEvent(event.id()).getFirst().value());
+                "nass",
+                fieldDefaultService
+                        .find(AppointmentOwner.EVENT, event.id())
+                        .getFirst()
+                        .value());
 
         attendanceRepo.archiveTemplate(sheet.id());
     }
@@ -2287,8 +2296,10 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        fieldDefaultService.setForEvent(
-                event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_START_TIME", null)));
+        fieldDefaultService.set(
+                AppointmentOwner.EVENT,
+                event.id(),
+                List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_START_TIME", null)));
 
         var resolved = fieldDefaultService.resolve(event.id());
         assertNotNull(resolved.get(fieldId));
@@ -2324,8 +2335,10 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        fieldDefaultService.setForEvent(
-                event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_END_TIME", null)));
+        fieldDefaultService.set(
+                AppointmentOwner.EVENT,
+                event.id(),
+                List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_END_TIME", null)));
 
         var resolved = fieldDefaultService.resolve(event.id());
         assertNotNull(resolved.get(fieldId));
@@ -2365,8 +2378,10 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        fieldDefaultService.setForEvent(
-                event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_START_TIME", null)));
+        fieldDefaultService.set(
+                AppointmentOwner.EVENT,
+                event.id(),
+                List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_START_TIME", null)));
 
         var resolved = fieldDefaultService.resolve(event.id());
         assertTrue(resolved.containsKey(fieldId));
@@ -2402,8 +2417,10 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        fieldDefaultService.setForEvent(
-                event.id(), List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_END_TIME", null)));
+        fieldDefaultService.set(
+                AppointmentOwner.EVENT,
+                event.id(),
+                List.of(new EventFieldDefault(event.id(), fieldId, "EVENT_END_TIME", null)));
 
         var resolved = fieldDefaultService.resolve(event.id());
         assertTrue(resolved.containsKey(fieldId));
@@ -2730,7 +2747,8 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        fieldDefaultService.setForEvent(
+        fieldDefaultService.set(
+                AppointmentOwner.EVENT,
                 event.id(),
                 List.of(
                         new EventFieldDefault(event.id(), fieldAId, "VALUE", "\"hardcoded\""),
@@ -2771,8 +2789,10 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        fieldDefaultService.setForEvent(
-                event.id(), List.of(new EventFieldDefault(event.id(), attendanceFieldId, "UNKNOWN_SOURCE", null)));
+        fieldDefaultService.set(
+                AppointmentOwner.EVENT,
+                event.id(),
+                List.of(new EventFieldDefault(event.id(), attendanceFieldId, "UNKNOWN_SOURCE", null)));
 
         var resolved = fieldDefaultService.resolve(event.id());
         assertFalse(resolved.containsKey(attendanceFieldId));
@@ -2807,8 +2827,10 @@ class EventServicesTest extends RepositoryTestBase {
                 null,
                 null);
 
-        fieldDefaultService.setForEvent(
-                event.id(), List.of(new EventFieldDefault(event.id(), attendanceFieldId, "EVENT_DESCRIPTION", null)));
+        fieldDefaultService.set(
+                AppointmentOwner.EVENT,
+                event.id(),
+                List.of(new EventFieldDefault(event.id(), attendanceFieldId, "EVENT_DESCRIPTION", null)));
 
         var resolved = fieldDefaultService.resolve(event.id());
         assertNotNull(resolved);

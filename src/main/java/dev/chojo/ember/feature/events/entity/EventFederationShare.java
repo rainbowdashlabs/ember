@@ -12,7 +12,7 @@ import dev.chojo.ember.feature.federation.entity.ShareScope;
  * Represents a federation sharing configuration for an event.
  *
  * @param id      the unique identifier of the share
- * @param eventId the event being shared
+ * @param eventId the event being shared, or for a template's share the template
  * @param scope   the sharing scope (ALL_PARTNERS or SPECIFIC)
  */
 public record EventFederationShare(int id, int eventId, ShareScope scope) {

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.EventAttachment;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
@@ -23,7 +24,8 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * What an event hands over, and who is handed it.
+ * What an event hands over, and who is handed it, and the files a template hands every event made
+ * from it.
  *
  * <p>A file is either for everybody who may see the event or kept back from the room. Which of the
  * two a reader gets is decided here and nowhere else, so the list a screen draws and the answer a
@@ -70,17 +72,17 @@ public class EventAttachmentService {
      * @param permissions the reader's permissions, already expanded
      */
     public List<EventAttachment> listFor(int eventId, Collection<StationPermission> permissions) {
-        return visible(repository.findByEvent(eventId), readsInternal(permissions));
+        return visible(repository.findByOwner(AppointmentOwner.EVENT, eventId), readsInternal(permissions));
     }
 
-    /** Every file of an event, for whoever is editing it. */
-    public List<EventAttachment> listAll(int eventId) {
-        return repository.findByEvent(eventId);
+    /** Every file of an event or a template, for whoever is editing it. */
+    public List<EventAttachment> listAll(AppointmentOwner owner, int ownerId) {
+        return repository.findByOwner(owner, ownerId);
     }
 
     /** The files that leave the station: what an event hands the room, and never what it keeps back. */
     public List<EventAttachment> listOpen(int eventId) {
-        return visible(repository.findByEvent(eventId), false);
+        return visible(repository.findByOwner(AppointmentOwner.EVENT, eventId), false);
     }
 
     /**
@@ -92,8 +94,8 @@ public class EventAttachmentService {
         return byEvent;
     }
 
-    public Optional<EventAttachment> find(int attachmentId) {
-        return repository.findById(attachmentId);
+    public Optional<EventAttachment> find(AppointmentOwner owner, int attachmentId) {
+        return repository.findById(owner, attachmentId);
     }
 
     /**
@@ -104,39 +106,53 @@ public class EventAttachmentService {
      */
     public Optional<EventAttachment> findReadable(int attachmentId, Collection<StationPermission> permissions) {
         return repository
-                .findById(attachmentId)
+                .findById(AppointmentOwner.EVENT, attachmentId)
                 .filter(attachment -> !attachment.internal() || readsInternal(permissions));
     }
 
     /**
-     * Attaches a file from the station's library to the event. The file has to belong to the same
-     * station, because an attachment is a reference into that station's library and nothing else.
+     * Attaches a file from the station's library to an event or a template. The file has to belong
+     * to the same station, because an attachment is a reference into that station's library and
+     * nothing else.
      */
-    public EventAttachment attach(int eventId, int stationId, int fileId, @Nullable String label, boolean internal) {
+    public EventAttachment attach(
+            AppointmentOwner owner, int ownerId, int stationId, int fileId, @Nullable String label, boolean internal) {
         var file = media.findFile(fileId).orElseThrow(EventRefusal.EVENT_FILE_TO_ATTACH_NOT_HERE::raise);
         if (!Objects.equals(file.stationId(), stationId)) {
             throw EventRefusal.EVENT_FILE_TO_ATTACH_NOT_HERE.raise();
         }
-        var attachment = repository.attach(eventId, fileId, blankToNull(label), internal);
+        var attachment = repository.attach(owner, ownerId, fileId, blankToNull(label), internal);
         log.info(
-                "File {} attached to event {} in station {} ({})",
+                "File {} attached to {} {} in station {} ({})",
                 fileId,
-                eventId,
+                owner,
+                ownerId,
                 stationId,
                 internal ? "internal" : "open");
         return attachment;
     }
 
-    public boolean update(int attachmentId, @Nullable String label, boolean internal) {
-        return repository.update(attachmentId, blankToNull(label), internal);
+    public boolean update(AppointmentOwner owner, int attachmentId, @Nullable String label, boolean internal) {
+        return repository.update(owner, attachmentId, blankToNull(label), internal);
     }
 
-    public void reorder(int eventId, List<Integer> attachmentIds) {
-        repository.reorder(eventId, attachmentIds);
+    public void reorder(AppointmentOwner owner, int ownerId, List<Integer> attachmentIds) {
+        repository.reorder(owner, ownerId, attachmentIds);
     }
 
-    public boolean detach(int attachmentId) {
-        return repository.detach(attachmentId);
+    public boolean detach(AppointmentOwner owner, int attachmentId) {
+        return repository.detach(owner, attachmentId);
+    }
+
+    /**
+     * Links the files a template attaches to an event just made from it.
+     *
+     * @return how many files were linked
+     */
+    public int copyFromTemplate(int templateId, int eventId) {
+        int linked = repository.copyFromTemplate(templateId, eventId);
+        if (linked > 0) log.info("Event {} took {} file(s) from template {}", eventId, linked, templateId);
+        return linked;
     }
 
     private static List<EventAttachment> visible(List<EventAttachment> attachments, boolean withInternal) {

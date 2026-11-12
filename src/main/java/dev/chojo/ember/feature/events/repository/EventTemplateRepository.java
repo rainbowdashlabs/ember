@@ -251,4 +251,23 @@ public class EventTemplateRepository {
                     .insert();
         }
     }
+
+    /**
+     * Drops the starting values a template holds for fields that are not in use on its attendance
+     * sheet, which is all of them once it has none. Run after the template's sheet changed.
+     *
+     * @param templateId the template
+     */
+    public void dropFieldDefaultsOffSheet(int templateId) {
+        query("""
+                DELETE FROM event_template_field_default d
+                WHERE d.template_id = :template_id
+                  AND NOT EXISTS (
+                    SELECT 1
+                    FROM event_template t
+                    JOIN attendance_template_field f ON f.template_id = t.attendance_template_id
+                    WHERE t.id = d.template_id
+                      AND f.id = d.field_id
+                      AND f.archived_at IS NULL);""").single(call().bind("template_id", templateId)).delete();
+    }
 }

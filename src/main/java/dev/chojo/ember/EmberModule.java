@@ -130,7 +130,9 @@ import dev.chojo.ember.feature.events.route.EventRegistrationRoutes;
 import dev.chojo.ember.feature.events.route.EventRoutes;
 import dev.chojo.ember.feature.events.route.EventSharingRoutes;
 import dev.chojo.ember.feature.events.route.EventStructureRoutes;
+import dev.chojo.ember.feature.events.route.EventTemplateAttachmentRoutes;
 import dev.chojo.ember.feature.events.route.EventTemplateRoutes;
+import dev.chojo.ember.feature.events.route.EventTemplateSharingRoutes;
 import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
 import dev.chojo.ember.feature.events.route.PublicEventRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
@@ -557,6 +559,8 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(EquipmentBrowseRoutes.class);
         routesBinder.addBinding().to(EventStructureRoutes.class);
         routesBinder.addBinding().to(EventAttachmentRoutes.class);
+        routesBinder.addBinding().to(EventTemplateAttachmentRoutes.class);
+        routesBinder.addBinding().to(EventTemplateSharingRoutes.class);
         routesBinder.addBinding().to(EventEmbedRoutes.class);
         routesBinder.addBinding().to(EventRegistrationRoutes.class);
         routesBinder.addBinding().to(EventSharingRoutes.class);

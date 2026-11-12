@@ -7,8 +7,11 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
+import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
+import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -48,6 +51,7 @@ class EventAttachmentServiceTest extends RepositoryTestBase {
     private static EventAttachmentRepository repository;
     private static Station station;
     private static StationEvent event;
+    private static EventTemplate template;
     private static int openFileId;
     private static int internalFileId;
 
@@ -74,6 +78,7 @@ class EventAttachmentServiceTest extends RepositoryTestBase {
                 null,
                 null);
 
+        template = new EventTemplateRepository().create(station.id(), "Dienstabend");
         openFileId = mediaFileRepo
                 .create(null, station.id(), UUID.randomUUID().toString(), "laufzettel.pdf", "application/pdf", 2048)
                 .id();
@@ -87,22 +92,32 @@ class EventAttachmentServiceTest extends RepositoryTestBase {
 
     @AfterAll
     static void cleanup() {
-        repository.findByEvent(event.id()).forEach(attachment -> repository.detach(attachment.id()));
+        repository
+                .findByOwner(AppointmentOwner.EVENT, event.id())
+                .forEach(attachment -> repository.detach(AppointmentOwner.EVENT, attachment.id()));
+        repository
+                .findByOwner(AppointmentOwner.TEMPLATE, template.id())
+                .forEach(attachment -> repository.detach(AppointmentOwner.TEMPLATE, attachment.id()));
         stationRepo.delete(station.id());
     }
 
     @BeforeEach
     void emptyTheEvent() {
-        repository.findByEvent(event.id()).forEach(attachment -> repository.detach(attachment.id()));
+        repository
+                .findByOwner(AppointmentOwner.EVENT, event.id())
+                .forEach(attachment -> repository.detach(AppointmentOwner.EVENT, attachment.id()));
+        repository
+                .findByOwner(AppointmentOwner.TEMPLATE, template.id())
+                .forEach(attachment -> repository.detach(AppointmentOwner.TEMPLATE, attachment.id()));
     }
 
     private int attachOpen() {
-        return service.attach(event.id(), station.id(), openFileId, "Laufzettel", false)
+        return service.attach(AppointmentOwner.EVENT, event.id(), station.id(), openFileId, "Laufzettel", false)
                 .id();
     }
 
     private int attachInternal() {
-        return service.attach(event.id(), station.id(), internalFileId, null, true)
+        return service.attach(AppointmentOwner.EVENT, event.id(), station.id(), internalFileId, null, true)
                 .id();
     }
 
@@ -149,7 +164,7 @@ class EventAttachmentServiceTest extends RepositoryTestBase {
 
         assertThrows(
                 RefusalResponse.class,
-                () -> service.attach(event.id(), station.id(), theirFile, null, false),
+                () -> service.attach(AppointmentOwner.EVENT, event.id(), station.id(), theirFile, null, false),
                 "an attachment is a reference into this station's own library");
 
         stationRepo.delete(elsewhere.id());
@@ -160,20 +175,20 @@ class EventAttachmentServiceTest extends RepositoryTestBase {
     void aFileCanBeOpenedUpOrKeptBackAfterwards() {
         int attachment = attachOpen();
 
-        assertTrue(service.update(attachment, "Laufzettel", true));
+        assertTrue(service.update(AppointmentOwner.EVENT, attachment, "Laufzettel", true));
         assertEquals(0, service.listFor(event.id(), ROOM).size(), "it is no longer the room's");
 
-        assertTrue(service.update(attachment, "Laufzettel", false));
+        assertTrue(service.update(AppointmentOwner.EVENT, attachment, "Laufzettel", false));
         assertEquals(1, service.listFor(event.id(), ROOM).size());
     }
 
     @Test
     void theOrderIsTheOneWhoeverWroteTheEventPutThemIn() {
         int first = attachOpen();
-        int second = service.attach(event.id(), station.id(), internalFileId, "Zweitens", false)
+        int second = service.attach(AppointmentOwner.EVENT, event.id(), station.id(), internalFileId, "Zweitens", false)
                 .id();
 
-        service.reorder(event.id(), List.of(second, first));
+        service.reorder(AppointmentOwner.EVENT, event.id(), List.of(second, first));
 
         assertEquals(
                 List.of(second, first),
@@ -186,7 +201,7 @@ class EventAttachmentServiceTest extends RepositoryTestBase {
         attachOpen();
         attachInternal();
 
-        assertEquals(2, service.listAll(event.id()).size());
+        assertEquals(2, service.listAll(AppointmentOwner.EVENT, event.id()).size());
     }
 
     /**
@@ -212,18 +227,19 @@ class EventAttachmentServiceTest extends RepositoryTestBase {
     void aDetachedFileIsGoneFromTheEventAndNowhereToBeFound() {
         int attachment = attachOpen();
 
-        assertTrue(service.detach(attachment));
-        assertEquals(Optional.empty(), service.find(attachment));
-        assertFalse(service.detach(attachment), "detaching what is already gone changes nothing");
+        assertTrue(service.detach(AppointmentOwner.EVENT, attachment));
+        assertEquals(Optional.empty(), service.find(AppointmentOwner.EVENT, attachment));
+        assertFalse(
+                service.detach(AppointmentOwner.EVENT, attachment), "detaching what is already gone changes nothing");
     }
 
     /** A blank label is no label: the file name is what a reader is shown then. */
     @Test
     void aFileWithoutALabelIsCalledByItsFileName() {
-        int attachment = service.attach(event.id(), station.id(), openFileId, "   ", false)
+        int attachment = service.attach(AppointmentOwner.EVENT, event.id(), station.id(), openFileId, "   ", false)
                 .id();
 
-        var stored = service.find(attachment).orElseThrow();
+        var stored = service.find(AppointmentOwner.EVENT, attachment).orElseThrow();
         assertEquals("laufzettel.pdf", stored.displayName());
     }
 
@@ -248,5 +264,75 @@ class EventAttachmentServiceTest extends RepositoryTestBase {
         assertTrue(editor.contains(StationPermission.EVENT_INTERNAL));
         assertTrue(EventAttachmentService.readsInternal(editor));
         assertFalse(EventAttachmentService.readsInternal(StationPermission.expand(Set.of(StationPermission.USER))));
+    }
+
+    /**
+     * A template holds files the same way an event does, in its own place: what a template attaches
+     * is not on any event, and the other way round.
+     */
+    @Test
+    void aTemplateAttachesFilesOfItsOwn() {
+        attachOpen();
+        int first = service.attach(
+                        AppointmentOwner.TEMPLATE, template.id(), station.id(), openFileId, "Laufzettel", false)
+                .id();
+        int second = service.attach(AppointmentOwner.TEMPLATE, template.id(), station.id(), internalFileId, null, true)
+                .id();
+
+        service.reorder(AppointmentOwner.TEMPLATE, template.id(), List.of(second, first));
+
+        assertEquals(
+                List.of(second, first),
+                service.listAll(AppointmentOwner.TEMPLATE, template.id()).stream()
+                        .map(a -> a.id())
+                        .toList());
+        assertEquals(1, service.listAll(AppointmentOwner.EVENT, event.id()).size(), "the event keeps only its own");
+        assertTrue(service.update(AppointmentOwner.TEMPLATE, first, "Plan", true));
+        assertTrue(service.find(AppointmentOwner.TEMPLATE, first).orElseThrow().internal());
+        assertTrue(service.detach(AppointmentOwner.TEMPLATE, second));
+        assertEquals(
+                1, service.listAll(AppointmentOwner.TEMPLATE, template.id()).size());
+    }
+
+    /** A template takes files of its own station only, as an event does. */
+    @Test
+    void aTemplateTakesNoFileOfAnotherStation() {
+        var other = stationRepo.create("EventFilesOtherStation");
+        try {
+            int theirFile = mediaFileRepo
+                    .create(null, other.id(), UUID.randomUUID().toString(), "fremd.pdf", "application/pdf", 10)
+                    .id();
+            assertThrows(
+                    RefusalResponse.class,
+                    () -> service.attach(
+                            AppointmentOwner.TEMPLATE, template.id(), station.id(), theirFile, null, false));
+        } finally {
+            stationRepo.delete(other.id());
+        }
+    }
+
+    /**
+     * An event made from a template is handed the template's files, in the template's order and
+     * with its labels, as links to the same files of the library.
+     */
+    @Test
+    void anEventMadeFromATemplateTakesItsFiles() {
+        int first = service.attach(
+                        AppointmentOwner.TEMPLATE, template.id(), station.id(), openFileId, "Laufzettel", false)
+                .id();
+        int second = service.attach(AppointmentOwner.TEMPLATE, template.id(), station.id(), internalFileId, null, true)
+                .id();
+        service.reorder(AppointmentOwner.TEMPLATE, template.id(), List.of(second, first));
+
+        assertEquals(2, service.copyFromTemplate(template.id(), event.id()));
+
+        var taken = service.listAll(AppointmentOwner.EVENT, event.id());
+        assertEquals(
+                List.of(internalFileId, openFileId),
+                taken.stream().map(a -> a.fileId()).toList());
+        assertEquals(List.of(true, false), taken.stream().map(a -> a.internal()).toList());
+        assertEquals("Laufzettel", taken.get(1).label());
+        assertEquals(
+                2, service.listAll(AppointmentOwner.TEMPLATE, template.id()).size(), "the template keeps them");
     }
 }

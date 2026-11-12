@@ -88,6 +88,7 @@ import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepositor
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.events.route.EventVisibility;
 import dev.chojo.ember.feature.events.service.EventBlockReferences;
 import dev.chojo.ember.feature.events.service.EventBreakService;
@@ -1128,7 +1129,11 @@ public abstract class RepositoryTestBase {
                 breakService,
                 new EventRestrictionService(eventRepo, restrictionService),
                 new EventFieldDefaultService(
-                        eventFieldDefaultRepo, eventRepo, attendanceRepo, new AttendanceTemplateGuards(attendanceRepo)),
+                        eventFieldDefaultRepo,
+                        eventRepo,
+                        new EventTemplateRepository(),
+                        attendanceRepo,
+                        new AttendanceTemplateGuards(attendanceRepo)),
                 new EventRegistrationService(
                         eventRegistrationRepo,
                         new EventRegistrationFieldRepository(),

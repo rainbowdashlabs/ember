@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.EventAttachment;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
@@ -21,63 +22,87 @@ import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
- * The files events hand over. Every read joins the media library, because an attachment without its
- * file name and size is not something a reader can be handed.
+ * The files appointments hand over, and the files a template hands every appointment made from it.
+ * Every read joins the media library, because an attachment without its file name and size is not
+ * something a reader can be handed.
+ *
+ * <p>Both live in tables of the same shape; {@link AppointmentOwner} says which one a call means. A
+ * template's attachment reads back with the template's id where an appointment's carries the
+ * appointment's.
  */
 @Singleton
 public class EventAttachmentRepository {
 
     private static final String SELECT_COLUMNS = """
-            a.id, a.event_id, a.file_id, a.label, a.internal, a.sort_order, a.created_at,
+            a.id, a.%s AS event_id, a.file_id, a.label, a.internal, a.sort_order, a.created_at,
             f.file_name, f.mime_type, f.file_size, f.content_hash""";
 
+    private static String table(AppointmentOwner owner) {
+        return switch (owner) {
+            case EVENT -> "event_attachment";
+            case TEMPLATE -> "event_template_attachment";
+        };
+    }
+
+    private static String ownerColumn(AppointmentOwner owner) {
+        return switch (owner) {
+            case EVENT -> "event_id";
+            case TEMPLATE -> "template_id";
+        };
+    }
+
+    private static String columns(AppointmentOwner owner) {
+        return SELECT_COLUMNS.formatted(ownerColumn(owner));
+    }
+
     /**
-     * Attaches a file to an event, placing it last.
+     * Attaches a file to an appointment or a template, placing it last.
      */
-    public EventAttachment attach(int eventId, int fileId, @Nullable String label, boolean internal) {
+    public EventAttachment attach(
+            AppointmentOwner owner, int ownerId, int fileId, @Nullable String label, boolean internal) {
         int id = SqlSupport.insertReturning(
                 """
-                INSERT INTO event_attachment(event_id, file_id, label, internal, sort_order)
+                INSERT INTO %1$s(%2$s, file_id, label, internal, sort_order)
                 VALUES (
-                    :event_id,
+                    :owner_id,
                     :file_id,
                     :label,
                     :internal,
-                    COALESCE((SELECT MAX(sort_order) + 1 FROM event_attachment WHERE event_id = :event_id), 0))
-                RETURNING id;""",
-                call().bind("event_id", eventId)
+                    COALESCE((SELECT MAX(sort_order) + 1 FROM %1$s WHERE %2$s = :owner_id), 0))
+                RETURNING id;""".formatted(table(owner), ownerColumn(owner)),
+                call().bind("owner_id", ownerId)
                         .bind("file_id", fileId)
                         .bind("label", label)
                         .bind("internal", internal),
                 row -> row.getInt("id"));
-        return findById(id).orElseThrow();
+        return findById(owner, id).orElseThrow();
     }
 
-    public Optional<EventAttachment> findById(int attachmentId) {
+    public Optional<EventAttachment> findById(AppointmentOwner owner, int attachmentId) {
         return query("""
                 SELECT %s
-                FROM event_attachment a
+                FROM %s a
                 JOIN station_file f ON f.id = a.file_id
-                WHERE a.id = :id;""", SELECT_COLUMNS)
+                WHERE a.id = :id;""", columns(owner), table(owner))
                 .single(call().bind("id", attachmentId))
                 .map(EventAttachment.map())
                 .first();
     }
 
-    public List<EventAttachment> findByEvent(int eventId) {
+    public List<EventAttachment> findByOwner(AppointmentOwner owner, int ownerId) {
         return query("""
                 SELECT %s
-                FROM event_attachment a
+                FROM %s a
                 JOIN station_file f ON f.id = a.file_id
-                WHERE a.event_id = :event_id
-                ORDER BY a.sort_order, a.id;""", SELECT_COLUMNS)
-                .single(call().bind("event_id", eventId))
+                WHERE a.%s = :owner_id
+                ORDER BY a.sort_order, a.id;""", columns(owner), table(owner), ownerColumn(owner))
+                .single(call().bind("owner_id", ownerId))
                 .map(EventAttachment.map())
                 .all();
     }
 
     /**
-     * The attachments of several events at once, so a listing does not ask once per row.
+     * The attachments of several appointments at once, so a listing does not ask once per row.
      */
     public Map<Integer, List<EventAttachment>> findByEventIds(List<Integer> eventIds) {
         Map<Integer, List<EventAttachment>> out = new HashMap<>();
@@ -87,7 +112,7 @@ public class EventAttachmentRepository {
                 FROM event_attachment a
                 JOIN station_file f ON f.id = a.file_id
                 WHERE a.event_id = ANY(:event_ids)
-                ORDER BY a.event_id, a.sort_order, a.id;""", SELECT_COLUMNS)
+                ORDER BY a.event_id, a.sort_order, a.id;""", columns(AppointmentOwner.EVENT))
                 .single(call().bind("event_ids", eventIds, PostgreSqlTypes.INTEGER))
                 .map(EventAttachment.map())
                 .all();
@@ -100,28 +125,48 @@ public class EventAttachmentRepository {
     /**
      * Writes the label and whether the file is kept back from the room.
      */
-    public boolean update(int attachmentId, @Nullable String label, boolean internal) {
-        return query("UPDATE event_attachment SET label = :label, internal = :internal WHERE id = :id;")
+    public boolean update(AppointmentOwner owner, int attachmentId, @Nullable String label, boolean internal) {
+        return query("UPDATE %s SET label = :label, internal = :internal WHERE id = :id;", table(owner))
                 .single(call().bind("id", attachmentId).bind("label", label).bind("internal", internal))
                 .update()
                 .changed();
     }
 
     /**
-     * Writes the order whoever wrote the event put the files in. Ids that do not belong to the event
-     * are ignored rather than moved, so a stale screen cannot reorder somebody else's event.
+     * Writes the order whoever wrote the appointment or template put the files in. Ids that do not
+     * belong to it are ignored rather than moved, so a stale screen cannot reorder somebody else's.
      */
-    public void reorder(int eventId, List<Integer> attachmentIds) {
+    public void reorder(AppointmentOwner owner, int ownerId, List<Integer> attachmentIds) {
         for (int i = 0; i < attachmentIds.size(); i++) {
-            query("UPDATE event_attachment SET sort_order = :sort_order WHERE id = :id AND event_id = :event_id;")
+            query(
+                            "UPDATE %s SET sort_order = :sort_order WHERE id = :id AND %s = :owner_id;",
+                            table(owner), ownerColumn(owner))
                     .single(call().bind("id", attachmentIds.get(i))
-                            .bind("event_id", eventId)
+                            .bind("owner_id", ownerId)
                             .bind("sort_order", i))
                     .update();
         }
     }
 
-    public boolean detach(int attachmentId) {
-        return SqlSupport.deleteById("event_attachment", attachmentId);
+    public boolean detach(AppointmentOwner owner, int attachmentId) {
+        return SqlSupport.deleteById(table(owner), attachmentId);
+    }
+
+    /**
+     * Links every file a template attaches to an appointment made from it, in the template's order.
+     * The files are the same files; nothing is copied.
+     *
+     * @return how many files were linked
+     */
+    public int copyFromTemplate(int templateId, int eventId) {
+        return query("""
+                INSERT INTO event_attachment(event_id, file_id, label, internal, sort_order)
+                SELECT :event_id, file_id, label, internal, sort_order
+                FROM event_template_attachment
+                WHERE template_id = :template_id
+                ORDER BY sort_order, id;""")
+                .single(call().bind("template_id", templateId).bind("event_id", eventId))
+                .insert()
+                .rows();
     }
 }
