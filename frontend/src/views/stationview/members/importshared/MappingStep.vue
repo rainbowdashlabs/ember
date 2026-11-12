@@ -205,6 +205,7 @@ function addValueMapEntry() {
         :field-scope-groups="fieldScopeGroups"
         :primary-group-label="primaryGroupLabel"
         :manager-count="managerCount"
+        :target-values="valuesForTarget(m.target)"
         @update="updateMapping(i, $event)"
         @split="splitColumn(i)"
         @add-split-part="addSplitPart(i)"

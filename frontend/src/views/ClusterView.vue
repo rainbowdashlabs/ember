@@ -8,6 +8,7 @@ import {computed, onMounted, watch} from 'vue'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import NavSidebar from '@/components/navigation/NavSidebar.vue'
 import AccountMenuButton from '@/components/layout/AccountMenuButton.vue'
+import MessagesButton from '@/components/layout/MessagesButton.vue'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 import QuickSearchPalette from '@/components/quicksearch/QuickSearchPalette.vue'
 import ReportProblemButton from '@/components/feedback/ReportProblemButton.vue'
@@ -57,6 +58,7 @@ onMounted(() => {
 
     <template #header>
       <QuickSearchTrigger scope="cluster" @open="openQuickSearch"/>
+      <MessagesButton/>
       <AccountMenuButton/>
     </template>
 

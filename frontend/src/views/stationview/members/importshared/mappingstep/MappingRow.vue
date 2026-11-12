@@ -12,6 +12,7 @@ import MappingRowSource from './MappingRowSource.vue'
 import MappingRowMerge from './MappingRowMerge.vue'
 import TargetSelect from './TargetSelect.vue'
 import { SKIP_TARGET, type ColumnMapping } from '../memberImport'
+import type { TargetValue } from '../useMemberCsvImport'
 
 const { t } = useI18n()
 
@@ -26,6 +27,8 @@ const props = defineProps<{
   fieldScopeGroups: string[]
   primaryGroupLabel: string
   managerCount: number
+  /** The answers the column's target allows, so a translated value shows by its name. */
+  targetValues: TargetValue[]
 }>()
 
 const emit = defineEmits<{
@@ -43,6 +46,11 @@ const rowClass = computed(() =>
     : 'bg-bg-light-accent/20 dark:bg-bg-dark-accent/20',
 )
 const hasValueMap = computed(() => Object.keys(props.mapping.valueMap || {}).length > 0)
+
+/** What a value in the file becomes, by the name the target gives it, such as "Ja" rather than "true". */
+function targetLabel(value: string): string {
+  return props.targetValues.find(candidate => candidate.value === value)?.label ?? value
+}
 </script>
 
 <template>
@@ -82,7 +90,7 @@ const hasValueMap = computed(() => Object.keys(props.mapping.valueMap || {}).len
       @update:merge-separator="emit('update', { mergeSeparator: $event })"
     />
     <MutedText v-if="hasValueMap" tag="div" class="mt-1">
-      <span v-for="(to, from) in mapping.valueMap" :key="String(from)" class="mr-2">{{ from }} &rarr; {{ to }}</span>
+      <span v-for="(to, from) in mapping.valueMap" :key="String(from)" class="mr-2">{{ from }} &rarr; {{ targetLabel(to) }}</span>
     </MutedText>
   </div>
 </template>

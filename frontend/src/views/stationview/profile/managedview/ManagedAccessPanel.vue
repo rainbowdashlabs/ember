@@ -18,6 +18,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import PasskeyCodeDisplay from '@/components/passkey/PasskeyCodeDisplay.vue'
+import ManagedMessagesSwitch from './ManagedMessagesSwitch.vue'
 import {managedMembers, passkeys} from '@/api'
 import type {ManagedAccess, PasskeyCodeResponse} from '@/api/generated/schema'
 import type {PasskeyModeName} from '@/api/adminSettings'
@@ -26,8 +27,8 @@ import {describeFailure} from '@/util/failure'
 
 /**
  * The access a guardian manages for one member in their care: the address the account is reached
- * at, and whether it may sign in at all. Signing in stays off until there is an address to send
- * the invitation to.
+ * at, whether it may sign in at all, and whether it has messages between people. Signing in stays
+ * off until there is an address to send the invitation to.
  */
 const props = defineProps<{
   memberId: number
@@ -175,6 +176,8 @@ watch(() => props.memberId, load, {immediate: true})
                      :aria-label="t('profileManaged.access.login')"
                      @update:model-value="toggleLogin"/>
       </div>
+
+      <ManagedMessagesSwitch :member-id="memberId" :access="access" @changed="found => access = found"/>
 
       <div v-if="!access.email && !passwordless" class="space-y-1 border-t border-(--border) pt-4">
         <FieldLabel>{{ t('profileManaged.access.password') }}</FieldLabel>

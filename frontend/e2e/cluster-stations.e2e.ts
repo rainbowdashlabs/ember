@@ -183,13 +183,14 @@ test.describe('Cluster stations', () => {
             await expect(waiting).toBeVisible()
             await waiting.click()
 
+            const reason = `Im nächsten Jahr gerne ${test.info().workerIndex}-${Date.now()}`
             const dialog = page.getByRole('dialog')
-            await dialog.getByPlaceholder('Warum wird die Anfrage abgelehnt?').fill('Im nächsten Jahr gerne')
+            await dialog.getByPlaceholder('Warum wird die Anfrage abgelehnt?').fill(reason)
             await dialog.getByRole('button', {name: 'Ablehnen'}).click()
 
             await expect(page.getByRole('button', {name: 'Aufnehmen'}), 'the request no longer waits to be answered')
                 .toHaveCount(0)
-            await expect(page.getByText('Im nächsten Jahr gerne'), 'the refusal and its reason stay readable').toBeVisible()
+            await expect(page.getByText(reason), 'the refusal and its reason stay readable').toBeVisible()
         })
 
     /**
@@ -205,9 +206,10 @@ test.describe('Cluster stations', () => {
         const applied = await applyAsSomeStandaloneOwner(request, cluster.uid)
 
         await page.goto('/cluster/applications')
-        const decide = page.getByRole('button', {name: 'Aufnehmen'}).first()
-        await expect(decide).toBeVisible()
-        await decide.click()
+        const pending = page.getByTestId('pending-application').filter({hasText: applied})
+        await expect(pending).toBeVisible()
+        await pending.getByRole('button', {name: 'Aufnehmen'}).click()
+        await expect(pending, 'the request is answered before the station list is read').toHaveCount(0)
 
         await page.goto('/cluster/stations')
         await expect(page.getByText(applied)).toBeVisible()

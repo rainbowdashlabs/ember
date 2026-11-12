@@ -76,6 +76,8 @@ public class ManagedMemberRoutes implements Routes {
                 this::revokePasskeyCode,
                 StationPermission.MEMBER_GUARDIAN);
         routes.put(prefix + "/managed-members/{memberId}/login", this::setLogin, StationPermission.MEMBER_GUARDIAN);
+        routes.put(
+                prefix + "/managed-members/{memberId}/messages", this::setMessages, StationPermission.MEMBER_GUARDIAN);
         routes.get(
                 prefix + "/managed-members/{memberId}/inventory-items",
                 this::getMemberInventory,
@@ -245,6 +247,27 @@ public class ManagedMemberRoutes implements Routes {
         var request = ctx.bodyAsClass(SetLoginRequest.class);
         ctx.json(accessService.setLogin(session.member().id(), pathInt(ctx, "memberId"), request.enabled()));
     }
+
+    @OpenApi(
+            path = "/api/v1/managed-members/{memberId}/messages",
+            methods = HttpMethod.PUT,
+            summary = "Turn messages between people on or off for a managed member",
+            description = "Turning them off hides the member's conversations from them and stops new messages; "
+                    + "nothing is deleted.",
+            tags = {"Managed Members"},
+            pathParams = @OpenApiParam(name = "memberId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SetMessagesRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ManagedAccess.class)))
+    private void setMessages(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var request = ctx.bodyAsClass(SetMessagesRequest.class);
+        ctx.json(accessService.setMessages(session.member().id(), pathInt(ctx, "memberId"), request.allowed()));
+    }
+
+    /**
+     * @param allowed whether the managed member may use messages
+     */
+    public record SetMessagesRequest(boolean allowed) {}
 
     /**
      * @param email the address the managed member's account should carry

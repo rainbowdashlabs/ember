@@ -16,6 +16,8 @@ import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.legal.service.GdprExportService;
 import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.messages.repository.ConversationRepository;
+import dev.chojo.ember.feature.messages.service.MessageErasure;
 import dev.chojo.ember.feature.signing.entity.SignatureImageSource;
 import dev.chojo.ember.feature.signing.repository.AccountSignatureRepository;
 import dev.chojo.ember.feature.signing.service.SignatureImageService;
@@ -182,7 +184,8 @@ class SignatureImageRoutesTest extends RepositoryTestBase {
                 new AvatarService(new ImageVariants(storage)),
                 newDocumentService(storage),
                 images,
-                new AccountReach(accountRepo));
+                new AccountReach(accountRepo),
+                new MessageErasure(new ConversationRepository()));
         var scope = scopeOf(member);
         deletion.deleteAccount(member.accountId());
 
