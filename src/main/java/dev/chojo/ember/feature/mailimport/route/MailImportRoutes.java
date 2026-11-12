@@ -352,7 +352,7 @@ public class MailImportRoutes implements Routes {
     }
 
     private void requireModule(int stationId) {
-        if (stationService.findDisabledModules(stationId).contains(StationModule.DOCUMENTS)) {
+        if (!stationService.isModuleEnabled(stationId, StationModule.DOCUMENTS)) {
             throw MailImportRefusal.MAIL_IMPORT_SWITCHED_OFF.raise();
         }
     }

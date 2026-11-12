@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.media.image.MediaTypes;
 import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.entity.Variant;
@@ -60,6 +61,7 @@ public class DocumentService {
     private final ImageVariants images;
     private final StationRepository stationRepository;
     private final DocumentIntake intake;
+    private final ModuleAvailability modules;
 
     @Inject
     public DocumentService(
@@ -68,7 +70,9 @@ public class DocumentService {
             StorageService storage,
             ImageVariants images,
             StationRepository stationRepository,
-            DocumentIntake intake) {
+            DocumentIntake intake,
+            ModuleAvailability modules) {
+        this.modules = modules;
         this.repository = repository;
         this.versions = versions;
         this.storage = storage;
@@ -81,14 +85,15 @@ public class DocumentService {
      * Refuses where the station keeps no documents.
      *
      * <p>The store belongs to the station, so a station that switched it off has switched it off for
-     * the association too. The personal data export is deliberately not held to this: a switched-off
-     * page is not a reason to withhold somebody's own data from them.
+     * the association too, and a store the station's cluster denies is gone the same way. The personal
+     * data export is deliberately not held to this: a switched-off page is not a reason to withhold
+     * somebody's own data from them.
      *
      * @param stationId the station
      * @param door      whose refusal to answer with
      */
     public void requireKept(int stationId, DocumentDoor door) {
-        if (stationRepository.findDisabledModules(stationId).contains(StationModule.DOCUMENTS)) {
+        if (!modules.isOn(stationId, StationModule.DOCUMENTS)) {
             throw door.switchedOff().raise();
         }
     }

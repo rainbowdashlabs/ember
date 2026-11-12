@@ -106,6 +106,7 @@ import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
 import dev.chojo.ember.feature.quiz.service.QuizTestService;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.service.PdfCompressor;
@@ -290,7 +291,8 @@ class DemoServiceTest extends RepositoryTestBase {
                         newGroupMemberships(),
                         new AccountInviteService(accountRepo, authService),
                         TestAccountLinks.service(accountRepo, stationRepo, stationMemberRepo)),
-                clusterRepo);
+                clusterRepo,
+                new ModuleAvailability(stationRepo, clusterRepo));
 
         var groupService = newMemberGroupService();
         var tagService = new UserTagService(userTagRepo, memberGroupRepo);

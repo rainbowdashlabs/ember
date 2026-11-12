@@ -75,7 +75,8 @@ class SetupServiceTest extends RepositoryTestBase {
                         newGroupMemberships(),
                         new AccountInviteService(accountRepo, mock(AuthService.class)),
                         TestAccountLinks.service(accountRepo, stationRepo, stationMemberRepo)),
-                clusterRepo);
+                clusterRepo,
+                new ModuleAvailability(stationRepo, clusterRepo));
         logoService = newStationLogoService();
         setupService = new SetupService(
                 stationRepo,

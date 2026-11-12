@@ -211,6 +211,7 @@ import dev.chojo.ember.feature.signing.repository.AccountSignatureRepository;
 import dev.chojo.ember.feature.signing.service.SignatureImageService;
 import dev.chojo.ember.feature.station.repository.StationApplicationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.storage.backend.StorageBackendFactory;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
@@ -529,7 +530,8 @@ public abstract class RepositoryTestBase {
                 storage,
                 new ImageVariants(storage),
                 stationRepo,
-                newDocumentIntake());
+                newDocumentIntake(),
+                new ModuleAvailability(stationRepo, clusterRepo));
     }
 
     /**
