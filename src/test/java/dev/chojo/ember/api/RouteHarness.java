@@ -34,12 +34,15 @@ import io.javalin.testtools.JavalinTest;
 import io.javalin.testtools.Request;
 import io.javalin.testtools.Response;
 import io.javalin.testtools.TestCase;
+import org.mockito.Mockito;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -54,6 +57,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 /**
  * Serves route groups over real HTTP, through the same application production runs.
@@ -79,8 +83,9 @@ public final class RouteHarness {
 
     private final Routes[] routes;
     private final Map<String, UserSession> signedIn = new ConcurrentHashMap<>();
-    private final AccessManager accessManager = mock(AccessManager.class);
-    private StationRepository stations = mock(StationRepository.class);
+    private final List<Object> perRun = new ArrayList<>();
+    private final AccessManager accessManager = quiet(AccessManager.class);
+    private StationRepository stations = quiet(StationRepository.class);
     private Network network = new Network();
 
     private RouteHarness(Routes[] routes) {
@@ -161,7 +166,12 @@ public final class RouteHarness {
      * @param test the requests and assertions
      */
     public void run(TestCase test) {
-        JavalinTest.test(server().create(), test);
+        try {
+            JavalinTest.test(server().create(), test);
+        } finally {
+            perRun.forEach(Mockito.framework()::clearInlineMock);
+            perRun.clear();
+        }
     }
 
     /**
@@ -247,31 +257,31 @@ public final class RouteHarness {
 
     private ApiServer server() {
         Demo demo = new Demo();
-        ClusterRepository clusters = mock(ClusterRepository.class);
-        DevErrorWriter devErrors = mock(DevErrorWriter.class);
+        ClusterRepository clusters = forThisRun(ClusterRepository.class);
+        DevErrorWriter devErrors = forThisRun(DevErrorWriter.class);
         return new ApiServer(
                 new LinkedHashSet<>(Arrays.asList(routes)),
                 new Api(),
                 demo,
                 stations,
                 clusters,
-                mock(ApiRequestLogger.class),
-                mock(StationTrafficRecorder.class),
-                mock(StationResolver.class),
-                mock(AuthBucketClassifier.class),
-                mock(PageHitRecorder.class),
-                mock(RefererDomainExtractor.class),
-                mock(BotClassifier.class),
+                forThisRun(ApiRequestLogger.class),
+                forThisRun(StationTrafficRecorder.class),
+                forThisRun(StationResolver.class),
+                forThisRun(AuthBucketClassifier.class),
+                forThisRun(PageHitRecorder.class),
+                forThisRun(RefererDomainExtractor.class),
+                forThisRun(BotClassifier.class),
                 network,
                 new GlobalRateLimiter(),
                 new AccessGate(
                         accessManager,
                         sessionGate(),
-                        mock(StepUpGuard.class),
+                        forThisRun(StepUpGuard.class),
                         stations,
                         clusters,
                         demo,
-                        mock(DemoService.class)),
+                        forThisRun(DemoService.class)),
                 new ResponseHeaderPolicy(demo, stations),
                 new ExceptionMapping(demo, devErrors),
                 devErrors);
@@ -282,14 +292,46 @@ public final class RouteHarness {
      * judges is the route and its access rule, and the page token has tests of its own.
      */
     private SessionGate sessionGate() {
-        CsrfGuard csrf = mock(CsrfGuard.class);
+        CsrfGuard csrf = forThisRun(CsrfGuard.class);
         when(csrf.permits(any(), anyString())).thenReturn(true);
         return new SessionGate(
                 accessManager,
-                mock(AccountRepository.class),
+                forThisRun(AccountRepository.class),
                 new Auth(),
-                mock(SessionCookies.class),
+                forThisRun(SessionCookies.class),
                 csrf,
-                mock(UsageRecorder.class));
+                forThisRun(UsageRecorder.class));
+    }
+
+    /**
+     * A double of the application's own wiring that answers what it is stubbed with and remembers
+     * nothing it was asked.
+     *
+     * @param type the type to double
+     * @param <T>  the type
+     * @return a double that records no calls
+     */
+    private static <T> T quiet(Class<T> type) {
+        return mock(type, withSettings().stubOnly());
+    }
+
+    /**
+     * A quiet double for one started application, let go of once the application stopped.
+     *
+     * <p>These doubles are handed the request context, and the context reaches the whole running
+     * application, its server and its buffers. Mockito keeps what a mock was last called with
+     * strongly, in a registry whose key is the mock itself, so a call that leads back to the mock keeps
+     * both alive for the rest of the test run: every application a route test ever started stayed in
+     * memory until the forks ran out of heap. Nobody looks at these doubles after the application
+     * stopped, so they are taken out of the registry then.
+     *
+     * @param type the type to double
+     * @param <T>  the type
+     * @return the double, released when the current run ends
+     */
+    private <T> T forThisRun(Class<T> type) {
+        T stub = quiet(type);
+        perRun.add(stub);
+        return stub;
     }
 }

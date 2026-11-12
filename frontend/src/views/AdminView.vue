@@ -11,6 +11,7 @@ import {useMonitoringCounts} from '@/composables/useMonitoringCounts'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import NavSidebar from '@/components/navigation/NavSidebar.vue'
 import AccountMenuButton from '@/components/layout/AccountMenuButton.vue'
+import MessagesButton from '@/components/layout/MessagesButton.vue'
 import {useSession} from '@/composables/useSession'
 import {useAdminNav} from '@/composables/useAdminNav'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
@@ -58,6 +59,7 @@ watch(() => route.path, () => { void refreshCounts() })
 
     <template #header>
       <QuickSearchTrigger scope="admin" @open="openQuickSearch"/>
+      <MessagesButton/>
       <AccountMenuButton/>
     </template>
 

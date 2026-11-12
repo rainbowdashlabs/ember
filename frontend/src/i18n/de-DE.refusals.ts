@@ -42,6 +42,7 @@ import quizzes from './refusals/quizzes'
 import stations from './refusals/stations'
 import discovery from './refusals/discovery'
 import testProtocols from './refusals/testProtocols'
+import messages from './refusals/messages'
 
 /**
  * What each refusal code says in German, keyed by the code the backend sends.
@@ -106,4 +107,5 @@ export default {
     ...stations,
     ...discovery,
     ...testProtocols,
+    ...messages,
 }
