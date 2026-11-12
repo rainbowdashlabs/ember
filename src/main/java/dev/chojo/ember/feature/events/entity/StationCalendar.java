@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.TreeSet;
 
 /**
  * Which dates the appointments of one station fall on: their repetition, read on the station's
@@ -28,15 +29,25 @@ import java.util.Optional;
  * a calendar and the page about the appointment show it as called off rather than let it vanish.
  * Whatever must not happen on such a date asks {@link #isCancelled} or {@link #takesPlaceOn}.
  *
+ * <p>A date a series gave away to an appointment of its own is neither: the series no longer falls on
+ * it at all, and the appointment that took it over names it instead.
+ *
  * @param zone          the station's clock
  * @param breaks        the periods the station does not meet in
  * @param cancellations the dates of the station's appointments that were called off
+ * @param detached      the dates of the station's series that became appointments of their own
  */
-public record StationCalendar(ZoneId zone, List<EventBreak> breaks, DateCancellations cancellations) {
+public record StationCalendar(
+        ZoneId zone, List<EventBreak> breaks, DateCancellations cancellations, DetachedDates detached) {
 
-    /** A calendar in which no date was called off. */
+    /** A calendar in which no date was called off and no series gave a date away. */
     public StationCalendar(ZoneId zone, List<EventBreak> breaks) {
-        this(zone, breaks, DateCancellations.NONE);
+        this(zone, breaks, DateCancellations.NONE, DetachedDates.NONE);
+    }
+
+    /** A calendar in which no series gave a date away. */
+    public StationCalendar(ZoneId zone, List<EventBreak> breaks, DateCancellations cancellations) {
+        this(zone, breaks, cancellations, DetachedDates.NONE);
     }
 
     /** Today on the station's clock. */
@@ -74,9 +85,17 @@ public record StationCalendar(ZoneId zone, List<EventBreak> breaks, DateCancella
      */
     public DateCheck check(StationEvent event, LocalDate date) {
         boolean fits = ruleOf(event).map(rule -> rule.matches(date)).orElse(false);
-        if (!fits) return DateCheck.NOT_AN_OCCURRENCE;
+        if (!fits || isDetached(event, date)) return DateCheck.NOT_AN_OCCURRENCE;
         if (suspends(event, date)) return DateCheck.IN_A_BREAK;
         return isCancelled(event, date) ? DateCheck.CANCELLED : DateCheck.OCCURRENCE;
+    }
+
+    /**
+     * Whether this date was taken out of the series and became an appointment of its own, which the
+     * series then no longer falls on.
+     */
+    public boolean isDetached(StationEvent event, LocalDate date) {
+        return event.isRecurring() && detached.on(event.id(), date);
     }
 
     /**
@@ -149,7 +168,7 @@ public record StationCalendar(ZoneId zone, List<EventBreak> breaks, DateCancella
 
     private Optional<LocalDate> next(StationEvent event, OccurrenceRule rule, LocalDate from) {
         Optional<LocalDate> candidate = rule.onOrAfter(from);
-        while (candidate.isPresent() && suspends(event, candidate.get())) {
+        while (candidate.isPresent() && skips(event, candidate.get())) {
             candidate = rule.onOrAfter(candidate.get().plusDays(1));
         }
         return candidate;
@@ -160,7 +179,7 @@ public record StationCalendar(ZoneId zone, List<EventBreak> breaks, DateCancella
         var rule = ruleOf(event);
         if (rule.isEmpty()) return Optional.empty();
         Optional<LocalDate> candidate = rule.get().before(before);
-        while (candidate.isPresent() && suspends(event, candidate.get())) {
+        while (candidate.isPresent() && skips(event, candidate.get())) {
             candidate = rule.get().before(candidate.get());
         }
         return candidate;
@@ -208,6 +227,26 @@ public record StationCalendar(ZoneId zone, List<EventBreak> breaks, DateCancella
             }
         }
         return dates.stream().distinct().sorted().toList();
+    }
+
+    /**
+     * Every date the repetition names that the series does not hold: those a break takes out and those
+     * that became appointments of their own, which a calendar is told as exceptions to the rule.
+     *
+     * @param event the appointment
+     * @return those dates in order, none for a one-off appointment
+     */
+    public List<LocalDate> skippedDates(StationEvent event) {
+        if (!event.isRecurring()) return List.of();
+        var dates = new TreeSet<>(suspendedDates(event));
+        ruleOf(event).ifPresent(rule -> detached.forEvent(event.id()).stream()
+                .filter(rule::matches)
+                .forEach(dates::add));
+        return List.copyOf(dates);
+    }
+
+    private boolean skips(StationEvent event, LocalDate date) {
+        return suspends(event, date) || isDetached(event, date);
     }
 
     private boolean suspends(StationEvent event, LocalDate date) {

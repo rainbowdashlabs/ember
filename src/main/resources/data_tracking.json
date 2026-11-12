@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:e8d1caca6059aa8e544b35be6f625c549012d994e8d5a9bd2f350ffd12de5fa4",
-  "generatedAt": "2026-11-11T14:57:35Z",
+  "schemaHash": "sha256:9c0ab5dedb057f72ddb488775be42dc6936f67ed84852d56e062c02b6e6ef871",
+  "generatedAt": "2026-11-12T12:05:14Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -2759,6 +2759,8 @@
       "description": "A fault as the beacon knows it, gathered from every instance that reported it."
     },
     "beacon_problem_context": {
+      "feature": "beacon",
+      "scope": "INSTANCE",
       "tableHash": "sha256:e6c3b3713980049d53b18ff9ba864f7b336e86289bd9db3e1fae8623f59f82bd",
       "columns": [
         {
@@ -2830,9 +2832,7 @@
         "status": "IGNORED",
         "reason": "Carries no key to a person; it goes with its problem and with the instance that sent it."
       },
-      "description": "On a beacon: the log lines an instance sent with a problem, the last five per problem and instance. The sender replaced mail addresses, identifiers and names before sending.",
-      "feature": "beacon",
-      "scope": "INSTANCE"
+      "description": "On a beacon: the log lines an instance sent with a problem, the last five per problem and instance. The sender replaced mail addresses, identifiers and names before sending."
     },
     "beacon_problem_instance": {
       "feature": "beacon",
@@ -22730,6 +22730,8 @@
       "description": "A member of this station signed up here for one date of a partner station's appointment. The partner holds the registration itself; this is this station's own word that it was given, so that a partner telling it which of its members are registered is believed only for members it signed up. Removed when the member withdraws."
     },
     "problem_log": {
+      "feature": "system",
+      "scope": "INSTANCE",
       "tableHash": "sha256:88b14fd426d442b6707b92bb9dbd604c472b2dab1e4cca246faeaf775d1453f6",
       "columns": [
         {
@@ -22865,11 +22867,11 @@
         "status": "IGNORED",
         "reason": "The administrator reference is set to NULL with the account, and every row is deleted once the retention passes."
       },
-      "description": "Warnings, errors and refusals the application logged, one row per problem, kept across restarts until the retention removes them.",
-      "feature": "system",
-      "scope": "INSTANCE"
+      "description": "Warnings, errors and refusals the application logged, one row per problem, kept across restarts until the retention removes them."
     },
     "problem_occurrence": {
+      "feature": "system",
+      "scope": "INSTANCE",
       "tableHash": "sha256:eadc4e33ff64fa9c0c5079c65bfb65006efb4a0d7c4b943c13fa8418af8c27d1",
       "columns": [
         {
@@ -22921,9 +22923,7 @@
         "status": "IGNORED",
         "reason": "Only a time and a thread name; it goes with its problem."
       },
-      "description": "The last five occurrences of each problem: when and on which thread. Holds no message text; the log lines around an occurrence are looked up by it.",
-      "feature": "system",
-      "scope": "INSTANCE"
+      "description": "The last five occurrences of each problem: when and on which thread. Holds no message text; the log lines around an occurrence are looked up by it."
     },
     "problem_report": {
       "feature": "system",
@@ -27588,7 +27588,7 @@
     "station_event": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:a17b1bcdcff41d9f2a4694f72b2971f72f6e46c21aa9877a32e3e30088e364f4",
+      "tableHash": "sha256:f85db89e309d5c7714873c7de129503564c710e3b928109b8d2d70d525581e1f",
       "columns": [
         {
           "name": "id",
@@ -27785,12 +27785,32 @@
           "nullable": true,
           "verified": true,
           "description": "How many days before each date min_registrations must be reached, or that date is cancelled automatically. Empty where no date is ever cancelled for too few registrations."
+        },
+        {
+          "name": "continues_event_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The appointment this one took over from: the series a date was taken out of, or the series that ended where this one goes on. NULL for an appointment created on its own, or once that appointment is deleted."
+        },
+        {
+          "name": "continues_from",
+          "type": "date",
+          "nullable": true,
+          "verified": true,
+          "description": "The date of that appointment this one took over from: the single date taken out, or the first date of the continued series. NULL where continues_event_id never named one."
         }
       ],
       "foreignKeys": [
         {
           "column": "category_id",
           "refTable": "event_category",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "continues_event_id",
+          "refTable": "station_event",
           "refColumn": "id",
           "onDelete": "SET NULL"
         },
@@ -27889,6 +27909,55 @@
         "reason": "Event structure/template data, not per-member"
       },
       "description": "Date ranges during which recurring events are suspended (e.g. holidays)."
+    },
+    "station_event_detached_date": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:b5a7f972e264d1643726851d0210a5df736f0ebf511853a88ba7646c4ecaec56",
+      "columns": [
+        {
+          "name": "event_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The series the date was taken out of."
+        },
+        {
+          "name": "event_date",
+          "type": "date",
+          "nullable": false,
+          "verified": true,
+          "description": "The date taken out, on the station's clock."
+        },
+        {
+          "name": "detached_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the date was taken out."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "event_id",
+          "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Which dates a series gave away belongs to the series and moves with it."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Event structure data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Event structure data, not per-member"
+      },
+      "description": "A date a series no longer holds because it became an appointment of its own. The series skips it like a date it does not fall on; it is not called off."
     },
     "station_file": {
       "feature": "media",

@@ -300,6 +300,22 @@ class EventMoveServiceTest extends RepositoryTestBase {
         assertTrue(eventDateCancellationRepo.isCancelled(event.id(), nextTuesday()));
     }
 
+    /**
+     * A date the series gave away to an appointment of its own is not a date it left: whatever is
+     * still found on it stays, and nobody is told the date is gone.
+     */
+    @Test
+    void aDetachedDateIsLeftAloneWhenTheSeriesChanges() {
+        weeklyOn(DayOfWeek.TUESDAY);
+        var kept = register(child, nextTuesday(), RegistrationStatus.ACCEPTED);
+        eventDetachedDateRepo.detach(event.id(), nextTuesday());
+
+        change(event, event.name(), event.dayOfWeek(), event.startTime().plus(1, ChronoUnit.HOURS));
+
+        assertEquals(RegistrationStatus.ACCEPTED, reread(kept).status());
+        verify(notifications, never()).notify(any(), eq(NotificationType.EVENT_DATE_DROPPED), any(), any());
+    }
+
     /** A one-off that was called off stays called off on the day it moved to. */
     @Test
     void aMovedOneOffTakesItsCancellationAlong() {

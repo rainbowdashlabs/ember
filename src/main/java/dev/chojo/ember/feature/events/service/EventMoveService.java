@@ -50,6 +50,9 @@ import java.util.TreeSet;
  * Dates the appointment still falls on are left exactly as they are, and so is a place already given
  * up or turned down, which says the member is not coming either way.
  *
+ * <p>A date a series gave away to an appointment of its own is not a date it left: what was filed
+ * against it went along to that appointment, and anything still found there is left alone.
+ *
  * <p>Dates before today are never touched. They are what happened, and an appointment moved today
  * does not change who was there last week.
  */
@@ -140,8 +143,9 @@ public class EventMoveService {
         filed.addAll(registrationRepository.findDatesFrom(after.id(), today));
         filed.addAll(fieldRepository.findDateValueDatesFrom(after.id(), today));
         filed.addAll(reminderRepository.findSentDatesFrom(after.id(), today));
-        List<LocalDate> gone =
-                filed.stream().filter(date -> !calendar.occursOn(after, date)).toList();
+        List<LocalDate> gone = filed.stream()
+                .filter(date -> !calendar.occursOn(after, date) && !calendar.isDetached(after, date))
+                .toList();
         if (gone.isEmpty()) return;
 
         var withdrawn = registrationRepository.withdrawOnDates(after.id(), gone);

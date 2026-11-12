@@ -10,9 +10,11 @@ import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventDateCancellation;
+import dev.chojo.ember.feature.events.entity.EventDetachedDate;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventBreakRepository;
 import dev.chojo.ember.feature.events.repository.EventDateCancellationRepository;
+import dev.chojo.ember.feature.events.repository.EventDetachedDateRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -56,6 +58,7 @@ class EventReminderCheckerTest {
     private StationRepository stationRepository;
     private EventBreakRepository breakRepository;
     private EventDateCancellationRepository cancellationRepository;
+    private EventDetachedDateRepository detachedDateRepository;
 
     private static final int STATION_ID = 1;
     private static final ZoneId BERLIN = ZoneId.of("Europe/Berlin");
@@ -76,6 +79,7 @@ class EventReminderCheckerTest {
         stationRepository = mock(StationRepository.class);
         breakRepository = mock(EventBreakRepository.class);
         cancellationRepository = mock(EventDateCancellationRepository.class);
+        detachedDateRepository = mock(EventDetachedDateRepository.class);
     }
 
     /**
@@ -514,6 +518,22 @@ class EventReminderCheckerTest {
         verify(reminderRepository, never()).markSent(anyInt(), any(), anyInt());
     }
 
+    /** A date the series gave away to an appointment of its own is not reminded of as a date of the series. */
+    @Test
+    void nobodyIsRemindedOfADetachedDate() {
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        var event = recurringEvent(51, today.getDayOfWeek().getValue());
+        when(detachedDateRepository.findByStation(STATION_ID)).thenReturn(List.of(new EventDetachedDate(51, today)));
+        when(eventRepository.findEventsWithReminders()).thenReturn(List.of(event));
+        when(reminderRepository.findDays(51)).thenReturn(List.of(0));
+        when(stationMemberRepository.findByStation(STATION_ID)).thenReturn(List.of(member(10)));
+
+        invokeCheck();
+
+        verify(notifier, never()).notify(any(), any(), any(), any());
+        verify(reminderRepository, never()).markSent(anyInt(), any(), anyInt());
+    }
+
     /** A weekly series that names no weekday repeats on the weekday of its start, as a calendar reads it. */
     @Test
     void aWeeklySeriesWithoutAWeekdayIsRemindedOnTheWeekdayOfItsStart() {
@@ -592,7 +612,11 @@ class EventReminderCheckerTest {
                     restrictionService,
                     readOnlyGuard,
                     new OccurrenceCalendar(
-                            eventRepository, breakRepository, cancellationRepository, stationRepository));
+                            eventRepository,
+                            breakRepository,
+                            cancellationRepository,
+                            detachedDateRepository,
+                            stationRepository));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

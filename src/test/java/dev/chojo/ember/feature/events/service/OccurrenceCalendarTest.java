@@ -224,6 +224,28 @@ class OccurrenceCalendarTest extends RepositoryTestBase {
         assertEquals(first, occurrenceCalendar.dateToAnswerFor(weekly, first));
     }
 
+    /**
+     * A date the series gave away is no date of it any more: lists skip to the one after, and an
+     * answer for it is refused as for a day the series does not fall on.
+     */
+    @Test
+    void aDetachedDateIsSkippedAndTakesNoAnswer() {
+        LocalDate first = LocalDate.now(zone()).plusDays(2);
+        var weekly = event(
+                StationEvent.EventType.RECURRING,
+                first.getDayOfWeek().getValue(),
+                first.atTime(18, 0).atZone(zone()).toInstant());
+        eventDetachedDateRepo.detach(weekly.id(), first);
+
+        var calendar = occurrenceCalendar.forStation(station.id());
+        assertEquals(DateCheck.NOT_AN_OCCURRENCE, calendar.check(weekly, first));
+        assertEquals(first.plusWeeks(1), occurrenceCalendar.next(weekly).orElseThrow());
+        assertEquals(List.of(first.plusWeeks(1)), occurrenceCalendar.occurrencesWithin(weekly, 10));
+        assertRefused(
+                EventRefusal.REGISTRATION_DAY_NOT_AN_OCCURRENCE,
+                () -> occurrenceCalendar.dateToAnswerFor(weekly, first));
+    }
+
     /** A one-time appointment whose one date is off is off altogether, and so is a cancelled series. */
     @Test
     void aOneOffWithItsDateCancelledIsCancelledAltogether() {
