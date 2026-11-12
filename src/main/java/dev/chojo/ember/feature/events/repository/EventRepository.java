@@ -504,7 +504,7 @@ public class EventRepository {
      */
     public Optional<EventLink> findContinues(int id) {
         return query("""
-                SELECT s.id, s.name, e.continues_from
+                SELECT s.id, s.name, s.event_type, e.continues_from
                 FROM station_event e
                          JOIN station_event s ON s.id = e.continues_event_id
                 WHERE e.id = :id;""")
@@ -521,7 +521,7 @@ public class EventRepository {
      */
     public List<EventLink> findContinuations(int id) {
         return query("""
-                SELECT e.id, e.name, e.continues_from
+                SELECT e.id, e.name, e.event_type, e.continues_from
                 FROM station_event e
                 WHERE e.continues_event_id = :id
                 ORDER BY e.continues_from, e.id;""")

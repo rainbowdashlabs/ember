@@ -25762,6 +25762,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The appointments an appointment took dates from and gave dates to */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventLinks"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/next-date": {
         parameters: {
             query?: never;
@@ -67438,6 +67485,17 @@ export interface components {
             title?: string;
             url?: string;
         };
+        EventLink: {
+            date: components["schemas"]["LocalDate"];
+            /** Format: int32 */
+            eventId: number;
+            name: string;
+            series: boolean;
+        };
+        EventLinks: {
+            continuations: components["schemas"]["EventLink"][];
+            continues: components["schemas"]["EventLink"] | null;
+        };
         EventQuestionSettings: {
             defaultValue?: string;
             /** Format: int32 */
@@ -77057,6 +77115,8 @@ export type EventFederationRegistration = components['schemas']['EventFederation
 export type EventFieldDefault = components['schemas']['EventFieldDefault'];
 export type EventFieldEntry = components['schemas']['EventFieldEntry'];
 export type EventItem = components['schemas']['EventItem'];
+export type EventLink = components['schemas']['EventLink'];
+export type EventLinks = components['schemas']['EventLinks'];
 export type EventQuestionSettings = components['schemas']['EventQuestionSettings'];
 export type EventRegisterRequest = components['schemas']['EventRegisterRequest'];
 export type EventRegistration = components['schemas']['EventRegistration'];

@@ -19,6 +19,8 @@ import dev.chojo.ember.feature.events.entity.ChangePreview;
 import dev.chojo.ember.feature.events.entity.DatedEvent;
 import dev.chojo.ember.feature.events.entity.EditScope;
 import dev.chojo.ember.feature.events.entity.EventDraft;
+import dev.chojo.ember.feature.events.entity.EventLink;
+import dev.chojo.ember.feature.events.entity.EventLinks;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationOpening;
 import dev.chojo.ember.feature.events.entity.EventSummary;
@@ -160,6 +162,7 @@ public class EventRoutes implements Routes {
         routes.get(prefix + "/events/{id}/next-date", this::getNextDate, StationPermission.USER);
         routes.put(prefix + "/events/{id}", this::update, StationPermission.EVENT_EDIT);
         routes.post(prefix + "/events/{id}/change-notice", this::sendChangeNotice, StationPermission.EVENT_EDIT);
+        routes.get(prefix + "/events/{id}/links", this::getLinks, StationPermission.USER);
         routes.post(
                 prefix + "/events/{id}/change-notice/preview", this::previewChangeNotice, StationPermission.EVENT_EDIT);
         routes.delete(prefix + "/events/{id}", this::delete, StationPermission.EVENT_EDIT);
@@ -506,6 +509,32 @@ public class EventRoutes implements Routes {
         var answer = crudService.findById(saved.id()).orElse(saved);
         if (answer.id() == current.id()) changeNotifier.tellChanged(current, answer, req.changeNotice());
         ctx.json(answer);
+    }
+
+    /**
+     * The appointments this one took dates from and gave dates to, as far as the reader may see them.
+     */
+    @OpenApi(
+            path = "/api/v1/events/{id}/links",
+            methods = HttpMethod.GET,
+            summary = "The appointments an appointment took dates from and gave dates to",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventLinks.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void getLinks(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var event = visibility.requireVisibleEvent(session, pathInt(ctx, "id"));
+        var links = scopeService.linksOf(event.id());
+        var continues = links.continues();
+        var seen = continues == null
+                ? List.<EventLink>of()
+                : visibility.keepVisible(session, List.of(continues), EventLink::eventId);
+        ctx.json(new EventLinks(
+                seen.isEmpty() ? null : seen.getFirst(),
+                visibility.keepVisible(session, links.continuations(), EventLink::eventId)));
     }
 
     /**

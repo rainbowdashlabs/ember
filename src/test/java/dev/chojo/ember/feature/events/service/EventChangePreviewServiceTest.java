@@ -267,6 +267,13 @@ class EventChangePreviewServiceTest extends RepositoryTestBase {
                 RefusalResponse.class,
                 () -> preview.preview(series, later(series, 1), new EditScope(null, nextTuesday())));
         assertEquals(EventRefusal.EVENT_SCOPE_NEEDS_A_KIND, noKind.refusal());
+        var notADate = assertThrows(
+                RefusalResponse.class,
+                () -> preview.preview(
+                        series,
+                        later(series, 1),
+                        new EditScope(EditScopeKind.THIS, nextTuesday().plusDays(1))));
+        assertEquals(EventRefusal.EVENT_SCOPE_DATE_NOT_AN_OCCURRENCE, notADate.refusal());
         assertTrue(eventRepo.findContinuations(series.id()).isEmpty());
     }
 }

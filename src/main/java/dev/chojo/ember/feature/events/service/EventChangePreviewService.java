@@ -65,6 +65,9 @@ public class EventChangePreviewService {
         if (kind == null) throw EventRefusal.EVENT_SCOPE_NEEDS_A_KIND.raise();
         LocalDate date = kind == EditScopeKind.ALL ? null : scope.date();
         if (kind != EditScopeKind.ALL && date == null) throw EventRefusal.EVENT_SCOPE_NEEDS_A_DATE.raise();
+        if (date != null && !calendar.occursOn(current, date)) {
+            throw EventRefusal.EVENT_SCOPE_DATE_NOT_AN_OCCURRENCE.raise();
+        }
 
         var after = asSaved(current, draft, kind, date, calendar);
         var effect = changeNotifier.effectOf(current, after, kind == EditScopeKind.THIS ? date : null);

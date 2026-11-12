@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.events.entity.DateSpan;
 import dev.chojo.ember.feature.events.entity.EditScope;
 import dev.chojo.ember.feature.events.entity.EditScopeKind;
 import dev.chojo.ember.feature.events.entity.EventDraft;
+import dev.chojo.ember.feature.events.entity.EventLinks;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.OccurrenceRule;
 import dev.chojo.ember.feature.events.entity.StationCalendar;
@@ -78,6 +79,17 @@ public class EventEditScopeService {
         this.detachedDateRepository = detachedDateRepository;
         this.occurrenceCalendar = occurrenceCalendar;
         this.moveService = moveService;
+    }
+
+    /**
+     * How an appointment is linked to the ones it took dates from and gave dates to.
+     *
+     * @param eventId the appointment
+     * @return its links, none where it was never split
+     */
+    public EventLinks linksOf(int eventId) {
+        return new EventLinks(
+                eventRepository.findContinues(eventId).orElse(null), eventRepository.findContinuations(eventId));
     }
 
     /**

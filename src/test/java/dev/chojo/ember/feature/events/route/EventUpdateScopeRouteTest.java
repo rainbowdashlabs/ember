@@ -15,6 +15,8 @@ import dev.chojo.ember.feature.events.entity.EditScope;
 import dev.chojo.ember.feature.events.entity.EditScopeKind;
 import dev.chojo.ember.feature.events.entity.EventChangePart;
 import dev.chojo.ember.feature.events.entity.EventDraft;
+import dev.chojo.ember.feature.events.entity.EventLink;
+import dev.chojo.ember.feature.events.entity.EventLinks;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventChangeNotifier;
@@ -202,5 +204,21 @@ class EventUpdateScopeRouteTest {
         assertEquals(4, counts.get("noticeAudience").asInt());
         assertEquals("19:00", counts.get("newStart").asString());
         verify(scopeService, never()).save(any(), any(), any());
+    }
+
+    @Test
+    void theLinksOfAnAppointmentAreRead() {
+        when(scopeService.linksOf(SERIES_ID))
+                .thenReturn(new EventLinks(
+                        null, List.of(new EventLink(NEW_ID, "Dienst neu", LocalDate.of(2027, 4, 6), false))));
+
+        var answer = harness.request(client -> client.get(
+                PREFIX + "/events/" + SERIES_ID + "/links",
+                harness.as(TestSessions.member(STATION_ID, StationPermission.USER, StationPermission.EVENT_EDIT))));
+
+        assertEquals(200, answer.code());
+        var links = json(answer);
+        assertEquals(NEW_ID, links.get("continuations").get(0).get("eventId").asInt());
+        assertEquals(false, links.get("continuations").get(0).get("series").asBoolean());
     }
 }

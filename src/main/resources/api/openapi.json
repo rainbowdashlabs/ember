@@ -21734,6 +21734,43 @@
         }
       }
     },
+    "/api/v1/events/{id}/links" : {
+      "get" : {
+        "summary" : "The appointments an appointment took dates from and gave dates to",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventLinks"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/events/{id}/next-date" : {
       "get" : {
         "summary" : "The next day an appointment falls on",
@@ -58839,6 +58876,44 @@
             "type" : "string"
           }
         }
+      },
+      "EventLink" : {
+        "type" : "object",
+        "properties" : {
+          "eventId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "date" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "series" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "eventId", "name", "date", "series" ]
+      },
+      "EventLinks" : {
+        "type" : "object",
+        "properties" : {
+          "continues" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/EventLink"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "continuations" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EventLink"
+            }
+          }
+        },
+        "required" : [ "continues", "continuations" ]
       },
       "EventQuestionSettings" : {
         "type" : "object",

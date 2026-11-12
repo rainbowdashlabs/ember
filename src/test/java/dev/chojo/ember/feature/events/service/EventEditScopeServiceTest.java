@@ -224,10 +224,11 @@ class EventEditScopeServiceTest extends RepositoryTestBase {
         assertEquals("Dienst neu", detached.name());
         assertEquals(date.atTime(19, 0).atZone(zone).toInstant(), detached.startTime());
         assertEquals(
-                new EventLink(series.id(), "Dienst", date),
+                new EventLink(series.id(), "Dienst", date, true),
                 eventRepo.findContinues(detached.id()).orElseThrow());
         assertEquals(
-                List.of(new EventLink(detached.id(), "Dienst neu", date)), eventRepo.findContinuations(series.id()));
+                List.of(new EventLink(detached.id(), "Dienst neu", date, false)),
+                eventRepo.findContinuations(series.id()));
 
         var moved = eventRegistrationRepo.findById(place.id()).orElseThrow();
         assertEquals(detached.id(), moved.eventId());
@@ -315,7 +316,7 @@ class EventEditScopeServiceTest extends RepositoryTestBase {
                 eventRegistrationRepo.findById(after.id()).orElseThrow().status());
         assertEquals(RestrictionMode.OR, continued.restrictionMode());
         assertEquals(
-                new EventLink(series.id(), "Dienst", from),
+                new EventLink(series.id(), "Dienst", from, true),
                 eventRepo.findContinues(continued.id()).orElseThrow());
     }
 
