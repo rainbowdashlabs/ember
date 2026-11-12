@@ -580,6 +580,28 @@ public class EventRegistrationRepository {
     }
 
     /**
+     * Finds the members holding a place, pending or accepted, on any of these dates of an event.
+     *
+     * @param eventId the event ID
+     * @param dates   the dates the places are held for
+     * @return the member IDs, each once, in the order of their first place
+     */
+    public List<Integer> findRegisteredMemberIdsOn(int eventId, Collection<LocalDate> dates) {
+        if (dates.isEmpty()) return List.of();
+        return query("""
+                SELECT member_id
+                FROM event_registration
+                WHERE event_id = :id
+                  AND event_date = ANY(:dates)
+                  AND status IN ('PENDING', 'ACCEPTED')
+                GROUP BY member_id
+                ORDER BY min(event_date), member_id;""")
+                .single(call().bind("id", eventId).bind("dates", List.copyOf(dates), PostgreSqlTypes.DATE))
+                .map(row -> row.getInt("member_id"))
+                .all();
+    }
+
+    /**
      * Finds the members holding a place, pending or accepted, on one date of an event.
      *
      * @param eventId   the event ID

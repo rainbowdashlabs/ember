@@ -602,21 +602,22 @@ class EventReminderCheckerTest {
         try {
             var ctor = EventReminderChecker.class.getDeclaredConstructors()[0];
             ctor.setAccessible(true);
+            var calendar = new OccurrenceCalendar(
+                    eventRepository,
+                    breakRepository,
+                    cancellationRepository,
+                    detachedDateRepository,
+                    stationRepository);
             return (EventReminderChecker) ctor.newInstance(
                     eventRepository,
                     reminderRepository,
                     registrationRepository,
-                    stationMemberRepository,
                     notifier,
                     memberNameResolver,
                     restrictionService,
                     readOnlyGuard,
-                    new OccurrenceCalendar(
-                            eventRepository,
-                            breakRepository,
-                            cancellationRepository,
-                            detachedDateRepository,
-                            stationRepository));
+                    calendar,
+                    new EventAudience(registrationRepository, stationMemberRepository, restrictionService, calendar));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
