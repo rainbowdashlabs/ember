@@ -34824,6 +34824,46 @@
         } ]
       }
     },
+    "/api/v1/messages/people/{personUid}/cards" : {
+      "get" : {
+        "summary" : "A person's member cards at the stations the reader shares with them",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/SharedMemberCard"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "personUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ]
+      }
+    },
     "/api/v1/messages/settings" : {
       "put" : {
         "summary" : "Turn the mail about unread messages on or off",
@@ -81196,6 +81236,22 @@
           }
         },
         "required" : [ "id", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "requiresRegistration", "requiresConfirmation", "repeatUntil", "repeatCount" ]
+      },
+      "SharedMemberCard" : {
+        "type" : "object",
+        "properties" : {
+          "stationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "card" : {
+            "$ref" : "#/components/schemas/MemberCard"
+          }
+        },
+        "required" : [ "stationUid", "stationName", "card" ]
       },
       "SharedPage" : {
         "type" : "object",

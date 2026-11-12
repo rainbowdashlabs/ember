@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {describe, expect, it, vi} from 'vitest'
-import type {MemberCard} from '@/api/generated/schema'
+import type {MemberCard, SharedMemberCard} from '@/api/generated/schema'
 import {createIdentity, createSessionInfo} from '@/test/mocks/factories'
 import {sessionWriter} from '@/util/sessionState'
 
@@ -12,7 +12,11 @@ const getMemberCard = vi.fn<(memberUid: string) => Promise<MemberCard>>()
 
 vi.mock('@/api/members', () => ({getMemberCard: (memberUid: string) => getMemberCard(memberUid)}))
 
-const {loadMemberCard} = await import('./useMemberCards')
+const getPersonCards = vi.fn<(accountUid: string) => Promise<SharedMemberCard[]>>()
+
+vi.mock('@/api/messages', () => ({getPersonCards: (accountUid: string) => getPersonCards(accountUid)}))
+
+const {loadMemberCard, loadPersonCards} = await import('./useMemberCards')
 
 function cardFor(memberUid: string): MemberCard {
   return {
@@ -68,5 +72,18 @@ describe('loadMemberCard', () => {
     await loadMemberCard('permission-change')
 
     expect(getMemberCard).toHaveBeenCalledTimes(2)
+  })
+
+  it('asks for a person\'s cards once per viewer, like a member\'s', async () => {
+    getPersonCards.mockReset()
+    getPersonCards.mockResolvedValue([])
+    sessionWriter().setInfo(createSessionInfo({account: {id: 4}, stationId: null}))
+
+    await loadPersonCards('ben-account')
+    await loadPersonCards('ben-account')
+    sessionWriter().setInfo(createSessionInfo({account: {id: 5}, stationId: null}))
+    await loadPersonCards('ben-account')
+
+    expect(getPersonCards).toHaveBeenCalledTimes(2)
   })
 })

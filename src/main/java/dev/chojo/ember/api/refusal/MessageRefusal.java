@@ -99,7 +99,10 @@ public enum MessageRefusal implements Refusal {
     BLOCK_PERSON_NOT_HERE(25, HttpStatus.NOT_FOUND, "That person is not here"),
 
     /** Reading a page of messages in both directions at once. */
-    PAGE_BOTH_WAYS(26, HttpStatus.BAD_REQUEST, "Ask for the messages before or after one message, not both");
+    PAGE_BOTH_WAYS(26, HttpStatus.BAD_REQUEST, "Ask for the messages before or after one message, not both"),
+
+    /** Looking at the card of a person who shares no station with the reader, or of nobody at all. */
+    CARD_PERSON_NOT_SHARED(27, HttpStatus.NOT_FOUND, "That person shares no station with you");
 
     private final Definition definition;
 

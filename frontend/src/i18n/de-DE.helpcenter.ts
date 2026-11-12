@@ -1364,7 +1364,7 @@ volumes:
             listTitle: 'Deine Unterhaltungen',
             listText: 'Links stehen alle deine Unterhaltungen, die neueste oben. Du siehst, mit wem du schreibst, den Anfang der letzten Nachricht und wann sie kam. Eine stumm geschaltete Unterhaltung ist grau.',
             conversationTitle: 'Eine Unterhaltung',
-            conversationText: 'Rechts steht die geöffnete Unterhaltung. Schreibt jemand mehrere Nachrichten kurz hintereinander, stehen sie ohne neuen Namen untereinander. Die rote Linie „Neu" zeigt, ab wo du noch nicht gelesen hast. Neue Nachrichten erscheinen von selbst.',
+            conversationText: 'Rechts steht die geöffnete Unterhaltung. Schreibt jemand mehrere Nachrichten kurz hintereinander, stehen sie ohne neuen Namen untereinander. Die rote Linie „Neu" zeigt, ab wo du noch nicht gelesen hast. Neue Nachrichten erscheinen von selbst. Ein Klick auf einen Namen oder ein Bild öffnet das Kurzprofil der Person, für jede Wache, die ihr teilt.',
             actionsTitle: 'Antworten, ändern und löschen',
             actionsText: 'Fährst du mit der Maus über eine Nachricht, erscheint diese Leiste. Damit antwortest du auf die Nachricht. Deine eigenen Nachrichten änderst oder löschst du hier. Ist das Feld leer, holt die Pfeiltaste nach oben deine letzte Nachricht zum Ändern.',
             reactionsText: 'Mit den sechs Emoji vorne in der Leiste reagierst du schnell. Der Smiley öffnet alle Emoji mit einer Suche. Unter der Nachricht steht dann jedes Emoji mit einer Zahl. Ein Klick darauf reagiert mit oder nimmt deine Reaktion zurück.',

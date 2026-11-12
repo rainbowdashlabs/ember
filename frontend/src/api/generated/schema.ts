@@ -43697,6 +43697,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/messages/people/{personUid}/cards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A person's member cards at the stations the reader shares with them */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    personUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SharedMemberCard"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/messages/settings": {
         parameters: {
             query?: never;
@@ -76127,6 +76174,12 @@ export interface components {
             requiresRegistration: boolean;
             startTime: string;
         };
+        SharedMemberCard: {
+            card: components["schemas"]["MemberCard"];
+            stationName: string;
+            /** Format: uuid */
+            stationUid: string;
+        };
         SharedPage: {
             ownAddressLive: boolean;
             page: components["schemas"]["StationPage"];
@@ -79769,6 +79822,7 @@ export type ShareCount = components['schemas']['ShareCount'];
 export type SharedBrand = components['schemas']['SharedBrand'];
 export type ShareDetail = components['schemas']['ShareDetail'];
 export type SharedEvent = components['schemas']['SharedEvent'];
+export type SharedMemberCard = components['schemas']['SharedMemberCard'];
 export type SharedPage = components['schemas']['SharedPage'];
 export type SharedProtocolView = components['schemas']['SharedProtocolView'];
 export type SharedQuizCatalog = components['schemas']['SharedQuizCatalog'];

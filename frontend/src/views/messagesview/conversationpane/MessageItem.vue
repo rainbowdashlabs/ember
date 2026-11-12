@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
+import PersonCardButton from '@/components/avatar/PersonCardButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {ConversationMessageResponse} from '@/api/generated/schema'
 import {useMessageWords} from '@/composables/useMessageWords'
@@ -51,13 +52,17 @@ const highlight = computed(() => mentionsReader.value
        :class="[opensRun ? 'mt-3' : '', highlight]" class="group relative flex gap-3 rounded-theme px-2 py-0.5"
        v-on="press">
     <div class="w-9 shrink-0">
-      <UserAvatar v-if="opensRun" :identity="message.author ? {accountUid: message.author.uid} : null"
-                  :name="nameOf(message.author)" class="h-9 w-9"/>
+      <PersonCardButton v-if="opensRun" :account-uid="message.author?.uid" :name="nameOf(message.author)">
+        <UserAvatar :identity="message.author ? {accountUid: message.author.uid} : null"
+                    :name="nameOf(message.author)" class="h-9 w-9"/>
+      </PersonCardButton>
       <MutedText v-else class="hidden pt-1 text-[10px] group-hover:inline">{{ formatTime(message.createdAt) }}</MutedText>
     </div>
     <div class="min-w-0 flex-1">
       <p v-if="opensRun" class="flex items-baseline gap-2">
-        <span class="text-sm font-semibold">{{ nameOf(message.author) }}</span>
+        <PersonCardButton :account-uid="message.author?.uid" :name="nameOf(message.author)">
+          <span class="text-sm font-semibold">{{ nameOf(message.author) }}</span>
+        </PersonCardButton>
         <MutedText>{{ formatTime(message.createdAt) }}</MutedText>
       </p>
       <ReplyQuote v-if="message.replyTo" :reply="message.replyTo" @jump="actions.jumpTo"/>

@@ -10,11 +10,13 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.members.entity.SharedMemberCard;
 import dev.chojo.ember.feature.messages.entity.MessagesStatus;
 import dev.chojo.ember.feature.messages.route.MessageWire.MessagePersonResponse;
 import dev.chojo.ember.feature.messages.route.MessageWire.ReachablePersonResponse;
 import dev.chojo.ember.feature.messages.service.BlockService;
 import dev.chojo.ember.feature.messages.service.MessageSettingsService;
+import dev.chojo.ember.feature.messages.service.PersonCardService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -35,17 +37,20 @@ import static dev.chojo.ember.api.RouteSupport.pathUuid;
 
 /**
  * The reader's messages beside the conversations: whether messages are on and how many wait, the
- * mail setting, finding somebody to write to, and the people the reader blocked.
+ * mail setting, finding somebody to write to, the card behind a person's name, and the people the
+ * reader blocked.
  */
 @Singleton
 public class MessagePeopleRoutes implements Routes {
     private final MessageSettingsService settings;
     private final BlockService blocks;
+    private final PersonCardService cards;
 
     @Inject
-    public MessagePeopleRoutes(MessageSettingsService settings, BlockService blocks) {
+    public MessagePeopleRoutes(MessageSettingsService settings, BlockService blocks, PersonCardService cards) {
         this.settings = settings;
         this.blocks = blocks;
+        this.cards = cards;
     }
 
     @Override
@@ -53,6 +58,7 @@ public class MessagePeopleRoutes implements Routes {
         routes.get(prefix + "/messages/status", this::status, StationPermission.LOGIN);
         routes.put(prefix + "/messages/settings", this::setMail, StationPermission.LOGIN);
         routes.get(prefix + "/messages/people", this::people, StationPermission.LOGIN);
+        routes.get(prefix + "/messages/people/{personUid}/cards", this::cards, StationPermission.LOGIN);
         routes.get(prefix + "/messages/blocks", this::blocked, StationPermission.LOGIN);
         routes.post(prefix + "/messages/blocks", this::block, StationPermission.LOGIN);
         routes.delete(prefix + "/messages/blocks/{personUid}", this::unblock, StationPermission.LOGIN);
@@ -98,6 +104,22 @@ public class MessagePeopleRoutes implements Routes {
         ctx.json(settings.reachable(UserSession.from(ctx).accountId(), search).stream()
                 .map(ReachablePersonResponse::of)
                 .toList());
+    }
+
+    @OpenApi(
+            path = "/api/v1/messages/people/{personUid}/cards",
+            methods = HttpMethod.GET,
+            summary = "A person's member cards at the stations the reader shares with them",
+            tags = {"Messages"},
+            pathParams = @OpenApiParam(name = "personUid", type = UUID.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = SharedMemberCard[].class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    @StationFree(
+            "an account is looked at from every station the reader shares with it, each card read as a reader there")
+    private void cards(Context ctx) {
+        ctx.json(cards.cardsOf(UserSession.from(ctx).accountId(), pathUuid(ctx, "personUid")));
     }
 
     @OpenApi(

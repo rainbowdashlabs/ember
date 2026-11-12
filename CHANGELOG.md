@@ -6,7 +6,7 @@ People who share a station can write to each other directly or in groups. One da
 
 ### New Features
 
-- **Messages between people of a station.** Everybody can write to the people they share a station with, directly or in groups of up to 25, from the messages button in the header. A conversation belongs to the people in it and looks the same whichever station is chosen.
+- **Messages between people of a station.** Everybody can write to the people they share a station with, directly or in groups of up to 25, from the messages button in the header. A conversation looks the same whichever station is chosen, and a name in it opens the short profile at every station both share.
 - **New messages arrive without reloading.** Messages, changes and reactions appear as they are written, and the header shows how many wait unread. A message can be answered, changed, deleted and reacted to with any standard emoji, and people in a group can be mentioned.
 - **A mail for messages left unread.** A message unread for 15 minutes sends one mail per conversation with its first lines, and no further one until it is read. The mail can be turned off in the message settings, and muted conversations send none.
 - **People can be blocked for messages.** A blocked person can no longer start a direct conversation with the blocker or add them to a group, and their messages in shared groups are folded away. They are not told.

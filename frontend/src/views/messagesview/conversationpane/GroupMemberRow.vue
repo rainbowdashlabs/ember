@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
+import PersonCardButton from '@/components/avatar/PersonCardButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import AppIcon from '@/components/display/AppIcon.vue'
 import type {ConversationMemberResponse} from '@/api/generated/schema'
@@ -27,8 +28,12 @@ const {t} = useI18n()
 
 <template>
   <li class="flex items-center gap-3 py-2" :data-testid="`group-member-${member.uid}`">
-    <UserAvatar :identity="{accountUid: member.uid}" :name="personName(member)" size="sm"/>
-    <span class="min-w-0 flex-1 truncate text-sm">{{ personName(member) }}</span>
+    <PersonCardButton :account-uid="member.uid" :name="personName(member)" class="min-w-0 flex-1">
+      <span class="flex min-w-0 items-center gap-3">
+        <UserAvatar :identity="{accountUid: member.uid}" :name="personName(member)" size="sm"/>
+        <span class="min-w-0 truncate text-sm">{{ personName(member) }}</span>
+      </span>
+    </PersonCardButton>
     <AppIcon v-if="owner" :icon="['fas', 'crown']" :title="t('messages.members.owner')" class="h-3 w-3 text-primary"/>
     <IconButton v-if="removable" :icon="['fas', 'user-minus']" :label="t('messages.members.remove')"
                 class="text-error hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent" @click="$emit('remove')"/>

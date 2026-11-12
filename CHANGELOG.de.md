@@ -6,7 +6,7 @@ Wer eine Wache teilt, kann sich direkt oder in Gruppen Nachrichten schreiben. Ei
 
 ### Neue Funktionen
 
-- **Nachrichten zwischen den Leuten einer Wache.** Alle können den Leuten schreiben, mit denen sie eine Wache teilen, direkt oder in Gruppen bis 25 Personen, über den Nachrichten-Knopf in der Kopfzeile. Eine Unterhaltung gehört den Leuten darin und sieht gleich aus, egal welche Wache gewählt ist.
+- **Nachrichten zwischen den Leuten einer Wache.** Alle können den Leuten schreiben, mit denen sie eine Wache teilen, direkt oder in Gruppen bis 25 Personen, über den Nachrichten-Knopf in der Kopfzeile. Eine Unterhaltung sieht gleich aus, egal welche Wache gewählt ist, und ein Name darin öffnet das Kurzprofil auf jeder gemeinsamen Wache.
 - **Neue Nachrichten kommen ohne Neuladen.** Nachrichten, Änderungen und Reaktionen erscheinen, sobald sie geschrieben werden, und die Kopfzeile zeigt, wie viele ungelesen warten. Eine Nachricht lässt sich beantworten, ändern, löschen und mit jedem üblichen Emoji kommentieren, in Gruppen lassen sich Leute erwähnen.
 - **Eine Mail für ungelesene Nachrichten.** Bleibt eine Nachricht 15 Minuten ungelesen, geht pro Unterhaltung eine Mail mit den ersten Zeilen raus, und bis zum Lesen keine weitere. Die Mail lässt sich in den Einstellungen für Nachrichten abschalten, stumm geschaltete Unterhaltungen schicken keine.
 - **Leute lassen sich für Nachrichten blockieren.** Eine blockierte Person kann keine direkte Unterhaltung mehr mit der blockierenden Person starten und sie in keine Gruppe holen, ihre Nachrichten in gemeinsamen Gruppen sind eingeklappt. Sie erfährt davon nichts.

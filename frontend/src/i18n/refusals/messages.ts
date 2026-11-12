@@ -31,4 +31,5 @@ export default {
     'MS-024': 'Du kannst dich nicht selbst blockieren',
     'MS-025': 'Diese Person gibt es hier nicht',
     'MS-026': 'Frag nach Nachrichten vor oder nach einer Nachricht, nicht beides',
+    'MS-027': 'Diese Person ist auf keiner deiner Wachen',
 }

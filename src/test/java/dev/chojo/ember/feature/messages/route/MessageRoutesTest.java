@@ -5,12 +5,18 @@
  */
 package dev.chojo.ember.feature.messages.route;
 
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.refusal.MessageRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.members.entity.MemberCard;
+import dev.chojo.ember.feature.members.entity.SharedMemberCard;
+import dev.chojo.ember.feature.members.service.SharedMemberCards;
+import dev.chojo.ember.feature.messages.repository.MessagePeopleRepository;
 import dev.chojo.ember.feature.messages.service.MessageFixtures;
 import dev.chojo.ember.feature.messages.service.MessageTestBase;
+import dev.chojo.ember.feature.messages.service.PersonCardService;
 import dev.chojo.ember.feature.station.entity.Station;
 import io.javalin.testtools.Request;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +24,9 @@ import org.junit.jupiter.api.Test;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
@@ -28,6 +36,8 @@ import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Every message route over HTTP, through the real access gate, with the real services behind it:
@@ -39,14 +49,19 @@ class MessageRoutesTest extends MessageTestBase {
     private Account anna;
     private Account ben;
     private Account cora;
+    private SharedMemberCards sharedCards;
 
     @BeforeEach
     void serve() {
         var services = MessageFixtures.build();
+        sharedCards = mock(SharedMemberCards.class);
         harness = RouteHarness.serving(
                 new ConversationRoutes(services.conversations(), services.groups()),
                 new MessageRoutes(services.messages(), services.reactions()),
-                new MessagePeopleRoutes(services.settings(), services.blocks()),
+                new MessagePeopleRoutes(
+                        services.settings(),
+                        services.blocks(),
+                        new PersonCardService(new MessagePeopleRepository(), sharedCards)),
                 new MessageEventRoutes(services.signals()));
         Station station = station();
         anna = memberOf(station, "Anna");
@@ -201,6 +216,34 @@ class MessageRoutesTest extends MessageTestBase {
             assertEquals(
                     MessageRefusal.GROUP_NEEDS_SOMEBODY,
                     refusalOf(client.post(PREFIX + "/messages/conversations", body("{\"kind\":\"GROUP\"}"), as(anna))));
+        });
+    }
+
+    @Test
+    void aPersonsCardsAreTheirsAtTheSharedStationsAndNobodyElseHasAny() {
+        UUID stationUid = UUID.randomUUID();
+        var card = new MemberCard(
+                new MemberIdentity(stationUid, UUID.randomUUID()),
+                "Ben",
+                false,
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of());
+        when(sharedCards.between(anna.id(), ben.id()))
+                .thenReturn(List.of(new SharedMemberCard(stationUid, "Nord", card)));
+        harness.run((server, client) -> {
+            var cards = json(client.get(PREFIX + "/messages/people/" + ben.uid() + "/cards", as(anna)));
+            assertEquals(1, cards.size());
+            assertEquals("Nord", cards.get(0).get("stationName").asString());
+            assertEquals("Ben", cards.get(0).get("card").get("name").asString());
+
+            assertEquals(
+                    MessageRefusal.CARD_PERSON_NOT_SHARED,
+                    refusalOf(client.get(PREFIX + "/messages/people/" + cora.uid() + "/cards", as(anna))));
+            assertEquals(
+                    MessageRefusal.CARD_PERSON_NOT_SHARED,
+                    refusalOf(client.get(PREFIX + "/messages/people/" + UUID.randomUUID() + "/cards", as(anna))));
         });
     }
 

@@ -12,6 +12,7 @@ import type {
     MessagePersonResponse,
     MessagesStatus,
     ReachablePersonResponse,
+    SharedMemberCard,
 } from './generated/schema'
 
 /** Where the stream of message signals is opened, which the browser reaches with its cookie. */
@@ -137,4 +138,10 @@ export async function block(personUid: string): Promise<void> {
 
 export async function unblock(personUid: string): Promise<void> {
     await client.delete(`/messages/blocks/${personUid}`)
+}
+
+/** A person's member cards at the stations the reader shares with them, one per station. */
+export async function getPersonCards(personUid: string): Promise<SharedMemberCard[]> {
+    const res = await client.get<SharedMemberCard[]>(`/messages/people/${personUid}/cards`)
+    return res.data
 }

@@ -5,7 +5,8 @@
  */
 import {inject, provide, type InjectionKey} from 'vue'
 import {getMemberCard} from '@/api/members'
-import type {MemberCard} from '@/api/generated/schema'
+import {getPersonCards} from '@/api/messages'
+import type {MemberCard, SharedMemberCard} from '@/api/generated/schema'
 import {browserShallowRef} from '@/util/browserState'
 import {sessionState} from '@/util/sessionState'
 
@@ -14,9 +15,10 @@ const MEMBER_CARDS_SHOWN: InjectionKey<boolean> = Symbol('memberCardsShown')
 interface HeldCards {
     viewer: string
     byMember: Readonly<Record<string, Promise<MemberCard>>>
+    byPerson: Readonly<Record<string, Promise<readonly SharedMemberCard[]>>>
 }
 
-const held = browserShallowRef<HeldCards>({viewer: '', byMember: {}})
+const held = browserShallowRef<HeldCards>({viewer: '', byMember: {}, byPerson: {}})
 
 /**
  * Who is looking, as far as it changes what a card shows: the account, the profile it acts as, the
@@ -28,10 +30,31 @@ function currentViewer(): string {
     return [info.account.id, info.member?.id ?? '', info.stationId ?? '', [...info.permissions].sort().join(',')].join('|')
 }
 
-function cardsOfViewer(): Readonly<Record<string, Promise<MemberCard>>> {
+function cardsOfViewer(): HeldCards {
     const viewer = currentViewer()
-    if (held.value.viewer !== viewer) held.value = {viewer, byMember: {}}
-    return held.value.byMember
+    if (held.value.viewer !== viewer) held.value = {viewer, byMember: {}, byPerson: {}}
+    return held.value
+}
+
+/**
+ * Asks once and keeps the answer for this viewer; a request that failed is forgotten again.
+ */
+function keep<T>(
+    field: 'byMember' | 'byPerson',
+    key: string,
+    ask: () => Promise<T>,
+): Promise<T> {
+    const known = cardsOfViewer()[field][key] as Promise<T> | undefined
+    if (known) return known
+    const viewer = held.value.viewer
+    const request = ask()
+    held.value = {...held.value, [field]: {...held.value[field], [key]: request}}
+    request.catch(() => {
+        if (held.value.viewer !== viewer) return
+        const rest = Object.fromEntries(Object.entries(held.value[field]).filter(([kept]) => kept !== key))
+        held.value = {...held.value, [field]: rest}
+    })
+    return request
 }
 
 /**
@@ -61,15 +84,16 @@ export function useMemberCardsShown(): boolean {
  * @return their card
  */
 export function loadMemberCard(memberUid: string): Promise<MemberCard> {
-    const known = cardsOfViewer()[memberUid]
-    if (known) return known
-    const viewer = held.value.viewer
-    const request = getMemberCard(memberUid)
-    held.value = {viewer, byMember: {...held.value.byMember, [memberUid]: request}}
-    request.catch(() => {
-        if (held.value.viewer !== viewer) return
-        const byMember = Object.fromEntries(Object.entries(held.value.byMember).filter(([uid]) => uid !== memberUid))
-        held.value = {viewer, byMember}
-    })
-    return request
+    return keep('byMember', memberUid, () => getMemberCard(memberUid))
+}
+
+/**
+ * The cards of a person met as an account, in messages: one per station the reader shares with
+ * them, kept the same way as a member's card.
+ *
+ * @param accountUid the person looked at
+ * @return their cards, one per shared station
+ */
+export function loadPersonCards(accountUid: string): Promise<readonly SharedMemberCard[]> {
+    return keep('byPerson', accountUid, () => getPersonCards(accountUid))
 }
