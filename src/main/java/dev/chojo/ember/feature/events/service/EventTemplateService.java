@@ -12,15 +12,15 @@ import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateField;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
+import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationTemplateField;
-import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.question.FieldTypes;
 import dev.chojo.ember.feature.question.MemberEligibility;
 import dev.chojo.ember.feature.question.Question;
 import dev.chojo.ember.feature.question.QuestionCheck;
-import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -87,9 +87,10 @@ public class EventTemplateService {
     }
 
     /**
-     * Hands a template's registration questions and documents to bring to an appointment made from
-     * it. The copies are independent: a later template edit never rewrites questions members have
-     * already answered, nor what an appointment already asks to bring.
+     * Hands a template's registration questions, documents to bring and attached files to an
+     * appointment made from it. The copies are independent: a later template edit never rewrites
+     * questions members have already answered, nor what an appointment already asks to bring or
+     * hands over. The files themselves are linked, not copied.
      *
      * @param template the template, as {@link #requireOwn} found it for the appointment's station
      * @param eventId  the appointment being made from it
@@ -99,6 +100,8 @@ public class EventTemplateService {
         if (copied > 0) log.info("Event {} took {} question(s) from template {}", eventId, copied, template.id());
         int documents = repository.copyDocumentRequirements(template.id(), eventId);
         if (documents > 0) log.info("Event {} took {} document(s) from template {}", eventId, documents, template.id());
+        int files = repository.copyAttachments(template.id(), eventId);
+        if (files > 0) log.info("Event {} took {} file(s) from template {}", eventId, files, template.id());
     }
 
     public EventTemplate create(int stationId, String name) {
@@ -107,33 +110,25 @@ public class EventTemplateService {
         return template;
     }
 
-    public boolean update(
-            int id,
-            String name,
-            @Nullable String title,
-            @Nullable String description,
-            @Nullable Integer categoryId,
-            StationEvent.@Nullable EventType eventType,
-            @Nullable Boolean requiresRegistration,
-            @Nullable String registrationDeadlineOffset,
-            @Nullable Boolean requiresConfirmation,
-            @Nullable RestrictionMode restrictionMode,
-            @Nullable Integer attendanceTemplateId,
-            @Nullable Integer registrationLimit) {
-        attendanceTemplateGuards.requireOpenForNewWork(attendanceTemplateId);
-        if (repository.update(
-                id,
-                name,
-                title,
-                description,
-                categoryId,
-                eventType,
-                requiresRegistration,
-                registrationDeadlineOffset,
-                requiresConfirmation,
-                restrictionMode,
-                attendanceTemplateId,
-                registrationLimit)) {
+    /**
+     * Writes the settings of a template. Starting values it holds for fields that are not on its
+     * attendance sheet any more go with the same write.
+     *
+     * @param id       the template
+     * @param settings what it now sets
+     * @return whether the template was there to write
+     * @throws io.javalin.http.HttpResponseException where a count or span is negative, or the
+     *                                               attendance sheet is closed to new work
+     */
+    public boolean update(int id, EventTemplateSettings settings) {
+        if (settings.hasNegativeRule()) throw EventRefusal.EVENT_TEMPLATE_RULE_NEGATIVE.raise();
+        attendanceTemplateGuards.requireOpenForNewWork(settings.attendanceTemplateId());
+        boolean updated = Transactions.call(() -> {
+            if (!repository.update(id, settings)) return false;
+            repository.dropFieldDefaultsOffSheet(id);
+            return true;
+        });
+        if (updated) {
             log.info("Updated event template {}", id);
             return true;
         }

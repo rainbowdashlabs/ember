@@ -10,7 +10,10 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
+import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -208,6 +211,58 @@ class MediaReferenceRegistryTest extends RepositoryTestBase {
             eventRepo.delete(event);
             mediaFileRepo.delete(kept.id());
             mediaFileRepo.delete(alsoOpen.id());
+        }
+    }
+
+    /**
+     * A file a template hands every event made from it is referenced and counted, or a prune or a
+     * delete would take it from the template before any event was made.
+     */
+    @Test
+    void aFileATemplateHandsOverIsNamedOutrightAndCounted() {
+        var file = mediaFileRepo.create(null, station.id(), "7".repeat(64), "plan.pdf", "application/pdf", 8);
+        var templates = new EventTemplateRepository();
+        var template = templates.create(station.id(), "Vorlage mit Datei");
+        var attachments = new EventAttachmentRepository();
+        var attachment = attachments.attach(AppointmentOwner.TEMPLATE, template.id(), file.id(), null, false);
+        try {
+            var referenced = registry.collect(station.id());
+            assertTrue(referenced.contains(file.contentHash()));
+            assertTrue(referenced.contains(String.valueOf(file.id())));
+            assertEquals(1, registry.handedOutBy(file.id()));
+            assertFalse(
+                    registry.keptBack(station.id(), file.contentHash()),
+                    "an open template file is not kept back, and not published either");
+        } finally {
+            attachments.detach(AppointmentOwner.TEMPLATE, attachment.id());
+            templates.delete(template.id());
+            mediaFileRepo.delete(file.id());
+        }
+    }
+
+    /**
+     * What a template keeps back is kept back at the library door, as every event made from it will
+     * keep it back. A template handing the file over openly does not publish it: nobody is handed a
+     * file through a template.
+     */
+    @Test
+    void aFileATemplateKeepsBackIsKeptBack() {
+        var file = mediaFileRepo.create(null, station.id(), "8".repeat(64), "intern.pdf", "application/pdf", 8);
+        var templates = new EventTemplateRepository();
+        var keeping = templates.create(station.id(), "Vorlage intern");
+        var opening = templates.create(station.id(), "Vorlage offen");
+        var attachments = new EventAttachmentRepository();
+        var kept = attachments.attach(AppointmentOwner.TEMPLATE, keeping.id(), file.id(), null, true);
+        var open = attachments.attach(AppointmentOwner.TEMPLATE, opening.id(), file.id(), null, false);
+        try {
+            assertTrue(registry.keptBack(station.id(), file.contentHash()));
+            assertTrue(registry.keptBackFiles(station.id()).contains(file.id()));
+        } finally {
+            attachments.detach(AppointmentOwner.TEMPLATE, kept.id());
+            attachments.detach(AppointmentOwner.TEMPLATE, open.id());
+            templates.delete(keeping.id());
+            templates.delete(opening.id());
+            mediaFileRepo.delete(file.id());
         }
     }
 

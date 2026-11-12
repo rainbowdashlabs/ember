@@ -20,6 +20,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * free. The file's own columns travel with the row because an attachment is never read without them:
  * a reader needs the name, the size and the type to be handed anything at all.
  *
+ * @param eventId  the event the file belongs to, or for a template's file the template
  * @param internal whether the file is kept back from the room. An open file is for everybody who may
  *                 see the event and travels to a partner station the event is shared with; an
  *                 internal one is read with the right to read what an event keeps internal, and stays

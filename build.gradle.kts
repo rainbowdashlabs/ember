@@ -23,11 +23,19 @@ application {
 
 group = "dev.chojo"
 // CalVer as YY.MINOR.MICRO -> https://calver.org/
-version = "26.24.1"
+version = "26.24.2"
 
 repositories {
     maven("https://eldonexus.de/repository/maven-proxies/")
     mavenCentral()
+}
+
+configurations.configureEach {
+    resolutionStrategy.componentSelection.all {
+        if (candidate.version.endsWith("-SNAPSHOT")) {
+            reject("A version range must resolve to a release, never to a snapshot the proxy may drop")
+        }
+    }
 }
 
 dependencies {

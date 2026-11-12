@@ -6,6 +6,7 @@
 /** @vitest-environment happy-dom */
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {useEventAttachments} from './useEventAttachments'
+import {eventAttachmentPort, templateAttachmentPort} from './eventOwnerPorts'
 import type {EventAttachment, StationFile} from '@/api/generated/schema'
 
 const listEventAttachments = vi.fn()
@@ -13,6 +14,11 @@ const attachEventFile = vi.fn()
 const updateEventAttachment = vi.fn()
 const reorderEventAttachments = vi.fn()
 const detachEventFile = vi.fn()
+const listTemplateAttachments = vi.fn()
+const attachTemplateFile = vi.fn()
+const updateTemplateAttachment = vi.fn()
+const reorderTemplateAttachments = vi.fn()
+const detachTemplateFile = vi.fn()
 
 vi.mock('@/api', () => ({
     events: {
@@ -21,6 +27,11 @@ vi.mock('@/api', () => ({
         updateEventAttachment: (...args: unknown[]) => updateEventAttachment(...args),
         reorderEventAttachments: (...args: unknown[]) => reorderEventAttachments(...args),
         detachEventFile: (...args: unknown[]) => detachEventFile(...args),
+        listTemplateAttachments: (...args: unknown[]) => listTemplateAttachments(...args),
+        attachTemplateFile: (...args: unknown[]) => attachTemplateFile(...args),
+        updateTemplateAttachment: (...args: unknown[]) => updateTemplateAttachment(...args),
+        reorderTemplateAttachments: (...args: unknown[]) => reorderTemplateAttachments(...args),
+        detachTemplateFile: (...args: unknown[]) => detachTemplateFile(...args),
     },
 }))
 
@@ -64,7 +75,7 @@ describe('useEventAttachments', () => {
     })
 
     it('hangs a picked file on the event, open to the room until somebody says otherwise', async () => {
-        const files = useEventAttachments(() => 12, t)
+        const files = useEventAttachments(() => eventAttachmentPort(12), t)
 
         await files.add(pickedFile)
 
@@ -73,7 +84,7 @@ describe('useEventAttachments', () => {
     })
 
     it('writes the switch as it is flipped', async () => {
-        const files = useEventAttachments(() => 12, t)
+        const files = useEventAttachments(() => eventAttachmentPort(12), t)
         listEventAttachments.mockResolvedValue([attachment(1)])
         await files.load()
 
@@ -86,7 +97,7 @@ describe('useEventAttachments', () => {
     })
 
     it('drops a detached file from the list it just left', async () => {
-        const files = useEventAttachments(() => 12, t)
+        const files = useEventAttachments(() => eventAttachmentPort(12), t)
         listEventAttachments.mockResolvedValue([attachment(1), attachment(2)])
         await files.load()
 
@@ -97,7 +108,7 @@ describe('useEventAttachments', () => {
     })
 
     it('sends the order the editor dragged them into', async () => {
-        const files = useEventAttachments(() => 12, t)
+        const files = useEventAttachments(() => eventAttachmentPort(12), t)
         listEventAttachments.mockResolvedValue([attachment(1), attachment(2), attachment(3)])
         await files.load()
 
@@ -127,7 +138,7 @@ describe('useEventAttachments', () => {
      * partner stations included, is worse than no screen at all.
      */
     it('takes a refused switch back off the screen and says so', async () => {
-        const files = useEventAttachments(() => 12, t)
+        const files = useEventAttachments(() => eventAttachmentPort(12), t)
         listEventAttachments.mockImplementation(async () => [attachment(1)])
         await files.load()
         updateEventAttachment.mockRejectedValue(new Error('nope'))
@@ -141,7 +152,7 @@ describe('useEventAttachments', () => {
     })
 
     it('puts the order back where the move could not be written', async () => {
-        const files = useEventAttachments(() => 12, t)
+        const files = useEventAttachments(() => eventAttachmentPort(12), t)
         listEventAttachments.mockResolvedValue([attachment(1), attachment(2)])
         await files.load()
         reorderEventAttachments.mockRejectedValue(new Error('nope'))
@@ -153,7 +164,7 @@ describe('useEventAttachments', () => {
     })
 
     it('says so where a picked file could not be hung on the event', async () => {
-        const files = useEventAttachments(() => 12, t)
+        const files = useEventAttachments(() => eventAttachmentPort(12), t)
         attachEventFile.mockRejectedValue(new Error('nope'))
 
         await files.add(pickedFile)
@@ -163,7 +174,7 @@ describe('useEventAttachments', () => {
     })
 
     it('keeps the file where it could not be detached', async () => {
-        const files = useEventAttachments(() => 12, t)
+        const files = useEventAttachments(() => eventAttachmentPort(12), t)
         listEventAttachments.mockResolvedValue([attachment(1)])
         await files.load()
         detachEventFile.mockRejectedValue(new Error('nope'))
@@ -175,7 +186,7 @@ describe('useEventAttachments', () => {
     })
 
     it('keeps the list it had where the files could not be asked for', async () => {
-        const files = useEventAttachments(() => 12, t)
+        const files = useEventAttachments(() => eventAttachmentPort(12), t)
         listEventAttachments.mockRejectedValue(new Error('nope'))
 
         await files.load()
@@ -183,5 +194,45 @@ describe('useEventAttachments', () => {
         expect(files.attachments.value).toEqual([])
         expect(files.failure.value?.technical).toBe('nope')
         expect(files.loading.value).toBe(false)
+    })
+})
+
+/**
+ * The same files on an event template. The template's rows carry its id in a field named for an
+ * event, so every call is checked to go to the template's own address with the id the port was made
+ * for, and none of them to an event's.
+ */
+describe('useEventAttachments on a template', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        listTemplateAttachments.mockResolvedValue([attachment(1, {eventId: 5}), attachment(2, {eventId: 5})])
+        attachTemplateFile.mockImplementation(async (_templateId: number, fileId: number) =>
+            attachment(9, {fileId, eventId: 5}))
+        updateTemplateAttachment.mockResolvedValue(undefined)
+        reorderTemplateAttachments.mockResolvedValue(undefined)
+        detachTemplateFile.mockResolvedValue(undefined)
+    })
+
+    it('reads, attaches, writes, sorts and detaches through the template routes', async () => {
+        const files = useEventAttachments(() => templateAttachmentPort(31), t)
+
+        await files.load()
+        await files.add(pickedFile)
+        const first = files.attachments.value[0]!
+        first.label = 'Laufzettel'
+        await files.save(first)
+        await files.reorder(2, 0)
+        await files.remove(0)
+
+        expect(listTemplateAttachments).toHaveBeenCalledWith(31)
+        expect(attachTemplateFile).toHaveBeenCalledWith(31, 77, null, false)
+        expect(updateTemplateAttachment).toHaveBeenCalledWith(31, 1, 'Laufzettel', false)
+        expect(reorderTemplateAttachments).toHaveBeenCalledWith(31, [9, 1, 2])
+        expect(detachTemplateFile).toHaveBeenCalledWith(31, 9)
+        expect(listEventAttachments).not.toHaveBeenCalled()
+        expect(attachEventFile).not.toHaveBeenCalled()
+        expect(updateEventAttachment).not.toHaveBeenCalled()
+        expect(reorderEventAttachments).not.toHaveBeenCalled()
+        expect(detachEventFile).not.toHaveBeenCalled()
     })
 })

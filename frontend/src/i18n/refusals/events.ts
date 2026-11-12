@@ -200,4 +200,5 @@ export default {
     'E-170': 'Dieser Termin nimmt Anmeldungen an, die Vereinbarung wird bei der Anmeldung unterschrieben',
     'E-171': 'Die Vereinbarung dieses Termins kannst du für diese Person nicht unterschreiben',
     'E-172': 'Dieses Dokument verlangt für diese Person keine Unterschrift',
+    'E-173': 'Die Anmelderegeln einer Vorlage können nicht negativ sein, es wurde nichts gespeichert',
 }

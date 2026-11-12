@@ -101,7 +101,12 @@ public class MediaReferenceRegistry {
             FROM event_attachment a
             JOIN station_file f ON f.id = a.file_id
             JOIN station_event e ON e.id = a.event_id
-            WHERE e.station_id = :station_id;""");
+            WHERE e.station_id = :station_id;""", """
+            SELECT f.id, f.content_hash
+            FROM event_template_attachment a
+            JOIN station_file f ON f.id = a.file_id
+            JOIN event_template t ON t.id = a.template_id
+            WHERE t.station_id = :station_id;""");
 
     private final ContentContainerRepository containers;
 
@@ -165,7 +170,7 @@ public class MediaReferenceRegistry {
     }
 
     /**
-     * How many news entries and events hand this file out. An attachment is the one kind of
+     * How many news entries, events and event templates hand this file out. An attachment is the one kind of
      * reference that is stated rather than inferred, and the database refuses to let a delete
      * break it, so this is what lets the delete say what it is about to break before it fails.
      */
@@ -173,7 +178,8 @@ public class MediaReferenceRegistry {
         return query("""
                         SELECT
                             (SELECT count(*) FROM news_attachment WHERE file_id = :file_id)
-                            + (SELECT count(*) FROM event_attachment WHERE file_id = :file_id) AS cnt;""")
+                            + (SELECT count(*) FROM event_attachment WHERE file_id = :file_id)
+                            + (SELECT count(*) FROM event_template_attachment WHERE file_id = :file_id) AS cnt;""")
                 .single(call().bind("file_id", fileId))
                 .map(row -> row.getInt("cnt"))
                 .first()
@@ -188,6 +194,10 @@ public class MediaReferenceRegistry {
      * only ever reaches a reader through an internal attachment is kept behind the same question
      * the event asks, so that the list a screen draws and the library door cannot disagree.
      *
+     * <p>A template's internal attachment keeps a file back the same way, because every event made
+     * from the template will. A template's open attachment publishes nothing: no reader is handed a
+     * file through a template, only through the events made from it.
+     *
      * <p>A file an event keeps back but somebody has also published elsewhere - hung on a news
      * entry, or written into the body of a public page - is not kept back: it was handed out by
      * that other act, and taking it off the library would break what still shows it.
@@ -197,7 +207,8 @@ public class MediaReferenceRegistry {
                 SELECT f.id
                 FROM station_file f
                 WHERE f.station_id = :station_id
-                  AND EXISTS (SELECT 1 FROM event_attachment a WHERE a.file_id = f.id AND a.internal)
+                  AND (EXISTS (SELECT 1 FROM event_attachment a WHERE a.file_id = f.id AND a.internal)
+                       OR EXISTS (SELECT 1 FROM event_template_attachment a WHERE a.file_id = f.id AND a.internal))
                   AND NOT EXISTS (SELECT 1 FROM event_attachment a WHERE a.file_id = f.id AND NOT a.internal)
                   AND NOT EXISTS (SELECT 1 FROM news_attachment n WHERE n.file_id = f.id);""")
                 .single(call().bind("station_id", stationId))
@@ -214,7 +225,8 @@ public class MediaReferenceRegistry {
                     FROM station_file f
                     WHERE f.station_id = :station_id
                       AND f.content_hash = :content_hash
-                      AND EXISTS (SELECT 1 FROM event_attachment a WHERE a.file_id = f.id AND a.internal)
+                      AND (EXISTS (SELECT 1 FROM event_attachment a WHERE a.file_id = f.id AND a.internal)
+                           OR EXISTS (SELECT 1 FROM event_template_attachment a WHERE a.file_id = f.id AND a.internal))
                       AND NOT EXISTS (SELECT 1 FROM event_attachment a WHERE a.file_id = f.id AND NOT a.internal)
                       AND NOT EXISTS (SELECT 1 FROM news_attachment n WHERE n.file_id = f.id)) AS kept;""")
                 .single(call().bind("station_id", stationId).bind("content_hash", contentHash))

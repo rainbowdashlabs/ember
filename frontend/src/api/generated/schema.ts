@@ -22705,6 +22705,15 @@ export interface paths {
                         "application/json": components["schemas"]["EventTemplate"];
                     };
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
                 /** @description Not Found */
                 404: {
                     headers: {
@@ -22747,6 +22756,172 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/event-templates/{id}/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the files an event template hands every event made from it */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventAttachment"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Attach a file of the station library to an event template */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AttachmentRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventAttachment"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/event-templates/{id}/attachments/{attachmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Write what a template's file is called and whether it is kept back from the room */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    attachmentId: number;
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AttachmentRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        /** Take a file off an event template, leaving it in the library */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    attachmentId: number;
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/event-templates/{id}/attachments/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Write the order a template hands its files over in */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AttachmentOrderRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -22805,6 +22980,181 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["RequiredTemplate"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/event-templates/{id}/federation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How the events made from an event template are shared with partner stations */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederationShareResponse"];
+                    };
+                };
+            };
+        };
+        /** Share the events made from an event template with partner stations */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SetFederationShareRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederationShareResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Stop sharing the events made from an event template */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/event-templates/{id}/field-defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the starting values an event template gives the fields of its attendance sheet */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventFieldDefault"][];
+                    };
+                };
+            };
+        };
+        /** Set the starting values an event template gives the fields of its attendance sheet */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FieldDefaultEntry"][];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventFieldDefault"][];
                     };
                 };
                 /** @description Bad Request */
@@ -27418,6 +27768,7 @@ export interface paths {
                     from?: string;
                     limit?: number;
                     offset?: number;
+                    registrationOpen?: boolean;
                     requiresRegistration?: boolean;
                     search?: string;
                     to?: string;
@@ -67455,8 +67806,13 @@ export interface components {
             eventType: components["schemas"]["EventType"] | null;
             /** Format: int32 */
             id: number;
+            /** Format: int32 */
+            minRegistrations: number | null;
             name: string;
-            registrationDeadlineOffset: string | null;
+            /** Format: int32 */
+            registrationCloseDays: number | null;
+            /** Format: int32 */
+            registrationDeadlineOffsetHours: number | null;
             /** Format: int32 */
             registrationLimit: number | null;
             requiresConfirmation: boolean | null;
@@ -67464,6 +67820,8 @@ export interface components {
             restrictionMode: components["schemas"]["RestrictionMode"] | null;
             /** Format: uuid */
             stationId: string;
+            /** Format: int32 */
+            thresholdDays: number | null;
             title: string | null;
             viewRestrictionMode: components["schemas"]["RestrictionMode"];
         };
@@ -75957,13 +76315,20 @@ export interface components {
             categoryId?: number | null;
             description?: string | null;
             eventType?: components["schemas"]["EventType"] | null;
+            /** Format: int32 */
+            minRegistrations?: number | null;
             name?: string;
-            registrationDeadlineOffset?: string | null;
+            /** Format: int32 */
+            registrationCloseDays?: number | null;
+            /** Format: int32 */
+            registrationDeadlineOffsetHours?: number | null;
             /** Format: int32 */
             registrationLimit?: number | null;
             requiresConfirmation?: boolean | null;
             requiresRegistration?: boolean | null;
             restrictionMode?: components["schemas"]["RestrictionMode"] | null;
+            /** Format: int32 */
+            thresholdDays?: number | null;
             title?: string | null;
         };
         UpdateTicketRequest: {

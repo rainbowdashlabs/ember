@@ -1,5 +1,20 @@
 # Changelog
 
+## v26.24.2
+
+Appointment templates carry sign-up rules, files, starting values for the attendance sheet and sharing with partner stations. The upcoming list's "Registration open" filter shows only dates that can still be signed up for.
+
+### Improvements
+
+- **Templates carry sign-up rules.** An appointment template sets the sign-up deadline as days and hours before the start, a minimum of sign-ups and how many days before each date it has to be reached, and how many days before each date sign-up closes. An appointment made from the template takes them over and counts the deadline from its own start.
+- **Templates carry files, field values and sharing.** A template holds files from the station's media library, starting values for the fields of its attendance sheet and the partner stations it shares with. Appointments made from it take all of this over, the sharing only where the person may share appointments with partner stations.
+
+### Fixes
+
+- **Closed sign-ups no longer count as open.** With "Registration open" switched on, the upcoming appointments also listed appointments whose sign-up deadline had passed. The list now shows only dates that can still be signed up for.
+- **Appointment templates format their description.** The description of an appointment template was a plain text field, while appointments offer formatting. Templates now use the same editor.
+- **Templates pass on their participant limit.** An appointment created from a template came without the template's participant limit. The limit is now taken over with the other settings.
+
 ## v26.24.1
 
 Every count on the overview opens the matching list, and failed mails can be read and acknowledged. The manager of a station that waits can be reminded, also automatically. The account list filters over every account. The statistics show how many people use the instance each day and how it grows, recorded from this version on. Buttons that could only end in a refusal are gone or explain themselves. The problem log is kept across restarts, can mute what is known and shows the log lines around a problem. Those lines can go to a beacon on request, with names and addresses replaced.

@@ -13,6 +13,7 @@ import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
+import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationTemplateField;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventTemplateRestrictionService;
@@ -171,25 +172,14 @@ public class EventTemplateRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = UpdateTemplateRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventTemplate.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, eventTemplateService::findById, EventTemplate::stationId);
         var req = ctx.bodyAsClass(UpdateTemplateRequest.class);
-        if (!eventTemplateService.update(
-                id,
-                req.name(),
-                req.title(),
-                req.description(),
-                req.categoryId(),
-                req.eventType(),
-                req.requiresRegistration(),
-                req.registrationDeadlineOffset(),
-                req.requiresConfirmation(),
-                req.restrictionMode(),
-                req.attendanceTemplateId(),
-                req.registrationLimit())) {
+        if (!eventTemplateService.update(id, req.toSettings())) {
             throw EventRefusal.EVENT_TEMPLATE_NOT_CHANGED.raise();
         }
         ctx.json(eventTemplateService
@@ -298,6 +288,12 @@ public class EventTemplateRoutes implements Routes {
 
     public record CreateTemplateRequest(String name) {}
 
+    /**
+     * A template's settings as the editor sends them.
+     *
+     * @param registrationDeadlineOffsetHours how many hours before the start sign-up closes, or null
+     *                                        for no deadline
+     */
     public record UpdateTemplateRequest(
             String name,
             @Nullable String title,
@@ -305,11 +301,33 @@ public class EventTemplateRoutes implements Routes {
             @Nullable Integer categoryId,
             StationEvent.@Nullable EventType eventType,
             @Nullable Boolean requiresRegistration,
-            @Nullable String registrationDeadlineOffset,
+            @Nullable Integer registrationDeadlineOffsetHours,
             @Nullable Boolean requiresConfirmation,
             @Nullable RestrictionMode restrictionMode,
             @Nullable Integer attendanceTemplateId,
-            @Nullable Integer registrationLimit) {}
+            @Nullable Integer registrationLimit,
+            @Nullable Integer minRegistrations,
+            @Nullable Integer thresholdDays,
+            @Nullable Integer registrationCloseDays) {
+
+        EventTemplateSettings toSettings() {
+            return new EventTemplateSettings(
+                    name,
+                    title,
+                    description,
+                    categoryId,
+                    eventType,
+                    requiresRegistration,
+                    registrationDeadlineOffsetHours,
+                    requiresConfirmation,
+                    restrictionMode,
+                    attendanceTemplateId,
+                    registrationLimit,
+                    minRegistrations,
+                    thresholdDays,
+                    registrationCloseDays);
+        }
+    }
 
     public record TemplateDetailResponse(
             EventTemplate template,

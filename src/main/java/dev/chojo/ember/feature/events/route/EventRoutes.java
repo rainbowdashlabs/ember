@@ -249,6 +249,11 @@ public class EventRoutes implements Routes {
                         type = Boolean.class,
                         description = "Filter by registration requirement"),
                 @OpenApiParam(
+                        name = "registrationOpen",
+                        type = Boolean.class,
+                        description = "Keep only dates that can still be signed up for: registration required, "
+                                + "deadline not passed, not closed days before the date, date not called off"),
+                @OpenApiParam(
                         name = "search",
                         description = "Free-text search over event name and description (case-insensitive)"),
                 @OpenApiParam(
@@ -331,9 +336,11 @@ public class EventRoutes implements Routes {
     /** The filters, the window of days and the page that the three event listings all read alike. */
     private EventOccurrenceService.OccurrenceQuery parseOccurrenceQuery(Context ctx) {
         var filter = parseCategoryFilter(ctx);
+        boolean registrationOpen = Boolean.parseBoolean(ctx.queryParam("registrationOpen"));
         return new EventOccurrenceService.OccurrenceQuery(
                 filter.categoryId(),
-                filter.requiresRegistration(),
+                registrationOpen ? Boolean.TRUE : filter.requiresRegistration(),
+                registrationOpen,
                 ctx.queryParam("search"),
                 parseDate(ctx.queryParam("from")),
                 parseDate(ctx.queryParam("to")),

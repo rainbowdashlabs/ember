@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.attendance.entity.SessionSummary;
 import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceTimeRuleRepository;
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -509,7 +510,7 @@ public class AttendanceService {
             if (starting != null) writeSessionField(session.id(), field, starting);
         }
         if (eventId != null) {
-            var defaults = eventFieldDefaultRepository.findByEvent(eventId);
+            var defaults = eventFieldDefaultRepository.findByOwner(AppointmentOwner.EVENT, eventId);
             if (!defaults.isEmpty()) {
                 var event = eventRepository.findById(eventId).orElse(null);
                 if (event != null) {

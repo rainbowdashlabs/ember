@@ -115,6 +115,24 @@ public record StationEvent(
     }
 
     /**
+     * Whether a member can still sign up for this appointment on a date.
+     *
+     * <p>Signing up closes at the deadline, where one is set, and a given number of days before each
+     * date, where that is set. An appointment taking no registrations, or called off as a whole, is
+     * never open. Whether the single date was called off is the calendar's answer, not this one.
+     *
+     * @param date  the date someone would sign up for
+     * @param today today on the station's clock
+     * @param now   the current instant
+     * @return true while a member may still sign up for that date
+     */
+    public boolean registrationOpenOn(LocalDate date, LocalDate today, Instant now) {
+        if (!requiresRegistration || cancelled) return false;
+        if (registrationDeadline != null && !now.isBefore(registrationDeadline)) return false;
+        return registrationCloseDays == null || today.isBefore(date.minusDays(registrationCloseDays));
+    }
+
+    /**
      * When this appointment runs on a given day.
      *
      * <p>A one-off appointment carries its own dates and keeps them, which is what lets one run over

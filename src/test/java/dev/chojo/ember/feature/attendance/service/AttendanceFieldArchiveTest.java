@@ -13,10 +13,12 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSessionField;
 import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.repository.AttendanceTimeRuleRepository;
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
+import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -173,7 +175,8 @@ class AttendanceFieldArchiveTest extends RepositoryTestBase {
     @Test
     void whatPointedAtTheFieldForNewWorkLetsGo() {
         int eventId = appointment();
-        fieldDefaults.setForEvent(eventId, List.of(new EventFieldDefault(eventId, leaderId, "VALUE", "Greta")));
+        fieldDefaults.set(
+                AppointmentOwner.EVENT, eventId, List.of(new EventFieldDefault(eventId, leaderId, "VALUE", "Greta")));
         eventFieldRepo.replaceFields(
                 eventId,
                 List.of(new EventFieldDraft(
@@ -182,7 +185,9 @@ class AttendanceFieldArchiveTest extends RepositoryTestBase {
                 .create(station.id(), "Dienst " + System.nanoTime())
                 .id();
         eventTemplates.update(
-                eventTemplate, "Dienst", null, null, null, null, null, null, null, null, templateId, null);
+                eventTemplate,
+                new EventTemplateSettings(
+                        "Dienst", null, null, null, null, null, null, null, null, templateId, null, null, null, null));
         eventTemplateRepo.replaceFields(
                 eventTemplate,
                 List.of(new AppointmentTemplateFieldDraft(
@@ -197,7 +202,7 @@ class AttendanceFieldArchiveTest extends RepositoryTestBase {
 
         service.archiveTemplateField(templateId, leaderId);
 
-        assertTrue(fieldDefaults.findByEvent(eventId).isEmpty());
+        assertTrue(fieldDefaults.find(AppointmentOwner.EVENT, eventId).isEmpty());
         assertNull(eventFieldRepo.findByEvent(eventId).getFirst().attendanceFieldId());
         assertNull(eventTemplateRepo.findFields(eventTemplate).getFirst().attendanceFieldId());
     }
@@ -209,8 +214,10 @@ class AttendanceFieldArchiveTest extends RepositoryTestBase {
 
         var refused = assertThrows(
                 RefusalResponse.class,
-                () -> fieldDefaults.setForEvent(
-                        eventId, List.of(new EventFieldDefault(eventId, leaderId, "VALUE", "Greta"))));
+                () -> fieldDefaults.set(
+                        AppointmentOwner.EVENT,
+                        eventId,
+                        List.of(new EventFieldDefault(eventId, leaderId, "VALUE", "Greta"))));
         assertEquals("AT-059", refused.refusal().code());
     }
 
