@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.quiz.service.QuizTestService;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -84,55 +85,93 @@ public class QuizTestRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/quiz/tests", this::listTests, StationPermission.TEST_RESULT_READ);
-        routes.get(prefix + "/quiz/tests/available", this::listAvailableTests, StationPermission.USER);
-        routes.post(prefix + "/quiz/tests", this::createTest, StationPermission.TEST_CONFIGURE);
-        routes.get(prefix + "/quiz/tests/{id}", this::getTest, StationPermission.USER);
-        routes.put(prefix + "/quiz/tests/{id}", this::updateTest, StationPermission.TEST_CONFIGURE);
-        routes.delete(prefix + "/quiz/tests/{id}", this::deleteTest, StationPermission.TEST_CONFIGURE);
-        routes.post(prefix + "/quiz/tests/{id}/activate", this::activateTest, StationPermission.TEST_CONFIGURE);
-        routes.post(prefix + "/quiz/tests/{id}/close", this::closeTest, StationPermission.TEST_CONFIGURE);
+        routes.get(prefix + "/quiz/tests", this::listTests, StationPermission.TEST_RESULT_READ, StationModule.QUIZ);
+        routes.get(
+                prefix + "/quiz/tests/available", this::listAvailableTests, StationPermission.USER, StationModule.QUIZ);
+        routes.post(prefix + "/quiz/tests", this::createTest, StationPermission.TEST_CONFIGURE, StationModule.QUIZ);
+        routes.get(prefix + "/quiz/tests/{id}", this::getTest, StationPermission.USER, StationModule.QUIZ);
+        routes.put(prefix + "/quiz/tests/{id}", this::updateTest, StationPermission.TEST_CONFIGURE, StationModule.QUIZ);
+        routes.delete(
+                prefix + "/quiz/tests/{id}", this::deleteTest, StationPermission.TEST_CONFIGURE, StationModule.QUIZ);
+        routes.post(
+                prefix + "/quiz/tests/{id}/activate",
+                this::activateTest,
+                StationPermission.TEST_CONFIGURE,
+                StationModule.QUIZ);
+        routes.post(
+                prefix + "/quiz/tests/{id}/close",
+                this::closeTest,
+                StationPermission.TEST_CONFIGURE,
+                StationModule.QUIZ);
         routes.post(
                 prefix + "/quiz/tests/{id}/generate-questions",
                 this::generateFrozenQuestions,
-                StationPermission.TEST_CONFIGURE);
+                StationPermission.TEST_CONFIGURE,
+                StationModule.QUIZ);
         routes.get(
                 prefix + "/quiz/tests/{id}/frozen-questions",
                 this::listFrozenQuestions,
-                StationPermission.TEST_RESULT_READ);
+                StationPermission.TEST_RESULT_READ,
+                StationModule.QUIZ);
         routes.put(
                 prefix + "/quiz/tests/{id}/frozen-questions/{position}",
                 this::replaceFrozenQuestion,
-                StationPermission.TEST_CONFIGURE);
+                StationPermission.TEST_CONFIGURE,
+                StationModule.QUIZ);
         routes.post(
                 prefix + "/quiz/tests/{id}/frozen-questions/{position}/random",
                 this::randomReplaceFrozenQuestion,
-                StationPermission.TEST_CONFIGURE);
+                StationPermission.TEST_CONFIGURE,
+                StationModule.QUIZ);
         routes.get(
                 prefix + "/quiz/tests/{id}/available-questions",
                 this::listAvailableReplacements,
-                StationPermission.TEST_CONFIGURE);
+                StationPermission.TEST_CONFIGURE,
+                StationModule.QUIZ);
 
-        routes.get(prefix + "/quiz/tests/{id}/sections", this::listSections, StationPermission.TEST_CONFIGURE);
-        routes.put(prefix + "/quiz/tests/{id}/sections", this::replaceSections, StationPermission.TEST_CONFIGURE);
+        routes.get(
+                prefix + "/quiz/tests/{id}/sections",
+                this::listSections,
+                StationPermission.TEST_CONFIGURE,
+                StationModule.QUIZ);
+        routes.put(
+                prefix + "/quiz/tests/{id}/sections",
+                this::replaceSections,
+                StationPermission.TEST_CONFIGURE,
+                StationModule.QUIZ);
 
-        routes.get(prefix + "/quiz/tests/{id}/restrictions", this::getRestrictions, StationPermission.TEST_RESULT_READ);
-        routes.put(prefix + "/quiz/tests/{id}/restrictions", this::setRestrictions, StationPermission.TEST_CONFIGURE);
+        routes.get(
+                prefix + "/quiz/tests/{id}/restrictions",
+                this::getRestrictions,
+                StationPermission.TEST_RESULT_READ,
+                StationModule.QUIZ);
+        routes.put(
+                prefix + "/quiz/tests/{id}/restrictions",
+                this::setRestrictions,
+                StationPermission.TEST_CONFIGURE,
+                StationModule.QUIZ);
 
-        routes.post(prefix + "/quiz/tests/{id}/access", this::grantAccess, StationPermission.TEST_CONFIGURE);
+        routes.post(
+                prefix + "/quiz/tests/{id}/access",
+                this::grantAccess,
+                StationPermission.TEST_CONFIGURE,
+                StationModule.QUIZ);
         routes.delete(
                 prefix + "/quiz/tests/{testId}/access/{memberId}",
                 this::revokeAccess,
-                StationPermission.TEST_CONFIGURE);
+                StationPermission.TEST_CONFIGURE,
+                StationModule.QUIZ);
 
         routes.get(
                 prefix + "/quiz/tests/{id}/export/questions",
                 this::exportQuestionPdf,
-                StationPermission.TEST_CONFIGURE);
+                StationPermission.TEST_CONFIGURE,
+                StationModule.QUIZ);
         routes.get(
                 prefix + "/quiz/tests/{id}/export/solutions",
                 this::exportSolutionPdf,
-                StationPermission.TEST_CONFIGURE);
+                StationPermission.TEST_CONFIGURE,
+                StationModule.QUIZ);
     }
 
     /**

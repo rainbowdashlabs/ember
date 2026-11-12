@@ -23,7 +23,6 @@ import dev.chojo.ember.feature.mailimport.entity.MailTitleSource;
 import dev.chojo.ember.feature.mailimport.service.MailboxService;
 import dev.chojo.ember.feature.mailimport.service.MailboxService.TestResult;
 import dev.chojo.ember.feature.station.entity.StationModule;
-import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -56,41 +55,88 @@ public class MailImportRoutes implements Routes {
     private static final int PAGE_SIZE = 50;
 
     private final MailboxService mailboxService;
-    private final StationService stationService;
     private final MailImport settings;
 
     @Inject
-    public MailImportRoutes(MailboxService mailboxService, StationService stationService, MailImport settings) {
+    public MailImportRoutes(MailboxService mailboxService, MailImport settings) {
         this.mailboxService = mailboxService;
-        this.stationService = stationService;
         this.settings = settings;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/station/mail-import/settings", this::instanceSettings, StationPermission.STATION_MAIL);
-        routes.get(prefix + "/station/mail-import/mailboxes", this::listMailboxes, StationPermission.STATION_MAIL);
-        routes.post(prefix + "/station/mail-import/mailboxes", this::createMailbox, StationPermission.STATION_MAIL);
-        routes.put(prefix + "/station/mail-import/mailboxes/{id}", this::updateMailbox, StationPermission.STATION_MAIL);
+        routes.get(
+                prefix + "/station/mail-import/settings",
+                this::instanceSettings,
+                StationPermission.STATION_MAIL,
+                StationModule.DOCUMENTS);
+        routes.get(
+                prefix + "/station/mail-import/mailboxes",
+                this::listMailboxes,
+                StationPermission.STATION_MAIL,
+                StationModule.DOCUMENTS);
+        routes.post(
+                prefix + "/station/mail-import/mailboxes",
+                this::createMailbox,
+                StationPermission.STATION_MAIL,
+                StationModule.DOCUMENTS);
+        routes.put(
+                prefix + "/station/mail-import/mailboxes/{id}",
+                this::updateMailbox,
+                StationPermission.STATION_MAIL,
+                StationModule.DOCUMENTS);
         routes.put(
                 prefix + "/station/mail-import/mailboxes/{id}/password",
                 this::updatePassword,
-                StationPermission.STATION_MAIL);
+                StationPermission.STATION_MAIL,
+                StationModule.DOCUMENTS);
         routes.delete(
-                prefix + "/station/mail-import/mailboxes/{id}", this::deleteMailbox, StationPermission.STATION_MAIL);
-        routes.post(prefix + "/station/mail-import/mailboxes/{id}/test", this::test, StationPermission.STATION_MAIL);
-        routes.post(prefix + "/station/mail-import/mailboxes/{id}/run", this::runNow, StationPermission.STATION_MAIL);
+                prefix + "/station/mail-import/mailboxes/{id}",
+                this::deleteMailbox,
+                StationPermission.STATION_MAIL,
+                StationModule.DOCUMENTS);
         routes.post(
-                prefix + "/station/mail-import/mailboxes/{id}/resume", this::resume, StationPermission.STATION_MAIL);
+                prefix + "/station/mail-import/mailboxes/{id}/test",
+                this::test,
+                StationPermission.STATION_MAIL,
+                StationModule.DOCUMENTS);
+        routes.post(
+                prefix + "/station/mail-import/mailboxes/{id}/run",
+                this::runNow,
+                StationPermission.STATION_MAIL,
+                StationModule.DOCUMENTS);
+        routes.post(
+                prefix + "/station/mail-import/mailboxes/{id}/resume",
+                this::resume,
+                StationPermission.STATION_MAIL,
+                StationModule.DOCUMENTS);
 
         routes.get(
-                prefix + "/station/mail-import/mailboxes/{id}/rules", this::listRules, StationPermission.STATION_MAIL);
+                prefix + "/station/mail-import/mailboxes/{id}/rules",
+                this::listRules,
+                StationPermission.STATION_MAIL,
+                StationModule.DOCUMENTS);
         routes.post(
-                prefix + "/station/mail-import/mailboxes/{id}/rules", this::createRule, StationPermission.STATION_MAIL);
-        routes.put(prefix + "/station/mail-import/rules/{ruleId}", this::updateRule, StationPermission.STATION_MAIL);
-        routes.delete(prefix + "/station/mail-import/rules/{ruleId}", this::deleteRule, StationPermission.STATION_MAIL);
+                prefix + "/station/mail-import/mailboxes/{id}/rules",
+                this::createRule,
+                StationPermission.STATION_MAIL,
+                StationModule.DOCUMENTS);
+        routes.put(
+                prefix + "/station/mail-import/rules/{ruleId}",
+                this::updateRule,
+                StationPermission.STATION_MAIL,
+                StationModule.DOCUMENTS);
+        routes.delete(
+                prefix + "/station/mail-import/rules/{ruleId}",
+                this::deleteRule,
+                StationPermission.STATION_MAIL,
+                StationModule.DOCUMENTS);
 
-        routes.get(prefix + "/station/mail-import/log", this::log, StationPermission.DOCUMENT_READ);
+        routes.get(
+                prefix + "/station/mail-import/log",
+                this::log,
+                StationPermission.DOCUMENT_READ,
+                StationModule.DOCUMENTS);
     }
 
     /**
@@ -107,7 +153,6 @@ public class MailImportRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = InstanceSettingsResponse.class)))
     private void instanceSettings(Context ctx) {
-        requireModule(stationOf(ctx));
         ctx.json(new InstanceSettingsResponse(
                 settings.enabled(),
                 settings.minimumIntervalMinutes(),
@@ -125,7 +170,6 @@ public class MailImportRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailboxResponse[].class)))
     private void listMailboxes(Context ctx) {
         int stationId = stationOf(ctx);
-        requireModule(stationId);
         ctx.json(mailboxService.findByStation(stationId).stream()
                 .map(MailImportRoutes::toResponse)
                 .toList());
@@ -140,7 +184,6 @@ public class MailImportRoutes implements Routes {
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = MailboxResponse.class)))
     private void createMailbox(Context ctx) {
         int stationId = stationOf(ctx);
-        requireModule(stationId);
         var request = ctx.bodyValidator(MailboxRequest.class).get();
         var mailbox = mailboxService.create(
                 stationId,
@@ -327,7 +370,6 @@ public class MailImportRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LogPageResponse.class)))
     private void log(Context ctx) {
         int stationId = stationOf(ctx);
-        requireModule(stationId);
         int size = Math.clamp(ctx.queryParamAsClass("size", Integer.class).getOrDefault(PAGE_SIZE), 1, 200);
         int page = Math.max(ctx.queryParamAsClass("page", Integer.class).getOrDefault(0), 0);
         ctx.json(new LogPageResponse(
@@ -351,16 +393,9 @@ public class MailImportRoutes implements Routes {
         }
     }
 
-    private void requireModule(int stationId) {
-        if (!stationService.isModuleEnabled(stationId, StationModule.DOCUMENTS)) {
-            throw MailImportRefusal.MAIL_IMPORT_SWITCHED_OFF.raise();
-        }
-    }
-
     /** A mailbox of another station does not exist as far as this station is concerned. */
     private MailMailbox requireOwned(Context ctx) {
         int stationId = stationOf(ctx);
-        requireModule(stationId);
         var mailbox =
                 mailboxService.find(ctx.pathParamAsClass("id", Integer.class).get());
         if (mailbox.isEmpty() || mailbox.get().stationId() != stationId)
@@ -370,7 +405,6 @@ public class MailImportRoutes implements Routes {
 
     private MailRule requireOwnedRule(Context ctx) {
         int stationId = stationOf(ctx);
-        requireModule(stationId);
         var rule = mailboxService.findRule(
                 ctx.pathParamAsClass("ruleId", Integer.class).get());
         if (rule.isEmpty()) throw MailImportRefusal.MAILBOX_RULE_NOT_HERE.raise();

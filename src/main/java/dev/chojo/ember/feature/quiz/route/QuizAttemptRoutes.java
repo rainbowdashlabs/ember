@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.quiz.service.QuizAttemptService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
 import dev.chojo.ember.feature.quiz.service.QuizRouteGuards;
 import dev.chojo.ember.feature.quiz.service.QuizTestAccessService;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -65,15 +66,34 @@ public class QuizAttemptRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.post(prefix + "/quiz/tests/{id}/start", this::startAttempt, StationPermission.USER);
-        routes.get(prefix + "/quiz/tests/{id}/my-attempt", this::getMyAttempt, StationPermission.USER);
-        routes.post(prefix + "/quiz/attempts/{id}/answer", this::saveAnswer, StationPermission.USER);
-        routes.post(prefix + "/quiz/attempts/{id}/submit", this::submitAttempt, StationPermission.USER);
+        routes.post(prefix + "/quiz/tests/{id}/start", this::startAttempt, StationPermission.USER, StationModule.QUIZ);
+        routes.get(
+                prefix + "/quiz/tests/{id}/my-attempt", this::getMyAttempt, StationPermission.USER, StationModule.QUIZ);
+        routes.post(
+                prefix + "/quiz/attempts/{id}/answer", this::saveAnswer, StationPermission.USER, StationModule.QUIZ);
+        routes.post(
+                prefix + "/quiz/attempts/{id}/submit", this::submitAttempt, StationPermission.USER, StationModule.QUIZ);
 
-        routes.get(prefix + "/quiz/tests/{id}/attempts", this::listAttempts, StationPermission.TEST_RESULT_READ);
-        routes.get(prefix + "/quiz/attempts/{id}", this::getAttemptDetail, StationPermission.TEST_RESULT_READ);
-        routes.post(prefix + "/quiz/answers/{id}/grade", this::gradeAnswer, StationPermission.TEST_REVIEW);
-        routes.post(prefix + "/quiz/attempts/{id}/grade", this::gradeAttempt, StationPermission.TEST_REVIEW);
+        routes.get(
+                prefix + "/quiz/tests/{id}/attempts",
+                this::listAttempts,
+                StationPermission.TEST_RESULT_READ,
+                StationModule.QUIZ);
+        routes.get(
+                prefix + "/quiz/attempts/{id}",
+                this::getAttemptDetail,
+                StationPermission.TEST_RESULT_READ,
+                StationModule.QUIZ);
+        routes.post(
+                prefix + "/quiz/answers/{id}/grade",
+                this::gradeAnswer,
+                StationPermission.TEST_REVIEW,
+                StationModule.QUIZ);
+        routes.post(
+                prefix + "/quiz/attempts/{id}/grade",
+                this::gradeAttempt,
+                StationPermission.TEST_REVIEW,
+                StationModule.QUIZ);
     }
 
     @OpenApi(

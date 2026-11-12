@@ -10,6 +10,7 @@ import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.inventory.entity.TaggedItemSummary;
 import dev.chojo.ember.feature.inventory.service.FederatedItemTagService;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -40,7 +41,8 @@ public class FederatedInventoryTagRoutes implements Routes {
         routes.get(
                 prefix + "/federated/inventory-tags/items",
                 this::itemsByTag,
-                StationPermission.INVENTORY_LENDING_REQUEST);
+                StationPermission.INVENTORY_LENDING_REQUEST,
+                StationModule.INVENTORY_LENDING);
     }
 
     @OpenApi(

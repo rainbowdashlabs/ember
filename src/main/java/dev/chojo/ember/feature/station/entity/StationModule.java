@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.station.entity;
 
+import io.javalin.security.RouteRole;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Collection;
@@ -18,8 +19,11 @@ import java.util.Set;
  * <p>A module may have a parent, which makes it a part of that module that can be switched off on its
  * own. A module that is off takes all of its parts with it, which {@link #withChildren(Collection)}
  * spells out for a set of switched-off modules.
+ *
+ * <p>A module is also a route role: a route every member may use declares the module it belongs to
+ * beside its permission, and the route guard refuses it while that module is off.
  */
-public enum StationModule {
+public enum StationModule implements RouteRole {
     INVENTORY,
     NEWS,
     EVENTS,

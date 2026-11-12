@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
 import dev.chojo.ember.feature.signing.service.AgreementOffers;
 import dev.chojo.ember.feature.signing.service.AgreementSigners;
 import dev.chojo.ember.feature.signing.service.SignatureWithdrawals;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -65,7 +66,9 @@ public class AgreementRoutes implements Routes {
         routes.post(
                 prefix + "/events/{id}/documents-to-bring/{templateId}/members/{memberId}/agreement",
                 this::offer,
-                StationPermission.LOGIN);
+                StationPermission.LOGIN,
+                StationModule.EVENTS,
+                StationModule.DOCUMENTS);
         routes.get(prefix + "/events/{id}/agreement-signers", this::signers, StationPermission.EVENT_REGISTRATION);
         routes.post(prefix + "/signing/requests/{requestUid}/withdrawal", this::withdraw, StationPermission.LOGIN);
         routes.get(prefix + "/signing/documents/{documentId}/agreements", this::onDocument, StationPermission.LOGIN);

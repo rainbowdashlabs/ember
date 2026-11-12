@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.knowledgebase.entity.KbTag;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbTagService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -55,12 +56,32 @@ public class KnowledgeBaseTagRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/kb/tags", this::listTags, StationPermission.USER);
-        routes.get(prefix + "/kb/tags/{name}/scope", this::getTagScope, StationPermission.USER);
-        routes.get(prefix + "/kb/files/{id}/tags", this::getFileTags, StationPermission.USER);
-        routes.put(prefix + "/kb/files/{id}/tags", this::setFileTags, StationPermission.KNOWLEDGE_EDIT);
-        routes.get(prefix + "/kb/folders/{id}/tags", this::getFolderTags, StationPermission.USER);
-        routes.put(prefix + "/kb/folders/{id}/tags", this::setFolderTags, StationPermission.KNOWLEDGE_EDIT);
+        routes.get(prefix + "/kb/tags", this::listTags, StationPermission.USER, StationModule.KNOWLEDGE_BASE);
+        routes.get(
+                prefix + "/kb/tags/{name}/scope",
+                this::getTagScope,
+                StationPermission.USER,
+                StationModule.KNOWLEDGE_BASE);
+        routes.get(
+                prefix + "/kb/files/{id}/tags",
+                this::getFileTags,
+                StationPermission.USER,
+                StationModule.KNOWLEDGE_BASE);
+        routes.put(
+                prefix + "/kb/files/{id}/tags",
+                this::setFileTags,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
+        routes.get(
+                prefix + "/kb/folders/{id}/tags",
+                this::getFolderTags,
+                StationPermission.USER,
+                StationModule.KNOWLEDGE_BASE);
+        routes.put(
+                prefix + "/kb/folders/{id}/tags",
+                this::setFolderTags,
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
     }
 
     @OpenApi(

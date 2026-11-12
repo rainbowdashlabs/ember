@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.Context;
@@ -88,58 +89,79 @@ public class FederatedEventRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/federated/events", this::federatedListEvents, StationPermission.USER);
-        routes.get(prefix + "/federated/{stationuid}/events/{id}", this::federatedGetEvent, StationPermission.USER);
+        routes.get(
+                prefix + "/federated/events", this::federatedListEvents, StationPermission.USER, StationModule.EVENTS);
+        routes.get(
+                prefix + "/federated/{stationuid}/events/{id}",
+                this::federatedGetEvent,
+                StationPermission.USER,
+                StationModule.EVENTS);
         routes.post(
                 prefix + "/federated/{stationuid}/events/{id}/register",
                 this::federatedRegister,
-                StationPermission.USER);
+                StationPermission.USER,
+                StationModule.EVENTS);
         routes.delete(
                 prefix + "/federated/{stationuid}/events/{id}/register",
                 this::federatedWithdraw,
-                StationPermission.USER);
+                StationPermission.USER,
+                StationModule.EVENTS);
         routes.post(
                 prefix + "/federated/{stationuid}/events/{id}/register/undo",
                 this::federatedUndoWithdrawal,
-                StationPermission.USER);
+                StationPermission.USER,
+                StationModule.EVENTS);
         routes.post(
                 prefix + "/federated/{stationuid}/events/{id}/register/confirm",
                 this::federatedConfirmOwn,
-                StationPermission.EVENT_REGISTRATION);
+                StationPermission.EVENT_REGISTRATION,
+                StationModule.EVENTS);
         routes.get(
                 prefix + "/federated/{stationuid}/events/{id}/agreements",
                 this::federatedAgreementOffers,
-                StationPermission.USER);
+                StationPermission.USER,
+                StationModule.EVENTS);
         routes.post(
                 prefix + "/federated/{stationuid}/events/{id}/agreement",
                 this::federatedSignAgreement,
-                StationPermission.USER);
+                StationPermission.USER,
+                StationModule.EVENTS);
         routes.get(
                 prefix + "/federated/{stationuid}/events/{id}/attachments",
                 this::federatedListAttachments,
-                StationPermission.USER);
+                StationPermission.USER,
+                StationModule.EVENTS);
         routes.get(
                 prefix + "/federated/{stationuid}/events/{id}/attachments/{attachmentId}/file",
                 this::federatedDownloadAttachment,
-                StationPermission.USER);
-        routes.get(prefix + "/federated/my-registrations", this::federatedMyRegistrations, StationPermission.USER);
+                StationPermission.USER,
+                StationModule.EVENTS);
+        routes.get(
+                prefix + "/federated/my-registrations",
+                this::federatedMyRegistrations,
+                StationPermission.USER,
+                StationModule.EVENTS);
 
         routes.get(
                 prefix + "/federated/{stationuid}/events/{eventId}/comments",
                 this::federatedListComments,
-                StationPermission.LOGIN);
+                StationPermission.LOGIN,
+                StationModule.EVENTS);
         routes.post(
                 prefix + "/federated/{stationuid}/events/{eventId}/comments",
                 this::federatedCreateComment,
-                StationPermission.LOGIN);
+                StationPermission.LOGIN,
+                StationModule.EVENTS);
         routes.put(
                 prefix + "/federated/{stationuid}/events/comments/{commentId}",
                 this::federatedUpdateComment,
-                StationPermission.LOGIN);
+                StationPermission.LOGIN,
+                StationModule.EVENTS);
         routes.delete(
                 prefix + "/federated/{stationuid}/events/comments/{commentId}",
                 this::federatedDeleteComment,
-                StationPermission.LOGIN);
+                StationPermission.LOGIN,
+                StationModule.EVENTS);
     }
 
     @OpenApi(

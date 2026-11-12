@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.federation.service.LendingRequestViewService.Enri
 import dev.chojo.ember.feature.federation.service.LendingRequestViewService.LendingRequestResponse;
 import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.members.entity.NameParts;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -62,63 +63,93 @@ public class LendingRoutes implements Routes {
                 prefix + "/lending/requests",
                 this::listRequests,
                 StationPermission.INVENTORY_LENDING_REQUEST,
-                StationPermission.INVENTORY_LENDING_MANAGER);
-        routes.post(prefix + "/lending/requests", this::createRequest, StationPermission.INVENTORY_LENDING_REQUEST);
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
+        routes.post(
+                prefix + "/lending/requests",
+                this::createRequest,
+                StationPermission.INVENTORY_LENDING_REQUEST,
+                StationModule.INVENTORY_LENDING);
         routes.get(
                 prefix + "/lending/requests/{id}",
                 this::getRequest,
                 StationPermission.INVENTORY_LENDING_REQUEST,
-                StationPermission.INVENTORY_LENDING_MANAGER);
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
 
         routes.post(
                 prefix + "/lending/requests/{id}/approve",
                 this::approveRequest,
-                StationPermission.INVENTORY_LENDING_MANAGER);
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
         routes.post(
                 prefix + "/lending/requests/{id}/decline",
                 this::declineRequest,
-                StationPermission.INVENTORY_LENDING_MANAGER);
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
         routes.get(
                 prefix + "/lending/requests/{id}/available-items",
                 this::availableItemsForRequest,
-                StationPermission.INVENTORY_LENDING_MANAGER);
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
         routes.post(
                 prefix + "/lending/requests/{id}/assign-items",
                 this::assignItems,
-                StationPermission.INVENTORY_LENDING_MANAGER);
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
         routes.post(
-                prefix + "/lending/requests/{id}/lent", this::markLent, StationPermission.INVENTORY_LENDING_MANAGER);
+                prefix + "/lending/requests/{id}/lent",
+                this::markLent,
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
 
         routes.post(
                 prefix + "/lending/requests/{id}/returned",
                 this::markReturned,
                 StationPermission.INVENTORY_LENDING_REQUEST,
-                StationPermission.INVENTORY_LENDING_MANAGER);
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
         routes.post(
                 prefix + "/lending/requests/{id}/close",
                 this::closeRequest,
                 StationPermission.INVENTORY_LENDING_REQUEST,
-                StationPermission.INVENTORY_LENDING_MANAGER);
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
 
         routes.get(
                 prefix + "/lending/inventory/{inventoryId}/lent-out",
                 this::lentOutByInventory,
-                StationPermission.INVENTORY_READ);
+                StationPermission.INVENTORY_READ,
+                StationModule.INVENTORY_LENDING);
 
         routes.get(
                 prefix + "/lending/requests/{id}/messages",
                 this::getMessages,
                 StationPermission.INVENTORY_LENDING_REQUEST,
-                StationPermission.INVENTORY_LENDING_MANAGER);
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
         routes.post(
                 prefix + "/lending/requests/{id}/messages",
                 this::sendMessage,
                 StationPermission.INVENTORY_LENDING_REQUEST,
-                StationPermission.INVENTORY_LENDING_MANAGER);
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
 
-        routes.get(prefix + "/lending/blocks", this::listBlocks, StationPermission.INVENTORY_LENDING_MANAGER);
-        routes.post(prefix + "/lending/blocks", this::createBlock, StationPermission.INVENTORY_LENDING_MANAGER);
-        routes.delete(prefix + "/lending/blocks/{id}", this::deleteBlock, StationPermission.INVENTORY_LENDING_MANAGER);
+        routes.get(
+                prefix + "/lending/blocks",
+                this::listBlocks,
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
+        routes.post(
+                prefix + "/lending/blocks",
+                this::createBlock,
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
+        routes.delete(
+                prefix + "/lending/blocks/{id}",
+                this::deleteBlock,
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
     }
 
     @OpenApi(

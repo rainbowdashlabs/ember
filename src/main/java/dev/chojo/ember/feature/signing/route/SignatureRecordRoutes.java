@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.documents.service.DocumentAccessService;
 import dev.chojo.ember.feature.documents.service.DocumentCatalogService;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.signing.service.SignatureRecords;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -49,9 +50,16 @@ public class SignatureRecordRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/documents/{id}/versions/{version}/record", this::record, StationPermission.LOGIN);
         routes.get(
-                prefix + "/documents/{id}/versions/{version}/with-record", this::withRecord, StationPermission.LOGIN);
+                prefix + "/documents/{id}/versions/{version}/record",
+                this::record,
+                StationPermission.LOGIN,
+                StationModule.DOCUMENTS);
+        routes.get(
+                prefix + "/documents/{id}/versions/{version}/with-record",
+                this::withRecord,
+                StationPermission.LOGIN,
+                StationModule.DOCUMENTS);
     }
 
     @OpenApi(

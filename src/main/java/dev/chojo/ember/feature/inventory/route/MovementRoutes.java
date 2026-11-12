@@ -44,6 +44,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -119,38 +120,77 @@ public class MovementRoutes implements Routes {
      */
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/movements", this::list, StationPermission.USER);
-        routes.get(prefix + "/movements/at-member", this::listAtMember, StationPermission.USER);
-        routes.post(prefix + "/movements", this::create, StationPermission.USER);
+        routes.get(prefix + "/movements", this::list, StationPermission.USER, StationModule.INVENTORY_MOVEMENTS);
+        routes.get(
+                prefix + "/movements/at-member",
+                this::listAtMember,
+                StationPermission.USER,
+                StationModule.INVENTORY_MOVEMENTS);
+        routes.post(prefix + "/movements", this::create, StationPermission.USER, StationModule.INVENTORY_MOVEMENTS);
         routes.post(
-                prefix + "/movements/return-everything", this::returnEverything, StationPermission.INVENTORY_MANAGER);
-        routes.post(prefix + "/movements/export", this::exportPdf, StationPermission.INVENTORY_MANAGER);
+                prefix + "/movements/return-everything",
+                this::returnEverything,
+                StationPermission.INVENTORY_MANAGER,
+                StationModule.INVENTORY_MOVEMENTS);
+        routes.post(
+                prefix + "/movements/export",
+                this::exportPdf,
+                StationPermission.INVENTORY_MANAGER,
+                StationModule.INVENTORY_MOVEMENTS);
         routes.get(
                 prefix + "/movements/{id}",
                 this::get,
                 StationPermission.USER,
-                ClusterPermission.CLUSTER_INVENTORY_MOVEMENTS);
+                ClusterPermission.CLUSTER_INVENTORY_MOVEMENTS,
+                StationModule.INVENTORY_MOVEMENTS);
         routes.post(
                 prefix + "/movements/{id}/acknowledge",
                 this::acknowledge,
                 StationPermission.USER,
-                ClusterPermission.CLUSTER_INVENTORY_MOVEMENTS);
+                ClusterPermission.CLUSTER_INVENTORY_MOVEMENTS,
+                StationModule.INVENTORY_MOVEMENTS);
         routes.get(
                 prefix + "/movements/{id}/document",
                 this::document,
                 StationPermission.USER,
-                ClusterPermission.CLUSTER_INVENTORY_MOVEMENTS);
-        routes.post(prefix + "/movements/{id}/force", this::force, StationPermission.INVENTORY_MANAGER);
-        routes.post(prefix + "/movements/{id}/correct", this::correct, StationPermission.INVENTORY_MANAGER);
-        routes.get(prefix + "/movements/{id}/rechain/plan", this::rechainPlan, StationPermission.INVENTORY_MANAGER);
-        routes.post(prefix + "/movements/{id}/rechain", this::rechain, StationPermission.INVENTORY_MANAGER);
+                ClusterPermission.CLUSTER_INVENTORY_MOVEMENTS,
+                StationModule.INVENTORY_MOVEMENTS);
+        routes.post(
+                prefix + "/movements/{id}/force",
+                this::force,
+                StationPermission.INVENTORY_MANAGER,
+                StationModule.INVENTORY_MOVEMENTS);
+        routes.post(
+                prefix + "/movements/{id}/correct",
+                this::correct,
+                StationPermission.INVENTORY_MANAGER,
+                StationModule.INVENTORY_MOVEMENTS);
+        routes.get(
+                prefix + "/movements/{id}/rechain/plan",
+                this::rechainPlan,
+                StationPermission.INVENTORY_MANAGER,
+                StationModule.INVENTORY_MOVEMENTS);
+        routes.post(
+                prefix + "/movements/{id}/rechain",
+                this::rechain,
+                StationPermission.INVENTORY_MANAGER,
+                StationModule.INVENTORY_MOVEMENTS);
         routes.post(
                 prefix + "/movements/{id}/decline",
                 this::decline,
                 StationPermission.USER,
-                ClusterPermission.CLUSTER_INVENTORY_MOVEMENTS);
-        routes.post(prefix + "/movements/{id}/cancel", this::cancel, StationPermission.USER);
-        routes.delete(prefix + "/movements/{id}", this::delete, StationPermission.INVENTORY_MOVEMENTS);
+                ClusterPermission.CLUSTER_INVENTORY_MOVEMENTS,
+                StationModule.INVENTORY_MOVEMENTS);
+        routes.post(
+                prefix + "/movements/{id}/cancel",
+                this::cancel,
+                StationPermission.USER,
+                StationModule.INVENTORY_MOVEMENTS);
+        routes.delete(
+                prefix + "/movements/{id}",
+                this::delete,
+                StationPermission.INVENTORY_MOVEMENTS,
+                StationModule.INVENTORY_MOVEMENTS);
     }
 
     /**

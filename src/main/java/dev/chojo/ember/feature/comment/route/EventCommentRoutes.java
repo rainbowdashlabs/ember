@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -60,10 +61,12 @@ public class EventCommentRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/events/{eventId}/comments", this::list, StationPermission.LOGIN);
-        routes.post(prefix + "/events/{eventId}/comments", this::create, StationPermission.LOGIN);
-        routes.put(prefix + "/events/comments/{commentId}", this::update, StationPermission.LOGIN);
-        routes.delete(prefix + "/events/comments/{commentId}", this::delete, StationPermission.LOGIN);
+        routes.get(prefix + "/events/{eventId}/comments", this::list, StationPermission.LOGIN, StationModule.EVENTS);
+        routes.post(prefix + "/events/{eventId}/comments", this::create, StationPermission.LOGIN, StationModule.EVENTS);
+        routes.put(
+                prefix + "/events/comments/{commentId}", this::update, StationPermission.LOGIN, StationModule.EVENTS);
+        routes.delete(
+                prefix + "/events/comments/{commentId}", this::delete, StationPermission.LOGIN, StationModule.EVENTS);
     }
 
     /**
