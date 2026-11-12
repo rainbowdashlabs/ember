@@ -23,6 +23,10 @@ Wer eine Wache teilt, kann sich direkt oder in Gruppen Nachrichten schreiben. Ei
 
 - **Geteilte Termine brauchen auf beiden Seiten diese Version.** Zwischen einer Wache auf dieser Version und einer Partnerwache auf einer älteren auf einem anderen Server funktionieren geteilte Termine, die Anmeldung dazu und ihre Kommentare nicht. Sobald beide 26.25.0 betreiben, geht es wieder.
 
+### Fehlerbehebungen
+
+- **Wörter statt technischer Werte.** An einigen Stellen erschienen technische Werte statt Wörtern, etwa die Antwort auf eine Einladung von der Warteliste, ein vom Verband abgeschaltetes Modul, die Mitgliedsarten in der Einrichtung der Wache und zugeordnete Werte beim Mitgliederimport, und dem letzten Einrichtungsschritt fehlte sein Hinweis. Alles erscheint jetzt in der Sprache der Oberfläche.
+
 ## v26.24.2
 
 Terminvorlagen tragen Anmelderegeln, Dateien, Startwerte für den Anwesenheitsbogen und die Freigabe für Partnerwachen. Der Filter "Anmeldung offen" bei den kommenden Terminen zeigt nur noch Termine, für die eine Anmeldung noch möglich ist.

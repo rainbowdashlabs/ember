@@ -115,6 +115,21 @@
     "NOT_INTERESTED": "Not interested",
     "DATE_DOES_NOT_SUIT": "The date does not suit"
   },
+  "module": {
+    "ATTENDANCE": "Attendance",
+    "BOARDS": "Boards",
+    "DOCUMENTS": "Documents",
+    "EVENTS": "Events",
+    "FORMS": "Forms",
+    "INVENTORY": "Inventory",
+    "KNOWLEDGE_BASE": "Wiki",
+    "LOST_AND_FOUND": "Lost and Found",
+    "NEWS": "News",
+    "PROCEDURES": "Procedures",
+    "QUIZ": "Quiz",
+    "TEST_PROTOCOL": "Test reports",
+    "WAITING_LIST": "Waiting list"
+  },
   "changedPart": {
     "TIME": "time",
     "DATE": "date",

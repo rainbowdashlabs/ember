@@ -7730,6 +7730,11 @@ export default {
         waitlistPublicRegistration: 'Öffentliche Anmeldung: {childName} auf Warteliste {listName}',
         waitlistInvitationAnswered: '{childName} hat auf die Einladung geantwortet: {answer} (Warteliste {listName})',
         waitlistTrialEnded: 'Die Probezeit von {childName} wurde von der Familie beendet (Warteliste {listName})',
+        waitlistAnswer: {
+            COMING: 'Ich komme',
+            NOT_INTERESTED: 'Kein Interesse',
+            DATE_DOES_NOT_SUIT: 'Der Termin passt nicht',
+        },
         storageWarning: 'Speicher bei {usedPercent}% ({usedFormatted} von {quotaFormatted})',
         mailboxSuspended: 'Postfach „{mailbox}" wird nicht mehr abgerufen: {reason}',
         mailImportUnbound: '{count} per Mail eingegangene Dokumente sind noch keinem Mitglied zugeordnet',
@@ -12881,6 +12886,7 @@ export default {
             finish: {
                 label: 'Fertig',
                 title: 'Geschafft!',
+                hint: 'Alles Nötige ist eingerichtet. Offene optionale Schritte lassen sich jederzeit später nachholen.',
                 body: 'Deine Wache ist bereit. Du kannst die Tour starten oder direkt zur Übersicht.',
                 missingHint: 'Es sind noch Pflicht-Schritte offen. Wir bringen dich zum nächsten.',
                 takeTour: 'Geführte Tour starten',

@@ -23,6 +23,10 @@ People who share a station can write to each other directly or in groups. One da
 
 - **Shared appointments need this version on both sides.** Between a station on this version and a partner station on an older one on another server, shared appointments, signing up for them and their comments stop working. They work again once both run 26.25.0.
 
+### Fixes
+
+- **Words instead of raw values.** In some places technical values showed instead of words, such as the answer to a waiting-list invitation, a module the cluster switched off, member types in the station setup and mapped values in the member import, and the last setup step missed its hint. They now read in the interface language.
+
 ## v26.24.2
 
 Appointment templates carry sign-up rules, files, starting values for the attendance sheet and sharing with partner stations. The upcoming list's "Registration open" filter shows only dates that can still be signed up for.
