@@ -2,21 +2,29 @@
 
 ## v26.25.0
 
-Ein einzelner Termin einer Serie lässt sich für sich ändern, eine Serie ab einem Termin. Beim Speichern einer Änderung können die Betroffenen benachrichtigt werden, auf Wunsch mit einem Hinweis. Wer angemeldet ist, erfährt eine neue Anfangszeit immer, auch bei Serienterminen, und in nur einer Nachricht. Geteilte Termine mit einer Partnerwache auf einem anderen Server brauchen auf beiden Seiten diese Version.
+Ein einzelner Termin einer Serie lässt sich für sich ändern, eine Serie ab einem Termin. Beim Speichern einer Änderung können die Betroffenen benachrichtigt werden, auf Wunsch mit einem Hinweis. Teile des Inventars wie der Verleih oder die Beschaffung lassen sich einzeln abschalten, und ein abgeschaltetes Modul nimmt seine Benachrichtigungen und Berechtigungen mit. Geteilte Termine mit einer Partnerwache auf einem anderen Server brauchen auf beiden Seiten diese Version.
 
 ### Neue Funktionen
 
 - **Einzelne Termine oder Serien ab einem Datum ändern.** Beim Speichern einer Serie wird gefragt, ob die Änderung nur für diesen Termin, für diesen und alle späteren oder für alle Termine gilt. Ein einzelner Termin wird ein eigener Termin und spätere Termine gehen als neue Serie weiter; Anmeldungen und Anwesenheitslisten ziehen mit, und beide Termine verweisen aufeinander.
 - **Betroffene über Änderungen benachrichtigen.** Beim Speichern einer Änderung lassen sich alle Angemeldeten benachrichtigen, bei Terminen ohne Anmeldung alle, die den Termin sehen, mit einem Hinweis von bis zu 500 Zeichen. Die Nachricht nennt, was sich geändert hat, und Partnerwachen geben sie an ihre Mitglieder weiter.
 - **Aufgeteilte Serien zählen als eine.** In der Statistik der Wache zählen eine Serie, die als neue Serie weitergeht, und die aus ihr gelösten Termine als ein Termin unter dem neuesten Namen.
+- **Teile des Inventars einzeln abschalten.** Vorgänge, Verleih, Beschaffung, das Selbstprüfen der Ausrüstung und Inventarprüfungen haben unter Wache → Module je einen eigenen Schalter unter dem Inventar. Verbände können jeden Teil ihren Wachen genauso verwehren wie ein ganzes Modul.
 
 ### Verbesserungen
 
 - **Neue Anfangszeit beim Speichern sichtbar.** Die Abfrage beim Speichern zeigt, wie viele Angemeldete eine neue Anfangszeit erfahren, jetzt auch bei Serienterminen. Wer zusätzlich über die Änderung benachrichtigt wird, bekommt eine Nachricht statt zwei.
+- **Abgeschaltete Module nehmen ihre Benachrichtigungen mit.** Benachrichtigungen eines abgeschalteten Moduls werden nicht mehr angezeigt, gezählt oder gemailt, und solange es aus ist, entstehen keine neuen. Sie bleiben erhalten und sind wieder da, sobald das Modul läuft; die Einstellungen der Benachrichtigungen zeigen nur noch, was die Wache nutzt.
+- **Abgeschaltete Module vergeben keine Berechtigungen.** Die Auswahl der Berechtigungen lässt die eines abgeschalteten Moduls weg, und bereits vergebene gelten erst wieder, wenn das Modul läuft. Pflichten eines abgeschalteten Moduls, etwa eine Pflichtumfrage, halten niemanden mehr auf der Startseite fest.
+- **Partner und Öffentlichkeit sehen nichts von abgeschalteten Modulen.** Eine Wache gibt Partnerwachen nichts aus einem Modul heraus, das sie abgeschaltet hat, und ihre Mitglieder sehen von Partnern nichts aus diesem Modul. Öffentlicher Kalender, Blog, Wiki, Quiz und Wartelisten verschwinden mit ihrem Modul, auch wenn der Verband es verwehrt.
 
 ### Änderungen
 
 - **Geteilte Termine brauchen auf beiden Seiten diese Version.** Zwischen einer Wache auf dieser Version und einer Partnerwache auf einer älteren auf einem anderen Server funktionieren geteilte Termine, die Anmeldung dazu und ihre Kommentare nicht. Sobald beide 26.25.0 betreiben, geht es wieder.
+
+### Fehlerbehebungen
+
+- **Abgeschaltete Module blieben erreichbar.** Seiten eines abgeschalteten Moduls öffneten sich weiter über einen gespeicherten Link, und Dokumente und das öffentliche Wiki blieben offen, wenn nur der Verband sie abgeschaltet hatte. Jede Seite eines abgeschalteten Moduls sagt jetzt, dass dieser Bereich an der Wache ausgeschaltet ist.
 
 ## v26.24.2
 

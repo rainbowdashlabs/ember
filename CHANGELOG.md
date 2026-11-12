@@ -2,21 +2,29 @@
 
 ## v26.25.0
 
-One date of a series can be changed on its own, or a series from one date on. Saving a change can tell the people an appointment concerns, with a note. People holding a place always hear about a new start time, also on series dates, and in one message. Shared appointments with a partner station on another server need both stations on this version.
+One date of a series can be changed on its own, or a series from one date on. Saving a change can tell the people an appointment concerns, with a note. Parts of the inventory, such as lending or procurement, can be switched off on their own, and a switched-off module takes its notifications and permissions with it. Shared appointments with a partner station on another server need both stations on this version.
 
 ### New Features
 
 - **Change one date or later dates.** Saving a change to a series asks whether it applies to only this date, to this and all later dates, or to all dates. A single date becomes an appointment of its own and later dates go on as a new series; places and attendance sheets move along, and both appointments link to each other.
 - **Tell the people an appointment concerns.** Saving a change can notify everybody holding a place, or everybody who may see an appointment without registration, with an optional note of up to 500 characters. The message names what changed, and partner stations pass it on to their members.
 - **Split series count as one.** In the station statistics, a series that goes on as a new one and the dates taken out of it count as one appointment under its newest name.
+- **Inventory parts switch off on their own.** Movements, lending, procurement, self-checks and inventory checks each have a switch under the inventory on Station → Modules. Associations can deny each part to their stations the same way as a whole module.
 
 ### Improvements
 
 - **New start times show on save.** The save dialog says how many people holding a place are told a new start time, which now also reaches series dates. Somebody who is also told about the change gets one message instead of two.
+- **Switched-off modules take their notifications along.** Notifications of a switched-off module are no longer listed, counted or mailed, and none are written while it is off. They are kept and show again once the module is back, and the notification settings only list what the station uses.
+- **Switched-off modules grant no permissions.** The permission picker leaves out permissions of a switched-off module, and permissions already given grant nothing until the module is back. Requirements of a switched-off module, such as a mandatory poll, no longer hold anybody at the start page.
+- **Switched-off modules stay hidden from partners and public.** A station serves partner stations nothing of a module it switched off, and its own members see nothing of that module from partners either. The public calendar, blog, wiki, quiz and waiting lists go away with their module, also when the association denies it.
 
 ### Changes
 
 - **Shared appointments need this version on both sides.** Between a station on this version and a partner station on an older one on another server, shared appointments, signing up for them and their comments stop working. They work again once both run 26.25.0.
+
+### Fixes
+
+- **Switched-off modules stayed reachable.** Pages of a switched-off module still opened from a saved link, and the documents and the public wiki stayed open when only the association had switched them off. Every page of a switched-off module now says that this part of the station is switched off.
 
 ## v26.24.2
 
