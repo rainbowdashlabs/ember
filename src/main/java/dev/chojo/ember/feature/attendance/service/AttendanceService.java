@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventDateCancellationRepository;
+import dev.chojo.ember.feature.events.repository.EventDetachedDateRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldDefaultRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
@@ -90,6 +91,7 @@ public class AttendanceService {
     private final Attendance attendanceConfig;
     private final StationRepository stationRepository;
     private final EventDateCancellationRepository cancellationRepository;
+    private final EventDetachedDateRepository detachedDateRepository;
     private final AttendanceAudienceService audienceService;
     private final MemberEligibility memberEligibility;
     private final AttendanceTemplateGuards templateGuards;
@@ -110,8 +112,10 @@ public class AttendanceService {
             AttendanceAudienceService audienceService,
             MemberEligibility memberEligibility,
             AttendanceTemplateGuards templateGuards,
-            AttendanceTimeRuleRepository timeRuleRepository) {
+            AttendanceTimeRuleRepository timeRuleRepository,
+            EventDetachedDateRepository detachedDateRepository) {
         this.timeRuleRepository = timeRuleRepository;
+        this.detachedDateRepository = detachedDateRepository;
         this.memberEligibility = memberEligibility;
         this.templateGuards = templateGuards;
         this.cancellationRepository = cancellationRepository;
@@ -146,6 +150,16 @@ public class AttendanceService {
     private void requireNotCancelled(StationEvent event, LocalDate day) {
         if (event.cancelled() || cancellationRepository.isCancelled(event.id(), day)) {
             throw EventRefusal.ATTENDANCE_DAY_CANCELLED.raise();
+        }
+    }
+
+    /**
+     * Refuses a sheet on a series for a date that became an appointment of its own: the sheet belongs
+     * to that appointment.
+     */
+    private void requireNotDetached(StationEvent event, LocalDate day) {
+        if (event.isRecurring() && detachedDateRepository.isDetached(event.id(), day)) {
+            throw EventRefusal.ATTENDANCE_DAY_DETACHED.raise();
         }
     }
 
@@ -467,6 +481,7 @@ public class AttendanceService {
                 }
                 LocalDate day = sheetDay(event, eventDate, startTime, zone);
                 requireNotCancelled(event, day);
+                requireNotDetached(event, day);
                 if (resolvedStart == null || resolvedEnd == null) {
                     var span = event.occurrenceOn(day, zone);
                     if (span.isPresent()) {

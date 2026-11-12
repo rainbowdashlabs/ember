@@ -101,6 +101,44 @@ public class EventMoveService {
     }
 
     /**
+     * Withdraws the places held from today on that an appointment does not fall on, for an appointment
+     * that just took over dates of another one and may not fall on all of them. Nobody is told yet:
+     * the caller tells them with {@link #tellDropped} once what it writes is saved.
+     *
+     * @param event the appointment as it now stands
+     * @return the places withdrawn
+     */
+    public List<EventRegistration> settle(StationEvent event) {
+        var calendar = occurrenceCalendar.forStation(event.stationId());
+        return withdrawOnDatesGone(event, calendar, calendar.today());
+    }
+
+    /**
+     * Tells the members whose places were withdrawn, and whoever looks after them, that their date
+     * went away, with the next date the appointment falls on.
+     *
+     * @param event     the appointment as it now stands
+     * @param withdrawn the places withdrawn
+     */
+    public void tellDropped(StationEvent event, List<EventRegistration> withdrawn) {
+        var calendar = occurrenceCalendar.forStation(event.stationId());
+        for (var registration : withdrawn) {
+            LocalDate nextDate = calendar.next(event, registration.eventDate()).orElse(null);
+            tell(
+                    registration.memberId(),
+                    NotificationType.EVENT_DATE_DROPPED,
+                    new NotificationParams.EventDateDropped(
+                            event.name(),
+                            registration.eventDate(),
+                            nameResolver.called(registration.memberId()),
+                            nextDate),
+                    nextDate != null
+                            ? NotificationLinks.eventDate(event.id(), nextDate)
+                            : NotificationLinks.event(event.id()));
+        }
+    }
+
+    /**
      * Moves the registrations and answers of a one-off appointment to its new day, and tells everybody
      * holding a place when it now starts.
      *
@@ -139,6 +177,10 @@ public class EventMoveService {
      * somebody signed up, that date is checked, and nothing is asked about dates nobody used.
      */
     private void withdrawDatesGone(StationEvent after, StationCalendar calendar, LocalDate today) {
+        tellDropped(after, withdrawOnDatesGone(after, calendar, today));
+    }
+
+    private List<EventRegistration> withdrawOnDatesGone(StationEvent after, StationCalendar calendar, LocalDate today) {
         var filed = new TreeSet<LocalDate>();
         filed.addAll(registrationRepository.findDatesFrom(after.id(), today));
         filed.addAll(fieldRepository.findDateValueDatesFrom(after.id(), today));
@@ -146,28 +188,14 @@ public class EventMoveService {
         List<LocalDate> gone = filed.stream()
                 .filter(date -> !calendar.occursOn(after, date) && !calendar.isDetached(after, date))
                 .toList();
-        if (gone.isEmpty()) return;
+        if (gone.isEmpty()) return List.of();
 
         var withdrawn = registrationRepository.withdrawOnDates(after.id(), gone);
         fieldRepository.deleteDateValuesOn(after.id(), gone);
         reminderRepository.deleteSentOn(after.id(), gone);
         cancellationRepository.deleteOn(after.id(), gone);
         log.info("Event {} no longer falls on {}, withdrew {} registrations there", after.id(), gone, withdrawn.size());
-
-        for (var registration : withdrawn) {
-            LocalDate nextDate = calendar.next(after, registration.eventDate()).orElse(null);
-            tell(
-                    registration.memberId(),
-                    NotificationType.EVENT_DATE_DROPPED,
-                    new NotificationParams.EventDateDropped(
-                            after.name(),
-                            registration.eventDate(),
-                            nameResolver.called(registration.memberId()),
-                            nextDate),
-                    nextDate != null
-                            ? NotificationLinks.eventDate(after.id(), nextDate)
-                            : NotificationLinks.event(after.id()));
-        }
+        return withdrawn;
     }
 
     private static boolean holdsPlace(EventRegistration registration) {

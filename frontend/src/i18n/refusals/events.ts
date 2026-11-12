@@ -200,4 +200,8 @@ export default {
     'E-170': 'Dieser Termin nimmt Anmeldungen an, die Vereinbarung wird bei der Anmeldung unterschrieben',
     'E-171': 'Die Vereinbarung dieses Termins kannst du für diese Person nicht unterschreiben',
     'E-172': 'Dieses Dokument verlangt für diese Person keine Unterschrift',
+    'E-173': 'Nur eine Serie hat Termine, die einzeln bearbeitet werden, es wurde nichts gespeichert',
+    'E-174': 'Ein vergangener Termin bleibt, wie er war, es wurde nichts gespeichert',
+    'E-175': 'Die Serie findet an diesem Tag nicht statt, es wurde nichts gespeichert',
+    'E-176': 'Dieser Tag ist ein eigener Termin geworden, die Anwesenheit wird dort erfasst',
 }

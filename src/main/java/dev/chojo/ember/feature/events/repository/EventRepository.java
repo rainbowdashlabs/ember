@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.repository;
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.content.entity.BlockAudience;
+import dev.chojo.ember.feature.events.entity.EventLink;
 import dev.chojo.ember.feature.events.entity.PickerEvent;
 import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -408,6 +409,79 @@ public class EventRepository {
                         .bind("id", id))
                 .update()
                 .changed();
+    }
+
+    /**
+     * Says whether an appointment is on the public calendar, which creating one leaves to its category.
+     *
+     * @param id       the event
+     * @param isPublic true or false, or null to follow the category
+     * @return true if a row was updated
+     */
+    public boolean updatePublic(int id, @Nullable Boolean isPublic) {
+        return query("""
+                UPDATE station_event
+                SET public     = :public,
+                    updated_at = now()
+                WHERE id = :id;""")
+                .single(call().bind("public", isPublic).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Records that an appointment took over from another one: a date taken out of a series, or a
+     * series that ended where this one goes on.
+     *
+     * @param id     the appointment that took over
+     * @param source the appointment it took over from
+     * @param from   the date it took over from
+     * @return true if a row was updated
+     */
+    public boolean setContinues(int id, int source, LocalDate from) {
+        return query("""
+                UPDATE station_event
+                SET continues_event_id = :source,
+                    continues_from     = :from,
+                    updated_at         = now()
+                WHERE id = :id;""")
+                .single(call().bind("source", source).bind("from", from).bind("id", id))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Which appointment and date one took over from.
+     *
+     * @param id the appointment
+     * @return the link, empty where it was created on its own or the source is gone
+     */
+    public Optional<EventLink> findContinues(int id) {
+        return query("""
+                SELECT s.id, s.name, e.continues_from
+                FROM station_event e
+                         JOIN station_event s ON s.id = e.continues_event_id
+                WHERE e.id = :id;""")
+                .single(call().bind("id", id))
+                .map(EventLink.map("continues_from"))
+                .first();
+    }
+
+    /**
+     * The appointments that took over from this one, earliest date first.
+     *
+     * @param id the appointment
+     * @return the appointments and the dates they took over from
+     */
+    public List<EventLink> findContinuations(int id) {
+        return query("""
+                SELECT e.id, e.name, e.continues_from
+                FROM station_event e
+                WHERE e.continues_event_id = :id
+                ORDER BY e.continues_from, e.id;""")
+                .single(call().bind("id", id))
+                .map(EventLink.map("continues_from"))
+                .all();
     }
 
     /**

@@ -633,7 +633,23 @@ public enum EventRefusal implements Refusal {
 
     /** An agreement asked for on a document the appointment does not ask for, or that nobody of theirs signs. */
     AGREEMENT_NOTHING_TO_SIGN(
-            172, HttpStatus.BAD_REQUEST, "The appointment asks for no agreement in this document for them to sign");
+            172, HttpStatus.BAD_REQUEST, "The appointment asks for no agreement in this document for them to sign"),
+
+    /** One date, or one date and the ones after it, edited on an appointment that does not repeat. */
+    EVENT_SCOPE_NEEDS_A_SERIES(
+            173, HttpStatus.BAD_REQUEST, "Only a series has dates to edit on their own, so nothing was saved"),
+
+    /** A date before today chosen to edit on its own or to edit the series from. */
+    EVENT_SCOPE_DATE_PASSED(
+            174, HttpStatus.BAD_REQUEST, "A date that has passed stays as it was, so nothing was saved"),
+
+    /** A date chosen to edit on its own or to edit the series from that the series does not fall on. */
+    EVENT_SCOPE_DATE_NOT_AN_OCCURRENCE(
+            175, HttpStatus.BAD_REQUEST, "The series does not take place on that date, so nothing was saved"),
+
+    /** An attendance sheet taken on a series for a date that became an appointment of its own. */
+    ATTENDANCE_DAY_DETACHED(
+            176, HttpStatus.BAD_REQUEST, "That date became an appointment of its own, so attendance is taken there");
 
     private final Definition definition;
 

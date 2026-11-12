@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventDetachedDateRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -82,7 +83,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
                 new AttendanceAudienceService(attendanceRepo),
                 memberEligibility,
                 new AttendanceTemplateGuards(attendanceRepo),
-                new AttendanceTimeRuleRepository());
+                new AttendanceTimeRuleRepository(),
+                new EventDetachedDateRepository());
         station = stationRepo.create("AttendanceSvc Station");
         account = accountRepo.create("attend-svc@test.com", "Attend", "User");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -551,6 +553,38 @@ class AttendanceServiceTest extends RepositoryTestBase {
         var next = service.createSession(templateId, null, null, weekly.id(), null, null, null, wednesday.plusWeeks(1));
 
         service.deleteSession(next.id());
+        eventRepo.delete(weekly.id());
+    }
+
+    /** No sheet is taken on a series for a date that became an appointment of its own. */
+    @Test
+    @Order(52)
+    void noSheetIsTakenOnTheSeriesForADetachedDate() {
+        LocalDate wednesday = LocalDate.of(2027, 3, 10);
+        var weekly = eventRepo.create(
+                station.id(),
+                "Herausgelöste Übung",
+                "desc",
+                StationEvent.EventType.RECURRING,
+                3,
+                Instant.parse("2027-01-06T18:00:00Z"),
+                Instant.parse("2027-01-06T20:00:00Z"),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        eventDetachedDateRepo.detach(weekly.id(), wednesday);
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.createSession(templateId, null, null, weekly.id(), null, null, null, wednesday));
+        assertEquals(EventRefusal.ATTENDANCE_DAY_DETACHED, refused.refusal());
+
         eventRepo.delete(weekly.id());
     }
 

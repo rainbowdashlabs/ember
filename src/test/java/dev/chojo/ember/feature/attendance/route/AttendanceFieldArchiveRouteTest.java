@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.attendance.service.AttendanceReportService;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.attendance.service.MemberCheckNotesService;
+import dev.chojo.ember.feature.events.repository.EventDetachedDateRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.question.FieldType;
@@ -81,7 +82,8 @@ class AttendanceFieldArchiveRouteTest extends RepositoryTestBase {
                 new AttendanceAudienceService(attendanceRepo),
                 memberEligibility,
                 new AttendanceTemplateGuards(attendanceRepo),
-                new AttendanceTimeRuleRepository());
+                new AttendanceTimeRuleRepository(),
+                new EventDetachedDateRepository());
         harness = RouteHarness.serving(new AttendanceRoutes(
                         attendanceService,
                         mock(MemberCheckNotesService.class),

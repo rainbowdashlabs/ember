@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.attendance.service.AttendanceAudienceService;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.attendance.service.AttendanceTimeRuleService;
+import dev.chojo.ember.feature.events.repository.EventDetachedDateRepository;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.TagVisibility;
@@ -77,7 +78,8 @@ class AttendanceTimeRuleRouteTest extends RepositoryTestBase {
                 new AttendanceAudienceService(attendanceRepo),
                 memberEligibility,
                 new AttendanceTemplateGuards(attendanceRepo),
-                new AttendanceTimeRuleRepository());
+                new AttendanceTimeRuleRepository(),
+                new EventDetachedDateRepository());
         harness = RouteHarness.serving(new AttendanceTimeRuleRoutes(
                         attendanceService,
                         new AttendanceTimeRuleService(

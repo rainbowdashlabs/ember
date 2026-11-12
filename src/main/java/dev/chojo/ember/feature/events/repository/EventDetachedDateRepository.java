@@ -39,6 +39,25 @@ public class EventDetachedDateRepository {
     }
 
     /**
+     * Whether this date was taken out of this series.
+     *
+     * @param eventId the series
+     * @param date    the date
+     * @return true where it became an appointment of its own
+     */
+    public boolean isDetached(int eventId, LocalDate date) {
+        return query("""
+                SELECT EXISTS(SELECT 1
+                              FROM station_event_detached_date
+                              WHERE event_id = :event_id
+                                AND event_date = :event_date) AS detached;""")
+                .single(call().bind("event_id", eventId).bind("event_date", date))
+                .map(row -> row.getBoolean("detached"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
      * The dates taken out of one series.
      *
      * @param eventId the series
