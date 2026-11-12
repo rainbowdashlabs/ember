@@ -22705,6 +22705,15 @@ export interface paths {
                         "application/json": components["schemas"]["EventTemplate"];
                     };
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
                 /** @description Not Found */
                 404: {
                     headers: {
@@ -67456,8 +67465,13 @@ export interface components {
             eventType: components["schemas"]["EventType"] | null;
             /** Format: int32 */
             id: number;
+            /** Format: int32 */
+            minRegistrations: number | null;
             name: string;
-            registrationDeadlineOffset: string | null;
+            /** Format: int32 */
+            registrationCloseDays: number | null;
+            /** Format: int32 */
+            registrationDeadlineOffsetHours: number | null;
             /** Format: int32 */
             registrationLimit: number | null;
             requiresConfirmation: boolean | null;
@@ -67465,6 +67479,8 @@ export interface components {
             restrictionMode: components["schemas"]["RestrictionMode"] | null;
             /** Format: uuid */
             stationId: string;
+            /** Format: int32 */
+            thresholdDays: number | null;
             title: string | null;
             viewRestrictionMode: components["schemas"]["RestrictionMode"];
         };
@@ -75958,13 +75974,20 @@ export interface components {
             categoryId?: number | null;
             description?: string | null;
             eventType?: components["schemas"]["EventType"] | null;
+            /** Format: int32 */
+            minRegistrations?: number | null;
             name?: string;
-            registrationDeadlineOffset?: string | null;
+            /** Format: int32 */
+            registrationCloseDays?: number | null;
+            /** Format: int32 */
+            registrationDeadlineOffsetHours?: number | null;
             /** Format: int32 */
             registrationLimit?: number | null;
             requiresConfirmation?: boolean | null;
             requiresRegistration?: boolean | null;
             restrictionMode?: components["schemas"]["RestrictionMode"] | null;
+            /** Format: int32 */
+            thresholdDays?: number | null;
             title?: string | null;
         };
         UpdateTicketRequest: {

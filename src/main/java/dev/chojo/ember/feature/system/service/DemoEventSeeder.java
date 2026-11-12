@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
+import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -760,17 +761,21 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         var tplStandard = eventTemplateService.create(stationId, "Standard-Übung");
         eventTemplateService.update(
                 tplStandard.id(),
-                "Standard-Übung",
-                "Übungsabend",
-                null,
-                null,
-                StationEvent.EventType.RECURRING,
-                false,
-                null,
-                false,
-                null,
-                null,
-                null);
+                new EventTemplateSettings(
+                        "Standard-Übung",
+                        "Übungsabend",
+                        null,
+                        null,
+                        StationEvent.EventType.RECURRING,
+                        false,
+                        null,
+                        false,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null));
         eventTemplateService.replaceFields(
                 tplStandard.id(),
                 List.of(
@@ -795,17 +800,21 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         var tplWettbewerb = eventTemplateService.create(stationId, "Wettbewerb");
         eventTemplateService.update(
                 tplWettbewerb.id(),
-                "Wettbewerb",
-                null,
-                null,
-                null,
-                StationEvent.EventType.ONE_TIME,
-                true,
-                null,
-                true,
-                null,
-                null,
-                null);
+                new EventTemplateSettings(
+                        "Wettbewerb",
+                        null,
+                        null,
+                        null,
+                        StationEvent.EventType.ONE_TIME,
+                        true,
+                        72,
+                        true,
+                        null,
+                        null,
+                        null,
+                        6,
+                        7,
+                        null));
         eventTemplateService.replaceFields(
                 tplWettbewerb.id(),
                 List.of(

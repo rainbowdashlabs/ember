@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceFieldValueEntry;
 import dev.chojo.ember.feature.attendance.entity.AttendanceSession;
 import dev.chojo.ember.feature.attendance.entity.TemplateGroup;
 import dev.chojo.ember.feature.attendance.repository.AttendanceTimeRuleRepository;
+import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -225,7 +226,22 @@ class AttendanceTemplateArchiveTest extends RepositoryTestBase {
         var refusedForTemplate = assertThrows(
                 RefusalResponse.class,
                 () -> eventTemplates.update(
-                        eventTemplate, "Lagerabend", null, null, null, null, null, null, null, null, templateId, null));
+                        eventTemplate,
+                        new EventTemplateSettings(
+                                "Lagerabend",
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                templateId,
+                                null,
+                                null,
+                                null,
+                                null)));
         assertEquals("AT-058", refusedForTemplate.refusal().code());
     }
 
@@ -255,7 +271,22 @@ class AttendanceTemplateArchiveTest extends RepositoryTestBase {
                 null);
         int eventTemplate = eventTemplates.create(station.id(), "Lagerfeuer").id();
         eventTemplates.update(
-                eventTemplate, "Lagerfeuer", null, null, null, null, null, null, null, null, templateId, null);
+                eventTemplate,
+                new EventTemplateSettings(
+                        "Lagerfeuer",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        templateId,
+                        null,
+                        null,
+                        null,
+                        null));
 
         service.archiveTemplate(templateId);
 

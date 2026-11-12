@@ -163,7 +163,23 @@ class AppointmentDocumentRoutesTest {
 
     private static EventTemplate eventTemplate(int id, int stationId) {
         return new EventTemplate(
-                id, stationId, "Lauf", null, null, null, null, null, null, null, null, RestrictionMode.AND, null, null);
+                id,
+                stationId,
+                "Lauf",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                RestrictionMode.AND,
+                null,
+                null,
+                null,
+                null,
+                null);
     }
 
     @Test

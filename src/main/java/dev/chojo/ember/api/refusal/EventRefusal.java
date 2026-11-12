@@ -633,7 +633,11 @@ public enum EventRefusal implements Refusal {
 
     /** An agreement asked for on a document the appointment does not ask for, or that nobody of theirs signs. */
     AGREEMENT_NOTHING_TO_SIGN(
-            172, HttpStatus.BAD_REQUEST, "The appointment asks for no agreement in this document for them to sign");
+            172, HttpStatus.BAD_REQUEST, "The appointment asks for no agreement in this document for them to sign"),
+
+    /** An appointment template whose sign-up rules count hours, days or places below zero. */
+    EVENT_TEMPLATE_RULE_NEGATIVE(
+            173, HttpStatus.BAD_REQUEST, "The sign-up rules of a template cannot be negative, so nothing was saved");
 
     private final Definition definition;
 

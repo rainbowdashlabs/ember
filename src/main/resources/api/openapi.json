@@ -17758,6 +17758,16 @@
               }
             }
           },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
           "404" : {
             "description" : "Not Found",
             "content" : {
@@ -59092,8 +59102,9 @@
           "requiresRegistration" : {
             "type" : [ "boolean", "null" ]
           },
-          "registrationDeadlineOffset" : {
-            "type" : [ "string", "null" ]
+          "registrationDeadlineOffsetHours" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           },
           "requiresConfirmation" : {
             "type" : [ "boolean", "null" ]
@@ -59115,9 +59126,21 @@
           "registrationLimit" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "minRegistrations" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "thresholdDays" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "registrationCloseDays" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "stationId", "name", "title", "description", "categoryId", "eventType", "requiresRegistration", "registrationDeadlineOffset", "requiresConfirmation", "restrictionMode", "viewRestrictionMode", "attendanceTemplateId", "registrationLimit" ]
+        "required" : [ "id", "stationId", "name", "title", "description", "categoryId", "eventType", "requiresRegistration", "registrationDeadlineOffsetHours", "requiresConfirmation", "restrictionMode", "viewRestrictionMode", "attendanceTemplateId", "registrationLimit", "minRegistrations", "thresholdDays", "registrationCloseDays" ]
       },
       "EventTemplateFieldData" : {
         "type" : "object",
@@ -83695,8 +83718,9 @@
           "requiresRegistration" : {
             "type" : [ "boolean", "null" ]
           },
-          "registrationDeadlineOffset" : {
-            "type" : [ "string", "null" ]
+          "registrationDeadlineOffsetHours" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           },
           "requiresConfirmation" : {
             "type" : [ "boolean", "null" ]
@@ -83713,6 +83737,18 @@
             "format" : "int32"
           },
           "registrationLimit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "minRegistrations" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "thresholdDays" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "registrationCloseDays" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
           }

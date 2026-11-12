@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
+import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -182,7 +183,9 @@ class AttendanceFieldArchiveTest extends RepositoryTestBase {
                 .create(station.id(), "Dienst " + System.nanoTime())
                 .id();
         eventTemplates.update(
-                eventTemplate, "Dienst", null, null, null, null, null, null, null, null, templateId, null);
+                eventTemplate,
+                new EventTemplateSettings(
+                        "Dienst", null, null, null, null, null, null, null, null, templateId, null, null, null, null));
         eventTemplateRepo.replaceFields(
                 eventTemplate,
                 List.of(new AppointmentTemplateFieldDraft(

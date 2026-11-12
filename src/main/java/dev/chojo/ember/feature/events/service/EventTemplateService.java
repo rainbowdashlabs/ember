@@ -12,15 +12,14 @@ import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateField;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
+import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationTemplateField;
-import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.question.FieldTypes;
 import dev.chojo.ember.feature.question.MemberEligibility;
 import dev.chojo.ember.feature.question.Question;
 import dev.chojo.ember.feature.question.QuestionCheck;
-import dev.chojo.ember.feature.restriction.RestrictionMode;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -107,33 +106,19 @@ public class EventTemplateService {
         return template;
     }
 
-    public boolean update(
-            int id,
-            String name,
-            @Nullable String title,
-            @Nullable String description,
-            @Nullable Integer categoryId,
-            StationEvent.@Nullable EventType eventType,
-            @Nullable Boolean requiresRegistration,
-            @Nullable String registrationDeadlineOffset,
-            @Nullable Boolean requiresConfirmation,
-            @Nullable RestrictionMode restrictionMode,
-            @Nullable Integer attendanceTemplateId,
-            @Nullable Integer registrationLimit) {
-        attendanceTemplateGuards.requireOpenForNewWork(attendanceTemplateId);
-        if (repository.update(
-                id,
-                name,
-                title,
-                description,
-                categoryId,
-                eventType,
-                requiresRegistration,
-                registrationDeadlineOffset,
-                requiresConfirmation,
-                restrictionMode,
-                attendanceTemplateId,
-                registrationLimit)) {
+    /**
+     * Writes the settings of a template.
+     *
+     * @param id       the template
+     * @param settings what it now sets
+     * @return whether the template was there to write
+     * @throws io.javalin.http.HttpResponseException where a count or span is negative, or the
+     *                                               attendance sheet is closed to new work
+     */
+    public boolean update(int id, EventTemplateSettings settings) {
+        if (settings.hasNegativeRule()) throw EventRefusal.EVENT_TEMPLATE_RULE_NEGATIVE.raise();
+        attendanceTemplateGuards.requireOpenForNewWork(settings.attendanceTemplateId());
+        if (repository.update(id, settings)) {
             log.info("Updated event template {}", id);
             return true;
         }
