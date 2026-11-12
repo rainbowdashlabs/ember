@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:041af62ecf24cdd3e9133ebfc53ad1e4962f8a854dae41ee8a1f22d6909f4d84",
-  "generatedAt": "2026-11-12T16:54:30Z",
+  "schemaHash": "sha256:41d27cfa0d627b99e42d7be39d122195f84ad6726a0b472c2567a92e055351fa",
+  "generatedAt": "2026-11-12T23:12:48Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -9816,6 +9816,469 @@
         "reason": "Event structure/template data, not per-member"
       },
       "description": "Categories for station events (e.g. Training, Meeting)."
+    },
+    "event_course": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:2a66c9bc661f0288092b0849716a0457a2ee108de6e190c0f5f328fb9758a6a5",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station the course and all its parts belong to."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The course name, shown on every part."
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the course is about, as Markdown."
+        },
+        {
+          "name": "registration_limit",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "How many people the course takes; NULL for no limit."
+        },
+        {
+          "name": "registration_deadline",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "The instant members can no longer sign up or change their parts; NULL for no deadline. Unlike the appointment deadline it carries its time zone."
+        },
+        {
+          "name": "requires_confirmation",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether a manager confirms each sign-up before it holds a place."
+        },
+        {
+          "name": "restriction_mode",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "How the entries of event_course_restriction combine: AND or OR."
+        },
+        {
+          "name": "view_restriction_mode",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "How the entries of event_course_view_restriction combine: AND or OR."
+        },
+        {
+          "name": "deadline_notified",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether managers were told that the deadline passed with sign-ups still waiting for a decision."
+        },
+        {
+          "name": "cancelled",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the whole course was called off; its parts are called off with it."
+        },
+        {
+          "name": "cancelled_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the course was called off; NULL while it takes place."
+        },
+        {
+          "name": "cancel_reason",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Why the course was called off, as told to the people signed up; NULL for no reason given."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the course was created."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "A course moves with the appointments that are its parts.",
+        "ignoredColumns": [
+          "station_id",
+          "deadline_notified"
+        ]
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Course structure data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Course structure data, not per-member"
+      },
+      "description": "A course: one-time appointments of a station that belong together and are signed up for once."
+    },
+    "event_course_registration": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:d163873791c14c073081ee130c9d81b22ff3f3ed313946743419a917c88be2a6",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "course_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The course signed up for."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The member signed up."
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "PENDING, ACCEPTED, DENIED, DECLINED or WITHDRAWN, as for an appointment sign-up."
+        },
+        {
+          "name": "registered_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the member signed up, or last signed up again after withdrawing."
+        },
+        {
+          "name": "created_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member who signed somebody else up; NULL when members signed up themselves."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "course_id",
+          "refTable": "event_course",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "created_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on member delete"
+          },
+          {
+            "column": "created_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the sign-up, who made it cleared"
+          }
+        ]
+      },
+      "description": "One member's sign-up for a course. The chosen parts carry an event_registration each with the same status."
+    },
+    "event_course_restriction": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:f0c0cdafed7d688e46b9fcef1e123509d62d3c0346409581b473fa70b3ac3a0d",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "course_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The course restricted."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required group membership."
+        },
+        {
+          "name": "tag_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required tag."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Specific member (always OR-connected, bypasses AND/OR mode)."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "course_id",
+          "refTable": "event_course",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "tag_id",
+          "refTable": "user_tag",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Course structure data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Course structure data, not per-member"
+      },
+      "description": "Who may sign up for the course. Empty means everybody who may see it. Applies to every part."
+    },
+    "event_course_set": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:842e410c4e5ea512f8bd1e5eca9214261d3ef9c0c90fbe24f7acd57261a2db16",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "course_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The course the set belongs to."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The set name shown to members."
+        },
+        {
+          "name": "minimum",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "How many parts of the set a sign-up has to choose; all of them makes every part mandatory."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Sort order of the set within the course."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "course_id",
+          "refTable": "event_course",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Course structure data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Course structure data, not per-member"
+      },
+      "description": "A named group of parts of a course with the number of them a participant has to attend, such as \"Practice: at least 2\"."
+    },
+    "event_course_view_restriction": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:f0c0cdafed7d688e46b9fcef1e123509d62d3c0346409581b473fa70b3ac3a0d",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "course_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The course restricted."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required group membership."
+        },
+        {
+          "name": "tag_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required tag."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Specific member (always OR-connected, bypasses AND/OR mode)."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "course_id",
+          "refTable": "event_course",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "tag_id",
+          "refTable": "user_tag",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Course structure data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Course structure data, not per-member"
+      },
+      "description": "Who may know the course exists. Empty means everybody. Applies to every part."
     },
     "event_date_cancellation": {
       "feature": "events",
@@ -28330,7 +28793,7 @@
     "station_event": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:05d59e1f2a565a04024dcf34e66ceaf7851cf614b759116fb6942d3a89bde9ce",
+      "tableHash": "sha256:db0398ae2e18ccbe505bf5507cf0d17c20549ba41275a7bf68f0e300eaa532ac",
       "columns": [
         {
           "name": "id",
@@ -28548,6 +29011,13 @@
           "nullable": true,
           "verified": true,
           "description": "When an appointment that took over dates of another one became due to tell the people holding a place about it. Cleared once they are told, by the editor or, failing that, a few minutes later on its own. NULL for every other appointment."
+        },
+        {
+          "name": "course_set_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The course set this one-time appointment is a part of, and through it the course; NULL for an appointment of its own. A set or course cannot be removed while parts still point at it, so a part never loses its course unnoticed."
         }
       ],
       "foreignKeys": [
@@ -28562,6 +29032,12 @@
           "refTable": "station_event",
           "refColumn": "id",
           "onDelete": "SET NULL"
+        },
+        {
+          "column": "course_set_id",
+          "refTable": "event_course_set",
+          "refColumn": "id",
+          "onDelete": "NO ACTION"
         },
         {
           "column": "station_id",

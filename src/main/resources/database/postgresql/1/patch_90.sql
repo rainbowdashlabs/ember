@@ -196,3 +196,182 @@ COMMENT ON COLUMN ember_schema.account_block.blocked_account_id
     IS 'The account that was blocked.';
 COMMENT ON COLUMN ember_schema.account_block.created_at
     IS 'When the block was set.';
+
+-- Courses: one-time appointments that belong together, such as the practice days and the test of a
+-- training course. The course holds the sign-up, its rules and who may see and join it; every part
+-- stays an ordinary appointment and a sign-up still writes one registration per chosen part.
+
+CREATE TABLE IF NOT EXISTS ember_schema.event_course
+(
+    id                    SERIAL PRIMARY KEY,
+    station_id            INT         NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    name                  TEXT        NOT NULL,
+    description           TEXT,
+    registration_limit    INT CHECK (registration_limit IS NULL OR registration_limit > 0),
+    registration_deadline TIMESTAMPTZ,
+    requires_confirmation BOOLEAN     NOT NULL DEFAULT FALSE,
+    restriction_mode      TEXT        NOT NULL DEFAULT 'AND' CHECK (restriction_mode IN ('AND', 'OR')),
+    view_restriction_mode TEXT        NOT NULL DEFAULT 'AND' CHECK (view_restriction_mode IN ('AND', 'OR')),
+    deadline_notified     BOOLEAN     NOT NULL DEFAULT FALSE,
+    cancelled             BOOLEAN     NOT NULL DEFAULT FALSE,
+    cancelled_at          TIMESTAMPTZ,
+    cancel_reason         TEXT,
+    created_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_course_station
+    ON ember_schema.event_course (station_id);
+
+COMMENT ON TABLE ember_schema.event_course
+    IS 'A course: one-time appointments of a station that belong together and are signed up for once.';
+COMMENT ON COLUMN ember_schema.event_course.id
+    IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.event_course.station_id
+    IS 'The station the course and all its parts belong to.';
+COMMENT ON COLUMN ember_schema.event_course.name
+    IS 'The course name, shown on every part.';
+COMMENT ON COLUMN ember_schema.event_course.description
+    IS 'What the course is about, as Markdown.';
+COMMENT ON COLUMN ember_schema.event_course.registration_limit
+    IS 'How many people the course takes; NULL for no limit.';
+COMMENT ON COLUMN ember_schema.event_course.registration_deadline
+    IS 'The instant members can no longer sign up or change their parts; NULL for no deadline. Unlike the appointment deadline it carries its time zone.';
+COMMENT ON COLUMN ember_schema.event_course.requires_confirmation
+    IS 'Whether a manager confirms each sign-up before it holds a place.';
+COMMENT ON COLUMN ember_schema.event_course.restriction_mode
+    IS 'How the entries of event_course_restriction combine: AND or OR.';
+COMMENT ON COLUMN ember_schema.event_course.view_restriction_mode
+    IS 'How the entries of event_course_view_restriction combine: AND or OR.';
+COMMENT ON COLUMN ember_schema.event_course.deadline_notified
+    IS 'Whether managers were told that the deadline passed with sign-ups still waiting for a decision.';
+COMMENT ON COLUMN ember_schema.event_course.cancelled
+    IS 'Whether the whole course was called off; its parts are called off with it.';
+COMMENT ON COLUMN ember_schema.event_course.cancelled_at
+    IS 'When the course was called off; NULL while it takes place.';
+COMMENT ON COLUMN ember_schema.event_course.cancel_reason
+    IS 'Why the course was called off, as told to the people signed up; NULL for no reason given.';
+COMMENT ON COLUMN ember_schema.event_course.created_at
+    IS 'When the course was created.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.event_course_set
+(
+    id        SERIAL PRIMARY KEY,
+    course_id INT  NOT NULL REFERENCES ember_schema.event_course (id) ON DELETE CASCADE,
+    name      TEXT NOT NULL,
+    minimum   INT  NOT NULL DEFAULT 1 CHECK (minimum >= 0),
+    position  INT  NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_course_set_course
+    ON ember_schema.event_course_set (course_id);
+
+COMMENT ON TABLE ember_schema.event_course_set
+    IS 'A named group of parts of a course with the number of them a participant has to attend, such as "Practice: at least 2".';
+COMMENT ON COLUMN ember_schema.event_course_set.id
+    IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.event_course_set.course_id
+    IS 'The course the set belongs to.';
+COMMENT ON COLUMN ember_schema.event_course_set.name
+    IS 'The set name shown to members.';
+COMMENT ON COLUMN ember_schema.event_course_set.minimum
+    IS 'How many parts of the set a sign-up has to choose; all of them makes every part mandatory.';
+COMMENT ON COLUMN ember_schema.event_course_set.position
+    IS 'Sort order of the set within the course.';
+
+ALTER TABLE ember_schema.station_event
+    ADD COLUMN course_set_id INT REFERENCES ember_schema.event_course_set (id),
+    ADD CONSTRAINT station_event_course_part_one_time CHECK (course_set_id IS NULL OR event_type = 'ONE_TIME');
+
+CREATE INDEX IF NOT EXISTS idx_station_event_course_set_id
+    ON ember_schema.station_event (course_set_id) WHERE course_set_id IS NOT NULL;
+
+COMMENT ON COLUMN ember_schema.station_event.course_set_id
+    IS 'The course set this one-time appointment is a part of, and through it the course; NULL for an appointment of its own. A set or course cannot be removed while parts still point at it, so a part never loses its course unnoticed.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.event_course_registration
+(
+    id            SERIAL PRIMARY KEY,
+    course_id     INT         NOT NULL REFERENCES ember_schema.event_course (id) ON DELETE CASCADE,
+    member_id     INT         NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    status        TEXT        NOT NULL DEFAULT 'PENDING'
+        CHECK (status IN ('PENDING', 'ACCEPTED', 'DENIED', 'DECLINED', 'WITHDRAWN')),
+    registered_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by    INT REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    UNIQUE (course_id, member_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_course_registration_member
+    ON ember_schema.event_course_registration (member_id);
+
+COMMENT ON TABLE ember_schema.event_course_registration
+    IS 'One member''s sign-up for a course. The chosen parts carry an event_registration each with the same status.';
+COMMENT ON COLUMN ember_schema.event_course_registration.id
+    IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.event_course_registration.course_id
+    IS 'The course signed up for.';
+COMMENT ON COLUMN ember_schema.event_course_registration.member_id
+    IS 'The member signed up.';
+COMMENT ON COLUMN ember_schema.event_course_registration.status
+    IS 'PENDING, ACCEPTED, DENIED, DECLINED or WITHDRAWN, as for an appointment sign-up.';
+COMMENT ON COLUMN ember_schema.event_course_registration.registered_at
+    IS 'When the member signed up, or last signed up again after withdrawing.';
+COMMENT ON COLUMN ember_schema.event_course_registration.created_by
+    IS 'The member who signed somebody else up; NULL when members signed up themselves.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.event_course_restriction
+(
+    id        SERIAL PRIMARY KEY,
+    course_id INT NOT NULL REFERENCES ember_schema.event_course (id) ON DELETE CASCADE,
+    user_type TEXT,
+    group_id  INT REFERENCES ember_schema.member_group (id) ON DELETE CASCADE,
+    tag_id    INT REFERENCES ember_schema.user_tag (id) ON DELETE CASCADE,
+    member_id INT REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    CHECK (num_nonnulls(user_type, group_id, tag_id, member_id) = 1)
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_course_restriction_course
+    ON ember_schema.event_course_restriction (course_id);
+
+COMMENT ON TABLE ember_schema.event_course_restriction
+    IS 'Who may sign up for the course. Empty means everybody who may see it. Applies to every part.';
+COMMENT ON COLUMN ember_schema.event_course_restriction.id
+    IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.event_course_restriction.course_id
+    IS 'The course restricted.';
+COMMENT ON COLUMN ember_schema.event_course_restriction.user_type
+    IS 'Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set.';
+COMMENT ON COLUMN ember_schema.event_course_restriction.group_id
+    IS 'Required group membership.';
+COMMENT ON COLUMN ember_schema.event_course_restriction.tag_id
+    IS 'Required tag.';
+COMMENT ON COLUMN ember_schema.event_course_restriction.member_id
+    IS 'Specific member (always OR-connected, bypasses AND/OR mode).';
+
+CREATE TABLE IF NOT EXISTS ember_schema.event_course_view_restriction
+(
+    id        SERIAL PRIMARY KEY,
+    course_id INT NOT NULL REFERENCES ember_schema.event_course (id) ON DELETE CASCADE,
+    user_type TEXT,
+    group_id  INT REFERENCES ember_schema.member_group (id) ON DELETE CASCADE,
+    tag_id    INT REFERENCES ember_schema.user_tag (id) ON DELETE CASCADE,
+    member_id INT REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    CHECK (num_nonnulls(user_type, group_id, tag_id, member_id) = 1)
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_course_view_restriction_course
+    ON ember_schema.event_course_view_restriction (course_id);
+
+COMMENT ON TABLE ember_schema.event_course_view_restriction
+    IS 'Who may know the course exists. Empty means everybody. Applies to every part.';
+COMMENT ON COLUMN ember_schema.event_course_view_restriction.id
+    IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.event_course_view_restriction.course_id
+    IS 'The course restricted.';
+COMMENT ON COLUMN ember_schema.event_course_view_restriction.user_type
+    IS 'Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set.';
+COMMENT ON COLUMN ember_schema.event_course_view_restriction.group_id
+    IS 'Required group membership.';
+COMMENT ON COLUMN ember_schema.event_course_view_restriction.tag_id
+    IS 'Required tag.';
+COMMENT ON COLUMN ember_schema.event_course_view_restriction.member_id
+    IS 'Specific member (always OR-connected, bypasses AND/OR mode).';
