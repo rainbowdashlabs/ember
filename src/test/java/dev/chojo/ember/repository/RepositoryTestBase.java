@@ -706,7 +706,8 @@ public abstract class RepositoryTestBase {
         lostAndFoundRepo = new LostAndFoundRepository();
         emailQueueRepo = new EmailQueueRepository();
         profileFieldChangeRepo = new ProfileFieldChangeRepository();
-        memberPermissionResolver = new MemberPermissionResolver(stationMemberRepo, memberGroupRepo);
+        memberPermissionResolver = new MemberPermissionResolver(
+                stationMemberRepo, memberGroupRepo, new ModuleAvailability(stationRepo, clusterRepo));
         profileFieldCore = newProfileFieldCore(mock(Notifier.class), new DomainEventBus(Set.of()));
         profileFieldService = newProfileFieldService(profileFieldCore);
         clusterStationGroupRepo = new ClusterStationGroupRepository();
@@ -1089,7 +1090,8 @@ public abstract class RepositoryTestBase {
                 authService,
                 memberLookupService,
                 documentService,
-                new AccountReach(accountRepository));
+                new AccountReach(accountRepository),
+                new ModuleAvailability(stationRepo, clusterRepo));
     }
 
     /**

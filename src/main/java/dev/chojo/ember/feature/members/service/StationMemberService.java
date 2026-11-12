@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.util.PermissionValidation;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -46,6 +47,7 @@ public class StationMemberService {
     private final MemberLookupService lookupService;
     private final DocumentService documentService;
     private final AccountReach accountReach;
+    private final ModuleAvailability modules;
 
     @Inject
     public StationMemberService(
@@ -55,7 +57,9 @@ public class StationMemberService {
             AuthService authService,
             MemberLookupService lookupService,
             DocumentService documentService,
-            AccountReach accountReach) {
+            AccountReach accountReach,
+            ModuleAvailability modules) {
+        this.modules = modules;
         this.memberRepository = memberRepository;
         this.stationRepository = stationRepository;
         this.accountRepository = accountRepository;
@@ -280,7 +284,8 @@ public class StationMemberService {
 
     /**
      * Everything a user type may do at a station: what the type carries by itself, what the
-     * station grants it on top, and everything those permissions include.
+     * station grants it on top, and everything those permissions include. A permission of a module the
+     * station does not have grants nothing, as it does for the members of the type.
      *
      * @return the permission names, sorted
      */
@@ -290,7 +295,7 @@ public class StationMemberService {
         memberRepository.findUserTypePermissions(stationId, userType).stream()
                 .map(Permission::permission)
                 .forEach(permissions::add);
-        return StationPermission.expand(permissions).stream()
+        return StationPermission.expand(permissions, modules.disabledAt(stationId)).stream()
                 .map(Enum::name)
                 .sorted()
                 .toList();

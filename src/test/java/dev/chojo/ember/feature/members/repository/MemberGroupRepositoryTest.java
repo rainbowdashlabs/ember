@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberPermissionResolver;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -106,8 +107,9 @@ class MemberGroupRepositoryTest extends RepositoryTestBase {
                 stationMemberRepo.findPermissionByName(StationPermission.LOGIN).orElseThrow();
         memberGroupRepo.addGroupPermission(groupId, loginPerm.id());
 
-        Set<StationPermission> resolved =
-                new MemberPermissionResolver(stationMemberRepo, memberGroupRepo).resolve(member.id());
+        Set<StationPermission> resolved = new MemberPermissionResolver(
+                        stationMemberRepo, memberGroupRepo, new ModuleAvailability(stationRepo, clusterRepo))
+                .resolve(member.id());
 
         assertTrue(
                 resolved.contains(StationPermission.LOGIN),

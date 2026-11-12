@@ -414,6 +414,19 @@ public class StationService {
     }
 
     /**
+     * Every module a cluster's own station does not have, the set its rights at that station follow.
+     *
+     * @param clusterId the cluster
+     * @return the effective set of its own station, empty when there is no such cluster
+     */
+    public Set<StationModule> findClusterStationDisabledModules(int clusterId) {
+        return clusterRepository
+                .findById(clusterId)
+                .map(cluster -> moduleAvailability.disabledAt(cluster.homeStationId()))
+                .orElse(Set.of());
+    }
+
+    /**
      * Replaces all disabled modules for a station with the given set.
      */
     public void setDisabledModules(int stationId, Set<StationModule> modules) {

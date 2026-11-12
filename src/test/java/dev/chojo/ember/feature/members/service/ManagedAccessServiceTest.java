@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.ManagedLoginNoticeRepository;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -70,7 +71,8 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
                 mock(AuthService.class),
                 mock(MemberLookupService.class),
                 mock(DocumentService.class),
-                new AccountReach(accountRepo));
+                new AccountReach(accountRepo),
+                new ModuleAvailability(stationRepo, clusterRepo));
         noticeRepo = new ManagedLoginNoticeRepository();
         authService = mock(AuthService.class);
         service = new ManagedAccessService(

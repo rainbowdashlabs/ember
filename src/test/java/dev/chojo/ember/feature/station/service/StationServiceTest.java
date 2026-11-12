@@ -639,6 +639,10 @@ class StationServiceTest extends RepositoryTestBase {
         assertFalse(service.isModuleEnabled(member.id(), StationModule.INVENTORY_SELF_CHECKS));
         assertTrue(service.isModuleEnabled(member.id(), StationModule.INVENTORY_CHECKS));
 
+        stationRepo.setDisabledModules(home.id(), Set.of(StationModule.INVENTORY_LENDING));
+        assertEquals(Set.of(StationModule.INVENTORY_LENDING), service.findClusterStationDisabledModules(cluster.id()));
+        assertTrue(service.findClusterStationDisabledModules(-1).isEmpty());
+
         clusterRepo.setDeniedModules(cluster.id(), null, Set.of(StationModule.INVENTORY));
         assertFalse(service.isModuleEnabled(member.id(), StationModule.INVENTORY_CHECKS));
         assertTrue(service.findEffectiveDisabledModules(member.id()).contains(StationModule.INVENTORY_MOVEMENTS));
