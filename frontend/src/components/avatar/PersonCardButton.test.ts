@@ -78,6 +78,20 @@ describe('PersonCardButton', () => {
     expect(stations[1]!.textContent).toContain('Maschinist')
   })
 
+  it('opens on a mouse resting on the name, like a member\'s card', async () => {
+    vi.useFakeTimers()
+    finePointer.value = true
+    loadPersonCards.mockResolvedValue([sharedAt('Nord', 'Atemschutz')])
+
+    await mountFor('ben-account').trigger('mouseenter')
+    expect(document.body.querySelector('[data-testid="member-card"]')).toBeNull()
+    await vi.advanceTimersByTimeAsync(400)
+    await flushPromises()
+
+    expect(document.body.querySelector('[data-testid="shared-member-card"]')).not.toBeNull()
+    vi.useRealTimers()
+  })
+
   it('shows the content as it is for somebody without an account', () => {
     const shown = mountFor(null)
 
