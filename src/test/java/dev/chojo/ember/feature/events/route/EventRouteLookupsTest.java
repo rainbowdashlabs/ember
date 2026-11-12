@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventChangeNotifier;
+import dev.chojo.ember.feature.events.service.EventChangePreviewService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventEditScopeService;
 import dev.chojo.ember.feature.events.service.EventExportService;
@@ -110,7 +111,8 @@ class EventRouteLookupsTest {
                 mock(OccurrenceCalendar.class),
                 visibility,
                 mock(EventEditScopeService.class),
-                mock(EventChangeNotifier.class));
+                mock(EventChangeNotifier.class),
+                mock(EventChangePreviewService.class));
         var harness = RouteHarness.serving(routes);
 
         harness.run((server, client) -> {

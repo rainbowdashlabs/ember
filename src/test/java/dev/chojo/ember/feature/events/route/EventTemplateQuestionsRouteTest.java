@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventChangeNotifier;
+import dev.chojo.ember.feature.events.service.EventChangePreviewService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventEditScopeService;
 import dev.chojo.ember.feature.events.service.EventExportService;
@@ -105,7 +106,8 @@ class EventTemplateQuestionsRouteTest {
                 mock(OccurrenceCalendar.class),
                 new EventVisibility(crudService, restrictions, mock(GuardianPolicy.class)),
                 mock(EventEditScopeService.class),
-                mock(EventChangeNotifier.class));
+                mock(EventChangeNotifier.class),
+                mock(EventChangePreviewService.class));
         harness = RouteHarness.serving(routes);
     }
 

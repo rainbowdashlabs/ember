@@ -18,6 +18,7 @@ import org.jspecify.annotations.Nullable;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -601,6 +602,30 @@ public class EventRegistrationRepository {
                 .single(call().bind("id", eventId).bind("dates", List.copyOf(dates), PostgreSqlTypes.DATE))
                 .map(row -> row.getInt("member_id"))
                 .all();
+    }
+
+    /**
+     * Every date from one day on each member holds a place on, pending or accepted.
+     *
+     * @param eventId the event ID
+     * @param from    the first date looked at
+     * @return the held dates per member, earliest first, in the order of each member's first date
+     */
+    public Map<Integer, List<LocalDate>> findHeldDatesFrom(int eventId, LocalDate from) {
+        var dates = new LinkedHashMap<Integer, List<LocalDate>>();
+        query("""
+                SELECT member_id, event_date
+                FROM event_registration
+                WHERE event_id = :id
+                  AND event_date >= :from
+                  AND status IN ('PENDING', 'ACCEPTED')
+                ORDER BY event_date, member_id;""")
+                .single(call().bind("id", eventId).bind("from", from))
+                .map(row -> Map.entry(row.getInt("member_id"), row.getObject("event_date", LocalDate.class)))
+                .all()
+                .forEach(entry -> dates.computeIfAbsent(entry.getKey(), member -> new ArrayList<>())
+                        .add(entry.getValue()));
+        return dates;
     }
 
     /**

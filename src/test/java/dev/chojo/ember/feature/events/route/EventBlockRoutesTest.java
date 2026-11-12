@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.equipment.service.EquipmentReleaseService;
 import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventChangeNotifier;
+import dev.chojo.ember.feature.events.service.EventChangePreviewService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventEditScopeService;
 import dev.chojo.ember.feature.events.service.EventExportService;
@@ -72,7 +73,8 @@ class EventBlockRoutesTest extends BlockReferenceTestBase {
                 mock(OccurrenceCalendar.class),
                 visibility,
                 mock(EventEditScopeService.class),
-                mock(EventChangeNotifier.class));
+                mock(EventChangeNotifier.class),
+                mock(EventChangePreviewService.class));
         var editor = new UserSession(
                 account,
                 1,

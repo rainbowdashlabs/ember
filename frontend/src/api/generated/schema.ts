@@ -24679,6 +24679,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/change-notice/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Count who saving an appointment would tell */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ChangePreview"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/dates/{date}/cancel": {
         parameters: {
             query?: never;
@@ -65576,6 +65627,16 @@ export interface components {
             currentPassword?: string;
             newPassword?: string;
         };
+        ChangePreview: {
+            /** Format: int32 */
+            everybody: number;
+            /** Format: int32 */
+            moveAudience: number;
+            newStart: string | null;
+            /** Format: int32 */
+            noticeAudience: number;
+            startMoves: boolean;
+        };
         CheckItemResult: {
             /** Format: int32 */
             inventoryId?: number | null;
@@ -76740,6 +76801,7 @@ export type ChangedResponse = components['schemas']['ChangedResponse'];
 export type ChangelogEntry = components['schemas']['ChangelogEntry'];
 export type ChangeNotice = components['schemas']['ChangeNotice'];
 export type ChangePasswordRequest = components['schemas']['ChangePasswordRequest'];
+export type ChangePreview = components['schemas']['ChangePreview'];
 export type CheckItemResult = components['schemas']['CheckItemResult'];
 export type ChecklistDetailResponse = components['schemas']['ChecklistDetailResponse'];
 export type ChecklistItemRequest = components['schemas']['ChecklistItemRequest'];

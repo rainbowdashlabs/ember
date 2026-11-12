@@ -10,6 +10,7 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.ChangeNotice;
+import dev.chojo.ember.feature.events.entity.ChangePreview;
 import dev.chojo.ember.feature.events.entity.EditScope;
 import dev.chojo.ember.feature.events.entity.EditScopeKind;
 import dev.chojo.ember.feature.events.entity.EventChangePart;
@@ -17,6 +18,7 @@ import dev.chojo.ember.feature.events.entity.EventDraft;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventChangeNotifier;
+import dev.chojo.ember.feature.events.service.EventChangePreviewService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventEditScopeService;
 import dev.chojo.ember.feature.events.service.EventExportService;
@@ -61,6 +63,7 @@ class EventUpdateScopeRouteTest {
     private EventRestrictionService restrictions;
     private EventFieldRegistrationService fieldRegistrations;
     private EventChangeNotifier changeNotifier;
+    private EventChangePreviewService previewService;
     private StationEvent series;
     private RouteHarness harness;
 
@@ -76,6 +79,7 @@ class EventUpdateScopeRouteTest {
         restrictions = mock(EventRestrictionService.class);
         fieldRegistrations = mock(EventFieldRegistrationService.class);
         changeNotifier = mock(EventChangeNotifier.class);
+        previewService = mock(EventChangePreviewService.class);
         this.series = series;
         var routes = new EventRoutes(
                 crudService,
@@ -90,7 +94,8 @@ class EventUpdateScopeRouteTest {
                 mock(OccurrenceCalendar.class),
                 new EventVisibility(crudService, restrictions, mock(GuardianPolicy.class)),
                 scopeService,
-                changeNotifier);
+                changeNotifier,
+                previewService);
         harness = RouteHarness.serving(routes);
     }
 
@@ -177,5 +182,25 @@ class EventUpdateScopeRouteTest {
 
         assertEquals(204, answer.code());
         verify(changeNotifier).tellContinued(any(), eq(new ChangeNotice(true, List.of(EventChangePart.FIELDS), null)));
+    }
+
+    @Test
+    void thePreviewCountsWhatTheDraftWouldTell() {
+        when(previewService.preview(eq(series), any(), eq(new EditScope(EditScopeKind.THIS, LocalDate.of(2027, 4, 6)))))
+                .thenReturn(new ChangePreview(4, true, "19:00", 2, 5));
+
+        var answer = harness.request(client -> client.post(
+                PREFIX + "/events/" + SERIES_ID + "/change-notice/preview",
+                body("""
+                        {"name": "Dienst", "eventType": "RECURRING", "dayOfWeek": 2,
+                         "startTime": "2027-03-02T18:00:00Z", "endTime": "2027-03-02T20:00:00Z",
+                         "scope": {"kind": "THIS", "date": "2027-04-06"}}"""),
+                harness.as(TestSessions.member(STATION_ID, StationPermission.EVENT_EDIT))));
+
+        assertEquals(200, answer.code());
+        var counts = json(answer);
+        assertEquals(4, counts.get("noticeAudience").asInt());
+        assertEquals("19:00", counts.get("newStart").asString());
+        verify(scopeService, never()).save(any(), any(), any());
     }
 }

@@ -20688,6 +20688,52 @@
         }
       }
     },
+    "/api/v1/events/{id}/change-notice/preview" : {
+      "post" : {
+        "summary" : "Count who saving an appointment would tell",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ChangePreview"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/{id}/dates/{date}/cancel" : {
       "post" : {
         "summary" : "Cancel one date of an appointment",
@@ -53528,6 +53574,30 @@
             "type" : "string"
           }
         }
+      },
+      "ChangePreview" : {
+        "type" : "object",
+        "properties" : {
+          "noticeAudience" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "startMoves" : {
+            "type" : "boolean"
+          },
+          "newStart" : {
+            "type" : [ "string", "null" ]
+          },
+          "moveAudience" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "everybody" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "noticeAudience", "startMoves", "newStart", "moveAudience", "everybody" ]
       },
       "ChangedCountResponse" : {
         "type" : "object",

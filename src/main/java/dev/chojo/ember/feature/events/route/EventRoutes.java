@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.events.entity.BatchFieldEntry;
 import dev.chojo.ember.feature.events.entity.BatchRequest;
 import dev.chojo.ember.feature.events.entity.BatchRow;
 import dev.chojo.ember.feature.events.entity.ChangeNotice;
+import dev.chojo.ember.feature.events.entity.ChangePreview;
 import dev.chojo.ember.feature.events.entity.DatedEvent;
 import dev.chojo.ember.feature.events.entity.EditScope;
 import dev.chojo.ember.feature.events.entity.EventDraft;
@@ -29,6 +30,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventChangeNotifier;
+import dev.chojo.ember.feature.events.service.EventChangePreviewService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventEditScopeService;
 import dev.chojo.ember.feature.events.service.EventExportService;
@@ -97,6 +99,7 @@ public class EventRoutes implements Routes {
     private final EventVisibility visibility;
     private final EventEditScopeService scopeService;
     private final EventChangeNotifier changeNotifier;
+    private final EventChangePreviewService previewService;
 
     @Inject
     public EventRoutes(
@@ -112,7 +115,9 @@ public class EventRoutes implements Routes {
             OccurrenceCalendar occurrenceCalendar,
             EventVisibility visibility,
             EventEditScopeService scopeService,
-            EventChangeNotifier changeNotifier) {
+            EventChangeNotifier changeNotifier,
+            EventChangePreviewService previewService) {
+        this.previewService = previewService;
         this.scopeService = scopeService;
         this.changeNotifier = changeNotifier;
         this.occurrenceCalendar = occurrenceCalendar;
@@ -155,6 +160,8 @@ public class EventRoutes implements Routes {
         routes.get(prefix + "/events/{id}/next-date", this::getNextDate, StationPermission.USER);
         routes.put(prefix + "/events/{id}", this::update, StationPermission.EVENT_EDIT);
         routes.post(prefix + "/events/{id}/change-notice", this::sendChangeNotice, StationPermission.EVENT_EDIT);
+        routes.post(
+                prefix + "/events/{id}/change-notice/preview", this::previewChangeNotice, StationPermission.EVENT_EDIT);
         routes.delete(prefix + "/events/{id}", this::delete, StationPermission.EVENT_EDIT);
 
         routes.get(prefix + "/events/{id}/restrictions", this::getRestrictions, StationPermission.USER);
@@ -499,6 +506,29 @@ public class EventRoutes implements Routes {
         var answer = crudService.findById(saved.id()).orElse(saved);
         if (answer.id() == current.id()) changeNotifier.tellChanged(current, answer, req.changeNotice());
         ctx.json(answer);
+    }
+
+    /**
+     * What saving the editor's draft would tell, for the save dialog to show before anything is saved.
+     */
+    @OpenApi(
+            path = "/api/v1/events/{id}/change-notice/preview",
+            methods = HttpMethod.POST,
+            summary = "Count who saving an appointment would tell",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = EventRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ChangePreview.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void previewChangeNotice(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var current = requireOwnedEvent(crudService, pathInt(ctx, "id"), session);
+        var req = ctx.bodyAsClass(EventRequest.class);
+        validate(req);
+        var scope = Objects.requireNonNullElse(req.scope(), EditScope.ALL);
+        ctx.json(previewService.preview(current, draftOf(req), scope));
     }
 
     /**
