@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:e8d1caca6059aa8e544b35be6f625c549012d994e8d5a9bd2f350ffd12de5fa4",
-  "generatedAt": "2026-11-11T14:57:35Z",
+  "schemaHash": "sha256:111bd9e771c81fa6a81e57d1b2a93922e3bf482d3f60b355392a80fd6ecdcfd8",
+  "generatedAt": "2026-11-12T11:25:33Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -2759,6 +2759,8 @@
       "description": "A fault as the beacon knows it, gathered from every instance that reported it."
     },
     "beacon_problem_context": {
+      "feature": "beacon",
+      "scope": "INSTANCE",
       "tableHash": "sha256:e6c3b3713980049d53b18ff9ba864f7b336e86289bd9db3e1fae8623f59f82bd",
       "columns": [
         {
@@ -2830,9 +2832,7 @@
         "status": "IGNORED",
         "reason": "Carries no key to a person; it goes with its problem and with the instance that sent it."
       },
-      "description": "On a beacon: the log lines an instance sent with a problem, the last five per problem and instance. The sender replaced mail addresses, identifiers and names before sending.",
-      "feature": "beacon",
-      "scope": "INSTANCE"
+      "description": "On a beacon: the log lines an instance sent with a problem, the last five per problem and instance. The sender replaced mail addresses, identifiers and names before sending."
     },
     "beacon_problem_instance": {
       "feature": "beacon",
@@ -11218,7 +11218,7 @@
     "event_template": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:0a9d6acb103a8e8375bbc5fc07df651bb8d4d493c8ca51b3009fd1c94e242398",
+      "tableHash": "sha256:64782299cd5ec85585ccdeefa8dd01d13a474417f86f1e751f739b38ff9a56fb",
       "columns": [
         {
           "name": "id",
@@ -11281,7 +11281,7 @@
           "type": "interval",
           "nullable": true,
           "verified": true,
-          "description": "Default registration deadline as interval before event start."
+          "description": "How long before the start registration closes, turned into the appointment's deadline once its start is known. Empty for no deadline."
         },
         {
           "name": "requires_confirmation",
@@ -11317,6 +11317,27 @@
           "nullable": false,
           "verified": true,
           "description": "AND or OR, how the parts of event_template_view_restriction combine. Separate from restriction_mode."
+        },
+        {
+          "name": "min_registrations",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Minimum number of accepted registrations an appointment made from the template asks for. Empty for no minimum."
+        },
+        {
+          "name": "threshold_days",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "How many days before each date the minimum must be reached, or the date is called off. Empty where no date is called off for too few registrations."
+        },
+        {
+          "name": "registration_close_days",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "How many days before each date registration closes. Empty for no automatic close."
         }
       ],
       "foreignKeys": [
@@ -11354,6 +11375,186 @@
         "reason": "Event structure/template data, not per-member"
       },
       "description": "Reusable event templates with pre-configured settings."
+    },
+    "event_template_attachment": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:1639937e5c9d8bb095e4ce4a09bbcd0dee48fb5e1115081f96c79f9586b12ea3",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The template."
+        },
+        {
+          "name": "file_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The file; it cannot be deleted while a template still attaches it."
+        },
+        {
+          "name": "label",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The name shown instead of the file name. Empty shows the file name."
+        },
+        {
+          "name": "internal",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "True where the file is kept back from the room on the appointments made from the template: readable only with the right to read what an event keeps internal, and never sent to a partner station."
+        },
+        {
+          "name": "sort_order",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Position among the template's attachments."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the file was attached."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "file_id",
+          "refTable": "station_file",
+          "refColumn": "id",
+          "onDelete": "RESTRICT"
+        },
+        {
+          "column": "template_id",
+          "refTable": "event_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Template configuration; moves with the station."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Event structure/template data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Event structure/template data, not per-member"
+      },
+      "description": "Files of the station attached to every appointment made from the template. The same file is linked, never copied."
+    },
+    "event_template_federation_share": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:1a005f2f8c36de15c8561d0cae80e819bd0ed74463b2c9283893d2ea56e1fb23",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The template."
+        },
+        {
+          "name": "scope",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "ALL_PARTNERS shares with every partner, SPECIFIC with the partners listed in event_template_federation_share_target."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "template_id",
+          "refTable": "event_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Template share configuration: without it, appointments made from the template after a transfer are no longer shared with the partners the template names."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Event structure/template data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Event structure/template data, not per-member"
+      },
+      "description": "Whether an appointment made from the template is shared with partner stations. No row means it is not shared."
+    },
+    "event_template_federation_share_target": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:565a07be0916e039f1e651f2526dddd2ce23a3ea91f823225340965c6a49b509",
+      "columns": [
+        {
+          "name": "share_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The template share this partner belongs to."
+        },
+        {
+          "name": "partner_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "A partner station. Removed when the partner is deleted."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "partner_id",
+          "refTable": "federation_partner",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "share_id",
+          "refTable": "event_template_federation_share",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Template share configuration: without it, appointments made from the template after a transfer are no longer shared with the partners the template names."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Event structure/template data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Event structure/template data, not per-member"
+      },
+      "description": "The partners an appointment made from the template is shared with, where the share names them."
     },
     "event_template_field": {
       "feature": "events",
@@ -11457,6 +11658,68 @@
         "reason": "Event structure/template data, not per-member"
       },
       "description": "Fields within an event template."
+    },
+    "event_template_field_default": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:e7c218ccaf3b3d6f9db4d6eae85c522af2a44130b9ed4fbf8175ddc60393b3e4",
+      "columns": [
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The template."
+        },
+        {
+          "name": "field_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "A field of the template's attendance sheet. Removed when the field is deleted, which archives it, and when the template moves to another sheet."
+        },
+        {
+          "name": "source",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Value source: VALUE, EVENT_NAME, EVENT_DESCRIPTION, EVENT_START_TIME, EVENT_END_TIME, EVENT_DATE."
+        },
+        {
+          "name": "value",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The fixed value when the source is VALUE. Empty otherwise."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "field_id",
+          "refTable": "attendance_template_field",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "template_id",
+          "refTable": "event_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Template configuration; moves with the station."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Event structure/template data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Event structure/template data, not per-member"
+      },
+      "description": "Where the fields of the attendance sheet take their values from, for appointments made from the template."
     },
     "event_template_registration_field": {
       "feature": "events",
@@ -22730,6 +22993,8 @@
       "description": "A member of this station signed up here for one date of a partner station's appointment. The partner holds the registration itself; this is this station's own word that it was given, so that a partner telling it which of its members are registered is believed only for members it signed up. Removed when the member withdraws."
     },
     "problem_log": {
+      "feature": "system",
+      "scope": "INSTANCE",
       "tableHash": "sha256:88b14fd426d442b6707b92bb9dbd604c472b2dab1e4cca246faeaf775d1453f6",
       "columns": [
         {
@@ -22865,11 +23130,11 @@
         "status": "IGNORED",
         "reason": "The administrator reference is set to NULL with the account, and every row is deleted once the retention passes."
       },
-      "description": "Warnings, errors and refusals the application logged, one row per problem, kept across restarts until the retention removes them.",
-      "feature": "system",
-      "scope": "INSTANCE"
+      "description": "Warnings, errors and refusals the application logged, one row per problem, kept across restarts until the retention removes them."
     },
     "problem_occurrence": {
+      "feature": "system",
+      "scope": "INSTANCE",
       "tableHash": "sha256:eadc4e33ff64fa9c0c5079c65bfb65006efb4a0d7c4b943c13fa8418af8c27d1",
       "columns": [
         {
@@ -22921,9 +23186,7 @@
         "status": "IGNORED",
         "reason": "Only a time and a thread name; it goes with its problem."
       },
-      "description": "The last five occurrences of each problem: when and on which thread. Holds no message text; the log lines around an occurrence are looked up by it.",
-      "feature": "system",
-      "scope": "INSTANCE"
+      "description": "The last five occurrences of each problem: when and on which thread. Holds no message text; the log lines around an occurrence are looked up by it."
     },
     "problem_report": {
       "feature": "system",
