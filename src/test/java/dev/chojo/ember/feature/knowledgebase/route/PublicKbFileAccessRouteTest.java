@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.HttpStatus;
@@ -133,14 +134,18 @@ class PublicKbFileAccessRouteTest {
                 null);
     }
 
+    private StationService stationService;
+
     @BeforeEach
     void setup() {
         kbService = mock(KnowledgeBaseService.class);
         accessService = mock(KbAccessService.class);
         pictureService = mock(KbFilePictureService.class);
         pdfExportService = mock(KbPdfExportService.class);
-        var stationService = mock(StationService.class);
+        stationService = mock(StationService.class);
         when(stationService.findByUid(STATION_UID)).thenReturn(Optional.of(station()));
+        when(stationService.isModuleEnabled(STATION_ID, StationModule.KNOWLEDGE_BASE))
+                .thenReturn(true);
         routes = new PublicKnowledgeBaseRoutes(
                 kbService,
                 mock(KbContentService.class),
@@ -222,6 +227,23 @@ class PublicKbFileAccessRouteTest {
         when(kbService.findFile(FILE_ID)).thenReturn(Optional.empty());
 
         assertEquals(KnowledgeBaseRefusal.PUBLIC_KB_ENTRY_NOT_HERE, absent(rendering));
+        nothingWasServed();
+    }
+
+    /**
+     * A station whose knowledge base is off, by its own switch or its cluster's denial, shows none of it,
+     * however it was published.
+     */
+    @Test
+    void aSwitchedOffKnowledgeBaseShowsNothing() throws Exception {
+        when(kbService.findFile(FILE_ID)).thenReturn(Optional.of(file(STATION_ID, KbFileType.PDF)));
+        published(true);
+        when(stationService.isModuleEnabled(STATION_ID, StationModule.KNOWLEDGE_BASE))
+                .thenReturn(false);
+
+        var served = ask("picture");
+
+        assertEquals(KnowledgeBaseRefusal.PUBLIC_KB_SWITCHED_OFF, refusalOf(served));
         nothingWasServed();
     }
 

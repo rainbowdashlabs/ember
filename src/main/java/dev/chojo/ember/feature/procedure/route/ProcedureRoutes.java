@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.procedure.service.StepDocumentState;
 import dev.chojo.ember.feature.procedure.service.StepDraft;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -63,56 +64,136 @@ public class ProcedureRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/procedure-templates", this::listTemplates, StationPermission.PROCEDURE_MANAGER);
-        routes.post(prefix + "/procedure-templates", this::createTemplate, StationPermission.PROCEDURE_MANAGER);
-        routes.get(prefix + "/procedure-templates/{tid}", this::getTemplate, StationPermission.PROCEDURE_MANAGER);
-        routes.put(prefix + "/procedure-templates/{tid}", this::updateTemplate, StationPermission.PROCEDURE_MANAGER);
+        routes.get(
+                prefix + "/procedure-templates",
+                this::listTemplates,
+                StationPermission.PROCEDURE_MANAGER,
+                StationModule.PROCEDURES);
+        routes.post(
+                prefix + "/procedure-templates",
+                this::createTemplate,
+                StationPermission.PROCEDURE_MANAGER,
+                StationModule.PROCEDURES);
+        routes.get(
+                prefix + "/procedure-templates/{tid}",
+                this::getTemplate,
+                StationPermission.PROCEDURE_MANAGER,
+                StationModule.PROCEDURES);
+        routes.put(
+                prefix + "/procedure-templates/{tid}",
+                this::updateTemplate,
+                StationPermission.PROCEDURE_MANAGER,
+                StationModule.PROCEDURES);
         routes.delete(
-                prefix + "/procedure-templates/{tid}", this::archiveTemplate, StationPermission.PROCEDURE_MANAGER);
+                prefix + "/procedure-templates/{tid}",
+                this::archiveTemplate,
+                StationPermission.PROCEDURE_MANAGER,
+                StationModule.PROCEDURES);
         routes.post(
                 prefix + "/procedure-templates/{tid}/items",
                 this::createTemplateItem,
-                StationPermission.PROCEDURE_MANAGER);
+                StationPermission.PROCEDURE_MANAGER,
+                StationModule.PROCEDURES);
         routes.put(
                 prefix + "/procedure-templates/{tid}/items/{iid}",
                 this::updateTemplateItem,
-                StationPermission.PROCEDURE_MANAGER);
+                StationPermission.PROCEDURE_MANAGER,
+                StationModule.PROCEDURES);
         routes.delete(
                 prefix + "/procedure-templates/{tid}/items/{iid}",
                 this::deleteTemplateItem,
-                StationPermission.PROCEDURE_MANAGER);
+                StationPermission.PROCEDURE_MANAGER,
+                StationModule.PROCEDURES);
         routes.put(
                 prefix + "/procedure-templates/{tid}/dependencies",
                 this::setTemplateDependencies,
-                StationPermission.PROCEDURE_MANAGER);
+                StationPermission.PROCEDURE_MANAGER,
+                StationModule.PROCEDURES);
 
-        routes.get(prefix + "/procedures", this::listProcedures, StationPermission.USER);
+        routes.get(prefix + "/procedures", this::listProcedures, StationPermission.USER, StationModule.PROCEDURES);
         routes.get(
                 prefix + "/procedures/for-event/{eid}",
                 this::listProceduresForOccurrence,
-                StationPermission.PROCEDURE_EDIT);
-        routes.post(prefix + "/procedures", this::createProcedure, StationPermission.PROCEDURE_EDIT);
+                StationPermission.PROCEDURE_EDIT,
+                StationModule.PROCEDURES);
         routes.post(
-                prefix + "/procedures/for-members", this::createProceduresForMembers, StationPermission.PROCEDURE_EDIT);
-        routes.get(prefix + "/procedures/about-me", this::listProceduresAboutMe, StationPermission.USER);
-        routes.get(prefix + "/procedures/{rid}", this::getProcedure, StationPermission.USER);
-        routes.put(prefix + "/procedures/{rid}", this::updateProcedure, StationPermission.PROCEDURE_EDIT);
-        routes.delete(prefix + "/procedures/{rid}", this::deleteProcedure, StationPermission.PROCEDURE_EDIT);
-        routes.post(prefix + "/procedures/{rid}/resolve", this::resolveProcedure, StationPermission.PROCEDURE_EDIT);
-        routes.post(prefix + "/procedures/{rid}/reopen", this::reopenProcedure, StationPermission.PROCEDURE_EDIT);
+                prefix + "/procedures",
+                this::createProcedure,
+                StationPermission.PROCEDURE_EDIT,
+                StationModule.PROCEDURES);
+        routes.post(
+                prefix + "/procedures/for-members",
+                this::createProceduresForMembers,
+                StationPermission.PROCEDURE_EDIT,
+                StationModule.PROCEDURES);
+        routes.get(
+                prefix + "/procedures/about-me",
+                this::listProceduresAboutMe,
+                StationPermission.USER,
+                StationModule.PROCEDURES);
+        routes.get(prefix + "/procedures/{rid}", this::getProcedure, StationPermission.USER, StationModule.PROCEDURES);
+        routes.put(
+                prefix + "/procedures/{rid}",
+                this::updateProcedure,
+                StationPermission.PROCEDURE_EDIT,
+                StationModule.PROCEDURES);
+        routes.delete(
+                prefix + "/procedures/{rid}",
+                this::deleteProcedure,
+                StationPermission.PROCEDURE_EDIT,
+                StationModule.PROCEDURES);
+        routes.post(
+                prefix + "/procedures/{rid}/resolve",
+                this::resolveProcedure,
+                StationPermission.PROCEDURE_EDIT,
+                StationModule.PROCEDURES);
+        routes.post(
+                prefix + "/procedures/{rid}/reopen",
+                this::reopenProcedure,
+                StationPermission.PROCEDURE_EDIT,
+                StationModule.PROCEDURES);
 
-        routes.put(prefix + "/procedures/{rid}/party", this::setParty, StationPermission.PROCEDURE_EDIT);
-        routes.put(prefix + "/procedures/{rid}/about", this::setAbout, StationPermission.PROCEDURE_EDIT);
+        routes.put(
+                prefix + "/procedures/{rid}/party",
+                this::setParty,
+                StationPermission.PROCEDURE_EDIT,
+                StationModule.PROCEDURES);
+        routes.put(
+                prefix + "/procedures/{rid}/about",
+                this::setAbout,
+                StationPermission.PROCEDURE_EDIT,
+                StationModule.PROCEDURES);
 
-        routes.post(prefix + "/procedures/{rid}/items", this::addItem, StationPermission.PROCEDURE_EDIT);
-        routes.put(prefix + "/procedures/{rid}/items/{iid}", this::editItem, StationPermission.PROCEDURE_EDIT);
-        routes.delete(prefix + "/procedures/{rid}/items/{iid}", this::deleteItem, StationPermission.PROCEDURE_EDIT);
-        routes.patch(prefix + "/procedures/{rid}/items/{iid}", this::patchItem, StationPermission.USER);
-        routes.post(prefix + "/procedures/{rid}/items/{iid}/ask", this::askAgain, StationPermission.PROCEDURE_EDIT);
+        routes.post(
+                prefix + "/procedures/{rid}/items",
+                this::addItem,
+                StationPermission.PROCEDURE_EDIT,
+                StationModule.PROCEDURES);
+        routes.put(
+                prefix + "/procedures/{rid}/items/{iid}",
+                this::editItem,
+                StationPermission.PROCEDURE_EDIT,
+                StationModule.PROCEDURES);
+        routes.delete(
+                prefix + "/procedures/{rid}/items/{iid}",
+                this::deleteItem,
+                StationPermission.PROCEDURE_EDIT,
+                StationModule.PROCEDURES);
+        routes.patch(
+                prefix + "/procedures/{rid}/items/{iid}",
+                this::patchItem,
+                StationPermission.USER,
+                StationModule.PROCEDURES);
+        routes.post(
+                prefix + "/procedures/{rid}/items/{iid}/ask",
+                this::askAgain,
+                StationPermission.PROCEDURE_EDIT,
+                StationModule.PROCEDURES);
         routes.put(
                 prefix + "/procedures/{rid}/dependencies",
                 this::setProcedureDependencies,
-                StationPermission.PROCEDURE_EDIT);
+                StationPermission.PROCEDURE_EDIT,
+                StationModule.PROCEDURES);
     }
 
     @OpenApi(

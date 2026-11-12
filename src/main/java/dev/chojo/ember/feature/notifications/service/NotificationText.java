@@ -347,6 +347,10 @@ public class NotificationText {
         localizeModuleParam(locale, params);
     }
 
+    /**
+     * Writes a module a notification names, such as the one a cluster switched off, by the name the
+     * reader knows it by rather than the name it is stored by.
+     */
     private static void localizeModuleParam(String locale, Map<String, String> params) {
         localizeLabelParam(locale, params, "module", "module", "");
     }

@@ -38,6 +38,7 @@ import dev.chojo.ember.feature.members.service.MemberTableRenderer;
 import dev.chojo.ember.feature.members.service.MemberTableService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationService;
 import dev.chojo.ember.util.CsvWriter;
 import dev.chojo.ember.util.DocumentName;
@@ -135,58 +136,104 @@ public class EventRegistrationRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/events/registrations/mine", this::listMyRegistrations, StationPermission.USER);
+        routes.get(
+                prefix + "/events/registrations/mine",
+                this::listMyRegistrations,
+                StationPermission.USER,
+                StationModule.EVENTS);
         routes.get(
                 prefix + "/events/registrations/pending",
                 this::listPendingRegistrations,
-                StationPermission.EVENT_REGISTRATION);
-        routes.get(prefix + "/events/registrations/counts", this::listRegistrationCounts, StationPermission.USER);
-        routes.get(prefix + "/events/registrations/awaiting", this::listAwaitingAnswer, StationPermission.USER);
+                StationPermission.EVENT_REGISTRATION,
+                StationModule.EVENTS);
+        routes.get(
+                prefix + "/events/registrations/counts",
+                this::listRegistrationCounts,
+                StationPermission.USER,
+                StationModule.EVENTS);
+        routes.get(
+                prefix + "/events/registrations/awaiting",
+                this::listAwaitingAnswer,
+                StationPermission.USER,
+                StationModule.EVENTS);
         routes.put(
                 prefix + "/events/registrations/{id}/status",
                 this::updateRegistrationStatus,
-                StationPermission.EVENT_REGISTRATION);
-        routes.delete(prefix + "/events/registrations/{id}", this::withdrawRegistration, StationPermission.USER);
-        routes.post(prefix + "/events/registrations/{id}/undo", this::undoWithdrawal, StationPermission.USER);
-        routes.put(prefix + "/events/registrations/{id}/answer", this::changeAnswer, StationPermission.USER);
+                StationPermission.EVENT_REGISTRATION,
+                StationModule.EVENTS);
+        routes.delete(
+                prefix + "/events/registrations/{id}",
+                this::withdrawRegistration,
+                StationPermission.USER,
+                StationModule.EVENTS);
+        routes.post(
+                prefix + "/events/registrations/{id}/undo",
+                this::undoWithdrawal,
+                StationPermission.USER,
+                StationModule.EVENTS);
+        routes.put(
+                prefix + "/events/registrations/{id}/answer",
+                this::changeAnswer,
+                StationPermission.USER,
+                StationModule.EVENTS);
 
         routes.get(
                 prefix + "/events/{eventId}/registration-stats",
                 this::getRegistrationStats,
-                StationPermission.EVENT_REGISTRATION);
+                StationPermission.EVENT_REGISTRATION,
+                StationModule.EVENTS);
         routes.get(
-                prefix + "/events/{eventId}/registration-fields", this::listRegistrationFields, StationPermission.USER);
+                prefix + "/events/{eventId}/registration-fields",
+                this::listRegistrationFields,
+                StationPermission.USER,
+                StationModule.EVENTS);
         routes.put(
                 prefix + "/events/{eventId}/registration-fields",
                 this::setRegistrationFields,
-                StationPermission.EVENT_EDIT);
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS);
         routes.put(
-                prefix + "/events/registrations/{id}/fields", this::updateRegistrationFields, StationPermission.USER);
+                prefix + "/events/registrations/{id}/fields",
+                this::updateRegistrationFields,
+                StationPermission.USER,
+                StationModule.EVENTS);
 
         routes.get(
                 prefix + "/events/{eventId}/registration-table/columns",
                 this::tableColumns,
-                StationPermission.EVENT_REGISTRATION);
+                StationPermission.EVENT_REGISTRATION,
+                StationModule.EVENTS);
         routes.post(
-                prefix + "/events/{eventId}/registration-table", this::drawTable, StationPermission.EVENT_REGISTRATION);
+                prefix + "/events/{eventId}/registration-table",
+                this::drawTable,
+                StationPermission.EVENT_REGISTRATION,
+                StationModule.EVENTS);
         routes.post(
                 prefix + "/events/{eventId}/registration-table/export.csv",
                 this::exportTableCsv,
-                StationPermission.EVENT_REGISTRATION);
+                StationPermission.EVENT_REGISTRATION,
+                StationModule.EVENTS);
         routes.post(
                 prefix + "/events/{eventId}/registration-table/export.pdf",
                 this::exportTablePdf,
-                StationPermission.EVENT_REGISTRATION);
+                StationPermission.EVENT_REGISTRATION,
+                StationModule.EVENTS);
 
-        routes.get(prefix + "/events/{eventId}/registrations", this::listRegistrations, StationPermission.USER);
-        routes.post(prefix + "/events/{eventId}/register", this::register, StationPermission.USER);
-        routes.post(prefix + "/events/{eventId}/decline", this::decline, StationPermission.USER);
+        routes.get(
+                prefix + "/events/{eventId}/registrations",
+                this::listRegistrations,
+                StationPermission.USER,
+                StationModule.EVENTS);
+        routes.post(
+                prefix + "/events/{eventId}/register", this::register, StationPermission.USER, StationModule.EVENTS);
+        routes.post(prefix + "/events/{eventId}/decline", this::decline, StationPermission.USER, StationModule.EVENTS);
 
         routes.get(
                 prefix + "/events/{id}/absences",
                 this::listAbsencesForDate,
                 StationPermission.EVENT_EDIT,
-                StationPermission.ATTENDANCE_EDIT);
+                StationPermission.ATTENDANCE_EDIT,
+                StationModule.EVENTS);
     }
 
     /** The shared reads for a list about these members, see {@link RegistrationRowLookups}. */

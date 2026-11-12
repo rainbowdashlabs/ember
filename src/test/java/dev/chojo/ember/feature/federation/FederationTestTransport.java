@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.federation.transport.LocalFederationTransport;
 import dev.chojo.ember.feature.federation.transport.PathParams;
 import dev.chojo.ember.feature.federation.transport.RoutingFederationTransport;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
 import tools.jackson.databind.json.JsonMapper;
@@ -79,7 +80,7 @@ public final class FederationTestTransport {
      * @return the registry
      */
     public FederationEndpoints serve(FederationServer... servers) {
-        var registry = new FederationEndpoints(Set.copyOf(Arrays.asList(servers)));
+        var registry = new FederationEndpoints(Set.copyOf(Arrays.asList(servers)), mock(ModuleAvailability.class));
         endpoints.set(registry);
         return registry;
     }

@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.form.handler.FormDeletedHandler;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.news.handler.NewsDeletedHandler;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
+import dev.chojo.ember.feature.notifications.entity.HiddenNotifications;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
@@ -236,7 +237,7 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
     private static int create(NotificationType type, NotificationParams params, NotificationLink link) {
         notifications.notify(
                 StationAudience.member(member.id()), type, NotificationData.of(params, link), Delivery.EVERY_TIME);
-        return notificationRepo.findRecent(Recipient.stationMember(member.id())).stream()
+        return notificationRepo.findRecent(Recipient.stationMember(member.id()), HiddenNotifications.NONE).stream()
                 .mapToInt(Notification::id)
                 .max()
                 .orElseThrow();
@@ -257,7 +258,7 @@ class DeletionWithdrawsNotificationsTest extends RepositoryTestBase {
     }
 
     private static List<Integer> remaining() {
-        return notificationRepo.findRecent(Recipient.stationMember(member.id())).stream()
+        return notificationRepo.findRecent(Recipient.stationMember(member.id()), HiddenNotifications.NONE).stream()
                 .map(Notification::id)
                 .toList();
     }

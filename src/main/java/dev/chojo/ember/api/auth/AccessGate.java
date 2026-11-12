@@ -15,6 +15,7 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.system.service.DemoService;
 import io.javalin.http.Context;
@@ -64,6 +65,7 @@ public class AccessGate implements Handler {
     private final ClusterRepository clusterRepository;
     private final Demo demoConfig;
     private final DemoService demoService;
+    private final ModuleGuard moduleGuard;
 
     @Inject
     public AccessGate(
@@ -73,7 +75,9 @@ public class AccessGate implements Handler {
             StationRepository stationRepository,
             ClusterRepository clusterRepository,
             Demo demoConfig,
-            DemoService demoService) {
+            DemoService demoService,
+            ModuleGuard moduleGuard) {
+        this.moduleGuard = moduleGuard;
         this.accessManager = accessManager;
         this.sessionGate = sessionGate;
         this.stepUpGuard = stepUpGuard;
@@ -123,8 +127,10 @@ public class AccessGate implements Handler {
             demoService.recordActivity();
         }
 
+        moduleGuard.require(routeRoles, session);
+
         Set<RouteRole> required = routeRoles.stream()
-                .filter(role -> !(role instanceof SessionUse))
+                .filter(role -> !(role instanceof SessionUse) && !(role instanceof StationModule))
                 .collect(Collectors.toSet());
         if (required.size() == 1 && required.contains(StationPermission.LOGIN)) {
             return;
@@ -187,7 +193,8 @@ public class AccessGate implements Handler {
 
     /**
      * Refuses a session that holds none of the permissions the route asks for, and asks for a fresh
-     * second factor where the route names a {@link StepUpCategory}.
+     * second factor where the route names a {@link StepUpCategory}. A {@link StationModule} among the
+     * roles is no permission; {@link ModuleGuard} has already answered for it.
      *
      * <p>Permissions are already expanded on the session. A step-up category stands beside the
      * permissions: they still gate access, and the category additionally requires a recent
@@ -204,6 +211,7 @@ public class AccessGate implements Handler {
                 stepUpCategory = sc;
                 continue;
             }
+            if (required instanceof StationModule) continue;
             permissionRequired = true;
             if (required instanceof StationPermission sp && session.hasPermission(sp)) {
                 permissionGranted = true;

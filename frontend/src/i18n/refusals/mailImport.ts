@@ -12,7 +12,6 @@ const MAILBOX_RULE_NOT_HERE = 'Diese Postfachregel gibt es nicht mehr'
 
 /** What the refusals of mail import say in German, keyed by their `MI-` code. */
 export default {
-    'MI-001': 'Diese Wache liest keine Mails in ihre Dokumente ein',
     'MI-002': MAILBOX_NOT_HERE,
     'MI-003': MAILBOX_RULE_NOT_HERE,
     'MI-004': CHANGE_SAVED_BUT_NOT_READ_BACK,

@@ -31,6 +31,7 @@ import dev.chojo.ember.feature.legal.service.GdprExportService;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
+import dev.chojo.ember.feature.notifications.entity.HiddenNotifications;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -1624,7 +1625,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                         .id());
         assertEquals(1, mailsTo(guardian, ASKED_SUBJECT));
         assertEquals(1, mailsTo(issuer, ASKED_SUBJECT));
-        notificationRepo.acknowledgeAll(Recipient.stationMember(guardian.id()));
+        notificationRepo.acknowledgeAll(Recipient.stationMember(guardian.id()), HiddenNotifications.NONE);
         stationMemberRepo.removeManager(guardian.id(), child.id());
         stationMemberRepo.setFormer(issuer.id(), true);
 
@@ -1771,7 +1772,9 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
     }
 
     private static List<Notification> unread(StationMember member, NotificationType type) {
-        return notificationRepo.findUnacknowledged(Recipient.stationMember(member.id())).stream()
+        return notificationRepo
+                .findUnacknowledged(Recipient.stationMember(member.id()), HiddenNotifications.NONE)
+                .stream()
                 .filter(notification -> notification.type() == type)
                 .toList();
     }

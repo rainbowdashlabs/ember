@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.service.InventoryShareOverviewService;
 import dev.chojo.ember.feature.federation.service.InventoryShareOverviewService.ShareDetail;
 import dev.chojo.ember.feature.federation.service.InventoryShareService;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -49,39 +50,56 @@ public class InventoryShareRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/lending/shares", this::listShares, StationPermission.INVENTORY_LENDING_MANAGER);
+        routes.get(
+                prefix + "/lending/shares",
+                this::listShares,
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
         routes.get(
                 prefix + "/lending/shares/inventory/{inventoryId}",
                 this::getInventoryShare,
-                StationPermission.INVENTORY_LENDING_MANAGER);
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
         routes.put(
                 prefix + "/lending/shares/inventory/{inventoryId}",
                 this::setInventoryShare,
-                StationPermission.INVENTORY_LENDING_MANAGER);
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
         routes.delete(
                 prefix + "/lending/shares/inventory/{inventoryId}",
                 this::deleteInventoryShare,
-                StationPermission.INVENTORY_LENDING_MANAGER);
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
         routes.get(
-                prefix + "/lending/shares/art/{artId}", this::getArtShare, StationPermission.INVENTORY_LENDING_MANAGER);
+                prefix + "/lending/shares/art/{artId}",
+                this::getArtShare,
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
         routes.put(
-                prefix + "/lending/shares/art/{artId}", this::setArtShare, StationPermission.INVENTORY_LENDING_MANAGER);
+                prefix + "/lending/shares/art/{artId}",
+                this::setArtShare,
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
         routes.delete(
                 prefix + "/lending/shares/art/{artId}",
                 this::deleteArtShare,
-                StationPermission.INVENTORY_LENDING_MANAGER);
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
         routes.get(
                 prefix + "/lending/shares/item/{itemId}",
                 this::getItemShare,
-                StationPermission.INVENTORY_LENDING_MANAGER);
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
         routes.put(
                 prefix + "/lending/shares/item/{itemId}",
                 this::setItemShare,
-                StationPermission.INVENTORY_LENDING_MANAGER);
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
         routes.delete(
                 prefix + "/lending/shares/item/{itemId}",
                 this::deleteItemShare,
-                StationPermission.INVENTORY_LENDING_MANAGER);
+                StationPermission.INVENTORY_LENDING_MANAGER,
+                StationModule.INVENTORY_LENDING);
     }
 
     @OpenApi(

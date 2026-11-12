@@ -189,7 +189,8 @@ class StationManageServicesTest {
                 mock(AccountRepository.class),
                 mock(FederationService.class),
                 mock(StationMemberInviteService.class),
-                mock(ClusterRepository.class));
+                mock(ClusterRepository.class),
+                mock(ModuleAvailability.class));
 
         service.deleteMoved(3);
 

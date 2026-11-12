@@ -575,6 +575,20 @@ class NotificationTextTest {
                 null);
     }
 
+    /** A switched-off module, a part of the inventory included, is named the way the reader knows it. */
+    @Test
+    void aDeniedInventoryPartIsNamedInTheReadersLanguage() {
+        var denied = notificationWith(
+                NotificationType.CLUSTER_MODULE_DENIED,
+                new NotificationParams.ClusterModuleDenied("Kreisverband Nord", "INVENTORY_LENDING"),
+                5);
+
+        assertTrue(text.resolveMessage("de", denied).contains("Verleih"));
+        assertTrue(text.resolveMessage("en", denied).contains("Lending"));
+        assertEquals("Verleih vom Verband abgeschaltet", text.resolveFeedTitle("de", denied));
+        assertFalse(text.resolveMessage("en", denied).contains("INVENTORY_LENDING"));
+    }
+
     private static Notification notificationWith(NotificationType type, NotificationParams params, int id) {
         var data = NotificationData.of(params, new NotificationData.NotificationLink("dashboard-overview"));
         return new Notification(id, MEMBER, null, type, data, Instant.now(), null);

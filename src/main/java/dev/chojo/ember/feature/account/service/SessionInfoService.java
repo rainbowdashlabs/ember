@@ -171,13 +171,24 @@ public class SessionInfoService {
                 textOf(session.clusterUid()),
                 session.clusterUserType(),
                 session.clusterPermissions().stream().map(Enum::name).sorted().toList(),
-                ClusterPermission.atOwnStation(session.clusterPermissions()).stream()
+                ClusterPermission.atOwnStation(session.clusterPermissions(), clusterStationDisabled(session)).stream()
                         .map(Enum::name)
                         .sorted()
                         .toList(),
                 !mailChainService.forInstance().isEmpty(),
                 currentStation != null && currentStation.pdfHidesInstanceUrl(),
                 StationFormat.timezoneNameOf(currentStation));
+    }
+
+    /**
+     * What the cluster's own station has switched off, which the rights the caller holds there follow.
+     *
+     * @param session the session
+     * @return the effective set of the cluster's own station, empty when the session acts for no cluster
+     */
+    private Set<StationModule> clusterStationDisabled(UserSession session) {
+        Integer clusterId = session.clusterId();
+        return clusterId == null ? Set.of() : stationService.findClusterStationDisabledModules(clusterId);
     }
 
     private ManagedMemberInfo toManagedMemberInfo(StationMember member) {

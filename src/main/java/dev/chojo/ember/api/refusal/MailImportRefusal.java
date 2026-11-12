@@ -14,9 +14,6 @@ import io.javalin.http.HttpStatus;
  * the highest number here and in {@link RetiredRefusals}.
  */
 public enum MailImportRefusal implements Refusal {
-    /** Mail import at all, at a station that keeps no documents for it to file into. */
-    MAIL_IMPORT_SWITCHED_OFF(1, HttpStatus.NOT_FOUND, "This station does not read mail into its documents"),
-
     /**
      * A mailbox that is gone, or belongs to another station. One code deliberately: the lookup and
      * the station check right behind it answer alike, because telling them apart would say that the

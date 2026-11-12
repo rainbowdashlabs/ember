@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.page.service.PageService;
 import dev.chojo.ember.feature.signing.service.PublishedCertificates;
 import dev.chojo.ember.feature.station.entity.PublicOffer;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,6 +42,7 @@ class PublicStationPageTest {
     private NewsService news;
     private FormService forms;
     private PublicStationInfoService service;
+    private ModuleAvailability modules;
 
     @BeforeEach
     void setup() {
@@ -48,6 +50,7 @@ class PublicStationPageTest {
         waitingLists = mock(WaitingListService.class);
         news = mock(NewsService.class);
         forms = mock(FormService.class);
+        modules = mock(ModuleAvailability.class);
         service = new PublicStationInfoService(
                 mock(StationRepository.class),
                 mock(StationLogoService.class),
@@ -55,7 +58,8 @@ class PublicStationPageTest {
                 waitingLists,
                 news,
                 forms,
-                mock(PublishedCertificates.class));
+                mock(PublishedCertificates.class),
+                modules);
     }
 
     private static Station station(StationKind kind) {
@@ -154,5 +158,29 @@ class PublicStationPageTest {
 
         assertEquals(new PublicOffer(false, true, true, true, true), everything.inDiscoveryOf(hidden));
         assertEquals(everything, everything.inDiscoveryOf(shown));
+    }
+
+    /**
+     * What the station or its cluster switched off is not offered on its public page, however it is
+     * set to be public.
+     */
+    @Test
+    void switchedOffModulesAreNotOffered() {
+        var station = station(StationKind.REGULAR);
+        when(station.publicKbMode()).thenReturn(PublicKbMode.DENY_ALL);
+        when(station.publicCalendarEnabled()).thenReturn(true);
+        when(station.publicBlogEnabled()).thenReturn(true);
+        when(station.publicWaitlistEnabled()).thenReturn(true);
+        when(news.withPublicBlogEntries(List.of(STATION_ID))).thenReturn(Set.of(STATION_ID));
+        when(waitingLists.withPublicWaitlists(List.of(STATION_ID))).thenReturn(Set.of(STATION_ID));
+        when(modules.disabledAt(STATION_ID))
+                .thenReturn(Set.of(StationModule.EVENTS, StationModule.KNOWLEDGE_BASE, StationModule.NEWS));
+
+        var offer = service.offer(station);
+
+        assertFalse(offer.calendar());
+        assertFalse(offer.knowledgeBase());
+        assertFalse(offer.blog());
+        assertTrue(offer.waitlist());
     }
 }

@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.quiz.service.QuizQuestionReportService;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionSanitizer;
 import dev.chojo.ember.feature.quiz.service.QuizQuestionService;
 import dev.chojo.ember.feature.quiz.service.QuizRouteGuards;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -76,23 +77,59 @@ public class QuizQuestionRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/quiz/catalogs/{id}/questions", this::listQuestions, StationPermission.TEST_CATALOG_VIEW);
-        routes.post(
-                prefix + "/quiz/catalogs/{id}/questions", this::createQuestion, StationPermission.TEST_CATALOG_EDIT);
-        routes.get(prefix + "/quiz/questions/{id}", this::getQuestion, StationPermission.USER);
-        routes.put(prefix + "/quiz/questions/{id}", this::updateQuestion, StationPermission.TEST_CATALOG_EDIT);
-        routes.delete(prefix + "/quiz/questions/{id}", this::deleteQuestion, StationPermission.TEST_CATALOG_EDIT);
-
-        routes.get(prefix + "/quiz/questions/{id}/image", this::getQuestionImage, StationPermission.USER);
-        routes.post(
-                prefix + "/quiz/questions/{id}/image", this::uploadQuestionImage, StationPermission.TEST_CATALOG_EDIT);
-        routes.delete(
-                prefix + "/quiz/questions/{id}/image", this::deleteQuestionImage, StationPermission.TEST_CATALOG_EDIT);
-
-        routes.post(prefix + "/quiz/questions/{id}/reports", this::reportQuestion, StationPermission.USER);
         routes.get(
-                prefix + "/quiz/catalogs/{id}/reports", this::listCatalogReports, StationPermission.TEST_CATALOG_VIEW);
-        routes.delete(prefix + "/quiz/reports/{id}", this::acknowledgeReport, StationPermission.TEST_CATALOG_EDIT);
+                prefix + "/quiz/catalogs/{id}/questions",
+                this::listQuestions,
+                StationPermission.TEST_CATALOG_VIEW,
+                StationModule.QUIZ);
+        routes.post(
+                prefix + "/quiz/catalogs/{id}/questions",
+                this::createQuestion,
+                StationPermission.TEST_CATALOG_EDIT,
+                StationModule.QUIZ);
+        routes.get(prefix + "/quiz/questions/{id}", this::getQuestion, StationPermission.USER, StationModule.QUIZ);
+        routes.put(
+                prefix + "/quiz/questions/{id}",
+                this::updateQuestion,
+                StationPermission.TEST_CATALOG_EDIT,
+                StationModule.QUIZ);
+        routes.delete(
+                prefix + "/quiz/questions/{id}",
+                this::deleteQuestion,
+                StationPermission.TEST_CATALOG_EDIT,
+                StationModule.QUIZ);
+
+        routes.get(
+                prefix + "/quiz/questions/{id}/image",
+                this::getQuestionImage,
+                StationPermission.USER,
+                StationModule.QUIZ);
+        routes.post(
+                prefix + "/quiz/questions/{id}/image",
+                this::uploadQuestionImage,
+                StationPermission.TEST_CATALOG_EDIT,
+                StationModule.QUIZ);
+        routes.delete(
+                prefix + "/quiz/questions/{id}/image",
+                this::deleteQuestionImage,
+                StationPermission.TEST_CATALOG_EDIT,
+                StationModule.QUIZ);
+
+        routes.post(
+                prefix + "/quiz/questions/{id}/reports",
+                this::reportQuestion,
+                StationPermission.USER,
+                StationModule.QUIZ);
+        routes.get(
+                prefix + "/quiz/catalogs/{id}/reports",
+                this::listCatalogReports,
+                StationPermission.TEST_CATALOG_VIEW,
+                StationModule.QUIZ);
+        routes.delete(
+                prefix + "/quiz/reports/{id}",
+                this::acknowledgeReport,
+                StationPermission.TEST_CATALOG_EDIT,
+                StationModule.QUIZ);
     }
 
     /**

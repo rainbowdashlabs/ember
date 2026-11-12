@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.generator.service.DocumentGenerationService.Gener
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import dev.chojo.ember.feature.generator.service.ParticipantCopyService;
 import dev.chojo.ember.feature.generator.service.TemplateQuery.TemplatePage;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -78,7 +79,9 @@ public class AppointmentDocumentRoutes implements Routes {
                 prefix + "/document-requirements/templates",
                 this::offered,
                 StationPermission.EVENT_EDIT,
-                StationPermission.EVENT_MANAGE_TEMPLATE);
+                StationPermission.EVENT_MANAGE_TEMPLATE,
+                StationModule.EVENTS,
+                StationModule.DOCUMENTS);
         routes.get(prefix + "/events/{id}/document-requirements", this::forEvent, StationPermission.EVENT_EDIT);
         routes.put(prefix + "/events/{id}/document-requirements", this::setForEvent, StationPermission.EVENT_EDIT);
         routes.get(
@@ -89,15 +92,24 @@ public class AppointmentDocumentRoutes implements Routes {
                 prefix + "/event-templates/{id}/document-requirements",
                 this::setForEventTemplate,
                 StationPermission.EVENT_MANAGE_TEMPLATE);
-        routes.get(prefix + "/events/{id}/documents-to-bring", this::toBring, StationPermission.USER);
+        routes.get(
+                prefix + "/events/{id}/documents-to-bring",
+                this::toBring,
+                StationPermission.USER,
+                StationModule.EVENTS,
+                StationModule.DOCUMENTS);
         routes.post(
                 prefix + "/events/{id}/documents-to-bring/{templateId}/members/{memberId}",
                 this::generate,
-                StationPermission.USER);
+                StationPermission.USER,
+                StationModule.EVENTS,
+                StationModule.DOCUMENTS);
         routes.get(
                 prefix + "/events/{id}/documents-to-bring/{templateId}/members/{memberId}/copy",
                 this::copy,
-                StationPermission.EVENT_REGISTRATION);
+                StationPermission.EVENT_REGISTRATION,
+                StationModule.EVENTS,
+                StationModule.DOCUMENTS);
     }
 
     /**

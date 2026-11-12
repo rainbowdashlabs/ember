@@ -7,6 +7,7 @@ package dev.chojo.ember.api;
 
 import dev.chojo.ember.api.auth.AccessGate;
 import dev.chojo.ember.api.auth.CsrfGuard;
+import dev.chojo.ember.api.auth.ModuleGuard;
 import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.SessionGate;
 import dev.chojo.ember.api.auth.StepUpGuard;
@@ -21,7 +22,9 @@ import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.insights.service.BotClassifier;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
 import dev.chojo.ember.feature.insights.service.RefererDomainExtractor;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.statistics.service.UsageRecorder;
 import dev.chojo.ember.feature.system.service.ApiRequestLogger;
 import dev.chojo.ember.feature.system.service.DemoService;
@@ -54,6 +57,7 @@ import java.util.function.Function;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -87,6 +91,7 @@ public final class RouteHarness {
     private final AccessManager accessManager = quiet(AccessManager.class);
     private StationRepository stations = quiet(StationRepository.class);
     private Network network = new Network();
+    private final ModuleAvailability modules = mock(ModuleAvailability.class);
 
     private RouteHarness(Routes[] routes) {
         this.routes = routes;
@@ -116,6 +121,18 @@ public final class RouteHarness {
      */
     public RouteHarness withStations(StationRepository stations) {
         this.stations = stations;
+        return this;
+    }
+
+    /**
+     * Has every station the requests name switch the given modules off, as its own switch or its
+     * cluster's denial would. Without it every module is on.
+     *
+     * @param off the switched-off modules; their parts are switched off with them
+     * @return this harness
+     */
+    public RouteHarness withModulesOff(StationModule... off) {
+        when(modules.disabledAt(anyInt())).thenReturn(StationModule.withChildren(List.of(off)));
         return this;
     }
 
@@ -281,7 +298,8 @@ public final class RouteHarness {
                         stations,
                         clusters,
                         demo,
-                        forThisRun(DemoService.class)),
+                        forThisRun(DemoService.class),
+                        new ModuleGuard(modules)),
                 new ResponseHeaderPolicy(demo, stations),
                 new ExceptionMapping(demo, devErrors),
                 devErrors);

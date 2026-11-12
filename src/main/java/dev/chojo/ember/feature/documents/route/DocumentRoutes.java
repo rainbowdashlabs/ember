@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.documents.service.DocumentDoor;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -76,21 +77,49 @@ public class DocumentRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/documents", this::listStation, StationPermission.DOCUMENT_READ);
-        routes.post(prefix + "/documents", this::uploadForStation, StationPermission.DOCUMENT_EDIT);
-        routes.get(prefix + "/documents/ids", this::listIds, StationPermission.DOCUMENT_READ);
-        routes.post(prefix + "/documents/prune", this::prune, StationPermission.LOGIN);
-        routes.get(prefix + "/documents/tags", this::listTags, StationPermission.DOCUMENT_READ);
-        routes.put(prefix + "/documents/{id}/tags", this::setTags, StationPermission.DOCUMENT_EDIT);
-        routes.get(prefix + "/documents/{id}/content", this::content, StationPermission.LOGIN);
+        routes.get(prefix + "/documents", this::listStation, StationPermission.DOCUMENT_READ, StationModule.DOCUMENTS);
+        routes.post(
+                prefix + "/documents",
+                this::uploadForStation,
+                StationPermission.DOCUMENT_EDIT,
+                StationModule.DOCUMENTS);
+        routes.get(prefix + "/documents/ids", this::listIds, StationPermission.DOCUMENT_READ, StationModule.DOCUMENTS);
+        routes.post(prefix + "/documents/prune", this::prune, StationPermission.LOGIN, StationModule.DOCUMENTS);
         routes.get(
-                prefix + "/documents/{id}/versions/{version}/content", this::versionContent, StationPermission.LOGIN);
-        routes.get(prefix + "/documents/{id}/thumbnail", this::thumbnail, StationPermission.LOGIN);
-        routes.put(prefix + "/documents/{id}/members", this::setMembers, StationPermission.DOCUMENT_EDIT_MEMBER);
-        routes.delete(prefix + "/documents/{id}", this::delete, StationPermission.LOGIN);
+                prefix + "/documents/tags", this::listTags, StationPermission.DOCUMENT_READ, StationModule.DOCUMENTS);
+        routes.put(
+                prefix + "/documents/{id}/tags",
+                this::setTags,
+                StationPermission.DOCUMENT_EDIT,
+                StationModule.DOCUMENTS);
+        routes.get(prefix + "/documents/{id}/content", this::content, StationPermission.LOGIN, StationModule.DOCUMENTS);
+        routes.get(
+                prefix + "/documents/{id}/versions/{version}/content",
+                this::versionContent,
+                StationPermission.LOGIN,
+                StationModule.DOCUMENTS);
+        routes.get(
+                prefix + "/documents/{id}/thumbnail",
+                this::thumbnail,
+                StationPermission.LOGIN,
+                StationModule.DOCUMENTS);
+        routes.put(
+                prefix + "/documents/{id}/members",
+                this::setMembers,
+                StationPermission.DOCUMENT_EDIT_MEMBER,
+                StationModule.DOCUMENTS);
+        routes.delete(prefix + "/documents/{id}", this::delete, StationPermission.LOGIN, StationModule.DOCUMENTS);
 
-        routes.get(prefix + "/station-members/{memberId}/documents", this::list, StationPermission.LOGIN);
-        routes.post(prefix + "/station-members/{memberId}/documents", this::upload, StationPermission.LOGIN);
+        routes.get(
+                prefix + "/station-members/{memberId}/documents",
+                this::list,
+                StationPermission.LOGIN,
+                StationModule.DOCUMENTS);
+        routes.post(
+                prefix + "/station-members/{memberId}/documents",
+                this::upload,
+                StationPermission.LOGIN,
+                StationModule.DOCUMENTS);
     }
 
     /** Request body for the members a document is bound to. */

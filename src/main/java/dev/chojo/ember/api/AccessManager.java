@@ -28,6 +28,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberPermissionResolver;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import io.javalin.http.Context;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -67,6 +68,7 @@ public class AccessManager {
     private final ClusterRepository clusterRepository;
     private final FederationContractRefreshService contractRefreshService;
     private final MemberPermissionResolver permissionResolver;
+    private final ModuleAvailability modules;
 
     @Inject
     public AccessManager(
@@ -78,8 +80,10 @@ public class AccessManager {
             StationRepository stationRepository,
             ClusterRepository clusterRepository,
             FederationContractRefreshService contractRefreshService,
-            MemberPermissionResolver permissionResolver) {
+            MemberPermissionResolver permissionResolver,
+            ModuleAvailability modules) {
         this.permissionResolver = permissionResolver;
+        this.modules = modules;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.federationRepository = federationRepository;
@@ -242,7 +246,8 @@ public class AccessManager {
      * through the same screens a station edits its own with. Somebody trusted with the cluster's knowledge
      * therefore has to arrive at that station able to edit knowledge there, which no membership gives them:
      * they are not a member of it in any sense that carries rights. Only that station is affected, and only
-     * the content rights are translated.
+     * the content rights are translated. A content right of a module the cluster's station does not have
+     * grants nothing there, as it would for a member.
      *
      * @param session     the session with its station context already resolved
      * @param permissions what the caller holds at that cluster
@@ -251,7 +256,9 @@ public class AccessManager {
     private Set<StationPermission> withOwnStationRights(UserSession session, Set<ClusterPermission> permissions) {
         Set<StationPermission> merged = EnumSet.noneOf(StationPermission.class);
         merged.addAll(session.permissions());
-        merged.addAll(ClusterPermission.atOwnStation(permissions));
+        Integer stationId = session.stationId();
+        merged.addAll(ClusterPermission.atOwnStation(
+                permissions, stationId == null ? Set.of() : modules.disabledAt(stationId)));
         return merged;
     }
 

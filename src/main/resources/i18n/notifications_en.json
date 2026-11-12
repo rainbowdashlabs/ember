@@ -115,21 +115,6 @@
     "NOT_INTERESTED": "Not interested",
     "DATE_DOES_NOT_SUIT": "The date does not suit"
   },
-  "module": {
-    "ATTENDANCE": "Attendance",
-    "BOARDS": "Boards",
-    "DOCUMENTS": "Documents",
-    "EVENTS": "Events",
-    "FORMS": "Forms",
-    "INVENTORY": "Inventory",
-    "KNOWLEDGE_BASE": "Wiki",
-    "LOST_AND_FOUND": "Lost and Found",
-    "NEWS": "News",
-    "PROCEDURES": "Procedures",
-    "QUIZ": "Quiz",
-    "TEST_PROTOCOL": "Test reports",
-    "WAITING_LIST": "Waiting list"
-  },
   "changedPart": {
     "TIME": "time",
     "DATE": "date",
@@ -138,6 +123,26 @@
     "FIELDS": "details",
     "REGISTRATION_QUESTIONS": "registration questions",
     "ATTACHMENTS": "files"
+  },
+  "module": {
+    "INVENTORY": "Inventory",
+    "NEWS": "News",
+    "EVENTS": "Events",
+    "ATTENDANCE": "Attendance",
+    "FORMS": "Polls",
+    "LOST_AND_FOUND": "Lost and found",
+    "WAITING_LIST": "Waiting list",
+    "QUIZ": "Quiz",
+    "KNOWLEDGE_BASE": "Wiki",
+    "TEST_PROTOCOL": "Test protocols",
+    "BOARDS": "Boards",
+    "PROCEDURES": "Procedures",
+    "DOCUMENTS": "Documents",
+    "INVENTORY_MOVEMENTS": "Inventory movements",
+    "INVENTORY_LENDING": "Lending",
+    "INVENTORY_PROCUREMENT": "Procurement",
+    "INVENTORY_SELF_CHECKS": "Equipment self-checks",
+    "INVENTORY_CHECKS": "Inventory checks"
   },
   "feedTitle": {
     "NEW_NEWS": "News: {title}",

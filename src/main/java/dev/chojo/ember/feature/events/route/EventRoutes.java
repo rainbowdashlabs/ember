@@ -47,6 +47,7 @@ import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -137,41 +138,73 @@ public class EventRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/events", this::list, StationPermission.USER);
+        routes.get(prefix + "/events", this::list, StationPermission.USER, StationModule.EVENTS);
         routes.get(
                 prefix + "/events/search",
                 this::searchPicker,
                 StationPermission.PAGE_EDIT,
                 StationPermission.NEWS_EDIT,
-                StationPermission.KNOWLEDGE_EDIT);
-        routes.get(prefix + "/events/upcoming", this::listUpcoming, StationPermission.USER);
-        routes.get(prefix + "/events/past", this::listPast, StationPermission.USER);
-        routes.get(prefix + "/events/paged", this::listPaged, StationPermission.USER);
-        routes.get(prefix + "/events/today", this::listToday, StationPermission.USER);
-        routes.post(prefix + "/events", this::create, StationPermission.EVENT_EDIT);
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.EVENTS);
+        routes.get(prefix + "/events/upcoming", this::listUpcoming, StationPermission.USER, StationModule.EVENTS);
+        routes.get(prefix + "/events/past", this::listPast, StationPermission.USER, StationModule.EVENTS);
+        routes.get(prefix + "/events/paged", this::listPaged, StationPermission.USER, StationModule.EVENTS);
+        routes.get(prefix + "/events/today", this::listToday, StationPermission.USER, StationModule.EVENTS);
+        routes.post(prefix + "/events", this::create, StationPermission.EVENT_EDIT, StationModule.EVENTS);
 
-        routes.post(prefix + "/events/export", this::exportPdf, StationPermission.EVENT_EDIT);
+        routes.post(prefix + "/events/export", this::exportPdf, StationPermission.EVENT_EDIT, StationModule.EVENTS);
 
-        routes.get(prefix + "/events/restrictions", this::listAllRestrictions, StationPermission.USER);
-        routes.get(prefix + "/events/eligible-members", this::listEligibleMembers, StationPermission.USER);
+        routes.get(
+                prefix + "/events/restrictions",
+                this::listAllRestrictions,
+                StationPermission.USER,
+                StationModule.EVENTS);
+        routes.get(
+                prefix + "/events/eligible-members",
+                this::listEligibleMembers,
+                StationPermission.USER,
+                StationModule.EVENTS);
 
-        routes.post(prefix + "/events/batch", this::batchCreate, StationPermission.EVENT_EDIT);
-        routes.post(prefix + "/events/batch/generate-dates", this::generateDates, StationPermission.EVENT_EDIT);
-
-        routes.get(prefix + "/events/{id}", this::get, StationPermission.USER);
-        routes.get(prefix + "/events/{id}/next-date", this::getNextDate, StationPermission.USER);
-        routes.put(prefix + "/events/{id}", this::update, StationPermission.EVENT_EDIT);
-        routes.post(prefix + "/events/{id}/change-notice", this::sendChangeNotice, StationPermission.EVENT_EDIT);
-        routes.get(prefix + "/events/{id}/links", this::getLinks, StationPermission.USER);
+        routes.post(prefix + "/events/batch", this::batchCreate, StationPermission.EVENT_EDIT, StationModule.EVENTS);
         routes.post(
-                prefix + "/events/{id}/change-notice/preview", this::previewChangeNotice, StationPermission.EVENT_EDIT);
-        routes.delete(prefix + "/events/{id}", this::delete, StationPermission.EVENT_EDIT);
+                prefix + "/events/batch/generate-dates",
+                this::generateDates,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS);
 
-        routes.get(prefix + "/events/{id}/restrictions", this::getRestrictions, StationPermission.USER);
-        routes.put(prefix + "/events/{id}/restrictions", this::setRestrictions, StationPermission.EVENT_EDIT);
+        routes.get(prefix + "/events/{id}", this::get, StationPermission.USER, StationModule.EVENTS);
+        routes.get(prefix + "/events/{id}/next-date", this::getNextDate, StationPermission.USER, StationModule.EVENTS);
+        routes.put(prefix + "/events/{id}", this::update, StationPermission.EVENT_EDIT, StationModule.EVENTS);
+        routes.post(
+                prefix + "/events/{id}/change-notice",
+                this::sendChangeNotice,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS);
+        routes.get(prefix + "/events/{id}/links", this::getLinks, StationPermission.USER, StationModule.EVENTS);
+        routes.post(
+                prefix + "/events/{id}/change-notice/preview",
+                this::previewChangeNotice,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS);
+        routes.delete(prefix + "/events/{id}", this::delete, StationPermission.EVENT_EDIT, StationModule.EVENTS);
 
-        routes.get(prefix + "/events/{id}/reminders", this::getReminders, StationPermission.USER);
-        routes.put(prefix + "/events/{id}/reminders", this::setReminders, StationPermission.EVENT_EDIT);
+        routes.get(
+                prefix + "/events/{id}/restrictions",
+                this::getRestrictions,
+                StationPermission.USER,
+                StationModule.EVENTS);
+        routes.put(
+                prefix + "/events/{id}/restrictions",
+                this::setRestrictions,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS);
+
+        routes.get(prefix + "/events/{id}/reminders", this::getReminders, StationPermission.USER, StationModule.EVENTS);
+        routes.put(
+                prefix + "/events/{id}/reminders",
+                this::setReminders,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS);
     }
 
     @OpenApi(

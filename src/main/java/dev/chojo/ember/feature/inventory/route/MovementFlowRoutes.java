@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService;
 import dev.chojo.ember.feature.inventory.service.MovementFlowService.ChosenLanding;
 import dev.chojo.ember.feature.inventory.service.MovementTargeting;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -70,26 +71,81 @@ public class MovementFlowRoutes implements Routes {
      */
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/movement-flows", this::list, StationPermission.INVENTORY_MANAGER);
-        routes.get(prefix + "/movement-flows/resolve", this::resolve, StationPermission.USER);
-        routes.get(prefix + "/movement-flows/{id}", this::getFlow, StationPermission.INVENTORY_MANAGER);
-        routes.post(prefix + "/movement-flows", this::createFlow, StationPermission.INVENTORY_MANAGER);
-        routes.put(prefix + "/movement-flows/{id}", this::renameFlow, StationPermission.INVENTORY_MANAGER);
-        routes.delete(prefix + "/movement-flows/{id}", this::archiveFlow, StationPermission.INVENTORY_MANAGER);
+        routes.get(
+                prefix + "/movement-flows",
+                this::list,
+                StationPermission.INVENTORY_MANAGER,
+                StationModule.INVENTORY_MOVEMENTS);
+        routes.get(
+                prefix + "/movement-flows/resolve",
+                this::resolve,
+                StationPermission.USER,
+                StationModule.INVENTORY_MOVEMENTS);
+        routes.get(
+                prefix + "/movement-flows/{id}",
+                this::getFlow,
+                StationPermission.INVENTORY_MANAGER,
+                StationModule.INVENTORY_MOVEMENTS);
+        routes.post(
+                prefix + "/movement-flows",
+                this::createFlow,
+                StationPermission.INVENTORY_MANAGER,
+                StationModule.INVENTORY_MOVEMENTS);
+        routes.put(
+                prefix + "/movement-flows/{id}",
+                this::renameFlow,
+                StationPermission.INVENTORY_MANAGER,
+                StationModule.INVENTORY_MOVEMENTS);
+        routes.delete(
+                prefix + "/movement-flows/{id}",
+                this::archiveFlow,
+                StationPermission.INVENTORY_MANAGER,
+                StationModule.INVENTORY_MOVEMENTS);
         routes.put(
                 prefix + "/movement-flows/{id}/member-receipt",
                 this::setMemberReceipt,
-                StationPermission.INVENTORY_MANAGER);
-        routes.post(prefix + "/movement-flows/{id}/steps", this::addStep, StationPermission.INVENTORY_MANAGER);
-        routes.put(prefix + "/movement-flows/{id}/step-order", this::reorderSteps, StationPermission.INVENTORY_MANAGER);
-        routes.get(
-                prefix + "/movement-flows/{id}/restore/plan", this::restorePlan, StationPermission.INVENTORY_MANAGER);
+                StationPermission.INVENTORY_MANAGER,
+                StationModule.INVENTORY_MOVEMENTS);
         routes.post(
-                prefix + "/movement-flows/{id}/restore", this::restoreToPreset, StationPermission.INVENTORY_MANAGER);
-        routes.put(prefix + "/movement-flow-steps/{id}", this::updateStep, StationPermission.INVENTORY_MANAGER);
-        routes.delete(prefix + "/movement-flow-steps/{id}", this::archiveStep, StationPermission.INVENTORY_MANAGER);
-        routes.get(prefix + "/movement-flow-bindings", this::listBindings, StationPermission.INVENTORY_MANAGER);
-        routes.put(prefix + "/movement-flow-bindings", this::bind, StationPermission.INVENTORY_MANAGER);
+                prefix + "/movement-flows/{id}/steps",
+                this::addStep,
+                StationPermission.INVENTORY_MANAGER,
+                StationModule.INVENTORY_MOVEMENTS);
+        routes.put(
+                prefix + "/movement-flows/{id}/step-order",
+                this::reorderSteps,
+                StationPermission.INVENTORY_MANAGER,
+                StationModule.INVENTORY_MOVEMENTS);
+        routes.get(
+                prefix + "/movement-flows/{id}/restore/plan",
+                this::restorePlan,
+                StationPermission.INVENTORY_MANAGER,
+                StationModule.INVENTORY_MOVEMENTS);
+        routes.post(
+                prefix + "/movement-flows/{id}/restore",
+                this::restoreToPreset,
+                StationPermission.INVENTORY_MANAGER,
+                StationModule.INVENTORY_MOVEMENTS);
+        routes.put(
+                prefix + "/movement-flow-steps/{id}",
+                this::updateStep,
+                StationPermission.INVENTORY_MANAGER,
+                StationModule.INVENTORY_MOVEMENTS);
+        routes.delete(
+                prefix + "/movement-flow-steps/{id}",
+                this::archiveStep,
+                StationPermission.INVENTORY_MANAGER,
+                StationModule.INVENTORY_MOVEMENTS);
+        routes.get(
+                prefix + "/movement-flow-bindings",
+                this::listBindings,
+                StationPermission.INVENTORY_MANAGER,
+                StationModule.INVENTORY_MOVEMENTS);
+        routes.put(
+                prefix + "/movement-flow-bindings",
+                this::bind,
+                StationPermission.INVENTORY_MANAGER,
+                StationModule.INVENTORY_MOVEMENTS);
     }
 
     @OpenApi(

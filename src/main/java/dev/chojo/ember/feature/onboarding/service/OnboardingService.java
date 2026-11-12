@@ -319,7 +319,7 @@ public class OnboardingService {
     }
 
     private static boolean applies(OnboardingTask task, StationUserType userType, Set<StationModule> disabled) {
-        if (task.module().filter(disabled::contains).isPresent()) return false;
+        if (task.module().filter(module -> module.isOffIn(disabled)).isPresent()) return false;
         return task.reaches(userType);
     }
 

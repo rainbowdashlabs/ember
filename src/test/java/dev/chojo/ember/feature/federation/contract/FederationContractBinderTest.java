@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
 import dev.chojo.ember.feature.federation.transport.ServingPartner;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import io.javalin.http.Context;
 import io.javalin.http.Handler;
 import io.javalin.http.HandlerType;
@@ -53,14 +54,16 @@ class FederationContractBinderTest {
     private final AtomicReference<ServingPartner> served = new AtomicReference<>();
 
     private FederationEndpoints registry() {
-        return new FederationEndpoints(Set.of(endpoints -> {
-            endpoints.serve(READ, (partner, params, body) -> {
-                served.set(partner);
-                return new Answer("read " + params.integer("id"));
-            });
-            endpoints.serve(CREATE, (partner, params, body) -> new Answer(((Body) body).text()));
-            endpoints.serve(REMOVE, (partner, params, body) -> null);
-        }));
+        return new FederationEndpoints(
+                Set.of(endpoints -> {
+                    endpoints.serve(READ, (partner, params, body) -> {
+                        served.set(partner);
+                        return new Answer("read " + params.integer("id"));
+                    });
+                    endpoints.serve(CREATE, (partner, params, body) -> new Answer(((Body) body).text()));
+                    endpoints.serve(REMOVE, (partner, params, body) -> null);
+                }),
+                mock(ModuleAvailability.class));
     }
 
     private Map<FederationEndpoint, Handler> bind(FederationEndpoints registry) {

@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.feed.service;
 import com.rometools.rome.feed.synd.SyndEntryImpl;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.FeedRefusal;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -38,7 +39,9 @@ import dev.chojo.ember.feature.notifications.service.NotificationInbox;
 import dev.chojo.ember.feature.notifications.service.NotificationPreferences;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -48,6 +51,7 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -76,6 +80,7 @@ class PersonalFeedServiceTest {
     private NotificationInbox inbox;
     private NotificationPreferences preferences;
     private StationMemberRepository members;
+    private final ModuleAvailability modules = mock(ModuleAvailability.class);
     private IcalEventRenderer icalRenderer;
     private LostAndFoundService lostAndFound;
     private LostAndFoundImageService images;
@@ -140,7 +145,8 @@ class PersonalFeedServiceTest {
                 images,
                 notificationRenderer,
                 names,
-                occurrenceCalendar);
+                occurrenceCalendar,
+                modules);
     }
 
     @Test
@@ -242,6 +248,24 @@ class PersonalFeedServiceTest {
         assertEquals(
                 FeedRefusal.FEED_ITEM_PICTURE_NOT_HERE,
                 assertThrows(RefusalResponse.class, () -> service.lostAndFoundImage(STATION, 4, 0))
+                        .refusal());
+    }
+
+    /** No calendar and no lost-item picture leave a station that switched the module off. */
+    @Test
+    void switchedOffModulesFeedNothing() {
+        when(modules.disabledAt(STATION)).thenReturn(Set.of(StationModule.EVENTS, StationModule.LOST_AND_FOUND));
+        var own = mock(LostAndFoundItem.class);
+        when(own.stationId()).thenReturn(STATION);
+        when(lostAndFound.findById(1)).thenReturn(Optional.of(own));
+
+        assertEquals(
+                GeneralRefusal.MODULE_SWITCHED_OFF,
+                assertThrows(RefusalResponse.class, () -> service.calendar(OWNER, false))
+                        .refusal());
+        assertEquals(
+                FeedRefusal.FEED_ITEM_NOT_HERE,
+                assertThrows(RefusalResponse.class, () -> service.lostAndFoundImage(STATION, 1, 0))
                         .refusal());
     }
 }

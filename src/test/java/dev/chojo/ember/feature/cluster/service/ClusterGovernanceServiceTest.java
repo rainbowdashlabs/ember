@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.ClusterModuleDenied;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
@@ -24,6 +26,10 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 /**
  * What a cluster decides for its stations, and what it may not decide.
@@ -79,11 +85,37 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
 
         clusterGovernanceService.setDeniedModules(clusterId, null, Set.of(StationModule.QUIZ));
 
-        assertFalse(clusterRepo.isModuleDeniedForStation(station.id(), StationModule.EVENTS));
-        assertTrue(clusterRepo.isModuleDeniedForStation(station.id(), StationModule.QUIZ));
+        assertFalse(clusterRepo.findDeniedModulesForStation(station.id()).contains(StationModule.EVENTS));
+        assertTrue(clusterRepo.findDeniedModulesForStation(station.id()).contains(StationModule.QUIZ));
 
         clusterService.releaseStation(clusterId, station.id());
         stationRepo.delete(station.id());
+    }
+
+    /**
+     * A station that switched the inventory off is not told that its cluster now denies a part of it: the
+     * part was gone there already. A station that kept it is told.
+     */
+    @Test
+    void aDenialOfAPartIsNotAnnouncedWhereItsModuleIsAlreadyOff() {
+        int clusterId = freshCluster();
+        var without = clusterService.createStation(clusterId, "Wache Ohne Lager " + NAMES.incrementAndGet());
+        var with = clusterService.createStation(clusterId, "Wache Mit Lager " + NAMES.incrementAndGet());
+        stationRepo.setDisabledModules(without.id(), Set.of(StationModule.INVENTORY));
+        var bus = mock(DomainEventBus.class);
+        var governance = new ClusterGovernanceService(clusterRepo, clusterStationGroupRepo, stationRepo, bus);
+
+        governance.setDeniedModules(clusterId, null, Set.of(StationModule.INVENTORY_LENDING));
+
+        verify(bus)
+                .publish(argThat((ClusterModuleDenied denied) ->
+                        denied.stationId() == with.id() && denied.module() == StationModule.INVENTORY_LENDING));
+        verify(bus, never()).publish(argThat((ClusterModuleDenied denied) -> denied.stationId() == without.id()));
+
+        for (var station : List.of(without, with)) {
+            clusterService.releaseStation(clusterId, station.id());
+            stationRepo.delete(station.id());
+        }
     }
 
     /**
@@ -100,9 +132,9 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
 
         clusterGovernanceService.setDeniedModules(clusterId, group.id(), Set.of(StationModule.QUIZ));
 
-        assertTrue(clusterRepo.isModuleDeniedForStation(inside.id(), StationModule.QUIZ));
+        assertTrue(clusterRepo.findDeniedModulesForStation(inside.id()).contains(StationModule.QUIZ));
         assertFalse(
-                clusterRepo.isModuleDeniedForStation(outside.id(), StationModule.QUIZ),
+                clusterRepo.findDeniedModulesForStation(outside.id()).contains(StationModule.QUIZ),
                 "a station outside the filing keeps it");
         assertTrue(
                 clusterGovernanceService.findDeniedModules(clusterId, null).isEmpty(),
@@ -110,7 +142,7 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
 
         clusterStationGroupService.setStations(clusterId, group.id(), List.of());
         assertFalse(
-                clusterRepo.isModuleDeniedForStation(inside.id(), StationModule.QUIZ),
+                clusterRepo.findDeniedModulesForStation(inside.id()).contains(StationModule.QUIZ),
                 "leaving the group gives the module back without touching the denial");
 
         clusterStationGroupService.setStations(clusterId, group.id(), List.of(inside.uid()));
@@ -133,8 +165,8 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
         clusterGovernanceService.setDeniedModules(clusterId, null, Set.of(StationModule.EVENTS));
         clusterGovernanceService.setDeniedModules(clusterId, group.id(), Set.of(StationModule.QUIZ));
 
-        assertTrue(clusterRepo.isModuleDeniedForStation(inside.id(), StationModule.EVENTS));
-        assertTrue(clusterRepo.isModuleDeniedForStation(inside.id(), StationModule.QUIZ));
+        assertTrue(clusterRepo.findDeniedModulesForStation(inside.id()).contains(StationModule.EVENTS));
+        assertTrue(clusterRepo.findDeniedModulesForStation(inside.id()).contains(StationModule.QUIZ));
         assertEquals(
                 Set.of(StationModule.EVENTS, StationModule.QUIZ),
                 clusterRepo.findDeniedModulesForStation(inside.id()),
@@ -195,7 +227,7 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
         clusterGovernanceService.setDeniedModules(clusterId, null, Set.of(StationModule.QUIZ));
         clusterGovernanceService.setDeniedModules(clusterId, null, EnumSet.noneOf(StationModule.class));
 
-        assertFalse(clusterRepo.isModuleDeniedForStation(station.id(), StationModule.QUIZ));
+        assertFalse(clusterRepo.findDeniedModulesForStation(station.id()).contains(StationModule.QUIZ));
         assertTrue(clusterGovernanceService.findDeniedModules(clusterId, null).isEmpty());
 
         clusterService.releaseStation(clusterId, station.id());
@@ -211,7 +243,7 @@ class ClusterGovernanceServiceTest extends RepositoryTestBase {
         clusterService.releaseStation(clusterId, station.id());
 
         assertFalse(
-                clusterRepo.isModuleDeniedForStation(station.id(), StationModule.QUIZ),
+                clusterRepo.findDeniedModulesForStation(station.id()).contains(StationModule.QUIZ),
                 "the denial went with the membership");
         stationRepo.delete(station.id());
     }

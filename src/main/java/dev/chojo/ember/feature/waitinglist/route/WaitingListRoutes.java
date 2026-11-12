@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
@@ -128,8 +129,12 @@ public class WaitingListRoutes implements Routes {
         routes.post(prefix + "/public/station/{stationUid}/waitlists/{wid}/register", this::submitPublicRegistration);
         routes.get(prefix + "/public/waitlist/verify/{token}", this::verifyPublicEmail);
 
-        routes.get(prefix + "/trials", this::listOwnTrials, StationPermission.LOGIN);
-        routes.post(prefix + "/trials/{entryId}/end", this::endOwnTrial, StationPermission.LOGIN);
+        routes.get(prefix + "/trials", this::listOwnTrials, StationPermission.LOGIN, StationModule.WAITING_LIST);
+        routes.post(
+                prefix + "/trials/{entryId}/end",
+                this::endOwnTrial,
+                StationPermission.LOGIN,
+                StationModule.WAITING_LIST);
 
         routes.get(prefix + "/waiting-lists/visitors", this::listVisitors, StationPermission.WAITLIST_READ);
         routes.get(prefix + "/waiting-lists", this::listAll, StationPermission.WAITLIST_READ);
@@ -246,6 +251,7 @@ public class WaitingListRoutes implements Routes {
     @StationFree("an invite code names the list it belongs to; whoever holds it is meant to see that form")
     private void getInviteInfo(Context ctx) {
         String code = ctx.pathParam("code");
+        publicLists.requireInviteTakesSignUps(code);
         var invite = service.findInviteByCode(code).orElseThrow(WaitingListRefusal.WAITING_LIST_INVITE_UNKNOWN::raise);
         if (!invite.hasUsesLeft() || invite.isExpired()) {
             throw WaitingListRefusal.WAITING_LIST_INVITE_NO_LONGER_VALID.raise();
@@ -276,6 +282,7 @@ public class WaitingListRoutes implements Routes {
         if (answerWhenLimited(ctx, rateLimiter.tryAcquire(ctx.ip(), inviteCode))) {
             return;
         }
+        publicLists.requireInviteTakesSignUps(inviteCode);
         var consent = consentService.requireAcceptance(
                 ctx, request.consentVersion(), request.privacyVersion(), request.tosVersion());
         var guardians = resolveGuardians(request.guardians(), request.parentName(), request.email());

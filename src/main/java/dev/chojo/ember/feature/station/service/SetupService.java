@@ -109,7 +109,7 @@ public class SetupService {
      */
     public SetupStatus getStatus(int stationId) {
         var station = stationRepository.findById(stationId).orElseThrow();
-        var disabledModules = stationService.findDisabledModules(stationId);
+        var disabledModules = stationService.findEffectiveDisabledModules(stationId);
         var required = buildRequiredSteps(stationId, station);
         var optional = buildOptionalSteps(stationId, station, disabledModules);
         return new SetupStatus(station.setupCompletedAt(), required, optional);

@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.quiz.route;
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
+import dev.chojo.ember.api.auth.ModuleFree;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.QuizRefusal;
 import dev.chojo.ember.feature.quiz.entity.AiVendor;
@@ -31,6 +32,8 @@ import org.jspecify.annotations.Nullable;
  * <p>The key goes in and never comes back out: reading answers with the provider, the model and the
  * last four characters of the key only.
  */
+@ModuleFree(
+        "The credential belongs to the account and is set on the account's own page, wherever quizzes are switched off")
 @Singleton
 public class AccountAiCredentialRoutes implements Routes {
     private final AiCredentialService credentials;

@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.federation.transport;
 
+import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -21,14 +23,17 @@ import java.util.Set;
 @Singleton
 public final class FederationEndpoints {
     private final Map<FederationEndpoint, FederationHandler<?, ?>> handlers = new LinkedHashMap<>();
+    private final ModuleAvailability modules;
 
     /**
      * Builds the registry and lets every feature register its serving functions.
      *
      * @param servers the features that answer federation requests
+     * @param modules which modules the serving stations have
      */
     @Inject
-    public FederationEndpoints(Set<FederationServer> servers) {
+    public FederationEndpoints(Set<FederationServer> servers, ModuleAvailability modules) {
+        this.modules = modules;
         servers.forEach(server -> server.serveOn(this));
     }
 
@@ -49,14 +54,27 @@ public final class FederationEndpoints {
     /**
      * The serving function of one endpoint.
      *
+     * <p>An endpoint of a module's surface answers only while the serving station has that module: what
+     * a station switched off, or its cluster denies it, it shares with no partner, whatever it shared
+     * before. A partner on this instance and one on another are refused alike. A push that only keeps
+     * the station's own copy in step is still taken in, so nothing is out of date once the module is
+     * back.
+     *
      * @param endpoint the declared endpoint
      * @return its serving function
      */
     @SuppressWarnings("unchecked")
     public <B, R> FederationHandler<B, R> handlerFor(FederationEndpoint endpoint) {
-        var handler = handlers.get(endpoint);
+        var handler = (FederationHandler<B, R>) handlers.get(endpoint);
         if (handler == null) throw new IllegalStateException("No serving function for " + endpoint.path());
-        return (FederationHandler<B, R>) handler;
+        var module = endpoint.surface().module();
+        if (module.isEmpty() || endpoint.keepsInStep()) return handler;
+        return (partner, params, body) -> {
+            if (module.get().isOffIn(modules.disabledAt(partner.row().stationId()))) {
+                throw GeneralRefusal.MODULE_SWITCHED_OFF.raise();
+            }
+            return handler.serve(partner, params, body);
+        };
     }
 
     /**

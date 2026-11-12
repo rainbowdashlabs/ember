@@ -6,6 +6,7 @@
 import {StationPermission, type StationModule} from '@/api/generated/schema'
 import {sessionState} from '@/util/sessionState'
 import {actingStationState} from '@/util/actingStationState'
+import {moduleRuns} from '@/data/stationModules'
 
 /**
  * Declarative permission groups behind the named helpers below. A group is granted as soon
@@ -117,8 +118,13 @@ export function usePermissions() {
         return hasPermission(StationPermission.MEMBER_EDIT) || isAdmin()
     }
 
+    /**
+     * Whether the station has a module or a part of one. A part is off whenever its module is, which the
+     * server already says by listing it too; asking the parent as well keeps that true for any list.
+     */
     function isModuleEnabled(module: StationModule): boolean {
-        return !(session.value.info?.disabledModules.includes(module) ?? false)
+        const disabled = session.value.info?.disabledModules ?? []
+        return moduleRuns(module, candidate => !disabled.includes(candidate))
     }
 
     return {

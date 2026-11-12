@@ -7,12 +7,13 @@ import {computed, toValue, type ComputedRef, type MaybeRefOrGetter} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {useSession} from '@/composables/useSession'
-import {ShareGrant, ShareScope, StationPermission, type ShareSetting} from '@/api/generated/schema'
+import {ShareGrant, ShareScope, StationModule, StationPermission, type ShareSetting} from '@/api/generated/schema'
 
 /**
  * Whether the sharing controls belong on this screen at all, and how the current setting reads.
  *
- * <p>Three questions decide whether they are shown, and all three have to be yes. Only somebody who
+ * <p>Four questions decide whether they are shown, and all four have to be yes. The station lends at
+ * all, which it does not while its lending is switched off. Only somebody who
  * may manage lending decides what goes out; only a station lends, so the same inventory screens
  * shown for an association name no lending route and offer nothing; and only gear the station owns
  * can be offered, so a screen standing on somebody else's gear shows no control rather than a
@@ -26,11 +27,12 @@ export function useLendingShare(lendable?: MaybeRefOrGetter<boolean>): {
     stateLabel: (setting: ShareSetting | null | undefined) => string
 } {
     const routes = useInventoryRoutes()
-    const {hasPermission} = useSession()
+    const {hasPermission, isModuleEnabled} = useSession()
     const {t} = useI18n()
 
     const visible = computed(() =>
         Boolean(routes.lendingShares)
+        && isModuleEnabled(StationModule.INVENTORY_LENDING)
         && hasPermission(StationPermission.INVENTORY_LENDING_MANAGER)
         && toValue(lendable) !== false,
     )

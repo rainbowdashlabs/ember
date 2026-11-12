@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationService;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
@@ -88,7 +89,7 @@ public class PublicEventRoutes implements Routes {
         UUID uid = pathUuid(ctx, "stationUid");
         var station =
                 stationService.findByUid(uid).orElseThrow(EventRefusal.STATION_NOT_HERE_BEHIND_PUBLIC_CALENDAR::raise);
-        if (!station.publicCalendarEnabled()) {
+        if (!station.publicCalendarEnabled() || !stationService.isModuleEnabled(station.id(), StationModule.EVENTS)) {
             throw EventRefusal.PUBLIC_CALENDAR_SWITCHED_OFF.raise();
         }
         return station;
