@@ -332,10 +332,12 @@ public class StationService {
     }
 
     /**
-     * Reads what a screen shows about a manager, or nothing at all for a member who has no account
-     * behind them any more. A former member keeps their row after being decoupled from their
-     * account, and a decoupled member who still holds the administrator role would otherwise be
-     * asked for an account that is not there.
+     * Reads what a screen shows about a manager, or nothing at all for a member who has no account behind them
+     * any more. The account counts as ready once its address is confirmed and it can sign in, by a password it
+     * chose or because it finished its setup another way (a passkey), the same rule the instance's station list
+     * derives its states from. A former member keeps their row after being decoupled from their account, and a
+     * decoupled member who still holds the administrator role would otherwise be asked for an account that is
+     * not there.
      */
     private Optional<ManagerInfo> managerInfoOf(StationMember member) {
         Integer accountId = member.accountId();
@@ -343,9 +345,9 @@ public class StationService {
         Account account = accountRepository.findById(accountId).orElse(null);
         if (account == null) return Optional.empty();
         Optional<AccountCredential> credential = accountRepository.findCredential(account.id());
-        boolean accountReady = credential
-                .map(c -> !c.forcePasswordChange() && account.emailVerified())
-                .orElse(false);
+        boolean signsIn = account.setupCompletedAt() != null
+                || credential.map(c -> !c.forcePasswordChange()).orElse(false);
+        boolean accountReady = account.emailVerified() && signsIn;
         return Optional.of(new ManagerInfo(account.email(), account.firstName(), account.lastName(), accountReady));
     }
 
@@ -552,6 +554,9 @@ public class StationService {
      * into a cluster, so a station whose ownership stayed behind cannot be handed over at all. The
      * previous manager keeps their administrator role and their membership, so nobody loses their
      * way into a station by somebody else being named.
+     *
+     * <p>A station that is not set up starts waiting for its manager from this moment, which is what its
+     * automatic reminders count from: a new manager has had no reminder yet.
      */
     private void assignManager(int stationId, String managerEmail) {
         Permission managerRole = memberRepository
@@ -567,6 +572,7 @@ public class StationService {
         }
 
         stationRepository.setOwner(stationId, memberId);
+        stationRepository.startWaiting(stationId);
     }
 
     private boolean holdsRole(int memberId, Permission role) {

@@ -1,5 +1,54 @@
 # Änderungsprotokoll
 
+## v26.24.1
+
+Jede Zahl der Übersicht öffnet die passende Liste, fehlgeschlagene E-Mails lassen sich lesen und zur Kenntnis nehmen. Die Verwaltung einer wartenden Wache lässt sich erinnern und wird auch von selbst erinnert. Die Kontenliste filtert über alle Konten. Die Statistik zeigt, wie viele Personen die Instanz täglich nutzen und wie sie wächst, aufgezeichnet ab dieser Version. Knöpfe, die nur zu einer Ablehnung führen konnten, sind verschwunden oder erklären sich. Das Problemprotokoll übersteht einen Neustart, kann Bekanntes stummschalten und zeigt die Logzeilen um ein Problem. Diese Zeilen können auf Wunsch an einen Beacon gehen, Namen und Adressen werden dabei ersetzt.
+
+### Neue Funktionen
+
+- **Nutzung und Wachstum im Verlauf.** Die Statistik zeigt, wie viele Personen die Instanz täglich nutzen und wie Konten, Mitglieder, Wachen und Einträge wachsen, aufgezeichnet ab dieser Version. Personen werden nach Mitgliedstyp gezählt, die Anwesenheit erscheint pro Monat und die Föderation hat einen eigenen Abschnitt.
+- **Erinnerungen an die Verwaltung einer Wache.** Der Verwaltung einer wartenden Wache lässt sich die Einladung erneut senden oder eine Erinnerung an die Einrichtung, aus der Wachenliste und von der Seite der Wache. Nach 7 und nach 21 Tagen Wartezeit kommt die Erinnerung auch von selbst, gezählt ab dem Update für Wachen, die schon vorher warteten.
+
+### Verbesserungen
+
+- **Kontenfilter gelten für alle Konten.** Filter und Sortierung der Kontenliste gelten für alle Konten statt nur für die angezeigte Seite, und die Liste lässt sich nach bestätigter Adresse filtern. Die Einrichtungs- oder Bestätigungsmail eines Kontos lässt sich in den Angaben des Kontos erneut senden.
+- **Die Zahlen der Übersicht öffnen ihre Einträge.** Jede Zahl der Übersicht öffnet die passende Liste, etwa die unbestätigten Konten oder die Wachen, die auf ihre Einrichtung warten.
+- **Fehlgeschlagene E-Mails lassen sich lesen und zur Kenntnis nehmen.** Das Mailprotokoll zeigt jede E-Mail, die nicht angekommen ist, mit ihrem Grund und zählt die Fehler der Wachen je Wache. Zur Kenntnis nehmen beendet die Warnung, und eine E-Mail, die die Instanz aufgegeben hat, lässt sich erneut senden.
+- **Eine übersichtlichere Wachenliste.** Wachen zeigen Logo, Stand, Mitgliederzahl und Verwaltung, lassen sich nach Stand filtern und als Kacheln oder als Tabelle zeigen.
+- **Monitoring zeigt, was wartet.** Der Eintrag Monitoring in der Seitenleiste zählt offene Probleme, Problemmeldungen und fehlgeschlagene E-Mails, und die Zahl aktualisiert sich beim Wechseln der Seiten.
+- **Das Problemprotokoll übersteht einen Neustart.** Warnungen und Fehler werden gespeichert und bleiben, bis sie 30 Tage lang nicht mehr aufgetreten sind, einstellbar mit dem neuen Konfigurationsschlüssel `metrics.problemRetentionDays`. Ein erledigtes Problem, das wieder auftritt, ist wieder offen und zeigt, wie oft es wiederkam.
+- **Probleme lassen sich stummschalten.** Ein stummgeschaltetes Problem zählt weiter mit, erscheint aber nie wieder als offen und wird nie von selbst an einen Beacon weitergegeben. Probleme lassen sich auch sofort löschen.
+- **Logzeilen um ein Problem.** Wird das Anwendungslog in der Datenbank gespeichert, zeigt ein aufgeklapptes Problem die Zeilen seines Threads von 30 Sekunden davor bis 5 Sekunden danach, die eigene Zeile markiert. Auf Wunsch zeigt es alle Threads und jedes seiner letzten fünf Vorkommen.
+- **Probleme können mit ihren Logzeilen an einen Beacon gehen.** Wer ein Problem von Hand sendet, kann die Logzeilen um das Problem mitsenden, und die Vorschau zeigt sie genau so, wie sie die Instanz verlassen. Der neue Beacon-Schalter „Logzeilen automatisch mitsenden“, standardmäßig aus, nimmt sie bei selbst weitergegebenen Problemen mit.
+- **Ein Beacon zeigt die mitgesendeten Logzeilen.** Jeder Eintrag seines Fehlerprotokolls zeigt beim Aufklappen die Zeilen, die jede Instanz mitgesendet hat, nach Instanz und Vorkommen.
+- **Konsolenlogs, die ein Log-Sammler lesen kann.** Steht die neue Umgebungsvariable `LOG_FORMAT` auf `json`, schreibt das Backend jeden Logeintrag als ein JSON-Objekt auf die Konsole, den Stacktrace darin. Sammler wie Loki behalten den Stacktrace dann bei seiner Zeile, statt jede Zeile einzeln abzulegen.
+- **Fehlgeschlagene Datenbankabfragen sagen, was fehlschlug.** Die Logzeile einer fehlgeschlagenen Abfrage enthält den Fehler der Datenbank selbst statt nur „Database query error“.
+- **Der gewählte Probetermin in der Warteliste.** Die Warteliste zeigt in einer eigenen Spalte, welchen Termin jemand für die Probe gewählt hat, mit dem Termin und der Uhrzeit, zu der die Person da sein soll, und lässt sich danach sortieren und filtern. Bisher stand er nur auf der Seite des Eintrags.
+- **Wer zur Probe kommt, steht am Termin.** Die Seite eines Termins zeigt, wer von der Warteliste diesen Termin gewählt hat, mit Uhrzeit und Warteliste, für alle, die die Warteliste lesen dürfen. Auf Teilnehmerlisten stehen diese Personen nicht.
+- **Mitgliedstypen einer Gruppe warnen schon beim Auswählen.** Wer nicht mehr zu den gewählten Typen passt, steht sofort im Formular, und der Knopf zum Speichern nimmt diese Mitglieder aus der Gruppe.
+
+### Sicherheit
+
+- **Weniger Persönliches erreicht einen Beacon.** In allem, was über ein Problem an einen Beacon geht, werden E-Mail-Adressen, IP-Adressen, lange Kennungen, als Einstellung geschriebene Passwörter und Tokens sowie die Namen der Konten dieser Instanz ersetzt. Bisher waren es nur E-Mail-Adressen.
+
+### Änderungen
+
+- **Ablehnungen stehen getrennt von Fehlern.** Bewusst abgewiesene Anfragen stehen im Problemprotokoll unter einem eigenen Filter, die häufigsten oben, ein Eintrag je Seite der Anwendung und Art. Sie zählen nie zu den wartenden Problemen und gehen nie an einen Beacon.
+- **Unbekannte Adressen erscheinen nicht mehr im Problemprotokoll.** Anfragen an Adressen, die es in der Anwendung nicht gibt, werden wie bisher beantwortet, aber nicht mehr festgehalten. „Nicht gefunden“ auf einer echten Seite zählt einmal pro Seite statt einmal pro Eintrag.
+- **Aus Bestätigen wird Erledigen.** Probleme werden erledigt statt bestätigt, und „Alle erledigen“ gilt für Fehler oder für Ablehnungen, je nachdem, was gezeigt wird.
+- **Das Diagramm „Neue Sitzungen pro Tag“ entfällt.** Das Diagramm zählte Anmeldungen und verlor vergangene Tage, sobald Sitzungen endeten. Personen pro Tag ersetzt es.
+- **Eine gelöschte Wache nimmt ihr Mailprotokoll mit.** Die E-Mails einer Wache werden mit der Wache gelöscht, statt als E-Mails der Instanz zurückzubleiben.
+
+### Fehlerbehebungen
+
+- **Eine zweite Anwesenheitsvorlage mit gleichem Namen schlug fehl.** Wer eine Anwesenheitsvorlage anlegte oder umbenannte und dabei einen Namen wählte, den eine andere Vorlage der Wache schon trug, bekam einen Fehler. Das wird jetzt mit dem Hinweis abgelehnt, dass der Name vergeben ist.
+- **Stacktraces sagten „at“ doppelt.** Jede Zeile eines Stacktraces im Problemprotokoll und im gespeicherten Anwendungslog begann mit „at at“. Jetzt steht es einmal da.
+- **Verbände zählten als Wachen, die auf die Einrichtung warten.** Übersicht und Statistik zählten jeden Verband als Wache, die noch eingerichtet werden muss. Sie zählen jetzt nur Wachen.
+- **Konten ohne Adresse zählten als unbestätigt.** Konten für Personen ohne E-Mail-Adresse erhöhten die Zahl unbestätigter Konten, obwohl sie nie eine bestätigen können. Sie werden nicht mehr gezählt.
+- **Selbsteintragung auch Mitgliedern außerhalb der Auswahl angeboten.** Der Knopf „Eintragen" erschien bei Mitgliederfragen, die auf eine Gruppe, einen Mitgliedstyp oder einen Tag beschränkt sind, auch für Mitglieder außerhalb davon, und der Klick wurde dann abgelehnt. Er erscheint jetzt nur noch für Mitglieder, die sich eintragen dürfen, und nach dem Anmeldeschluss steht dort, dass die Eintragung geschlossen ist.
+- **Ja/Nein-Fragen mit abhängigen Fragen ließen sich nicht löschen.** Das Löschen einer solchen Frage oder ein anderer Typ für sie wurde abgelehnt, mit dem Rat, die Seite neu zu laden. Der Dialog nennt jetzt die abhängigen Fragen und kann ihre Bedingung im selben Schritt entfernen, ihre Antworten bleiben erhalten.
+
+
 ## v26.24.0
 
 Die Anwesenheit kann Zeit vor und nach einem Termin gutschreiben, und der Bericht zählt diese Minuten zu den Stunden jeder Person. Die Ausrüstung eines Mitglieds wird auf seiner eigenen Seite aus- und zurückgegeben, und die Seite öffnet mit den Tabs, die jemand sehen darf. Tabs auf den Hauptseiten lassen sich über die Adresse verlinken. Fehlende Ausstattung steht bei der vorhandenen und wird über ein Fenster mit Suche ausgegeben. Bewegungen heißen überall Vorgänge. Auch bei Terminen mit Anmeldung gibt es „Abmelden“, und danach enden die Erinnerungen an die Anmeldefrist. Wer Termine verwaltet, erfährt von jeder neuen Unterhaltung unter einem Termin. Unterschriften lassen sich vor Ort sammeln, von Probemitgliedern und Mitgliedern ohne eigenes Konto, bestätigt mit dem Konto der Person, die sammelt. Vorlagen sagen, für wen sie gedacht sind, überall, wo ein Dokument aus ihnen entsteht. In jedem Ablauf geht es um ein Mitglied, er wird von Gruppen, Mitgliedstypen oder Tags betreut und kann das Mitglied und seine Erziehungsberechtigten ein Dokument unterschreiben lassen.

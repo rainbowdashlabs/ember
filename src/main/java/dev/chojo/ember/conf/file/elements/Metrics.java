@@ -35,6 +35,14 @@ public class Metrics {
     private int feedStatsRetentionDays = 90;
 
     /**
+     * How many days a problem stays in the problem log after it last happened. Muted and resolved
+     * problems are kept just as long, so a fault that comes back within this time is recognised. Values
+     * below one count as one day.
+     */
+    @Overwrite(env = @Env)
+    private int problemRetentionDays = 30;
+
+    /**
      * Whether to record per-station traffic counters into {@code station_traffic_hourly}.
      * Defaults to on; switch off only for benchmark / very constrained deployments where
      * the in-memory accumulator and ~30 s flush cycle is unwelcome overhead.
@@ -89,6 +97,10 @@ public class Metrics {
 
     public int feedStatsRetentionDays() {
         return feedStatsRetentionDays;
+    }
+
+    public int problemRetentionDays() {
+        return problemRetentionDays;
     }
 
     public boolean trafficEnabled() {

@@ -13,10 +13,8 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 defineProps<{
   verifiedCount: number
   setupCount: number
-  attendanceStatusCount: number
   verifiedOption: EChartsCoreOption
   setupOption: EChartsCoreOption
-  attendanceStatusOption: EChartsCoreOption
 }>()
 
 const {t} = useI18n()
@@ -25,15 +23,12 @@ const {t} = useI18n()
 <template>
   <div class="space-y-4">
     <SubHeader>{{ t('adminStats.healthSection') }}</SubHeader>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <NeutralContainer v-if="verifiedCount > 0">
         <VChart :option="verifiedOption" autoresize style="height: 260px"/>
       </NeutralContainer>
       <NeutralContainer v-if="setupCount > 0">
         <VChart :option="setupOption" autoresize style="height: 260px"/>
-      </NeutralContainer>
-      <NeutralContainer v-if="attendanceStatusCount > 0">
-        <VChart :option="attendanceStatusOption" autoresize style="height: 260px"/>
       </NeutralContainer>
     </div>
   </div>

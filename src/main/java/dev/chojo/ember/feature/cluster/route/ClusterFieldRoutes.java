@@ -124,45 +124,84 @@ public class ClusterFieldRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/cluster/fields/{fieldId}",
             pathParams = @OpenApiParam(name = "fieldId", type = Integer.class, required = true),
+            queryParams = @OpenApiParam(name = "unlinkDependents", type = Boolean.class),
             methods = HttpMethod.PUT,
             summary = "Change a question",
             tags = {"Cluster"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ClusterFieldRequest.class)),
-            responses = @OpenApiResponse(status = "204"))
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void update(Context ctx) {
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(ClusterFieldRequest.class);
         int fieldId = pathInt(ctx, "fieldId");
-        fieldService.requireDependencyAllowed(cluster.id(), fieldId, request.shownIfFieldId());
         fieldService.requireSetAllowed(cluster.id(), request.fieldSetId());
-        fieldService.update(
-                cluster.id(),
-                fieldId,
+        FieldType type = parseType(request.fieldType());
+        var change = new ClusterProfileFieldService.FieldChange(
                 request.name(),
-                parseType(request.fieldType()),
+                type,
                 request.config() != null ? request.config() : ProfileFieldConfig.empty(),
                 request.required() != null && request.required(),
                 request.readonly() != null && request.readonly(),
                 request.width(),
                 request.stationReadonly(),
                 request.keepOnArchive(),
-                request.stationGroupId());
-        fieldService.dependOn(cluster.id(), fieldId, request.shownIfFieldId());
-        fieldService.joinSet(cluster.id(), fieldId, request.fieldSetId());
+                request.stationGroupId(),
+                request.shownIfFieldId(),
+                request.fieldSetId());
+        if (unlinksDependents(ctx) && type != FieldType.BOOLEAN) {
+            fieldService.changeUnlinkingDependents(cluster.id(), fieldId, change);
+            ctx.status(HttpStatus.NO_CONTENT);
+            return;
+        }
+        fieldService.requireDependencyAllowed(cluster.id(), fieldId, request.shownIfFieldId());
+        fieldService.update(
+                cluster.id(),
+                fieldId,
+                change.name(),
+                change.fieldType(),
+                change.config(),
+                change.required(),
+                change.readonly(),
+                change.width(),
+                change.stationReadonly(),
+                change.keepOnArchive(),
+                change.stationGroupId());
+        fieldService.dependOn(cluster.id(), fieldId, change.shownIfFieldId());
+        fieldService.joinSet(cluster.id(), fieldId, change.fieldSetId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
     @OpenApi(
             path = "/api/v1/cluster/fields/{fieldId}",
             pathParams = @OpenApiParam(name = "fieldId", type = Integer.class, required = true),
+            queryParams = @OpenApiParam(name = "unlinkDependents", type = Boolean.class),
             methods = HttpMethod.DELETE,
             summary = "Remove a question",
             tags = {"Cluster"},
-            responses = @OpenApiResponse(status = "204"))
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
     private void delete(Context ctx) {
         Cluster cluster = requireActive(ctx);
-        fieldService.delete(cluster.id(), pathInt(ctx, "fieldId"));
+        int fieldId = pathInt(ctx, "fieldId");
+        if (unlinksDependents(ctx)) {
+            fieldService.deleteUnlinkingDependents(cluster.id(), fieldId);
+        } else {
+            fieldService.delete(cluster.id(), fieldId);
+        }
         ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * Whether the caller asked for the questions shown under this one to be shown unconditionally, so
+     * that withdrawing it or changing its type is not refused because of them.
+     */
+    private static boolean unlinksDependents(Context ctx) {
+        return "true".equals(ctx.queryParam("unlinkDependents"));
     }
 
     @OpenApi(

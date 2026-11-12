@@ -334,7 +334,8 @@ public class EventStructureRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         visibility.requireVisibleEvent(session, id);
-        ctx.json(eventFieldService.findByEvent(id, askedDate(ctx)));
+        ctx.json(eventFieldService.findByEventFor(
+                id, askedDate(ctx), session.member().id(), session.hasPermission(StationPermission.EVENT_MANAGER)));
     }
 
     /**
@@ -397,7 +398,10 @@ public class EventStructureRoutes implements Routes {
         requireOwnedEvent(crudService, eventId, session);
         var req = ctx.bodyAsClass(FieldDateValueRequest.class);
         if (req.date() == null) throw EventRefusal.EVENT_FIELD_VALUE_NEEDS_A_DAY.raise();
-        ctx.json(eventFieldService.setValueOn(eventId, fieldId, req.date(), req.value()));
+        ctx.json(eventFieldService.asSeenBy(
+                eventFieldService.setValueOn(eventId, fieldId, req.date(), req.value()),
+                session.member().id(),
+                session.hasPermission(StationPermission.EVENT_MANAGER)));
     }
 
     @OpenApi(
@@ -416,12 +420,10 @@ public class EventStructureRoutes implements Routes {
         int eventId = pathInt(ctx, "eventId");
         int fieldId = pathInt(ctx, "fieldId");
         visibility.requireVisibleEvent(session, eventId);
-        ctx.json(eventFieldService.toggleSelfRegistration(
-                eventId,
-                fieldId,
-                session.member().id(),
-                askedDate(ctx),
-                session.hasPermission(StationPermission.EVENT_MANAGER)));
+        boolean runsTheEvent = session.hasPermission(StationPermission.EVENT_MANAGER);
+        var field = eventFieldService.toggleSelfRegistration(
+                eventId, fieldId, session.member().id(), askedDate(ctx), runsTheEvent);
+        ctx.json(eventFieldService.asSeenBy(field, session.member().id(), runsTheEvent));
     }
 
     /**

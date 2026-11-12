@@ -12,10 +12,16 @@ import EditButton from '@/components/button/EditButton.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import type {ManagerDetail} from '@/api/generated/schema'
+import type {AdminStationSummary, ManagerDetail} from '@/api/generated/schema'
+import ManagerReminder from '../adminstationsview/ManagerReminder.vue'
+import StationStateBadge from '../adminstationsview/StationStateBadge.vue'
+import {waitsForManager} from '../adminstationsview/stationList'
 
 const props = defineProps<{
   manager: ManagerDetail | null
+  /** The station as the administration lists it, for the reminder to its manager; absent while it is made. */
+  summary?: AdminStationSummary | null
+  onReminded?: (station: AdminStationSummary) => void
   editingManager: boolean
   isEdit: boolean
 }>()
@@ -56,6 +62,10 @@ const displayName = computed(() => {
           <span v-else class="text-info">
             <font-awesome-icon :icon="['fas', 'clock-rotate-left']" class="mr-1"/>{{ t('adminStations.accountPending') }}
           </span>
+        </div>
+        <div v-if="summary && waitsForManager(summary)" class="mt-2 space-y-2">
+          <StationStateBadge :state="summary.state"/>
+          <ManagerReminder :station="summary" :on-reminded="onReminded"/>
         </div>
       </div>
       <EditButton @click="emit('start-transfer')"/>

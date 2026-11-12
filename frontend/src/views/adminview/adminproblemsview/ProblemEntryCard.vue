@@ -9,11 +9,11 @@ import ErrorContainer from '@/components/container/ErrorContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import ProblemEntryHeader from './ProblemEntryHeader.vue'
 import ProblemEntryDetails from './ProblemEntryDetails.vue'
-import {hasDetails} from '@/api/problems'
-import type {ProblemSnapshot} from '@/api/generated/schema'
+import type {ProblemAction} from '@/api/problems'
+import {ProblemLevel, ProblemState, type StoredProblem} from '@/api/generated/schema'
 
 const props = defineProps<{
-  entry: ProblemSnapshot
+  entry: StoredProblem
   expanded: boolean
   /** Whether this instance reports to a beacon, which is the only case the send button belongs in. */
   canSend?: boolean
@@ -21,34 +21,30 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   toggle: [id: number]
-  ack: [id: number]
-  send: [id: number]
+  act: [action: ProblemAction, id: number]
 }>()
 
-const containerComponent = computed(() => props.entry.level === 'ERROR' ? ErrorContainer : InfoContainer)
+const containerComponent = computed(() => props.entry.level === ProblemLevel.ERROR ? ErrorContainer : InfoContainer)
 
-const expandable = computed(() => hasDetails(props.entry))
-
-/** An entry with nothing behind it does not open, so the card does not invite the click either. */
+/** Every entry opens: there is always at least the log around it to look at. */
 function toggle() {
-  if (expandable.value) emit('toggle', props.entry.id)
+  emit('toggle', props.entry.id)
 }
 </script>
 
 <template>
   <component
     :is="containerComponent"
-    class="transition-all"
-    :class="{'opacity-50': entry.acknowledged, 'cursor-pointer': expandable}"
+    class="transition-all cursor-pointer"
+    :class="{'opacity-50': entry.state !== ProblemState.OPEN}"
     @click="toggle"
   >
     <ProblemEntryHeader
       :entry="entry"
       :expanded="expanded"
       :can-send="canSend"
-      @ack="emit('ack', $event)"
-      @send="emit('send', $event)"
+      @act="(action, id) => emit('act', action, id)"
     />
-    <ProblemEntryDetails v-if="expanded && expandable" :entry="entry"/>
+    <ProblemEntryDetails v-if="expanded" :entry="entry" @click.stop/>
   </component>
 </template>

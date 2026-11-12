@@ -8,18 +8,18 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryContainer from '@/components/container/PrimaryContainer.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
-import EditButton from '@/components/button/EditButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
-import type {StationDetail} from '@/api/generated/schema'
+import type {AdminStationSummary} from '@/api/generated/schema'
+import StationTile from './StationTile.vue'
 
 defineProps<{
-  stations: StationDetail[]
+  stations: AdminStationSummary[]
+  onReminded?: (station: AdminStationSummary) => void
 }>()
 
 defineEmits<{
   import: []
   edit: [id: string]
-  delete: [station: StationDetail]
+  delete: [station: AdminStationSummary]
 }>()
 
 const {t} = useI18n()
@@ -48,13 +48,12 @@ const newStationPage = {name: 'admin-station-edit'}
       <span class="font-medium">{{ t('adminStations.importStation') }}</span>
     </NeutralContainer>
 
-    <NeutralContainer v-for="station in stations" :key="station.id"
-                      class="flex items-center justify-between py-6">
-      <span class="font-medium text-lg">{{ station.name }}</span>
-      <div class="flex items-center gap-2">
-        <EditButton @click="$emit('edit', station.id)"/>
-        <DeleteButton @click="$emit('delete', station)"/>
-      </div>
-    </NeutralContainer>
+    <StationTile
+        v-for="station in stations"
+        :key="station.id"
+        :station="station"
+        :on-reminded="onReminded"
+        @edit="$emit('edit', $event)"
+        @delete="$emit('delete', $event)"/>
   </div>
 </template>

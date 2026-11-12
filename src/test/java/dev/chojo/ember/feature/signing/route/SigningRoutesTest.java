@@ -88,6 +88,8 @@ import dev.chojo.ember.feature.signing.service.WitnessReach;
 import dev.chojo.ember.feature.signing.service.WitnessReachSettings;
 import dev.chojo.ember.feature.signing.service.WitnessedSigningService;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.statistics.repository.UsageRepository;
+import dev.chojo.ember.feature.statistics.service.UsageRecorder;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
@@ -2002,7 +2004,8 @@ class SigningRoutesTest extends RepositoryTestBase {
                 twoFactorRepo,
                 new TrustedDeviceService(
                         twoFactorRepo, TokenHasher.forTesting("signing-pepper"), new TwoFactorSettings()),
-                passkeyModeService);
+                passkeyModeService,
+                new UsageRecorder(new UsageRepository()));
     }
 
     private static DocumentTemplateDraft draft() {

@@ -12,6 +12,9 @@ import EditButton from '@/components/button/EditButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import StationStateBadge from '@/views/adminview/adminstationsview/StationStateBadge.vue'
+import ManagerReminder from '@/views/adminview/adminstationsview/ManagerReminder.vue'
+import {SAMPLE_WAITING_STATION} from '../stationshelp/sampleStations'
 
 const {t} = useI18n()
 </script>
@@ -29,12 +32,16 @@ const {t} = useI18n()
       <FieldLabel>{{ t('adminStations.managerEmail') }}</FieldLabel>
       <InfoContainer class="flex items-center justify-between">
         <div>
-          <div class="font-medium">neu@manager.de</div>
-          <div class="text-sm text-(--text-muted)">neu@manager.de</div>
+          <div class="font-medium">neu.manager@example.org</div>
+          <div class="text-sm text-(--text-muted)">neu.manager@example.org</div>
           <div class="text-xs mt-1">
             <span class="text-info">
               <font-awesome-icon :icon="['fas', 'clock-rotate-left']" class="mr-1" />{{ t('adminStations.accountPending') }}
             </span>
+          </div>
+          <div inert class="mt-2 space-y-2">
+            <StationStateBadge :state="SAMPLE_WAITING_STATION.state"/>
+            <ManagerReminder :station="SAMPLE_WAITING_STATION"/>
           </div>
         </div>
         <EditButton />

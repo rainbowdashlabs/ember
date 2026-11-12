@@ -11,6 +11,7 @@ import dev.chojo.ember.auth.signing.SignedRequests;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
 import dev.chojo.ember.feature.beacon.repository.BeaconIntakeRepository;
 import dev.chojo.ember.feature.discovery.service.DiscoveryKeyService;
+import dev.chojo.ember.util.Json;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -21,6 +22,8 @@ import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
@@ -54,6 +57,13 @@ public class BeaconIntakeService {
 
     private static final int MAX_MESSAGE = 4000;
     private static final int MAX_FIELD = 500;
+
+    /** How many log lines around a fault a beacon keeps of one delivery: what a sender sends at most. */
+    static final int MAX_CONTEXT_LINES = 60;
+
+    /** How long one of those lines may run. */
+    private static final int MAX_CONTEXT_MESSAGE = 2000;
+
     private static final int MAX_SUBJECTS = 500;
     private static final Pattern MAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
     private static final Pattern VERSION = Pattern.compile("^[0-9A-Za-z.\\-+ @:]{1,60}$");
@@ -123,6 +133,38 @@ public class BeaconIntakeService {
                 version);
         int problemId = repository.upsertProblem(payload);
         repository.upsertProblemInstance(problemId, instanceId, version, payload);
+
+        var lines = contextOf(payload);
+        if (!lines.isEmpty()) {
+            repository.storeProblemContext(
+                    problemId, instanceId, payload.lastOccurrence(), Json.MAPPER.writeValueAsString(lines));
+        }
+    }
+
+    /**
+     * The lines a fault arrived with, held to what a beacon keeps: at most {@link #MAX_CONTEXT_LINES}
+     * of them, each field cut to length. A sender that sent none, as one from before lines were sent
+     * never does, gives an empty list.
+     */
+    private static List<BeaconPayloads.LogLinePayload> contextOf(BeaconPayloads.ProblemPayload payload) {
+        var context = payload.context();
+        if (context == null) return List.of();
+        return context.stream()
+                .filter(Objects::nonNull)
+                .filter(line -> line.loggedAt() != null)
+                .limit(MAX_CONTEXT_LINES)
+                .map(line -> new BeaconPayloads.LogLinePayload(
+                        line.loggedAt(),
+                        clampOrEmpty(line.level(), 10),
+                        clampOrEmpty(line.logger(), MAX_FIELD),
+                        clampOrEmpty(line.thread(), MAX_FIELD),
+                        clampOrEmpty(line.message(), MAX_CONTEXT_MESSAGE)))
+                .toList();
+    }
+
+    private static String clampOrEmpty(@Nullable String value, int limit) {
+        String clamped = clamp(value, limit);
+        return clamped == null ? "" : clamped;
     }
 
     /** Stores somebody's own words. */

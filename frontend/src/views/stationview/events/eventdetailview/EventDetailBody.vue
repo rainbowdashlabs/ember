@@ -14,6 +14,7 @@ import TabBar from '@/components/navigation/TabBar.vue'
 import EventCancelModal from './EventCancelModal.vue'
 import EventCancellationBanner from './EventCancellationBanner.vue'
 import EventRegistrationsTab from './EventRegistrationsTab.vue'
+import EventProbeVisitors from './EventProbeVisitors.vue'
 import EventDetailHeader from './EventDetailHeader.vue'
 import EventInfoTab from './EventInfoTab.vue'
 import EventEquipmentTab from './EventEquipmentTab.vue'
@@ -319,6 +320,12 @@ const {failure: restoreFailure, run: restoreDate} = useAsyncAction(async () => {
       <span class="text-(--text-muted)">{{ t('eventEdit.reminders') }}:</span>
       <InfoBadge v-for="days in reminders" :key="days">{{ days }} {{ t('eventEdit.daysBefore') }}</InfoBadge>
     </div>
+
+    <EventProbeVisitors
+        v-if="effectiveDate && hasPermission(StationPermission.WAITLIST_READ)"
+        :event-id="eventId"
+        :date="effectiveDate"
+    />
 
     <TabBar v-model="activeTab" :tabs="tabs" linked/>
 

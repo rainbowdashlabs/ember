@@ -5,16 +5,8 @@
  */
 import client from './client'
 import type {
-    BeaconFault,
-    BeaconMetricsRow,
-    BeaconReport,
-    BeaconSettingsRequest,
-    BeaconStatus,
-    MetricsBatch,
-    ProblemPayload,
-    ReportPayload,
-    SendReportRequest,
-    SendResult,
+    BeaconFault, BeaconMetricsRow, BeaconProblemContext, BeaconReport, BeaconSettingsRequest, BeaconStatus,
+    MetricsBatch, ProblemPreview, ReportPayload, SendReportRequest, SendResult,
 } from './generated/schema'
 
 /**
@@ -32,17 +24,28 @@ export async function updateSettings(settings: BeaconSettingsRequest): Promise<B
     return (await client.put<BeaconStatus>('/admin/beacon', settings)).data
 }
 
-/** The exact payload a problem would travel as. Nothing is sent by asking. */
-export async function previewProblem(id: number): Promise<ProblemPayload> {
-    return (await client.get<ProblemPayload>(`/admin/beacon/problems/${id}/preview`)).data
+/**
+ * The exact payload a problem would travel as, and the occurrence its lines surround. Nothing is sent
+ * by asking.
+ *
+ * @param withContext whether the log lines around it go too, shown redacted exactly as they would leave
+ */
+export async function previewProblem(id: number, withContext = false): Promise<ProblemPreview> {
+    return (await client.get<ProblemPreview>(`/admin/beacon/problems/${id}/preview`, {params: {withContext}})).data
 }
 
-export async function sendProblem(id: number): Promise<number> {
-    return (await client.post<SendResult>(`/admin/beacon/problems/${id}/send`)).data.queued
+/**
+ * Sends one problem as it was previewed.
+ *
+ * @param contextAt the occurrence the previewed lines surround, or null to send no lines
+ */
+export async function sendProblem(id: number, contextAt: string | null = null): Promise<number> {
+    const params = contextAt ? {contextAt} : {}
+    return (await client.post<SendResult>(`/admin/beacon/problems/${id}/send`, null, {params})).data.queued
 }
 
-export async function sendProblems(ids: number[]): Promise<number> {
-    return (await client.post<SendResult>('/admin/beacon/problems/send', {ids})).data.queued
+export async function sendProblems(ids: number[], withContext = false): Promise<number> {
+    return (await client.post<SendResult>('/admin/beacon/problems/send', {ids}, {params: {withContext}})).data.queued
 }
 
 /** What one problem report would travel as. A report is a person talking, so the bytes are shown. */
@@ -71,6 +74,11 @@ export async function previewMetrics(): Promise<MetricsBatch> {
 /** The faults this beacon gathered, across every instance that met them. */
 export async function listFaults(includeAcknowledged = false): Promise<BeaconFault[]> {
     return (await client.get<BeaconFault[]>('/admin/beacon/collected/faults', {params: {includeAcknowledged}})).data
+}
+
+/** The log lines instances sent with one gathered fault, the newest first. */
+export async function faultContext(id: number): Promise<BeaconProblemContext[]> {
+    return (await client.get<BeaconProblemContext[]>(`/admin/beacon/collected/faults/${id}/context`)).data
 }
 
 export async function resolveFault(id: number, acknowledged: boolean, resolvedIn: string | null): Promise<void> {

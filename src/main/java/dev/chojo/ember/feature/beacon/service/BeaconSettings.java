@@ -27,6 +27,7 @@ public class BeaconSettings {
     public static final String URL = "beacon_url";
     public static final String FORWARD_PROBLEMS = "beacon_forward_problems";
     public static final String FORWARD_REPORTS = "beacon_forward_reports";
+    public static final String FORWARD_LOG_CONTEXT = "beacon_forward_log_context";
     public static final String REVIEW_REPORT_PICTURES = "beacon_review_report_pictures";
     public static final String METRICS_ENABLED = "beacon_metrics_enabled";
     public static final String RECEIVING = "beacon_receiving";
@@ -85,6 +86,15 @@ public class BeaconSettings {
         return settings.getBoolean(REVIEW_REPORT_PICTURES, true);
     }
 
+    /**
+     * Whether a fault forwarded on its own takes the stored log lines around it along. Off unless an
+     * operator turns it on: the lines say more about what the instance did than a fault does, and are
+     * agreed to separately, the way reports are.
+     */
+    public boolean forwardLogContext() {
+        return settings.getBoolean(FORWARD_LOG_CONTEXT, false);
+    }
+
     public boolean metricsEnabled() {
         return enabled() && settings.getBoolean(METRICS_ENABLED, false);
     }
@@ -115,6 +125,7 @@ public class BeaconSettings {
             String url,
             boolean forwardProblems,
             boolean forwardReports,
+            boolean forwardLogContext,
             boolean reviewReportPictures,
             boolean metricsEnabled,
             boolean receiving,
@@ -124,6 +135,7 @@ public class BeaconSettings {
         settings.set(URL, url == null || url.isBlank() ? DEFAULT_URL : url.strip());
         settings.setBoolean(FORWARD_PROBLEMS, forwardProblems);
         settings.setBoolean(FORWARD_REPORTS, forwardReports);
+        settings.setBoolean(FORWARD_LOG_CONTEXT, forwardLogContext);
         settings.setBoolean(REVIEW_REPORT_PICTURES, reviewReportPictures);
         settings.setBoolean(METRICS_ENABLED, metricsEnabled);
         settings.setBoolean(RECEIVING, receiving);

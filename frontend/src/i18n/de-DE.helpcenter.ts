@@ -838,6 +838,7 @@ volumes:
                 envGroupDefaultFontNote: 'Diese Variablen liest der Backend-Container beim Start, bevor Ember startet. Er lädt die Schrift Berlin Type herunter, prüft die Datei und legt den normalen und den fetten Schnitt im Verzeichnis der Standardschrift ab (DOCUMENTS_DEFAULTFONTDIR, im Docker-Image /app/data/default-font), dazu dieselben zwei Schnitte als Webschrift, in der der Editor einer Vorlage den Text zeigt. Liegen sie dort schon, lädt er nichts. Klappt der Download nicht, startet Ember trotzdem und druckt in Liberation Sans. Die Schrift ist nicht Teil von Ember und wird deshalb nicht mitgeliefert.',
                 envGroupFederation: 'Föderation (Backend)',
                 envGroupTheming: 'Design (Backend)',
+                envGroupLogging: 'Logausgabe (Backend)',
                 envGroupTools: 'Externe Programme (Backend)',
                 envGroupToolsNote: 'Pfade zu externen Programmen. Im offiziellen Docker-Image sind alle vorinstalliert und müssen nicht überschrieben werden.',
                 envGroupFrontend: 'Frontend',
@@ -1033,6 +1034,7 @@ volumes:
                         webStatsEnabled: 'Aktiviert die Erfassung der öffentlichen Seitenaufrufe (anonym, keine Cookies, keine IPs gespeichert).',
                         webStatsRetentionDays: 'Wie viele Tage die Seitenaufruf-Statistik aufbewahrt wird. Standard hält ein Jahr.',
                         webStatsFlushIntervalSeconds: 'Wie oft (in Sekunden) die im Speicher gesammelten Seitenaufrufe in die Datenbank geschrieben werden.',
+                        problemRetentionDays: 'Wie viele Tage ein Eintrag im Problemprotokoll bleibt, nachdem er zuletzt aufgetreten ist. Standard ist 30 Tage, weniger als ein Tag gilt als ein Tag.',
                     },
                     network: {
                         trustedProxies: 'Komma-getrennte Liste von CIDR-Bereichen der Reverse-Proxies, denen Forwarded-For-Header geglaubt werden darf. Leer = direkter Betrieb ohne Reverse Proxy.',
@@ -1081,6 +1083,7 @@ volumes:
                     DEFAULT_FONT_DOWNLOAD: 'Ob der Container die Standardschrift beim Start herunterlädt. Auf false für eine Instanz ohne Internetzugang; dann druckt Ember in Liberation Sans, oder in einer Schrift, die du selbst in das Verzeichnis der Standardschrift legst.',
                     DEFAULT_FONT_URL: 'Adresse des ZIP-Archivs mit der Standardschrift. Nur ändern, wenn das Land Berlin die Datei an eine andere Adresse legt oder du sie selbst bereitstellst.',
                     DEFAULT_FONT_SHA256: 'SHA-256-Prüfsumme, die das Archiv haben muss. Ein Archiv mit einer anderen Prüfsumme wird nicht verwendet. Zusammen mit DEFAULT_FONT_URL ändern, wenn eine neue Version der Schrift erscheint.',
+                    LOG_FORMAT: 'Wie das Backend auf die Konsole schreibt: text (lesbare Zeilen, Standard) oder json (ein JSON-Objekt pro Eintrag, der Stacktrace darin). json für Log-Sammler wie Loki, die jede Zeile einzeln nehmen und den Stacktrace sonst von seiner Zeile trennen. Die Logdatei bleibt immer Text.',
                     TYPST_BIN: 'Pfad zur Typst-Programmdatei. Typst wird für den PDF-Export von Protokollen und Berichten verwendet. Im Docker-Container ist es bereits vorinstalliert.',
                     PANDOC_BIN: 'Pfad zur Pandoc-Programmdatei. Pandoc wird für den Import und die Konvertierung von Dokumenten verwendet. Im Docker-Container ist es bereits vorinstalliert.',
                     QPDF_BIN: 'Pfad zur qpdf-Programmdatei. Wird zur verlustfreien Komprimierung von PDF-Uploads verwendet. Im Docker-Container vorinstalliert; wenn nicht vorhanden, wird die PDF-Kompression einfach übersprungen.',
@@ -1723,9 +1726,11 @@ volumes:
             shownIfScope: 'Das gilt nur, wenn jemand beide Felder gestellt bekommt. Wer nur das abhängige Feld '
                 + 'bekommt, sieht es immer, mit seiner üblichen Pflicht-Einstellung.',
             shownIfRules: 'Ein Feld kann nur von einer Ja/Nein-Frage desselben Profils abhängen, und eine Frage, '
-                + 'von der andere abhängen, kann selbst nicht abhängen. Solange Felder von einer Ja/Nein-Frage '
-                + 'abhängen, lässt sie sich weder löschen noch in einen anderen Typ ändern. Die Vorlagen JuLeiCa '
-                + 'und Leistungsspange legen die Verbindung gleich mit an.',
+                + 'von der andere abhängen, kann selbst nicht abhängen. Löschst du eine Ja/Nein-Frage, von der '
+                + 'andere Felder abhängen, nennt Ember diese Felder, und „Bedingungen entfernen und löschen" nimmt '
+                + 'ihre Bedingung mit heraus. Bei einem anderen Typ geschieht das beim Speichern. Danach '
+                + 'erscheinen sie immer, ihre Antworten bleiben erhalten. Die '
+                + 'Vorlagen JuLeiCa und Leistungsspange legen die Verbindung gleich mit an.',
             title: 'Mitglieder-Konfiguration',
             subtitle: 'Profilfelder für Mitglieder einrichten.',
             whatIs: 'Was sind Profilfelder?',
@@ -1897,8 +1902,9 @@ volumes:
                 + 'Beispiel nur Team und Manager. Ist nichts ausgewählt, darf jeder Mitgliedstyp in die Gruppe.',
             bindingExampleTitle: 'Gruppenset und Mitgliedstypen im Gruppenformular',
             conflictTitle: 'Wenn Mitglieder nicht passen',
-            conflictText: 'Passen Mitglieder nicht zu den gewählten Mitgliedstypen, zeigt Ember sie dir und kann '
-                + 'sie aus der Gruppe nehmen. Sind Mitglieder in mehreren Gruppen eines neuen Sets, zeigt Ember sie '
+            conflictText: 'Passen Mitglieder nicht zu den gewählten Mitgliedstypen, nennt das Formular sie schon '
+                + 'beim Auswählen, und der Knopf „Speichern und aus der Gruppe nehmen" nimmt sie beim Speichern '
+                + 'aus der Gruppe. Sind Mitglieder in mehreren Gruppen eines neuen Sets, zeigt Ember sie '
                 + 'mit einem Link zu ihrem Profil. Dort entscheidest du, in welcher Gruppe sie bleiben.',
             tip: 'Gruppen werden auch für Anwesenheitsvorlagen, Sichtbarkeitseinschränkungen bei Neuigkeiten und Terminen sowie für gruppenspezifische Profilfelder verwendet.',
         },
@@ -3284,6 +3290,8 @@ volumes:
             federationTitle: 'Anmeldungen anderer Wachen',
             federationText: 'Wenn der Termin für Partnerwachen freigegeben ist, siehst du auch Anmeldungen von Mitgliedern anderer Wachen.',
             signupListsTitle: 'Checkliste oder Umfrage aus den Anmeldungen',
+            probeVisitorsTitle: 'Kommen zur Probe',
+            probeVisitorsText: 'Wer die Warteliste lesen darf, sieht hier, wer von der Warteliste zu diesem Termin zur Probe eingeladen ist und ihn gewählt hat: Name, die Uhrzeit, zu der die Person da sein soll, und die Warteliste. Der Name führt zum Eintrag. Diese Personen stehen auf keiner Teilnehmerliste, denn angemeldet haben sie sich nicht. Kommt niemand, fehlt der Abschnitt.',
             signupListsSurveyText: 'Die Umfrage wird als Entwurf angelegt und ist auf genau diese Personen beschränkt. Sie erreicht niemanden, solange sie nicht veröffentlicht ist: erst die Fragen schreiben, dann veröffentlichen. Der Eintrag erscheint nur, wenn das Modul für Umfragen bei der Wache eingeschaltet ist.',
             signupListsText: 'Über dem Anmeldungen-Bereich sitzt ein Menü, das aus den Zusagen eine Checkliste oder eine Umfrage macht. Übernommen wird genau ein Termin, nämlich der, den die Seite gerade zeigt, und nur wer dort einen Platz hat. Wer sich später anmeldet, kommt nicht von selbst dazu: die Liste ist eine Momentaufnahme, und Nachzügler werden von Hand ergänzt.',
             signupListsLimitsText: 'Drei Gruppen können nicht auf die Liste, und der Dialog sagt vorher, um wie viele es geht: Zusagen von Partnerwachen, weil diese Personen hier keine Mitglieder sind, und Personen, die die Wache inzwischen verlassen haben. Bei einem Termin ohne Anmeldung gibt es gar keine Zusagen, dort erscheint das Menü deshalb nicht. Im Verbandsbereich fehlt es ebenfalls, weil Checklisten und Umfragen der Wache gehören.',
@@ -3591,7 +3599,7 @@ volumes:
             trialGuardiansText: 'Mit dem Start der Probezeit bekommen auch die Erziehungsberechtigten ein Konto. Sie können sich schon in der Probezeit anmelden, das Kind von Terminen abmelden und sehen auf ihrer Startseite, wie oft es schon da war. Dort können sie die Probezeit auch selbst beenden. Dann wird der Eintrag von der Liste genommen, das Konto des Kindes gelöscht, das eines Erziehungsberechtigten nur, wenn er sonst niemanden betreut und nirgends sonst Mitglied ist, und du wirst benachrichtigt.',
             invitationTitle: 'Einladen und die Antwort',
             invitationText: 'Beim Einladen wählst du einen oder bis zu fünf Termine samt Datum, je Termin optional eine Uhrzeit, zu der die Person da sein soll, und eine persönliche Nachricht. Bei mehreren Terminen sucht sich die Person einen davon aus. Ohne Termin lässt sich nichts senden, und der Dialog zeigt vorher, an welche Adressen die E-Mail geht. Angemeldet wird für die Termine niemand. Über den Link in der E-Mail kann ohne Anmeldung geantwortet werden, jede Antwort optional mit einer Nachricht an euch:',
-            invitationComing: 'Ich komme: ihr wisst, dass jemand kommt, und bei mehreren Terminen auch, zu welchem. Der gewählte Termin steht am Eintrag.',
+            invitationComing: 'Ich komme: ihr wisst, dass jemand kommt, und bei mehreren Terminen auch, zu welchem. Der gewählte Termin steht am Eintrag und in der Spalte „Gewählter Termin“ der Liste, nach der sich auch sortieren und filtern lässt. Auf der Seite des Termins steht die Person unter „Kommen zur Probe“, sichtbar für alle, die die Warteliste lesen dürfen.',
             invitationDate: 'Der Termin passt mir nicht, bei mehreren Terminen: Keiner der Termine passt. Interesse besteht weiter, und mit „Andere Termine anbieten" schickst du neue.',
             invitationNo: 'Kein Interesse: die Person möchte nicht mehr gefragt werden.',
             invitationStays: 'Die Antwort steht als Kennzeichen am Eintrag, und der Eintrag bleibt im Abschnitt „Wartend & Eingeladen" stehen. Auch eine Absage verschwindet also nicht aus dem Blick.',
@@ -4397,10 +4405,23 @@ volumes:
             title: 'Admin - Übersicht',
             subtitle: 'Die Startseite des Admin-Bereichs.',
             whatIs: 'Was ist der Admin-Bereich?',
-            whatIsText: 'Der Admin-Bereich ist für die Verwaltung der gesamten Plattform. Hier verwaltest du alle Wachen und siehst Statistiken über das gesamte System.',
+            whatIsText: 'Der Admin-Bereich ist für die Verwaltung der gesamten Plattform. Die Übersicht ist seine Startseite. Oben stehen Karten mit allem, was gerade Aufmerksamkeit braucht. Darunter folgen die neuesten offenen Wachen-Anträge und Problemmeldungen.',
             whoCanSee: 'Wer hat Zugang?',
             whoCanSeeText: 'Nur Nutzer mit der Admin-Rolle können den Admin-Bereich sehen. Wenn du ihn nicht siehst, bist du kein Admin.',
-            tip: 'Über den Button „Wach Panel" oben rechts kommst du zurück zur normalen Ansicht deiner Wache.',
+            cardsTitle: 'Die Karten',
+            cardsText: 'Jede Karte zählt etwas und führt mit einem Klick zu genau diesen Einträgen. Steht die Zahl auf null, ist die Karte grün, sonst gelb. Rot wird sie, wenn es dringend ist: bei fehlgeschlagenen und hängenden E-Mails und Siegel-Schlüsseln schon ab einem Eintrag, bei Problemmeldungen, unbestätigten Konten und der Warteschlange erst bei vielen.',
+            allClearText: 'Der grüne Kasten „Alles erledigt" erscheint, wenn nichts Dringendes wartet. Die Warteschlange, Wachen ohne Einrichtung und unbestätigte Konten zählen dafür nicht mit, sie haben nur ihre eigenen Karten.',
+            exampleTitle: 'So sehen die Karten aus',
+            mailsTitle: 'Die Karten zu E-Mails',
+            failedText: '„Fehlgeschlagene E-Mails" zählt alle Mails, die nicht angekommen sind und die noch niemand zur Kenntnis genommen hat. Dazu gehören die Mails der Instanz und die aller Wachen. Die Karte öffnet das Mailprotokoll direkt beim Abschnitt „Fehlgeschlagene E-Mails".',
+            acknowledgeText: 'Dort nimmst du die Mails zur Kenntnis. Danach sinkt die Zahl auf der Karte und an „Monitoring" in der Seitenleiste.',
+            queueText: '„Hängende E-Mails" und „E-Mails in der Warteschlange" zählen nur die Mails der Instanz selbst, nicht die der Wachen. Beide öffnen das Mailprotokoll, die hängenden direkt bei ihrer Warnung.',
+            stationsTitle: 'Die Karten zu Wachen und Konten',
+            stationsText: '„Wachen ohne Einrichtung" zählt die Wachen, die auf ihre Verwaltung warten: Sie kann sich noch nicht anmelden oder hat die Einrichtung noch nicht abgeschlossen. Wachen ohne eingetragene Verwaltung, Verbände und Kopien umgezogener Wachen zählen nicht mit.',
+            stationsLinkText: 'Die Karte öffnet die Wachenliste mit dem Filter „Warten auf Einrichtung". Die Liste zeigt dann genau die Wachen, die die Karte zählt.',
+            accountsText: '„Unbestätigte Konten" zählt Konten mit einer echten Adresse, die noch nicht bestätigt ist. Konten ohne eigene Adresse können nichts bestätigen und zählen nicht. Die Karte öffnet die Kontenliste mit genau diesem Filter.',
+            otherText: 'Die übrigen Karten führen zu ihren Seiten: offene Wachen-Anträge, unerreichbare Peers, Problemmeldungen und Siegel-Schlüssel. „Föderationsanfragen offen" führt zum Abschnitt Föderation der Statistiken.',
+            tip: 'Eine Karte mit einer Zahl über null ist eine Aufgabe. Klick sie an, und du landest direkt bei den Einträgen, um die es geht.',
         },
         adminStatistics: {
             title: 'Plattform-Statistiken',
@@ -4412,9 +4433,38 @@ volumes:
             platform: 'Plattform - Anzahl der Wachen, Konten, Mitglieder, aktiven Sitzungen und Konten mit '
                 + 'Zwei-Faktor-Anmeldung.',
             dataStore: 'Datenbestand - Termine, Anmeldungen, Anwesenheiten, Inventar-Artikel, Profilfelder.',
-            charts: 'Aktivität und Status - Verläufe der letzten 30 Tage sowie die Verteilung von '
-                + 'E-Mail-, Anwesenheits- und Einrichtungsstatus.',
-            tip: 'Die Statistiken werden automatisch aktualisiert, wenn sich Daten ändern.',
+            charts: 'Nutzung, Personen, Wachstum, Anwesenheit und Föderation - wie die Plattform über die Zeit '
+                + 'genutzt wird und wächst.',
+            overviewTitle: 'Was gerade los ist',
+            windowTitle: 'Zeitraum wählen',
+            windowText: 'Mit dem Feld „Zeitraum“ wählst du, wie weit die Verläufe zurückreichen. Bei den letzten '
+                + '30 Tagen siehst du jeden Tag einzeln. Bei 12 Monaten und beim gesamten Zeitraum siehst du einen '
+                + 'Punkt pro Woche.',
+            usageTitle: 'Nutzung',
+            usageText: 'Hier siehst du, wie viele Personen die Plattform an einem Tag benutzt haben. Daneben stehen '
+                + 'die Zahl von heute und der Durchschnitt der letzten 30 vollen Tage. Der heutige Tag zählt dort '
+                + 'noch nicht mit, weil er noch nicht vorbei ist.',
+            usageCounting: 'Jedes Konto zählt höchstens einmal am Tag, egal wie oft es etwas anklickt. Es wird nur '
+                + 'gezählt, nicht wer es war. In der Wochenansicht siehst du den Durchschnitt der Tage dieser Woche.',
+            emptyText: 'Gezählt wird erst seit dieser Version. Am Anfang sind die Verläufe deshalb kurz oder noch '
+                + 'leer, und statt eines Diagramms steht dort „Noch nichts aufgezeichnet“.',
+            peopleTitle: 'Personen',
+            peopleText: 'Hier siehst du, wie viele Personen es auf der Plattform gibt, nach ihrem Typ. Zum Beispiel '
+                + '50 Mitglieder, 10 Erziehungsberechtigte und 5 auf Probe. Archivierte Mitglieder zählen nicht mit.',
+            peopleTypesText: 'Eine Person kann in zwei Wachen verschiedene Typen haben. Dann zählt sie bei beiden '
+                + 'Typen. Deshalb ergeben die Typen zusammen oft mehr als „Personen insgesamt“. Die '
+                + '„Mitgliedschaften“ zählen jede Wache einzeln, wer in zwei Wachen ist, zählt also zweimal.',
+            growthTitle: 'Wachstum, Anwesenheit und Föderation',
+            growthText: 'Unter „Wachstum“ siehst du, wie Konten, Mitgliedschaften, Wachen, Termine, '
+                + 'Anwesenheitseinträge, Inventar und Verbände mehr werden. Die Plattform merkt sich das einmal am '
+                + 'Tag, erst seit dieser Version. Darum steht darunter, seit wann aufgezeichnet wird.',
+            attendanceText: 'Unter „Anwesenheit“ siehst du pro Monat, wie viele anwesend, abwesend oder abgesagt '
+                + 'waren, und wie viele Anwesenheiten es gab. Gab es im Zeitraum keine, steht dort ein kurzer '
+                + 'Hinweis statt der Diagramme.',
+            federationText: 'Unter „Föderation“ siehst du, welche Wachen mit Partnern zusammenarbeiten, was sie '
+                + 'teilen und ausleihen, welche anderen Instanzen bekannt sind und wie viele Wachen in Verbänden '
+                + 'sind.',
+            tip: 'Die Zahlen von heute ändern sich im Lauf des Tages. Am Ende des Tages bleiben sie so stehen.',
         },
         protocol: {
             title: 'Prüfungsprotokolle',
@@ -5327,15 +5377,33 @@ volumes:
         },
         adminStations: {
             title: 'Wachen verwalten',
-            subtitle: 'Alle Wachen der Plattform anlegen und bearbeiten.',
+            subtitle: 'Alle Wachen der Plattform mit ihrem Stand, anlegen, bearbeiten und an die Einrichtung erinnern.',
             whatIs: 'Was sind Wachen?',
-            whatIsText: 'Jede Wache ist eine eigenstaendige Einheit auf der Plattform - mit eigenen Mitgliedern, Gruppen, Terminen und Inventar. Als Admin verwaltest du alle Wachen.',
+            whatIsText: 'Jede Wache ist eine eigenständige Einheit auf der Plattform - mit eigenen Mitgliedern, Gruppen, Terminen und Inventar. Als Admin verwaltest du alle Wachen.',
+            listTitle: 'Was die Liste zeigt',
+            listText: 'Zu jeder Wache siehst du ihr Logo, den Namen, ihren Stand und wie viele Mitglieder sie hat. Archivierte Mitglieder zählen dabei nicht mit. Dazu kommen der Verbund, falls sie in einem ist, und wer sie verwaltet. Hat eine Wache kein Logo, stehen dort ihre Anfangsbuchstaben.',
+            statesTitle: 'Der Stand einer Wache',
+            statesText: '„Eingerichtet" heißt, die Verwaltung hat die Einrichtung abgeschlossen. „In Einrichtung" heißt, die Verwaltung kann sich anmelden, ist mit der Einrichtung aber noch nicht fertig.',
+            statesWaitingText: '„Wartet auf Verwaltung" heißt, die Verwaltung kann sich noch nicht anmelden: Sie hat noch kein Passwort gewählt oder ihre Adresse nicht bestätigt. „Ohne Verwaltung" heißt, es ist noch niemand eingetragen.',
+            filterTitle: 'Filtern und Ansicht',
+            filterText: 'Mit den Knöpfen oben links wählst du, welche Wachen du siehst: alle, die eingerichteten, die auf Einrichtung warten, oder die ohne Verwaltung. „Warten auf Einrichtung" zeigt die Wachen, die „Wartet auf Verwaltung" oder „In Einrichtung" sind. Der Filter steht auch in der Adresse der Seite, so führt die Übersicht direkt hierher.',
+            viewText: 'Rechts daneben wechselst du zwischen „Kacheln" und „Tabelle". Dein Browser merkt sich die Wahl. Die Tabelle zeigt dieselben Angaben, dazu seit wann eine Wache wartet und wann zuletzt erinnert wurde. Über „Spalten" blendest du weitere ein, zum Beispiel wann die Wache angelegt wurde.',
+            tilesTitle: 'So sehen die Kacheln aus',
+            tableTitle: 'So sieht die Tabelle aus',
+            remindTitle: 'Die Verwaltung erinnern',
+            remindText: 'Bei einer Wache, die auf Einrichtung wartet, steht „Erinnerung senden". Kann sich die Verwaltung noch nicht anmelden, bekommt sie einen neuen Link, um ein Passwort zu wählen oder ihre Adresse zu bestätigen. Kann sie sich schon anmelden, bekommt sie eine Mail, dass die Wache noch auf ihre Einrichtung wartet.',
+            remindAfterText: 'Darunter steht, wann zuletzt erinnert wurde, und ob von Hand oder automatisch. Nach einer Erinnerung von Hand ist der Knopf zehn Minuten lang gesperrt, damit ein Doppelklick nur eine Mail verschickt. Kann deine Instanz keine Mails senden, gilt eine offene Bestätigung der Adresse stattdessen gleich als erteilt.',
+            autoTitle: 'Automatische Erinnerungen',
+            autoText: 'Wartet eine Wache auf ihre Verwaltung, erinnert Ember von selbst: einmal nach 7 Tagen und einmal nach 21 Tagen. Danach kommt keine automatische Erinnerung mehr. Die Tage zählen ab dem Moment, an dem die Verwaltung eingetragen wurde, auch bei angenommenen Anträgen und importierten Wachen. Bei Wachen, die schon vor diesem Update gewartet haben, zählen die Tage ab dem Update.',
+            autoSkipText: 'Eine automatische Erinnerung fällt aus, wenn in den 24 Stunden davor schon erinnert wurde. Ember schreibt auch nicht an eine Verwaltung ohne eigene Adresse oder an eine Adresse, die die letzte Mail abgewiesen hat. Wartet eine Wache schon länger als 35 Tage, holt Ember die Erinnerung nach 21 Tagen nicht mehr nach.',
+            autoResetText: 'Trägst du eine neue Verwaltung ein, beginnt die Wartezeit von vorn, und mit ihr beide Erinnerungen. Eine Erinnerung von Hand verschiebt die automatischen nicht.',
+            movedText: 'Ist eine Wache auf eine andere Instanz umgezogen, bleibt hier eine Kopie zurück. Diese Kopie wartet auf niemanden: Sie wird nie erinnert und zählt nicht zu den wartenden Wachen.',
             createTitle: 'Wache erstellen',
-            createText: 'Klicke auf Neue Wache und gib einen Namen ein. Nach dem Erstellen kannst du einen Manager zuweisen - die Person, die die Wache verwaltet.',
+            createText: 'Klicke auf Neue Wache und gib einen Namen ein. Nach dem Erstellen kannst du einen Manager zuweisen - die Person, die die Wache verwaltet. In der Tabellenansicht stehen „Neue Wache" und „Wache importieren" als Knöpfe über der Tabelle.',
             editTitle: 'Wache bearbeiten',
             editText: 'Auf der Bearbeitungsseite kannst du den Namen der Wache ändern und den Manager wechseln. Wenn die Manager-E-Mail noch kein Konto hat, wird automatisch eine Einladung versendet.',
             importTitle: 'Wache importieren',
-            importText: 'Du kannst eine Wache von einer anderen Plattform importieren. Klicke auf das Import-Feld und gib die Adresse und den Transfer-Code ein, den der Manager der Quell-Wache erstellt hat.',
+            importText: 'Du kannst eine Wache von einer anderen Ember-Instanz importieren. Klicke auf „Wache importieren" und gib den Transfer-Code ein, den der Manager der Quell-Wache erstellt hat. Die Adresse der Quelle steckt schon im Code.',
             deleteTitle: 'Wache löschen',
             deleteText: 'Wenn du eine Wache löschst, werden alle zugehörigen Daten (Mitglieder, Termine, Inventar usw.) unwiderruflich gelöscht.',
             tip: 'Sei vorsichtig beim Löschen - es gibt kein Zurück.',
@@ -5393,7 +5461,11 @@ volumes:
             nameText: 'Ändere den Namen der Wache. Der Name wird überall auf der Plattform angezeigt.',
             managerTitle: 'Manager zuweisen',
             managerText: 'Der Manager ist die Person, die die Wache verwaltet. Gib die E-Mail-Adresse ein - wenn noch kein Konto existiert, wird automatisch eine Einladung versendet.',
+            accountStateText: '„Konto aktiv" heißt, der Manager kann sich anmelden. „Einrichtung ausstehend" heißt, er hat noch kein Passwort gewählt oder seine Adresse noch nicht bestätigt.',
             exampleTitle: 'So sieht die Seite aus',
+            reminderTitle: 'An die Einrichtung erinnern',
+            reminderText: 'Wartet die Wache noch auf ihren Manager, steht im Kasten des Managers ihr Stand: „Wartet auf Verwaltung" oder „In Einrichtung". Darunter findest du „Erinnerung senden", genau wie in der Wachenliste.',
+            reminderMailText: 'Kann sich der Manager noch nicht anmelden, bekommt er einen neuen Link. Kann er sich anmelden, erinnert ihn die Mail daran, die Einrichtung abzuschließen. Darunter steht, wann zuletzt erinnert wurde, von Hand oder automatisch nach 7 und 21 Tagen.',
             instanceMailTitle: 'Mailanbieter der Instanz',
             instanceMailText: 'Im Kasten „Mailanbieter der Instanz" gibst du der Wache die Anbieter der Instanz frei. Dann verschickt die Instanz ihre Mails mit, sobald die eigenen Anbieter der Wache für den Tag nichts mehr übrig haben. Eine feste Höchstzahl an Mails pro Tag nur für diese Wache ist möglich. Leer gilt nur der Anteil aller Wachen in Prozent.',
             tip: 'Wenn du den Manager wechselst, erhält die neue Person alle Verwaltungsrechte für die Wache.',
@@ -5585,7 +5657,7 @@ volumes:
             fieldsTitle: 'Eigene Felder',
             fieldsText: 'Eigene Felder kannst du für viele Datenarten anlegen - Text, Zahl, Datum, Ort, Auswahl, sowie Mitglieder. Mitgliederfelder können auf eine Gruppe, einen Benutzertyp oder ein Tag eingeschränkt werden.',
             selfRegistrationTitle: 'Selbsteintragung für Mitgliederfelder',
-            selfRegistrationText: 'Wenn du „Selbsteintragung erlauben" für ein Mitgliederfeld aktivierst, können sich passende Mitglieder selbst eintragen - auch ohne die Berechtigung zum Bearbeiten des Termins. Bei Einzelfeldern bleibt der Platz beim ersten Mitglied, das ihn nimmt; nur diese Person kann den Platz wieder freigeben. Listenfelder erlauben mehrere Eintragungen.',
+            selfRegistrationText: 'Wenn du „Selbsteintragung erlauben" für ein Mitgliederfeld aktivierst, können sich passende Mitglieder selbst eintragen - auch ohne die Berechtigung zum Bearbeiten des Termins. Ist das Feld auf eine Gruppe, einen Mitgliedstyp oder einen Tag beschränkt, sehen nur Mitglieder darin den Knopf „Eintragen". Nach dem Anmeldeschluss steht dort „Eintragung geschlossen", wer schon eingetragen ist, kann sich aber weiter austragen. Bei Einzelfeldern bleibt der Platz beim ersten Mitglied, das ihn nimmt; nur diese Person kann den Platz wieder freigeben. Listenfelder erlauben mehrere Eintragungen.',
             loadTemplateTitle: 'Vorlage laden',
             loadTemplateText: 'Über den Button „Vorlage laden" oben rechts werden alle gespeicherten Einstellungen einer Vorlage in den Termin übernommen.',
             tip: 'Wiederkehrende Termine werden automatisch während Pausen/Ferien ausgeblendet.',
@@ -6443,7 +6515,7 @@ volumes:
             whatIsText: 'Jeder Eintrag ist ein Fehler, den mindestens eine andere Instanz gemeldet hat. Die Seite liest sich wie das Fehlerprotokoll dieser Instanz: Stufe, Herkunft, Anzahl und Zeitraum stehen an derselben Stelle, und gleiche Fehler sind zusammengefasst, damit du siehst, ob einer bei dreißig Installationen auftritt oder bei einer einzigen.',
             whatIsText2: 'Zu jedem Eintrag steht, in wie vielen Instanzen er aufgetreten ist, wie oft insgesamt, und in welchen Versionen. Namen, Wachen oder Mitglieder stehen nie dabei.',
             readingTitle: 'Damit arbeiten',
-            readingText: 'Über die Schalter oben blendest du bestätigte Einträge ein und filterst nach Fehlern oder Warnungen. Ein Eintrag mit Stacktrace klappt auf, wenn du ihn anklickst. Ist ein Fehler behoben, hältst du die Version fest, in der das passiert ist, und bestätigst ihn. Die Zahl in der Seitenleiste zählt nur die unbestätigten.',
+            readingText: 'Über die Schalter oben blendest du bestätigte Einträge ein und filterst nach Fehlern oder Warnungen. Jeder Eintrag klappt auf, wenn du ihn anklickst, und zeigt Stacktrace und die Logzeilen, die eine Instanz mitgesendet hat. Ist ein Fehler behoben, hältst du die Version fest, in der das passiert ist, und bestätigst ihn. Die Zahl in der Seitenleiste zählt nur die unbestätigten.',
             tip: 'Sortiere nach der Zahl der betroffenen Instanzen: was viele treffen, ist meist die kleinere Arbeit für die größere Wirkung.',
         },
         adminBeaconReports: {
@@ -6473,7 +6545,10 @@ volumes:
             whatIsText: 'Ein Beacon ist eine Ember-Instanz, an die andere Instanzen Fehler, Problemmeldungen und tägliche Zahlen melden. Wer denselben Fehler in dreißig Installationen sieht, weiß etwas, das eine einzelne Instanz nicht wissen kann. Standardmäßig ist alles davon abgeschaltet: ohne ausdrückliche Einstellung verlässt nichts die Instanz. Ein Hauptschalter gibt das Melden überhaupt erst frei, gemeldet wird standardmäßig an https://ember-panel.de.',
             sending: 'Fehler weitergeben',
             sendingText: 'Im Fehlerprotokoll steht neben jedem Eintrag eine Schaltfläche, und mehrere lassen sich ankreuzen und zusammen senden. Wer möchte, kann jeden neuen Eintrag automatisch weitergeben lassen; für die von Hand geschriebenen Problemmeldungen gibt es einen eigenen Schalter, weil das etwas anderes ist. Meldungen mit Bild warten standardmäßig, bis du sie freigibst. Alle Schalter stehen unter Administration → Beacon → Beacon einrichten.',
-            sendingPreview: 'Vor dem Senden wird gezeigt, was genau übertragen wird. Fehlermeldungen zitieren, was schiefging, und das ist manchmal ein Name; E-Mail-Adressen werden vor dem Senden unkenntlich gemacht. Weitergeleitete Meldungen enthalten keinen Mitgliedsnamen, keine Mitglieds- und keine Standortkennung, und die Seitenadresse wird ohne Parameter übertragen. Mitgeschickt wird der Ansprechpartner, den du unter Beacon einrichten eingetragen hast.',
+            sendingPreview: 'Vor dem Senden wird gezeigt, was genau übertragen wird. Fehlermeldungen zitieren, was schiefging; was dabei vor dem Senden ersetzt wird, steht unter „Logzeilen mitsenden“. Weitergeleitete Meldungen enthalten keinen Mitgliedsnamen, keine Mitglieds- und keine Standortkennung, und die Seitenadresse wird ohne Parameter übertragen. Mitgeschickt wird der Ansprechpartner, den du unter Beacon einrichten eingetragen hast.',
+            linesTitle: 'Logzeilen mitsenden',
+            linesText: 'Mit einem Fehler können die Zeilen aus dem gespeicherten Anwendungslog kurz vor und nach ihm mitgehen. Von Hand kreuzt du dafür „Umgebende Logzeilen mitsenden“ an, die Vorschau zeigt dann genau die Zeilen, die gesendet werden. Beim Senden mehrerer ausgewählter Einträge gibt es dasselbe Kästchen, die Zeilen werden dort aber nicht vorab gezeigt. Automatisch gehen sie nur mit, wenn „Logzeilen automatisch mitsenden“ unter „Neue Fehler automatisch weitergeben“ eingeschaltet ist, standardmäßig ist es aus. Gesendet werden nur Zeilen ab der Stufe INFO und nur so viele, wie ein Beacon auf einmal annimmt; ein Beacon mit einer älteren Version bekommt den Fehler ohne Zeilen.',
+            linesReplaced: 'Vor dem Senden werden in Fehlermeldungen und Zeilen ersetzt: E-Mail-Adressen, IP-Adressen, lange Kennungen mit Bindestrichen, Passwörter, Tokens und Codes, die mit ihrem Namen dastehen (etwa „password=…“), und die Vor-, Nach- und Benutzernamen der Konten dieser Instanz. Namen von Personen ohne Konto, Namen mit weniger als drei Buchstaben und Namen, die mit einem anderen Wort zusammengeschrieben sind, erkennt das nicht. Umgekehrt wird ein Name, der auch ein gewöhnliches Wort ist, überall ersetzt: heißt ein Konto „admin“, steht auch in Seitenadressen wie /admin/problems dann [name].',
             numbers: 'Zahlen',
             numbersText: 'Einmal am Tag kann die Instanz melden, wie viel sie hält. Die Zahlen werden vorher in Bereiche eingeteilt (0, <10, 10-50, 50-200, 200-1000, 1000+) statt einer genauen Zahl, denn eine genaue Zahl über Wochen hinweg ist ein Erkennungsmerkmal. Jeder Standort und die Instanz selbst tragen dafür eine eigene Kennung, die für nichts anderes benutzt wird.',
             numbersWhen: 'Die Uhrzeit ergibt sich aus dieser Kennung, damit nicht alle Instanzen gleichzeitig melden. Ein Neustart ändert daran nichts, und ein verpasster Tag wird nicht nachgeholt.',
@@ -6500,7 +6575,7 @@ volumes:
             pictureText: 'Wer eine Meldung schreibt, kann ein Bild der Seite mitschicken. Es ist freiwillig, wird nie von allein aufgenommen, und was darauf niemand sehen soll, wird vor dem Absenden übermalt. Aufgeklappt steht das Bild unter den Angaben zur Meldung.',
             pictureForwardText: 'Meldest du an einen Beacon weiter, wartet eine Meldung mit Bild, bis du sie weitergibst. Im Fenster „Was gesendet wird" kannst du weitere Stellen übermalen oder das Bild aus der Sendung nehmen. Ein weggelassenes Bild wird nie nachgereicht, und ein Schalter in den Beacon-Einstellungen schickt Meldungen mit Bild stattdessen sofort raus.',
             ackTitle: 'Erledigt und gelöscht',
-            ackText: 'Erledigte Meldungen verschwinden aus der Liste, bleiben aber gespeichert. Gelöschte Meldungen sind endgültig weg. „Alle bestätigen" erledigt in einem Schritt alles Offene.',
+            ackText: 'Erledigte Meldungen verschwinden aus der Liste, bleiben aber gespeichert. Gelöschte Meldungen sind endgültig weg. „Alle bestätigen" erledigt in einem Schritt alles Offene. Die Zahl an „Problemmeldungen" und an „Monitoring" in der Seitenleiste sinkt dabei sofort mit.',
             retentionText: 'Dreißig Tage nachdem eine Meldung als erledigt markiert wurde, wird sie samt Bild gelöscht. Eine Meldung, die niemand als erledigt markiert, bleibt liegen.',
             tip: 'Schau erst in die Details, bevor du eine Meldung erledigst - die letzten Aufrufe zeigen oft schon, woran es lag.',
         },
@@ -6572,6 +6647,46 @@ volumes:
             poolWarningText: 'Hat ein Anbieter kein Tageslimit, gibt es keinen Anteil, den er '
                 + 'zurückhalten kann. Solange Wachen freigegeben sind, warnt die Seite dann. Trag '
                 + 'beim Anbieter ein Tageslimit ein, damit der Instanz sicher etwas bleibt.',
+            failedTitle: 'Fehlgeschlagene E-Mails',
+            failedText: 'Ganz oben steht der Abschnitt „Fehlgeschlagene E-Mails". Er zeigt die Mails, die nicht '
+                + 'angekommen sind und die noch niemand zur Kenntnis genommen hat. Gibt es keine, ist der '
+                + 'Abschnitt gar nicht da.',
+            failedKindsText: 'Fehlgeschlagen ist eine Mail, die Ember aufgegeben hat, oder die der Anbieter '
+                + 'später als unzustellbar, blockiert oder Spam zurückgemeldet hat. Weich abgewiesene Mails '
+                + 'zählen nicht, denn dort versucht es der Anbieter noch weiter.',
+            failedInstanceText: 'Unter „Instanz" stehen die eigenen Mails der Instanz mit Empfänger, Betreff, '
+                + 'Zeitpunkten und Grund. Hat der Anbieter etwas dazu gemeldet, steht es in der letzten Spalte. '
+                + 'Sind es mehr als 25, lädt der Knopf darunter die nächsten nach.',
+            failedReasonsText: 'Ember selbst gibt eine Mail auf, wenn kein Anbieter eingerichtet ist, keiner mehr '
+                + 'übrig ist, der Anbieter sie abgelehnt hat, er nicht nutzbar ist oder alle Versuche aufgebraucht '
+                + 'sind. Der Anbieter meldet zurück, dass die Adresse nicht existiert, der Empfänger blockiert hat '
+                + 'oder die Mail als Spam markiert wurde. Bei älteren Mails steht „Grund nicht erfasst". Die ersten '
+                + 'beiden Gründe gibt es nur bei Mails der Wachen. Mails der Instanz warten ohne Anbieter, bis einer '
+                + 'eingerichtet ist.',
+            failedStationsText: 'Unter „Wachen" steht pro Wache eine Zeile: wie viele Mails, aus welchen Gründen '
+                + 'und in welchem Zeitraum. Empfänger und Betreff siehst du hier nie, denn wem eine Wache schreibt, '
+                + 'ist ihre Sache. Die Wache selbst sieht ihre Mails vollständig auf ihrer eigenen Mailseite.',
+            failedExampleTitle: 'So sieht der Abschnitt aus',
+            acknowledgeTitle: 'Zur Kenntnis nehmen',
+            acknowledgeText: '„Zur Kenntnis genommen" beendet die Warnung für eine Mail. Gelöscht wird nichts: Die '
+                + 'Mail bleibt im Protokoll, bis sie nach 30 Tagen mit den anderen aufgeräumt wird. „Alle zur '
+                + 'Kenntnis nehmen" erledigt die Mails der Instanz auf einmal.',
+            acknowledgeUpToText: 'Bei einer Wache nimmt der Knopf in ihrer Zeile alle ihre Mails bis zum letzten '
+                + 'Fehlschlag zur Kenntnis, den die Zeile zeigt. „Alle zur Kenntnis nehmen" reicht genauso nur bis '
+                + 'zur neuesten Mail, die du siehst. Kommt in der Zwischenzeit ein neuer Fehlschlag dazu, bleibt '
+                + 'er stehen. Auf der Mailseite der Wache ändert sich dabei nichts.',
+            failedRequeueText: '„Erneut senden" steht nur bei Mails der Instanz, die Ember selbst aufgegeben hat. '
+                + 'Die Mail geht dann zurück in die Warteschlange und beginnt wieder beim ersten Anbieter.',
+            failedNoRequeueText: 'Hat der Anbieter eine Mail als unzustellbar, blockiert oder Spam gemeldet, gibt es '
+                + 'den Knopf nicht: Die gleiche Mail an die gleiche Adresse würde wieder abgewiesen. Bei „Grund '
+                + 'nicht erfasst" fehlt er ebenfalls.',
+            badgeTitle: 'Die Zahlen in der Seitenleiste',
+            badgeText: 'Die Zahl an „Mailprotokoll" zählt die fehlgeschlagenen Mails, die noch niemand zur '
+                + 'Kenntnis genommen hat, die der Wachen eingeschlossen. Die Zahl an „Monitoring" zählt dazu das '
+                + 'Fehlerprotokoll und die Problemmeldungen. So siehst du schon in der Liste aller Bereiche, ob '
+                + 'dort etwas wartet.',
+            badgeRefreshText: 'Beide Zahlen werden bei jedem Seitenwechsel in der Verwaltung neu gelesen. Nimmst '
+                + 'du etwas zur Kenntnis, sinken sie sofort.',
             tip: 'Häufen sich weiche Abweisungen bei einem Anbieter, liegt das meist nicht an der '
                 + 'Nachricht, sondern an seinem Absendeserver. Dann hilft ein weiterer Anbieter in '
                 + 'der Liste mehr als ein weiterer Versuch.',
@@ -6605,19 +6720,29 @@ volumes:
         },
         adminProblems: {
             title: 'Problemprotokoll',
-            subtitle: 'Fehler und Warnungen aus dem Hintergrund einsehen.',
+            subtitle: 'Fehler, Warnungen und abgewiesene Anfragen einsehen.',
             whatIs: 'Was ist das Problemprotokoll?',
-            whatIsText: 'Hier werden Fehler und Warnungen gesammelt, die im Hintergrund der Plattform aufgetreten sind - zum Beispiel wenn eine E-Mail nicht gesendet werden konnte.',
-            listTitle: 'Eintraege verstehen',
-            listText: 'Jeder Eintrag zeigt: die Art des Problems (Fehler oder Warnung), wann es zuletzt aufgetreten ist, wie oft und eine technische Nachricht. Mit den Buttons „Fehler" und „Warnungen" oben filterst du die Liste auf eine Art.',
-            acknowledgeTitle: 'Bestaetigen und Aufklappen',
-            acknowledgeText: 'Du kannst einzelne Einträge bestätigen oder alle auf einmal. Klicke auf einen Eintrag, um Details und Fehlerprotokoll zu sehen. Das Fehlerprotokoll kannst du kopieren. Einträge ohne Fehlerprotokoll und ohne weitere Nachrichten lassen sich nicht aufklappen, weil dahinter nichts steht.',
+            whatIsText: 'Hier werden Fehler und Warnungen gesammelt, die im Hintergrund der Plattform aufgetreten sind, zum Beispiel wenn eine E-Mail nicht gesendet werden konnte. Die Einträge stehen in der Datenbank und bleiben über einen Neustart hinweg erhalten. Ein Eintrag wird gelöscht, wenn er länger nicht mehr aufgetreten ist, standardmäßig nach 30 Tagen.',
+            listTitle: 'Einträge verstehen',
+            listText: 'Jeder Eintrag zeigt die Stufe, wann er zuerst und zuletzt aufgetreten ist, wie oft und eine technische Nachricht. Oben wählst du zwischen „Fehler und Warnungen“ und „Ablehnungen“, darunter den Zustand (Offen, Erledigt, Stummgeschaltet, Alle) und bei Fehlern und Warnungen die Stufe.',
+            resolveTitle: 'Erledigen, stummschalten, löschen',
+            resolveText: 'Mit dem Haken markierst du einen Eintrag als erledigt. Tritt er danach wieder auf, ist er wieder offen und zeigt, wie oft er schon wiedergekommen ist. Mit der durchgestrichenen Glocke schaltest du einen Eintrag stumm: er zählt weiter mit, erscheint aber nie wieder unter Offen und wird nie von selbst an einen Beacon weitergegeben. Mit der Glocke hebst du die Stummschaltung auf, der Eintrag ist dann wieder offen.',
+            deleteText: 'Mit dem Papierkorb löschst du einen Eintrag nach einer Rückfrage. Tritt das Problem wieder auf, wird es neu erfasst. „Alle erledigen“ erledigt alle offenen Einträge der gewählten Art und erscheint nur, solange keine Stufe gewählt ist.',
+            countTitle: 'Die Zahl in der Seitenleiste',
+            countText: 'Die Zahl an „Fehlerprotokoll“ zählt die offenen Fehler und Warnungen. Ablehnungen zählen nie mit. Nach dem Erledigen, Stummschalten oder Löschen sinkt sie sofort, und mit ihr die Zahl an „Monitoring“.',
+            refusalsTitle: 'Ablehnungen',
+            refusalsText: 'Eine Ablehnung ist eine Anfrage, die bewusst abgewiesen wurde, zum Beispiel weil ein Recht fehlte. Sie steht unter einem eigenen Schalter, die häufigsten oben. Eine Ablehnung, die oft auftritt, heißt meist, dass die Oberfläche etwas anbietet, das sie nicht anbieten sollte.',
             groupingTitle: 'Zusammenfassung',
-            groupingText: 'Gleichartige Probleme werden zusammengefasst. Wenn derselbe Fehler mehrfach auftritt, siehst du ihn als einen Eintrag mit einer Zaehlung.',
+            groupingText: 'Gleichartige Probleme werden zusammengefasst. Ein nicht gefundener Eintrag zählt pro Adresse der Anwendung, eine Ablehnung pro Adresse und Art, nicht pro Kennung: hundert gelöschte Termine sind ein Eintrag mit hundert Vorkommen. Die einzelnen Nachrichten und der Stacktrace stehen in den Details, der Stacktrace lässt sich dort mit „Stacktrace kopieren“ kopieren.',
             noiseTitle: 'Was nicht im Protokoll landet',
-            noiseText: 'Jede aus dem Internet erreichbare Instanz wird nach Konfigurationsdateien und Verwaltungsseiten fremder Software abgeklopft. Solche Adressen gibt es hier nicht, sie werden wie bisher mit 404 beantwortet, aber nicht als Problem festgehalten. Sonst wäre das Protokoll voll davon und die Einträge, die wirklich etwas bedeuten, gingen darin unter.',
+            noiseText: 'Jede aus dem Internet erreichbare Instanz wird nach Konfigurationsdateien und Verwaltungsseiten fremder Software abgeklopft. Adressen, die es hier nicht gibt, werden mit 404 beantwortet, aber nicht als Problem festgehalten. Anfragen ohne gültige Anmeldung werden ebenfalls nicht festgehalten.',
+            contextTitle: 'Umgebende Logzeilen',
+            contextText: 'Klappst du einen Eintrag auf, stehen unter den Details die Zeilen des Anwendungslogs um das Problem herum: aus demselben Thread, von 30 Sekunden davor bis 5 Sekunden danach, höchstens 50 Zeilen davor und 10 danach. Die Zeile des Problems selbst ist mit „Dieser Eintrag“ markiert. „Alle Threads“ zeigt alle Zeilen in diesem Zeitraum, und ist ein Eintrag mehrfach aufgetreten, wählst du über die Zeitpunkte eines der letzten fünf Vorkommen.',
+            contextSource: 'Die Zeilen kommen aus dem gespeicherten Anwendungslog. Ist das Speichern in der Datenbank ausgeschaltet, steht dort ein Hinweis mit dem Link „Zu den Einstellungen“. Ist eine Zeile schon gelöscht oder liegt ihre Stufe unter der eingestellten, sagt ein Hinweis das ebenfalls, auch wenn nur die Zeile des Problems selbst fehlt.',
+            beaconTitle: 'An einen Beacon senden',
+            beaconText: 'Meldet die Instanz an einen Beacon, steht an jedem Fehler und jeder Warnung die Schaltfläche „An Beacon senden“, und links lassen sich Einträge ankreuzen und mit „Ausgewählte senden“ zusammen senden. Ablehnungen werden nie gesendet. Die umgebenden Logzeilen gehen nur mit, wenn du „Umgebende Logzeilen mitsenden“ ankreuzt oder die automatische Weitergabe dafür eingeschaltet ist. Was dabei ersetzt wird, steht in der Hilfe zum Beacon.',
             exampleTitle: 'So sieht die Seite aus',
-            tip: 'Prüfe das Problemprotokoll regelmäßig - manche Fehler wirken sich auf alle Nutzer aus, ohne dass es jemand sofort bemerkt.',
+            tip: 'Schalte stumm, was du kennst und nicht ändern kannst. Dann zeigt die Zahl in der Seitenleiste nur noch, was wirklich neu ist.',
         },
         adminSecurity: {
             title: 'Zwei-Faktor verwalten (Instanz)',
@@ -6685,12 +6810,21 @@ volumes:
             whatIs: 'Was finde ich hier?',
             whatIsText: 'Hier siehst du alle Konten deiner Instanz. Zu jedem Konto steht da, zu welchen Wachen und Verbänden es gehört. Du siehst auch, ob es Administration der Instanz ist und wann es sich zuletzt angemeldet hat.',
             columnsText: 'Die Spalten Passwort, Passkeys und Zweiter Faktor zeigen, womit sich das Konto anmeldet. Steht beim Passwort „Einmalpasswort", wartet ein Einmalpasswort darauf, ersetzt zu werden.',
+            confirmedText: 'Die Spalte „Adresse bestätigt" zeigt, ob die Person ihre E-Mail-Adresse schon bestätigt hat. Ein Konto ohne eigene Adresse hat dort keinen Wert, denn es kann nichts bestätigen.',
             howTo: 'Wie benutze ich das?',
             searchText: 'Tipp oben einen Teil des Namens, der Adresse oder des Benutzernamens ein. Die Liste zeigt dann nur passende Konten. Unter der Liste blätterst du mit „Zurück" und „Weiter" durch die Seiten.',
             openText: 'Klick auf eine Zeile, um das Konto zu öffnen. Dort siehst du alle Angaben und darunter die Aktionen.',
+            filterTitle: 'Filtern und sortieren',
+            filterText: 'Über die Spaltenköpfe filterst und sortierst du die Liste. Die Filter gelten für alle Konten der Instanz, nicht nur für die Seite, die du gerade siehst. Die Zahl unter der Liste zählt nur die Konten, die zum Filter passen.',
+            sortText: 'Sortieren kannst du nach Name, letzter Anmeldung und Passkeys. Name und Benutzername haben keinen Filter, dafür ist die Suche oben da.',
+            emptyText: 'Manche Filter bieten zusätzlich „Kein Wert (leer)" an. Bei Wachen und Verbänden findest du damit Konten, die nirgends dabei sind. Bei der letzten Anmeldung findest du Konten, die sich noch nie angemeldet haben. Bei „Adresse bestätigt" findest du Konten ohne eigene Adresse.',
+            linkText: 'Die Adresse der Seite merkt sich die Filter. Ein Lesezeichen oder ein geteilter Link öffnet die Liste genau so gefiltert. Die Karte „Unbestätigte Konten" auf der Übersicht nutzt das und zeigt dir gleich alle Konten mit unbestätigter Adresse.',
             exampleTitle: 'So sieht die Liste aus',
             sampleSearch: 'weber',
             actionsTitle: 'Was du mit einem Konto tun kannst',
+            setupMailText: 'Ist ein Konto noch nicht fertig, steht bei den Aktionen ganz oben ein eigener Knopf. Hat das Konto noch kein eigenes Passwort, heißt er „Einladung erneut senden". Die Person bekommt dann einen neuen Link, mit dem sie ein Passwort wählt.',
+            confirmationMailText: 'Hat das Konto ein Passwort, aber die Adresse ist noch nicht bestätigt, heißt der Knopf „Bestätigungsmail erneut senden". Die Mail bringt einen neuen Link zum Bestätigen. Bei einem fertigen Konto gibt es den Knopf nicht.',
+            setupMailOutcomeText: 'Danach steht oben, was passiert ist: Die Einladung ist verschickt, die Bestätigungsmail ist verschickt, oder die Adresse ist gleich als bestätigt markiert. Das Letzte passiert, wenn deine Instanz keine E-Mails senden kann.',
             oneTimePasswordText: '„Einmalpasswort erstellen" ersetzt das Passwort durch ein neues, das Ember auswürfelt. Das hilft, wenn eine Person keinen Link per Mail bekommen kann. Alle Sitzungen des Kontos enden, und beim ersten Anmelden wählt die Person ein eigenes Passwort.',
             resetText: '„2FA zurücksetzen" entfernt alle zweiten Faktoren, vertrauten Geräte und Sitzungen des Kontos. Beim nächsten Anmelden richtet die Person ihren zweiten Faktor neu ein.',
             retireText: '„Passwort stilllegen" schaltet die Anmeldung mit Passwort ab. Das geht nur, wenn sich das Konto schon einmal mit einem Passkey angemeldet hat.',

@@ -6,7 +6,7 @@
 # builds the distribution once and hands it over, so this image only has to start it.
 #
 # Build the distribution first: ./gradlew installDist -x test
-FROM eclipse-temurin:25-alpine
+FROM public.ecr.aws/docker/library/eclipse-temurin:25-alpine
 
 ENV DOCKER=true
 

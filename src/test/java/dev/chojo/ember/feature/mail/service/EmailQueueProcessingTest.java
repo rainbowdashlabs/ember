@@ -11,6 +11,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
+import dev.chojo.ember.feature.mail.entity.MailFailureReason;
 import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository.QueuedEmail;
@@ -133,7 +134,7 @@ class EmailQueueProcessingTest {
         runQueue();
 
         verify(queue).waitUntil(11, LocalDate.now().plusDays(1));
-        verify(queue, never()).markFailed(anyInt());
+        verify(queue, never()).markFailed(anyInt(), any());
         assertEquals(0, relay.getReceivedMessages().length);
     }
 
@@ -144,7 +145,7 @@ class EmailQueueProcessingTest {
 
         runQueue();
 
-        verify(queue).markFailed(11);
+        verify(queue).markFailed(11, MailFailureReason.NO_PROVIDER);
         verify(queue, never()).waitUntil(anyInt(), any());
     }
 

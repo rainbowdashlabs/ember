@@ -125,7 +125,7 @@ public enum SystemRefusal implements Refusal {
     PROBLEM_REPORT_PICTURE_NOT_HERE(
             29, HttpStatus.NOT_FOUND, "The picture that went with that report is not here any more"),
 
-    /** A problem in the instance list acknowledged after it had already gone from it. */
+    /** A problem resolved, muted or deleted after it had already gone from the problem log. */
     PROBLEM_NOT_HERE(30, HttpStatus.NOT_FOUND, "That problem is not here any more"),
 
     /**
@@ -242,7 +242,10 @@ public enum SystemRefusal implements Refusal {
 
     /** A share of the instance's mail providers for stations that is no percentage. */
     INSTANCE_MAIL_SHARE_OUT_OF_RANGE(
-            58, HttpStatus.BAD_REQUEST, "The stations' share is a percentage from 0 to 100, so nothing was saved");
+            58, HttpStatus.BAD_REQUEST, "The stations' share is a percentage from 0 to 100, so nothing was saved"),
+
+    /** The instance statistics asked for over a window of time they are not kept for. */
+    STATISTICS_WINDOW_UNKNOWN(59, HttpStatus.BAD_REQUEST, "The statistics are not shown over that span of time");
 
     private final Definition definition;
 

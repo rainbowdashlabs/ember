@@ -6,15 +6,16 @@
 package dev.chojo.ember.feature.beacon.service;
 
 import dev.chojo.ember.api.refusal.BeaconRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.feature.beacon.entity.BeaconFault;
 import dev.chojo.ember.feature.beacon.entity.BeaconMetricsRow;
 import dev.chojo.ember.feature.beacon.entity.BeaconPayloads;
+import dev.chojo.ember.feature.beacon.entity.BeaconProblemContext;
 import dev.chojo.ember.feature.beacon.entity.BeaconReport;
 import dev.chojo.ember.feature.beacon.repository.BeaconReadRepository;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.system.entity.ProblemReport;
-import dev.chojo.ember.feature.system.service.ProblemLogAppender;
+import dev.chojo.ember.feature.system.entity.StoredProblem;
+import dev.chojo.ember.feature.system.repository.ProblemLogRepository;
 import dev.chojo.ember.feature.system.service.ProblemReportScreenshotService;
 import dev.chojo.ember.feature.system.service.ProblemReportService;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
@@ -24,7 +25,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.function.Supplier;
+import java.util.Optional;
 
 /**
  * What an operator does with their own beacon: look at what would be sent and send it, and, where
@@ -43,7 +44,7 @@ public class BeaconAdminService {
     private final BeaconReadRepository collected;
     private final ProblemReportService problemReports;
     private final ProblemReportScreenshotService pictures;
-    private final Supplier<ProblemLogAppender> problemLog;
+    private final ProblemLogRepository problemLog;
 
     @Inject
     public BeaconAdminService(
@@ -53,24 +54,8 @@ public class BeaconAdminService {
             UpdateCheckService updates,
             BeaconReadRepository collected,
             ProblemReportService problemReports,
-            ProblemReportScreenshotService pictures) {
-        this(config, reports, metrics, updates, collected, problemReports, pictures, ProblemLogAppender::instance);
-    }
-
-    /**
-     * The same, reading the fault log from the given source.
-     *
-     * @param problemLog the fault log, answering null where it is not running
-     */
-    BeaconAdminService(
-            BeaconSettings config,
-            BeaconReportService reports,
-            BeaconMetricsService metrics,
-            UpdateCheckService updates,
-            BeaconReadRepository collected,
-            ProblemReportService problemReports,
             ProblemReportScreenshotService pictures,
-            Supplier<ProblemLogAppender> problemLog) {
+            ProblemLogRepository problemLog) {
         this.config = config;
         this.reports = reports;
         this.metrics = metrics;
@@ -93,6 +78,12 @@ public class BeaconAdminService {
     public List<BeaconFault> faults(boolean includeAcknowledged) {
         requireBeacon();
         return collected.faults(includeAcknowledged);
+    }
+
+    /** The log lines instances sent with one gathered fault, the newest first. */
+    public List<BeaconProblemContext> faultContext(int faultId) {
+        requireBeacon();
+        return collected.problemContext(faultId);
     }
 
     /** Marks a fault as seen, or names the version that put it right. */
@@ -145,6 +136,7 @@ public class BeaconAdminService {
                 config.url(),
                 config.forwardProblems(),
                 config.forwardReports(),
+                config.forwardLogContext(),
                 config.reviewReportPictures(),
                 config.metricsEnabled(),
                 config.receiving(),
@@ -164,6 +156,7 @@ public class BeaconAdminService {
                 request.url(),
                 request.forwardProblems(),
                 request.forwardReports(),
+                request.forwardLogContext(),
                 request.reviewReportPictures(),
                 request.metricsEnabled(),
                 request.receiving(),
@@ -172,41 +165,41 @@ public class BeaconAdminService {
         return status();
     }
 
-    private ProblemLogAppender runningLog(Refusal whenNotRunning) {
-        var appender = problemLog.get();
-        if (appender == null) throw whenNotRunning.raise();
-        return appender;
+    private StoredProblem problem(long id) {
+        return problemLog.find(id).orElseThrow(BeaconRefusal.BEACON_PROBLEM_NOT_HERE::raise);
     }
 
-    private ProblemLogAppender.ProblemSnapshot problem(long id) {
-        return runningLog(BeaconRefusal.PROBLEM_LOG_NOT_RUNNING).getProblems(true).stream()
-                .filter(problem -> problem.id() == id)
-                .map(ProblemLogAppender.ProblemEntry::snapshot)
-                .findFirst()
-                .orElseThrow(BeaconRefusal.BEACON_PROBLEM_NOT_HERE::raise);
+    /**
+     * The exact payload one problem would travel as, shown before anything is sent: with the log lines
+     * around it where they are to go, redacted exactly as they would leave, and the occurrence they
+     * surround, which sending it names so that the lines shown are the lines sent.
+     */
+    public BeaconReportService.ProblemPreview previewProblem(long id, boolean withContext) {
+        return reports.previewFor(problem(id), updates.currentVersion(), withContext);
     }
 
-    /** The exact payload one problem would travel as, shown before anything is sent. */
-    public BeaconPayloads.ProblemPayload previewProblem(long id) {
-        return reports.payloadFor(problem(id), updates.currentVersion());
-    }
-
-    public SendResult sendProblem(long id) {
+    /**
+     * Sends one problem, with the lines around the occurrence its preview showed where one is named.
+     *
+     * @param contextAt the occurrence the previewed lines surround, or null to send no lines
+     */
+    public SendResult sendProblem(long id, @Nullable Instant contextAt) {
         requireEnabled();
-        return new SendResult(reports.send(problem(id), updates.currentVersion()) ? 1 : 0);
+        return new SendResult(reports.sendAsShown(problem(id), updates.currentVersion(), contextAt) ? 1 : 0);
     }
 
-    /** What the list's own action sends: the ticked entries, in one go. */
-    public SendResult sendProblems(List<Long> ids) {
+    /** What the list's own action sends: the ticked entries, in one go, all with their lines or none. */
+    public SendResult sendProblems(List<Long> ids, boolean withContext) {
         requireEnabled();
         if (ids == null || ids.isEmpty()) {
             throw BeaconRefusal.BEACON_NOTHING_CHOSEN_TO_SEND.raise();
         }
-        var chosen = runningLog(BeaconRefusal.PROBLEM_LOG_NOT_RUNNING_ON_SEND).getProblems(true).stream()
-                .filter(problem -> ids.contains(problem.id()))
-                .map(ProblemLogAppender.ProblemEntry::snapshot)
+        var chosen = ids.stream()
+                .distinct()
+                .map(problemLog::find)
+                .flatMap(Optional::stream)
                 .toList();
-        return new SendResult(reports.sendAll(chosen, updates.currentVersion()));
+        return new SendResult(reports.sendAll(chosen, updates.currentVersion(), withContext));
     }
 
     private ProblemReport report(int id) {
@@ -259,12 +252,14 @@ public class BeaconAdminService {
      * @param url         the beacon being reported to
      * @param receiving   whether this instance is itself a beacon
      * @param contactName a name a beacon may answer on, empty where none was given
+     * @param forwardLogContext whether a fault forwarded on its own takes the log lines around it along
      */
     public record BeaconStatus(
             boolean enabled,
             String url,
             boolean forwardProblems,
             boolean forwardReports,
+            boolean forwardLogContext,
             boolean reviewReportPictures,
             boolean metricsEnabled,
             boolean receiving,
@@ -282,6 +277,7 @@ public class BeaconAdminService {
             String url,
             boolean forwardProblems,
             boolean forwardReports,
+            boolean forwardLogContext,
             boolean reviewReportPictures,
             boolean metricsEnabled,
             boolean receiving,

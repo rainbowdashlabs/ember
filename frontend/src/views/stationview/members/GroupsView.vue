@@ -56,12 +56,17 @@ const port: GroupsPort = {
     color: patch.color ?? null,
     rules: rules.payload(),
   })),
-  updateGroup: (groupId, patch) => rules.guarded(() => memberGroups.updateGroup(groupId, {
-    ...patch,
-    color: patch.color ?? null,
-    rules: rules.payload(),
-    removeNonMatching: rules.removeNonMatching.value,
-  })),
+  updateGroup: async (groupId, patch) => {
+    const removing = rules.removesMisfits()
+    const written = await rules.guarded(() => memberGroups.updateGroup(groupId, {
+      ...patch,
+      color: patch.color ?? null,
+      rules: rules.payload(),
+      removeNonMatching: removing,
+    }))
+    if (removing && selectedGroup.value?.id === groupId) void selectGroup(selectedGroup.value)
+    return written
+  },
   deleteGroup: (groupId) => memberGroups.deleteGroup(groupId),
   setMembers: (groupId, memberIds) => memberGroups.setGroupMembers(groupId, {memberIds}),
   setRoles: (groupId, roleIds) => memberGroups.setGroupPermissions(groupId, {permissionIds: roleIds}),
@@ -126,10 +131,24 @@ function createGroup() {
   openCreateGroup()
 }
 
-function editGroup(group: GroupRow) {
-  rules.load(group)
+/**
+ * Opens a group's form and fetches its members, so the form can say who would not fit the types as
+ * they are ticked. They are always fetched, because the selected group's list may still be loading
+ * or belong to the group selected before. Without them the server's refusal still names the misfits.
+ */
+async function editGroup(group: GroupRow) {
+  const opening = rules.load(group)
   openEditGroup(group)
+  try {
+    rules.holding(await memberGroups.getGroupMembers(group.id), opening)
+  } catch {
+    return
+  }
 }
+
+const saveLabel = computed(() => rules.misfits.value.length > 0
+    ? t('memberGroups.rules.removeMisfitsAndSave', {count: rules.misfits.value.length})
+    : undefined)
 
 async function removeMisfitsAndSave() {
   rules.conflict.value = null
@@ -179,9 +198,9 @@ const {
       </div>
 
       <GroupFormModal v-model="showGroupModal" v-model:name="groupName" v-model:color="groupColor"
-                      :is-edit="!!editingGroup" :saving="groupSaving" @save="saveGroup">
+                      :is-edit="!!editingGroup" :saving="groupSaving" :save-label="saveLabel" @save="saveGroup">
         <GroupRulesFields v-model:set-id="rules.groupSetId.value" v-model:user-types="rules.userTypes.value"
-                          :sets="groupSets.sets.value"/>
+                          :sets="groupSets.sets.value" :misfits="rules.misfits.value"/>
       </GroupFormModal>
       <GroupConflictModal :conflict="rules.conflict.value" @close="rules.conflict.value = null"
                           @remove-and-save="removeMisfitsAndSave"/>

@@ -10,9 +10,11 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListVisitor;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -651,5 +653,72 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
 
         assertTrue(updated.sendsMail());
         assertTrue(waitingListRepo.findById(list.id()).orElseThrow().sendsMail());
+    }
+
+    /** Who picked a date of an appointment is listed for that date and for no other, and only while invited and coming. */
+    @Test
+    void theVisitorsOfADateAreThoseComingToIt() {
+        var list = waitingListRepo.create(
+                stationId, "Visitor List", "", null, 180, null, null, 5, false, true, null, null);
+        var event = eventRepo.create(
+                stationId,
+                "Übungsabend",
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.parse("2026-06-02T18:00:00Z"),
+                Instant.parse("2026-06-02T20:00:00Z"),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        LocalDate first = LocalDate.of(2026, 6, 2);
+        LocalDate second = LocalDate.of(2026, 6, 9);
+        var coming = invitedTo(list.id(), "Mia", event.id(), first, second);
+        var otherDate = invitedTo(list.id(), "Ben", event.id(), first, second);
+        var declining = invitedTo(list.id(), "Lea", event.id(), first, second);
+        waitingListRepo.updateInvitationAnswer(coming.id(), 1, WaitingListAnswer.COMING, "", 0);
+        waitingListRepo.updateInvitationAnswer(otherDate.id(), 1, WaitingListAnswer.COMING, "", 1);
+        waitingListRepo.updateInvitationAnswer(declining.id(), 1, WaitingListAnswer.DATE_DOES_NOT_SUIT, "", null);
+
+        var onFirst = waitingListRepo.visitors(stationId, event.id(), first);
+        var onSecond = waitingListRepo.visitors(stationId, event.id(), second);
+
+        assertEquals(
+                List.of("Mia"),
+                onFirst.stream().map(WaitingListVisitor::firstname).toList());
+        assertEquals(LocalTime.of(17, 45), onFirst.getFirst().arrivalTime());
+        assertEquals("Visitor List", onFirst.getFirst().listName());
+        assertEquals(
+                List.of("Ben"),
+                onSecond.stream().map(WaitingListVisitor::firstname).toList());
+        assertTrue(
+                waitingListRepo.visitors(stationId + 100_000, event.id(), first).isEmpty(),
+                "another station sees none");
+
+        waitingListRepo.updateEntryStatus(coming.id(), WaitingListEntryStatus.TESTING);
+        assertTrue(
+                waitingListRepo.visitors(stationId, event.id(), first).isEmpty(),
+                "once in the trial, no longer a visitor");
+        eventRepo.delete(event.id());
+    }
+
+    private WaitingListEntry invitedTo(int listId, String name, int eventId, LocalDate first, LocalDate second) {
+        var entry = waitingListRepo.createEntry(
+                listId, name, "Muster", "", "test@test.com", UUID.randomUUID().toString(), "", null);
+        waitingListRepo.updateEntryStatus(entry.id(), WaitingListEntryStatus.INVITED);
+        waitingListRepo.updateInvitation(
+                entry.id(),
+                new WaitingListInvitation(
+                        "",
+                        List.of(
+                                new WaitingListInvitation.OfferedDate(0, eventId, first, LocalTime.of(17, 45)),
+                                new WaitingListInvitation.OfferedDate(1, eventId, second, null))));
+        return entry;
     }
 }

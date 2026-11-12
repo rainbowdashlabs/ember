@@ -10,7 +10,6 @@ import {
 const BEACON_NOT_RECEIVING = 'Diese Instanz ist kein Beacon'
 const BEACON_REPORT_NOT_HERE = 'Diese Meldung gibt es nicht mehr'
 const BEACON_ID_NOT_A_NUMBER = 'Das benennt nichts, was ein Beacon hält'
-const PROBLEM_LOG_NOT_RUNNING = 'Hier wird nichts über Probleme mitgeschrieben'
 const BEACON_PROTOCOL_TOO_NEW = 'Dieses Beacon spricht diese Version des Protokolls noch nicht'
 
 /** What the refusals of the beacon say in German, keyed by their `BC-` code. */
@@ -23,10 +22,8 @@ export default {
     'BC-006': PICTURE_NOT_HERE,
     'BC-007': BEACON_ID_NOT_A_NUMBER,
     'BC-008': BEACON_ID_NOT_A_NUMBER,
-    'BC-009': PROBLEM_LOG_NOT_RUNNING,
     'BC-010': 'Dieses Problem gibt es nicht mehr',
     'BC-011': 'Wähle mindestens ein Problem zum Senden aus, es wurde nichts gesendet',
-    'BC-012': PROBLEM_LOG_NOT_RUNNING,
     'BC-013': BEACON_REPORT_NOT_HERE,
     'BC-014': 'Diese Instanz meldet an kein Beacon, es wurde nichts gesendet',
     'BC-015': BEACON_NOT_RECEIVING,

@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.system.service.ChangelogAnnouncer;
 import dev.chojo.ember.feature.system.service.DataInitializer;
 import dev.chojo.ember.feature.system.service.DemoService;
 import dev.chojo.ember.feature.system.service.PagePictureRedrawService;
+import dev.chojo.ember.feature.system.service.ProblemLogFlusher;
 import dev.chojo.ember.feature.system.service.SearchIndexRebuildService;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
 import dev.chojo.ember.lifecycle.Lifecycle;
@@ -107,7 +108,8 @@ public class Bootstrapper {
         injector.getInstance(ConsentService.class).initialize();
 
         var updateCheck = injector.getInstance(UpdateCheckService.class);
-        injector.getInstance(BeaconReportService.class).startForwarding(updateCheck.currentVersion());
+        injector.getInstance(BeaconReportService.class)
+                .startForwarding(injector.getInstance(ProblemLogFlusher.class), updateCheck.currentVersion());
 
         injector.getInstance(ChangelogAnnouncer.class).announce();
 

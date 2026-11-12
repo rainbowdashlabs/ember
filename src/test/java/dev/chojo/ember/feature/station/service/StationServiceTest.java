@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
+import dev.chojo.ember.feature.station.repository.StationOverviewRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
@@ -27,9 +28,13 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
@@ -242,6 +247,35 @@ class StationServiceTest extends RepositoryTestBase {
         accountRepo.delete(account.id());
     }
 
+    /**
+     * A manager who signs in with a passkey alone has no password but finished their setup, and
+     * counts as ready once the address is confirmed, as the instance's station list counts them.
+     */
+    @Test
+    @Order(38)
+    void aManagerWithoutPasswordWhoFinishedTheSetupIsReady() {
+        Account account = accountRepo.create("svc-passkey@test.com", "Passkey", "Manager");
+        var member = stationMemberRepo.create(stationId, account.id());
+        var managerRole = stationMemberRepo
+                .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
+                .orElseThrow();
+        stationMemberRepo.grantPermission(member.id(), managerRole.id());
+        try {
+            assertFalse(service.findManagerInfo(stationId).orElseThrow().accountReady());
+
+            accountRepo.markSetupCompleted(account.id());
+            assertFalse(
+                    service.findManagerInfo(stationId).orElseThrow().accountReady(),
+                    "an address not yet confirmed keeps the account from being ready");
+
+            accountRepo.setEmailVerified(account.id());
+            assertTrue(service.findManagerInfo(stationId).orElseThrow().accountReady());
+        } finally {
+            stationMemberRepo.delete(member.id());
+            accountRepo.delete(account.id());
+        }
+    }
+
     @Test
     @Order(39)
     void transferOwnershipSuccess() {
@@ -394,6 +428,9 @@ class StationServiceTest extends RepositoryTestBase {
                 .orElseThrow();
 
         service.updateWithManager(station.id(), "Wache Übergabe", first.email());
+        query("UPDATE station SET waiting_since = now() - INTERVAL '30 days' WHERE id = :id;")
+                .single(call().bind("id", station.id()))
+                .update();
         int firstMemberId = stationMemberRepo
                 .findByStationAndAccount(station.id(), first.id())
                 .orElseThrow()
@@ -407,6 +444,12 @@ class StationServiceTest extends RepositoryTestBase {
 
         assertEquals(
                 secondMemberId, stationRepo.findById(station.id()).orElseThrow().ownerMemberId());
+        Instant waitingSince =
+                new StationOverviewRepository().find(station.id()).orElseThrow().waitingSince();
+        assertNotNull(waitingSince);
+        assertTrue(
+                waitingSince.isAfter(Instant.now().minus(Duration.ofDays(1))),
+                "naming a new manager starts the wait afresh");
         assertEquals(
                 second.email(),
                 service.findManagerInfo(station.id()).orElseThrow().email());

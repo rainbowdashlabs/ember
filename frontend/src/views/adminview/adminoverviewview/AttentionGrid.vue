@@ -17,16 +17,16 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const cards = computed<AttentionCardSpec[]>(() => [
-  {key: 'emailFailed', icon: ['fas', 'envelope'], label: t('adminOverview.cards.emailFailed'), count: props.overview.emailFailed, critAt: 1, routeName: 'admin-mailing'},
-  {key: 'emailStuck', icon: ['fas', 'hourglass-half'], label: t('adminOverview.cards.emailStuck'), count: props.overview.emailStuckSending, critAt: 1, routeName: 'admin-mailing'},
-  {key: 'emailPending', icon: ['fas', 'inbox'], label: t('adminOverview.cards.emailPending'), count: props.overview.emailPending, warnAt: 50, critAt: 500, routeName: 'admin-mailing'},
-  {key: 'applicationsPending', icon: ['fas', 'clipboard-check'], label: t('adminOverview.cards.applicationsPending'), count: props.overview.stationApplicationsPending, warnAt: 1, routeName: 'admin-station-applications'},
-  {key: 'stationsSetupPending', icon: ['fas', 'building'], label: t('adminOverview.cards.stationsSetupPending'), count: props.overview.stationsSetupPending, warnAt: 1, routeName: 'admin-stations'},
-  {key: 'accountsUnverified', icon: ['fas', 'user-clock'], label: t('adminOverview.cards.accountsUnverified'), count: props.overview.accountsUnverified, warnAt: 5, critAt: 50},
-  {key: 'federationPending', icon: ['fas', 'handshake'], label: t('adminOverview.cards.federationPending'), count: props.overview.federationPartnersPending, warnAt: 1},
-  {key: 'discoveryUnreachable', icon: ['fas', 'satellite-dish'], label: t('adminOverview.cards.discoveryUnreachable'), count: props.overview.discoveryPeersUnreachable, warnAt: 1, routeName: 'admin-discovery'},
-  {key: 'problemReports', icon: ['fas', 'triangle-exclamation'], label: t('adminOverview.cards.problemReports'), count: props.overview.problemReportsOpen, warnAt: 1, critAt: 10, routeName: 'admin-problem-reports'},
-  {key: 'signingKeysLocked', icon: ['fas', 'file-signature'], label: t('adminOverview.cards.signingKeysLocked'), count: props.overview.signingKeysLocked, critAt: 1, routeName: 'admin-security-signing-keys'},
+  {key: 'emailFailed', icon: ['fas', 'envelope'], label: t('adminOverview.cards.emailFailed'), count: props.overview.emailFailed, critAt: 1, to: {name: 'admin-mail-log', hash: '#failed'}},
+  {key: 'emailStuck', icon: ['fas', 'hourglass-half'], label: t('adminOverview.cards.emailStuck'), count: props.overview.emailStuckSending, critAt: 1, to: {name: 'admin-mail-log', hash: '#stuck'}},
+  {key: 'emailPending', icon: ['fas', 'inbox'], label: t('adminOverview.cards.emailPending'), count: props.overview.emailPending, warnAt: 50, critAt: 500, to: {name: 'admin-mail-log'}},
+  {key: 'applicationsPending', icon: ['fas', 'clipboard-check'], label: t('adminOverview.cards.applicationsPending'), count: props.overview.stationApplicationsPending, warnAt: 1, to: {name: 'admin-station-applications'}},
+  {key: 'stationsSetupPending', icon: ['fas', 'building'], label: t('adminOverview.cards.stationsSetupPending'), count: props.overview.stationsSetupPending, warnAt: 1, to: {name: 'admin-stations', query: {state: 'waiting'}}},
+  {key: 'accountsUnverified', icon: ['fas', 'user-clock'], label: t('adminOverview.cards.accountsUnverified'), count: props.overview.accountsUnverified, warnAt: 5, critAt: 50, to: {name: 'admin-accounts', query: {confirmed: 'false'}}},
+  {key: 'federationPending', icon: ['fas', 'handshake'], label: t('adminOverview.cards.federationPending'), count: props.overview.federationPartnersPending, warnAt: 1, to: {name: 'admin-statistics', hash: '#federation'}},
+  {key: 'discoveryUnreachable', icon: ['fas', 'satellite-dish'], label: t('adminOverview.cards.discoveryUnreachable'), count: props.overview.discoveryPeersUnreachable, warnAt: 1, to: {name: 'admin-discovery'}},
+  {key: 'problemReports', icon: ['fas', 'triangle-exclamation'], label: t('adminOverview.cards.problemReports'), count: props.overview.problemReportsOpen, warnAt: 1, critAt: 10, to: {name: 'admin-problem-reports'}},
+  {key: 'signingKeysLocked', icon: ['fas', 'file-signature'], label: t('adminOverview.cards.signingKeysLocked'), count: props.overview.signingKeysLocked, critAt: 1, to: {name: 'admin-security-signing-keys'}},
 ])
 </script>
 
@@ -42,7 +42,7 @@ const cards = computed<AttentionCardSpec[]>(() => [
           :count="card.count"
           :warn-at="card.warnAt"
           :crit-at="card.critAt"
-          :route-name="card.routeName"
+          :to="card.to"
       />
     </div>
   </div>

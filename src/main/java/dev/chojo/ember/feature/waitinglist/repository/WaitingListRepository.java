@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListVisitor;
 import dev.chojo.ember.feature.waitinglist.entity.WaitlistVerificationToken;
 import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.Transactions;
@@ -27,6 +28,8 @@ import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -92,6 +95,46 @@ public class WaitingListRepository {
                AND (waiting_list_entry.joined_at IS NULL OR trial_session.start_time < waiting_list_entry.joined_at)
                AND (waiting_list_entry.withdrawn_at IS NULL
                     OR trial_session.start_time < waiting_list_entry.withdrawn_at)) AS attendance_count""";
+
+    /**
+     * Who from the station's waiting lists said they come to an appointment on a date: invited
+     * entries whose answer is coming, by the date their answer picked.
+     *
+     * @param stationId the station
+     * @param eventId   the appointment
+     * @param date      the date of it
+     * @return the visitors, by arrival time and name
+     */
+    public List<WaitingListVisitor> visitors(int stationId, int eventId, LocalDate date) {
+        return query("""
+                        SELECT entry.id, entry.list_id, list.name AS list_name, entry.firstname, entry.lastname,
+                               invitation_option.event_date::TEXT AS event_date,
+                               invitation_option.arrival_time::TEXT AS arrival_time
+                        FROM waiting_list_entry entry
+                        JOIN waiting_list list ON list.id = entry.list_id
+                        JOIN waiting_list_invitation_option invitation_option
+                             ON invitation_option.entry_id = entry.id
+                            AND invitation_option.position = entry.invitation_answer_position
+                        WHERE list.station_id = :station
+                          AND entry.status = 'INVITED'
+                          AND entry.invitation_answer = 'COMING'
+                          AND invitation_option.event_id = :event
+                          AND invitation_option.event_date = :date::DATE
+                        ORDER BY invitation_option.arrival_time NULLS LAST, entry.lastname, entry.firstname;""")
+                .single(call().bind("station", stationId).bind("event", eventId).bind("date", date.toString()))
+                .map(row -> {
+                    String arrival = row.getString("arrival_time");
+                    return new WaitingListVisitor(
+                            row.getInt("id"),
+                            row.getInt("list_id"),
+                            row.getString("list_name"),
+                            row.getString("firstname"),
+                            row.getString("lastname"),
+                            LocalDate.parse(row.getString("event_date")),
+                            arrival == null ? null : LocalTime.parse(arrival));
+                })
+                .all();
+    }
 
     /** An entry as it is read, which is the only place the trial dates are counted. */
     private static final String WAITING_LIST_ENTRY_READ_COLUMNS =

@@ -48,13 +48,14 @@ class SystemMonitoringRoutesTest {
     @Test
     void theCountsAnswerAnAdministrator() {
         var counts = mock(MonitoringCountService.class);
-        when(counts.counts()).thenReturn(new MonitoringCounts(1, 2, true, 3, 4));
+        when(counts.counts()).thenReturn(new MonitoringCounts(1, 2, true, 3, 4, 5));
         var harness = RouteHarness.serving(new AdminMonitoringCountRoutes(counts));
 
-        var answer = harness.request(
-                client -> client.get(PREFIX + "/admin/monitoring-counts", harness.as(TestSessions.administrator())));
+        var answer = json(harness.request(
+                client -> client.get(PREFIX + "/admin/monitoring-counts", harness.as(TestSessions.administrator()))));
 
-        assertEquals(4, json(answer).path("beaconReports").asInt());
+        assertEquals(4, answer.path("beaconReports").asInt());
+        assertEquals(5, answer.path("failedMails").asInt());
     }
 
     @Test

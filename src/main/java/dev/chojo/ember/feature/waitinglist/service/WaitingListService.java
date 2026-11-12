@@ -49,6 +49,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListField;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListVisitor;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import dev.chojo.ember.lifecycle.Schedule;
 import dev.chojo.ember.lifecycle.ScheduledTask;
@@ -439,6 +440,18 @@ public class WaitingListService implements TaskSource {
                             log.info("Confirmed interest for waiting-list entry {}", entry.id());
                         },
                         () -> log.warn("Interest confirmation skipped: no waiting-list entry for token"));
+    }
+
+    /**
+     * Who from the station's waiting lists said they come to an appointment on a date.
+     *
+     * @param stationId the station
+     * @param eventId   the appointment
+     * @param date      the date of it
+     * @return the visitors
+     */
+    public List<WaitingListVisitor> visitors(int stationId, int eventId, LocalDate date) {
+        return repository.visitors(stationId, eventId, date);
     }
 
     public List<WaitingListEntry> findEntriesByList(int listId) {

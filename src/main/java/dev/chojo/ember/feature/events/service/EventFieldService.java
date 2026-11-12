@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceTemplateField;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
+import dev.chojo.ember.feature.events.entity.SelfRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -33,6 +34,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -235,6 +237,66 @@ public class EventFieldService {
     }
 
     /**
+     * The questions of an appointment as one reader sees them, each member question that takes
+     * self-registration telling whether this reader may put themselves in.
+     *
+     * <p>The state is worked out by the same checks {@link #toggleSelfRegistration} refuses with, so
+     * a button offered from it is one the toggle accepts, except where a single slot is already
+     * taken, which the reader sees in the answer itself.
+     *
+     * @param date         the occurrence asked about, or null for the appointment itself
+     * @param memberId     the reader
+     * @param runsTheEvent whether the reader keeps the appointment's list, for whom the closing date
+     *                     does not count
+     * @return the questions in their order
+     */
+    public List<AppointmentField> findByEventFor(
+            int eventId, @Nullable LocalDate date, int memberId, boolean runsTheEvent) {
+        var fields = findByEvent(eventId, date);
+        if (fields.stream().noneMatch(EventFieldService::takesSelfRegistration)) return fields;
+        boolean closed = closedFor(eventId, runsTheEvent);
+        return fields.stream()
+                .map(field -> takesSelfRegistration(field)
+                        ? field.withSelfRegistration(selfRegistrationOf(field, memberId, closed))
+                        : field)
+                .toList();
+    }
+
+    /**
+     * One question of an appointment as one reader sees it, the way {@link #findByEventFor} hands out
+     * the whole list.
+     *
+     * <p>For every answer that goes back to a screen showing the self-registration button, so the
+     * button stays as honest after a click as it was on loading.
+     *
+     * @param memberId     the reader
+     * @param runsTheEvent whether the reader keeps the appointment's list
+     * @return the question, with the reader's state where it takes self-registration
+     */
+    public AppointmentField asSeenBy(AppointmentField field, int memberId, boolean runsTheEvent) {
+        if (!takesSelfRegistration(field)) return field;
+        return field.withSelfRegistration(
+                selfRegistrationOf(field, memberId, closedFor(field.eventId(), runsTheEvent)));
+    }
+
+    private boolean closedFor(int eventId, boolean runsTheEvent) {
+        return !runsTheEvent
+                && eventRepository
+                        .findById(eventId)
+                        .map(event -> !stillTakingPeople(event))
+                        .orElse(false);
+    }
+
+    private SelfRegistration selfRegistrationOf(AppointmentField field, int memberId, boolean closed) {
+        if (eligibilityProblem(field, memberId).isPresent()) return SelfRegistration.NOT_ELIGIBLE;
+        return closed ? SelfRegistration.CLOSED : SelfRegistration.OPEN;
+    }
+
+    private static boolean takesSelfRegistration(AppointmentField field) {
+        return field.fieldType().namesMembers() && field.config().selfRegistration();
+    }
+
+    /**
      * Toggles the given member in or out of a member question whose {@code selfRegistration} flag is
      * set.
      *
@@ -338,13 +400,21 @@ public class EventFieldService {
      *                         narrowed to
      */
     private void requireEligible(AppointmentField field, int memberId) {
-        QuestionCheck.answerIfGiven(field.question(), QuestionValues.formatMember(memberId), eligibility)
-                .ifPresent(problem -> {
-                    if (problem.code() == QuestionProblem.Code.NOT_ELIGIBLE) {
-                        throw EventRefusal.APPOINTMENT_FIELD_NOT_OPEN_TO_YOU.raise(problem.question());
-                    }
-                    throw EventRefusal.APPOINTMENT_FIELD_NARROWING_LOST.raise(problem.question());
-                });
+        eligibilityProblem(field, memberId).ifPresent(problem -> {
+            if (problem.code() == QuestionProblem.Code.NOT_ELIGIBLE) {
+                throw EventRefusal.APPOINTMENT_FIELD_NOT_OPEN_TO_YOU.raise(problem.question());
+            }
+            throw EventRefusal.APPOINTMENT_FIELD_NARROWING_LOST.raise(problem.question());
+        });
+    }
+
+    /**
+     * What keeps the member out of the question, measured the way an answer naming them would be.
+     *
+     * @return the problem, or empty where they may stand in it
+     */
+    private Optional<QuestionProblem> eligibilityProblem(AppointmentField field, int memberId) {
+        return QuestionCheck.answerIfGiven(field.question(), QuestionValues.formatMember(memberId), eligibility);
     }
 
     private static LocalDate requiredDay(@Nullable LocalDate date) {
@@ -366,10 +436,15 @@ public class EventFieldService {
         var event = eventRepository
                 .findById(eventId)
                 .orElseThrow(EventRefusal.APPOINTMENT_NOT_HERE_FOR_SELF_REGISTRATION::raise);
-        Instant deadline = event.registrationDeadline();
-        if (!event.requiresRegistration() || deadline == null) return;
-        if (Instant.now().isAfter(deadline)) {
+        if (!stillTakingPeople(event)) {
             throw EventRefusal.REGISTRATION_CLOSED_ON_SELF_REGISTRATION.raise();
         }
+    }
+
+    /** Whether the appointment still takes people, which only a passed closing date ends. */
+    private static boolean stillTakingPeople(StationEvent event) {
+        Instant deadline = event.registrationDeadline();
+        if (!event.requiresRegistration() || deadline == null) return true;
+        return !Instant.now().isAfter(deadline);
     }
 }

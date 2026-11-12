@@ -21,14 +21,16 @@ import { isDateKind, type FilterChoice, type FilterKind } from './columnFilter'
  * The filter of one column, in the body its type calls for: a list of values to tick, a date
  * range with its tree, a birth date with its ages, an expiry date with its states, or a number range.
  */
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   columnLabel: string
   /** What the column holds, each with the words the reader ticks. Dates and numbers pass raw values. */
   choices: FilterChoice[]
   selectedValues: Set<string>
   includeEmpty: boolean
   kind: FilterKind
-}>()
+  /** Whether the choice of empty cells is offered, which a filter the server reads may not take. */
+  offersEmpty?: boolean
+}>(), {offersEmpty: true})
 
 const emit = defineEmits<{
   apply: [selected: Set<string>, includeEmpty: boolean]
@@ -69,7 +71,7 @@ function selectNone() {
 }
 
 function apply() {
-  emit('apply', localSelected.value, localIncludeEmpty.value)
+  emit('apply', localSelected.value, props.offersEmpty && localIncludeEmpty.value)
   model.value = false
 }
 </script>
@@ -80,7 +82,7 @@ function apply() {
       <SubHeader>{{ t('tableFilter.by', { column: columnLabel }) }}</SubHeader>
 
       <template v-if="kind !== 'values'">
-        <FieldLabel inline class="cursor-pointer px-2 py-1 rounded hover:bg-bg-light-accent/50 dark:hover:bg-bg-dark-accent/50">
+        <FieldLabel v-if="offersEmpty" inline class="cursor-pointer px-2 py-1 rounded hover:bg-bg-light-accent/50 dark:hover:bg-bg-dark-accent/50">
           <CheckboxInput v-model="localIncludeEmpty"/>
           <span class="italic text-(--text-muted)">{{ t('tableFilter.empty') }}</span>
         </FieldLabel>
@@ -96,7 +98,7 @@ function apply() {
         </ButtonRow>
 
         <div class="max-h-64 overflow-y-auto space-y-1 border rounded border-bg-light-accent dark:border-bg-dark-accent p-2">
-          <FieldLabel inline class="cursor-pointer dark:hover:bg-bg-dark-accent/50 hover:bg-bg-light-accent/50 px-2 py-1 rounded">
+          <FieldLabel v-if="offersEmpty" inline class="cursor-pointer dark:hover:bg-bg-dark-accent/50 hover:bg-bg-light-accent/50 px-2 py-1 rounded">
             <CheckboxInput v-model="localIncludeEmpty"/>
             <span class="italic text-(--text-muted)">{{ t('tableFilter.empty') }}</span>
           </FieldLabel>

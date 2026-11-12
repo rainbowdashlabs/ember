@@ -151,6 +151,14 @@ class MailRetryServiceTest extends RepositoryTestBase {
 
         assertEquals(MailRetryPolicy.Step.GIVE_UP, step);
         assertEquals("FAILED", statusOf("exhausted@retry.test"));
+        assertEquals(
+                "RETRIES_EXHAUSTED",
+                query("SELECT failure_reason FROM email_queue WHERE recipient = 'exhausted@retry.test';")
+                        .single(call())
+                        .map(row -> row.getString("failure_reason"))
+                        .first()
+                        .orElseThrow(),
+                "the mail keeps why the queue gave up on it");
         makeDue("exhausted@retry.test");
         assertFalse(claimable("exhausted@retry.test"), "a failed mail is never sent again by itself");
     }

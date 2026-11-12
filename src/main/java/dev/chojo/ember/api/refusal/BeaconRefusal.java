@@ -38,17 +38,11 @@ public enum BeaconRefusal implements Refusal {
     /** A problem addressed by something that is not a number. */
     BEACON_PROBLEM_ID_NOT_A_NUMBER(8, HttpStatus.BAD_REQUEST, Sentences.BEACON_ID_NOT_A_NUMBER),
 
-    /** A problem asked for on an instance that writes nothing down about problems. */
-    PROBLEM_LOG_NOT_RUNNING(9, HttpStatus.NOT_FOUND, Sentences.PROBLEM_LOG_NOT_RUNNING),
-
     /** A problem addressed by a number nothing written down here uses. */
     BEACON_PROBLEM_NOT_HERE(10, HttpStatus.NOT_FOUND, "That problem is not here any more"),
 
     /** A send of several problems that ticked none of them. */
     BEACON_NOTHING_CHOSEN_TO_SEND(11, HttpStatus.BAD_REQUEST, "Tick at least one problem to send, so nothing was sent"),
-
-    /** Several problems sent on an instance that writes nothing down about problems. */
-    PROBLEM_LOG_NOT_RUNNING_ON_SEND(12, HttpStatus.NOT_FOUND, Sentences.PROBLEM_LOG_NOT_RUNNING),
 
     /** A report addressed by a number nothing here uses. */
     BEACON_REPORT_NOT_HERE(13, HttpStatus.NOT_FOUND, Sentences.BEACON_REPORT_NOT_HERE),

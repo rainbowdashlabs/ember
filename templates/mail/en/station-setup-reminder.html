@@ -1,0 +1,7 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hello {{ name }},</h2>
+      <p>The station <strong>{{ stationName }}</strong> is still waiting to be set up. You are named as the person who manages it.</p>
+      <p>The setup walks through the essentials step by step: address, modules, groups, mail and the first invitations. It can be paused at any time and continued later.</p>
+      <div class="btn-wrap"><a class="btn" href="{{ url }}">Set up the station</a></div>
+{% endblock %}
