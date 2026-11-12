@@ -13,6 +13,7 @@ import LinkButton from '@/components/button/LinkButton.vue'
 import type {NotificationResponse, NotificationType} from '@/api/generated/schema'
 import {formatDate, formatDateTime} from '@/util/format'
 import {notificationMessageKey} from '@/util/notificationMessageKey'
+import {STATION_MODULE_OPTIONS} from '@/data/stationModules'
 
 const props = defineProps<{
   notification: NotificationResponse
@@ -111,6 +112,12 @@ function withReadableDates(params: Record<string, string>): Record<string, strin
   )
 }
 
+/** A module the notification names, by its name in the module list, or as it came where it names none. */
+function moduleLabel(name: string): string {
+  const option = STATION_MODULE_OPTIONS.find(candidate => candidate.value === name)
+  return option ? t(option.labelKey) : name
+}
+
 /**
  * The sentence for the notification.
  *
@@ -129,6 +136,9 @@ const message = computed(() => {
   }
   if (n.type === 'LENDING_STATUS_CHANGE' && params.status) {
     params.status = t(`dashboard.lendingStatus.${params.status}`)
+  }
+  if (n.type === 'CLUSTER_MODULE_DENIED' && params.module) {
+    params.module = moduleLabel(params.module)
   }
   if (n.type === 'EVENT_CHANGED' && params.changedParts) {
     params.changedParts = params.changedParts.split(',').map(part => t(`notification.changedPart.${part}`)).join(', ')

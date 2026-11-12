@@ -67,6 +67,10 @@ export function demoExpiryDates(): string[] {
 
 const ENABLED_MODULES: ReadonlySet<StationModule> = new Set<StationModule>([
   StationModule.INVENTORY,
+  StationModule.INVENTORY_MOVEMENTS,
+  StationModule.INVENTORY_LENDING,
+  StationModule.INVENTORY_SELF_CHECKS,
+  StationModule.INVENTORY_CHECKS,
   StationModule.NEWS,
   StationModule.EVENTS,
   StationModule.ATTENDANCE,
@@ -76,7 +80,10 @@ const ENABLED_MODULES: ReadonlySet<StationModule> = new Set<StationModule>([
   StationModule.DOCUMENTS,
 ])
 
-/** The modules a typical station has switched off: everything but the everyday ones above. */
+/**
+ * The modules a typical station has switched off: everything but the everyday ones above, procurement
+ * among them, so the help shows a part of the inventory switched off on its own.
+ */
 export function demoDisabledModules(): ReadonlySet<StationModule> {
   return new Set(STATION_MODULE_OPTIONS.map(option => option.value).filter(module => !ENABLED_MODULES.has(module)))
 }

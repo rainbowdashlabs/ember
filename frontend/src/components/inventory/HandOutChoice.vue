@@ -6,6 +6,8 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import RadioInput from '@/components/input/toggle/RadioInput.vue'
+import {StationModule} from '@/api/generated/schema'
+import {useSession} from '@/composables/useSession'
 
 /** Whether a piece goes over the counter now, or is written down as promised and tracked. */
 export type HandOutMode = 'NOW' | 'PLANNED'
@@ -19,14 +21,18 @@ export type HandOutMode = 'NOW' | 'PLANNED'
  *
  * <p>One component for all of it, because a choice that reads differently on each screen is read as
  * a different choice.
+ *
+ * <p>A planned hand-out is a movement, so a station that switched its movements off is offered no
+ * choice: the piece goes over the counter.
  */
 const mode = defineModel<HandOutMode>({default: 'NOW'})
 
 const {t} = useI18n()
+const {isModuleEnabled} = useSession()
 </script>
 
 <template>
-  <div class="space-y-1" data-testid="hand-out-choice">
+  <div v-if="isModuleEnabled(StationModule.INVENTORY_MOVEMENTS)" class="space-y-1" data-testid="hand-out-choice">
     <span class="text-sm font-medium">{{ t('inventory.handOut.label') }}</span>
     <div class="flex flex-wrap gap-4">
       <label class="flex items-center gap-2 text-sm">

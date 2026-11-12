@@ -126,4 +126,34 @@ describe('STATION_NAV', () => {
             expect(section(nav([StationPermission.POLL_CREATE]), 'forms')?.kind).toBe('group')
         })
     })
+
+    describe('parts of the inventory', () => {
+        function inventoryPages(modules: string[]) {
+            const keeper = [
+                StationPermission.INVENTORY_READ, StationPermission.INVENTORY_MANAGER, StationPermission.INVENTORY_PROCUREMENT,
+                StationPermission.INVENTORY_CHECK, StationPermission.INVENTORY_LENDING_MANAGER,
+            ]
+            const inventory = section(nav(keeper, modules), 'inventory')
+            return inventory ? navPages([inventory]).map(page => page.to) : []
+        }
+
+        it('shows every part while every part is on', () => {
+            const pages = inventoryPages(Object.values(StationModule))
+
+            expect(pages).toEqual(expect.arrayContaining([
+                '/station/inventory/movements', '/station/inventory/procurement', '/station/inventory/checks/member', '/station/inventory/lending',
+            ]))
+        })
+
+        it('leaves out a part that is switched off and keeps the rest of the inventory', () => {
+            const on = Object.values(StationModule).filter(module => module !== StationModule.INVENTORY_MOVEMENTS && module !== StationModule.INVENTORY_LENDING)
+            const pages = inventoryPages(on)
+
+            expect(pages).not.toContain('/station/inventory/movements')
+            expect(pages).not.toContain('/station/inventory/flows')
+            expect(pages).not.toContain('/station/inventory/lending')
+            expect(pages).toContain('/station/inventory/procurement')
+            expect(pages).toContain('/station/inventory')
+        })
+    })
 })
