@@ -42,6 +42,20 @@ public enum RestrictionType {
             "id",
             "view_restriction_mode",
             StationPermission.EVENT_MANAGER),
+    EVENT_COURSE(
+            "event_course_restriction",
+            "course_id",
+            "event_course",
+            "id",
+            "restriction_mode",
+            StationPermission.EVENT_MANAGER),
+    EVENT_COURSE_VIEW(
+            "event_course_view_restriction",
+            "course_id",
+            "event_course",
+            "id",
+            "view_restriction_mode",
+            StationPermission.EVENT_MANAGER),
     QUIZ_TEST(
             "quiz_test_restriction", "test_id", "quiz_test", "id", "restriction_mode", StationPermission.TEST_MANAGER),
     FORM("form_restriction", "form_id", "form", "id", "restriction_mode", StationPermission.POLL_MANAGER),

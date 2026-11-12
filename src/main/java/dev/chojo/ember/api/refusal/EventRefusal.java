@@ -668,7 +668,67 @@ public enum EventRefusal implements Refusal {
     EVENT_NOTICE_NOT_A_CONTINUATION(
             181,
             HttpStatus.BAD_REQUEST,
-            "Only an appointment that took over dates of another one sends its notice on its own");
+            "Only an appointment that took over dates of another one sends its notice on its own"),
+
+    /** A course that does not exist, or belongs to another station. */
+    COURSE_NOT_HERE(182, HttpStatus.NOT_FOUND, "There is no such course here"),
+
+    /** A course or set without a name. */
+    COURSE_NAME_MISSING(183, HttpStatus.BAD_REQUEST, "A course and each of its sets need a name, nothing was saved"),
+
+    /** A course left without any set to put parts in. */
+    COURSE_NEEDS_A_SET(184, HttpStatus.BAD_REQUEST, "A course needs at least one set, nothing was saved"),
+
+    /** A set asking for fewer than no parts. */
+    COURSE_SET_MINIMUM_NEGATIVE(
+            185, HttpStatus.BAD_REQUEST, "A set cannot ask for fewer than no parts, nothing was saved"),
+
+    /** A set named by the editor that belongs to another course. */
+    COURSE_SET_NOT_IN_COURSE(186, HttpStatus.BAD_REQUEST, "That set does not belong to this course"),
+
+    /** Removing a set that still holds parts. */
+    COURSE_SET_HOLDS_PARTS(
+            187, HttpStatus.CONFLICT, "A set that still holds parts cannot be removed, move or remove its parts first"),
+
+    /** A repeating series offered as a part of a course. */
+    COURSE_PART_NOT_ONE_TIME(188, HttpStatus.BAD_REQUEST, "Only a one-time appointment can be a part of a course"),
+
+    /** An appointment offered to a course while it already is a part of one. */
+    COURSE_PART_TAKEN(189, HttpStatus.CONFLICT, "That appointment is already a part of a course"),
+
+    /** An appointment offered to a course while people are signed up for it on their own. */
+    COURSE_PART_HAS_SIGN_UPS(
+            190,
+            HttpStatus.CONFLICT,
+            "People are signed up for that appointment on its own, so it cannot become a part of a course"),
+
+    /** An appointment named as a part of a course that is not one. */
+    COURSE_PART_NOT_IN_COURSE(191, HttpStatus.BAD_REQUEST, "That appointment is not a part of this course"),
+
+    /** An appointment offered to a course that does not exist, or belongs to another station. */
+    COURSE_PART_NOT_HERE(192, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
+
+    /** A course limit of no places or fewer. */
+    COURSE_LIMIT_NOT_POSITIVE(193, HttpStatus.BAD_REQUEST, "A course takes at least one person, nothing was saved"),
+
+    /** An appointment shared with partner stations on its own offered to a course. */
+    COURSE_PART_SHARED(
+            194,
+            HttpStatus.CONFLICT,
+            "That appointment is shared with partner stations on its own, so it cannot become a part of a course"),
+
+    /** An appointment with its own audience that differs from the course's offered to a course. */
+    COURSE_PART_AUDIENCE_DIFFERS(
+            195,
+            HttpStatus.CONFLICT,
+            "That appointment is meant for other people than the course, give both the same audience first"),
+
+    /** A called-off appointment offered to a course. */
+    COURSE_PART_CANCELLED(196, HttpStatus.CONFLICT, "A called-off appointment cannot become a part of a course"),
+
+    /** A course audience naming a group, tag or member of another station. */
+    COURSE_AUDIENCE_NOT_OF_STATION(
+            197, HttpStatus.BAD_REQUEST, "The audience names somebody who is not of this station, nothing was saved");
 
     private final Definition definition;
 
