@@ -16,7 +16,16 @@ import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
 import {events} from '@/api'
-import {StationPermission, type EventAttachment, type RegistrationFieldDefinition} from '@/api/generated/schema'
+import {
+  EditScopeKind,
+  EventChangePart,
+  StationPermission,
+  type ChangeNotice,
+  type EventAttachment,
+  type RegistrationFieldDefinition,
+} from '@/api/generated/schema'
+import {isRecurringEvent} from '@/api/events'
+import {todayIsoDate} from '@/util/format'
 import EventEditBody from './eventeditview/EventEditBody.vue'
 import {useEventForm} from './eventeditview/useEventForm'
 import {useEventEditData} from './eventeditview/useEventEditData'
@@ -24,6 +33,8 @@ import {useEventFieldDefaults} from './eventeditview/useEventFieldDefaults'
 import {useEventFederationShare} from './eventeditview/useEventFederationShare'
 import {useEventAttachments} from './eventeditview/useEventAttachments'
 import AttachmentsCard from './eventeditview/AttachmentsCard.vue'
+import EventSaveDialog from './eventeditview/EventSaveDialog.vue'
+import {useSaveChoice, type SaveChoice} from './eventeditview/useSaveChoice'
 import TemplateFilesNote from './eventeditview/TemplateFilesNote.vue'
 import {
   eventAttachmentPort,
@@ -47,7 +58,13 @@ const eventRoutes = useEventRoutes()
 const {loaded, hasPermission, sessionInfo} = useSession()
 
 const canFederate = computed(() => hasPermission(StationPermission.EVENTS_FEDERATE))
-const eventId = computed(() => route.params.id ? Number(route.params.id) : null)
+/**
+ * The appointment the editor saves into: the one it was opened on, or the appointment a change of one
+ * date or of later dates was saved into, once that save went through. A part that failed after it is
+ * then saved again against the new appointment, which still holds every date the change moved.
+ */
+const savedInto = ref<number | null>(null)
+const eventId = computed(() => savedInto.value ?? (route.params.id ? Number(route.params.id) : null))
 const isEdit = computed(() => eventId.value !== null)
 
 const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
@@ -201,6 +218,9 @@ const {loading, failure} = useAsyncLoader(async () => {
         attachments.load(),
       ])
       openedName.value = form.state.name
+      opened.value = snapshotOf()
+      openedRecurring.value = isRecurringEvent(form.state.eventType)
+      watch(attachments.attachments, () => { attachmentsChanged.value = true }, {deep: true})
     }
   } catch (e) {
     reportCaughtError(e, 'EventEditView.loadData')
@@ -208,11 +228,32 @@ const {loading, failure} = useAsyncLoader(async () => {
   }
 })
 
-async function writeEvent() {
+/**
+ * Saves the appointment and everything that hangs off it.
+ *
+ * <p>The appointment itself goes first, because the parts after it read what it now says: the
+ * attendance sheet the field defaults and the ties of its questions are checked against. A change of
+ * every date tells the people it concerns with that first save. A change of one date, or of one date
+ * and the ones after it, is saved into a new appointment, which the parts are then saved against, and
+ * tells once all of them have landed.
+ *
+ * @return the appointment everything was saved into
+ */
+async function writeEvent(choice: SaveChoice | null): Promise<number> {
   let savedEventId: number
+  const scoped = choice != null && choice.scope.kind !== EditScopeKind.ALL
   if (isEdit.value) {
-    await events.updateEvent(eventId.value!, form.buildPayload())
-    savedEventId = eventId.value!
+    const saved = await events.updateEvent(eventId.value!, {
+      ...form.buildPayload(),
+      scope: choice?.scope ?? null,
+      changeNotice: scoped ? null : choice?.notice ?? null,
+    })
+    savedEventId = saved.id
+    if (saved.id !== eventId.value) {
+      savedInto.value = saved.id
+      openedRecurring.value = isRecurringEvent(saved.eventType)
+      await attachments.load()
+    }
   } else {
     const created = await events.createEvent(form.buildPayload())
     savedEventId = created.id
@@ -224,6 +265,61 @@ async function writeEvent() {
   await events.setRegistrationFields(savedEventId, registrationFields.value.filter(f => f.name?.trim()).map(asSaved))
   await federationShare.save(eventFederationPort(savedEventId))
   await documentRequirements.save({kind: 'events', id: savedEventId})
+  if (scoped) await tellLater(savedEventId, choice.notice)
+  return savedEventId
+}
+
+/**
+ * Sends the notice of an appointment a change was saved into. A notice that does not go through is
+ * not worth keeping the editor open for: a moved start is told on its own a few minutes later.
+ */
+async function tellLater(id: number, notice: ChangeNotice) {
+  try {
+    await events.sendChangeNotice(id, notice)
+  } catch (e) {
+    reportCaughtError(e, 'EventEditView.sendChangeNotice')
+  }
+}
+
+/**
+ * What the editor changed, as a notice names it. The time and the date are left to the server, which
+ * reads them from the save itself.
+ */
+const changedParts = computed<EventChangePart[]>(() => {
+  const now = snapshotOf()
+  const parts: EventChangePart[] = []
+  if (!opened.value) return parts
+  if (now.name !== opened.value.name) parts.push(EventChangePart.NAME)
+  if (now.description !== opened.value.description) parts.push(EventChangePart.DESCRIPTION)
+  if (now.fields !== opened.value.fields) parts.push(EventChangePart.FIELDS)
+  if (now.questions !== opened.value.questions) parts.push(EventChangePart.REGISTRATION_QUESTIONS)
+  if (attachmentsChanged.value) parts.push(EventChangePart.ATTACHMENTS)
+  return parts
+})
+
+/** The parts a notice can name, as they stood when the editor opened, to tell what changed since. */
+const opened = ref<ReturnType<typeof snapshotOf> | null>(null)
+const attachmentsChanged = ref(false)
+const openedRecurring = ref(false)
+
+function snapshotOf() {
+  return {
+    name: form.state.name,
+    description: form.state.description,
+    fields: JSON.stringify(form.namedFields()),
+    questions: JSON.stringify(registrationFields.value.filter(f => f.name?.trim()).map(asSaved)),
+  }
+}
+
+/** The date the editor was opened from, which the save dialog starts on. */
+const openedDate = computed(() => typeof route.query.date === 'string' ? route.query.date : null)
+
+const saveChoice = useSaveChoice(() => eventId.value, () => form.buildPayload(), () => changedParts.value, t)
+
+/** Whether the appointment has a date from today on, which is when saving asks what to tell. */
+async function hasDatesAhead(id: number): Promise<boolean> {
+  const next = await events.getNextDate(id).catch(() => null)
+  return next != null && next >= todayIsoDate()
 }
 
 const {running: saving, failure: saveFailure, run: submit} = useAsyncAction(async () => {
@@ -234,15 +330,33 @@ const {running: saving, failure: saveFailure, run: submit} = useAsyncAction(asyn
     return
   }
 
+  if (isEdit.value && await hasDatesAhead(eventId.value!)) {
+    const fromEditor = openedDate.value && openedDate.value >= todayIsoDate() ? openedDate.value : null
+    saveChoice.start(fromEditor ?? await events.getNextDate(eventId.value!).catch(() => null))
+    return
+  }
+  await save(null)
+})
+
+const {running: confirming, failure: confirmFailure, run: confirmSave} = useAsyncAction(async () => {
+  saveChoice.open.value = false
+  await save(saveChoice.choice.value)
+})
+
+async function save(choice: SaveChoice | null) {
+  let savedEventId: number
   try {
-    await writeEvent()
+    savedEventId = await writeEvent(choice)
   } catch (e) {
     reportCaughtError(e, 'EventEditView.submit')
     throw e
   }
-
+  if (savedInto.value != null) {
+    await router.push({name: eventRoutes.detail, params: {id: savedEventId}})
+    return
+  }
   leaveEditor()
-})
+}
 
 function leaveEditor() {
   const returnTo = typeof route.query.returnTo === 'string' ? route.query.returnTo : null
@@ -259,7 +373,7 @@ function goBack() {
 
 const bodyProps = computed(() => ({
   isEdit: isEdit.value,
-  saving: saving.value,
+  saving: saving.value || confirming.value,
   canFederate: canFederate.value,
   federationNote: federationNote.value,
   ...data.props.value,
@@ -292,7 +406,7 @@ const bodyHandlers = {
 
       <Spinner v-if="loading" size="lg"/>
       <FailureAlert v-if="refused" :message="refused" expected/>
-      <FailureAlert v-else :failure="failure ?? saveFailure"/>
+      <FailureAlert v-else :failure="failure ?? saveFailure ?? confirmFailure"/>
       <Alert v-if="templateAppliedMessage" variant="success">{{ templateAppliedMessage }}</Alert>
 
       <EventEditBody
@@ -321,5 +435,20 @@ const bodyHandlers = {
           @reorder="attachments.reorder"
       />
     </div>
+
+    <EventSaveDialog
+        v-model="saveChoice.open.value"
+        v-model:kind="saveChoice.kind.value"
+        v-model:date="saveChoice.date.value"
+        v-model:tell="saveChoice.tell.value"
+        v-model:note="saveChoice.note.value"
+        :series="openedRecurring"
+        :preview="saveChoice.preview.value"
+        :preview-failure="saveChoice.previewFailure.value"
+        :files-changed="attachmentsChanged"
+        :can-tell="saveChoice.canTell.value"
+        :saving="confirming"
+        @save="confirmSave"
+    />
   </ViewContent>
 </template>

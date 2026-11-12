@@ -7,11 +7,13 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.DateCancellations;
+import dev.chojo.ember.feature.events.entity.DetachedDates;
 import dev.chojo.ember.feature.events.entity.OccurrenceRule;
 import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventBreakRepository;
 import dev.chojo.ember.feature.events.repository.EventDateCancellationRepository;
+import dev.chojo.ember.feature.events.repository.EventDetachedDateRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -51,6 +53,7 @@ public class OccurrenceCalendar {
     private final EventRepository eventRepository;
     private final EventBreakRepository breakRepository;
     private final EventDateCancellationRepository cancellationRepository;
+    private final EventDetachedDateRepository detachedDateRepository;
     private final StationRepository stationRepository;
 
     @Inject
@@ -58,19 +61,25 @@ public class OccurrenceCalendar {
             EventRepository eventRepository,
             EventBreakRepository breakRepository,
             EventDateCancellationRepository cancellationRepository,
+            EventDetachedDateRepository detachedDateRepository,
             StationRepository stationRepository) {
         this.eventRepository = eventRepository;
         this.breakRepository = breakRepository;
         this.cancellationRepository = cancellationRepository;
+        this.detachedDateRepository = detachedDateRepository;
         this.stationRepository = stationRepository;
     }
 
-    /** The calendar of one station: its clock, its breaks and the dates called off, read now. */
+    /**
+     * The calendar of one station: its clock, its breaks, the dates called off and the dates its series
+     * gave away, read now.
+     */
     public StationCalendar forStation(int stationId) {
         return new StationCalendar(
                 zoneOf(stationId),
                 breakRepository.findByStation(stationId),
-                DateCancellations.of(cancellationRepository.findActiveByStation(stationId)));
+                DateCancellations.of(cancellationRepository.findActiveByStation(stationId)),
+                DetachedDates.of(detachedDateRepository.findByStation(stationId)));
     }
 
     /** The clock the station keeps its days by, which is the one its appointments are read on. */

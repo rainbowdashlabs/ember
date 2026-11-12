@@ -295,12 +295,18 @@ public class EventFieldRepository {
      * per date hang off: saving the appointment would have emptied every one of them. So a question
      * the editor already knows is written over its own row, one it does not know is added, and one it
      * no longer names is deleted with its answers.
+     *
+     * <p>An appointment that took over dates of another one started with copies of its questions, and
+     * the editor saving it right after still holds the ids of the originals. Such an id stands for its
+     * copy, so the answers the copy carries for the dates taken over stay where they are.
      */
     public void replaceFields(int eventId, List<EventFieldDraft> fields) {
+        var copies = copiesOfSourceQuestions(eventId);
         var kept = new ArrayList<Integer>(fields.size());
         for (int i = 0; i < fields.size(); i++) {
             var field = fields.get(i);
-            Integer fieldId = field.id();
+            Integer named = field.id();
+            Integer fieldId = named == null ? null : copies.getOrDefault(named, named);
             if (fieldId != null && update(fieldId, eventId, field, i)) {
                 kept.add(fieldId);
                 continue;
@@ -318,6 +324,28 @@ public class EventFieldRepository {
                     .id());
         }
         deleteByEventExcept(eventId, kept);
+    }
+
+    /**
+     * The questions of the appointment this one took over from, each with its copy here: the question
+     * at the same place with the same name.
+     */
+    private Map<Integer, Integer> copiesOfSourceQuestions(int eventId) {
+        var copies = new HashMap<Integer, Integer>();
+        query("""
+                SELECT original.id AS original_id, copy.id AS copy_id
+                FROM station_event e
+                         JOIN event_field original ON original.event_id = e.continues_event_id
+                         JOIN event_field copy
+                              ON copy.event_id = e.id
+                                  AND copy.position = original.position
+                                  AND copy.name = original.name
+                WHERE e.id = :event_id;""")
+                .single(call().bind("event_id", eventId))
+                .map(row -> Map.entry(row.getInt("original_id"), row.getInt("copy_id")))
+                .all()
+                .forEach(entry -> copies.put(entry.getKey(), entry.getValue()));
+        return copies;
     }
 
     private boolean update(int fieldId, int eventId, EventFieldDraft field, int position) {

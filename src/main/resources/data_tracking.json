@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:111bd9e771c81fa6a81e57d1b2a93922e3bf482d3f60b355392a80fd6ecdcfd8",
-  "generatedAt": "2026-11-12T11:25:33Z",
+  "schemaHash": "sha256:beaaef8e47fa4b572a23eaa6f087341042175be34ab39abaefb25feed0eb7396",
+  "generatedAt": "2026-11-12T16:01:33Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -27851,7 +27851,7 @@
     "station_event": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:a17b1bcdcff41d9f2a4694f72b2971f72f6e46c21aa9877a32e3e30088e364f4",
+      "tableHash": "sha256:05d59e1f2a565a04024dcf34e66ceaf7851cf614b759116fb6942d3a89bde9ce",
       "columns": [
         {
           "name": "id",
@@ -28048,12 +28048,39 @@
           "nullable": true,
           "verified": true,
           "description": "How many days before each date min_registrations must be reached, or that date is cancelled automatically. Empty where no date is ever cancelled for too few registrations."
+        },
+        {
+          "name": "continues_event_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The appointment this one took over from: the series a date was taken out of, or the series that ended where this one goes on. NULL for an appointment created on its own, or once that appointment is deleted."
+        },
+        {
+          "name": "continues_from",
+          "type": "date",
+          "nullable": true,
+          "verified": true,
+          "description": "The date of that appointment this one took over from: the single date taken out, or the first date of the continued series. NULL where continues_event_id never named one."
+        },
+        {
+          "name": "change_notice_due_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When an appointment that took over dates of another one became due to tell the people holding a place about it. Cleared once they are told, by the editor or, failing that, a few minutes later on its own. NULL for every other appointment."
         }
       ],
       "foreignKeys": [
         {
           "column": "category_id",
           "refTable": "event_category",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "continues_event_id",
+          "refTable": "station_event",
           "refColumn": "id",
           "onDelete": "SET NULL"
         },
@@ -28075,6 +28102,7 @@
         "ignoredColumns": [
           "station_id",
           "deadline_notified",
+          "change_notice_due_at",
           "registration_close_days"
         ]
       },
@@ -28152,6 +28180,55 @@
         "reason": "Event structure/template data, not per-member"
       },
       "description": "Date ranges during which recurring events are suspended (e.g. holidays)."
+    },
+    "station_event_detached_date": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:b5a7f972e264d1643726851d0210a5df736f0ebf511853a88ba7646c4ecaec56",
+      "columns": [
+        {
+          "name": "event_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The series the date was taken out of."
+        },
+        {
+          "name": "event_date",
+          "type": "date",
+          "nullable": false,
+          "verified": true,
+          "description": "The date taken out, on the station's clock."
+        },
+        {
+          "name": "detached_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the date was taken out."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "event_id",
+          "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Which dates a series gave away belongs to the series and moves with it."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Event structure data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Event structure data, not per-member"
+      },
+      "description": "A date a series no longer holds because it became an appointment of its own. The series skips it like a date it does not fall on; it is not called off."
     },
     "station_file": {
       "feature": "media",

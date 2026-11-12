@@ -26,6 +26,7 @@ import {
 import {attendance, events, managedMembers as managedMembersApi, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import EventLinksNote from './eventdetailview/EventLinksNote.vue'
 import EventDetailBody from './eventdetailview/EventDetailBody.vue'
 import EventAnswerDialog from './eventshared/EventAnswerDialog.vue'
 import RegistrationSigningStep from './eventshared/RegistrationSigningStep.vue'
@@ -268,6 +269,7 @@ function onFieldUpdated(field: AppointmentField) {
   >
     <Spinner v-if="loading" size="lg"/>
     <FailureAlert :failure="failure"/>
+    <EventLinksNote v-if="!loading && event" :event-id="eventId"/>
     <EventDetailBody
         v-if="!loading && event"
         :event="event"

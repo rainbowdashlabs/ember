@@ -37,6 +37,17 @@ describe('notificationMessageKey', () => {
             .toBe('notification.eventDateDroppedLast')
     })
 
+    it('names the new start of a changed appointment where it moved', () => {
+        expect(notificationMessageKey('EVENT_CHANGED', 'notification.eventChanged', {startTime: '19:00'}))
+            .toBe('notification.eventChangedMoved')
+        expect(notificationMessageKey('EVENT_CHANGED', 'notification.eventChanged', {changedParts: 'DESCRIPTION'}))
+            .toBe('notification.eventChanged')
+        expect(notificationMessageKey('EVENT_CHANGED', 'notification.eventChanged', {note: 'Helm'}))
+            .toBe('notification.eventChangedNote')
+        expect(notificationMessageKey('EVENT_CHANGED', 'notification.eventChanged', {startTime: '19:00', note: 'Helm'}))
+            .toBe('notification.eventChangedMovedNote')
+    })
+
     it('counts an expiry reminder the way its kind is counted', () => {
         expect(notificationMessageKey('EXPIRY_REMINDER', 'notification.expiryReminder', {kind: 'EXPIRES_IN', days: '1'}))
             .toBe('notification.expiryReminderInOne')

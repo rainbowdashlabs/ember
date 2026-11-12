@@ -10,8 +10,6 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
-import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
@@ -32,7 +30,6 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -43,33 +40,33 @@ public class EventReminderChecker implements TaskSource {
     private final EventRepository eventRepository;
     private final EventReminderRepository reminderRepository;
     private final EventRegistrationRepository registrationRepository;
-    private final StationMemberRepository stationMemberRepository;
     private final Notifier notifier;
     private final MemberNameResolver memberNameResolver;
     private final EventRestrictionService restrictionService;
     private final StationReadOnlyGuard readOnlyGuard;
     private final OccurrenceCalendar occurrenceCalendar;
+    private final EventAudience audience;
 
     @Inject
     public EventReminderChecker(
             EventRepository eventRepository,
             EventReminderRepository reminderRepository,
             EventRegistrationRepository registrationRepository,
-            StationMemberRepository stationMemberRepository,
             Notifier notifier,
             MemberNameResolver memberNameResolver,
             EventRestrictionService restrictionService,
             StationReadOnlyGuard readOnlyGuard,
-            OccurrenceCalendar occurrenceCalendar) {
+            OccurrenceCalendar occurrenceCalendar,
+            EventAudience audience) {
         this.eventRepository = eventRepository;
         this.reminderRepository = reminderRepository;
         this.registrationRepository = registrationRepository;
-        this.stationMemberRepository = stationMemberRepository;
         this.notifier = notifier;
         this.memberNameResolver = memberNameResolver;
         this.restrictionService = restrictionService;
         this.readOnlyGuard = readOnlyGuard;
         this.occurrenceCalendar = occurrenceCalendar;
+        this.audience = audience;
     }
 
     private static final int[] CLOSING_WARNINGS = {3, 1};
@@ -101,7 +98,7 @@ public class EventReminderChecker implements TaskSource {
                         if (!today.equals(reminderDate)) continue;
                         if (reminderRepository.isSent(event.id(), occurrence, daysBefore)) continue;
 
-                        var targetIds = resolveTargetMembers(event, occurrence);
+                        var targetIds = audience.onDate(event, occurrence);
                         if (!targetIds.isEmpty()) {
                             notifier.notify(
                                     StationAudience.members(targetIds),
@@ -193,29 +190,6 @@ public class EventReminderChecker implements TaskSource {
                         NotificationLinks.event(event.eventId())),
                 Delivery.EVERY_TIME);
         return told > 0;
-    }
-
-    /**
-     * Who a reminder about one date goes to.
-     *
-     * <p>Where the appointment is signed up for, that is whoever holds a place on that very date, and
-     * holding one already means they were allowed to take it. A place on another date of a repeating
-     * appointment is not a reason to be reminded of this one. Where it is not, it is everybody who may know the
-     * appointment exists, minus whoever has said they are not coming. Nobody is reminded of something
-     * they cannot see, and visibility is asked without permissions so that being able to override the
-     * restriction is not itself a reason to hear about it.
-     */
-    private List<Integer> resolveTargetMembers(StationEvent event, LocalDate eventDate) {
-        if (event.requiresRegistration()) {
-            return registrationRepository.findRegisteredMemberIds(event.id(), eventDate);
-        }
-        var allMembers = stationMemberRepository.findByStation(event.stationId());
-        var declinedIds = new HashSet<>(registrationRepository.findNotAttendingMemberIds(event.id(), eventDate));
-        return allMembers.stream()
-                .map(StationMember::id)
-                .filter(id -> !declinedIds.contains(id))
-                .filter(id -> restrictionService.canView(event.id(), id, Set.of()))
-                .toList();
     }
 
     @Override
