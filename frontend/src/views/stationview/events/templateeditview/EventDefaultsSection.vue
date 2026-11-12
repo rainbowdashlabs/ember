@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import NumberInput from '@/components/input/number/NumberInput.vue'
-import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
+import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -46,7 +46,7 @@ const registrationLimit = defineModel<number | undefined>('registrationLimit')
 
     <div class="space-y-1">
       <FieldLabel>{{ t('eventTemplates.eventDescription') }}</FieldLabel>
-      <TextAreaInput v-model="description" :rows="3"/>
+      <MarkdownEditor v-model="description" :placeholder="t('events.descriptionPlaceholder')"/>
     </div>
 
     <div class="flex items-center justify-between">

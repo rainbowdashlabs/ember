@@ -2,11 +2,13 @@
 
 ## v26.24.2
 
-The list of upcoming appointments shows only what can still be signed up for when asked to.
+The list of upcoming appointments shows only what can still be signed up for when asked to. Appointment templates format their description like appointments do and pass on their participant limit.
 
 ### Fixes
 
 - **Closed sign-ups no longer count as open.** With "Registration open" switched on, the upcoming appointments also listed appointments whose sign-up deadline had passed. The list now shows only dates that can still be signed up for.
+- **Appointment templates format their description.** The description of an appointment template was a plain text field, while appointments offer formatting. Templates now use the same editor.
+- **Templates pass on their participant limit.** An appointment created from a template came without the template's participant limit. The limit is now taken over with the other settings.
 
 ## v26.24.1
 

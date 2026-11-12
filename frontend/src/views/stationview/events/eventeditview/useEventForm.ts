@@ -73,6 +73,7 @@ export function useEventForm() {
     }
     if (tpl.requiresRegistration != null) state.requiresRegistration = tpl.requiresRegistration
     if (tpl.requiresConfirmation != null) state.requiresConfirmation = tpl.requiresConfirmation
+    if (tpl.registrationLimit != null) state.registrationLimit = tpl.registrationLimit
     if (detail.fields.length > 0) {
       const newFields: EventFieldEntry[] = detail.fields.map(f => ({
         name: f.name,

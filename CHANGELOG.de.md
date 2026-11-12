@@ -2,11 +2,13 @@
 
 ## v26.24.2
 
-Die Liste der kommenden Termine zeigt auf Wunsch nur noch, wofür eine Anmeldung noch möglich ist.
+Die Liste der kommenden Termine zeigt auf Wunsch nur noch, wofür eine Anmeldung noch möglich ist. Terminvorlagen formatieren ihre Beschreibung wie Termine und geben ihr Teilnehmerlimit weiter.
 
 ### Fehlerbehebungen
 
 - **Geschlossene Anmeldungen gelten nicht mehr als offen.** Mit "Anmeldung offen" zeigte die Liste der kommenden Termine auch Termine, deren Anmeldeschluss schon vorbei war. Jetzt erscheinen nur noch Termine, für die eine Anmeldung noch möglich ist.
+- **Terminvorlagen formatieren ihre Beschreibung.** Die Beschreibung einer Terminvorlage war ein einfaches Textfeld, während Termine Formatierung bieten. Vorlagen nutzen jetzt denselben Editor.
+- **Vorlagen geben ihr Teilnehmerlimit weiter.** Ein Termin aus einer Vorlage kam ohne das Teilnehmerlimit der Vorlage. Das Limit wird jetzt mit den anderen Einstellungen übernommen.
 
 ## v26.24.1
 
