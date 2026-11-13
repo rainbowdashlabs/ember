@@ -16,7 +16,9 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.system.service.DemoService;
 import io.javalin.http.Context;
 import io.javalin.security.RouteRole;
@@ -30,6 +32,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -55,12 +58,21 @@ class AccessGateTest {
     private final ClusterRepository clusters = mock(ClusterRepository.class);
     private final Demo demo = mock(Demo.class);
     private final DemoService demoService = mock(DemoService.class);
+    private final ModuleAvailability modules = mock(ModuleAvailability.class);
     private final Context ctx = mock(Context.class);
     private AccessGate gate;
 
     @BeforeEach
     void setUp() {
-        gate = new AccessGate(accessManager, sessionGate, stepUpGuard, stations, clusters, demo, demoService);
+        gate = new AccessGate(
+                accessManager,
+                sessionGate,
+                stepUpGuard,
+                stations,
+                clusters,
+                demo,
+                demoService,
+                new ModuleGuard(modules));
     }
 
     private void route(RouteRole... roles) {
@@ -280,5 +292,55 @@ class AccessGateTest {
         gate.handle(ctx);
 
         verify(stepUpGuard).require(session, StepUpCategory.ACCOUNT_SECURITY);
+    }
+
+    /** A route every member may use is refused while the module it declares is off, before any permission. */
+    @Test
+    void aDeclaredModuleThatIsOffRefusesTheRoute() {
+        route(StationPermission.USER, StationModule.INVENTORY_MOVEMENTS);
+        signedInAs(TestSessions.member(5, StationPermission.USER));
+        when(modules.disabledAt(5)).thenReturn(StationModule.withChildren(Set.of(StationModule.INVENTORY)));
+
+        var refused = assertThrows(RefusalResponse.class, () -> gate.handle(ctx));
+
+        assertEquals(GeneralRefusal.MODULE_SWITCHED_OFF, refused.refusal());
+    }
+
+    /** A declared module that is on is no permission: the route answers whoever holds what it asks for. */
+    @Test
+    void aDeclaredModuleThatIsOnIsNoPermission() {
+        route(StationPermission.USER, StationModule.EVENTS);
+        signedInAs(TestSessions.member(5, StationPermission.USER));
+        when(modules.disabledAt(5)).thenReturn(Set.of(StationModule.NEWS));
+
+        gate.handle(ctx);
+
+        route(StationPermission.LOGIN, StationModule.EVENTS);
+        signedInAs(TestSessions.member(5));
+        gate.handle(ctx);
+    }
+
+    /** A route whose permission names a switched-off module is refused as switched off, not as forbidden. */
+    @Test
+    void aPermissionOfASwitchedOffModuleRefusesAsSwitchedOff() {
+        route(StationPermission.NEWS_EDIT);
+        signedInAs(TestSessions.member(5));
+        when(modules.disabledAt(5)).thenReturn(Set.of(StationModule.NEWS));
+
+        var refused = assertThrows(RefusalResponse.class, () -> gate.handle(ctx));
+
+        assertEquals(GeneralRefusal.MODULE_SWITCHED_OFF, refused.refusal());
+    }
+
+    /** A session at no station is left to the route's permissions. */
+    @Test
+    void aSessionAtNoStationIsNotGuarded() {
+        route(InstancePermission.ADMINISTRATOR, StationModule.NEWS);
+        signedInAs(TestSessions.administrator());
+        when(modules.disabledAt(anyInt())).thenReturn(Set.of(StationModule.NEWS));
+
+        gate.handle(ctx);
+
+        verify(modules, never()).disabledAt(anyInt());
     }
 }

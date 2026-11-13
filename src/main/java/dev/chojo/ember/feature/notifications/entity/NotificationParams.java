@@ -7,12 +7,18 @@ package dev.chojo.ember.feature.notifications.entity;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
+import dev.chojo.ember.feature.events.entity.EventChangePart;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.inventory.entity.StepActor;
 import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 /**
  * Sealed interface for type-safe notification parameters.
@@ -276,6 +282,63 @@ public sealed interface NotificationParams {
     record EventMoved(String eventName, LocalDate eventDate, String startTime, String memberName)
             implements NotificationParams {}
 
+    /**
+     * An appointment somebody is concerned by changed, and whoever edited it chose to tell them, or its
+     * start moved on a date they hold a place on. One message per person and save.
+     *
+     * @param eventName    the appointment, under its name after the change
+     * @param eventDate    the first date the change touches
+     * @param changedParts the parts that changed, as the names of {@link EventChangePart} joined by
+     *                     commas in their order there; words for them are chosen where it is read
+     * @param note         what the editor wrote to go with it, or null
+     * @param startTime    the time of day it now starts at on that date, on the station's clock, where
+     *                     the start moved; null where it did not
+     * @param memberName   whom it concerns, the reader themselves or somebody they look after
+     */
+    record EventChangeNotice(
+            String eventName,
+            LocalDate eventDate,
+            String changedParts,
+            @Nullable String note,
+            @Nullable String startTime,
+            String memberName)
+            implements NotificationParams {
+
+        /**
+         * The parameters, with the changed parts written in the one order they are always named in. A
+         * start that moved always names the time among them.
+         */
+        public static EventChangeNotice of(
+                String eventName,
+                LocalDate eventDate,
+                Collection<EventChangePart> parts,
+                @Nullable String note,
+                @Nullable String startTime,
+                String memberName) {
+            var named = new TreeSet<EventChangePart>(parts);
+            if (startTime != null) named.add(EventChangePart.TIME);
+            String joined = named.stream().map(Enum::name).collect(Collectors.joining(","));
+            return new EventChangeNotice(eventName, eventDate, joined, note, startTime, memberName);
+        }
+
+        /** The parts that changed, leaving out a name no part goes by any more. */
+        public List<EventChangePart> parts() {
+            var known = Arrays.stream(EventChangePart.values()).map(Enum::name).toList();
+            return Arrays.stream(changedParts.split(","))
+                    .filter(known::contains)
+                    .map(EventChangePart::valueOf)
+                    .toList();
+        }
+
+        /** The sentence naming the new start where it moved, and the note where there is one. */
+        @Override
+        public @Nullable String variant() {
+            boolean noted = note != null && !note.isBlank();
+            if (startTime != null) return noted ? "MOVED_NOTE" : "MOVED";
+            return noted ? "NOTE" : null;
+        }
+    }
+
     record ProcedureAssigned(String procedureName, String assignedByName) implements NotificationParams {}
 
     record ProcedureResolvedParams(String procedureName) implements NotificationParams {}
@@ -368,6 +431,13 @@ public sealed interface NotificationParams {
      * @param requestedName the name they asked for
      */
     record NameChangeRequested(String memberName, String requestedName) implements NotificationParams {}
+
+    /**
+     * A member reported a message in one of the station's chats to the people handling them.
+     *
+     * @param chatName the name of the chat the message is in
+     */
+    record MessageReported(String chatName) implements NotificationParams {}
 
     /**
      * The person behind a member accepted the station's request and linked their account to the member.

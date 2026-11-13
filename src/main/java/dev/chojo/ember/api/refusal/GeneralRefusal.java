@@ -128,7 +128,13 @@ public enum GeneralRefusal implements Refusal {
     REQUESTED_CLUSTER_NOT_AN_IDENTITY(24, HttpStatus.BAD_REQUEST, Sentences.CLUSTER_NOT_AN_IDENTITY),
 
     /** A route asked for by somebody holding none of the permissions it needs. */
-    ROUTE_PERMISSION_MISSING(25, HttpStatus.FORBIDDEN, "You do not have the permission this needs");
+    ROUTE_PERMISSION_MISSING(25, HttpStatus.FORBIDDEN, "You do not have the permission this needs"),
+
+    /**
+     * A route of a module the station switched off or its cluster denies. Answered as absent, the way
+     * the module's pages are absent from the station.
+     */
+    MODULE_SWITCHED_OFF(26, HttpStatus.NOT_FOUND, "This part of the station is switched off");
 
     private final Definition definition;
 

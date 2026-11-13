@@ -161,8 +161,7 @@ public class ClusterGovernanceService {
 
         for (StationModule module : newlyDenied) {
             for (Station station : reached(clusterId, stationGroupId)) {
-                boolean alreadySwitchedOffThere =
-                        stationRepository.findDisabledModules(station.id()).contains(module);
+                boolean alreadySwitchedOffThere = module.isOffIn(stationRepository.findDisabledModules(station.id()));
                 if (alreadySwitchedOffThere) continue;
                 eventBus.publish(new ClusterModuleDenied(station.id(), cluster.name(), module));
             }

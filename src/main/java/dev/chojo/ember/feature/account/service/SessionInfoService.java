@@ -35,6 +35,7 @@ import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.service.StationService;
+import dev.chojo.ember.feature.system.service.InstanceSettingsService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -60,6 +61,7 @@ public class SessionInfoService {
     private final UserSettingsRepository userSettingsRepository;
     private final UserTagRepository userTagRepository;
     private final AccountPreferenceRepository preferences;
+    private final InstanceSettingsService instanceSettings;
     private final MailChainService mailChainService;
     private final MemberNameResolver nameResolver;
     private final File config;
@@ -77,7 +79,9 @@ public class SessionInfoService {
             MailChainService mailChainService,
             MemberNameResolver nameResolver,
             AccountPreferenceRepository preferences,
+            InstanceSettingsService instanceSettings,
             File config) {
+        this.instanceSettings = instanceSettings;
         this.nameResolver = nameResolver;
         this.preferences = preferences;
         this.stationService = stationService;
@@ -171,13 +175,25 @@ public class SessionInfoService {
                 textOf(session.clusterUid()),
                 session.clusterUserType(),
                 session.clusterPermissions().stream().map(Enum::name).sorted().toList(),
-                ClusterPermission.atOwnStation(session.clusterPermissions()).stream()
+                ClusterPermission.atOwnStation(session.clusterPermissions(), clusterStationDisabled(session)).stream()
                         .map(Enum::name)
                         .sorted()
                         .toList(),
                 !mailChainService.forInstance().isEmpty(),
                 currentStation != null && currentStation.pdfHidesInstanceUrl(),
-                StationFormat.timezoneNameOf(currentStation));
+                StationFormat.timezoneNameOf(currentStation),
+                instanceSettings.messagesEnabled());
+    }
+
+    /**
+     * What the cluster's own station has switched off, which the rights the caller holds there follow.
+     *
+     * @param session the session
+     * @return the effective set of the cluster's own station, empty when the session acts for no cluster
+     */
+    private Set<StationModule> clusterStationDisabled(UserSession session) {
+        Integer clusterId = session.clusterId();
+        return clusterId == null ? Set.of() : stationService.findClusterStationDisabledModules(clusterId);
     }
 
     private ManagedMemberInfo toManagedMemberInfo(StationMember member) {
@@ -258,6 +274,9 @@ public class SessionInfoService {
      *                          the same everywhere and a screen offering to send one can ask it here.
      *                          It says nothing about whether a particular person can be reached, which
      *                          is a question about addresses and is answered per member
+     * @param messagesEnabled   whether messages are on for this instance. An administrator can turn
+     *                          them off for everybody, and every screen leading to them then hides
+     *                          its way in
      */
     public record SessionInfo(
             AccountInfo account,
@@ -283,7 +302,8 @@ public class SessionInfoService {
             List<String> ownStationPermissions,
             boolean canSendMail,
             boolean pdfHidesInstanceUrl,
-            String stationTimezone) {}
+            String stationTimezone,
+            boolean messagesEnabled) {}
 
     public record ThemeInfo(
             String instanceDefaultTheme,

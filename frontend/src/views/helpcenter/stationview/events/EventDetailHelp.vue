@@ -44,6 +44,10 @@ const sampleCancellation: CancellationNotice = {
       <p>{{ t('helpCenter.eventDetail.memberAccess') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.eventDetail.linksTitle')">
+      <p>{{ t('helpCenter.eventDetail.linksText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.eventDetail.answeringTitle')">
       <p>{{ t('helpCenter.eventDetail.answeringText') }}</p>
     </HelpSection>

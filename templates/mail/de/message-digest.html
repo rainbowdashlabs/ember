@@ -1,0 +1,8 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hallo {{ name }},</h2>
+      <p>Diese Nachrichten hast du noch nicht gelesen:</p>
+      {{ sections | raw }}
+      <div class="btn-wrap"><a class="btn" href="{{ url }}">Nachrichten öffnen</a></div>
+      <p>Diese E-Mail kommt höchstens einmal am Tag und nur, wenn seit der letzten etwas Neues ungelesen geblieben ist. Unter <a href="{{ url }}">Nachrichten</a> kannst du sie abschalten und festlegen, was aus Wachenchats hineinkommt.</p>
+{% endblock %}

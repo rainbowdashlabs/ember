@@ -19,6 +19,7 @@ import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.IssuedOneTimePassword;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -43,6 +44,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -101,7 +103,8 @@ class OneTimePasswordServiceTest extends RepositoryTestBase {
                 new TrustedDeviceService(
                         twoFactorRepository, TokenHasher.forTesting("otp-pepper"), new TwoFactorSettings()),
                 passkeyModeService,
-                new UsageRecorder(new UsageRepository()));
+                new UsageRecorder(new UsageRepository()),
+                new DomainEventBus(Set.of()));
     }
 
     @BeforeEach

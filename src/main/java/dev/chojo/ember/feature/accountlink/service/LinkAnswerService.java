@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.accountlink.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.auth.TokenHasher;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.accountlink.entity.AccountLinkRequest;
 import dev.chojo.ember.feature.accountlink.entity.AssociationLinkRequest;
 import dev.chojo.ember.feature.accountlink.entity.LinkAnswer;
@@ -63,6 +65,8 @@ public class LinkAnswerService {
     private final AssociationLinkAnswers associationAnswers;
     private final Clock clock;
 
+    private final DomainEventBus eventBus;
+
     @Inject
     public LinkAnswerService(
             AccountLinkRepository repository,
@@ -71,7 +75,8 @@ public class LinkAnswerService {
             TwoFactorAuditService auditService,
             Notifier notifier,
             TokenHasher tokenHasher,
-            AssociationLinkAnswers associationAnswers) {
+            AssociationLinkAnswers associationAnswers,
+            DomainEventBus eventBus) {
         this(
                 repository,
                 memberRepository,
@@ -80,6 +85,7 @@ public class LinkAnswerService {
                 notifier,
                 tokenHasher,
                 associationAnswers,
+                eventBus,
                 Clock.systemUTC());
     }
 
@@ -94,7 +100,9 @@ public class LinkAnswerService {
             Notifier notifier,
             TokenHasher tokenHasher,
             AssociationLinkAnswers associationAnswers,
+            DomainEventBus eventBus,
             Clock clock) {
+        this.eventBus = eventBus;
         this.repository = repository;
         this.memberRepository = memberRepository;
         this.nameResolver = nameResolver;
@@ -197,6 +205,7 @@ public class LinkAnswerService {
             }
         });
         nameResolver.forget(request.memberId());
+        eventBus.publish(StationAudienceChanged.at(request.stationId()));
         auditService.recordAtStation(
                 accountId, TwoFactorEvent.ACCOUNT_LINK_ACCEPTED, request.stationId(), userAgent, country);
         String memberName = nameResolver.official(request.memberId());

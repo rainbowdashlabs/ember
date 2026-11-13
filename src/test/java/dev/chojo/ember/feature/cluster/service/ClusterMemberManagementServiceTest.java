@@ -11,6 +11,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -68,8 +69,9 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                         stationMemberRepo,
                         newGroupMemberships(),
                         new AccountInviteService(accountRepo, mock(AuthService.class)),
-                        TestAccountLinks.service(accountRepo, stationRepo, stationMemberRepo)),
-                new UserTypeChangeService(stationMemberRepo, newGroupMemberships()),
+                        TestAccountLinks.service(accountRepo, stationRepo, stationMemberRepo),
+                        new DomainEventBus(Set.of())),
+                new UserTypeChangeService(stationMemberRepo, newGroupMemberships(), new DomainEventBus(Set.of())),
                 memberDocumentRepo,
                 documentService(),
                 new DocumentCatalogService(
@@ -86,7 +88,8 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                         attendanceRepo,
                         profileFieldCore,
                         documentService(),
-                        selfCheckService),
+                        selfCheckService,
+                        new DomainEventBus(Set.of())),
                 memberNameResolver);
     }
 

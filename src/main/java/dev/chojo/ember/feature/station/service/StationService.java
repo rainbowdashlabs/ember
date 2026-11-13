@@ -33,7 +33,6 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -54,6 +53,7 @@ public class StationService {
     private final FederationService federationService;
     private final StationMemberInviteService inviteService;
     private final ClusterRepository clusterRepository;
+    private final ModuleAvailability moduleAvailability;
 
     @Inject
     public StationService(
@@ -62,7 +62,9 @@ public class StationService {
             AccountRepository accountRepository,
             FederationService federationService,
             StationMemberInviteService inviteService,
-            ClusterRepository clusterRepository) {
+            ClusterRepository clusterRepository,
+            ModuleAvailability moduleAvailability) {
+        this.moduleAvailability = moduleAvailability;
         this.stationRepository = stationRepository;
         this.memberRepository = memberRepository;
         this.accountRepository = accountRepository;
@@ -405,13 +407,23 @@ public class StationService {
      * it. The management screen still asks for the two lists apart, because there it matters who decided.
      *
      * @param stationId the station
-     * @return the station's own set and its cluster's, together
+     * @return the station's own set and its cluster's, together, with the parts of every module in them
      */
     public Set<StationModule> findEffectiveDisabledModules(int stationId) {
-        Set<StationModule> disabled = EnumSet.noneOf(StationModule.class);
-        disabled.addAll(stationRepository.findDisabledModules(stationId));
-        disabled.addAll(findClusterDeniedModules(stationId));
-        return disabled;
+        return moduleAvailability.disabledAt(stationId);
+    }
+
+    /**
+     * Every module a cluster's own station does not have, the set its rights at that station follow.
+     *
+     * @param clusterId the cluster
+     * @return the effective set of its own station, empty when there is no such cluster
+     */
+    public Set<StationModule> findClusterStationDisabledModules(int clusterId) {
+        return clusterRepository
+                .findById(clusterId)
+                .map(cluster -> moduleAvailability.disabledAt(cluster.homeStationId()))
+                .orElse(Set.of());
     }
 
     /**
@@ -424,11 +436,10 @@ public class StationService {
 
     /**
      * Checks whether a module is enabled for a station. A cluster's denial outranks the station's own
-     * answer.
+     * answer, and a part of a module is off whenever the module is.
      */
     public boolean isModuleEnabled(int stationId, StationModule module) {
-        if (clusterRepository.isModuleDeniedForStation(stationId, module)) return false;
-        return !stationRepository.findDisabledModules(stationId).contains(module);
+        return moduleAvailability.isOn(stationId, module);
     }
 
     /**

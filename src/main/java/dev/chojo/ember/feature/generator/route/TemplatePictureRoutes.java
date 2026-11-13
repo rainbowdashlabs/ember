@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.events.route.EventVisibility;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import dev.chojo.ember.feature.generator.service.TemplatePictureService;
 import dev.chojo.ember.feature.media.entity.MediaContent;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -62,11 +63,14 @@ public class TemplatePictureRoutes implements Routes {
                 StationPermission.DOCUMENT_TEMPLATE_EDIT,
                 StationPermission.DOCUMENT_EDIT_MEMBER,
                 StationPermission.EVENT_EDIT,
-                StationPermission.EVENT_MANAGE_TEMPLATE);
+                StationPermission.EVENT_MANAGE_TEMPLATE,
+                StationModule.DOCUMENTS);
         routes.get(
                 prefix + "/events/{id}/documents-to-bring/{templateId}/picture",
                 this::appointmentPicture,
-                StationPermission.USER);
+                StationPermission.USER,
+                StationModule.EVENTS,
+                StationModule.DOCUMENTS);
         routes.get(
                 prefix + "/cluster/document-templates/{id}/picture",
                 this::associationPicture,

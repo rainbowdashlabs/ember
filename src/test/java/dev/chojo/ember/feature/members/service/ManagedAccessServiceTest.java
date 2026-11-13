@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Auth;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountEmailService;
 import dev.chojo.ember.feature.account.service.AccountReach;
@@ -22,13 +23,17 @@ import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.ManagedLoginNoticeRepository;
+import dev.chojo.ember.feature.messages.service.MessageFixtures;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -70,7 +75,9 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
                 mock(AuthService.class),
                 mock(MemberLookupService.class),
                 mock(DocumentService.class),
-                new AccountReach(accountRepo));
+                new AccountReach(accountRepo),
+                new ModuleAvailability(stationRepo, clusterRepo),
+                new DomainEventBus(Set.of()));
         noticeRepo = new ManagedLoginNoticeRepository();
         authService = mock(AuthService.class);
         service = new ManagedAccessService(
@@ -94,7 +101,8 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
                         new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
                         mock(EmailService.class)),
                 enrollmentService = mock(dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService.class),
-                new AccountReach(accountRepo));
+                new AccountReach(accountRepo),
+                MessageFixtures.settingsAlone());
 
         station = stationRepo.create("Managed Access Station");
         guardianAccount = accountRepo.create("guardian@test.com", "Petra", "Sommer");
@@ -268,6 +276,30 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
 
         var waiting = noticeRepo.find(child.id()).orElseThrow();
         assertTrue(waiting.granted());
+    }
+
+    @Test
+    void aGuardianTurnsMessagesOnAndOffForTheChild() {
+        try {
+            assertFalse(service.get(guardian.id(), child.id()).messagesAllowed());
+            var messages = MessageFixtures.settingsAlone();
+            assertFalse(messages.status(childAccount.id()).available());
+
+            assertTrue(service.setMessages(guardian.id(), child.id(), true).messagesAllowed());
+            assertTrue(messages.status(childAccount.id()).available());
+
+            assertFalse(service.setMessages(guardian.id(), child.id(), false).messagesAllowed());
+            assertFalse(messages.status(childAccount.id()).available());
+        } finally {
+            service.setMessages(guardian.id(), child.id(), false);
+        }
+    }
+
+    @Test
+    void messagesOfAMemberTheyDoNotManageAreNotTheirsToSwitch() {
+        var refused =
+                assertThrows(RefusalResponse.class, () -> service.setMessages(guardian.id(), stranger.id(), true));
+        assertEquals(MemberRefusal.MANAGED_MEMBER_NOT_YOURS, refused.refusal());
     }
 
     @Test

@@ -324,6 +324,50 @@ class StatisticsRepositoryTest extends RepositoryTestBase {
     }
 
     /**
+     * A series that went on as a new one, and a date taken out of it, count in one row with the series
+     * they came from, under the name of the newest of them.
+     */
+    @Test
+    void linkedAppointmentsCountAsOneUnderTheNewestName() {
+        var station = stationRepo.create("Linked Statistics Station");
+        int first = memberOf(station.id(), "ev-linked-first@test.com");
+        int second = memberOf(station.id(), "ev-linked-second@test.com");
+        var series = eventAt(station.id(), "Dienst", Instant.now().plus(Duration.ofDays(2)));
+        var continued = eventAt(station.id(), "Dienst neu", Instant.now().plus(Duration.ofDays(9)));
+        var detached = eventAt(station.id(), "Dienst einzeln", Instant.now().plus(Duration.ofDays(16)));
+        eventRepo.setContinues(continued.id(), series.id(), LocalDate.now().plusDays(9));
+        eventRepo.setContinues(detached.id(), continued.id(), LocalDate.now().plusDays(16));
+        eventRegistrationRepo.create(
+                series.id(), first, LocalDate.now().plusDays(2), RegistrationStatus.ACCEPTED, null);
+        eventRegistrationRepo.create(
+                continued.id(), second, LocalDate.now().plusDays(9), RegistrationStatus.PENDING, null);
+        eventRegistrationRepo.create(
+                detached.id(), first, LocalDate.now().plusDays(16), RegistrationStatus.ACCEPTED, null);
+
+        var registrations = statistics.stationStatistics(station.id()).eventRegistrations();
+
+        assertEquals(List.of(new EventRegistrations("Dienst einzeln", 2, 1, 0)), registrations);
+    }
+
+    /** A series that already began does not bring its past places into the row of its continuation. */
+    @Test
+    void aStartedSeriesDoesNotJoinItsContinuation() {
+        var station = stationRepo.create("Started Statistics Station");
+        int first = memberOf(station.id(), "ev-started-first@test.com");
+        var started = eventAt(station.id(), "Dienst", Instant.now().minus(Duration.ofDays(60)));
+        var continued = eventAt(station.id(), "Dienst neu", Instant.now().plus(Duration.ofDays(9)));
+        eventRepo.setContinues(continued.id(), started.id(), LocalDate.now().plusDays(9));
+        eventRegistrationRepo.create(
+                started.id(), first, LocalDate.now().minusDays(30), RegistrationStatus.ACCEPTED, null);
+        eventRegistrationRepo.create(
+                continued.id(), first, LocalDate.now().plusDays(9), RegistrationStatus.PENDING, null);
+
+        var registrations = statistics.stationStatistics(station.id()).eventRegistrations();
+
+        assertEquals(List.of(new EventRegistrations("Dienst neu", 0, 1, 0)), registrations);
+    }
+
+    /**
      * Where everybody is expected, a withdrawal is a refusal taken back, so only the refusal still
      * standing counts as staying away.
      */

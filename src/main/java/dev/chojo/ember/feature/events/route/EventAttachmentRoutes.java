@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.events.entity.EventAttachment;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.Context;
@@ -70,13 +71,34 @@ public class EventAttachmentRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/events/{id}/attachments", this::list, StationPermission.USER);
-        routes.get(prefix + "/events/{id}/attachments/{attachmentId}/file", this::download, StationPermission.USER);
-        routes.get(prefix + "/events/{id}/attachments/{attachmentId}/picture", this::picture, StationPermission.USER);
-        routes.post(prefix + "/events/{id}/attachments", this::attach, StationPermission.EVENT_EDIT);
-        routes.put(prefix + "/events/{id}/attachments/order", this::reorder, StationPermission.EVENT_EDIT);
-        routes.put(prefix + "/events/{id}/attachments/{attachmentId}", this::update, StationPermission.EVENT_EDIT);
-        routes.delete(prefix + "/events/{id}/attachments/{attachmentId}", this::detach, StationPermission.EVENT_EDIT);
+        routes.get(prefix + "/events/{id}/attachments", this::list, StationPermission.USER, StationModule.EVENTS);
+        routes.get(
+                prefix + "/events/{id}/attachments/{attachmentId}/file",
+                this::download,
+                StationPermission.USER,
+                StationModule.EVENTS);
+        routes.get(
+                prefix + "/events/{id}/attachments/{attachmentId}/picture",
+                this::picture,
+                StationPermission.USER,
+                StationModule.EVENTS);
+        routes.post(
+                prefix + "/events/{id}/attachments", this::attach, StationPermission.EVENT_EDIT, StationModule.EVENTS);
+        routes.put(
+                prefix + "/events/{id}/attachments/order",
+                this::reorder,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS);
+        routes.put(
+                prefix + "/events/{id}/attachments/{attachmentId}",
+                this::update,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS);
+        routes.delete(
+                prefix + "/events/{id}/attachments/{attachmentId}",
+                this::detach,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS);
     }
 
     @OpenApi(

@@ -23,6 +23,10 @@ import io.javalin.http.HandlerType;
  * @param versionExempt whether the endpoint stays callable across any contract mismatch;
  *                      reserved for the handshake and the version ping, which must keep
  *                      working so diverged instances can learn each other's versions
+ * @param keepsInStep  whether the endpoint only carries a change onto the receiver's own copy of
+ *                      something both sides keep, such as a lending request moving on; it is
+ *                      answered even while the receiver has the surface's module switched off, so
+ *                      that copy is right once the module is back. Not part of the contract hash
  */
 public record FederationEndpoint(
         FederationSurface surface,
@@ -31,41 +35,53 @@ public record FederationEndpoint(
         Class<?> requestType,
         Class<?> responseType,
         boolean listResponse,
-        boolean versionExempt) {
+        boolean versionExempt,
+        boolean keepsInStep) {
 
     public static FederationEndpoint get(FederationSurface surface, String path, Class<?> responseType) {
-        return new FederationEndpoint(surface, HandlerType.GET, path, Void.class, responseType, false, false);
+        return new FederationEndpoint(surface, HandlerType.GET, path, Void.class, responseType, false, false, false);
     }
 
     public static FederationEndpoint getList(FederationSurface surface, String path, Class<?> elementType) {
-        return new FederationEndpoint(surface, HandlerType.GET, path, Void.class, elementType, true, false);
+        return new FederationEndpoint(surface, HandlerType.GET, path, Void.class, elementType, true, false, false);
     }
 
     public static FederationEndpoint post(
             FederationSurface surface, String path, Class<?> requestType, Class<?> responseType) {
-        return new FederationEndpoint(surface, HandlerType.POST, path, requestType, responseType, false, false);
+        return new FederationEndpoint(surface, HandlerType.POST, path, requestType, responseType, false, false, false);
     }
 
     public static FederationEndpoint postList(
             FederationSurface surface, String path, Class<?> requestType, Class<?> elementType) {
-        return new FederationEndpoint(surface, HandlerType.POST, path, requestType, elementType, true, false);
+        return new FederationEndpoint(surface, HandlerType.POST, path, requestType, elementType, true, false, false);
     }
 
     public static FederationEndpoint put(
             FederationSurface surface, String path, Class<?> requestType, Class<?> responseType) {
-        return new FederationEndpoint(surface, HandlerType.PUT, path, requestType, responseType, false, false);
+        return new FederationEndpoint(surface, HandlerType.PUT, path, requestType, responseType, false, false, false);
     }
 
     public static FederationEndpoint delete(
             FederationSurface surface, String path, Class<?> requestType, Class<?> responseType) {
-        return new FederationEndpoint(surface, HandlerType.DELETE, path, requestType, responseType, false, false);
+        return new FederationEndpoint(
+                surface, HandlerType.DELETE, path, requestType, responseType, false, false, false);
     }
 
     /**
      * A copy of this endpoint that stays callable across any contract mismatch.
      */
     public FederationEndpoint exempt() {
-        return new FederationEndpoint(surface, method, path, requestType, responseType, listResponse, true);
+        return new FederationEndpoint(
+                surface, method, path, requestType, responseType, listResponse, true, keepsInStep);
+    }
+
+    /**
+     * A copy of this endpoint that is answered while the receiver has the surface's module switched off,
+     * for a push that keeps the receiver's own copy in step with the sender's.
+     */
+    public FederationEndpoint keepingInStep() {
+        return new FederationEndpoint(
+                surface, method, path, requestType, responseType, listResponse, versionExempt, true);
     }
 
     /**

@@ -118,6 +118,10 @@ function highlightSnippet(result: (typeof searchResults.value)[number]): string 
                    to="/helpcenter/station/basics/account-links" @navigate="close">
         {{ t('helpCenter.basics.sidebarAccountLinks') }}
       </SidebarLink>
+      <SidebarLink :icon="['fas', 'comments']" name="help-basics-messages"
+                   to="/helpcenter/station/basics/messages" @navigate="close">
+        {{ t('helpCenter.basics.sidebarMessages') }}
+      </SidebarLink>
     </SidebarGroup>
 
     <SidebarGroup :icon="['fas', 'rocket']" :label="t('setup.headerTitle')" prefix="/helpcenter/station/setup"
@@ -166,6 +170,18 @@ function highlightSnippet(result: (typeof searchResults.value)[number]): string 
       </SidebarLink>
     </SidebarGroup>
 
+    <SidebarGroup :icon="['fas', 'comments']" :label="t('sidebar.stationChats')"
+                  to="/helpcenter/station/messages/chats" name="help-message-station-chats" @navigate="close">
+      <SidebarLink :icon="['fas', 'comments']" name="help-message-station-chats"
+                   to="/helpcenter/station/messages/chats" @navigate="close">
+        {{ t('sidebar.stationChats') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'flag']" name="help-message-reports"
+                   to="/helpcenter/station/messages/reports" @navigate="close">
+        {{ t('sidebar.messageReports') }}
+      </SidebarLink>
+    </SidebarGroup>
+
     <SidebarGroup :icon="['fas', 'user']" :label="t('sidebar.profile')"
                   to="/helpcenter/station/profile" name="help-profile-module-overview" @navigate="close">
       <SidebarLink :icon="['fas', 'calendar-days']" name="help-profile-absences"
@@ -175,6 +191,10 @@ function highlightSnippet(result: (typeof searchResults.value)[number]): string 
       <SidebarLink :icon="['fas', 'users']" name="help-profile-managed"
                    to="/helpcenter/station/profile/managed" @navigate="close">
         {{ t('sidebar.managedProfiles') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'comments']" name="help-messages"
+                   to="/helpcenter/station/messages" @navigate="close">
+        {{ t('helpCenter.messages.title') }}
       </SidebarLink>
       <SidebarLink :icon="['fas', 'boxes-stacked']" name="help-profile-inventory"
                    to="/helpcenter/station/profile/inventory" @navigate="close">

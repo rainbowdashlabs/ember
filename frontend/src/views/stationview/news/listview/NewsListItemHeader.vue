@@ -12,6 +12,7 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import SystemBadge from '@/components/badge/SystemBadge.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
+import NewsAuthorAvatar from '../newsshared/NewsAuthorAvatar.vue'
 import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
 import {emberLogo} from '@/composables/useEmberLogo'
 import EditButton from '@/components/button/EditButton.vue'
@@ -57,7 +58,8 @@ function viewBadgeRef(el: unknown) {
           data-testid="system-entry-logo"
           size="h-10 w-10 shrink-0"
       />
-      <UserAvatar v-else-if="author || authorName" :identity="author" :name="author?.name ?? authorName" size="md"/>
+      <NewsAuthorAvatar v-else-if="author" :author="author" :name="author.name ?? authorName ?? ''"/>
+      <UserAvatar v-else-if="authorName" :identity="null" :name="authorName" size="md"/>
       <div>
         <SubHeader class="flex items-center gap-1">
           <span>{{ title }}</span>

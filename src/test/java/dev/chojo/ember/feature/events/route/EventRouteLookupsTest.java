@@ -21,7 +21,10 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
+import dev.chojo.ember.feature.events.service.EventChangeNotifier;
+import dev.chojo.ember.feature.events.service.EventChangePreviewService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.EventEditScopeService;
 import dev.chojo.ember.feature.events.service.EventExportService;
 import dev.chojo.ember.feature.events.service.EventFieldDefaultService;
 import dev.chojo.ember.feature.events.service.EventFieldRegistrationService;
@@ -43,6 +46,7 @@ import dev.chojo.ember.feature.members.service.MemberTableRenderer;
 import dev.chojo.ember.feature.members.service.MemberTableService;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -106,7 +110,10 @@ class EventRouteLookupsTest {
                 mock(EventTemplateService.class),
                 mock(EventFieldRegistrationService.class),
                 mock(OccurrenceCalendar.class),
-                visibility);
+                visibility,
+                mock(EventEditScopeService.class),
+                mock(EventChangeNotifier.class),
+                mock(EventChangePreviewService.class));
         var harness = RouteHarness.serving(routes);
 
         harness.run((server, client) -> {
@@ -224,6 +231,26 @@ class EventRouteLookupsTest {
                     EventRefusal.STATION_NOT_HERE_BEHIND_PUBLIC_CALENDAR,
                     refusalOf(client.get(PREFIX + "/public/events/" + UUID.randomUUID())));
         });
+    }
+
+    /** A calendar the station publishes is gone all the same while its appointments are switched off. */
+    @Test
+    void thePublicCalendarNeedsTheEventsModule() {
+        var open = mock(Station.class);
+        when(open.id()).thenReturn(STATION_ID);
+        when(open.publicCalendarEnabled()).thenReturn(true);
+        when(stationService.findByUid(STATION_UID)).thenReturn(Optional.of(open));
+        when(stationService.isModuleEnabled(STATION_ID, StationModule.EVENTS)).thenReturn(false);
+        var harness = RouteHarness.serving(new PublicEventRoutes(
+                crudService,
+                mock(EventCategoryService.class),
+                mock(EventFieldService.class),
+                mock(OccurrenceCalendar.class),
+                stationService));
+
+        assertEquals(
+                EventRefusal.PUBLIC_CALENDAR_SWITCHED_OFF,
+                refusalOf(harness.request(client -> client.get(PREFIX + "/public/events/" + STATION_UID))));
     }
 
     private EventRegistrationRoutes registrationRoutes(RegistrationAnswerReminder reminder) {

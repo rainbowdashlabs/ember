@@ -13,6 +13,7 @@ import {ShareGrant, ShareScope} from '@/api/generated/schema'
 import de from '@/i18n/de-DE'
 
 const getShare = vi.fn()
+const lendingOn = ref(true)
 
 vi.mock('@/api/lending', async (importOriginal) => ({
     ...(await importOriginal<typeof import('@/api/lending')>()),
@@ -20,7 +21,7 @@ vi.mock('@/api/lending', async (importOriginal) => ({
 }))
 
 vi.mock('@/composables/useSession', () => ({
-    useSession: () => ({loaded: ref(true), hasPermission: () => true}),
+    useSession: () => ({loaded: ref(true), hasPermission: () => true, isModuleEnabled: () => lendingOn.value}),
 }))
 
 vi.mock('@/composables/useInventoryRoutes', () => ({
@@ -52,6 +53,7 @@ describe('LendingSharePanel', () => {
 
     beforeEach(() => {
         vi.clearAllMocks()
+        lendingOn.value = true
         getShare.mockResolvedValue({shared: false, grant: null, scope: null, partnerIds: []})
     })
 
@@ -81,5 +83,13 @@ describe('LendingSharePanel', () => {
 
         expect(card.find('[data-testid="lending-share-state"]').text())
             .toBe(de.lendingShare.stateAllPartners)
+    })
+
+    it('says nothing at a station whose lending is switched off', async () => {
+        lendingOn.value = false
+        const card = await settled(panel(true))
+
+        expect(card.find('[data-testid="lending-share-panel"]').exists()).toBe(false)
+        expect(getShare).not.toHaveBeenCalled()
     })
 })

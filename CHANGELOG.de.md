@@ -1,5 +1,45 @@
 # Änderungsprotokoll
 
+## v26.25.0
+
+Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die die Wache für alle, eine Gruppe oder einen Tag eröffnet. Ein einzelner Termin einer Serie oder eine Serie ab einem Termin lässt sich für sich ändern, und beim Speichern können die Betroffenen benachrichtigt werden. Teile des Inventars wie der Verleih oder die Beschaffung lassen sich einzeln abschalten, und ein abgeschaltetes Modul nimmt seine Benachrichtigungen und Berechtigungen mit. Geteilte Termine mit einer Partnerwache auf einem anderen Server brauchen auf beiden Seiten diese Version.
+
+### Neue Funktionen
+
+- **Nachrichten zwischen den Leuten einer Wache.** Alle können den Leuten schreiben, mit denen sie eine Wache teilen, direkt oder in Gruppen bis 25 Personen, über den Nachrichten-Knopf in der Kopfzeile. Eine Unterhaltung sieht gleich aus, egal welche Wache gewählt ist, und ein Name darin öffnet das Kurzprofil auf jeder gemeinsamen Wache.
+- **Neue Nachrichten kommen ohne Neuladen.** Nachrichten, Änderungen und Reaktionen erscheinen, sobald sie geschrieben werden, und die Kopfzeile zeigt, wie viele ungelesen warten. Eine Nachricht lässt sich beantworten, ändern, löschen und mit jedem üblichen Emoji kommentieren, in Gruppen lassen sich Leute erwähnen.
+- **Wachenchats für alle, eine Gruppe oder einen Tag.** Wer die neue Berechtigung „Wachenchats verwalten" hat, eröffnet, benennt, schließt und öffnet Chats für die ganze Wache, eine Gruppe oder einen Tag, kann die Erziehungsberechtigten dazuholen und jede Nachricht darin entfernen. Wer im Chat ist, richtet sich nach der Wache, der Gruppe oder dem Tag; verlassen lässt sich ein Chat nicht, aber stummschalten, und er zieht mit um, wenn die Wache umzieht.
+- **Nachrichten in Wachenchats melden.** Eine Nachricht in einem Wachenchat lässt sich melden, auf Wunsch mit Grund, und wer die Chats der Wache betreut, wird benachrichtigt. Unter „Gemeldete Nachrichten" steht sie mit dem Verlauf davor und danach; dort wird sie für die Wache entfernt oder die Meldung verworfen.
+- **Eine tägliche Mail für ungelesene Nachrichten.** Einmal am Tag fasst eine Mail zusammen, was in privaten Unterhaltungen neu und ungelesen ist; aus Wachenchats kommen die Erwähnungen oder auf Wunsch alle Nachrichten. Die Uhrzeit setzt `messages.digestHour` (Standard 18 Uhr, Zeitzone des Servers).
+- **Leute lassen sich für Nachrichten blockieren.** Eine blockierte Person kann keine direkte Unterhaltung mehr mit der blockierenden Person starten und sie in keine Gruppe holen, ihre Nachrichten in gemeinsamen Gruppen sind eingeklappt. Sie erfährt davon nichts.
+- **Erziehungsberechtigte entscheiden über Nachrichten.** Ein Mitglied mit Erziehungsberechtigten in irgendeiner Wache hat keine Nachrichten, bis eine erziehungsberechtigte Person sie unter Profil → Verwaltete Profile freischaltet. Wird das wieder abgeschaltet, verschwinden die Unterhaltungen, gelöscht wird nichts.
+- **Nachrichten lassen sich für die Instanz abschalten.** Unter Administration → Einstellungen schalten Admins Nachrichten für alle ab: Private Unterhaltungen, Wachenchats und die tägliche Mail verschwinden, bis sie wieder eingeschaltet werden; gelöscht wird nichts.
+- **Einzelne Termine oder Serien ab einem Datum ändern.** Beim Speichern einer Serie wird gefragt, ob die Änderung nur für diesen Termin, für diesen und alle späteren oder für alle Termine gilt. Ein einzelner Termin wird ein eigener Termin und spätere Termine gehen als neue Serie weiter; Anmeldungen und Anwesenheitslisten ziehen mit, und beide Termine verweisen aufeinander.
+- **Betroffene über Änderungen benachrichtigen.** Beim Speichern einer Änderung lassen sich alle Angemeldeten benachrichtigen, bei Terminen ohne Anmeldung alle, die den Termin sehen, mit einem Hinweis von bis zu 500 Zeichen. Die Nachricht nennt, was sich geändert hat, und Partnerwachen geben sie an ihre Mitglieder weiter.
+- **Aufgeteilte Serien zählen als eine.** In der Statistik der Wache zählen eine Serie, die als neue Serie weitergeht, und die aus ihr gelösten Termine als ein Termin unter dem neuesten Namen.
+- **Teile des Inventars einzeln abschalten.** Vorgänge, Verleih, Beschaffung, das Selbstprüfen der Ausrüstung und Inventarprüfungen haben unter Wache → Module je einen eigenen Schalter unter dem Inventar. Verbände können jeden Teil ihren Wachen genauso verwehren wie ein ganzes Modul.
+
+### Verbesserungen
+
+- **Aus dem Kurzprofil schreiben.** Das Kurzprofil eines Mitglieds hat einen Knopf „Nachricht", der die private Unterhaltung mit der Person öffnet oder beginnt.
+- **Kurzprofil für Autorinnen und Autoren von Neuigkeiten.** Der Name in der Liste der Neuigkeiten und im Eintrag öffnet das Kurzprofil wie jeder andere Name der Wache.
+- **Neue Anfangszeit beim Speichern sichtbar.** Die Abfrage beim Speichern zeigt, wie viele Angemeldete eine neue Anfangszeit erfahren, jetzt auch bei Serienterminen. Wer zusätzlich über die Änderung benachrichtigt wird, bekommt eine Nachricht statt zwei.
+- **Abgeschaltete Module nehmen ihre Benachrichtigungen mit.** Benachrichtigungen eines abgeschalteten Moduls werden nicht mehr angezeigt, gezählt oder gemailt, und solange es aus ist, entstehen keine neuen. Sie bleiben erhalten und sind wieder da, sobald das Modul läuft; die Einstellungen der Benachrichtigungen zeigen nur noch, was die Wache nutzt.
+- **Abgeschaltete Module vergeben keine Berechtigungen.** Die Auswahl der Berechtigungen lässt die eines abgeschalteten Moduls weg, und bereits vergebene gelten erst wieder, wenn das Modul läuft. Pflichten eines abgeschalteten Moduls, etwa eine Pflichtumfrage, halten niemanden mehr auf der Startseite fest.
+- **Partner und Öffentlichkeit sehen nichts von abgeschalteten Modulen.** Eine Wache gibt Partnerwachen nichts aus einem Modul heraus, das sie abgeschaltet hat, und ihre Mitglieder sehen von Partnern nichts aus diesem Modul. Öffentlicher Kalender, Blog, Wiki, Quiz und Wartelisten verschwinden mit ihrem Modul, auch wenn der Verband es verwehrt.
+
+### Änderungen
+
+- **Geteilte Termine brauchen auf beiden Seiten diese Version.** Zwischen einer Wache auf dieser Version und einer Partnerwache auf einer älteren auf einem anderen Server funktionieren geteilte Termine, die Anmeldung dazu und ihre Kommentare nicht. Sobald beide 26.25.0 betreiben, geht es wieder.
+
+### Fehlerbehebungen
+
+- **Kurzprofile zeigen nur, was der Lesende sehen darf.** Nach einer Anmeldung als jemand anderes, einem Profilwechsel oder einem entzogenen Recht konnte ein schon geöffnetes Kurzprofil ohne Neuladen der Seite noch private Tags zeigen. Es wird jetzt für die Person neu geladen, die gerade schaut.
+
+- **Wörter statt technischer Werte.** An einigen Stellen erschienen technische Werte statt Wörtern, etwa die Antwort auf eine Einladung von der Warteliste, ein vom Verband abgeschaltetes Modul, die Mitgliedsarten in der Einrichtung der Wache und zugeordnete Werte beim Mitgliederimport, und dem letzten Einrichtungsschritt fehlte sein Hinweis. Alles erscheint jetzt in der Sprache der Oberfläche.
+
+- **Abgeschaltete Module blieben erreichbar.** Seiten eines abgeschalteten Moduls öffneten sich weiter über einen gespeicherten Link, und Dokumente und das öffentliche Wiki blieben offen, wenn nur der Verband sie abgeschaltet hatte. Jede Seite eines abgeschalteten Moduls sagt jetzt, dass dieser Bereich an der Wache ausgeschaltet ist.
+
 ## v26.24.2
 
 Terminvorlagen tragen Anmelderegeln, Dateien, Startwerte für den Anwesenheitsbogen und die Freigabe für Partnerwachen. Der Filter "Anmeldung offen" bei den kommenden Terminen zeigt nur noch Termine, für die eine Anmeldung noch möglich ist.
@@ -62,7 +102,6 @@ Jede Zahl der Übersicht öffnet die passende Liste, fehlgeschlagene E-Mails las
 - **Konten ohne Adresse zählten als unbestätigt.** Konten für Personen ohne E-Mail-Adresse erhöhten die Zahl unbestätigter Konten, obwohl sie nie eine bestätigen können. Sie werden nicht mehr gezählt.
 - **Selbsteintragung auch Mitgliedern außerhalb der Auswahl angeboten.** Der Knopf „Eintragen" erschien bei Mitgliederfragen, die auf eine Gruppe, einen Mitgliedstyp oder einen Tag beschränkt sind, auch für Mitglieder außerhalb davon, und der Klick wurde dann abgelehnt. Er erscheint jetzt nur noch für Mitglieder, die sich eintragen dürfen, und nach dem Anmeldeschluss steht dort, dass die Eintragung geschlossen ist.
 - **Ja/Nein-Fragen mit abhängigen Fragen ließen sich nicht löschen.** Das Löschen einer solchen Frage oder ein anderer Typ für sie wurde abgelehnt, mit dem Rat, die Seite neu zu laden. Der Dialog nennt jetzt die abhängigen Fragen und kann ihre Bedingung im selben Schritt entfernen, ihre Antworten bleiben erhalten.
-
 
 ## v26.24.0
 
@@ -164,7 +203,6 @@ Profilfelder lassen sich nur dann anzeigen, wenn eine Ja/Nein-Frage mit Ja beant
 ### Fehlerbehebungen
 
 - **Neu ausgegebene Ausrüstung im gemischten Inventar gehörte immer dem Träger.** Ein beim Ausgeben neu angelegtes Stück eines gemischten Inventars wurde dem Träger zugeschrieben, auch wenn es der Wache gehören sollte. Der Eigentümer wird jetzt beim Ausgeben gewählt.
-
 - **Bereiche der Seitenleiste ließen sich nicht in einem neuen Tab öffnen.** Die Bereiche in der Liste aller Bereiche reagierten nicht auf einen Mittelklick oder einen Klick mit gedrückter Zusatztaste. Sie sind jetzt Links, die ihre erste Seite wie jeder andere Link in einem neuen Tab öffnen.
 
 ## v26.23.0

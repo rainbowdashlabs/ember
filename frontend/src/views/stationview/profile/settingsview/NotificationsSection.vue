@@ -47,7 +47,8 @@ const allRows: NotifyRow[] = [
 
 /**
  * The rows for the types the server reported. The page sends back every type it switched, and the
- * server refuses a save naming one it does not know, so a row it did not report is never offered.
+ * server refuses a save naming one it does not know, so a row it did not report is never offered. The
+ * server leaves out the types of a module the station switched off, so those go with the module.
  */
 const notifyRows = computed(() => allRows.filter(row => row.type in props.settings.notifications))
 

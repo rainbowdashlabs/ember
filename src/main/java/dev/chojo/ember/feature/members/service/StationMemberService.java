@@ -9,6 +9,8 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.account.entity.AccountAction;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountReach;
@@ -21,6 +23,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.util.PermissionValidation;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -31,7 +34,9 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -46,6 +51,9 @@ public class StationMemberService {
     private final MemberLookupService lookupService;
     private final DocumentService documentService;
     private final AccountReach accountReach;
+    private final ModuleAvailability modules;
+
+    private final DomainEventBus eventBus;
 
     @Inject
     public StationMemberService(
@@ -55,7 +63,11 @@ public class StationMemberService {
             AuthService authService,
             MemberLookupService lookupService,
             DocumentService documentService,
-            AccountReach accountReach) {
+            AccountReach accountReach,
+            ModuleAvailability modules,
+            DomainEventBus eventBus) {
+        this.eventBus = eventBus;
+        this.modules = modules;
         this.memberRepository = memberRepository;
         this.stationRepository = stationRepository;
         this.accountRepository = accountRepository;
@@ -133,6 +145,7 @@ public class StationMemberService {
     public StationMember create(int stationId, int accountId) {
         var member = memberRepository.create(stationId, accountId);
         log.info("Member created: member={}, station={}, account={}", member.id(), stationId, accountId);
+        eventBus.publish(StationAudienceChanged.at(stationId));
         return member;
     }
 
@@ -152,7 +165,17 @@ public class StationMemberService {
     public boolean delete(int id) {
         documentService.memberLeaves(id, DocumentService.Leaving.DELETED);
         log.info("Member deleted: member={}", id);
-        return memberRepository.delete(id);
+        var member = memberRepository.findById(id);
+        List<Integer> managedAccounts = memberRepository.findManaged(id).stream()
+                .map(StationMember::accountId)
+                .filter(Objects::nonNull)
+                .toList();
+        boolean deleted = memberRepository.delete(id);
+        if (deleted) {
+            member.ifPresent(gone -> eventBus.publish(StationAudienceChanged.at(gone.stationId())));
+            managedAccounts.forEach(account -> eventBus.publish(StationAudienceChanged.ofAccount(account)));
+        }
+        return deleted;
     }
 
     public List<Permission> findPermissions(int memberId) {
@@ -280,7 +303,8 @@ public class StationMemberService {
 
     /**
      * Everything a user type may do at a station: what the type carries by itself, what the
-     * station grants it on top, and everything those permissions include.
+     * station grants it on top, and everything those permissions include. A permission of a module the
+     * station does not have grants nothing, as it does for the members of the type.
      *
      * @return the permission names, sorted
      */
@@ -290,7 +314,7 @@ public class StationMemberService {
         memberRepository.findUserTypePermissions(stationId, userType).stream()
                 .map(Permission::permission)
                 .forEach(permissions::add);
-        return StationPermission.expand(permissions).stream()
+        return StationPermission.expand(permissions, modules.disabledAt(stationId)).stream()
                 .map(Enum::name)
                 .sorted()
                 .toList();
@@ -331,6 +355,9 @@ public class StationMemberService {
         }
 
         log.info("Managed relations updated for manager {}: {}", managerId, desiredManagedIds);
+        var touched = new LinkedHashSet<>(currentManagedIds);
+        touched.addAll(desiredManagedIds);
+        touched.forEach(this::audienceChangedAround);
         return memberRepository.findManaged(managerId);
     }
 
@@ -365,6 +392,7 @@ public class StationMemberService {
         });
 
         log.info("Manager relations updated for member {}: {}", managedId, desiredManagerIds);
+        audienceChangedAround(managedId);
         return memberRepository.findManagers(managedId);
     }
 
@@ -379,5 +407,18 @@ public class StationMemberService {
         if (member.userType() != StationUserType.MEMBER && member.userType() != StationUserType.TRIAL) {
             throw MemberRefusal.MEMBER_TYPE_TAKES_NO_GUARDIANS.raise();
         }
+    }
+
+    /**
+     * Says that a guardian link of a member changed. The station's chats may take guardians in, and a
+     * member who has a guardian somewhere may use messages only once a guardian allowed it, which
+     * holds at every station of their account.
+     */
+    private void audienceChangedAround(int memberId) {
+        memberRepository.findById(memberId).ifPresent(member -> {
+            eventBus.publish(StationAudienceChanged.at(member.stationId()));
+            Integer accountId = member.accountId();
+            if (accountId != null) eventBus.publish(StationAudienceChanged.ofAccount(accountId));
+        });
     }
 }

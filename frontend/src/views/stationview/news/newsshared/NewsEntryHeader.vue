@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import SubHeader from '@/components/typography/SubHeader.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
+import NewsAuthorAvatar from './NewsAuthorAvatar.vue'
 import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
 import {emberLogo} from '@/composables/useEmberLogo'
 import {formatDateTime} from '@/util/format'
@@ -39,7 +40,8 @@ const logo = emberLogo()
           data-testid="system-entry-logo"
           size="h-10 w-10 shrink-0"
       />
-      <UserAvatar v-else :identity="entry.author" :name="entry.author?.name ?? entry.authorName" size="md"/>
+      <NewsAuthorAvatar v-else-if="entry.author" :author="entry.author" :name="entry.author.name ?? entry.authorName ?? ''"/>
+      <UserAvatar v-else :identity="null" :name="entry.authorName" size="md"/>
       <div>
         <SubHeader class="flex items-center gap-1">
           {{ entry.title }}

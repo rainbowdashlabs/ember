@@ -257,7 +257,8 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class),
                 TestAccountLinks.importedLinks(accountRepo, stationRepo, stationMemberRepo),
                 new ActiveImports(),
-                new TaskScheduler());
+                new TaskScheduler(),
+                new DomainEventBus(Set.of()));
 
         var transferRoutes = new TransferRoutes(
                 exportService,

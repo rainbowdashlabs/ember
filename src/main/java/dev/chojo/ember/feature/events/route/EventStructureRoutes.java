@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.events.service.EventFieldDefaultService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -88,37 +89,69 @@ public class EventStructureRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/events/field-names", this::listFieldNames, StationPermission.EVENT_EDIT);
-        routes.get(prefix + "/events/overview-fields", this::getOverviewFields, StationPermission.USER);
+        routes.get(
+                prefix + "/events/field-names",
+                this::listFieldNames,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS);
+        routes.get(
+                prefix + "/events/overview-fields",
+                this::getOverviewFields,
+                StationPermission.USER,
+                StationModule.EVENTS);
 
-        routes.get(prefix + "/events/categories", this::listCategories, StationPermission.USER);
-        routes.post(prefix + "/events/categories", this::createCategory, StationPermission.EVENT_MANAGE_CATEGORY);
+        routes.get(prefix + "/events/categories", this::listCategories, StationPermission.USER, StationModule.EVENTS);
+        routes.post(
+                prefix + "/events/categories",
+                this::createCategory,
+                StationPermission.EVENT_MANAGE_CATEGORY,
+                StationModule.EVENTS);
         routes.put(
                 prefix + "/events/categories/reorder",
                 this::reorderCategories,
-                StationPermission.EVENT_MANAGE_CATEGORY);
-        routes.put(prefix + "/events/categories/{id}", this::updateCategory, StationPermission.EVENT_MANAGE_CATEGORY);
+                StationPermission.EVENT_MANAGE_CATEGORY,
+                StationModule.EVENTS);
+        routes.put(
+                prefix + "/events/categories/{id}",
+                this::updateCategory,
+                StationPermission.EVENT_MANAGE_CATEGORY,
+                StationModule.EVENTS);
         routes.delete(
-                prefix + "/events/categories/{id}", this::deleteCategory, StationPermission.EVENT_MANAGE_CATEGORY);
+                prefix + "/events/categories/{id}",
+                this::deleteCategory,
+                StationPermission.EVENT_MANAGE_CATEGORY,
+                StationModule.EVENTS);
 
-        routes.get(prefix + "/events/breaks", this::listBreaks, StationPermission.USER);
-        routes.post(prefix + "/events/breaks", this::createBreak, StationPermission.EVENT_EDIT);
-        routes.put(prefix + "/events/breaks/{id}", this::updateBreak, StationPermission.EVENT_EDIT);
-        routes.delete(prefix + "/events/breaks/{id}", this::deleteBreak, StationPermission.EVENT_EDIT);
+        routes.get(prefix + "/events/breaks", this::listBreaks, StationPermission.USER, StationModule.EVENTS);
+        routes.post(prefix + "/events/breaks", this::createBreak, StationPermission.EVENT_EDIT, StationModule.EVENTS);
+        routes.put(
+                prefix + "/events/breaks/{id}", this::updateBreak, StationPermission.EVENT_EDIT, StationModule.EVENTS);
+        routes.delete(
+                prefix + "/events/breaks/{id}", this::deleteBreak, StationPermission.EVENT_EDIT, StationModule.EVENTS);
 
-        routes.get(prefix + "/events/{id}/field-defaults", this::getFieldDefaults, StationPermission.USER);
-        routes.put(prefix + "/events/{id}/field-defaults", this::setFieldDefaults, StationPermission.EVENT_EDIT);
+        routes.get(
+                prefix + "/events/{id}/field-defaults",
+                this::getFieldDefaults,
+                StationPermission.USER,
+                StationModule.EVENTS);
+        routes.put(
+                prefix + "/events/{id}/field-defaults",
+                this::setFieldDefaults,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS);
 
-        routes.get(prefix + "/events/{id}/fields", this::getFields, StationPermission.USER);
-        routes.put(prefix + "/events/{id}/fields", this::setFields, StationPermission.EVENT_EDIT);
+        routes.get(prefix + "/events/{id}/fields", this::getFields, StationPermission.USER, StationModule.EVENTS);
+        routes.put(prefix + "/events/{id}/fields", this::setFields, StationPermission.EVENT_EDIT, StationModule.EVENTS);
         routes.post(
                 prefix + "/events/{eventId}/fields/{fieldId}/self-register",
                 this::selfRegisterField,
-                StationPermission.USER);
+                StationPermission.USER,
+                StationModule.EVENTS);
         routes.put(
                 prefix + "/events/{eventId}/fields/{fieldId}/value",
                 this::setFieldValueOnDate,
-                StationPermission.EVENT_EDIT);
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS);
     }
 
     @OpenApi(

@@ -5,12 +5,58 @@
  */
 import {inject, provide, type InjectionKey} from 'vue'
 import {getMemberCard} from '@/api/members'
-import type {MemberCard} from '@/api/generated/schema'
+import {findWritableMember, getPersonCards} from '@/api/messages'
+import type {MemberCard, MessagePersonResponse, SharedMemberCard} from '@/api/generated/schema'
 import {browserShallowRef} from '@/util/browserState'
+import {sessionState} from '@/util/sessionState'
 
 const MEMBER_CARDS_SHOWN: InjectionKey<boolean> = Symbol('memberCardsShown')
 
-const cards = browserShallowRef<Readonly<Record<string, Promise<MemberCard>>>>({})
+interface HeldCards {
+    viewer: string
+    byMember: Readonly<Record<string, Promise<MemberCard>>>
+    byPerson: Readonly<Record<string, Promise<readonly SharedMemberCard[]>>>
+    byWritable: Readonly<Record<string, Promise<MessagePersonResponse | null>>>
+}
+
+const held = browserShallowRef<HeldCards>({viewer: '', byMember: {}, byPerson: {}, byWritable: {}})
+
+/**
+ * Who is looking, as far as it changes what a card shows: the account, the profile it acts as, the
+ * station and the permissions there. A card read by one viewer is never handed to another.
+ */
+function currentViewer(): string {
+    const info = sessionState().value.info
+    if (!info) return ''
+    return [info.account.id, info.member?.id ?? '', info.stationId ?? '', [...info.permissions].sort().join(',')].join('|')
+}
+
+function cardsOfViewer(): HeldCards {
+    const viewer = currentViewer()
+    if (held.value.viewer !== viewer) held.value = {viewer, byMember: {}, byPerson: {}, byWritable: {}}
+    return held.value
+}
+
+/**
+ * Asks once and keeps the answer for this viewer; a request that failed is forgotten again.
+ */
+function keep<T>(
+    field: 'byMember' | 'byPerson' | 'byWritable',
+    key: string,
+    ask: () => Promise<T>,
+): Promise<T> {
+    const known = cardsOfViewer()[field][key] as Promise<T> | undefined
+    if (known) return known
+    const viewer = held.value.viewer
+    const request = ask()
+    held.value = {...held.value, [field]: {...held.value[field], [key]: request}}
+    request.catch(() => {
+        if (held.value.viewer !== viewer) return
+        const rest = Object.fromEntries(Object.entries(held.value[field]).filter(([kept]) => kept !== key))
+        held.value = {...held.value, [field]: rest}
+    })
+    return request
+}
 
 /**
  * Turns member cards off for everything below, for screens whose names belong to nobody real.
@@ -31,18 +77,41 @@ export function useMemberCardsShown(): boolean {
  * The card of a member of the reader's station, asked once per member while the page is open.
  *
  * <p>Hovering down a list of twenty names asks for at most twenty cards, and hovering back up asks
- * for none. A request that failed is forgotten, so the next look tries again.
+ * for none. A request that failed is forgotten, so the next look tries again. The cards are kept per
+ * viewer: signing in as somebody else, switching profile or station, or a change of permissions
+ * starts over, so nobody sees what the card showed to the one before.
  *
  * @param memberUid the member looked at
  * @return their card
  */
 export function loadMemberCard(memberUid: string): Promise<MemberCard> {
-    const known = cards.value[memberUid]
-    if (known) return known
-    const request = getMemberCard(memberUid)
-    cards.value = {...cards.value, [memberUid]: request}
-    request.catch(() => {
-        cards.value = Object.fromEntries(Object.entries(cards.value).filter(([uid]) => uid !== memberUid))
-    })
-    return request
+    return keep('byMember', memberUid, () => getMemberCard(memberUid))
+}
+
+/**
+ * The cards of a person met as an account, in messages: one per station the reader shares with
+ * them, kept the same way as a member's card.
+ *
+ * @param accountUid the person looked at
+ * @return their cards, one per shared station
+ */
+export function loadPersonCards(accountUid: string): Promise<readonly SharedMemberCard[]> {
+    return keep('byPerson', accountUid, () => getPersonCards(accountUid))
+}
+
+/**
+ * Whom a member card offers to write to: the person behind a member of the reader's station, or null
+ * where the reader may not write to them. Kept the same way as the card, so a card opened again shows
+ * its button at once.
+ *
+ * @param memberUid the member looked at
+ * @return the person, or null
+ */
+export function loadWritableMember(memberUid: string): Promise<MessagePersonResponse | null> {
+    return keep('byWritable', memberUid, () => findWritableMember(memberUid))
+}
+
+/** Forgets whom member cards offered to write to, after a block or an unblock changed it. */
+export function forgetWritableMembers(): void {
+    held.value = {...cardsOfViewer(), byWritable: {}}
 }

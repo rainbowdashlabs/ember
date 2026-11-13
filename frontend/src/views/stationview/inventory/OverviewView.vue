@@ -11,6 +11,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {
   MovementState,
+  StationModule,
   type Inventory,
   type InventorySize,
   type MemberWithName,
@@ -19,6 +20,7 @@ import {
 } from '@/api/generated/schema'
 import { inventory, stationMembers, movements, procurement } from '@/api'
 import { useStations } from '@/composables/useStations'
+import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import OverviewMovementsSection from './overviewview/OverviewMovementsSection.vue'
@@ -29,6 +31,7 @@ import type { LostItem } from './overviewview/types'
 
 const { t } = useI18n()
 const { activeStation } = useStations()
+const { isModuleEnabled } = useSession()
 
 const lostItems = ref<LostItem[]>([])
 const exchangeList = ref<MovementResponse[]>([])
@@ -58,8 +61,8 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
   const [inventories, members, exch, proc, owner] = await Promise.all([
     inventory.listInventories(),
     stationMembers.listMembers(),
-    movements.listMovements(),
-    procurement.listOpen(),
+    isModuleEnabled(StationModule.INVENTORY_MOVEMENTS) ? movements.listMovements() : Promise.resolve([]),
+    isModuleEnabled(StationModule.INVENTORY_PROCUREMENT) ? procurement.listOpen() : Promise.resolve([]),
     inventory.ownerAbove(),
   ])
 

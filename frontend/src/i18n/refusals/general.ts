@@ -53,4 +53,5 @@ export default {
     'G-023': CLUSTER_NOT_HERE,
     'G-024': NOT_A_CLUSTER_IDENTITY,
     'G-025': 'Dafür fehlt dir die nötige Berechtigung',
+    'G-026': 'Dieser Bereich ist an dieser Wache ausgeschaltet',
 }

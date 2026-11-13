@@ -9,6 +9,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.TagVisibility;
@@ -39,7 +40,7 @@ class PrivateTagsTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        tags = new UserTagService(userTagRepo, memberGroupRepo);
+        tags = new UserTagService(userTagRepo, memberGroupRepo, new DomainEventBus(Set.of()));
         station = stationRepo.create("PrivateTagStation");
         account = accountRepo.create("private-tags@test.com", "Private", "Tagged");
         member = stationMemberRepo.create(station.id(), account.id());

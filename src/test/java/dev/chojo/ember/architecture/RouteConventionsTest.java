@@ -19,10 +19,15 @@ import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.InstancePermission;
+import dev.chojo.ember.api.auth.ModuleFree;
+import dev.chojo.ember.api.auth.ModuleGuard;
 import dev.chojo.ember.api.auth.StationFree;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.federation.contract.FederationContractCatalog;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -33,7 +38,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -75,6 +82,71 @@ class RouteConventionsTest {
     private static final Pattern PATH_PARAMETER = Pattern.compile("\\{[^}]*}|<[^>]*>");
 
     private static final Pattern FEDERATION_KEY_MEMBER = Pattern.compile("(?i)federationPrivateKey|privateKeyBase64");
+
+    /** The feature packages that make up a module, and the module they make up. */
+    private static final Map<String, StationModule> MODULE_FEATURES = Map.ofEntries(
+            Map.entry("attendance", StationModule.ATTENDANCE),
+            Map.entry("board", StationModule.BOARDS),
+            Map.entry("documents", StationModule.DOCUMENTS),
+            Map.entry("equipment", StationModule.INVENTORY),
+            Map.entry("events", StationModule.EVENTS),
+            Map.entry("form", StationModule.FORMS),
+            Map.entry("inventory", StationModule.INVENTORY),
+            Map.entry("knowledgebase", StationModule.KNOWLEDGE_BASE),
+            Map.entry("lostandfound", StationModule.LOST_AND_FOUND),
+            Map.entry("mailimport", StationModule.DOCUMENTS),
+            Map.entry("news", StationModule.NEWS),
+            Map.entry("procedure", StationModule.PROCEDURES),
+            Map.entry("protocol", StationModule.TEST_PROTOCOL),
+            Map.entry("quiz", StationModule.QUIZ),
+            Map.entry("waitinglist", StationModule.WAITING_LIST));
+
+    /** Route classes that serve one part of a module, wherever their feature puts them. */
+    private static final Map<String, StationModule> MODULE_ROUTE_CLASSES = Map.ofEntries(
+            Map.entry("FederatedInventoryTagRoutes", StationModule.INVENTORY_LENDING),
+            Map.entry("FederatedLendingRoutes", StationModule.INVENTORY_LENDING),
+            Map.entry("InventoryCheckRoutes", StationModule.INVENTORY_CHECKS),
+            Map.entry("InventoryShareRoutes", StationModule.INVENTORY_LENDING),
+            Map.entry("LendingRoutes", StationModule.INVENTORY_LENDING),
+            Map.entry("MovementFlowRoutes", StationModule.INVENTORY_MOVEMENTS),
+            Map.entry("MovementRoutes", StationModule.INVENTORY_MOVEMENTS),
+            Map.entry("ProcurementRoutes", StationModule.INVENTORY_PROCUREMENT),
+            Map.entry("SelfCheckReviewRoutes", StationModule.INVENTORY_SELF_CHECKS),
+            Map.entry("SelfCheckRoutes", StationModule.INVENTORY_SELF_CHECKS));
+
+    /** The first segment of an address, read past a partner's address for the federated readers. */
+    private static final Pattern MODULE_ADDRESS =
+            Pattern.compile(Pattern.quote(RouteHarness.PREFIX) + "(?:/federated(?:/\\{[^}]+})?)?/([a-z-]+)");
+
+    /** Addresses that belong to a module, whichever feature registers them. */
+    private static final Map<String, StationModule> MODULE_PATHS = Map.ofEntries(
+            Map.entry("events", StationModule.EVENTS),
+            Map.entry("event-templates", StationModule.EVENTS),
+            Map.entry("news", StationModule.NEWS),
+            Map.entry("kb", StationModule.KNOWLEDGE_BASE),
+            Map.entry("forms", StationModule.FORMS),
+            Map.entry("quiz", StationModule.QUIZ),
+            Map.entry("lost-and-found", StationModule.LOST_AND_FOUND),
+            Map.entry("procedures", StationModule.PROCEDURES),
+            Map.entry("movements", StationModule.INVENTORY_MOVEMENTS),
+            Map.entry("movement-flows", StationModule.INVENTORY_MOVEMENTS),
+            Map.entry("self-checks", StationModule.INVENTORY_SELF_CHECKS),
+            Map.entry("procurement", StationModule.INVENTORY_PROCUREMENT),
+            Map.entry("inventory-checks", StationModule.INVENTORY_CHECKS),
+            Map.entry("self-check-reviews", StationModule.INVENTORY_SELF_CHECKS),
+            Map.entry("movement-flow-steps", StationModule.INVENTORY_MOVEMENTS),
+            Map.entry("movement-flow-bindings", StationModule.INVENTORY_MOVEMENTS),
+            Map.entry("procedure-templates", StationModule.PROCEDURES),
+            Map.entry("trials", StationModule.WAITING_LIST),
+            Map.entry("document-templates", StationModule.DOCUMENTS),
+            Map.entry("document-generation", StationModule.DOCUMENTS),
+            Map.entry("document-requirements", StationModule.DOCUMENTS),
+            Map.entry("lending", StationModule.INVENTORY_LENDING),
+            Map.entry("inventory-borrowed", StationModule.INVENTORY_LENDING),
+            Map.entry("documents", StationModule.DOCUMENTS),
+            Map.entry("boards", StationModule.BOARDS),
+            Map.entry("protocols", StationModule.TEST_PROTOCOL),
+            Map.entry("waiting-lists", StationModule.WAITING_LIST));
 
     private static RegisteredRoutes application;
     private static JavaClasses routeClasses;
@@ -174,6 +246,88 @@ class RouteConventionsTest {
                 () -> ("handler(s) taking an id from the address without a station check; add one, or mark the"
                                 + " endpoint @StationFree with the reason it belongs to no station:%n%s")
                         .formatted(String.join(System.lineSeparator(), unchecked)));
+    }
+
+    /**
+     * Every route of a module's feature belongs to that module, so the route guard refuses it while the
+     * module is off. A route whose permissions all name the module belongs to it already; any other route
+     * declares the module among its roles. Route classes of one part of a module are held to that part,
+     * wherever they live. A route asking for no station permission (public, cluster or instance routes)
+     * answers for no station and is left out, and so is one marked {@link ModuleFree}.
+     */
+    @Test
+    void everyRouteOfAModuleFeatureBelongsToItsModule() {
+        List<String> unguarded = new ArrayList<>();
+        for (Route route : application.routes()) {
+            StationModule featureModule = moduleOf(route);
+            if (featureModule == null) continue;
+            if (route.roles().stream().noneMatch(StationPermission.class::isInstance)) continue;
+            if (isModuleFree(route)) continue;
+            if (belongsTo(ModuleGuard.RouteModules.of(route.roles()), featureModule)) continue;
+            unguarded.add(route + " " + route.roles());
+        }
+        assertTrue(
+                unguarded.isEmpty(),
+                () -> ("route(s) of a module's feature that the route guard does not put under that module; declare"
+                                + " the module (or the part) among the route's roles, or mark it @ModuleFree:%n%s")
+                        .formatted(String.join(System.lineSeparator(), unguarded)));
+    }
+
+    /**
+     * A module among a route's roles says where the route belongs and grants nothing, so it never stands
+     * without a station permission: alone it would let in anybody signed in.
+     */
+    @Test
+    void aModuleRoleNeverStandsAlone() {
+        List<String> alone = application.routes().stream()
+                .filter(route -> route.roles().stream().anyMatch(StationModule.class::isInstance))
+                .filter(route -> route.roles().stream().noneMatch(StationPermission.class::isInstance))
+                .map(Route::toString)
+                .toList();
+        assertTrue(alone.isEmpty(), () -> "route(s) declaring a module without a permission:%n%s"
+                .formatted(String.join(System.lineSeparator(), alone)));
+    }
+
+    /**
+     * Whether the guard puts the route under the module: a declared module has to be on, so one of them
+     * being the module is enough; modules read from the permissions let in on any one of them, so every
+     * one has to be the module.
+     */
+    private static boolean belongsTo(ModuleGuard.RouteModules modules, StationModule module) {
+        if (modules.modules().isEmpty()) return false;
+        if (modules.declared()) return modules.modules().stream().anyMatch(each -> each.belongsTo(module));
+        return modules.modules().stream().allMatch(each -> each.belongsTo(module));
+    }
+
+    private static boolean isModuleFree(Route route) {
+        if (route.owner().isAnnotationPresent(ModuleFree.class)) return true;
+        return Arrays.stream(route.owner().getDeclaredMethods())
+                .filter(method -> route.body().filter(method.getName()::equals).isPresent())
+                .anyMatch(method -> method.isAnnotationPresent(ModuleFree.class));
+    }
+
+    /**
+     * The module a route is held to: its class's part where the class serves one, else the module its
+     * address starts with, else its feature's module.
+     */
+    private static @Nullable StationModule moduleOf(Route route) {
+        StationModule byClass = MODULE_ROUTE_CLASSES.get(route.owner().getSimpleName());
+        if (byClass != null) return byClass;
+        Matcher address = MODULE_ADDRESS.matcher(route.path());
+        if (address.lookingAt()) {
+            StationModule byAddress = MODULE_PATHS.get(address.group(1));
+            if (byAddress != null) return byAddress;
+        }
+        return MODULE_FEATURES.get(featureOf(route.owner()));
+    }
+
+    private static String featureOf(Class<?> owner) {
+        String name = owner.getPackageName();
+        String prefix = "dev.chojo.ember.feature.";
+        if (!name.startsWith(prefix)) return "";
+        String rest = name.substring(prefix.length());
+        int dot = rest.indexOf('.');
+        return dot < 0 ? rest : rest.substring(0, dot);
     }
 
     /**

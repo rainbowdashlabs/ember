@@ -22,6 +22,8 @@ import dev.chojo.ember.feature.signing.entity.PendingSignature;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SignerCapacity;
 import dev.chojo.ember.feature.signing.service.SignatureRequestService;
+import dev.chojo.ember.feature.station.entity.StationModule;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.system.service.RequirementsService.RequirementItem;
 import dev.chojo.ember.feature.system.service.RequirementsService.RequirementsResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,12 +32,14 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class RequirementsServiceTest {
+    private ModuleAvailability modules;
     private FormService formService;
     private QuizService quizService;
     private ProfileFieldService profileFieldService;
@@ -48,6 +52,7 @@ class RequirementsServiceTest {
 
     @BeforeEach
     void setup() {
+        modules = mock(ModuleAvailability.class);
         formService = mock(FormService.class);
         quizService = mock(QuizService.class);
         profileFieldService = mock(ProfileFieldService.class);
@@ -64,7 +69,8 @@ class RequirementsServiceTest {
                 registrationService,
                 stationMemberService,
                 memberNameResolver,
-                signatureRequests);
+                signatureRequests,
+                modules);
     }
 
     @Test
@@ -380,5 +386,28 @@ class RequirementsServiceTest {
         int count = requirementsService.countPending(20, 2, List.of("ADMIN"));
 
         assertEquals(4, count);
+    }
+
+    /**
+     * A module the station switched off asks nothing of anybody: its forced forms and quizzes would
+     * otherwise hold the member at a page that refuses them.
+     */
+    @Test
+    void switchedOffModulesAskForNothing() {
+        when(modules.disabledAt(1))
+                .thenReturn(
+                        Set.of(StationModule.FORMS, StationModule.QUIZ, StationModule.EVENTS, StationModule.INVENTORY));
+        when(formService.findForcedPending(1, List.of(10))).thenReturn(List.of(new RequirementItem(1, "Form A")));
+        when(quizService.findForcedPending(1, 10)).thenReturn(List.of(new RequirementItem(3, "Quiz C")));
+        when(profileFieldService.isProfileComplete(10)).thenReturn(true);
+        when(selfCheckService.countOutstandingFor(10, false)).thenReturn(2);
+
+        var result = requirementsService.getRequirements(10, 1, List.of("USER"));
+
+        assertTrue(result.forcedForms().isEmpty());
+        assertTrue(result.forcedQuizzes().isEmpty());
+        assertTrue(result.selfChecks().isEmpty());
+        assertTrue(result.registrationUpdates().isEmpty());
+        assertEquals(0, requirementsService.countPending(10, 1, List.of("USER")));
     }
 }

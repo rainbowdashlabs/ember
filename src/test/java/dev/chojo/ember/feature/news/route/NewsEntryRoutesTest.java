@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.news.service.PublicBlogService;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -57,7 +58,7 @@ class NewsEntryRoutesTest extends BlockReferenceTestBase {
                 newCommentService(new DomainEventBus(Set.of())),
                 mock(NewsAttachmentService.class),
                 mock(NewsFederationService.class),
-                new PublicBlogService(stationRepo),
+                new PublicBlogService(stationRepo, mock(ModuleAvailability.class)),
                 mock(MemberNameResolver.class),
                 memberIdentityFactory,
                 mock(EmailService.class));

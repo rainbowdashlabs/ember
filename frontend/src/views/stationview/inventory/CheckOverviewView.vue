@@ -12,7 +12,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import {StationUserType, type EnrichedCheckSummary} from '@/api/generated/schema'
+import {StationModule, StationUserType, type EnrichedCheckSummary} from '@/api/generated/schema'
 import {inventoryCheck} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useConfigPanel} from '@/composables/useConfigPanel'
@@ -25,7 +25,7 @@ const routes = useInventoryRoutes()
 
 const {t} = useI18n()
 const router = useRouter()
-const {sessionInfo} = useSession()
+const {sessionInfo, isModuleEnabled} = useSession()
 
 const {config: members, loading, failure} = useConfigPanel<EnrichedCheckSummary[]>({
   initial: [],
@@ -64,7 +64,7 @@ function viewLastCheck(member: EnrichedCheckSummary) {
 
       <template v-if="!loading && !failure">
         <SelfCheckPanel
-            v-if="routes.selfCheckReview"
+            v-if="routes.selfCheckReview && isModuleEnabled(StationModule.INVENTORY_SELF_CHECKS)"
             :members="filteredMembers"
             :review-route="routes.selfCheckReview"
         />

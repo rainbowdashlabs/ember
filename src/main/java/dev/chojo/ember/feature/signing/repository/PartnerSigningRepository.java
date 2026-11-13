@@ -160,6 +160,43 @@ public class PartnerSigningRepository {
     }
 
     /**
+     * Follows a partner's appointment that handed some of its dates to another appointment: the
+     * sign-ups and the signing requests this station keeps for those dates name the other one from now.
+     *
+     * @param stationId         this station
+     * @param partnerStationUid the station holding the appointments
+     * @param fromEventId       the appointment the dates were taken from
+     * @param toEventId         the appointment that holds them now
+     * @param from              the first date handed over
+     * @param until             the last date handed over, or null for every later one
+     */
+    public void followHandover(
+            int stationId,
+            UUID partnerStationUid,
+            int fromEventId,
+            int toEventId,
+            LocalDate from,
+            @Nullable LocalDate until) {
+        for (String table : List.of("partner_signup", "partner_signing_request")) {
+            query("""
+                            UPDATE %s
+                            SET remote_event_id = :to_event
+                            WHERE station_id = :station_id
+                              AND partner_station_uid = :partner_uid::UUID
+                              AND remote_event_id = :from_event
+                              AND event_date >= :from
+                              AND (CAST(:until AS DATE) IS NULL OR event_date <= CAST(:until AS DATE));""", table)
+                    .single(call().bind("station_id", stationId)
+                            .bind("partner_uid", partnerStationUid, UUID_STRING)
+                            .bind("from_event", fromEventId)
+                            .bind("to_event", toEventId)
+                            .bind("from", from)
+                            .bind("until", until))
+                    .update();
+        }
+    }
+
+    /**
      * Forgets a sign-up the member withdrew.
      *
      * @param memberId          the member

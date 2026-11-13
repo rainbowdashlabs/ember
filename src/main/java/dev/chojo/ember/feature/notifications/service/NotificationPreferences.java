@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.Set;
 
 /**
  * What somebody asked to be told, and where.
@@ -32,12 +33,15 @@ public class NotificationPreferences {
     private final NotificationSettingsRepository settingsRepository;
     private final ClusterRepository clusterRepository;
     private final EmailService emailService;
+    private final NotificationVisibility visibility;
 
     @Inject
     public NotificationPreferences(
             NotificationSettingsRepository settingsRepository,
             ClusterRepository clusterRepository,
-            EmailService emailService) {
+            EmailService emailService,
+            NotificationVisibility visibility) {
+        this.visibility = visibility;
         this.settingsRepository = settingsRepository;
         this.clusterRepository = clusterRepository;
         this.emailService = emailService;
@@ -59,6 +63,17 @@ public class NotificationPreferences {
      */
     public Map<NotificationType, NotificationSetting> settingsOf(int memberId) {
         return settingsRepository.findByMemberAsMap(memberId);
+    }
+
+    /**
+     * The types a station's members are offered a choice about: none of a module the station does not
+     * have. The choices already made about the others stay stored and count again once it is back.
+     *
+     * @param stationId the station
+     * @return the offered types
+     */
+    public Set<NotificationType> offeredAt(int stationId) {
+        return visibility.offeredAt(stationId);
     }
 
     /**

@@ -1,0 +1,138 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.feature.messages.service;
+
+import dev.chojo.ember.api.refusal.MessageRefusal;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.StationAudienceChanged;
+import dev.chojo.ember.feature.messages.entity.MessagesStatus;
+import dev.chojo.ember.feature.messages.entity.Person;
+import dev.chojo.ember.feature.messages.entity.ReachablePerson;
+import dev.chojo.ember.feature.messages.entity.StationDigest;
+import dev.chojo.ember.feature.messages.repository.ConversationRepository;
+import dev.chojo.ember.feature.messages.repository.MessagePeopleRepository;
+import dev.chojo.ember.feature.system.service.InstanceSettingsService;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * What an account allows about its messages, and whom it can write to.
+ *
+ * <p>The guardian switch lives here too: for an account with a guardian at any station, messages
+ * are off until a guardian turns them on. Turning them off again hides the conversations from the
+ * account and stops new messages; nothing is deleted.
+ */
+@Singleton
+public class MessageSettingsService {
+    /** How many people one search for somebody to write to answers at most. */
+    public static final int SEARCH_LIMIT = 20;
+
+    private final MessagePeopleRepository people;
+    private final ConversationRepository conversations;
+    private final MessageGuards guards;
+    private final DomainEventBus eventBus;
+    private final InstanceSettingsService instance;
+
+    @Inject
+    public MessageSettingsService(
+            MessagePeopleRepository people,
+            ConversationRepository conversations,
+            MessageGuards guards,
+            DomainEventBus eventBus,
+            InstanceSettingsService instance) {
+        this.eventBus = eventBus;
+        this.instance = instance;
+        this.people = people;
+        this.conversations = conversations;
+        this.guards = guards;
+    }
+
+    /**
+     * Whether the account can use messages, how many wait unread, and whether it wants mail.
+     *
+     * @param accountId the account
+     * @return the status, with nothing unread for an account that cannot use messages or while
+     *     messages are turned off for the instance
+     */
+    public MessagesStatus status(int accountId) {
+        boolean available = instance.messagesEnabled() && people.usable(accountId);
+        int unread = available ? conversations.unreadTotal(accountId) : 0;
+        return new MessagesStatus(available, unread, people.mailWanted(accountId), people.stationDigest(accountId));
+    }
+
+    /**
+     * Changes the daily mail: whether it comes at all, and what it takes from station chats. A
+     * setting left out stays as it is.
+     *
+     * @param accountId     the account
+     * @param mail          whether it wants the mail, or null to leave it
+     * @param stationDigest what the mail takes from station chats, or null to leave it
+     * @return the status after the change
+     */
+    public MessagesStatus update(int accountId, @Nullable Boolean mail, @Nullable StationDigest stationDigest) {
+        guards.requireUsable(accountId);
+        if (mail != null) people.setMailWanted(accountId, mail);
+        if (stationDigest != null) people.setStationDigest(accountId, stationDigest);
+        return status(accountId);
+    }
+
+    /**
+     * The people the account may write to whose name holds the search, each with one station they share.
+     *
+     * @param accountId the account
+     * @param search    part of a name, or blank for everybody
+     * @return the people found, by name
+     */
+    public List<ReachablePerson> reachable(int accountId, String search) {
+        guards.requireUsable(accountId);
+        return people.searchReachable(accountId, search, SEARCH_LIMIT);
+    }
+
+    /**
+     * The person behind a member of the reader's station, where the reader may write to them: both
+     * can use messages, the person is somebody else and has not blocked the reader. A member card
+     * offers to write to them then.
+     *
+     * @param accountId the reader
+     * @param stationId the reader's station
+     * @param memberUid the member looked at
+     * @return the person, or empty alike for every reason so a block stays unseen
+     */
+    public Optional<Person> writableMember(int accountId, int stationId, UUID memberUid) {
+        if (!people.usable(accountId)) return Optional.empty();
+        return people.memberAccount(stationId, memberUid)
+                .filter(person -> people.reaches(accountId, person.accountId()));
+    }
+
+    /**
+     * Whether a guardian turned messages on for an account.
+     *
+     * @param accountId the account a guardian looks after
+     * @return the switch
+     */
+    public boolean guardianAllowed(int accountId) {
+        return people.guardianAllowed(accountId);
+    }
+
+    /**
+     * Turns messages on or off for an account a guardian looks after. Who may do so is decided by
+     * the caller, which checks the guardian. The account's station chats follow. Refused while
+     * messages are turned off for the instance, since there is nothing to allow then.
+     *
+     * @param accountId the account
+     * @param allowed   whether it may use messages
+     */
+    public void setGuardianAllowed(int accountId, boolean allowed) {
+        if (!instance.messagesEnabled()) throw MessageRefusal.MESSAGES_OFF.raise();
+        people.setGuardianAllowed(accountId, allowed);
+        eventBus.publish(StationAudienceChanged.ofAccount(accountId));
+    }
+}

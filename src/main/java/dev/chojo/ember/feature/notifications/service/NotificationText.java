@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -28,6 +29,7 @@ import java.util.Map;
 import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * How a notification reads: its message, its feed title, its category and the address it leads to,
@@ -138,6 +140,7 @@ public class NotificationText {
         var params = new LinkedHashMap<>(n.data().paramsAsMap());
         augmentTitleParams(locale, n, params);
         localizeDateParams(locale, params);
+        localizeModuleParam(locale, params);
 
         String template = templateFor(templates, typeKey, n, params);
         if (template == null) return resolveCategory(locale, n.type());
@@ -168,6 +171,7 @@ public class NotificationText {
         var params = new LinkedHashMap<>(n.data().paramsAsMap());
         localizeStatusParam(locale, params);
         localizeDateParams(locale, params);
+        localizeChangedParts(locale, params);
 
         String template = templateFor(templates, localeKey, n, params);
         if (template == null) {
@@ -330,8 +334,8 @@ public class NotificationText {
 
     /**
      * Replaces the params that carry a raw enum name with the label for it in the reader's
-     * language: a status (e.g. {@code "ACCEPTED"}, {@code "DONE"}, {@code "APPROVED"}) and the
-     * answer somebody gave to a waiting-list invitation.
+     * language: a status (e.g. {@code "ACCEPTED"}, {@code "DONE"}, {@code "APPROVED"}), the
+     * answer somebody gave to a waiting-list invitation and the module a cluster switched off.
      *
      * <p>That lets the message templates use a single {@code {status}} or {@code {answer}}
      * placeholder for every type carrying one. No-op when the param is absent or the bundle has no
@@ -340,6 +344,15 @@ public class NotificationText {
     private static void localizeStatusParam(String locale, Map<String, String> params) {
         localizeLabelParam(locale, params, "status", "ical", "status.");
         localizeLabelParam(locale, params, "answer", "waitlistAnswer", "");
+        localizeModuleParam(locale, params);
+    }
+
+    /**
+     * Writes a module a notification names, such as the one a cluster switched off, by the name the
+     * reader knows it by rather than the name it is stored by.
+     */
+    private static void localizeModuleParam(String locale, Map<String, String> params) {
+        localizeLabelParam(locale, params, "module", "module", "");
     }
 
     /**
@@ -356,6 +369,21 @@ public class NotificationText {
                             ? LocalDate.parse(value).format(format)
                             : value);
         }
+    }
+
+    /**
+     * Writes the parts of an appointment a change notice names in the reader's language, joined the
+     * way a list is read, in place of the names they are stored by.
+     */
+    private static void localizeChangedParts(String locale, Map<String, String> params) {
+        String names = params.get("changedParts");
+        if (names == null || names.isBlank()) return;
+        var words = LOCALIZER.get("notifications", locale, "changedPart");
+        params.put(
+                "changedParts",
+                Arrays.stream(names.split(","))
+                        .map(name -> words.getOrDefault(name, name))
+                        .collect(Collectors.joining(", ")));
     }
 
     private static void localizeLabelParam(

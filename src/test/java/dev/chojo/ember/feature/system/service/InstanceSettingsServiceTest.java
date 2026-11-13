@@ -50,6 +50,7 @@ class InstanceSettingsServiceTest {
         Files.createDirectories(templates.resolve("de"));
         settings = mock(ApplicationSettingRepository.class);
         when(settings.getBoolean("station_registration_enabled", true)).thenReturn(true);
+        when(settings.getBoolean("messages_enabled", true)).thenReturn(true);
         when(settings.getBoolean("force_pride_flag", false)).thenReturn(false);
         when(settings.defaultMailLocale()).thenReturn("en");
         var conf = new Conf(configDirectory);
@@ -57,7 +58,7 @@ class InstanceSettingsServiceTest {
     }
 
     private static ApplicationSettings request(String theme, String feel, String mailLocale) {
-        return new ApplicationSettings(false, theme, feel, true, true, mailLocale, List.of());
+        return new ApplicationSettings(false, false, theme, feel, true, true, mailLocale, List.of());
     }
 
     @Test
@@ -66,6 +67,7 @@ class InstanceSettingsServiceTest {
 
         assertEquals(List.of("de", "en"), answer.availableMailLocales());
         assertTrue(answer.stationRegistrationEnabled());
+        assertTrue(answer.messagesEnabled());
         assertEquals("ember", answer.instanceDefaultTheme());
         assertEquals("ROUNDED", answer.instanceDefaultFeel());
     }
@@ -87,6 +89,7 @@ class InstanceSettingsServiceTest {
         assertEquals(ThemeFeel.CORNERS, theming.defaultFeel());
         assertTrue(theming.lockFeel());
         verify(settings).setBoolean("station_registration_enabled", false);
+        verify(settings).setBoolean("messages_enabled", false);
         verify(settings).setBoolean("force_pride_flag", true);
         verify(settings).set(ApplicationSettingRepository.DEFAULT_MAIL_LOCALE, "de");
     }

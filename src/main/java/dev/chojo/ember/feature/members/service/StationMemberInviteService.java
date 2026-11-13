@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.SetupMail;
@@ -48,12 +50,16 @@ public class StationMemberInviteService {
     private final AccountInviteService accountInviteService;
     private final AccountLinkService linkService;
 
+    private final DomainEventBus eventBus;
+
     @Inject
     public StationMemberInviteService(
             StationMemberRepository stationMemberRepository,
             GroupMembershipService groupMemberships,
             AccountInviteService accountInviteService,
-            AccountLinkService linkService) {
+            AccountLinkService linkService,
+            DomainEventBus eventBus) {
+        this.eventBus = eventBus;
         this.stationMemberRepository = stationMemberRepository;
         this.groupMemberships = groupMemberships;
         this.accountInviteService = accountInviteService;
@@ -140,6 +146,7 @@ public class StationMemberInviteService {
                 stationId,
                 accountCreated,
                 membershipCreated);
+        if (membershipCreated) eventBus.publish(StationAudienceChanged.at(stationId));
         return new ProvisionedMember(
                 member.id(),
                 account.id(),
@@ -224,7 +231,10 @@ public class StationMemberInviteService {
             @Nullable Integer invitedBy) {
         if (email.isBlank()) {
             var invited = accountInviteService.createWithoutAddress(stationId, firstName, lastName);
-            return stationMemberRepository.create(stationId, invited.account().id());
+            var member =
+                    stationMemberRepository.create(stationId, invited.account().id());
+            eventBus.publish(StationAudienceChanged.at(stationId));
+            return member;
         }
         var existing = accountInviteService.existing(stationId, email).orElse(null);
         if (existing != null
@@ -234,7 +244,9 @@ public class StationMemberInviteService {
             return waitingMember(stationId, existing, firstName, lastName, invitedBy, setupMail);
         }
         var invited = accountInviteService.resolveOrCreate(stationId, email, firstName, lastName, setupMail);
-        return stationMemberRepository.create(stationId, invited.account().id());
+        var member = stationMemberRepository.create(stationId, invited.account().id());
+        eventBus.publish(StationAudienceChanged.at(stationId));
+        return member;
     }
 
     /**
@@ -287,11 +299,14 @@ public class StationMemberInviteService {
                             invitedBy);
                     provisioned.add(guardian);
                     stationMemberRepository.addManager(guardian.memberId(), parent.memberId());
+                    Integer parentAccount = parent.accountId();
+                    if (parentAccount != null) eventBus.publish(StationAudienceChanged.ofAccount(parentAccount));
                 } catch (ProvisionException e) {
                     failed.add(new FailedInvite(g.email(), e.getMessage()));
                 }
             }
         }
+        eventBus.publish(StationAudienceChanged.at(stationId));
         log.info(
                 "Batch invite for station {}: {} of {} request(s) took, {} entry(s) refused",
                 stationId,

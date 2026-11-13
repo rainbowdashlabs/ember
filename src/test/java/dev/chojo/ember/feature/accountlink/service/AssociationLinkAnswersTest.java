@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.auth.TokenHasher;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountAction;
 import dev.chojo.ember.feature.account.service.AccountReach;
@@ -32,6 +33,7 @@ import org.junit.jupiter.api.function.Executable;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -73,6 +75,7 @@ class AssociationLinkAnswersTest extends RepositoryTestBase {
                 notifier,
                 HASHER,
                 TestAccountLinks.associationAnswers(accountRepo, clusterRepo, twoFactorRepo, notifier),
+                new DomainEventBus(Set.of()),
                 Clock.systemUTC());
         clusterId = clusterService
                 .create("Verband Antworten " + System.nanoTime(), null)

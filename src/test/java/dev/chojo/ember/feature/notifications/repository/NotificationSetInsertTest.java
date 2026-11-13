@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.DigestItem;
+import dev.chojo.ember.feature.notifications.entity.HiddenNotifications;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
@@ -185,10 +186,13 @@ class NotificationSetInsertTest extends RepositoryTestBase {
         assertEquals(0, insert(StationAudience.member(plain.id()), data, Delivery.ONCE_WHILE_UNREAD));
         assertEquals(1, rows(plain, data));
 
-        var written = notificationRepo.findUnacknowledged(Recipient.stationMember(plain.id())).stream()
-                .filter(n -> n.data().equals(data))
-                .findFirst()
-                .orElseThrow();
+        var written =
+                notificationRepo
+                        .findUnacknowledged(Recipient.stationMember(plain.id()), HiddenNotifications.NONE)
+                        .stream()
+                        .filter(n -> n.data().equals(data))
+                        .findFirst()
+                        .orElseThrow();
         notificationRepo.acknowledge(Recipient.stationMember(plain.id()), written.id());
 
         assertEquals(1, insert(StationAudience.member(plain.id()), data, Delivery.ONCE_WHILE_UNREAD));
@@ -304,7 +308,10 @@ class NotificationSetInsertTest extends RepositoryTestBase {
                 2,
                 notificationRepo.insertForCluster(
                         both, List.of(), NotificationType.CLUSTER_APPLICATION_SUBMITTED, data, Delivery.EVERY_TIME));
-        assertEquals(2, notificationRepo.countUnacknowledged(Recipient.clusterMember(clusterMemberA.id())));
+        assertEquals(
+                2,
+                notificationRepo.countUnacknowledged(
+                        Recipient.clusterMember(clusterMemberA.id()), HiddenNotifications.NONE));
     }
 
     private static StationMember member(String name) {
@@ -322,7 +329,9 @@ class NotificationSetInsertTest extends RepositoryTestBase {
     }
 
     private static long rows(StationMember member, NotificationData data) {
-        return notificationRepo.findUnacknowledged(Recipient.stationMember(member.id())).stream()
+        return notificationRepo
+                .findUnacknowledged(Recipient.stationMember(member.id()), HiddenNotifications.NONE)
+                .stream()
                 .filter(n -> n.data().equals(data))
                 .count();
     }

@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbFavouriteService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService.FederatedKbBrowse;
 import dev.chojo.ember.feature.members.entity.NameParts;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -62,33 +63,53 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/federated/kb", this::browseKb, StationPermission.USER);
-        routes.get(prefix + "/federated/{stationuid}/kb/folders/{id}", this::browseKbFolder, StationPermission.USER);
-        routes.get(prefix + "/federated/{stationuid}/kb/files/{id}", this::getFile, StationPermission.USER);
+        routes.get(prefix + "/federated/kb", this::browseKb, StationPermission.USER, StationModule.KNOWLEDGE_BASE);
         routes.get(
-                prefix + "/federated/{stationuid}/kb/files/{id}/content", this::getFileContent, StationPermission.USER);
-        routes.get(prefix + "/federated/{stationuid}/kb/files/{id}/pdf", this::getFilePdf, StationPermission.USER);
+                prefix + "/federated/{stationuid}/kb/folders/{id}",
+                this::browseKbFolder,
+                StationPermission.USER,
+                StationModule.KNOWLEDGE_BASE);
+        routes.get(
+                prefix + "/federated/{stationuid}/kb/files/{id}",
+                this::getFile,
+                StationPermission.USER,
+                StationModule.KNOWLEDGE_BASE);
+        routes.get(
+                prefix + "/federated/{stationuid}/kb/files/{id}/content",
+                this::getFileContent,
+                StationPermission.USER,
+                StationModule.KNOWLEDGE_BASE);
+        routes.get(
+                prefix + "/federated/{stationuid}/kb/files/{id}/pdf",
+                this::getFilePdf,
+                StationPermission.USER,
+                StationModule.KNOWLEDGE_BASE);
         routes.post(
                 prefix + "/federated/{stationuid}/kb/files/{id}/copy",
                 this::copyFile,
-                StationPermission.KNOWLEDGE_EDIT);
+                StationPermission.KNOWLEDGE_EDIT,
+                StationModule.KNOWLEDGE_BASE);
 
         routes.get(
                 prefix + "/federated/{stationuid}/kb/files/{fileId}/comments",
                 this::listComments,
-                StationPermission.LOGIN);
+                StationPermission.LOGIN,
+                StationModule.KNOWLEDGE_BASE);
         routes.post(
                 prefix + "/federated/{stationuid}/kb/files/{fileId}/comments",
                 this::createComment,
-                StationPermission.LOGIN);
+                StationPermission.LOGIN,
+                StationModule.KNOWLEDGE_BASE);
         routes.put(
                 prefix + "/federated/{stationuid}/kb/comments/{commentId}",
                 this::updateComment,
-                StationPermission.LOGIN);
+                StationPermission.LOGIN,
+                StationModule.KNOWLEDGE_BASE);
         routes.delete(
                 prefix + "/federated/{stationuid}/kb/comments/{commentId}",
                 this::deleteComment,
-                StationPermission.LOGIN);
+                StationPermission.LOGIN,
+                StationModule.KNOWLEDGE_BASE);
     }
 
     @OpenApi(

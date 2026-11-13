@@ -15,6 +15,7 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.system.service.DemoService;
 import io.javalin.http.Context;
@@ -29,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * The before-matched handler that enforces authentication and role-based authorization.
@@ -46,6 +48,9 @@ import java.util.UUID;
  * away a perfectly good session and put the reader back on the login screen, which is the one
  * thing a wrong header must not be able to do.
  *
+ * <p>A route that names {@link SessionUse#PASSIVE} is admitted on the session without keeping it
+ * alive; the marker is no permission and asks for none.
+ *
  * <p>A route with no roles is public. It still takes the federation session of a signed partner
  * request and the session cookie when there is one, but refuses nobody.
  */
@@ -60,6 +65,7 @@ public class AccessGate implements Handler {
     private final ClusterRepository clusterRepository;
     private final Demo demoConfig;
     private final DemoService demoService;
+    private final ModuleGuard moduleGuard;
 
     @Inject
     public AccessGate(
@@ -69,7 +75,9 @@ public class AccessGate implements Handler {
             StationRepository stationRepository,
             ClusterRepository clusterRepository,
             Demo demoConfig,
-            DemoService demoService) {
+            DemoService demoService,
+            ModuleGuard moduleGuard) {
+        this.moduleGuard = moduleGuard;
         this.accessManager = accessManager;
         this.sessionGate = sessionGate;
         this.stepUpGuard = stepUpGuard;
@@ -104,7 +112,10 @@ public class AccessGate implements Handler {
         Station station = requestedStation(ctx);
         Cluster cluster = requestedCluster(ctx);
 
-        Optional<UserSession> sessionOpt = sessionGate.admit(ctx, token, station, cluster);
+        boolean passive = routeRoles.contains(SessionUse.PASSIVE);
+        Optional<UserSession> sessionOpt = passive
+                ? sessionGate.admitPassively(ctx, token, station, cluster)
+                : sessionGate.admit(ctx, token, station, cluster);
         if (sessionOpt.isEmpty()) {
             throw GeneralRefusal.SIGN_IN_SESSION_NOT_VALID.raise();
         }
@@ -112,15 +123,20 @@ public class AccessGate implements Handler {
         UserSession session = sessionOpt.get();
         ctx.attribute(ApiServer.ATTR_SESSION, session);
 
-        if (demoConfig.enabled()) {
+        if (demoConfig.enabled() && !passive) {
             demoService.recordActivity();
         }
 
-        if (routeRoles.size() == 1 && routeRoles.contains(StationPermission.LOGIN)) {
+        moduleGuard.require(routeRoles, session);
+
+        Set<RouteRole> required = routeRoles.stream()
+                .filter(role -> !(role instanceof SessionUse) && !(role instanceof StationModule))
+                .collect(Collectors.toSet());
+        if (required.size() == 1 && required.contains(StationPermission.LOGIN)) {
             return;
         }
 
-        checkRoles(ctx, routeRoles, session);
+        checkRoles(ctx, required, session);
     }
 
     /**
@@ -177,7 +193,8 @@ public class AccessGate implements Handler {
 
     /**
      * Refuses a session that holds none of the permissions the route asks for, and asks for a fresh
-     * second factor where the route names a {@link StepUpCategory}.
+     * second factor where the route names a {@link StepUpCategory}. A {@link StationModule} among the
+     * roles is no permission; {@link ModuleGuard} has already answered for it.
      *
      * <p>Permissions are already expanded on the session. A step-up category stands beside the
      * permissions: they still gate access, and the category additionally requires a recent
@@ -194,6 +211,7 @@ public class AccessGate implements Handler {
                 stepUpCategory = sc;
                 continue;
             }
+            if (required instanceof StationModule) continue;
             permissionRequired = true;
             if (required instanceof StationPermission sp && session.hasPermission(sp)) {
                 permissionGranted = true;

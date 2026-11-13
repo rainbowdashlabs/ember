@@ -28,6 +28,15 @@ const noneDenied = new Set<never>()
 
     <StationModuleList :disabled-modules="disabledModules" :cluster-denied="noneDenied" :cluster-name="null" saving/>
 
+    <HelpSection :title="t('helpCenter.modules.partsTitle')">
+      <p>{{ t('helpCenter.modules.partsText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.modules.effectsTitle')">
+      <p>{{ t('helpCenter.modules.effectsText') }}</p>
+      <p>{{ t('helpCenter.modules.clusterText') }}</p>
+    </HelpSection>
+
     <HelpTip>{{ t('helpCenter.modules.tip') }}</HelpTip>
   </HelpArticle>
 </template>

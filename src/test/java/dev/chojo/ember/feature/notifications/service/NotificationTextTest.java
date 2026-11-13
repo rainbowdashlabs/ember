@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.notifications.service;
 
 import dev.chojo.ember.feature.board.entity.BoardTicketAddress;
+import dev.chojo.ember.feature.events.entity.EventChangePart;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.notifications.entity.ExpiryReminderKind;
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -60,6 +62,50 @@ class NotificationTextTest {
         assertEquals("Storage Warning", text.resolveCategory("en", NotificationType.STORAGE_WARNING));
     }
 
+    /**
+     * A change notice names the changed parts in the reader's language and in one order, says the new
+     * start only where it moved, and carries the editor's note as its detail.
+     */
+    @Test
+    void aChangeNoticeNamesItsPartsInTheReadersLanguage() {
+        var plain = notificationWith(
+                NotificationType.EVENT_CHANGED,
+                NotificationParams.EventChangeNotice.of(
+                        "Dienst",
+                        LocalDate.of(2026, 11, 17),
+                        List.of(EventChangePart.FIELDS, EventChangePart.DESCRIPTION),
+                        "Bitte Helm mitbringen",
+                        null,
+                        "Tim"),
+                3);
+        var moved = notificationWith(
+                NotificationType.EVENT_CHANGED,
+                NotificationParams.EventChangeNotice.of(
+                        "Dienst", LocalDate.of(2026, 11, 17), List.of(EventChangePart.TIME), null, "19:30", "Tim"),
+                4);
+
+        assertEquals(
+                "Dienst am 17.11.2026 wurde geändert: Beschreibung, Angaben. Betrifft Tim. Hinweis: Bitte Helm mitbringen",
+                text.resolveMessage("de", plain));
+        assertTrue(text.resolveMessage("en", plain).contains("description, details"));
+        assertEquals(
+                "Dienst am 17.11.2026 wurde geändert: Uhrzeit. Beginn jetzt um 19:30 Uhr. Betrifft Tim",
+                text.resolveMessage("de", moved));
+        var timeNamed = NotificationParams.EventChangeNotice.of(
+                "Dienst", LocalDate.of(2026, 11, 17), List.of(), null, "19:30", "Tim");
+        assertEquals(List.of(EventChangePart.TIME), timeNamed.parts());
+        assertEquals(
+                List.of(EventChangePart.NAME),
+                new NotificationParams.EventChangeNotice(
+                                "Dienst", LocalDate.of(2026, 11, 17), "PLACE,NAME", null, null, "Tim")
+                        .parts());
+        assertEquals(null, text.resolveDetail(plain), "the note is in the sentence, not repeated below it");
+        assertEquals(null, text.resolveDetail(moved));
+        assertEquals(
+                List.of(EventChangePart.DESCRIPTION, EventChangePart.FIELDS),
+                ((NotificationParams.EventChangeNotice) plain.data().params()).parts());
+    }
+
     /** A type without a template of its own reads as its parameters joined. */
     @Test
     void resolveMessageSubstitutesParamsAndFallsBackToJoinedParams() {
@@ -70,6 +116,20 @@ class NotificationTextTest {
         var storage = notificationWith(
                 NotificationType.STORAGE_WARNING, new NotificationParams.StorageWarning(95, "9.5 GB", "10 GB"), 2);
         assertTrue(text.resolveMessage("de", storage).contains("95"));
+    }
+
+    /** A module the cluster switched off is named in the reader's language, in the message and the feed. */
+    @Test
+    void aDeniedModuleIsNamedInTheReadersLanguage() {
+        var denied = notificationWith(
+                NotificationType.CLUSTER_MODULE_DENIED,
+                new NotificationParams.ClusterModuleDenied("Kreisverband", "LOST_AND_FOUND"),
+                3);
+
+        String message = text.resolveMessage("de", denied);
+        assertFalse(message.contains("LOST_AND_FOUND"), message);
+        assertTrue(message.contains(text.resolveLocalized("de", "module", "LOST_AND_FOUND", null)), message);
+        assertFalse(text.resolveFeedTitle("de", denied).contains("LOST_AND_FOUND"));
     }
 
     /**
@@ -513,6 +573,20 @@ class NotificationTextTest {
                 NotificationData.of(params, link),
                 Instant.now(),
                 null);
+    }
+
+    /** A switched-off module, a part of the inventory included, is named the way the reader knows it. */
+    @Test
+    void aDeniedInventoryPartIsNamedInTheReadersLanguage() {
+        var denied = notificationWith(
+                NotificationType.CLUSTER_MODULE_DENIED,
+                new NotificationParams.ClusterModuleDenied("Kreisverband Nord", "INVENTORY_LENDING"),
+                5);
+
+        assertTrue(text.resolveMessage("de", denied).contains("Verleih"));
+        assertTrue(text.resolveMessage("en", denied).contains("Lending"));
+        assertEquals("Verleih vom Verband abgeschaltet", text.resolveFeedTitle("de", denied));
+        assertFalse(text.resolveMessage("en", denied).contains("INVENTORY_LENDING"));
     }
 
     private static Notification notificationWith(NotificationType type, NotificationParams params, int id) {

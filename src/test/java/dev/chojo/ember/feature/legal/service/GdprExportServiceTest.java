@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.messages.service.MessageFixtures;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.signing.service.SignatureImageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -152,6 +153,27 @@ class GdprExportServiceTest extends RepositoryTestBase {
         var membership = memberships.getFirst();
         assertEquals(member.id(), membership.get("memberId"));
         assertEquals(stationId, membership.get("stationId"));
+    }
+
+    /** The export holds the account's own messages and the conversations it is in, never what others wrote. */
+    @Test
+    @Order(13)
+    void exportAccountDataContainsOwnMessagesOnly() {
+        var other = accountRepo.create("gdpr-other@example.com", "Erika", "Musterfrau", true);
+        stationMemberRepo.create(stationId, other.id());
+        var messages = MessageFixtures.build();
+        var direct = messages.conversations().openDirect(account.id(), other.uid());
+        messages.messages().send(account.id(), direct.uid(), "Meine Nachricht", null);
+        messages.messages().send(other.id(), direct.uid(), "Ihre Nachricht", null);
+
+        var data = gdprService.exportAccountData(account.id());
+        @SuppressWarnings("unchecked")
+        var tables = (Map<String, List<Map<String, Object>>>) data.get("accountTables");
+
+        var written =
+                tables.get("message").stream().map(row -> row.get("content")).toList();
+        assertEquals(List.of("Meine Nachricht"), written);
+        assertEquals(1, tables.get("conversation_member").size());
     }
 
     @Test

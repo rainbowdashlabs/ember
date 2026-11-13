@@ -10,6 +10,8 @@ import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.station.entity.StationModule;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -29,23 +31,38 @@ import java.util.Set;
 public class MemberPermissionResolver {
     private final StationMemberRepository stationMemberRepository;
     private final MemberGroupRepository memberGroupRepository;
+    private final ModuleAvailability modules;
 
     @Inject
     public MemberPermissionResolver(
-            StationMemberRepository stationMemberRepository, MemberGroupRepository memberGroupRepository) {
+            StationMemberRepository stationMemberRepository,
+            MemberGroupRepository memberGroupRepository,
+            ModuleAvailability modules) {
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
+        this.modules = modules;
     }
 
     /**
      * What a member may do: what their type grants everywhere, what their station grants that type,
      * what was granted to them by hand, what their groups carry, whether they look after anybody, and
-     * everything those imply.
+     * everything those imply. A permission of a module the station does not have grants nothing.
      *
      * @param member the member
      * @return the permissions they hold
      */
     public Set<StationPermission> resolve(StationMember member) {
+        return resolve(member, modules.disabledAt(member.stationId()));
+    }
+
+    /**
+     * What a member may do, given the modules their station has switched off.
+     *
+     * @param member   the member
+     * @param disabled the station's effective set of switched-off modules
+     * @return the permissions they hold
+     */
+    public Set<StationPermission> resolve(StationMember member, Set<StationModule> disabled) {
         Set<StationPermission> permissions = EnumSet.noneOf(StationPermission.class);
 
         permissions.addAll(Arrays.asList(member.userType().defaultPermissions()));
@@ -66,7 +83,7 @@ public class MemberPermissionResolver {
             permissions.add(StationPermission.MEMBER_GUARDIAN);
         }
 
-        return StationPermission.expand(permissions);
+        return StationPermission.expand(permissions, disabled);
     }
 
     /**

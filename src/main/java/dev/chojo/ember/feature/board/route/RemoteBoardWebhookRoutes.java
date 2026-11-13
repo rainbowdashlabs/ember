@@ -35,20 +35,23 @@ public class RemoteBoardWebhookRoutes implements Routes {
     public static final FederationEndpoint UNASSIGNMENT =
             FederationEndpoint.post(FederationSurface.BOARD_SHARE, WEBHOOKS + "/unassignment", Void.class, Void.class);
     public static final FederationEndpoint BOARD_RENAMED = FederationEndpoint.post(
-            FederationSurface.BOARD_SHARE,
-            WEBHOOKS + "/board-renamed",
-            RemoteBoardRoutes.RemoteBoardRenamedWebhook.class,
-            Void.class);
+                    FederationSurface.BOARD_SHARE,
+                    WEBHOOKS + "/board-renamed",
+                    RemoteBoardRoutes.RemoteBoardRenamedWebhook.class,
+                    Void.class)
+            .keepingInStep();
     public static final FederationEndpoint BOARD_UNSHARED = FederationEndpoint.post(
-            FederationSurface.BOARD_SHARE,
-            WEBHOOKS + "/board-unshared",
-            RemoteBoardRoutes.RemoteBoardUnsharedWebhook.class,
-            Void.class);
+                    FederationSurface.BOARD_SHARE,
+                    WEBHOOKS + "/board-unshared",
+                    RemoteBoardRoutes.RemoteBoardUnsharedWebhook.class,
+                    Void.class)
+            .keepingInStep();
     public static final FederationEndpoint SHARE_MODE_CHANGED = FederationEndpoint.post(
-            FederationSurface.BOARD_SHARE,
-            WEBHOOKS + "/share-mode-changed",
-            RemoteBoardRoutes.RemoteShareModeChangedWebhook.class,
-            Void.class);
+                    FederationSurface.BOARD_SHARE,
+                    WEBHOOKS + "/share-mode-changed",
+                    RemoteBoardRoutes.RemoteShareModeChangedWebhook.class,
+                    Void.class)
+            .keepingInStep();
 
     public static final List<FederationEndpoint> CONTRACT = List.of(
             TICKET_CHANGED, MENTION, ASSIGNMENT, UNASSIGNMENT, BOARD_RENAMED, BOARD_UNSHARED, SHARE_MODE_CHANGED);

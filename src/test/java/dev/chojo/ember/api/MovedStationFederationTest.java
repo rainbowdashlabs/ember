@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberPermissionResolver;
 import dev.chojo.ember.feature.station.entity.MovedAway;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import io.javalin.http.Context;
 import io.javalin.http.HandlerType;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,7 +64,8 @@ class MovedStationFederationTest {
                 stations,
                 mock(ClusterRepository.class),
                 mock(FederationContractRefreshService.class),
-                mock(MemberPermissionResolver.class));
+                mock(MemberPermissionResolver.class),
+                mock(ModuleAvailability.class));
         when(ctx.header("X-Federation-Station-Id")).thenReturn(REMOTE_UID.toString());
         when(ctx.header("X-Federation-Signature")).thenReturn("signature");
         when(ctx.header("X-Federation-Timestamp")).thenReturn(Instant.now().toString());

@@ -32,6 +32,7 @@ import dev.chojo.ember.conf.file.elements.KnowledgeBase;
 import dev.chojo.ember.conf.file.elements.Logging;
 import dev.chojo.ember.conf.file.elements.MailImport;
 import dev.chojo.ember.conf.file.elements.Mailing;
+import dev.chojo.ember.conf.file.elements.Messages;
 import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
@@ -137,11 +138,13 @@ import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
 import dev.chojo.ember.feature.events.route.PublicEventRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
 import dev.chojo.ember.feature.events.service.EventBlockReferences;
+import dev.chojo.ember.feature.events.service.EventChangeNotifier;
 import dev.chojo.ember.feature.events.service.EventCommentTarget;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFeedDetails;
 import dev.chojo.ember.feature.events.service.EventReminderChecker;
 import dev.chojo.ember.feature.events.service.EventThresholdChecker;
+import dev.chojo.ember.feature.events.service.FederatedEventChangeService;
 import dev.chojo.ember.feature.events.service.FieldRegistrationSweeper;
 import dev.chojo.ember.feature.events.service.PartnerAppointmentSignatures;
 import dev.chojo.ember.feature.events.service.RegistrationDeadlineChecker;
@@ -270,6 +273,16 @@ import dev.chojo.ember.feature.members.service.MemberFeedDetails;
 import dev.chojo.ember.feature.members.service.ProfileFieldOwner;
 import dev.chojo.ember.feature.members.service.StationMemberEligibility;
 import dev.chojo.ember.feature.members.service.StationProfileFields;
+import dev.chojo.ember.feature.messages.handler.StationAudienceChangedHandler;
+import dev.chojo.ember.feature.messages.route.ConversationRoutes;
+import dev.chojo.ember.feature.messages.route.MessageEventRoutes;
+import dev.chojo.ember.feature.messages.route.MessagePeopleRoutes;
+import dev.chojo.ember.feature.messages.route.MessageReportRoutes;
+import dev.chojo.ember.feature.messages.route.MessageRoutes;
+import dev.chojo.ember.feature.messages.route.StationChatRoutes;
+import dev.chojo.ember.feature.messages.service.MessageDigestMail;
+import dev.chojo.ember.feature.messages.service.MessageSignals;
+import dev.chojo.ember.feature.messages.service.StationChatMembership;
 import dev.chojo.ember.feature.news.handler.NewsCreatedHandler;
 import dev.chojo.ember.feature.news.handler.NewsDeletedHandler;
 import dev.chojo.ember.feature.news.route.AdminNewsRoutes;
@@ -708,6 +721,12 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(PasskeyAdminRoutes.class);
         routesBinder.addBinding().to(TwoFactorAdminRoutes.class);
         routesBinder.addBinding().to(AccountAdminRoutes.class);
+        routesBinder.addBinding().to(ConversationRoutes.class);
+        routesBinder.addBinding().to(StationChatRoutes.class);
+        routesBinder.addBinding().to(MessageReportRoutes.class);
+        routesBinder.addBinding().to(MessageRoutes.class);
+        routesBinder.addBinding().to(MessagePeopleRoutes.class);
+        routesBinder.addBinding().to(MessageEventRoutes.class);
 
         Multibinder<TableImporter> tableImporterBinder = Multibinder.newSetBinder(binder(), TableImporter.class);
         tableImporterBinder.addBinding().to(StationTableImporter.class);
@@ -766,6 +785,7 @@ public class EmberModule extends AbstractModule {
 
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});
         eventBinder.addBinding().to(EventCreatedHandler.class);
+        eventBinder.addBinding().to(StationAudienceChangedHandler.class);
         eventBinder.addBinding().to(EventsBatchCreatedHandler.class);
         eventBinder.addBinding().to(EventDeletedHandler.class);
         eventBinder.addBinding().to(EventChangedHandler.class);
@@ -825,6 +845,7 @@ public class EmberModule extends AbstractModule {
         bind(FederationTransport.class).to(RoutingFederationTransport.class);
         Multibinder<FederationServer> federationServers = Multibinder.newSetBinder(binder(), FederationServer.class);
         federationServers.addBinding().to(FederatedItemTagService.class);
+        federationServers.addBinding().to(FederatedEventChangeService.class);
         federationServers.addBinding().to(QuizFederationService.class);
         federationServers.addBinding().to(TestProtocolService.class);
         federationServers.addBinding().to(NewsFederationService.class);
@@ -865,6 +886,7 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(ProblemLogFlusher.class);
         taskSources.addBinding().to(RegistrationDeadlineChecker.class);
         taskSources.addBinding().to(EventReminderChecker.class);
+        taskSources.addBinding().to(EventChangeNotifier.class);
         taskSources.addBinding().to(EventThresholdChecker.class);
         taskSources.addBinding().to(FieldRegistrationSweeper.class);
         taskSources.addBinding().to(SettledRefusalSweeper.class);
@@ -904,6 +926,9 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(PartnerRequirementNotices.class);
         taskSources.addBinding().to(CredentialKeyStamps.class);
         taskSources.addBinding().to(AccountLinkSweeper.class);
+        taskSources.addBinding().to(MessageSignals.class);
+        taskSources.addBinding().to(StationChatMembership.class);
+        taskSources.addBinding().to(MessageDigestMail.class);
 
         Multibinder<ShutdownFlush> flushes = Multibinder.newSetBinder(binder(), ShutdownFlush.class);
         flushes.addBinding().to(PageHitRecorder.class);
@@ -1044,6 +1069,12 @@ public class EmberModule extends AbstractModule {
     @Singleton
     Changelog changelog(File config) {
         return config.changelog();
+    }
+
+    @Provides
+    @Singleton
+    Messages messages(File config) {
+        return config.messages();
     }
 
     @Provides

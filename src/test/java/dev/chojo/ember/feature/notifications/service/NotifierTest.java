@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.ClusterAudience;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
+import dev.chojo.ember.feature.notifications.entity.HiddenNotifications;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -139,8 +140,14 @@ class NotifierTest extends RepositoryTestBase {
                 Delivery.EVERY_TIME);
 
         assertEquals(1, written);
-        assertEquals(1, notificationRepo.countUnacknowledged(Recipient.clusterMember(clusterAdmin.id())));
-        assertEquals(0, notificationRepo.countUnacknowledged(Recipient.clusterMember(clusterUser.id())));
+        assertEquals(
+                1,
+                notificationRepo.countUnacknowledged(
+                        Recipient.clusterMember(clusterAdmin.id()), HiddenNotifications.NONE));
+        assertEquals(
+                0,
+                notificationRepo.countUnacknowledged(
+                        Recipient.clusterMember(clusterUser.id()), HiddenNotifications.NONE));
         assertEquals(
                 0,
                 notifier.notify(
@@ -190,7 +197,7 @@ class NotifierTest extends RepositoryTestBase {
 
         notifier.notify(StationAudience.member(reader.id()), NotificationType.NEWS_COMMENT, data, Delivery.EVERY_TIME);
         notifier.withdrawAll(link);
-        assertTrue(notificationRepo.findRecent(Recipient.stationMember(reader.id())).stream()
+        assertTrue(notificationRepo.findRecent(Recipient.stationMember(reader.id()), HiddenNotifications.NONE).stream()
                 .noneMatch(n -> n.data().equals(data)));
     }
 
@@ -218,7 +225,9 @@ class NotifierTest extends RepositoryTestBase {
     }
 
     private static boolean told(StationMember member, NotificationData data) {
-        return notificationRepo.findUnacknowledged(Recipient.stationMember(member.id())).stream()
+        return notificationRepo
+                .findUnacknowledged(Recipient.stationMember(member.id()), HiddenNotifications.NONE)
+                .stream()
                 .anyMatch(n -> n.data().equals(data));
     }
 }

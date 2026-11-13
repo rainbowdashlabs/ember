@@ -8,7 +8,9 @@ package dev.chojo.ember.feature.waitinglist.service;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.WaitingListRefusal;
 import dev.chojo.ember.feature.mail.entity.WaitlistInvitationDetails;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import jakarta.inject.Inject;
@@ -23,10 +25,15 @@ public class PublicWaitingListService {
     private final WaitingListService lists;
     private final StationRepository stations;
     private final WaitlistInvitationMessage invitationMessage;
+    private final ModuleAvailability modules;
 
     @Inject
     public PublicWaitingListService(
-            WaitingListService lists, StationRepository stations, WaitlistInvitationMessage invitationMessage) {
+            WaitingListService lists,
+            StationRepository stations,
+            WaitlistInvitationMessage invitationMessage,
+            ModuleAvailability modules) {
+        this.modules = modules;
         this.lists = lists;
         this.stations = stations;
         this.invitationMessage = invitationMessage;
@@ -34,15 +41,34 @@ public class PublicWaitingListService {
 
     /**
      * The station a public address names, by its uid or its readable name, when it shows its
-     * waiting lists in public.
+     * waiting lists in public and has not switched its waiting list off, nor had it denied by its
+     * cluster. What somebody already put on a list stays theirs to look at and take back.
      *
      * @return the station's id
      */
     public int stationIdFor(String address) {
         var station = stations.findByAddress(address)
                 .orElseThrow(WaitingListRefusal.STATION_NOT_HERE_BEHIND_PUBLIC_LIST::raise);
-        if (!station.publicWaitlistEnabled()) throw WaitingListRefusal.PUBLIC_WAITING_LISTS_SWITCHED_OFF.raise();
+        if (!station.publicWaitlistEnabled() || StationModule.WAITING_LIST.isOffIn(modules.disabledAt(station.id()))) {
+            throw WaitingListRefusal.PUBLIC_WAITING_LISTS_SWITCHED_OFF.raise();
+        }
         return station.id();
+    }
+
+    /**
+     * Refuses an invite code of a station whose waiting list is switched off, by itself or its cluster:
+     * a link sent out earlier takes no new sign-ups while the list is gone. An unknown code is left to
+     * the caller's own refusal.
+     *
+     * @param code the invite code
+     */
+    public void requireInviteTakesSignUps(String code) {
+        lists.findInviteByCode(code)
+                .flatMap(invite -> lists.findById(invite.listId()))
+                .filter(list -> StationModule.WAITING_LIST.isOffIn(modules.disabledAt(list.stationId())))
+                .ifPresent(list -> {
+                    throw WaitingListRefusal.PUBLIC_WAITING_LISTS_SWITCHED_OFF.raise();
+                });
     }
 
     /**

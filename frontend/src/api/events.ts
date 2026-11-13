@@ -17,6 +17,8 @@ import type {
     BreakRequest,
     CancellationNotice,
     CancelledEventDate,
+    ChangeNotice,
+    ChangePreview,
     CategoryRequest,
     CreateTemplateRequest,
     DatedEvent,
@@ -28,6 +30,7 @@ import type {
     EventCategory,
     AppointmentField,
     EventFieldDefault,
+    EventLinks,
     EventRegistration,
     EventRegistrationFieldValue,
     EventRegistrationOpening,
@@ -237,6 +240,29 @@ export async function getNextDate(eventId: number): Promise<string | null> {
 export const createEvent = events.create
 export const updateEvent = events.update
 export const deleteEvent = events.remove
+
+/**
+ * Counts who saving the draft would tell: the people the change would be told to if the editor chose
+ * to tell them, and the people holding a place who are told a moved start in any case. Nothing is saved.
+ */
+export async function previewChange(eventId: number, draft: EventRequest): Promise<ChangePreview> {
+    const res = await client.post<ChangePreview>(`/events/${eventId}/change-notice/preview`, draft)
+    return res.data
+}
+
+/**
+ * Tells the people an appointment that took over dates of another one concerns, once every part of it
+ * is saved: a moved start always, and the change where the editor chose to.
+ */
+export async function sendChangeNotice(eventId: number, notice: ChangeNotice): Promise<void> {
+    await client.post(`/events/${eventId}/change-notice`, notice)
+}
+
+/** The appointments this one took dates from and gave dates to, as far as the reader may see them. */
+export async function getEventLinks(eventId: number): Promise<EventLinks> {
+    const res = await client.get<EventLinks>(`/events/${eventId}/links`)
+    return res.data
+}
 
 /** Cancels a whole series for good. A one-time appointment is cancelled by its date instead. */
 export async function cancelSeries(eventId: number, reason?: string): Promise<void> {

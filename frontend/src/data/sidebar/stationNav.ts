@@ -41,6 +41,9 @@ function runs(module: StationModule): Condition {
     return ({session}) => session.isModuleEnabled(module)
 }
 
+/** Whether messages are on for the instance; an administrator can turn them off for everybody. */
+const messagesOn: Condition = ({session}) => session.sessionInfo.value?.messagesEnabled !== false
+
 function both(first: Condition, second: Condition): Condition {
     return context => first(context) && second(context)
 }
@@ -179,6 +182,14 @@ export const STATION_NAV: Entry[] = [
         ],
     },
     {
+        kind: 'group', key: 'station-messages', label: 'sidebar.stationChats', icon: 'comments', prefix: ['/station/messages'],
+        visible: both(messagesOn, can(StationPermission.MESSAGE_CHAT_MANAGE)),
+        children: [
+            {kind: 'page', key: 'message-station-chats', label: 'sidebar.stationChats', icon: 'comments', to: '/station/messages/chats', visible: can(StationPermission.MESSAGE_CHAT_MANAGE)},
+            {kind: 'page', key: 'message-reports', label: 'sidebar.messageReports', icon: 'flag', to: '/station/messages/reports', visible: can(StationPermission.MESSAGE_CHAT_MANAGE)},
+        ],
+    },
+    {
         kind: 'group', key: 'documents', label: 'sidebar.documents', icon: 'file', visible: runs(StationModule.DOCUMENTS),
         children: [
             {kind: 'page', key: 'documents-own', label: 'sidebar.ownDocuments', icon: 'file', to: '/station/documents'},
@@ -193,17 +204,19 @@ export const STATION_NAV: Entry[] = [
     {
         kind: 'group', key: 'inventory', label: 'sidebar.inventory', icon: 'boxes-stacked', prefix: ['/station/inventory'],
         visible: runs(StationModule.INVENTORY),
-        badge: ({counts}) => counts.openMovements + counts.lendingRequests,
+        badge: ({counts, session}) =>
+            (session.isModuleEnabled(StationModule.INVENTORY_MOVEMENTS) ? counts.openMovements : 0)
+            + (session.isModuleEnabled(StationModule.INVENTORY_LENDING) ? counts.lendingRequests : 0),
         children: [
             {kind: 'page', key: 'inventory-overview', label: 'sidebar.inventoryOverview', icon: 'boxes-stacked', to: '/station/inventory', visible: can(StationPermission.INVENTORY_READ)},
             {kind: 'page', key: 'inventory-my', label: 'sidebar.myInventory', icon: 'boxes-stacked', to: '/station/inventory/my', visible: ({counts}) => counts.myInventoryCount > 0},
             {kind: 'page', key: 'inventory-members', label: 'sidebar.inventoryMembers', icon: 'users', to: '/station/inventory/members', visible: can(StationPermission.INVENTORY_READ)},
             {kind: 'page', key: 'inventory-assign', label: 'sidebar.inventoryAssign', icon: 'user-plus', to: '/station/inventory/assign', visible: can(StationPermission.INVENTORY_ASSIGN)},
             {kind: 'page', key: 'inventory-storage', label: 'sidebar.inventoryStorage', icon: 'warehouse', to: '/station/inventory/storage', visible: can(StationPermission.INVENTORY_READ)},
-            {kind: 'page', key: 'inventory-movements', label: 'sidebar.inventoryMovements', icon: 'rotate', to: '/station/inventory/movements', badge: ({counts}) => counts.openMovements},
-            {kind: 'page', key: 'inventory-procurement', label: 'sidebar.inventoryProcurement', icon: 'folder-plus', to: '/station/inventory/procurement', visible: can(StationPermission.INVENTORY_PROCUREMENT)},
+            {kind: 'page', key: 'inventory-movements', label: 'sidebar.inventoryMovements', icon: 'rotate', to: '/station/inventory/movements', badge: ({counts}) => counts.openMovements, visible: runs(StationModule.INVENTORY_MOVEMENTS)},
+            {kind: 'page', key: 'inventory-procurement', label: 'sidebar.inventoryProcurement', icon: 'folder-plus', to: '/station/inventory/procurement', visible: both(runs(StationModule.INVENTORY_PROCUREMENT), can(StationPermission.INVENTORY_PROCUREMENT))},
             {
-                kind: 'group', key: 'inventory-checks', label: 'sidebar.inventoryCheck', icon: 'clipboard-check', prefix: ['/station/inventory/checks'], visible: can(StationPermission.INVENTORY_CHECK),
+                kind: 'group', key: 'inventory-checks', label: 'sidebar.inventoryCheck', icon: 'clipboard-check', prefix: ['/station/inventory/checks'], visible: both(runs(StationModule.INVENTORY_CHECKS), can(StationPermission.INVENTORY_CHECK)),
                 children: [
                     {kind: 'page', key: 'inventory-check-member-overview', label: 'sidebar.inventoryCheckMember', icon: 'user-check', to: '/station/inventory/checks/member'},
                     {kind: 'page', key: 'inventory-check-container-overview', label: 'sidebar.inventoryCheckContainer', icon: 'box-open', to: '/station/inventory/checks/container'},
@@ -213,12 +226,13 @@ export const STATION_NAV: Entry[] = [
                 kind: 'group', key: 'inventory-settings', label: 'sidebar.inventorySettings', icon: 'gears',
                 children: [
                     {kind: 'page', key: 'inventory-manage', label: 'sidebar.inventoryManage', icon: 'box-open', to: '/station/inventory/manage', visible: can(StationPermission.INVENTORY_CREATE)},
-                    {kind: 'page', key: 'inventory-flows', label: 'sidebar.inventoryFlows', icon: 'diagram-project', to: '/station/inventory/flows', visible: can(StationPermission.INVENTORY_MANAGER)},
+                    {kind: 'page', key: 'inventory-flows', label: 'sidebar.inventoryFlows', icon: 'diagram-project', to: '/station/inventory/flows', visible: both(runs(StationModule.INVENTORY_MOVEMENTS), can(StationPermission.INVENTORY_MANAGER))},
                     {kind: 'page', key: 'inventory-requirements', label: 'sidebar.inventoryRequirements', icon: 'clipboard-list', to: '/station/inventory/requirements', visible: can(StationPermission.INVENTORY_READ)},
                 ],
             },
             {
                 kind: 'group', key: 'inventory-lending-group', label: 'sidebar.inventoryLendingGroup', icon: 'handshake', badge: ({counts}) => counts.lendingRequests,
+                visible: runs(StationModule.INVENTORY_LENDING),
                 children: [
                     {kind: 'page', key: 'inventory-borrowed', label: 'sidebar.inventoryBorrowed', icon: 'hand-holding', to: '/station/inventory/borrowed', visible: can(StationPermission.INVENTORY_READ)},
                     {

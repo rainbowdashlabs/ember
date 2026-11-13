@@ -81,6 +81,7 @@ import dev.chojo.ember.feature.equipment.service.EquipmentReleaseService;
 import dev.chojo.ember.feature.events.repository.EventBreakRepository;
 import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
 import dev.chojo.ember.feature.events.repository.EventDateCancellationRepository;
+import dev.chojo.ember.feature.events.repository.EventDetachedDateRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldDefaultRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
@@ -189,6 +190,8 @@ import dev.chojo.ember.feature.members.service.StationMemberEligibility;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.StationProfileFields;
 import dev.chojo.ember.feature.members.service.UserTagService;
+import dev.chojo.ember.feature.messages.repository.ConversationRepository;
+import dev.chojo.ember.feature.messages.service.MessageErasure;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
 import dev.chojo.ember.feature.news.service.NewsBlockReferences;
 import dev.chojo.ember.feature.news.service.NewsCommentTarget;
@@ -210,6 +213,7 @@ import dev.chojo.ember.feature.signing.repository.AccountSignatureRepository;
 import dev.chojo.ember.feature.signing.service.SignatureImageService;
 import dev.chojo.ember.feature.station.repository.StationApplicationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.storage.backend.StorageBackendFactory;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
@@ -348,6 +352,7 @@ public abstract class RepositoryTestBase {
     protected static EventRepository eventRepo;
     protected static EventBreakRepository eventBreakRepo;
     protected static EventDateCancellationRepository eventDateCancellationRepo;
+    protected static EventDetachedDateRepository eventDetachedDateRepo;
     protected static EventCategoryRepository eventCategoryRepo;
     protected static EventFieldDefaultRepository eventFieldDefaultRepo;
     protected static EventRegistrationRepository eventRegistrationRepo;
@@ -527,7 +532,8 @@ public abstract class RepositoryTestBase {
                 storage,
                 new ImageVariants(storage),
                 stationRepo,
-                newDocumentIntake());
+                newDocumentIntake(),
+                new ModuleAvailability(stationRepo, clusterRepo));
     }
 
     /**
@@ -557,7 +563,8 @@ public abstract class RepositoryTestBase {
                 new AvatarService(new ImageVariants(storage)),
                 newDocumentService(storage),
                 new SignatureImageService(new AccountSignatureRepository(), accountRepo, storage),
-                new AccountReach(accountRepo));
+                new AccountReach(accountRepo),
+                new MessageErasure(new ConversationRepository()));
     }
 
     /**
@@ -671,6 +678,7 @@ public abstract class RepositoryTestBase {
         eventRepo = new EventRepository();
         eventBreakRepo = new EventBreakRepository();
         eventDateCancellationRepo = new EventDateCancellationRepository();
+        eventDetachedDateRepo = new EventDetachedDateRepository();
         eventCategoryRepo = new EventCategoryRepository();
         eventFieldDefaultRepo = new EventFieldDefaultRepository();
         eventRegistrationRepo = new EventRegistrationRepository();
@@ -701,7 +709,8 @@ public abstract class RepositoryTestBase {
         lostAndFoundRepo = new LostAndFoundRepository();
         emailQueueRepo = new EmailQueueRepository();
         profileFieldChangeRepo = new ProfileFieldChangeRepository();
-        memberPermissionResolver = new MemberPermissionResolver(stationMemberRepo, memberGroupRepo);
+        memberPermissionResolver = new MemberPermissionResolver(
+                stationMemberRepo, memberGroupRepo, new ModuleAvailability(stationRepo, clusterRepo));
         profileFieldCore = newProfileFieldCore(mock(Notifier.class), new DomainEventBus(Set.of()));
         profileFieldService = newProfileFieldService(profileFieldCore);
         clusterStationGroupRepo = new ClusterStationGroupRepository();
@@ -804,11 +813,12 @@ public abstract class RepositoryTestBase {
         var fedRepo = new FederationRepository();
         var memberSvc = newStationMemberService(accountRepo, null);
         var groupSvc = newMemberGroupService();
-        var tagSvc = new UserTagService(userTagRepo, memberGroupRepo);
+        var tagSvc = new UserTagService(userTagRepo, memberGroupRepo, new DomainEventBus(Set.of()));
         memberNameResolver =
                 new MemberNameResolver(memberSvc, accountRepo, eventFedRepo, fedRepo, stationRepo, groupSvc, tagSvc);
         memberIdentityFactory = new MemberIdentityFactory(stationRepo, memberLookupService, memberNameResolver);
-        occurrenceCalendar = new OccurrenceCalendar(eventRepo, eventBreakRepo, eventDateCancellationRepo, stationRepo);
+        occurrenceCalendar = new OccurrenceCalendar(
+                eventRepo, eventBreakRepo, eventDateCancellationRepo, eventDetachedDateRepo, stationRepo);
         memberEligibility = new StationMemberEligibility(memberGroupRepo, stationMemberRepo, userTagRepo);
         eventFieldRegistrationService = new EventFieldRegistrationService(
                 eventRepo,
@@ -876,7 +886,7 @@ public abstract class RepositoryTestBase {
 
     /** A notifier over the shared repository, resolving cluster holders through the shared cluster service. */
     protected static Notifier newNotifier() {
-        return new Notifier(notificationRepo, () -> clusterService);
+        return new Notifier(notificationRepo, () -> clusterService, new ModuleAvailability(stationRepo, clusterRepo));
     }
 
     /**
@@ -1045,7 +1055,7 @@ public abstract class RepositoryTestBase {
                 boardRepo,
                 memberService,
                 newMemberGroupService(),
-                new UserTagService(userTagRepo, memberGroupRepo),
+                new UserTagService(userTagRepo, memberGroupRepo, new DomainEventBus(Set.of())),
                 privateTags);
         var tickets = new BoardTicketService(
                 boardTicketRepo,
@@ -1083,7 +1093,9 @@ public abstract class RepositoryTestBase {
                 authService,
                 memberLookupService,
                 documentService,
-                new AccountReach(accountRepository));
+                new AccountReach(accountRepository),
+                new ModuleAvailability(stationRepo, clusterRepo),
+                new DomainEventBus(Set.of()));
     }
 
     /**
@@ -1113,7 +1125,8 @@ public abstract class RepositoryTestBase {
      */
     protected static EventServices newEventServices(DomainEventBus eventBus) {
         var breakService = new EventBreakService(eventBreakRepo);
-        var calendar = new OccurrenceCalendar(eventRepo, eventBreakRepo, eventDateCancellationRepo, stationRepo);
+        var calendar = new OccurrenceCalendar(
+                eventRepo, eventBreakRepo, eventDateCancellationRepo, eventDetachedDateRepo, stationRepo);
         var availability =
                 new EquipmentAvailabilityService(equipmentAvailabilityRepo, equipmentNeedRepo, eventRepo, calendar);
         var lending = newLendingService(eventBus, availability);
@@ -1208,7 +1221,8 @@ public abstract class RepositoryTestBase {
      * so removing a group asks nobody for a step-up.
      */
     protected static MemberGroupService newMemberGroupService() {
-        return new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, newGroupMemberships());
+        return new MemberGroupService(
+                memberGroupRepo, stationMemberRepo, userTagRepo, newGroupMemberships(), new DomainEventBus(Set.of()));
     }
 
     /**

@@ -9,7 +9,8 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import InventoryItemCard from '@/views/stationview/inventory/InventoryItemCard.vue'
-import type {MyInventoryItem} from '@/api/generated/schema'
+import {StationModule, type MyInventoryItem} from '@/api/generated/schema'
+import {useSession} from '@/composables/useSession'
 
 interface InventoryGroup {
   inventoryId: number
@@ -29,6 +30,7 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+const {isModuleEnabled} = useSession()
 </script>
 
 <template>
@@ -55,7 +57,7 @@ const {t} = useI18n()
             v-for="item in group.items"
             :key="item.id"
             :item="item"
-            :show-exchange-button="true"
+            :show-exchange-button="isModuleEnabled(StationModule.INVENTORY_MOVEMENTS)"
             :show-lost-button="true"
             @request-exchange="(i: MyInventoryItem) => emit('requestExchange', i)"
             @report-lost="(i: MyInventoryItem) => emit('reportLost', i)"

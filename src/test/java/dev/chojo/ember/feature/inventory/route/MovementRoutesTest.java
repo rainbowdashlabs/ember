@@ -9,6 +9,7 @@ import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.ItemMovement;
@@ -28,6 +29,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberService;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.util.ExportedDocument;
 import io.javalin.testtools.HttpClient;
 import io.javalin.testtools.Response;
@@ -127,6 +129,20 @@ class MovementRoutesTest {
                 PREFIX + path,
                 body(json),
                 harness.as(TestSessions.member(STATION, StationPermission.INVENTORY_MANAGER)));
+    }
+
+    /** With movements switched off, or the whole inventory, the movement routes answer as absent. */
+    @Test
+    void switchedOffMovementsAnswerAsAbsent() {
+        for (var off : List.of(StationModule.INVENTORY_MOVEMENTS, StationModule.INVENTORY)) {
+            harness.withModulesOff(off).run((server, client) -> {
+                assertEquals(GeneralRefusal.MODULE_SWITCHED_OFF, refusalOf(get(client, "/movements")));
+                assertEquals(404, get(client, "/movements/at-member").code());
+            });
+        }
+        harness.withModulesOff(StationModule.INVENTORY_LENDING)
+                .run((server, client) -> assertEquals(
+                        200, get(client, "/movements").code(), "another part being off leaves movements alone"));
     }
 
     @Test

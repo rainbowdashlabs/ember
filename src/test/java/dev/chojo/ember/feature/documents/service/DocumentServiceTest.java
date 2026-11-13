@@ -433,4 +433,33 @@ class DocumentServiceTest extends RepositoryTestBase {
             stationRepo.setDisabledModules(station.id(), Set.of());
         }
     }
+
+    /** A document store the station's cluster denies is as closed as one the station switched off. */
+    @Test
+    @Order(13)
+    void aStoreTheClusterDeniesServesNoFile() {
+        var document = service.store(
+                station.id(),
+                List.of(memberId),
+                "Verweigert",
+                "verweigert.txt",
+                "text/plain",
+                "nein".getBytes(StandardCharsets.UTF_8),
+                false,
+                false,
+                Uploader.member(memberId),
+                List.of());
+        var home = stationRepo.create("Träger Dokumente");
+        var cluster = clusterRepo.create("Kreisverband Dokumente", null, home.id());
+        stationRepo.setCluster(station.id(), cluster.id());
+        clusterRepo.setDeniedModules(cluster.id(), null, Set.of(StationModule.DOCUMENTS));
+        try {
+            var refused = assertThrows(RefusalResponse.class, () -> service.open(document, DocumentDoor.STATION));
+            assertEquals(DocumentRefusal.DOCUMENTS_SWITCHED_OFF, refused.refusal());
+        } finally {
+            stationRepo.setCluster(station.id(), null);
+            clusterRepo.delete(cluster.id());
+            stationRepo.delete(home.id());
+        }
+    }
 }

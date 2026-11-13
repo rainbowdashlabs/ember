@@ -14,14 +14,14 @@ import {navPages, resolveNav} from '@/util/navTree'
  * The station sidebar for one reader: what they may reach is there, and nothing else.
  */
 describe('STATION_NAV', () => {
-    function readerWith(permissions: string[], modules: string[] = Object.values(StationModule)): StationNavContext {
+    function readerWith(permissions: string[], modules: string[] = Object.values(StationModule), messagesEnabled = true): StationNavContext {
         const session = {
             hasPermission: (permission: string) => permissions.includes(permission),
             isModuleEnabled: (module: string) => modules.includes(module),
             canTestProtocol: () => permissions.includes(StationPermission.PROTOCOL_TESTER),
             isManager: () => permissions.includes(StationPermission.STATION_ADMINISTRATOR),
             hasAnyMemberPermission: () => permissions.some(permission => permission.startsWith('MEMBER_')),
-            sessionInfo: {value: {setupCompletedAt: '2026-01-01T00:00:00Z'}},
+            sessionInfo: {value: {setupCompletedAt: '2026-01-01T00:00:00Z', messagesEnabled}},
         }
         const everythingElse = new Proxy(session, {get: (target, name) => name in target ? target[name as keyof typeof target] : () => false})
         return {
@@ -124,6 +124,45 @@ describe('STATION_NAV', () => {
 
         it('keeps a section that has more than its landing page', () => {
             expect(section(nav([StationPermission.POLL_CREATE]), 'forms')?.kind).toBe('group')
+        })
+    })
+
+    describe('parts of the inventory', () => {
+        function inventoryPages(modules: string[]) {
+            const keeper = [
+                StationPermission.INVENTORY_READ, StationPermission.INVENTORY_MANAGER, StationPermission.INVENTORY_PROCUREMENT,
+                StationPermission.INVENTORY_CHECK, StationPermission.INVENTORY_LENDING_MANAGER,
+            ]
+            const inventory = section(nav(keeper, modules), 'inventory')
+            return inventory ? navPages([inventory]).map(page => page.to) : []
+        }
+
+        it('shows every part while every part is on', () => {
+            const pages = inventoryPages(Object.values(StationModule))
+
+            expect(pages).toEqual(expect.arrayContaining([
+                '/station/inventory/movements', '/station/inventory/procurement', '/station/inventory/checks/member', '/station/inventory/lending',
+            ]))
+        })
+
+        it('leaves out a part that is switched off and keeps the rest of the inventory', () => {
+            const on = Object.values(StationModule).filter(module => module !== StationModule.INVENTORY_MOVEMENTS && module !== StationModule.INVENTORY_LENDING)
+            const pages = inventoryPages(on)
+
+            expect(pages).not.toContain('/station/inventory/movements')
+            expect(pages).not.toContain('/station/inventory/flows')
+            expect(pages).not.toContain('/station/inventory/lending')
+            expect(pages).toContain('/station/inventory/procurement')
+            expect(pages).toContain('/station/inventory')
+        })
+    })
+
+    describe('station chats', () => {
+        it('are there for whoever handles them while messages are on, and gone once the instance turned messages off', () => {
+            const manager = [StationPermission.MESSAGE_CHAT_MANAGE]
+
+            expect(section(nav(manager), 'station-messages')).toBeDefined()
+            expect(section(resolveNav(STATION_NAV, readerWith(manager, undefined, false), key => key), 'station-messages')).toBeUndefined()
         })
     })
 })

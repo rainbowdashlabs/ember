@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.route.EventVisibility;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.inventory.entity.LineTarget;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -89,30 +90,65 @@ public class EquipmentNeedRoutes implements Routes {
                 prefix + "/events/{eventId}/equipment",
                 this::list,
                 StationPermission.INVENTORY_READ,
-                StationPermission.EVENT_INTERNAL);
+                StationPermission.EVENT_INTERNAL,
+                StationModule.EVENTS,
+                StationModule.INVENTORY);
         routes.get(
                 prefix + "/events/{eventId}/equipment/coverage",
                 this::coverage,
                 StationPermission.INVENTORY_READ,
-                StationPermission.EVENT_INTERNAL);
+                StationPermission.EVENT_INTERNAL,
+                StationModule.EVENTS,
+                StationModule.INVENTORY);
         routes.get(
                 prefix + "/events/{eventId}/equipment/handovers",
                 this::handovers,
                 StationPermission.INVENTORY_READ,
-                StationPermission.EVENT_INTERNAL);
-        routes.get(prefix + "/events/{eventId}/equipment/choices", this::choices, StationPermission.EVENT_EDIT);
-        routes.post(prefix + "/events/{eventId}/equipment", this::add, StationPermission.EVENT_EDIT);
-        routes.put(prefix + "/events/{eventId}/equipment/order", this::reorder, StationPermission.EVENT_EDIT);
-        routes.put(prefix + "/events/{eventId}/equipment/{needId}", this::update, StationPermission.EVENT_EDIT);
-        routes.delete(prefix + "/events/{eventId}/equipment/{needId}", this::delete, StationPermission.EVENT_EDIT);
+                StationPermission.EVENT_INTERNAL,
+                StationModule.EVENTS,
+                StationModule.INVENTORY);
+        routes.get(
+                prefix + "/events/{eventId}/equipment/choices",
+                this::choices,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS,
+                StationModule.INVENTORY);
+        routes.post(
+                prefix + "/events/{eventId}/equipment",
+                this::add,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS,
+                StationModule.INVENTORY);
+        routes.put(
+                prefix + "/events/{eventId}/equipment/order",
+                this::reorder,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS,
+                StationModule.INVENTORY);
+        routes.put(
+                prefix + "/events/{eventId}/equipment/{needId}",
+                this::update,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS,
+                StationModule.INVENTORY);
+        routes.delete(
+                prefix + "/events/{eventId}/equipment/{needId}",
+                this::delete,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS,
+                StationModule.INVENTORY);
         routes.post(
                 prefix + "/events/{eventId}/equipment/{needId}/handovers",
                 this::handOver,
-                StationPermission.INVENTORY_ASSIGN);
+                StationPermission.INVENTORY_ASSIGN,
+                StationModule.EVENTS,
+                StationModule.INVENTORY);
         routes.delete(
                 prefix + "/events/{eventId}/equipment/handovers/{handoverId}",
                 this::handBack,
-                StationPermission.INVENTORY_ASSIGN);
+                StationPermission.INVENTORY_ASSIGN,
+                StationModule.EVENTS,
+                StationModule.INVENTORY);
     }
 
     private StationEvent ownEvent(Context ctx) {

@@ -24,7 +24,7 @@ import {
     faUsersGear, faXmark, faXmarkCircle, faCircleQuestion, faFilter, faTags, faBarcode,
     faSquarePollVertical, faStar, faHeart, faThumbsUp, faGripLines, faLocationDot, faCamera,
     faToggleOn, faArrowRightArrowLeft, faPuzzlePiece, faPalette, faBook, faServer, faDatabase,
-    faEnvelope, faEnvelopeOpenText, faArrowDown, faBug, faFlag, faPaperclip, faInbox, faExpand, faRocket, faShirt,
+    faEnvelope, faEnvelopeOpenText, faArrowDown, faBug, faFlag, faHouseFlag, faPaperclip, faInbox, faExpand, faRocket, faShirt,
     faShareNodes, faHandshake, faRobot, faCircleXmark, faRotateLeft, faCodeCompare, faTrophy,
     faRedo, faArrowLeft, faHandHolding, faCalendarXmark, faCheckCircle, faEyeSlash, faDesktop,
     faUserGear, faCalendar, faChartBar, faChartPie, faClock, faHand, faImage, faPaperPlane,
@@ -40,6 +40,7 @@ import {
     faGlasses, faRadio, faWalkieTalkie, faHeadphones, faStapler, faToolbox, faScrewdriverWrench, faWrench, faHammer,
     faFireExtinguisher, faWaterLadder, faBatteryFull, faTrowel, faKitMedical, faSuitcaseMedical,
     faTruckMedical, faDice, faDiceD20, faTent, faRuler, faBagShopping, faBriefcase,
+    faComments, faFaceSmile, faCrown,
 } from '@fortawesome/free-solid-svg-icons'
 import {
     faGithub, faWindows, faApple, faLinux, faAndroid, faChrome, faFirefoxBrowser, faSafari,
@@ -49,6 +50,7 @@ import {
 config.autoAddCss = false
 
 library.add(
+    faComments, faFaceSmile, faCrown,
     faDiagramProject, faSun, faMoon, faCheck, faAngleDown, faAngleUp, faAnglesDown, faAnglesUp, faEllipsis,
     faEquals, faXmark, faXmarkCircle, faSpinner, faCircleInfo, faCircleCheck, faCircle,
     faCircleDot, faCircleUp, faTriangleExclamation, faDownload, faUpload, faTrash, faPen, faLock, faLockOpen,
@@ -76,7 +78,7 @@ library.add(
     faFileCode, faParagraph, faHeading, faHighlighter, faTextHeight, faTextWidth, faLinkSlash, faAlignLeft, faAlignCenter,
     faAlignRight, faAlignJustify, faBug, faShareNodes, faHandshake, faCompass, faRobot, faCircleXmark,
     faRotateLeft, faCodeCompare, faTrophy, faRedo, faArrowLeft, faHandHolding, faCalendarXmark,
-    faCheckCircle, faEyeSlash, faDesktop, faFlag, faPaperclip, faInbox, faExpand, faRocket,
+    faCheckCircle, faEyeSlash, faDesktop, faHouseFlag, faFlag, faPaperclip, faInbox, faExpand, faRocket,
     faArrowDownWideShort, faArrowUpWideShort, faFileCsv, faReply, faShieldHalved, faAt,
     faPaste, faClone, faHourglassHalf, faArrowUp, faSatelliteDish, faMapLocationDot,
     faUserClock, faFloppyDisk, faBoxArchive, faCakeCandles, faFilePowerpoint, faDisplay, faKey,

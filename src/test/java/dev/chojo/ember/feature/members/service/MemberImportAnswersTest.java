@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -48,7 +50,8 @@ class MemberImportAnswersTest extends RepositoryTestBase {
                 newGroupMemberships(),
                 profileFieldRepo,
                 TestAccountLinks.inviteService(
-                        accountRepo, stationRepo, stationMemberRepo, newGroupMemberships(), mock(AuthService.class)));
+                        accountRepo, stationRepo, stationMemberRepo, newGroupMemberships(), mock(AuthService.class)),
+                new DomainEventBus(Set.of()));
         station = stationRepo.create("ImportAnswersStation");
     }
 

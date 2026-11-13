@@ -20,7 +20,8 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import ScanButton from '@/components/scanner/ScanButton.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
 import MovementStandingBadges from '@/components/inventory/MovementStandingBadges.vue'
-import type { CheckResult, InventoryItem, MovementStanding, RequiredInventoryItem } from '@/api/generated/schema'
+import { StationModule, type CheckResult, type InventoryItem, type MovementStanding, type RequiredInventoryItem } from '@/api/generated/schema'
+import { useSession } from '@/composables/useSession'
 import type { CheckEntry } from '@/composables/useMemberCheck'
 
 const props = defineProps<{
@@ -50,6 +51,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { isModuleEnabled } = useSession()
 
 const rapidAssignSelection = ref('')
 const rapidCreateSizeId = ref('')
@@ -270,7 +272,7 @@ defineExpose({ currentEntry })
     </div>
     <ButtonRow align="center">
       <InfoButton
-          v-if="!running"
+          v-if="!running && isModuleEnabled(StationModule.INVENTORY_MOVEMENTS)"
           :icon="['fas', 'right-left']"
           data-testid="rapid-exchange"
           @click="emit('exchange', currentEntry)"

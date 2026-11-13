@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.inventory.entity.SelfCheckState;
 import dev.chojo.ember.feature.inventory.service.SelfCheckReviewService;
 import dev.chojo.ember.feature.inventory.service.SelfCheckReviewService.SelfCheckReview;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -56,18 +57,31 @@ public class SelfCheckReviewRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/self-check-reviews", this::forStation, StationPermission.INVENTORY_CHECK);
-        routes.get(prefix + "/self-check-reviews/{id}", this::read, StationPermission.INVENTORY_CHECK);
+        routes.get(
+                prefix + "/self-check-reviews",
+                this::forStation,
+                StationPermission.INVENTORY_CHECK,
+                StationModule.INVENTORY_SELF_CHECKS);
+        routes.get(
+                prefix + "/self-check-reviews/{id}",
+                this::read,
+                StationPermission.INVENTORY_CHECK,
+                StationModule.INVENTORY_SELF_CHECKS);
         routes.post(
-                prefix + "/self-check-reviews/{id}/rows/{rowId}/take", this::take, StationPermission.INVENTORY_CHECK);
+                prefix + "/self-check-reviews/{id}/rows/{rowId}/take",
+                this::take,
+                StationPermission.INVENTORY_CHECK,
+                StationModule.INVENTORY_SELF_CHECKS);
         routes.post(
                 prefix + "/self-check-reviews/{id}/rows/{rowId}/correct",
                 this::correct,
-                StationPermission.INVENTORY_CHECK);
+                StationPermission.INVENTORY_CHECK,
+                StationModule.INVENTORY_SELF_CHECKS);
         routes.post(
                 prefix + "/self-check-reviews/{id}/rows/{rowId}/refuse",
                 this::refuse,
-                StationPermission.INVENTORY_CHECK);
+                StationPermission.INVENTORY_CHECK,
+                StationModule.INVENTORY_SELF_CHECKS);
     }
 
     @OpenApi(

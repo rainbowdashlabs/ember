@@ -24980,6 +24980,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/change-notice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tell the people an appointment concerns that it changed */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ChangeNotice"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/change-notice/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Count who saving an appointment would tell */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ChangePreview"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/dates/{date}/cancel": {
         parameters: {
             query?: never;
@@ -26005,6 +26105,53 @@ export interface paths {
                 };
             };
         };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The appointments an appointment took dates from and gave dates to */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventLinks"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -40633,6 +40780,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/managed-members/{memberId}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Turn messages between people on or off for a managed member */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    memberId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SetMessagesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ManagedAccess"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/managed-members/{memberId}/passkey-code": {
         parameters: {
             query?: never;
@@ -42460,6 +42649,1823 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["MemberSearchResult"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/blocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The people the reader blocked */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessagePersonResponse"][];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Block somebody for messages; they are not told */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["BlockPersonRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/blocks/{personUid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Take a block back */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    personUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the reader's conversations, the most recently active first */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversationSummaryResponse"][];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Open the direct conversation with somebody, or start a group */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["StartConversationRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversationResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations/{conversationUid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One conversation of the reader's, with everybody in it */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversationResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations/{conversationUid}/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Leave a group, or put a direct conversation away until its next message */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations/{conversationUid}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A page of a conversation, oldest first */
+        get: {
+            parameters: {
+                query?: {
+                    after?: number;
+                    before?: number;
+                };
+                header?: never;
+                path: {
+                    conversationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversationMessagePage"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Write a message */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WriteMessageRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversationMessageResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations/{conversationUid}/messages/{messageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One message of a conversation */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                    messageId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversationMessageResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Change the text of one's own message */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                    messageId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EditMessageRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversationMessageResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Delete one's own message, or remove anybody's in a station chat for its station; its place stays */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                    messageId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations/{conversationUid}/messages/{messageId}/reactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** React to a message with a standard emoji */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                    messageId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ReactionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversationMessageResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Take one's own reaction to a message back */
+        delete: {
+            parameters: {
+                query: {
+                    emoji: string;
+                };
+                header?: never;
+                path: {
+                    conversationUid: string;
+                    messageId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConversationMessageResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations/{conversationUid}/messages/{messageId}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Report a message of a station chat to the people handling the station's chats */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                    messageId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ReportMessageRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations/{conversationUid}/mute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mute or unmute a conversation for the reader */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ConversationMuteRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations/{conversationUid}/name": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Rename a group, which only its owner does */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ConversationNameRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations/{conversationUid}/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add people to a group */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ConversationPeopleRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations/{conversationUid}/people/{personUid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove somebody from a group, which only its owner does */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                    personUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/conversations/{conversationUid}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Note that the reader has read a conversation up to a message */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ConversationReadRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream the reader's message signals as server-sent events */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageEvent"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/members/{memberUid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The person behind a member of the reader's station, where the reader may write to them */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    memberUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessagePersonResponse"];
+                    };
+                };
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Find people the reader may write to: everybody sharing a station with them */
+        get: {
+            parameters: {
+                query?: {
+                    search?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReachablePersonResponse"][];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/people/{personUid}/cards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A person's member cards at the stations the reader shares with them */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    personUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SharedMemberCard"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The open reports of the station's chats, each with the message in its context */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReportedMessageResponse"][];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/reports/{reportId}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dismiss the reports of a message, which stays */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    reportId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/reports/{reportId}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remove a reported message for the station, which handles all its reports */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    reportId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change the daily mail about unread messages: whether it comes, and what station chats add */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MessageSettingsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessagesStatus"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/station-chats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The station's chats, the open ones first */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationChatResponse"][];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Open a chat for the whole station, a group or a tag */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["OpenStationChatRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationChatResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/station-chats/{conversationUid}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close one of the station's chats; it stays readable and takes nothing new */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/station-chats/{conversationUid}/guardians": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Take the guardians of a group or tag chat's people in, or leave them out */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["StationChatGuardiansRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/station-chats/{conversationUid}/name": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Rename one of the station's chats */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["StationChatNameRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/station-chats/{conversationUid}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Open a closed chat of the station again */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether the reader can use messages and how many wait unread */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessagesStatus"];
                     };
                 };
             };
@@ -64780,6 +66786,7 @@ export interface components {
             instanceDefaultFeel: string;
             instanceDefaultTheme: string;
             instanceLockFeel: boolean;
+            messagesEnabled: boolean;
             stationRegistrationEnabled: boolean;
         };
         /** @enum {string} */
@@ -65371,6 +67378,10 @@ export interface components {
             note: string | null;
             value: string;
         };
+        BlockPersonRequest: {
+            /** Format: uuid */
+            person?: string | null;
+        };
         BlockRowRequest: {
             cells?: components["schemas"]["BlockCellRequest"][];
             columnLines?: boolean | null;
@@ -65869,10 +67880,27 @@ export interface components {
             releasedAt: components["schemas"]["Instant"] | null;
             version: string;
         };
+        ChangeNotice: {
+            changedParts?: components["schemas"]["EventChangePart"][] | null;
+            note?: string | null;
+            tell?: boolean;
+        };
         ChangePasswordRequest: {
             currentPassword?: string;
             newPassword?: string;
         };
+        ChangePreview: {
+            /** Format: int32 */
+            everybody: number;
+            /** Format: int32 */
+            moveAudience: number;
+            newStart: string | null;
+            /** Format: int32 */
+            noticeAudience: number;
+            startMoves: boolean;
+        };
+        /** @enum {string} */
+        ChatAudience: "STATION" | "GROUP" | "TAG";
         CheckItemResult: {
             /** Format: int32 */
             inventoryId?: number | null;
@@ -66416,6 +68444,86 @@ export interface components {
         };
         ContentUpdateRequest: {
             content?: string;
+        };
+        /** @enum {string} */
+        ConversationKind: "DIRECT" | "GROUP" | "STATION";
+        ConversationMemberResponse: {
+            firstName: string;
+            guardianFor: string[];
+            joinedAt: components["schemas"]["Instant"];
+            lastName: string;
+            /** Format: uuid */
+            uid: string;
+        };
+        ConversationMessagePage: {
+            hasMore: boolean;
+            messages: components["schemas"]["ConversationMessageResponse"][];
+        };
+        ConversationMessageResponse: {
+            author: components["schemas"]["MessagePersonResponse"] | null;
+            content: string;
+            createdAt: components["schemas"]["Instant"];
+            deleted: boolean;
+            editedAt: components["schemas"]["Instant"] | null;
+            /** Format: int32 */
+            id: number;
+            reactions: components["schemas"]["ReactionGroupResponse"][];
+            removedBy: components["schemas"]["MessagePersonResponse"] | null;
+            removedByStation: boolean;
+            replyTo: components["schemas"]["ReplyPreviewResponse"] | null;
+            subject: components["schemas"]["MessagePersonResponse"] | null;
+            systemKind: components["schemas"]["SystemKind"] | null;
+        };
+        ConversationMuteRequest: {
+            muted?: boolean;
+        };
+        ConversationNameRequest: {
+            name?: string | null;
+        };
+        ConversationPeopleRequest: {
+            people?: string[] | null;
+        };
+        ConversationPreview: {
+            author: components["schemas"]["MessagePersonResponse"] | null;
+            createdAt: components["schemas"]["Instant"];
+            deleted: boolean;
+            /** Format: int32 */
+            id: number;
+            removedByStation: boolean;
+            subject: components["schemas"]["MessagePersonResponse"] | null;
+            systemKind: components["schemas"]["SystemKind"] | null;
+            text: string;
+        };
+        ConversationReadRequest: {
+            /** Format: int32 */
+            messageId?: number;
+        };
+        ConversationResponse: {
+            kind: components["schemas"]["ConversationKind"];
+            /** Format: int32 */
+            lastReadMessageId: number | null;
+            members: components["schemas"]["ConversationMemberResponse"][];
+            moderator: boolean;
+            muted: boolean;
+            name: string | null;
+            /** Format: uuid */
+            ownerUid: string | null;
+            station: components["schemas"]["StationChatInfo"] | null;
+            /** Format: uuid */
+            uid: string;
+        };
+        ConversationSummaryResponse: {
+            kind: components["schemas"]["ConversationKind"];
+            lastActivityAt: components["schemas"]["Instant"];
+            muted: boolean;
+            name: string | null;
+            newest: components["schemas"]["ConversationPreview"] | null;
+            others: components["schemas"]["MessagePersonResponse"][];
+            station: components["schemas"]["StationChatInfo"] | null;
+            /** Format: uuid */
+            uid: string;
+            /** Format: int32 */
+            unread: number;
         };
         /** @enum {string} */
         ConversionStatus: "PENDING" | "SUCCESS" | "FAILED";
@@ -67295,6 +69403,15 @@ export interface components {
             /** Format: int32 */
             templateId?: number | null;
         };
+        EditMessageRequest: {
+            text?: string | null;
+        };
+        EditScope: {
+            date?: components["schemas"]["LocalDate"] | null;
+            kind?: components["schemas"]["EditScopeKind"] | null;
+        };
+        /** @enum {string} */
+        EditScopeKind: "ALL" | "THIS" | "THIS_AND_LATER";
         EligibleMembers: {
             eligibleManagedMemberIds: number[];
             selfEligible: boolean;
@@ -67619,6 +69736,8 @@ export interface components {
             /** Format: uuid */
             stationId: string;
         };
+        /** @enum {string} */
+        EventChangePart: "TIME" | "DATE" | "NAME" | "DESCRIPTION" | "FIELDS" | "REGISTRATION_QUESTIONS" | "ATTACHMENTS";
         EventExportRequest: {
             categoryIds?: number[];
             columns?: components["schemas"]["ExportColumnRequest"][];
@@ -67665,6 +69784,17 @@ export interface components {
             location?: string;
             title?: string;
             url?: string;
+        };
+        EventLink: {
+            date: components["schemas"]["LocalDate"];
+            /** Format: int32 */
+            eventId: number;
+            name: string;
+            series: boolean;
+        };
+        EventLinks: {
+            continuations: components["schemas"]["EventLink"][];
+            continues: components["schemas"]["EventLink"] | null;
         };
         EventQuestionSettings: {
             defaultValue?: string;
@@ -67741,6 +69871,7 @@ export interface components {
         EventRequest: {
             /** Format: int32 */
             categoryId?: number | null;
+            changeNotice?: components["schemas"]["ChangeNotice"] | null;
             /** Format: int32 */
             dayOfWeek?: number | null;
             description?: string | null;
@@ -67763,6 +69894,7 @@ export interface components {
             requiresConfirmation?: boolean | null;
             requiresRegistration?: boolean | null;
             restriction?: components["schemas"]["RestrictionSelection"] | null;
+            scope?: components["schemas"]["EditScope"] | null;
             startTime?: components["schemas"]["Instant"];
             /** Format: int32 */
             templateId?: number | null;
@@ -70485,6 +72617,7 @@ export interface components {
             canSignIn: boolean;
             email: string | null;
             loginEnabled: boolean;
+            messagesAllowed: boolean;
             username: string | null;
         };
         ManagedFieldResponse: {
@@ -71040,8 +73173,34 @@ export interface components {
         MessageBody: {
             message?: string;
         };
+        MessageEvent: {
+            /** Format: uuid */
+            conversationUid: string;
+            kind: components["schemas"]["MessageEventKind"];
+            /** Format: int32 */
+            messageId: number | null;
+        };
+        /** @enum {string} */
+        MessageEventKind: "MESSAGE" | "CONVERSATION" | "READ";
+        MessagePersonResponse: {
+            firstName: string;
+            lastName: string;
+            /** Format: uuid */
+            uid: string;
+        };
         MessageResponse: {
             message: string;
+        };
+        MessageSettingsRequest: {
+            mail?: boolean | null;
+            stationDigest?: components["schemas"]["StationDigest"] | null;
+        };
+        MessagesStatus: {
+            available: boolean;
+            mail: boolean;
+            stationDigest: components["schemas"]["StationDigest"];
+            /** Format: int32 */
+            unread: number;
         };
         MetricsBatch: {
             day: string;
@@ -71566,7 +73725,7 @@ export interface components {
             feed: boolean;
         };
         /** @enum {string} */
-        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_COMMENT" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "PROCEDURE_DOCUMENT_WITHDRAWN" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "WAITLIST_TRIAL_ENDED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED" | "SIGNATURE_REQUESTED" | "SIGNATURE_REMINDER" | "DOCUMENT_SIGNED" | "DOCUMENT_SCAN_REJECTED" | "ACCOUNT_LINK_ACCEPTED" | "ASSOCIATION_LINK_ACCEPTED" | "SIGNATURE_WITHDRAWN" | "PARTNER_SIGNATURE_WITHDRAWN";
+        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_COMMENT" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "EVENT_CHANGED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "PROCEDURE_DOCUMENT_WITHDRAWN" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "WAITLIST_TRIAL_ENDED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED" | "SIGNATURE_REQUESTED" | "SIGNATURE_REMINDER" | "DOCUMENT_SIGNED" | "DOCUMENT_SCAN_REJECTED" | "ACCOUNT_LINK_ACCEPTED" | "ASSOCIATION_LINK_ACCEPTED" | "SIGNATURE_WITHDRAWN" | "PARTNER_SIGNATURE_WITHDRAWN" | "MESSAGE_REPORTED";
         NumberConfig: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -71646,6 +73805,15 @@ export interface components {
             role: components["schemas"]["FieldRole"];
             signerName: string | null;
             statement: string;
+        };
+        OpenStationChatRequest: {
+            audience?: components["schemas"]["ChatAudience"] | null;
+            /** Format: int32 */
+            groupId?: number | null;
+            includeGuardians?: boolean | null;
+            name?: string | null;
+            /** Format: int32 */
+            tagId?: number | null;
         };
         Option: {
             key: string;
@@ -73303,6 +75471,23 @@ export interface components {
             narrowly: number[];
             publicly: number[];
         };
+        ReachablePersonResponse: {
+            firstName: string;
+            lastName: string;
+            stationName: string;
+            /** Format: uuid */
+            uid: string;
+        };
+        ReactionGroupResponse: {
+            /** Format: int32 */
+            count: number;
+            emoji: string;
+            mine: boolean;
+            people: components["schemas"]["MessagePersonResponse"][];
+        };
+        ReactionRequest: {
+            emoji?: string | null;
+        };
         RecentApplication: {
             created_at: components["schemas"]["Instant"];
             /** Format: int32 */
@@ -73630,11 +75815,36 @@ export interface components {
             /** Format: int32 */
             questionId?: number;
         };
+        ReplyPreviewResponse: {
+            author: components["schemas"]["MessagePersonResponse"] | null;
+            deleted: boolean;
+            /** Format: int32 */
+            id: number;
+            removedByStation: boolean;
+            text: string;
+        };
         ReportData: {
             filterLabel: string;
             members: components["schemas"]["MemberSummary"][];
             monthlySummaries: components["schemas"]["MonthSummary"][];
             sessions: components["schemas"]["SessionData"][];
+        };
+        ReportedMessageResponse: {
+            chatName: string;
+            context: components["schemas"]["ConversationMessageResponse"][];
+            /** Format: uuid */
+            conversationUid: string;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            messageId: number;
+            reason: string | null;
+            reportedAt: components["schemas"]["Instant"];
+            reportedText: string;
+            reporter: components["schemas"]["MessagePersonResponse"] | null;
+        };
+        ReportMessageRequest: {
+            reason?: string | null;
         };
         ReportPayload: {
             browser: string | null;
@@ -74387,6 +76597,7 @@ export interface components {
             instanceUserType: components["schemas"]["InstanceUserType"];
             managedMembers: components["schemas"]["ManagedMemberInfo"][];
             member: components["schemas"]["MemberInfo"] | null;
+            messagesEnabled: boolean;
             ownStationPermissions: string[];
             pdfHidesInstanceUrl: boolean;
             permissions: string[];
@@ -74486,6 +76697,9 @@ export interface components {
         SetMembersRequest: {
             memberIds?: number[];
             move?: boolean;
+        };
+        SetMessagesRequest: {
+            allowed?: boolean;
         };
         SetNewsFederationShareRequest: {
             partnerIds?: number[];
@@ -74648,6 +76862,12 @@ export interface components {
             requiresConfirmation: boolean;
             requiresRegistration: boolean;
             startTime: string;
+        };
+        SharedMemberCard: {
+            card: components["schemas"]["MemberCard"];
+            stationName: string;
+            /** Format: uuid */
+            stationUid: string;
         };
         SharedPage: {
             ownAddressLive: boolean;
@@ -74954,6 +77174,11 @@ export interface components {
             /** Format: int32 */
             heightPx?: number;
         };
+        StartConversationRequest: {
+            kind?: components["schemas"]["ConversationKind"];
+            name?: string | null;
+            people?: string[] | null;
+        };
         StationAiProvider: {
             apiKey: string;
             /** Format: int32 */
@@ -74985,6 +77210,37 @@ export interface components {
             validFrom: components["schemas"]["Instant"];
             validUntil: components["schemas"]["Instant"];
         };
+        StationChatGuardiansRequest: {
+            includeGuardians?: boolean | null;
+        };
+        StationChatInfo: {
+            audience: components["schemas"]["ChatAudience"];
+            closed: boolean;
+            includeGuardians: boolean;
+            stationName: string;
+            /** Format: uuid */
+            stationUid: string;
+        };
+        StationChatNameRequest: {
+            name?: string | null;
+        };
+        StationChatResponse: {
+            audience: components["schemas"]["ChatAudience"];
+            audienceName: string | null;
+            closedAt: components["schemas"]["Instant"] | null;
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            groupId: number | null;
+            includeGuardians: boolean;
+            lastActivityAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            members: number;
+            name: string;
+            /** Format: int32 */
+            tagId: number | null;
+            /** Format: uuid */
+            uid: string;
+        };
         StationClusterResponse: {
             applications: components["schemas"]["ClusterApplicationView"][];
             clusterDescription: string | null;
@@ -74997,6 +77253,8 @@ export interface components {
             manager: components["schemas"]["ManagerDetail"] | null;
             name: string;
         };
+        /** @enum {string} */
+        StationDigest: "MENTIONS" | "ALL";
         StationEvent: {
             cancelled: boolean;
             cancelledAt: components["schemas"]["Instant"] | null;
@@ -75179,7 +77437,7 @@ export interface components {
             stationName: string;
         };
         /** @enum {string} */
-        StationModule: "INVENTORY" | "NEWS" | "EVENTS" | "ATTENDANCE" | "FORMS" | "LOST_AND_FOUND" | "WAITING_LIST" | "QUIZ" | "KNOWLEDGE_BASE" | "TEST_PROTOCOL" | "BOARDS" | "PROCEDURES" | "DOCUMENTS";
+        StationModule: "INVENTORY" | "NEWS" | "EVENTS" | "ATTENDANCE" | "FORMS" | "LOST_AND_FOUND" | "WAITING_LIST" | "QUIZ" | "KNOWLEDGE_BASE" | "TEST_PROTOCOL" | "BOARDS" | "PROCEDURES" | "DOCUMENTS" | "INVENTORY_MOVEMENTS" | "INVENTORY_LENDING" | "INVENTORY_PROCUREMENT" | "INVENTORY_SELF_CHECKS" | "INVENTORY_CHECKS";
         StationPage: {
             /** Format: int32 */
             containerId: number | null;
@@ -75207,7 +77465,7 @@ export interface components {
             visibility: components["schemas"]["PageVisibility"];
         };
         /** @enum {string} */
-        StationPermission: "USER" | "LOGIN" | "ATTENDANCE_READ" | "ATTENDANCE_EDIT" | "ATTENDANCE_CONFIGURE" | "ATTENDANCE_EXPORT" | "ATTENDANCE_MANAGER" | "INVENTORY_CREATE_EXTERNAL" | "INVENTORY_CREATE_INTERNAL" | "INVENTORY_READ" | "INVENTORY_CREATE" | "INVENTORY_MOVEMENTS" | "INVENTORY_PROCUREMENT" | "INVENTORY_CHECK" | "INVENTORY_LENDING_REQUEST" | "INVENTORY_LENDING_MANAGER" | "INVENTORY_EDIT" | "INVENTORY_ASSIGN" | "INVENTORY_STORAGE" | "INVENTORY_MANAGER" | "EVENT_MANAGE_TEMPLATE" | "EVENT_MANAGE_CATEGORY" | "EVENT_INTERNAL" | "EVENT_EDIT" | "EVENT_REGISTRATION" | "EVENTS_FEDERATE" | "EVENT_MANAGER" | "DOCUMENT_READ" | "DOCUMENT_READ_MEMBER" | "DOCUMENT_EDIT" | "DOCUMENT_EDIT_MEMBER" | "DOCUMENT_TEMPLATE_EDIT" | "DOCUMENT_SIGN_OTHERS" | "DOCUMENT_MANAGER" | "MEMBER_READ" | "MEMBER_NOTES" | "MEMBER_GUARDIAN" | "MEMBER_CHANGES" | "MEMBER_MANAGE_GROUP" | "MEMBER_MANAGE_TAGS" | "MEMBER_SELF_UPLOAD" | "MEMBER_EDIT" | "MEMBER_FIELDS" | "MEMBER_EXPORT" | "MEMBER_MANAGER" | "WAITLIST_READ" | "WAITLIST_ADD" | "WAITLIST_EDIT" | "WAITLIST_MANAGER" | "NEWS_EDIT" | "NEWS_FEDERATE" | "NEWS_MANAGER" | "POLL_VIEW_RESULTS" | "POLL_CREATE" | "POLL_MANAGER" | "LOST_AND_FOUND_CREATE" | "LOST_AND_FOUND_MANAGE" | "LOST_AND_FOUND_MANAGER" | "CHECKLIST_READ" | "CHECKLIST_MANAGE" | "CHECKLIST_MANAGER" | "TEST_CATALOG_VIEW" | "TEST_CATALOG_EDIT" | "TEST_CONFIGURE" | "TEST_RESULT_READ" | "TEST_REVIEW" | "TEST_CATALOG_SHARE" | "TEST_MANAGER" | "PROTOCOL_TESTER" | "PROTOCOL_CREATE" | "PROTOCOL_CONFIGURE" | "PROTOCOL_SHARE" | "PROTOCOL_MANAGER" | "BOARD_USE" | "BOARD_EDIT" | "BOARD_FEDERATE" | "BOARD_MANAGER" | "PAGE_EDIT" | "PAGE_FORMS_VIEW" | "PAGE_POLLS_VIEW" | "PAGE_MANAGER" | "PROCEDURE_READ" | "PROCEDURE_EDIT" | "PROCEDURE_MANAGER" | "KNOWLEDGE_EDIT" | "KNOWLEDGE_FEDERATE" | "KNOWLEDGE_MANAGER" | "STATION_LOOK_AND_FEEL" | "STATION_GENERAL" | "STATION_MAIL" | "STATION_FEDERATION" | "STATION_MODULES" | "STATION_IMPORT_EXPORT" | "STATION_STATISTICS" | "STATION_MANAGER" | "STATION_ADMINISTRATOR";
+        StationPermission: "USER" | "LOGIN" | "ATTENDANCE_READ" | "ATTENDANCE_EDIT" | "ATTENDANCE_CONFIGURE" | "ATTENDANCE_EXPORT" | "ATTENDANCE_MANAGER" | "INVENTORY_CREATE_EXTERNAL" | "INVENTORY_CREATE_INTERNAL" | "INVENTORY_READ" | "INVENTORY_CREATE" | "INVENTORY_MOVEMENTS" | "INVENTORY_PROCUREMENT" | "INVENTORY_CHECK" | "INVENTORY_LENDING_REQUEST" | "INVENTORY_LENDING_MANAGER" | "INVENTORY_EDIT" | "INVENTORY_ASSIGN" | "INVENTORY_STORAGE" | "INVENTORY_MANAGER" | "EVENT_MANAGE_TEMPLATE" | "EVENT_MANAGE_CATEGORY" | "EVENT_INTERNAL" | "EVENT_EDIT" | "EVENT_REGISTRATION" | "EVENTS_FEDERATE" | "EVENT_MANAGER" | "DOCUMENT_READ" | "DOCUMENT_READ_MEMBER" | "DOCUMENT_EDIT" | "DOCUMENT_EDIT_MEMBER" | "DOCUMENT_TEMPLATE_EDIT" | "DOCUMENT_SIGN_OTHERS" | "DOCUMENT_MANAGER" | "MEMBER_READ" | "MEMBER_NOTES" | "MEMBER_GUARDIAN" | "MEMBER_CHANGES" | "MEMBER_MANAGE_GROUP" | "MEMBER_MANAGE_TAGS" | "MEMBER_SELF_UPLOAD" | "MEMBER_EDIT" | "MEMBER_FIELDS" | "MEMBER_EXPORT" | "MEMBER_MANAGER" | "WAITLIST_READ" | "WAITLIST_ADD" | "WAITLIST_EDIT" | "WAITLIST_MANAGER" | "NEWS_EDIT" | "NEWS_FEDERATE" | "NEWS_MANAGER" | "POLL_VIEW_RESULTS" | "POLL_CREATE" | "POLL_MANAGER" | "LOST_AND_FOUND_CREATE" | "LOST_AND_FOUND_MANAGE" | "LOST_AND_FOUND_MANAGER" | "CHECKLIST_READ" | "CHECKLIST_MANAGE" | "CHECKLIST_MANAGER" | "TEST_CATALOG_VIEW" | "TEST_CATALOG_EDIT" | "TEST_CONFIGURE" | "TEST_RESULT_READ" | "TEST_REVIEW" | "TEST_CATALOG_SHARE" | "TEST_MANAGER" | "PROTOCOL_TESTER" | "PROTOCOL_CREATE" | "PROTOCOL_CONFIGURE" | "PROTOCOL_SHARE" | "PROTOCOL_MANAGER" | "BOARD_USE" | "BOARD_EDIT" | "BOARD_FEDERATE" | "BOARD_MANAGER" | "PAGE_EDIT" | "PAGE_FORMS_VIEW" | "PAGE_POLLS_VIEW" | "PAGE_MANAGER" | "PROCEDURE_READ" | "PROCEDURE_EDIT" | "PROCEDURE_MANAGER" | "KNOWLEDGE_EDIT" | "KNOWLEDGE_FEDERATE" | "KNOWLEDGE_MANAGER" | "MESSAGE_CHAT_MANAGE" | "STATION_LOOK_AND_FEEL" | "STATION_GENERAL" | "STATION_MAIL" | "STATION_FEDERATION" | "STATION_MODULES" | "STATION_IMPORT_EXPORT" | "STATION_STATISTICS" | "STATION_MANAGER" | "STATION_ADMINISTRATOR";
         StationPermissionsRequest: {
             permissions?: string[];
         };
@@ -75518,6 +77776,8 @@ export interface components {
             /** Format: int32 */
             parentId: number | null;
         };
+        /** @enum {string} */
+        SystemKind: "ADDED" | "LEFT" | "REMOVED" | "RENAMED" | "OWNER_PASSED" | "OPENED" | "CLOSED" | "REOPENED";
         SystemNewsRequest: {
             contentMarkdown?: string;
             contentMode?: components["schemas"]["ContentMode"];
@@ -76819,6 +79079,11 @@ export interface components {
             template: components["schemas"]["DocumentTemplateResponse"];
             unplaced: string[];
         };
+        WriteMessageRequest: {
+            /** Format: int32 */
+            replyToId?: number | null;
+            text?: string | null;
+        };
         YoutubeFileRequest: {
             description?: string;
             /** Format: int32 */
@@ -76967,6 +79232,7 @@ export type BlockCellRequest = components['schemas']['BlockCellRequest'];
 export type BlocklistKind = components['schemas']['BlocklistKind'];
 export type BlocklistRequest = components['schemas']['BlocklistRequest'];
 export type BlocklistResponse = components['schemas']['BlocklistResponse'];
+export type BlockPersonRequest = components['schemas']['BlockPersonRequest'];
 export type BlockRowRequest = components['schemas']['BlockRowRequest'];
 export type BlocksResponse = components['schemas']['BlocksResponse'];
 export type BlogSignupConfig = components['schemas']['BlogSignupConfig'];
@@ -77039,7 +79305,10 @@ export type CertificateFacts = components['schemas']['CertificateFacts'];
 export type ChangedCountResponse = components['schemas']['ChangedCountResponse'];
 export type ChangedResponse = components['schemas']['ChangedResponse'];
 export type ChangelogEntry = components['schemas']['ChangelogEntry'];
+export type ChangeNotice = components['schemas']['ChangeNotice'];
 export type ChangePasswordRequest = components['schemas']['ChangePasswordRequest'];
+export type ChangePreview = components['schemas']['ChangePreview'];
+export type ChatAudience = components['schemas']['ChatAudience'];
 export type CheckItemResult = components['schemas']['CheckItemResult'];
 export type ChecklistDetailResponse = components['schemas']['ChecklistDetailResponse'];
 export type ChecklistItemRequest = components['schemas']['ChecklistItemRequest'];
@@ -77118,6 +79387,17 @@ export type ContentCell = components['schemas']['ContentCell'];
 export type ContentMode = components['schemas']['ContentMode'];
 export type ContentRow = components['schemas']['ContentRow'];
 export type ContentUpdateRequest = components['schemas']['ContentUpdateRequest'];
+export type ConversationKind = components['schemas']['ConversationKind'];
+export type ConversationMemberResponse = components['schemas']['ConversationMemberResponse'];
+export type ConversationMessagePage = components['schemas']['ConversationMessagePage'];
+export type ConversationMessageResponse = components['schemas']['ConversationMessageResponse'];
+export type ConversationMuteRequest = components['schemas']['ConversationMuteRequest'];
+export type ConversationNameRequest = components['schemas']['ConversationNameRequest'];
+export type ConversationPeopleRequest = components['schemas']['ConversationPeopleRequest'];
+export type ConversationPreview = components['schemas']['ConversationPreview'];
+export type ConversationReadRequest = components['schemas']['ConversationReadRequest'];
+export type ConversationResponse = components['schemas']['ConversationResponse'];
+export type ConversationSummaryResponse = components['schemas']['ConversationSummaryResponse'];
 export type ConversionStatus = components['schemas']['ConversionStatus'];
 export type CorrectionResponse = components['schemas']['CorrectionResponse'];
 export type CorrectItemRequest = components['schemas']['CorrectItemRequest'];
@@ -77244,6 +79524,9 @@ export type DocumentTemplateResponse = components['schemas']['DocumentTemplateRe
 export type DocumentTemplateSummary = components['schemas']['DocumentTemplateSummary'];
 export type DocumentTimestampCheck = components['schemas']['DocumentTimestampCheck'];
 export type DraftPreviewRequest = components['schemas']['DraftPreviewRequest'];
+export type EditMessageRequest = components['schemas']['EditMessageRequest'];
+export type EditScope = components['schemas']['EditScope'];
+export type EditScopeKind = components['schemas']['EditScopeKind'];
 export type EligibleMembers = components['schemas']['EligibleMembers'];
 export type EmailChangeResponse = components['schemas']['EmailChangeResponse'];
 export type EmailChangeResult = components['schemas']['EmailChangeResult'];
@@ -77287,11 +79570,14 @@ export type EvaluationResponse = components['schemas']['EvaluationResponse'];
 export type EventAttachment = components['schemas']['EventAttachment'];
 export type EventBreak = components['schemas']['EventBreak'];
 export type EventCategory = components['schemas']['EventCategory'];
+export type EventChangePart = components['schemas']['EventChangePart'];
 export type EventExportRequest = components['schemas']['EventExportRequest'];
 export type EventFederationRegistration = components['schemas']['EventFederationRegistration'];
 export type EventFieldDefault = components['schemas']['EventFieldDefault'];
 export type EventFieldEntry = components['schemas']['EventFieldEntry'];
 export type EventItem = components['schemas']['EventItem'];
+export type EventLink = components['schemas']['EventLink'];
+export type EventLinks = components['schemas']['EventLinks'];
 export type EventQuestionSettings = components['schemas']['EventQuestionSettings'];
 export type EventRegisterRequest = components['schemas']['EventRegisterRequest'];
 export type EventRegistration = components['schemas']['EventRegistration'];
@@ -77748,7 +80034,12 @@ export type MemberWithName = components['schemas']['MemberWithName'];
 export type MergedField = components['schemas']['MergedField'];
 export type MergedValue = components['schemas']['MergedValue'];
 export type MessageBody = components['schemas']['MessageBody'];
+export type MessageEvent = components['schemas']['MessageEvent'];
+export type MessageEventKind = components['schemas']['MessageEventKind'];
+export type MessagePersonResponse = components['schemas']['MessagePersonResponse'];
 export type MessageResponse = components['schemas']['MessageResponse'];
+export type MessageSettingsRequest = components['schemas']['MessageSettingsRequest'];
+export type MessagesStatus = components['schemas']['MessagesStatus'];
 export type MetricsBatch = components['schemas']['MetricsBatch'];
 export type MetricsSubject = components['schemas']['MetricsSubject'];
 export type MigrationResponse = components['schemas']['MigrationResponse'];
@@ -77834,6 +80125,7 @@ export type OnboardingStatus = components['schemas']['OnboardingStatus'];
 export type OnboardingTaskState = components['schemas']['OnboardingTaskState'];
 export type OnboardingTaskView = components['schemas']['OnboardingTaskView'];
 export type OpenSignatureResponse = components['schemas']['OpenSignatureResponse'];
+export type OpenStationChatRequest = components['schemas']['OpenStationChatRequest'];
 export type Option = components['schemas']['Option'];
 export type Ordering = components['schemas']['Ordering'];
 export type OrderingView = components['schemas']['OrderingView'];
@@ -78058,6 +80350,9 @@ export type Rating = components['schemas']['Rating'];
 export type RatingAnswer = components['schemas']['RatingAnswer'];
 export type RatingIcon = components['schemas']['RatingIcon'];
 export type Reach = components['schemas']['Reach'];
+export type ReachablePersonResponse = components['schemas']['ReachablePersonResponse'];
+export type ReactionGroupResponse = components['schemas']['ReactionGroupResponse'];
+export type ReactionRequest = components['schemas']['ReactionRequest'];
 export type RecentApplication = components['schemas']['RecentApplication'];
 export type RecentProblemReport = components['schemas']['RecentProblemReport'];
 export type RechainPlan = components['schemas']['RechainPlan'];
@@ -78109,7 +80404,10 @@ export type ReorderRequest = components['schemas']['ReorderRequest'];
 export type ReplaceFormShareLinkRequest = components['schemas']['ReplaceFormShareLinkRequest'];
 export type ReplacePageShareLinkRequest = components['schemas']['ReplacePageShareLinkRequest'];
 export type ReplaceQuestionRequest = components['schemas']['ReplaceQuestionRequest'];
+export type ReplyPreviewResponse = components['schemas']['ReplyPreviewResponse'];
 export type ReportData = components['schemas']['ReportData'];
+export type ReportedMessageResponse = components['schemas']['ReportedMessageResponse'];
+export type ReportMessageRequest = components['schemas']['ReportMessageRequest'];
 export type ReportPayload = components['schemas']['ReportPayload'];
 export type ReportRequest = components['schemas']['ReportRequest'];
 export type RequestState = components['schemas']['RequestState'];
@@ -78223,6 +80521,7 @@ export type SetManagedPasswordRequest = components['schemas']['SetManagedPasswor
 export type SetManagedRequest = components['schemas']['SetManagedRequest'];
 export type SetManagersRequest = components['schemas']['SetManagersRequest'];
 export type SetMembersRequest = components['schemas']['SetMembersRequest'];
+export type SetMessagesRequest = components['schemas']['SetMessagesRequest'];
 export type SetNewsFederationShareRequest = components['schemas']['SetNewsFederationShareRequest'];
 export type SetPartnerPlacesRequest = components['schemas']['SetPartnerPlacesRequest'];
 export type SetPasswordRequest = components['schemas']['SetPasswordRequest'];
@@ -78249,6 +80548,7 @@ export type ShareCount = components['schemas']['ShareCount'];
 export type SharedBrand = components['schemas']['SharedBrand'];
 export type ShareDetail = components['schemas']['ShareDetail'];
 export type SharedEvent = components['schemas']['SharedEvent'];
+export type SharedMemberCard = components['schemas']['SharedMemberCard'];
 export type SharedPage = components['schemas']['SharedPage'];
 export type SharedProtocolView = components['schemas']['SharedProtocolView'];
 export type SharedQuizCatalog = components['schemas']['SharedQuizCatalog'];
@@ -78293,11 +80593,17 @@ export type SmtpEncryption = components['schemas']['SmtpEncryption'];
 export type SourceOccurrenceRequest = components['schemas']['SourceOccurrenceRequest'];
 export type SourceOccurrenceResponse = components['schemas']['SourceOccurrenceResponse'];
 export type SpacerConfig = components['schemas']['SpacerConfig'];
+export type StartConversationRequest = components['schemas']['StartConversationRequest'];
 export type StationAiProvider = components['schemas']['StationAiProvider'];
 export type StationApplication = components['schemas']['StationApplication'];
 export type StationCertificateInfo = components['schemas']['StationCertificateInfo'];
+export type StationChatGuardiansRequest = components['schemas']['StationChatGuardiansRequest'];
+export type StationChatInfo = components['schemas']['StationChatInfo'];
+export type StationChatNameRequest = components['schemas']['StationChatNameRequest'];
+export type StationChatResponse = components['schemas']['StationChatResponse'];
 export type StationClusterResponse = components['schemas']['StationClusterResponse'];
 export type StationDetail = components['schemas']['StationDetail'];
+export type StationDigest = components['schemas']['StationDigest'];
 export type StationEvent = components['schemas']['StationEvent'];
 export type StationFailedMails = components['schemas']['StationFailedMails'];
 export type StationFile = components['schemas']['StationFile'];
@@ -78369,6 +80675,7 @@ export type SwitchBlockerKind = components['schemas']['SwitchBlockerKind'];
 export type SwitchRefusal = components['schemas']['SwitchRefusal'];
 export type SwitchRequest = components['schemas']['SwitchRequest'];
 export type SystemCommentResponse = components['schemas']['SystemCommentResponse'];
+export type SystemKind = components['schemas']['SystemKind'];
 export type SystemNewsRequest = components['schemas']['SystemNewsRequest'];
 export type SystemNewsResponse = components['schemas']['SystemNewsResponse'];
 export type TabItem = components['schemas']['TabItem'];
@@ -78552,6 +80859,7 @@ export type WitnessPersonResponse = components['schemas']['WitnessPersonResponse
 export type WitnessStartRequest = components['schemas']['WitnessStartRequest'];
 export type WitnessTemplateResponse = components['schemas']['WitnessTemplateResponse'];
 export type WordFormImport = components['schemas']['WordFormImport'];
+export type WriteMessageRequest = components['schemas']['WriteMessageRequest'];
 export type YoutubeFileRequest = components['schemas']['YoutubeFileRequest'];
 export type $defs = Record<string, never>;
 export type operations = Record<string, never>;
@@ -78714,6 +81022,12 @@ export const CellContentType = {
     VIDEO: "VIDEO",
 } as const;
 
+export const ChatAudience = {
+    GROUP: "GROUP",
+    STATION: "STATION",
+    TAG: "TAG",
+} as const;
+
 export const CheckResult = {
     CONFIRMED: "CONFIRMED",
     EXTRA: "EXTRA",
@@ -78770,6 +81084,12 @@ export const ContainerEventKind = {
 export const ContentMode = {
     RICH: "RICH",
     SIMPLE: "SIMPLE",
+} as const;
+
+export const ConversationKind = {
+    DIRECT: "DIRECT",
+    GROUP: "GROUP",
+    STATION: "STATION",
 } as const;
 
 export const ConversionStatus = {
@@ -78842,6 +81162,12 @@ export const DocumentTemplateKind = {
     PDF: "PDF",
 } as const;
 
+export const EditScopeKind = {
+    ALL: "ALL",
+    THIS: "THIS",
+    THIS_AND_LATER: "THIS_AND_LATER",
+} as const;
+
 export const EmailChangeResult = {
     COMMITTED: "COMMITTED",
     DUPLICATE: "DUPLICATE",
@@ -78869,6 +81195,16 @@ export const EmptyReason = {
 export const EntrySource = {
     EXPECTED: "EXPECTED",
     EXTRA: "EXTRA",
+} as const;
+
+export const EventChangePart = {
+    ATTACHMENTS: "ATTACHMENTS",
+    DATE: "DATE",
+    DESCRIPTION: "DESCRIPTION",
+    FIELDS: "FIELDS",
+    NAME: "NAME",
+    REGISTRATION_QUESTIONS: "REGISTRATION_QUESTIONS",
+    TIME: "TIME",
 } as const;
 
 export const EventType = {
@@ -79296,6 +81632,12 @@ export const MemberTableColumnKind = {
     REGISTRATION_FIELD: "REGISTRATION_FIELD",
 } as const;
 
+export const MessageEventKind = {
+    CONVERSATION: "CONVERSATION",
+    MESSAGE: "MESSAGE",
+    READ: "READ",
+} as const;
+
 export const Mode = {
     ENCOURAGED: "ENCOURAGED",
     OFF: "OFF",
@@ -79361,6 +81703,7 @@ export const NotificationType = {
     DOCUMENT_SCAN_REJECTED: "DOCUMENT_SCAN_REJECTED",
     DOCUMENT_SIGNED: "DOCUMENT_SIGNED",
     EVENT_CANCELLED: "EVENT_CANCELLED",
+    EVENT_CHANGED: "EVENT_CHANGED",
     EVENT_COMMENT: "EVENT_COMMENT",
     EVENT_DATE_DROPPED: "EVENT_DATE_DROPPED",
     EVENT_DATE_RESTORED: "EVENT_DATE_RESTORED",
@@ -79379,6 +81722,7 @@ export const NotificationType = {
     MAILBOX_SUSPENDED: "MAILBOX_SUSPENDED",
     MAIL_IMPORT_UNBOUND: "MAIL_IMPORT_UNBOUND",
     MEMBER_ADDED_TO_GROUP: "MEMBER_ADDED_TO_GROUP",
+    MESSAGE_REPORTED: "MESSAGE_REPORTED",
     MOVEMENT_ADVANCED: "MOVEMENT_ADVANCED",
     MOVEMENT_CANCELLED: "MOVEMENT_CANCELLED",
     MOVEMENT_DECLINED: "MOVEMENT_DECLINED",
@@ -79857,6 +82201,11 @@ export const SmtpEncryption = {
     STARTTLS: "STARTTLS",
 } as const;
 
+export const StationDigest = {
+    ALL: "ALL",
+    MENTIONS: "MENTIONS",
+} as const;
+
 export const StationModule = {
     ATTENDANCE: "ATTENDANCE",
     BOARDS: "BOARDS",
@@ -79864,6 +82213,11 @@ export const StationModule = {
     EVENTS: "EVENTS",
     FORMS: "FORMS",
     INVENTORY: "INVENTORY",
+    INVENTORY_CHECKS: "INVENTORY_CHECKS",
+    INVENTORY_LENDING: "INVENTORY_LENDING",
+    INVENTORY_MOVEMENTS: "INVENTORY_MOVEMENTS",
+    INVENTORY_PROCUREMENT: "INVENTORY_PROCUREMENT",
+    INVENTORY_SELF_CHECKS: "INVENTORY_SELF_CHECKS",
     KNOWLEDGE_BASE: "KNOWLEDGE_BASE",
     LOST_AND_FOUND: "LOST_AND_FOUND",
     NEWS: "NEWS",
@@ -79931,6 +82285,7 @@ export const StationPermission = {
     MEMBER_NOTES: "MEMBER_NOTES",
     MEMBER_READ: "MEMBER_READ",
     MEMBER_SELF_UPLOAD: "MEMBER_SELF_UPLOAD",
+    MESSAGE_CHAT_MANAGE: "MESSAGE_CHAT_MANAGE",
     NEWS_EDIT: "NEWS_EDIT",
     NEWS_FEDERATE: "NEWS_FEDERATE",
     NEWS_MANAGER: "NEWS_MANAGER",
@@ -80102,6 +82457,17 @@ export const SwitchBlockerKind = {
     PROCUREMENT: "PROCUREMENT",
     REQUIREMENT: "REQUIREMENT",
     SIZE: "SIZE",
+} as const;
+
+export const SystemKind = {
+    ADDED: "ADDED",
+    CLOSED: "CLOSED",
+    LEFT: "LEFT",
+    OPENED: "OPENED",
+    OWNER_PASSED: "OWNER_PASSED",
+    REMOVED: "REMOVED",
+    RENAMED: "RENAMED",
+    REOPENED: "REOPENED",
 } as const;
 
 export const TagVisibility = {

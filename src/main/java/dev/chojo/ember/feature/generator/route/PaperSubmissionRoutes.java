@@ -13,6 +13,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.route.EventVisibility;
 import dev.chojo.ember.feature.generator.entity.PaperSubmission;
 import dev.chojo.ember.feature.generator.service.PaperSubmissionService;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -49,20 +50,33 @@ public class PaperSubmissionRoutes implements Routes {
         routes.post(
                 prefix + "/events/{id}/documents-to-bring/{templateId}/members/{memberId}/scan",
                 this::submit,
-                StationPermission.USER);
+                StationPermission.USER,
+                StationModule.EVENTS,
+                StationModule.DOCUMENTS);
         routes.get(
                 prefix + "/events/{id}/document-scans/{submissionId}/content",
                 this::content,
-                StationPermission.EVENT_REGISTRATION);
+                StationPermission.EVENT_REGISTRATION,
+                StationModule.EVENTS,
+                StationModule.DOCUMENTS);
         routes.post(
                 prefix + "/events/{id}/document-scans/{submissionId}/confirm",
                 this::confirm,
-                StationPermission.EVENT_REGISTRATION);
+                StationPermission.EVENT_REGISTRATION,
+                StationModule.EVENTS,
+                StationModule.DOCUMENTS);
         routes.post(
                 prefix + "/events/{id}/document-scans/{submissionId}/reject",
                 this::reject,
-                StationPermission.EVENT_REGISTRATION);
-        routes.delete(prefix + "/events/{id}/document-scans/{submissionId}", this::withdraw, StationPermission.USER);
+                StationPermission.EVENT_REGISTRATION,
+                StationModule.EVENTS,
+                StationModule.DOCUMENTS);
+        routes.delete(
+                prefix + "/events/{id}/document-scans/{submissionId}",
+                this::withdraw,
+                StationPermission.USER,
+                StationModule.EVENTS,
+                StationModule.DOCUMENTS);
     }
 
     /**

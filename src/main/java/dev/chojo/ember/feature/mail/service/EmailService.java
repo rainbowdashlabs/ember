@@ -632,6 +632,25 @@ public class EmailService implements TaskSource {
     }
 
     /**
+     * Sends the daily mail about messages an account has not read yet: one section per
+     * conversation, each linking to it. The sections are written by the caller, escaped already.
+     *
+     * @param email    the account's address
+     * @param name     how the account is greeted
+     * @param sections the conversations, as HTML
+     * @param count    how many messages the mail is about
+     * @param locale   the language to write in
+     */
+    public void sendMessageDigest(String email, String name, String sections, int count, String locale) {
+        var vars = baseVars(name, null);
+        vars.put("sections", sections);
+        vars.put("count", String.valueOf(count));
+        vars.put("url", api.baseUrl() + "/messages");
+        enqueueGlobal(
+                email, subject("message-digest", locale, Map.of()), loadTemplate("message-digest.html", locale, vars));
+    }
+
+    /**
      * Tells a member that the guardian who looks after them took signing in away again. There is
      * nothing to act on, so the mail carries no link.
      */
