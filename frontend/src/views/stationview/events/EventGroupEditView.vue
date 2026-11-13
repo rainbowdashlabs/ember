@@ -239,11 +239,11 @@ async function save() {
       })
       createdGroupId.value = created.eventGroup.id
       startingAppointment.value = null
+      fill(created)
       await dateSettings.save(created.eventGroup.id)
       await requirements.save(requirementOwner(created.eventGroup.id))
       showToast(t('eventGroups.saved'), 'success')
       await router.replace({name: 'event-group-edit', params: {eventGroupId: created.eventGroup.id}})
-      fill(created)
       return
     }
     fill(await eventGroups.updateEventGroup(savedId, details(), drafts, {

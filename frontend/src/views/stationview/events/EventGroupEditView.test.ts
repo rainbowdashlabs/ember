@@ -104,6 +104,8 @@ describe('EventGroupEditView started from an appointment', () => {
   })
 
   it('changes the group it already created when saving again after a later part of the save was refused', async () => {
+    api.eventGroups.createEventGroup.mockResolvedValue({eventGroup: {id: 7}, sets: [{id: 41, name: 'Termine', minimum: 1}],
+      parts: [{eventId: 12, setId: 41}], questions: [], fields: [], registration: YOUTH, view: YOUTH})
     api.eventGroups.setSettings.mockRejectedValueOnce(new Error('refused'))
     api.eventGroups.updateEventGroup.mockResolvedValue({eventGroup: {id: 7}, sets: [], parts: [], questions: [], fields: [],
       registration: YOUTH, view: YOUTH})
@@ -116,8 +118,8 @@ describe('EventGroupEditView started from an appointment', () => {
     await flushPromises()
 
     expect(api.eventGroups.createEventGroup).toHaveBeenCalledOnce()
-    expect(api.eventGroups.updateEventGroup).toHaveBeenCalledWith(7, expect.anything(), expect.anything(), expect.anything(),
-      expect.anything(), expect.anything())
+    expect(api.eventGroups.updateEventGroup).toHaveBeenCalledWith(7, expect.anything(), [{id: 41, name: 'Termine', minimum: 1}],
+      expect.anything(), expect.anything(), expect.anything())
   })
 
   it('ignores an appointment that is not a one-time one', async () => {
