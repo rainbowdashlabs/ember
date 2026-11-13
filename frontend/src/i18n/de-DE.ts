@@ -3441,6 +3441,7 @@ export default {
         calendarToday: 'Heute',
         multiDay: 'Mehrtägiger Termin',
         registrationAudience: 'Teilnahme nur für: {audience}',
+        viewAudience: 'Sichtbar nur für: {audience}',
         audienceMemberOne: 'ein einzeln ausgewähltes Mitglied',
         audienceMemberMany: '{n} einzeln ausgewählte Mitglieder',
         audienceAnd: ' und ',

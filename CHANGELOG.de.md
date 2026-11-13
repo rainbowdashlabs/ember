@@ -27,6 +27,7 @@ Wer eine Wache teilt, kann sich direkt oder in Gruppen Nachrichten schreiben. Ei
 
 ### Verbesserungen
 
+- **Eingeschränkte Termine nennen, für wen sie sind.** In der Liste der kommenden Termine nennt ein Termin, den nur ein Teil der Mitglieder sieht, neben dem Schloss, wer ihn sieht, und weiterhin, wer sich anmelden darf, wo das weniger sind.
 - **Neue Anfangszeit beim Speichern sichtbar.** Die Abfrage beim Speichern zeigt, wie viele Angemeldete eine neue Anfangszeit erfahren, jetzt auch bei Serienterminen. Wer zusätzlich über die Änderung benachrichtigt wird, bekommt eine Nachricht statt zwei.
 - **Abgeschaltete Module nehmen ihre Benachrichtigungen mit.** Benachrichtigungen eines abgeschalteten Moduls werden nicht mehr angezeigt, gezählt oder gemailt, und solange es aus ist, entstehen keine neuen. Sie bleiben erhalten und sind wieder da, sobald das Modul läuft; die Einstellungen der Benachrichtigungen zeigen nur noch, was die Wache nutzt.
 - **Abgeschaltete Module vergeben keine Berechtigungen.** Die Auswahl der Berechtigungen lässt die eines abgeschalteten Moduls weg, und bereits vergebene gelten erst wieder, wenn das Modul läuft. Pflichten eines abgeschalteten Moduls, etwa eine Pflichtumfrage, halten niemanden mehr auf der Startseite fest.

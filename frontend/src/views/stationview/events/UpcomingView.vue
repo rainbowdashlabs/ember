@@ -12,7 +12,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import UpcomingBody from './upcomingview/UpcomingBody.vue'
-import {registrationAudienceNote} from './upcomingview/registrationAudience'
+import {registrationAudienceNote, viewAudienceNote} from './upcomingview/registrationAudience'
 import EventAnswerDialog from './eventshared/EventAnswerDialog.vue'
 import RegistrationSigningStep from './eventshared/RegistrationSigningStep.vue'
 import {isRecurringEvent} from '@/api/events'
@@ -77,8 +77,13 @@ function getEligibleMembers(eventId: number): AnswerablePerson[] {
 }
 
 /** Why somebody who sees the appointment may still be unable to answer it, or null. */
+/** Who may see a kept appointment, and who may answer it where that is fewer, as one line. */
 function getRestrictionNote(eventId: number): string | null {
-  return registrationAudienceNote(restrictions.value, eventId, groups.value, tags.value, t)
+  const notes = [
+    viewAudienceNote(restrictions.value, eventId, groups.value, tags.value, t),
+    registrationAudienceNote(restrictions.value, eventId, groups.value, tags.value, t),
+  ].filter((note): note is string => note != null)
+  return notes.length > 0 ? notes.join('. ') : null
 }
 
 function getRegistrationSummary(eventId: number, date: string) {

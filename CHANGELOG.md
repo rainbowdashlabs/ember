@@ -27,6 +27,7 @@ People who share a station can write to each other directly or in groups. One da
 
 ### Improvements
 
+- **Restricted appointments say whom they are for.** In the list of upcoming appointments, an appointment only some members see names who may see it next to its lock, and still names who may sign up where that is fewer.
 - **New start times show on save.** The save dialog says how many people holding a place are told a new start time, which now also reaches series dates. Somebody who is also told about the change gets one message instead of two.
 - **Switched-off modules take their notifications along.** Notifications of a switched-off module are no longer listed, counted or mailed, and none are written while it is off. They are kept and show again once the module is back, and the notification settings only list what the station uses.
 - **Switched-off modules grant no permissions.** The permission picker leaves out permissions of a switched-off module, and permissions already given grant nothing until the module is back. Requirements of a switched-off module, such as a mandatory poll, no longer hold anybody at the start page.
