@@ -186,10 +186,11 @@ public class EventCourseService {
             removed.forEach(courses::deleteSet);
             for (int position = 0; position < drafts.size(); position++) {
                 var draft = drafts.get(position);
-                if (draft.id() == null) {
+                Integer setId = draft.id();
+                if (setId == null) {
                     courses.createSet(courseId, draft.name().strip(), draft.minimum(), position);
                 } else {
-                    courses.updateSet(draft.id(), draft.name().strip(), draft.minimum(), position);
+                    courses.updateSet(setId, draft.name().strip(), draft.minimum(), position);
                 }
             }
             return courses.findSets(courseId);
@@ -512,14 +513,16 @@ public class EventCourseService {
     }
 
     private static EventCourseDetails checked(EventCourseDetails details) {
-        if (details.name() == null || details.name().isBlank()) throw EventRefusal.COURSE_NAME_MISSING.raise();
-        if (details.registrationLimit() != null && details.registrationLimit() < 1) {
+        String name = details.name();
+        Integer limit = details.registrationLimit();
+        if (name == null || name.isBlank()) throw EventRefusal.COURSE_NAME_MISSING.raise();
+        if (limit != null && limit < 1) {
             throw EventRefusal.COURSE_LIMIT_NOT_POSITIVE.raise();
         }
         return new EventCourseDetails(
-                details.name().strip(),
+                name.strip(),
                 details.description(),
-                details.registrationLimit(),
+                limit,
                 details.registrationDeadline(),
                 details.requiresConfirmation());
     }

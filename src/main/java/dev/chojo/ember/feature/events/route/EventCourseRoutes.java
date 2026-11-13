@@ -366,18 +366,20 @@ public class EventCourseRoutes implements Routes {
     private void createPart(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CoursePartCreateRequest.class);
-        if (request.name() == null || request.name().isBlank()) throw EventRefusal.COURSE_NAME_MISSING.raise();
-        if (request.startTime() == null || request.endTime() == null)
-            throw EventRefusal.COURSE_PART_NEEDS_TIMES.raise();
+        String name = request.name();
+        Instant start = request.startTime();
+        Instant end = request.endTime();
+        if (name == null || name.isBlank()) throw EventRefusal.COURSE_NAME_MISSING.raise();
+        if (start == null || end == null) throw EventRefusal.COURSE_PART_NEEDS_TIMES.raise();
         ctx.status(HttpStatus.CREATED)
                 .json(partFactory.create(
                         session.stationId(),
                         pathInt(ctx, "courseId"),
                         request.setId(),
-                        request.name().strip(),
+                        name.strip(),
                         request.description(),
-                        request.startTime(),
-                        request.endTime()));
+                        start,
+                        end));
     }
 
     @OpenApi(

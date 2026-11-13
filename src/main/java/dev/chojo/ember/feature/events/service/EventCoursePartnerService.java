@@ -195,7 +195,8 @@ public class EventCoursePartnerService {
             if (existing.filter(EventCoursePartnerRegistration::active).isPresent()) {
                 throw EventRefusal.COURSE_ALREADY_SIGNED_UP.raise();
             }
-            if (course.registrationLimit() != null && gate.holding(courseId) >= course.registrationLimit()) {
+            Integer limit = course.registrationLimit();
+            if (limit != null && gate.holding(courseId) >= limit) {
                 throw EventRefusal.COURSE_FULL.raise();
             }
             var parts = gate.lockParts(courseId);
