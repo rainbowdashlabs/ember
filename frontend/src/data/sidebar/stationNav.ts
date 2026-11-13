@@ -41,6 +41,9 @@ function runs(module: StationModule): Condition {
     return ({session}) => session.isModuleEnabled(module)
 }
 
+/** Whether messages are on for the instance; an administrator can turn them off for everybody. */
+const messagesOn: Condition = ({session}) => session.sessionInfo.value?.messagesEnabled !== false
+
 function both(first: Condition, second: Condition): Condition {
     return context => first(context) && second(context)
 }
@@ -176,6 +179,14 @@ export const STATION_NAV: Entry[] = [
                     {kind: 'page', key: 'station-members-config', label: 'sidebar.membersConfig', icon: 'users-gear', to: '/station/members/config', visible: can(StationPermission.MEMBER_FIELDS)},
                 ],
             },
+        ],
+    },
+    {
+        kind: 'group', key: 'station-messages', label: 'sidebar.stationChats', icon: 'comments', prefix: ['/station/messages'],
+        visible: both(messagesOn, can(StationPermission.MESSAGE_CHAT_MANAGE)),
+        children: [
+            {kind: 'page', key: 'message-station-chats', label: 'sidebar.stationChats', icon: 'comments', to: '/station/messages/chats', visible: can(StationPermission.MESSAGE_CHAT_MANAGE)},
+            {kind: 'page', key: 'message-reports', label: 'sidebar.messageReports', icon: 'flag', to: '/station/messages/reports', visible: can(StationPermission.MESSAGE_CHAT_MANAGE)},
         ],
     },
     {

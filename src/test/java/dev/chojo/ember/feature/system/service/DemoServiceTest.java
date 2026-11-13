@@ -291,12 +291,13 @@ class DemoServiceTest extends RepositoryTestBase {
                         stationMemberRepo,
                         newGroupMemberships(),
                         new AccountInviteService(accountRepo, authService),
-                        TestAccountLinks.service(accountRepo, stationRepo, stationMemberRepo)),
+                        TestAccountLinks.service(accountRepo, stationRepo, stationMemberRepo),
+                        new DomainEventBus(Set.of())),
                 clusterRepo,
                 new ModuleAvailability(stationRepo, clusterRepo));
 
         var groupService = newMemberGroupService();
-        var tagService = new UserTagService(userTagRepo, memberGroupRepo);
+        var tagService = new UserTagService(userTagRepo, memberGroupRepo, new DomainEventBus(Set.of()));
         var memberNameResolver = new MemberNameResolver(
                 newStationMemberService(accountRepo, mock(AuthService.class)),
                 accountRepo,

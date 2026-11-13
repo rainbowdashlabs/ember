@@ -161,7 +161,8 @@ public class GroupService {
     /**
      * Leaves a conversation. A group goes on without the reader, passing to its longest member if
      * the reader owned it; a direct conversation is only put away, and comes back with its next
-     * message.
+     * message. A station chat cannot be left: its members follow the station, and muting it is what
+     * a member decides about it.
      *
      * @param accountId       the reader
      * @param conversationUid the conversation
@@ -169,6 +170,7 @@ public class GroupService {
     public void leave(int accountId, UUID conversationUid) {
         Participation participation = guards.requireParticipant(accountId, conversationUid);
         Conversation conversation = participation.conversation();
+        if (conversation.isStation()) throw MessageRefusal.STATION_CHAT_NOT_LEFT.raise();
         if (!conversation.isGroup()) {
             conversations.leave(conversation.id(), accountId);
             signals.publish(List.of(accountId), MessageEvent.conversation(conversation.uid()));

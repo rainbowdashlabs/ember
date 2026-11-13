@@ -7,11 +7,14 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.TagVisibility;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -32,8 +35,12 @@ public class UserTagService {
     private final UserTagRepository tagRepository;
     private final MemberGroupRepository groupRepository;
 
+    private final DomainEventBus eventBus;
+
     @Inject
-    public UserTagService(UserTagRepository tagRepository, MemberGroupRepository groupRepository) {
+    public UserTagService(
+            UserTagRepository tagRepository, MemberGroupRepository groupRepository, DomainEventBus eventBus) {
+        this.eventBus = eventBus;
         this.tagRepository = tagRepository;
         this.groupRepository = groupRepository;
     }
@@ -82,9 +89,11 @@ public class UserTagService {
     }
 
     public boolean delete(int id) {
+        var tag = tagRepository.findById(id);
         boolean deleted = tagRepository.delete(id);
         if (deleted) {
             log.info("User tag deleted: id={}", id);
+            tag.ifPresent(gone -> eventBus.publish(StationAudienceChanged.at(gone.stationId())));
         } else {
             log.warn("User tag delete affected no rows: id={}", id);
         }
@@ -100,8 +109,9 @@ public class UserTagService {
     }
 
     public void setMembers(int tagId, List<Integer> memberIds) {
-        tagRepository.setMembers(tagId, memberIds);
+        Transactions.run(() -> tagRepository.setMembers(tagId, memberIds));
         log.info("User tag members set: tag={}, count={}", tagId, memberIds.size());
+        tagRepository.findById(tagId).ifPresent(tag -> eventBus.publish(StationAudienceChanged.at(tag.stationId())));
     }
 
     /**
@@ -120,5 +130,6 @@ public class UserTagService {
         }
         tagRepository.delete(tagId);
         log.info("User tag {} converted to group {} in station {}", tagId, group.id(), tag.stationId());
+        eventBus.publish(StationAudienceChanged.at(tag.stationId()));
     }
 }

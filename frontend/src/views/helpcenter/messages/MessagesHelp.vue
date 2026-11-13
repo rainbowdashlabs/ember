@@ -23,6 +23,7 @@ const conversations = computed(() => exampleConversations(t))
 const messages = computed(() => exampleMessages(t))
 const items = computed(() => timelineOf(messages.value, 2, READER_UID))
 const answer = computed(() => messages.value[2])
+const stationChat = computed(() => conversations.value[2])
 
 function nothingOlder(): Promise<void> {
   return Promise.resolve()
@@ -67,6 +68,15 @@ function nothingOlder(): Promise<void> {
       </div>
       <p>{{ t('helpCenter.messages.reactionsText') }}</p>
       <p>{{ t('helpCenter.messages.phoneText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.messages.stationTitle')">
+      <p>{{ t('helpCenter.messages.stationText') }}</p>
+      <NeutralContainer v-if="stationChat" class="space-y-1">
+        <ConversationRow :conversation="stationChat" :selected="false"/>
+      </NeutralContainer>
+      <p>{{ t('helpCenter.messages.stationMembersText') }}</p>
+      <p>{{ t('helpCenter.messages.stationReportText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.messages.groupsTitle')">

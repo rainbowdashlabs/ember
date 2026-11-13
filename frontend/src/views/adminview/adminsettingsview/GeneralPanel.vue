@@ -16,6 +16,7 @@ const {t} = useI18n()
 
 defineProps<{
   registrationEnabled: boolean
+  messagesEnabled: boolean
   availableMailLocales: string[]
 }>()
 
@@ -24,6 +25,7 @@ const defaultMailLocale = defineModel<string>('defaultMailLocale', {required: tr
 
 const emit = defineEmits<{
   'toggle-registration': [value: boolean]
+  'toggle-messages': [value: boolean]
   'save-pride': []
   'save-mail-locale': []
 }>()
@@ -56,6 +58,16 @@ function localeLabel(locale: string): string {
       <ToggleInput data-onboarding="admin.settings.station-registration" :model-value="registrationEnabled"
                    :aria-label="t('adminSettings.stationRegistration')"
                    @update:model-value="(v: boolean) => emit('toggle-registration', v)"/>
+    </div>
+
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="font-medium">{{ t('adminSettings.messages') }}</div>
+        <div class="text-sm text-(--text-muted)">{{ t('adminSettings.messagesHint') }}</div>
+      </div>
+      <ToggleInput data-testid="admin-messages-toggle" :model-value="messagesEnabled"
+                   :aria-label="t('adminSettings.messages')"
+                   @update:model-value="(v: boolean) => emit('toggle-messages', v)"/>
     </div>
 
     <div class="flex items-center justify-between">

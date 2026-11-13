@@ -21,8 +21,8 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * The general settings of the instance: whether new stations may register, the look every
- * station starts from, and the language system mails fall back to.
+ * The general settings of the instance: whether new stations may register, whether messages are
+ * on, the look every station starts from, and the language system mails fall back to.
  *
  * <p>Part of them is kept in the database and part in the configuration file. A change is checked
  * in full before either is written, so a refused request leaves both as they were.
@@ -30,6 +30,7 @@ import java.util.List;
 @Singleton
 public class InstanceSettingsService {
     private static final String STATION_REGISTRATION_ENABLED = "station_registration_enabled";
+    private static final String MESSAGES_ENABLED = "messages_enabled";
     private static final String FORCE_PRIDE_FLAG = "force_pride_flag";
 
     private final ApplicationSettingRepository settings;
@@ -63,6 +64,14 @@ public class InstanceSettingsService {
     }
 
     /**
+     * Whether people on this instance can use messages at all. Turning them off hides private
+     * conversations and station chats and stops their mail, and deletes nothing.
+     */
+    public boolean messagesEnabled() {
+        return settings.getBoolean(MESSAGES_ENABLED, true);
+    }
+
+    /**
      * The look every visitor starts from, before any station or account chose one.
      */
     public PublicTheme publicTheme() {
@@ -75,6 +84,7 @@ public class InstanceSettingsService {
         var theming = conf.main().theming();
         return new ApplicationSettings(
                 stationRegistrationEnabled(),
+                messagesEnabled(),
                 theming.defaultTheme(),
                 theming.defaultFeel().name(),
                 theming.lockFeel(),
@@ -101,6 +111,7 @@ public class InstanceSettingsService {
                 request.instanceLockFeel());
         changes.apply(() -> after.applyTo(theming), () -> before.applyTo(theming));
         settings.setBoolean(STATION_REGISTRATION_ENABLED, request.stationRegistrationEnabled());
+        settings.setBoolean(MESSAGES_ENABLED, request.messagesEnabled());
         settings.setBoolean(FORCE_PRIDE_FLAG, request.forcePrideFlag());
         if (changesMailLocale) {
             settings.set(ApplicationSettingRepository.DEFAULT_MAIL_LOCALE, mailLocale);
@@ -144,6 +155,7 @@ public class InstanceSettingsService {
     }
 
     /**
+     * @param messagesEnabled      whether people on this instance can use messages at all
      * @param defaultMailLocale    the language system mails use for accounts with no station to
      *                             take one from
      * @param availableMailLocales the languages this instance holds mail templates for; read-only,
@@ -151,6 +163,7 @@ public class InstanceSettingsService {
      */
     public record ApplicationSettings(
             boolean stationRegistrationEnabled,
+            boolean messagesEnabled,
             String instanceDefaultTheme,
             String instanceDefaultFeel,
             boolean instanceLockFeel,

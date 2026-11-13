@@ -63,13 +63,14 @@ class MemberGroupRoutesTest extends RepositoryTestBase {
         var memberships = new GroupMembershipService(
                 memberGroupRepo, stationMemberRepo, stepUp, () -> memberNameResolver, new DomainEventBus(Set.of()));
         var groupRoutes = new MemberGroupRoutes(
-                new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, memberships),
+                new MemberGroupService(
+                        memberGroupRepo, stationMemberRepo, userTagRepo, memberships, new DomainEventBus(Set.of())),
                 memberships,
                 newStationMemberService(accountRepo, mock(AuthService.class)),
                 new MemberViewService(
                         accountRepo, stationMemberRepo, memberIdentityFactory, memberNameResolver, profileFieldService),
-                new UserTypeChangeService(stationMemberRepo, memberships),
-                new GroupRulesService(memberGroupRepo, sets, memberships));
+                new UserTypeChangeService(stationMemberRepo, memberships, new DomainEventBus(Set.of())),
+                new GroupRulesService(memberGroupRepo, sets, memberships, new DomainEventBus(Set.of())));
         harness = RouteHarness.serving(groupRoutes, new MemberGroupSetRoutes(new MemberGroupSetService(sets)))
                 .withStations(stationRepo);
         station = stationRepo.create("Group Routes " + System.nanoTime());

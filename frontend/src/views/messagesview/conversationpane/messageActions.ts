@@ -17,6 +17,8 @@ export interface MessageActions {
     readerUid: string | null
     /** The people the reader blocked, whose messages are folded away. */
     blocked: readonly string[]
+    /** Whether the conversation is a closed station chat, which takes no reactions, answers or changes. */
+    closed?: boolean
     reply: (message: ConversationMessageResponse) => void
     edit: (message: ConversationMessageResponse) => void
     remove: (message: ConversationMessageResponse) => void
@@ -26,4 +28,20 @@ export interface MessageActions {
     jumpTo: (messageId: number) => void
     /** Opens the actions of a message as a menu, as resting a finger on it does on a phone. */
     menu: (message: ConversationMessageResponse) => void
+    /** Reports somebody else's message of a station chat; absent where nothing can be reported. */
+    report?: (message: ConversationMessageResponse) => void
+    /** Removes somebody else's message for the station; absent for readers who do not handle its chats. */
+    moderate?: (message: ConversationMessageResponse) => void
+}
+
+/**
+ * Whether a message is somebody else's written, standing message, which is what can be reported and
+ * removed for the station.
+ *
+ * @param message the message
+ * @param actions what the reader can do
+ * @returns true for another person's message that still stands
+ */
+export function othersStanding(message: ConversationMessageResponse, actions: MessageActions): boolean {
+    return !message.systemKind && !message.deleted && !!message.author && message.author.uid !== actions.readerUid
 }

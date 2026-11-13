@@ -179,7 +179,8 @@ public enum NotificationType {
     ASSOCIATION_LINK_ACCEPTED(NotificationParams.AssociationLinkAccepted.class, "notification.associationLinkAccepted"),
     SIGNATURE_WITHDRAWN(NotificationParams.SignatureWithdrawn.class, "notification.signatureWithdrawn"),
     PARTNER_SIGNATURE_WITHDRAWN(
-            NotificationParams.PartnerSignatureWithdrawn.class, "notification.partnerSignatureWithdrawn");
+            NotificationParams.PartnerSignatureWithdrawn.class, "notification.partnerSignatureWithdrawn"),
+    MESSAGE_REPORTED(NotificationParams.MessageReported.class, "notification.messageReported");
 
     private final Class<? extends NotificationParams> paramsType;
     private final String localeKey;

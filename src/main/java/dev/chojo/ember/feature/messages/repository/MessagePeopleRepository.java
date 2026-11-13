@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.messages.repository;
 
 import dev.chojo.ember.feature.messages.entity.Person;
 import dev.chojo.ember.feature.messages.entity.ReachablePerson;
+import dev.chojo.ember.feature.messages.entity.StationDigest;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -32,7 +33,7 @@ public class MessagePeopleRepository {
      * The condition an account aliased {@code a} meets when it can use messages: it has no current
      * guardian anywhere, or a guardian turned messages on for it.
      */
-    private static final String USABLE = """
+    static final String USABLE = """
             (a.messages_guardian_allowed OR NOT EXISTS (
                 SELECT 1
                 FROM station_member managed
@@ -181,6 +182,34 @@ public class MessagePeopleRepository {
     }
 
     /**
+     * What the daily mail takes from an account's station chats.
+     *
+     * @param accountId the account
+     * @return the setting, mentions only for no account
+     */
+    public StationDigest stationDigest(int accountId) {
+        return query("""
+                SELECT messages_station_digest FROM account WHERE id = :account_id;""")
+                .single(call().bind("account_id", accountId))
+                .map(row -> row.getEnum("messages_station_digest", StationDigest.class))
+                .first()
+                .orElse(StationDigest.MENTIONS);
+    }
+
+    /**
+     * Sets what the daily mail takes from an account's station chats.
+     *
+     * @param accountId the account
+     * @param digest    mentions only, or every unread message
+     */
+    public void setStationDigest(int accountId, StationDigest digest) {
+        query("""
+                UPDATE account SET messages_station_digest = :digest WHERE id = :account_id;""")
+                .single(call().bind("account_id", accountId).bind("digest", digest))
+                .update();
+    }
+
+    /**
      * Turns the mail about unread messages on or off for an account.
      *
      * @param accountId the account
@@ -191,5 +220,22 @@ public class MessagePeopleRepository {
                 UPDATE account SET messages_mail = :wanted WHERE id = :account_id;""")
                 .single(call().bind("account_id", accountId).bind("wanted", wanted))
                 .update();
+    }
+
+    /**
+     * The account of a current member of a station, by the member's identity.
+     *
+     * @param stationId the station
+     * @param memberUid the member's identity
+     * @return the person, or empty where the uid names no current member with an account there
+     */
+    public Optional<Person> memberAccount(int stationId, UUID memberUid) {
+        return query("""
+                SELECT a.id AS account_id, a.uid, a.first_name, a.last_name
+                FROM station_member sm JOIN account a ON a.id = sm.account_id
+                WHERE sm.station_id = :station_id AND sm.uid = :uid::uuid AND sm.former = FALSE;""")
+                .single(call().bind("station_id", stationId).bind("uid", memberUid, UUID_STRING))
+                .map(row -> Person.require(row, ""))
+                .first();
     }
 }

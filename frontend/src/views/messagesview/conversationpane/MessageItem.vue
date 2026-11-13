@@ -68,7 +68,7 @@ const highlight = computed(() => mentionsReader.value
       <ReplyQuote v-if="message.replyTo" :reply="message.replyTo" @jump="actions.jumpTo"/>
       <MessageBody :message="message" :reader-uid="actions.readerUid"
                    :blocked="!!message.author && actions.blocked.includes(message.author.uid)"/>
-      <ReactionChips v-if="message.reactions.length > 0" :reactions="message.reactions"
+      <ReactionChips v-if="message.reactions.length > 0" :reactions="message.reactions" :disabled="actions.closed"
                      @toggle="emoji => actions.react(message, emoji)"/>
     </div>
     <div v-if="finePointer && !message.deleted" class="absolute -top-3 right-2 hidden group-hover:block group-focus-within:block">

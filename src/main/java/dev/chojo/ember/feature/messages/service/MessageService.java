@@ -38,6 +38,7 @@ public class MessageService {
     private final MessageGuards guards;
     private final MessageViews views;
     private final MessageSignals signals;
+    private final MessageModeration moderation;
 
     @Inject
     public MessageService(
@@ -45,7 +46,9 @@ public class MessageService {
             MessageRepository messages,
             MessageGuards guards,
             MessageViews views,
-            MessageSignals signals) {
+            MessageSignals signals,
+            MessageModeration moderation) {
+        this.moderation = moderation;
         this.conversations = conversations;
         this.messages = messages;
         this.guards = guards;
@@ -107,6 +110,7 @@ public class MessageService {
      */
     public MessageView send(int accountId, UUID conversationUid, String content, @Nullable Integer replyToId) {
         Participation participation = guards.requireParticipant(accountId, conversationUid);
+        guards.requireOpen(participation);
         String text = MessageTexts.content(content);
         if (replyToId != null) {
             messages.find(replyToId)
@@ -117,9 +121,10 @@ public class MessageService {
         guards.requireDeliverable(participation);
         int conversationId = participation.conversation().id();
         int id = Transactions.call(() -> {
+            guards.requireStillOpenForSending(participation);
             int written = messages.write(conversationId, accountId, text, replyToId);
             conversations.touch(conversationId);
-            if (!participation.conversation().isGroup()) conversations.returnAll(conversationId);
+            if (participation.conversation().isDirect()) conversations.returnAll(conversationId);
             conversations.markRead(conversationId, accountId, written);
             return written;
         });
@@ -141,13 +146,19 @@ public class MessageService {
         Message message = guards.requireMessage(participation, messageId);
         if (!message.writtenBy(accountId)) throw MessageRefusal.EDIT_NOT_YOURS.raise();
         if (message.deleted()) throw MessageRefusal.EDIT_DELETED.raise();
-        messages.edit(messageId, MessageTexts.content(content));
+        guards.requireOpen(participation);
+        String text = MessageTexts.content(content);
+        Transactions.run(() -> {
+            guards.requireStillOpen(participation);
+            if (!messages.edit(messageId, text)) throw MessageRefusal.EDIT_DELETED.raise();
+        });
         tell(participation, messageId);
         return one(accountId, conversationUid, messageId);
     }
 
     /**
-     * Deletes one's own message. Its place stays, shown as a deleted message.
+     * Deletes one's own message. Its place stays, shown as a deleted message. Somebody handling the
+     * chats of a station chat's station removes anybody's message there for the station.
      *
      * @param accountId       the author
      * @param conversationUid the conversation
@@ -156,9 +167,16 @@ public class MessageService {
     public void delete(int accountId, UUID conversationUid, int messageId) {
         Participation participation = guards.requireParticipant(accountId, conversationUid);
         Message message = guards.requireMessage(participation, messageId);
-        if (!message.writtenBy(accountId)) throw MessageRefusal.DELETE_NOT_YOURS.raise();
-        messages.delete(messageId);
-        tell(participation, messageId);
+        guards.requireNotMoving(participation.conversation());
+        if (message.writtenBy(accountId)) {
+            moderation.deleteOwn(accountId, messageId);
+            tell(participation, messageId);
+            return;
+        }
+        if (!message.written() || !moderation.moderates(accountId, participation.conversation())) {
+            throw MessageRefusal.DELETE_NOT_YOURS.raise();
+        }
+        moderation.remove(accountId, participation.conversation(), messageId);
     }
 
     private void tell(Participation participation, int messageId) {

@@ -11,6 +11,7 @@ import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.WaitingListRefusal;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.event.events.WaitlistInvitationAnswered;
 import dev.chojo.ember.event.events.WaitlistPublicRegistration;
 import dev.chojo.ember.event.events.WaitlistTrialEnded;
@@ -1529,6 +1530,11 @@ public class WaitingListService implements TaskSource {
             repository.linkGuardianMember(guardian.id(), member.id());
             log.info("Guardian {} joined station {} and answers for member {}", member.id(), stationId, memberId);
         }
+        eventBus.publish(StationAudienceChanged.at(stationId));
+        stationMemberRepository
+                .findById(memberId)
+                .map(StationMember::accountId)
+                .ifPresent(accountId -> eventBus.publish(StationAudienceChanged.ofAccount(accountId)));
     }
 
     /**

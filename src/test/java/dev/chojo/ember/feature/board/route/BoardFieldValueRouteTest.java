@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
@@ -68,7 +69,7 @@ class BoardFieldValueRouteTest extends RepositoryTestBase {
                 boardRepo,
                 memberService,
                 newMemberGroupService(),
-                new UserTagService(userTagRepo, memberGroupRepo),
+                new UserTagService(userTagRepo, memberGroupRepo, new DomainEventBus(Set.of())),
                 privateTags);
         var backend = localStorage();
         tickets = new BoardTicketService(

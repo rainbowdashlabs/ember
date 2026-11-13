@@ -9,6 +9,8 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.account.entity.AccountAction;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountReach;
@@ -32,7 +34,9 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -49,6 +53,8 @@ public class StationMemberService {
     private final AccountReach accountReach;
     private final ModuleAvailability modules;
 
+    private final DomainEventBus eventBus;
+
     @Inject
     public StationMemberService(
             StationMemberRepository memberRepository,
@@ -58,7 +64,9 @@ public class StationMemberService {
             MemberLookupService lookupService,
             DocumentService documentService,
             AccountReach accountReach,
-            ModuleAvailability modules) {
+            ModuleAvailability modules,
+            DomainEventBus eventBus) {
+        this.eventBus = eventBus;
         this.modules = modules;
         this.memberRepository = memberRepository;
         this.stationRepository = stationRepository;
@@ -137,6 +145,7 @@ public class StationMemberService {
     public StationMember create(int stationId, int accountId) {
         var member = memberRepository.create(stationId, accountId);
         log.info("Member created: member={}, station={}, account={}", member.id(), stationId, accountId);
+        eventBus.publish(StationAudienceChanged.at(stationId));
         return member;
     }
 
@@ -156,7 +165,17 @@ public class StationMemberService {
     public boolean delete(int id) {
         documentService.memberLeaves(id, DocumentService.Leaving.DELETED);
         log.info("Member deleted: member={}", id);
-        return memberRepository.delete(id);
+        var member = memberRepository.findById(id);
+        List<Integer> managedAccounts = memberRepository.findManaged(id).stream()
+                .map(StationMember::accountId)
+                .filter(Objects::nonNull)
+                .toList();
+        boolean deleted = memberRepository.delete(id);
+        if (deleted) {
+            member.ifPresent(gone -> eventBus.publish(StationAudienceChanged.at(gone.stationId())));
+            managedAccounts.forEach(account -> eventBus.publish(StationAudienceChanged.ofAccount(account)));
+        }
+        return deleted;
     }
 
     public List<Permission> findPermissions(int memberId) {
@@ -336,6 +355,9 @@ public class StationMemberService {
         }
 
         log.info("Managed relations updated for manager {}: {}", managerId, desiredManagedIds);
+        var touched = new LinkedHashSet<>(currentManagedIds);
+        touched.addAll(desiredManagedIds);
+        touched.forEach(this::audienceChangedAround);
         return memberRepository.findManaged(managerId);
     }
 
@@ -370,6 +392,7 @@ public class StationMemberService {
         });
 
         log.info("Manager relations updated for member {}: {}", managedId, desiredManagerIds);
+        audienceChangedAround(managedId);
         return memberRepository.findManagers(managedId);
     }
 
@@ -384,5 +407,18 @@ public class StationMemberService {
         if (member.userType() != StationUserType.MEMBER && member.userType() != StationUserType.TRIAL) {
             throw MemberRefusal.MEMBER_TYPE_TAKES_NO_GUARDIANS.raise();
         }
+    }
+
+    /**
+     * Says that a guardian link of a member changed. The station's chats may take guardians in, and a
+     * member who has a guardian somewhere may use messages only once a guardian allowed it, which
+     * holds at every station of their account.
+     */
+    private void audienceChangedAround(int memberId) {
+        memberRepository.findById(memberId).ifPresent(member -> {
+            eventBus.publish(StationAudienceChanged.at(member.stationId()));
+            Integer accountId = member.accountId();
+            if (accountId != null) eventBus.publish(StationAudienceChanged.ofAccount(accountId));
+        });
     }
 }

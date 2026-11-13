@@ -6,16 +6,14 @@
 package dev.chojo.ember.feature.messages.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
-import dev.chojo.ember.feature.messages.entity.Conversation;
+import dev.chojo.ember.feature.messages.entity.DigestMessage;
 import dev.chojo.ember.feature.messages.entity.Message;
 import dev.chojo.ember.feature.messages.entity.SystemKind;
-import dev.chojo.ember.feature.messages.entity.UnreadMailDue;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -186,91 +184,135 @@ public class MessageRepository {
      *
      * @param id      the message
      * @param content the new text
+     * @return whether it still stood and was changed
      */
-    public void edit(int id, String content) {
-        query("""
-                UPDATE message SET content = :content, edited_at = now() WHERE id = :id;""").single(call().bind("id", id).bind("content", content)).update();
+    public boolean edit(int id, String content) {
+        return query("""
+                UPDATE message SET content = :content, edited_at = now() WHERE id = :id AND deleted_at IS NULL;""")
+                .single(call().bind("id", id).bind("content", content))
+                .update()
+                .changed();
     }
 
     /**
      * Deletes a message, keeping its place: the text goes, the row stays.
      *
-     * @param id the message
+     * @param id          the message
+     * @param byAccountId its author, who deletes it
      */
-    public void delete(int id) {
+    public void delete(int id, int byAccountId) {
         query("""
-                UPDATE message SET content = '', deleted_at = now() WHERE id = :id AND deleted_at IS NULL;""").single(call().bind("id", id)).update();
+                UPDATE message SET content = '', deleted_at = now(), deleted_by_account_id = :by
+                WHERE id = :id AND deleted_at IS NULL;""").single(call().bind("id", id).bind("by", byAccountId)).update();
     }
 
     /**
-     * The conversations whose readers have waited long enough on an unread message of somebody
-     * else to be mailed about it: once per unread stretch, not for muted conversations, and not for
-     * readers who turned the mail off.
+     * Removes a message for the station: like a deletion, but it shows as removed by the station.
      *
-     * @param writtenBefore only messages written before this count
-     * @return one entry per reader and conversation
+     * @param id          the message
+     * @param byAccountId the account removing it
+     * @return whether it stood until now
      */
-    public List<UnreadMailDue> unreadMailDue(Instant writtenBefore) {
+    public boolean removeForStation(int id, int byAccountId) {
         return query("""
-                SELECT %s, m.account_id AS reader_account_id, m.last_read_message_id
-                FROM conversation_member m
-                JOIN conversation c ON c.id = m.conversation_id
-                JOIN account a ON a.id = m.account_id
-                WHERE m.left_at IS NULL AND m.muted = FALSE AND m.mailed_at IS NULL AND a.messages_mail
+                UPDATE message SET content = '', deleted_at = now(), deleted_by_account_id = :by, removed_by_station = TRUE
+                WHERE id = :id AND deleted_at IS NULL;""")
+                .single(call().bind("id", id).bind("by", byAccountId))
+                .update()
+                .changed();
+    }
+
+    /**
+     * The condition a message aliased {@code msg} meets when it belongs into the daily mail of the
+     * member aliased {@code m}, whose account is aliased {@code a} and conversation {@code c}: unread,
+     * written after the account's last daily mail, in a conversation the member has not muted, and
+     * from a station chat only where it mentions the account or the account takes everything.
+     */
+    private static final String IN_DIGEST = """
+            m.left_at IS NULL AND m.muted = FALSE AND %s
+            AND msg.created_at > coalesce(a.message_digest_sent_at, '-infinity'::timestamptz)
+            AND (c.kind <> 'STATION' OR a.messages_station_digest = 'ALL'
+                 OR strpos(msg.content, '@[account/' || a.uid::text || ':') > 0)""".formatted(ConversationRepository.STILL_HERE);
+
+    /**
+     * The accounts the daily mail goes to now: those that want it, can use messages and have
+     * something for it.
+     *
+     * @return the account ids
+     */
+    public List<Integer> digestReaders() {
+        return query("""
+                SELECT a.id FROM account a
+                WHERE a.messages_mail AND %s
                 AND EXISTS (
-                    SELECT 1 FROM message msg
-                    WHERE msg.conversation_id = m.conversation_id
-                    AND msg.id > coalesce(m.last_read_message_id, 0)
-                    AND msg.system_kind IS NULL AND msg.deleted_at IS NULL
-                    AND msg.author_account_id IS DISTINCT FROM m.account_id
-                    AND msg.created_at < :before
-                    AND NOT EXISTS (
-                        SELECT 1 FROM account_block b
-                        WHERE b.blocker_account_id = m.account_id AND b.blocked_account_id = msg.author_account_id))
-                ORDER BY m.account_id, c.id;""", Conversation.COLUMNS)
-                .single(call().bind("before", writtenBefore, INSTANT_TIMESTAMP))
-                .map(UnreadMailDue.map())
+                    SELECT 1
+                    FROM conversation_member m
+                    JOIN conversation c ON c.id = m.conversation_id
+                    JOIN message msg ON %s
+                    WHERE m.account_id = a.id AND %s)
+                ORDER BY a.id;""", MessagePeopleRepository.USABLE, ConversationRepository.UNREAD, IN_DIGEST)
+                .single()
+                .map(row -> row.getInt("id"))
                 .all();
     }
 
     /**
-     * The first messages a reader has not read in a conversation, the way a mail quotes them.
+     * What goes into an account's daily mail: the newest messages of each conversation as far as
+     * the mail quotes them, each with how many wait there in all, by conversation and then oldest
+     * first.
      *
-     * @param due   the reader and conversation
-     * @param limit how many at most
-     * @return the unread messages of others the reader has not blocked, oldest first
+     * @param accountId the account
+     * @param quoted    how many of each conversation's newest messages to read
+     * @return the messages
      */
-    public List<Message> unreadFor(UnreadMailDue due, int limit) {
+    public List<DigestMessage> digestOf(int accountId, int quoted) {
         return query("""
-                SELECT %s FROM message msg
-                %s
-                WHERE msg.conversation_id = :conversation_id AND msg.id > :after_id
-                AND msg.system_kind IS NULL AND msg.deleted_at IS NULL
-                AND msg.author_account_id IS DISTINCT FROM :reader_id
-                AND NOT EXISTS (
-                    SELECT 1 FROM account_block b
-                    WHERE b.blocker_account_id = :reader_id AND b.blocked_account_id = msg.author_account_id)
-                ORDER BY msg.id
-                LIMIT :limit;""", Message.COLUMNS, Message.JOINS)
-                .single(call().bind("conversation_id", due.conversation().id())
-                        .bind("after_id", Objects.requireNonNullElse(due.lastReadMessageId(), 0))
-                        .bind("reader_id", due.accountId())
-                        .bind("limit", limit))
-                .map(Message.map())
+                SELECT * FROM (
+                    SELECT %s,
+                        count(*) OVER (PARTITION BY msg.conversation_id) AS waiting,
+                        row_number() OVER (PARTITION BY msg.conversation_id ORDER BY msg.id DESC) AS newest
+                    FROM conversation_member m
+                    JOIN conversation c ON c.id = m.conversation_id
+                    JOIN account a ON a.id = m.account_id
+                    JOIN message msg ON %s
+                    %s
+                    WHERE m.account_id = :account_id AND %s
+                ) found
+                WHERE newest <= :quoted
+                ORDER BY conversation_id, id;""", Message.COLUMNS, ConversationRepository.UNREAD, Message.JOINS, IN_DIGEST)
+                .single(call().bind("account_id", accountId).bind("quoted", quoted))
+                .map(DigestMessage.map())
                 .all();
     }
 
     /**
-     * Notes that a reader was mailed about a conversation, so the next mail waits until they read.
+     * Moves the daily mail's mark of every account that wants it up to a moment, except the ones
+     * named, so the next mail takes nothing written before it. Accounts that had nothing for this
+     * mail then start the next one from here instead of from all they ever left unread.
      *
-     * @param conversationId the conversation
-     * @param accountId      the reader
+     * @param at     the moment the run started
+     * @param except the accounts the run looked at itself
      */
-    public void markMailed(int conversationId, int accountId) {
+    public void markDigestedUpTo(Instant at, List<Integer> except) {
         query("""
-                UPDATE conversation_member SET mailed_at = now()
-                WHERE conversation_id = :conversation_id AND account_id = :account_id;""")
-                .single(call().bind("conversation_id", conversationId).bind("account_id", accountId))
+                UPDATE account SET message_digest_sent_at = :at
+                WHERE messages_mail AND (message_digest_sent_at IS NULL OR message_digest_sent_at < :at)
+                AND id <> ALL(:except);""")
+                .single(call().bind("at", at, INSTANT_TIMESTAMP).bind("except", except, PostgreSqlTypes.INTEGER))
+                .update();
+    }
+
+    /**
+     * Notes that an account was sent its daily mail, so the next one only takes what is newer.
+     *
+     * @param accountId the account
+     * @param at        when the newest message the mail took was written, so a message written while
+     *                  the mail was put together goes into the next one
+     */
+    public void markDigestSent(int accountId, Instant at) {
+        query("""
+                UPDATE account SET message_digest_sent_at = :at WHERE id = :account_id;""")
+                .single(call().bind("account_id", accountId).bind("at", at, INSTANT_TIMESTAMP))
                 .update();
     }
 }

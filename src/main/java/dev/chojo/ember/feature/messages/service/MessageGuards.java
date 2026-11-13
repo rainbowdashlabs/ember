@@ -6,14 +6,17 @@
 package dev.chojo.ember.feature.messages.service;
 
 import dev.chojo.ember.api.refusal.MessageRefusal;
+import dev.chojo.ember.feature.messages.entity.Conversation;
 import dev.chojo.ember.feature.messages.entity.Membership;
 import dev.chojo.ember.feature.messages.entity.Message;
 import dev.chojo.ember.feature.messages.entity.Participation;
 import dev.chojo.ember.feature.messages.entity.Person;
+import dev.chojo.ember.feature.messages.entity.StationScope;
 import dev.chojo.ember.feature.messages.repository.AccountBlockRepository;
 import dev.chojo.ember.feature.messages.repository.ConversationRepository;
 import dev.chojo.ember.feature.messages.repository.MessagePeopleRepository;
 import dev.chojo.ember.feature.messages.repository.MessageRepository;
+import dev.chojo.ember.feature.messages.repository.StationChatRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -32,13 +35,16 @@ public class MessageGuards {
     private final ConversationRepository conversations;
     private final MessageRepository messages;
     private final AccountBlockRepository blocks;
+    private final StationChatRepository stationChats;
 
     @Inject
     public MessageGuards(
             MessagePeopleRepository people,
             ConversationRepository conversations,
             MessageRepository messages,
-            AccountBlockRepository blocks) {
+            AccountBlockRepository blocks,
+            StationChatRepository stationChats) {
+        this.stationChats = stationChats;
         this.people = people;
         this.conversations = conversations;
         this.messages = messages;
@@ -57,7 +63,8 @@ public class MessageGuards {
 
     /**
      * The conversation an account names, refused unless it takes part in it right now. A
-     * conversation that does not exist and one that is somebody else's answer alike.
+     * conversation that does not exist and one that is somebody else's answer alike, and so does a
+     * station chat whose station moved to another installation, where the chat lives on.
      *
      * @param accountId       the account
      * @param conversationUid the conversation
@@ -71,6 +78,10 @@ public class MessageGuards {
                 .membership(conversation.id(), accountId)
                 .filter(Membership::active)
                 .orElseThrow(MessageRefusal.CONVERSATION_NOT_HERE::raise);
+        StationScope scope = conversation.station();
+        if (scope != null && stationChats.movedAway(scope.stationId())) {
+            throw MessageRefusal.CONVERSATION_NOT_HERE.raise();
+        }
         return new Participation(conversation, membership);
     }
 
@@ -89,14 +100,67 @@ public class MessageGuards {
     }
 
     /**
+     * Refuses anything new in a closed station chat: messages, changes to them and reactions. A
+     * closed chat stays readable, and one's own messages can still be deleted.
+     *
+     * @param participation the reader in the conversation
+     */
+    public void requireOpen(Participation participation) {
+        StationScope scope = participation.conversation().station();
+        if (scope != null && scope.closed()) throw MessageRefusal.CHAT_CLOSED.raise();
+    }
+
+    /**
+     * Refuses any change to a station chat whose station is moving to another installation or has
+     * moved there: what is written after the move read the chat would never reach its new home.
+     * Direct conversations and groups stay here and are never refused.
+     *
+     * @param conversation the conversation
+     */
+    public void requireNotMoving(Conversation conversation) {
+        StationScope scope = conversation.station();
+        if (scope != null && stationChats.moving(scope.stationId())) {
+            throw MessageRefusal.STATION_CHAT_MOVING.raise();
+        }
+    }
+
+    /**
+     * The same, asked again inside the transaction that writes, and holding a close back until that
+     * transaction ends. Without it a message could land after a close that was committed between the
+     * first look and the write.
+     *
+     * @param participation the reader in the conversation
+     */
+    public void requireStillOpen(Participation participation) {
+        Conversation conversation = participation.conversation();
+        if (conversation.isStation() && stationChats.closedNow(conversation.id())) {
+            throw MessageRefusal.CHAT_CLOSED.raise();
+        }
+    }
+
+    /**
+     * The same for sending, which touches the chat's row afterwards: the row is locked the way that
+     * touch locks it, so senders queue on it instead of waiting on each other.
+     *
+     * @param participation the writer in the conversation
+     */
+    public void requireStillOpenForSending(Participation participation) {
+        Conversation conversation = participation.conversation();
+        if (conversation.isStation() && stationChats.closedNowForSending(conversation.id())) {
+            throw MessageRefusal.CHAT_CLOSED.raise();
+        }
+    }
+
+    /**
      * Refuses a message to a direct conversation whose other side cannot take it: the account is
      * gone, has no messages any more, or blocked the writer. The refusal does not say which, so a
-     * blocked writer is not told. A group takes every message; blocking there only hides.
+     * blocked writer is not told. A group or station chat takes every message; blocking there only
+     * hides.
      *
      * @param participation the writer in the conversation
      */
     public void requireDeliverable(Participation participation) {
-        if (participation.conversation().isGroup()) return;
+        if (!participation.conversation().isDirect()) return;
         int writerId = participation.accountId();
         boolean delivered = conversations
                 .everyMember(participation.conversation().id())

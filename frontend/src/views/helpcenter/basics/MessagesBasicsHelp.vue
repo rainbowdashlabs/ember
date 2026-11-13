@@ -32,8 +32,13 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.basics.messages.blockText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.basics.messages.stationTitle')">
+      <p>{{ t('helpCenter.basics.messages.stationText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.basics.messages.reportTitle')">
       <p>{{ t('helpCenter.basics.messages.reportText') }}</p>
+      <p>{{ t('helpCenter.basics.messages.reportStationText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.basics.messages.storedTitle')">

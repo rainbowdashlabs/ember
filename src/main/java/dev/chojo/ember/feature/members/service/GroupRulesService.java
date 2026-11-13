@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.members.service;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -47,11 +49,15 @@ public class GroupRulesService {
     private final MemberGroupSetRepository setRepository;
     private final GroupMembershipService membershipService;
 
+    private final DomainEventBus eventBus;
+
     @Inject
     public GroupRulesService(
             MemberGroupRepository groupRepository,
             MemberGroupSetRepository setRepository,
-            GroupMembershipService membershipService) {
+            GroupMembershipService membershipService,
+            DomainEventBus eventBus) {
+        this.eventBus = eventBus;
         this.groupRepository = groupRepository;
         this.setRepository = setRepository;
         this.membershipService = membershipService;
@@ -158,6 +164,7 @@ public class GroupRulesService {
         membershipService.requirePresenceFor(List.of(group), by);
         misfits.forEach(member -> groupRepository.removeMember(group.id(), member.id()));
         log.info("Group {} bound to {}: {} member(s) taken out", group.id(), userTypes, misfits.size());
+        eventBus.publish(StationAudienceChanged.at(group.stationId()));
     }
 
     private void requireNoOverlap(MemberGroup group, int setId) {

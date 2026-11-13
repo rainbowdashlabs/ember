@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** Which module a permission belongs to, and what it grants while that module is off. */
 class StationPermissionModuleTest {
     private static final Set<String> STATION_WIDE_PREFIXES =
-            Set.of("USER", "LOGIN", "MEMBER_", "STATION_", "PAGE_", "CHECKLIST_");
+            Set.of("USER", "LOGIN", "MEMBER_", "STATION_", "PAGE_", "CHECKLIST_", "MESSAGE_");
 
     /**
      * Every permission either names a module or is one of the station's own. A new permission has to

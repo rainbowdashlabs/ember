@@ -50,10 +50,11 @@ class MessageRoutesTest extends MessageTestBase {
     private Account ben;
     private Account cora;
     private SharedMemberCards sharedCards;
+    private MessageFixtures services;
 
     @BeforeEach
     void serve() {
-        var services = MessageFixtures.build();
+        services = MessageFixtures.build();
         sharedCards = mock(SharedMemberCards.class);
         harness = RouteHarness.serving(
                 new ConversationRoutes(services.conversations(), services.groups()),
@@ -61,7 +62,8 @@ class MessageRoutesTest extends MessageTestBase {
                 new MessagePeopleRoutes(
                         services.settings(),
                         services.blocks(),
-                        new PersonCardService(new MessagePeopleRepository(), sharedCards)),
+                        new PersonCardService(new MessagePeopleRepository(), sharedCards),
+                        services.instance()),
                 new MessageEventRoutes(services.signals()));
         Station station = station();
         anna = memberOf(station, "Anna");
@@ -282,6 +284,33 @@ class MessageRoutesTest extends MessageTestBase {
         harness.run((server, client) -> {
             assertEquals(401, client.get(PREFIX + "/messages/events").code());
             assertEquals(200, client.get(PREFIX + "/messages/events", as(anna)).code());
+        });
+    }
+
+    @Test
+    void whileMessagesAreOffForTheInstanceOnlyTheStatusAnswersAndSaysSo() {
+        when(services.instance().messagesEnabled()).thenReturn(false);
+        harness.run((server, client) -> {
+            assertEquals(401, client.get(PREFIX + "/messages/conversations").code());
+            assertFalse(json(client.get(PREFIX + "/messages/status", as(anna)))
+                    .get("available")
+                    .asBoolean());
+            assertEquals(
+                    MessageRefusal.MESSAGES_OFF, refusalOf(client.get(PREFIX + "/messages/conversations", as(anna))));
+            assertEquals(MessageRefusal.MESSAGES_OFF, refusalOf(client.get(PREFIX + "/messages/events", as(anna))));
+            assertEquals(MessageRefusal.MESSAGES_OFF, refusalOf(client.get(PREFIX + "/messages/blocks", as(anna))));
+            assertEquals(
+                    MessageRefusal.MESSAGES_OFF,
+                    refusalOf(client.get(
+                            PREFIX + "/messages/conversations/" + UUID.randomUUID() + "/messages", as(anna))));
+
+            when(services.instance().messagesEnabled()).thenReturn(true);
+            assertEquals(
+                    200,
+                    client.get(PREFIX + "/messages/conversations", as(anna)).code());
+            assertTrue(json(client.get(PREFIX + "/messages/status", as(anna)))
+                    .get("available")
+                    .asBoolean());
         });
     }
 }

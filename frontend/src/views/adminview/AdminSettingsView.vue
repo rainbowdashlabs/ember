@@ -18,13 +18,16 @@ import {adminSettings} from '@/api'
 import {useTheme} from '@/composables/useTheme'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlashMessage} from '@/composables/useFlashMessage'
+import {useSession} from '@/composables/useSession'
 
 const {t} = useI18n()
 const themeCtrl = useTheme()
+const session = useSession()
 
 const {message: savedMessage, flash} = useFlashMessage(2000)
 const saving = ref(false)
 const registrationEnabled = ref(true)
+const messagesEnabled = ref(true)
 const forcePrideFlag = ref(false)
 const instanceDefaultTheme = ref('ember')
 const instanceDefaultFeel = ref('ROUNDED')
@@ -35,6 +38,7 @@ const availableMailLocales = ref<string[]>([])
 const {loading, failure} = useAsyncLoader(async () => {
   const settings = await adminSettings.getSettings()
   registrationEnabled.value = settings.stationRegistrationEnabled
+  messagesEnabled.value = settings.messagesEnabled
   forcePrideFlag.value = settings.forcePrideFlag ?? false
   instanceDefaultTheme.value = settings.instanceDefaultTheme ?? 'ember'
   instanceDefaultFeel.value = settings.instanceDefaultFeel ?? 'ROUNDED'
@@ -46,6 +50,7 @@ const {loading, failure} = useAsyncLoader(async () => {
 function buildSettings() {
   return {
     stationRegistrationEnabled: registrationEnabled.value,
+    messagesEnabled: messagesEnabled.value,
     instanceDefaultTheme: instanceDefaultTheme.value,
     instanceDefaultFeel: instanceDefaultFeel.value,
     instanceLockFeel: instanceLockFeel.value,
@@ -101,6 +106,15 @@ function toggleRegistration(value: boolean) {
   }, () => { registrationEnabled.value = !value })
 }
 
+/** Turns messages on or off for everybody on the instance, then reads the session again so this tab follows. */
+function toggleMessages(value: boolean) {
+  return saveInstantly(async () => {
+    const result = await adminSettings.updateSettings({...buildSettings(), messagesEnabled: value})
+    messagesEnabled.value = result.messagesEnabled
+    await session.load()
+  }, () => { messagesEnabled.value = !value })
+}
+
 watch(instanceDefaultTheme, (newTheme) => {
   themeCtrl.applyTheme(newTheme)
 })
@@ -134,10 +148,12 @@ async function saveInstanceTheme() {
             v-model:force-pride-flag="forcePrideFlag"
             v-model:default-mail-locale="defaultMailLocale"
             :registration-enabled="registrationEnabled"
+            :messages-enabled="messagesEnabled"
             :available-mail-locales="availableMailLocales"
             @save-pride="savePride"
             @save-mail-locale="saveMailLocale"
             @toggle-registration="toggleRegistration"
+            @toggle-messages="toggleMessages"
         />
         <ThemePanel
             v-model:default-feel="instanceDefaultFeel"
