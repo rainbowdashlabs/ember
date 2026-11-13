@@ -32,12 +32,19 @@ import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
 import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
 import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
+import dev.chojo.ember.feature.events.repository.EventCoursePartnerRepository;
+import dev.chojo.ember.feature.events.repository.EventCourseRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventCourseRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.events.service.CourseQuestionService;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
+import dev.chojo.ember.feature.events.service.EventCoursePartFactory;
+import dev.chojo.ember.feature.events.service.EventCourseRegistrationService;
+import dev.chojo.ember.feature.events.service.EventCourseService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
@@ -416,6 +423,26 @@ class DemoServiceTest extends RepositoryTestBase {
                 new EventRegistrationFieldService(new EventRegistrationFieldRepository(), memberEligibility),
                 demoClock);
         var attendanceSeeder = new DemoAttendanceSeeder(attendanceRepo, stationMemberRepo, demoClock);
+        var courseQuestions = new CourseQuestionService(new EventRegistrationFieldRepository(), memberEligibility);
+        var courseRepository = new EventCourseRepository();
+        var courseService = new EventCourseService(
+                courseRepository, eventRepo, restrictionService, occurrenceCalendar, courseQuestions);
+        var courseSeeder = new DemoCourseSeeder(
+                courseService,
+                new EventCourseRegistrationService(
+                        courseRepository,
+                        new EventCourseRegistrationRepository(),
+                        eventRepo,
+                        eventRegistrationRepo,
+                        eventServices.registration(),
+                        occurrenceCalendar,
+                        noOpBus,
+                        memberNameResolver,
+                        courseQuestions,
+                        new EventCoursePartnerRepository()),
+                courseQuestions,
+                new EventCoursePartFactory(eventServices.crud(), courseService),
+                demoClock);
         var containerSvc =
                 new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo, itemCustodyService);
         var fieldDefSvc = new InventoryFieldDefinitionService(fieldDefinitionRepo, artRepo, inventoryRepo);
@@ -585,6 +612,7 @@ class DemoServiceTest extends RepositoryTestBase {
                         memberSeeder,
                         mirrorStationSeeder,
                         eventSeeder,
+                        courseSeeder,
                         newsSeeder,
                         lostAndFoundSeederLocal,
                         attendanceSeeder,
@@ -660,6 +688,39 @@ class DemoServiceTest extends RepositoryTestBase {
         assertTrue(
                 stations.stream().anyMatch(s -> "Jugendfeuerwehr Musterstadt".equals(s.name())),
                 "Station 'Jugendfeuerwehr Musterstadt' should exist");
+    }
+
+    /** The demo station runs a Jugendflamme course with people signed up, one of them short of the rules. */
+    @Test
+    @Order(4)
+    void verifyTheJugendflammeCourse() {
+        var station = stationRepo.findAll().stream()
+                .filter(s -> "Jugendfeuerwehr Musterstadt".equals(s.name()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The demo station should exist"));
+        var courseRepository = new EventCourseRepository();
+        var course = courseRepository.findByStation(station.id()).stream()
+                .filter(c -> c.name().startsWith("Jugendflamme"))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The demo should have a Jugendflamme course"));
+
+        assertEquals(4, courseRepository.findParts(course.id()).size());
+        var signUps = new EventCourseRegistrationRepository().findByCourse(course.id());
+        assertEquals(7, signUps.size());
+        assertEquals(
+                1,
+                signUps.stream()
+                        .filter(signUp -> signUp.status() == RegistrationStatus.PENDING)
+                        .count());
+        var teamSignUp = signUps.stream()
+                .filter(signUp -> signUp.createdBy() != null)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The team should have signed somebody up past the rules"));
+        assertEquals(
+                2, eventRegistrationRepo.findLinkedToCourse(teamSignUp.id()).size());
+        assertTrue(signUps.stream()
+                .anyMatch(signUp ->
+                        eventRegistrationRepo.findLinkedToCourse(signUp.id()).size() == 4));
     }
 
     /**

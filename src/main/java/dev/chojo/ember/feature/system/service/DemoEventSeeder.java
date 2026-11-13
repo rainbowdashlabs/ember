@@ -111,7 +111,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
      * whoever manages the station. A guardian belongs to the appointment put on for guardians, not to
      * the Saturday drill, and a demo that restricts nothing never shows that the setting exists.
      */
-    private static final StationUserType[] JUGENDFEUERWEHR = {
+    static final StationUserType[] JUGENDFEUERWEHR = {
         StationUserType.MEMBER, StationUserType.TEAM, StationUserType.MANAGER
     };
 
