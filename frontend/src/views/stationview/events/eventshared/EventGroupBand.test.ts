@@ -27,10 +27,11 @@ describe('EventGroupBand', () => {
     expect(band.attributes('title')).toBe('Jugendflamme 1, Teil 2 von 4')
   })
 
-  it('paints the event group colour', () => {
+  it('paints the event group colour over the rounded border of the tile', () => {
     const band = mount(EventGroupBand, {props: {eventGroup: part}}).get('[data-testid="event-group-band"]')
 
-    expect(band.attributes('style')).toContain('background-color: #3694ff')
+    expect(band.classes()).toEqual(expect.arrayContaining(['-inset-px', 'overflow-hidden', 'rounded-theme']))
+    expect(band.get('span').attributes('style')).toContain('background-color: #3694ff')
   })
 
   it('stands in a line of text as a mark', () => {

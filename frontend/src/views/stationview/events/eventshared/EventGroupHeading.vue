@@ -43,8 +43,8 @@ const span = computed(() => {
 
 <template>
   <p
-      class="absolute inset-x-0 top-0 flex h-6 items-center gap-2 pl-5 pr-3 text-xs whitespace-nowrap"
-      :style="{backgroundColor: color, color: textColor, borderTopLeftRadius: 'inherit', borderTopRightRadius: 'inherit'}"
+      class="absolute -inset-x-px -top-px flex h-6 items-center gap-2 rounded-t-theme pl-5 pr-3 text-xs whitespace-nowrap"
+      :style="{backgroundColor: color, color: textColor}"
       data-testid="event-group-heading">
     <AppIcon :icon="['fas', 'graduation-cap']" class="shrink-0"/>
     <span class="min-w-0 truncate font-semibold">{{ eventGroup.eventGroupName }}</span>

@@ -26,7 +26,7 @@ defineProps<{
 </script>
 
 <template>
-  <div v-if="eventGroup" class="relative space-y-4 rounded-theme pl-5 pt-9" data-testid="event-group-frame">
+  <div v-if="eventGroup" class="relative space-y-4 rounded-theme border border-transparent pl-5 pt-9" data-testid="event-group-frame">
     <EventGroupBand :event-group="eventGroup"/>
     <EventGroupHeading :event-group="eventGroup" :to="to"/>
     <MutedText v-if="message" tag="p" size="sm">{{ message }}</MutedText>
