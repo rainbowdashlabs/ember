@@ -306,7 +306,7 @@ onMounted(loadData)
           :day-label="item.dayLabel"
           :category="categoryOf(item.event)"
           :answers="answersOn(item)"
-          :open-count="withoutAnswer(item).length"
+          :open-count="item.event.course ? 0 : withoutAnswer(item).length"
           :show-names="managed.length > 0"
           :busy="decliningBusy"
           :to="eventPage(item)"

@@ -41,6 +41,8 @@ import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
 import {useSession} from '@/composables/useSession'
 
 const props = defineProps<{
+  /** Whether the appointment is a part of a course, whose sign-up goes through the course. */
+  coursePart?: boolean
   event: StationEvent
   eventId: number
   fields: AppointmentField[]
@@ -166,6 +168,7 @@ const stillTakingAnswers = computed(() => {
  * this used to be on a date whose deadline had passed with nobody having answered.
  */
 const showAnswerBlock = computed(() => {
+  if (props.coursePart) return false
   if (!props.effectiveDate || props.cancellation) return false
   if (answers.value.length > 0) return true
   if (props.registrableMembers.length === 0) return true
@@ -350,6 +353,7 @@ const {failure: restoreFailure, run: restoreDate} = useAsyncAction(async () => {
 
     <EventRegistrationsTab
         v-show="activeTab === 'registrations'"
+        :course-part="coursePart"
         :event="event"
         :event-id="eventId"
         :current-member-id="currentMemberId"

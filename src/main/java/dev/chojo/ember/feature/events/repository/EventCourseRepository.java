@@ -448,6 +448,34 @@ public class EventCourseRepository {
     }
 
     /**
+     * The courses of a station members can still answer before a deadline: not called off, a
+     * deadline still ahead, and a part still to come.
+     *
+     * @param stationId the station
+     * @return those courses, soonest deadline first
+     */
+    public List<EventCourse> findOpenWithDeadline(int stationId) {
+        return query("""
+                SELECT %s
+                FROM event_course c
+                WHERE c.station_id = :station_id
+                  AND NOT c.cancelled
+                  AND c.registration_deadline IS NOT NULL
+                  AND c.registration_deadline > now()
+                  AND EXISTS (SELECT 1
+                              FROM station_event e
+                                       JOIN event_course_set cs ON cs.id = e.course_set_id
+                              WHERE cs.course_id = c.id
+                                AND e.start_time > now()
+                                AND NOT e.cancelled
+                                AND %s)
+                ORDER BY c.registration_deadline, c.id;""", "c." + EventCourse.COLUMNS.replace(", ", ", c."), CancellationSql.NO_DATE_CANCELLED)
+                .single(call().bind("station_id", stationId))
+                .map(EventCourse.map())
+                .all();
+    }
+
+    /**
      * Notes that managers were told that a course's sign-ups closed.
      *
      * @param courseId the course

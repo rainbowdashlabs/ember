@@ -10,6 +10,7 @@ import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.EventCreated;
 import dev.chojo.ember.feature.events.entity.EventCourse;
 import dev.chojo.ember.feature.events.entity.EventCourseDetails;
 import dev.chojo.ember.feature.events.entity.EventCourseSet;
@@ -45,6 +46,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 /**
  * Shaping a course like a Jugendflamme weekend: three practice days and a test, sorted into two
@@ -609,6 +614,87 @@ class EventCourseServiceTest extends RepositoryTestBase {
         assertEquals(2, byEvent.get(second.id()).course().count());
         assertEquals("Leistungsabzeichen", byEvent.get(first.id()).course().courseName());
         assertNull(byEvent.get(alone.id()).course());
+    }
+
+    @Test
+    void aPartCreatedFromTheCourseIsQuietAndTakesTheCoursesSignUp() {
+        var course = jugendflamme();
+        var bus = mock(DomainEventBus.class);
+        var factory = new EventCoursePartFactory(newEventServices(bus).crud(), service);
+        var start = LocalDate.now().plusDays(37).atTime(9, 0).toInstant(ZoneOffset.UTC);
+
+        var part = factory.create(
+                station.id(), course.id(), set(course, "Übung").id(), "Samstag", null, start, start.plusSeconds(28800));
+
+        var stored = eventRepo.findById(part.eventId()).orElseThrow();
+        assertEquals(course.id(), part.courseId());
+        assertTrue(stored.requiresRegistration());
+        assertTrue(stored.requiresConfirmation());
+        verify(bus, never()).publish(any(EventCreated.class));
+    }
+
+    @Test
+    void onlyCoursesStillOpenWithAPartToComeAwaitAnswers() {
+        var open = service.create(
+                otherStation.id(),
+                new EventCourseDetails("Offen", null, null, Instant.now().plus(Duration.ofDays(3)), false),
+                List.of(new EventCourseSetDraft(null, "Teile", 1)),
+                RestrictionAudience.empty(),
+                RestrictionAudience.empty());
+        var empty = service.create(
+                otherStation.id(),
+                new EventCourseDetails("Leer", null, null, Instant.now().plus(Duration.ofDays(3)), false),
+                List.of(new EventCourseSetDraft(null, "Teile", 1)),
+                RestrictionAudience.empty(),
+                RestrictionAudience.empty());
+        var day = appointment(otherStation, 50, StationEvent.EventType.ONE_TIME);
+        service.addPart(
+                otherStation.id(),
+                open.id(),
+                day.id(),
+                service.findSets(open.id()).getFirst().id());
+
+        var ids = service.findOpenWithDeadline(otherStation.id()).stream()
+                .map(EventCourse::id)
+                .toList();
+
+        assertTrue(ids.contains(open.id()));
+        assertFalse(ids.contains(empty.id()));
+    }
+
+    @Test
+    void savingFromTheEditorKeepsAllOrNothing() {
+        var course = jugendflamme();
+        var practice = set(course, "Übung");
+        var test = set(course, "Prüfung");
+        service.addPart(station.id(), course.id(), oneTime(51).id(), practice.id());
+
+        assertRefused(
+                EventRefusal.COURSE_SET_HOLDS_PARTS,
+                () -> service.save(
+                        station.id(),
+                        course.id(),
+                        details("Umbenannt", false),
+                        List.of(new EventCourseSetDraft(test.id(), "Prüfung", 1)),
+                        youth(),
+                        youth()));
+        assertEquals(
+                "Jugendflamme 1", courseRepo.findById(course.id()).orElseThrow().name());
+        assertTrue(service.viewAudience(course.id()).namesNobody());
+
+        service.save(
+                station.id(),
+                course.id(),
+                details("Umbenannt", false),
+                List.of(
+                        new EventCourseSetDraft(practice.id(), "Übung", 2),
+                        new EventCourseSetDraft(test.id(), "Prüfung", 1)),
+                youth(),
+                youth());
+        assertEquals("Umbenannt", courseRepo.findById(course.id()).orElseThrow().name());
+        assertEquals(
+                List.of(StationUserType.MEMBER),
+                service.viewAudience(course.id()).userTypes());
     }
 
     private static void assertRefused(Refusal refusal, Runnable call) {

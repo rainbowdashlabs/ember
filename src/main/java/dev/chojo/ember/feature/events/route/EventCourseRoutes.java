@@ -20,8 +20,10 @@ import dev.chojo.ember.feature.events.entity.EventCourseRegistration;
 import dev.chojo.ember.feature.events.entity.EventCourseSet;
 import dev.chojo.ember.feature.events.entity.EventCourseSetDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.route.EventRegistrationRoutes.AwaitingMember;
 import dev.chojo.ember.feature.events.service.CourseRules.SetResult;
 import dev.chojo.ember.feature.events.service.EventCourseCancellationService;
+import dev.chojo.ember.feature.events.service.EventCoursePartFactory;
 import dev.chojo.ember.feature.events.service.EventCourseRegistrationService;
 import dev.chojo.ember.feature.events.service.EventCourseRegistrationService.CourseStanding;
 import dev.chojo.ember.feature.events.service.EventCourseService;
@@ -43,9 +45,11 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -73,6 +77,7 @@ public class EventCourseRoutes implements Routes {
     private final MemberIdentityFactory identities;
     private final EventVisibility visibility;
     private final EventCourseCancellationService cancellation;
+    private final EventCoursePartFactory partFactory;
 
     @Inject
     public EventCourseRoutes(
@@ -81,18 +86,22 @@ public class EventCourseRoutes implements Routes {
             GuardianPolicy guardianPolicy,
             MemberIdentityFactory identities,
             EventVisibility visibility,
-            EventCourseCancellationService cancellation) {
+            EventCourseCancellationService cancellation,
+            EventCoursePartFactory partFactory) {
         this.courses = courses;
         this.signUps = signUps;
         this.guardianPolicy = guardianPolicy;
         this.identities = identities;
         this.visibility = visibility;
         this.cancellation = cancellation;
+        this.partFactory = partFactory;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/events/courses", this::list, StationPermission.USER, StationModule.EVENTS);
+        routes.get(
+                prefix + "/events/courses/awaiting", this::listAwaiting, StationPermission.USER, StationModule.EVENTS);
         routes.get(
                 prefix + "/events/{eventId}/course", this::courseOfEvent, StationPermission.USER, StationModule.EVENTS);
         routes.post(prefix + "/events/courses", this::create, StationPermission.EVENT_EDIT, StationModule.EVENTS);
@@ -104,6 +113,8 @@ public class EventCourseRoutes implements Routes {
         routes.put(
                 prefix + COURSE + "/audiences", this::setAudiences, StationPermission.EVENT_EDIT, StationModule.EVENTS);
         routes.post(prefix + COURSE + "/parts", this::addPart, StationPermission.EVENT_EDIT, StationModule.EVENTS);
+        routes.post(
+                prefix + COURSE + "/parts/new", this::createPart, StationPermission.EVENT_EDIT, StationModule.EVENTS);
         routes.put(
                 prefix + COURSE + "/parts/{eventId}",
                 this::movePart,
@@ -206,7 +217,7 @@ public class EventCourseRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/events/courses/{courseId}",
             methods = HttpMethod.PUT,
-            summary = "Change a course's details and sign-up",
+            summary = "Change a course's details and sign-up, and with them its sets and audiences where given",
             tags = {"Events"},
             pathParams = @OpenApiParam(name = "courseId", type = Integer.class, required = true),
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CourseDetailsRequest.class)),
@@ -217,7 +228,13 @@ public class EventCourseRoutes implements Routes {
     private void update(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(CourseDetailsRequest.class);
-        var course = courses.update(session.stationId(), pathInt(ctx, "courseId"), request.details());
+        var course = courses.save(
+                session.stationId(),
+                pathInt(ctx, "courseId"),
+                request.details(),
+                request.sets(),
+                request.registration(),
+                request.view());
         ctx.json(detailOf(session, course));
     }
 
@@ -316,6 +333,67 @@ public class EventCourseRoutes implements Routes {
         ctx.status(HttpStatus.CREATED)
                 .json(courses.addPart(
                         session.stationId(), pathInt(ctx, "courseId"), request.eventId(), request.setId()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/courses/{courseId}/parts/new",
+            methods = HttpMethod.POST,
+            summary = "Create a new one-time appointment straight into a course",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "courseId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CoursePartCreateRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = EventCoursePart.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void createPart(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var request = ctx.bodyAsClass(CoursePartCreateRequest.class);
+        if (request.name() == null || request.name().isBlank()) throw EventRefusal.COURSE_NAME_MISSING.raise();
+        if (request.startTime() == null || request.endTime() == null)
+            throw EventRefusal.COURSE_PART_NEEDS_TIMES.raise();
+        ctx.status(HttpStatus.CREATED)
+                .json(partFactory.create(
+                        session.stationId(),
+                        pathInt(ctx, "courseId"),
+                        request.setId(),
+                        request.name().strip(),
+                        request.description(),
+                        request.startTime(),
+                        request.endTime()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/courses/awaiting",
+            methods = HttpMethod.GET,
+            summary = "Courses still waiting on an answer from the reader or anyone they answer for",
+            tags = {"Events"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CourseAwaiting[].class)))
+    private void listAwaiting(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var household = guardianPolicy.household(session.user());
+        var permissions = session.user().permissions();
+        var awaiting = new ArrayList<CourseAwaiting>();
+        for (var course : courses.findOpenWithDeadline(session.stationId())) {
+            var answered = signUps.findByCourse(course.id()).stream()
+                    .map(EventCourseRegistration::memberId)
+                    .collect(Collectors.toSet());
+            var owing = household.stream()
+                    .filter(memberId -> !answered.contains(memberId))
+                    .filter(memberId -> courses.canSignUp(course.id(), memberId, permissions))
+                    .map(memberId -> new AwaitingMember(
+                            memberId,
+                            Objects.requireNonNullElse(
+                                    identities
+                                            .local(session.stationId(), memberId)
+                                            .name(),
+                                    "")))
+                    .toList();
+            if (!owing.isEmpty()) {
+                awaiting.add(new CourseAwaiting(course.id(), course.name(), course.registrationDeadline(), owing));
+            }
+        }
+        ctx.json(awaiting);
     }
 
     @OpenApi(
@@ -553,6 +631,7 @@ public class EventCourseRoutes implements Routes {
     private CourseSignUp signUpOf(int stationId, CourseStanding entry, boolean mayRegister) {
         var signUp = entry.signUp();
         return new CourseSignUp(
+                entry.memberId(),
                 identities.local(stationId, entry.memberId()),
                 signUp == null ? null : signUp.status(),
                 signUp == null ? null : signUp.registeredAt(),
@@ -622,6 +701,7 @@ public class EventCourseRoutes implements Routes {
     /**
      * One member's standing in a course.
      *
+     * @param memberId     the member's id, which sign-ups and decisions for them name
      * @param member       the member
      * @param status       the sign-up's status, or null where the member is not signed up
      * @param registeredAt when they signed up, or null
@@ -630,6 +710,7 @@ public class EventCourseRoutes implements Routes {
      * @param mayRegister  whether the member is one of the people the course takes
      */
     public record CourseSignUp(
+            int memberId,
             MemberIdentity member,
             @Nullable RegistrationStatus status,
             @Nullable Instant registeredAt,
@@ -651,8 +732,19 @@ public class EventCourseRoutes implements Routes {
             @Nullable RestrictionAudience registration,
             @Nullable RestrictionAudience view) {}
 
-    /** @param details what the course holds from now on */
-    public record CourseDetailsRequest(EventCourseDetails details) {}
+    /**
+     * A course saved from its editor. Sets and audiences left out stay as they are.
+     *
+     * @param details      what the course holds from now on
+     * @param sets         its sets in their new order, or null
+     * @param registration who may sign up, or null
+     * @param view         who may see it, or null
+     */
+    public record CourseDetailsRequest(
+            EventCourseDetails details,
+            @Nullable List<EventCourseSetDraft> sets,
+            @Nullable RestrictionAudience registration,
+            @Nullable RestrictionAudience view) {}
 
     /** @param sets the sets in their new order */
     public record CourseSetsRequest(@Nullable List<EventCourseSetDraft> sets) {}
@@ -686,6 +778,33 @@ public class EventCourseRoutes implements Routes {
      */
     public record CourseSignUpRequest(
             @Nullable Integer memberId, @Nullable List<Integer> parts) {}
+
+    /**
+     * A new appointment created straight into a course.
+     *
+     * @param setId       the set it goes into
+     * @param name        its name
+     * @param description what it is about, as Markdown, or null
+     * @param startTime   when it begins
+     * @param endTime     when it ends
+     */
+    public record CoursePartCreateRequest(
+            int setId,
+            String name,
+            @Nullable String description,
+            @Nullable Instant startTime,
+            @Nullable Instant endTime) {}
+
+    /**
+     * A course still waiting on an answer, and everybody in the household who owes one.
+     *
+     * @param courseId             the course
+     * @param name                 its name
+     * @param registrationDeadline when sign-ups close
+     * @param members              who still owes an answer
+     */
+    public record CourseAwaiting(
+            int courseId, String name, @Nullable Instant registrationDeadline, List<AwaitingMember> members) {}
 
     /** @param reason why the course is called off, as told to the people signed up, or null */
     public record CourseCancelRequest(@Nullable String reason) {}

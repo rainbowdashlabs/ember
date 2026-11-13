@@ -120,6 +120,33 @@ public class EventCourseService {
     }
 
     /**
+     * Saves everything the course editor holds in one go: details, then sets, then audiences. Either
+     * all of it is kept or, where any part is refused, none of it.
+     *
+     * @param stationId    the station asking
+     * @param courseId     the course
+     * @param details      what the course holds
+     * @param sets         its sets in their new order, or null to leave them
+     * @param registration who may sign up, or null to leave it
+     * @param view         who may see it, or null to leave it
+     * @return the course as it is now
+     */
+    public EventCourse save(
+            int stationId,
+            int courseId,
+            EventCourseDetails details,
+            @Nullable List<EventCourseSetDraft> sets,
+            @Nullable RestrictionAudience registration,
+            @Nullable RestrictionAudience view) {
+        return Transactions.call(() -> {
+            var course = update(stationId, courseId, details);
+            if (sets != null) replaceSets(stationId, courseId, sets);
+            if (registration != null && view != null) setAudiences(stationId, courseId, registration, view);
+            return courses.findById(courseId).orElse(course);
+        });
+    }
+
+    /**
      * Replaces the sets of a course: drafts with an id change that set, drafts without one add a
      * set, and sets left out are removed, which a set still holding parts refuses.
      *
@@ -296,6 +323,16 @@ public class EventCourseService {
         return courses.findById(courseId)
                 .filter(course -> course.stationId() == stationId)
                 .orElseThrow(EventRefusal.COURSE_NOT_HERE::raise);
+    }
+
+    /**
+     * The courses of a station members can still answer before a deadline.
+     *
+     * @param stationId the station
+     * @return those courses, soonest deadline first
+     */
+    public List<EventCourse> findOpenWithDeadline(int stationId) {
+        return courses.findOpenWithDeadline(stationId);
     }
 
     /**

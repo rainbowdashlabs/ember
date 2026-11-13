@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.events.entity.EventCourseRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCourseCancellationService;
+import dev.chojo.ember.feature.events.service.EventCoursePartFactory;
 import dev.chojo.ember.feature.events.service.EventCourseRegistrationService;
 import dev.chojo.ember.feature.events.service.EventCourseRegistrationService.CourseStanding;
 import dev.chojo.ember.feature.events.service.EventCourseService;
@@ -64,6 +65,7 @@ class EventCourseRoutesTest {
     private GuardianPolicy guardians;
     private EventVisibility visibility;
     private EventCourseCancellationService cancellation;
+    private EventCoursePartFactory partFactory;
     private RouteHarness harness;
 
     @BeforeEach
@@ -110,8 +112,9 @@ class EventCourseRoutesTest {
         });
         visibility = mock(EventVisibility.class);
         cancellation = mock(EventCourseCancellationService.class);
+        partFactory = mock(EventCoursePartFactory.class);
         harness = RouteHarness.serving(
-                new EventCourseRoutes(courses, signUps, guardians, identities, visibility, cancellation));
+                new EventCourseRoutes(courses, signUps, guardians, identities, visibility, cancellation, partFactory));
     }
 
     private Response call(String method, String path, String json, StationPermission... permissions) {
@@ -354,5 +357,74 @@ class EventCourseRoutesTest {
                 call("POST", COURSE + "/cancel", "{\"reason\": \"Krank\"}", StationPermission.EVENT_EDIT)
                         .code());
         verify(cancellation).cancel(STATION_ID, COURSE_ID, "Krank", TestSessions.MEMBER_ID);
+    }
+
+    @Test
+    void whoeverEditsAppointmentsCreatesAPartStraightIntoTheCourse() {
+        String part = """
+                {"setId": 5, "name": "Samstag", "startTime": "2027-03-06T08:00:00Z",
+                 "endTime": "2027-03-06T16:00:00Z"}""";
+        when(partFactory.create(eq(STATION_ID), eq(COURSE_ID), eq(5), eq("Samstag"), isNull(), any(), any()))
+                .thenReturn(new EventCoursePart(101, 5, COURSE_ID));
+
+        assertEquals(
+                403,
+                call("POST", COURSE + "/parts/new", part, StationPermission.USER)
+                        .code());
+        assertEquals(
+                201,
+                call("POST", COURSE + "/parts/new", part, StationPermission.EVENT_EDIT)
+                        .code());
+    }
+
+    @Test
+    void aCourseStillOwedAnAnswerNamesWhoOwesIt() {
+        var open = new EventCourse(
+                COURSE_ID,
+                STATION_ID,
+                "Jugendflamme 1",
+                null,
+                null,
+                Instant.now().plusSeconds(3600),
+                false,
+                RestrictionMode.AND,
+                RestrictionMode.AND,
+                false,
+                null,
+                null);
+        when(courses.findOpenWithDeadline(STATION_ID)).thenReturn(List.of(open));
+        when(guardians.household(any())).thenReturn(List.of(TestSessions.MEMBER_ID, CHILD_ID));
+        when(signUps.findByCourse(COURSE_ID))
+                .thenReturn(List.of(new EventCourseRegistration(
+                        1, COURSE_ID, TestSessions.MEMBER_ID, RegistrationStatus.WITHDRAWN, Instant.now(), null)));
+
+        var awaiting = json(call("GET", PREFIX + "/events/courses/awaiting", null, StationPermission.USER));
+
+        assertEquals(1, awaiting.size());
+        assertEquals(1, awaiting.get(0).get("members").size());
+    }
+
+    @Test
+    void aNewPartWithoutTimesIsRefused() {
+        var response = call(
+                "POST", COURSE + "/parts/new", "{\"setId\": 5, \"name\": \"Samstag\"}", StationPermission.EVENT_EDIT);
+
+        assertEquals(EventRefusal.COURSE_PART_NEEDS_TIMES, refusalOf(response));
+    }
+
+    @Test
+    void savingTheEditorHandsSetsAndAudiencesOnInOneCall() {
+        String body = """
+                {"details": {"name": "Jugendflamme 1", "requiresConfirmation": false},
+                 "sets": [{"name": "Übung", "minimum": 2}],
+                 "registration": {"userTypes": [], "groupIds": [], "tagIds": [], "memberIds": [], "mode": "AND"},
+                 "view": {"userTypes": [], "groupIds": [], "tagIds": [], "memberIds": [], "mode": "AND"}}""";
+        var course = courses.requireCourse(STATION_ID, COURSE_ID);
+        when(courses.save(eq(STATION_ID), eq(COURSE_ID), any(), any(), any(), any()))
+                .thenReturn(course);
+
+        assertEquals(
+                200, call("PUT", COURSE, body, StationPermission.EVENT_EDIT).code());
+        verify(courses).save(eq(STATION_ID), eq(COURSE_ID), any(), any(), any(), any());
     }
 }

@@ -44,6 +44,11 @@ defineProps<{
   allMembers?: MemberLike[]
   groupMembers?: Map<number, MemberLike[]>
   tagMembers?: Map<number, MemberLike[]>
+  /**
+   * Whether the appointment is a part of a course. The course decides its sign-up and its
+   * audiences, and it stays a one-time appointment, so those settings are left out here.
+   */
+  coursePart?: boolean
 }>()
 
 const name = defineModel<string>('name', {required: true})
@@ -119,7 +124,7 @@ const labelId = useId()
 
     <template v-if="showSchedule && eventType !== undefined">
       <hr class="border-(--border)"/>
-      <div class="space-y-2">
+      <div v-if="!coursePart" class="space-y-2">
         <FieldLabel>{{ t('events.type') }}</FieldLabel>
         <ToggleSwitch
             :model-value="eventType === EventType.ONE_TIME ? 'onetime' : 'recurring'"
@@ -168,7 +173,7 @@ const labelId = useId()
 
     <slot name="after-schedule" />
 
-    <template v-if="requiresRegistration !== undefined">
+    <template v-if="requiresRegistration !== undefined && !coursePart">
       <hr class="border-(--border)"/>
       <SubHeader>{{ t('events.registration') }}</SubHeader>
 
@@ -219,7 +224,7 @@ const labelId = useId()
       </template>
     </template>
 
-    <template v-if="groups && tags">
+    <template v-if="groups && tags && !coursePart">
       <hr class="border-(--border)"/>
       <SubHeader>{{ t('events.restrictions') }}</SubHeader>
 

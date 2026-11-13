@@ -19015,6 +19015,27 @@
         }
       }
     },
+    "/api/v1/events/courses/awaiting" : {
+      "get" : {
+        "summary" : "Courses still waiting on an answer from the reader or anyone they answer for",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CourseAwaiting"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/courses/{courseId}" : {
       "get" : {
         "summary" : "A course with its sets, parts and the reader's sign-ups",
@@ -19052,7 +19073,7 @@
         } ]
       },
       "put" : {
-        "summary" : "Change a course's details and sign-up",
+        "summary" : "Change a course's details and sign-up, and with them its sets and audiences where given",
         "tags" : [ "Events" ],
         "responses" : {
           "200" : {
@@ -19256,6 +19277,52 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/CoursePartRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/courses/{courseId}/parts/new" : {
+      "post" : {
+        "summary" : "Create a new one-time appointment straight into a course",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventCoursePart"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CoursePartCreateRequest"
               }
             }
           }
@@ -57797,6 +57864,32 @@
           }
         }
       },
+      "CourseAwaiting" : {
+        "type" : "object",
+        "properties" : {
+          "courseId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "registrationDeadline" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "members" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AwaitingMember"
+            }
+          }
+        },
+        "required" : [ "courseId", "name", "registrationDeadline", "members" ]
+      },
       "CourseCancelRequest" : {
         "type" : "object",
         "properties" : {
@@ -57879,6 +57972,55 @@
         "properties" : {
           "details" : {
             "$ref" : "#/components/schemas/EventCourseDetails"
+          },
+          "sets" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/EventCourseSetDraft"
+            }
+          },
+          "registration" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionAudience"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "view" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionAudience"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
+      },
+      "CoursePartCreateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "setId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "startTime" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "endTime" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -57946,6 +58088,10 @@
       "CourseSignUp" : {
         "type" : "object",
         "properties" : {
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
           "member" : {
             "$ref" : "#/components/schemas/MemberIdentity"
           },
@@ -57980,7 +58126,7 @@
             "type" : "boolean"
           }
         },
-        "required" : [ "member", "status", "registeredAt", "parts", "sets", "mayRegister" ]
+        "required" : [ "memberId", "member", "status", "registeredAt", "parts", "sets", "mayRegister" ]
       },
       "CourseSignUpRequest" : {
         "type" : "object",

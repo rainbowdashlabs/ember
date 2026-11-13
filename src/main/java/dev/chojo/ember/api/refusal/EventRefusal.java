@@ -787,7 +787,11 @@ public enum EventRefusal implements Refusal {
 
     /** A date of a part brought back while its whole course stays called off. */
     COURSE_PART_STAYS_CANCELLED(
-            214, HttpStatus.CONFLICT, "The course this appointment belongs to was called off, its dates stay off");
+            214, HttpStatus.CONFLICT, "The course this appointment belongs to was called off, its dates stay off"),
+
+    /** A new part of a course without a start or an end. */
+    COURSE_PART_NEEDS_TIMES(
+            215, HttpStatus.BAD_REQUEST, "A new appointment needs a start and an end, nothing was saved");
 
     private final Definition definition;
 

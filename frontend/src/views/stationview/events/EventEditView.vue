@@ -15,16 +15,18 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
-import {events} from '@/api'
+import {eventCourses, events} from '@/api'
 import {
   EditScopeKind,
   EventChangePart,
   StationPermission,
   type ChangeNotice,
+  type CoursePartSummary,
   type EventAttachment,
   type RegistrationFieldDefinition,
 } from '@/api/generated/schema'
 import {isRecurringEvent} from '@/api/events'
+import CoursePartNotice from './eventshared/CoursePartNotice.vue'
 import {todayIsoDate} from '@/util/format'
 import EventEditBody from './eventeditview/EventEditBody.vue'
 import {useEventForm} from './eventeditview/useEventForm'
@@ -66,6 +68,7 @@ const canFederate = computed(() => hasPermission(StationPermission.EVENTS_FEDERA
 const savedInto = ref<number | null>(null)
 const eventId = computed(() => savedInto.value ?? (route.params.id ? Number(route.params.id) : null))
 const isEdit = computed(() => eventId.value !== null)
+const coursePart = ref<CoursePartSummary | null>(null)
 
 const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 
@@ -212,6 +215,7 @@ const {loading, failure} = useAsyncLoader(async () => {
     if (isEdit.value) {
       await Promise.all([
         form.loadEvent(eventId.value!),
+        eventCourses.courseOfEvent(eventId.value!).then(part => { coursePart.value = part }).catch(() => {}),
         fieldDefaults.load(eventFieldDefaultsPort(eventId.value!)),
         federationShare.load(eventFederationPort(eventId.value!)),
         loadRegistrationFields(eventId.value!),
@@ -376,6 +380,7 @@ const bodyProps = computed(() => ({
   saving: saving.value || confirming.value,
   canFederate: canFederate.value,
   federationNote: federationNote.value,
+  coursePart: coursePart.value !== null,
   ...data.props.value,
   ...fieldDefaults.props.value,
   ...federationShare.props.value,
@@ -408,6 +413,7 @@ const bodyHandlers = {
       <FailureAlert v-if="refused" :message="refused" expected/>
       <FailureAlert v-else :failure="failure ?? saveFailure ?? confirmFailure"/>
       <Alert v-if="templateAppliedMessage" variant="success">{{ templateAppliedMessage }}</Alert>
+      <CoursePartNotice v-if="coursePart" :course="coursePart" :message="t('courses.lockedByCourse')"/>
 
       <EventEditBody
           v-if="!loading"

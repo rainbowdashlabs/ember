@@ -27250,7 +27250,7 @@ export interface paths {
                 };
             };
         };
-        /** Change a course's details and sign-up */
+        /** Change a course's details and sign-up, and with them its sets and audiences where given */
         put: {
             parameters: {
                 query?: never;
@@ -27557,6 +27557,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/courses/{courseId}/parts/new": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a new one-time appointment straight into a course */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    courseId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CoursePartCreateRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventCoursePart"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/courses/{courseId}/sets": {
         parameters: {
             query?: never;
@@ -27819,6 +27870,42 @@ export interface paths {
                 };
             };
         };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/courses/awaiting": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Courses still waiting on an answer from the reader or anyone they answer for */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CourseAwaiting"][];
+                    };
+                };
+            };
+        };
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -68668,6 +68755,13 @@ export interface components {
             registration?: components["schemas"]["RestrictionAudience"] | null;
             view?: components["schemas"]["RestrictionAudience"] | null;
         };
+        CourseAwaiting: {
+            /** Format: int32 */
+            courseId: number;
+            members: components["schemas"]["AwaitingMember"][];
+            name: string;
+            registrationDeadline: components["schemas"]["Instant"] | null;
+        };
         CourseCancelRequest: {
             reason?: string | null;
         };
@@ -68690,6 +68784,17 @@ export interface components {
         };
         CourseDetailsRequest: {
             details?: components["schemas"]["EventCourseDetails"];
+            registration?: components["schemas"]["RestrictionAudience"] | null;
+            sets?: components["schemas"]["EventCourseSetDraft"][] | null;
+            view?: components["schemas"]["RestrictionAudience"] | null;
+        };
+        CoursePartCreateRequest: {
+            description?: string | null;
+            endTime?: components["schemas"]["Instant"] | null;
+            name?: string;
+            /** Format: int32 */
+            setId?: number;
+            startTime?: components["schemas"]["Instant"] | null;
         };
         CoursePartMoveRequest: {
             /** Format: int32 */
@@ -68719,6 +68824,8 @@ export interface components {
         CourseSignUp: {
             mayRegister: boolean;
             member: components["schemas"]["MemberIdentity"];
+            /** Format: int32 */
+            memberId: number;
             parts: number[];
             registeredAt: components["schemas"]["Instant"] | null;
             sets: components["schemas"]["SetResult"][];
@@ -79559,11 +79666,13 @@ export type CountdownConfig = components['schemas']['CountdownConfig'];
 export type CountResponse = components['schemas']['CountResponse'];
 export type CountUnit = components['schemas']['CountUnit'];
 export type CourseAudiences = components['schemas']['CourseAudiences'];
+export type CourseAwaiting = components['schemas']['CourseAwaiting'];
 export type CourseCancelRequest = components['schemas']['CourseCancelRequest'];
 export type CourseCreateRequest = components['schemas']['CourseCreateRequest'];
 export type CourseDecisionRequest = components['schemas']['CourseDecisionRequest'];
 export type CourseDetail = components['schemas']['CourseDetail'];
 export type CourseDetailsRequest = components['schemas']['CourseDetailsRequest'];
+export type CoursePartCreateRequest = components['schemas']['CoursePartCreateRequest'];
 export type CoursePartMoveRequest = components['schemas']['CoursePartMoveRequest'];
 export type CoursePartRequest = components['schemas']['CoursePartRequest'];
 export type CoursePartSummary = components['schemas']['CoursePartSummary'];

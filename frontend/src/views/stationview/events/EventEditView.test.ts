@@ -40,6 +40,7 @@ const api = vi.hoisted(() => ({
         listEventAttachments: vi.fn(),
         attachEventFile: vi.fn(),
     },
+    eventCourses: {courseOfEvent: vi.fn(async () => null)},
     federation: {listPartners: vi.fn()},
     appointmentDocuments: {offeredTemplates: vi.fn(), listRequirements: vi.fn()},
 }))

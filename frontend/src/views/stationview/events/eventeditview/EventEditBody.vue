@@ -50,6 +50,8 @@ const props = defineProps<{
   partners: PartnerResponse[]
   /** What the share card says about an applied template's share it could not take over as it was. */
   federationNote?: string
+  /** Whether the appointment is a part of a course, which owns its sign-up, audiences and sharing. */
+  coursePart?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -131,9 +133,11 @@ const canSubmit = computed(() => !props.saving && !!name.value && !!startTime.va
       :tags="props.tags"
       :all-members="props.allMembers"
       :group-members="props.groupMembers"
+      :course-part="props.coursePart"
   />
 
   <FederationCard
+      v-if="!props.coursePart"
       v-model:shared="federationShared"
       v-model:scope="federationScope"
       v-model:partner-ids="federationPartnerIds"
@@ -151,7 +155,7 @@ const canSubmit = computed(() => !props.saving && !!name.value && !!startTime.va
       @update:value="(fieldId, value) => emit('update:fieldDefaultValue', fieldId, value)"
   />
 
-  <RegistrationFieldsEditor v-if="requiresRegistration" v-model="registrationFields" :all-members="props.allMembers"/>
+  <RegistrationFieldsEditor v-if="requiresRegistration && !props.coursePart" v-model="registrationFields" :all-members="props.allMembers"/>
 
   <ButtonRow pair align="end">
     <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>

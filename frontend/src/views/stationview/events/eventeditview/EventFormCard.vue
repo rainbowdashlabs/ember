@@ -26,6 +26,8 @@ defineProps<{
   tags: UserTag[]
   allMembers: MemberLike[]
   groupMembers: Map<number, MemberLike[]>
+  /** Whether the appointment is a part of a course, which owns its sign-up and audiences. */
+  coursePart?: boolean
 }>()
 
 const name = defineModel<string>('name', {required: true})
@@ -83,6 +85,7 @@ const reminders = defineModel<number[]>('reminders', {required: true})
         :tags="tags"
         :all-members="allMembers"
         :group-members="groupMembers"
+        :course-part="coursePart"
         show-schedule
         show-value
     >

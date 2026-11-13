@@ -10,6 +10,7 @@ import {useEventRoutes} from '@/composables/useEventRoutes'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
+import CoursePartBadge from '../eventshared/CoursePartBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -109,6 +110,7 @@ const detailRoute = computed(() => {
         </SecondaryBadge>
         <span class="font-medium text-primary" :class="{'line-through': item.cancellation}">{{ item.event.name }}</span>
         <ErrorBadge v-if="item.cancellation" data-testid="event-entry-cancelled">{{ t('events.cancelled') }}</ErrorBadge>
+        <CoursePartBadge v-if="item.event.course" :course="item.event.course"/>
         <MutedIcon v-if="item.event.restricted" :icon="['fas', 'lock']" class="ml-1"/>
         <span class="text-sm text-(--text-muted)">{{ when }}</span>
         <span v-if="dateNote" class="text-sm text-(--text-muted)">{{ dateNote }}</span>
