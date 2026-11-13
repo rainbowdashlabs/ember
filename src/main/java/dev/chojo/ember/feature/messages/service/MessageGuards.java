@@ -6,14 +6,17 @@
 package dev.chojo.ember.feature.messages.service;
 
 import dev.chojo.ember.api.refusal.MessageRefusal;
+import dev.chojo.ember.feature.messages.entity.Conversation;
 import dev.chojo.ember.feature.messages.entity.Membership;
 import dev.chojo.ember.feature.messages.entity.Message;
 import dev.chojo.ember.feature.messages.entity.Participation;
 import dev.chojo.ember.feature.messages.entity.Person;
+import dev.chojo.ember.feature.messages.entity.StationScope;
 import dev.chojo.ember.feature.messages.repository.AccountBlockRepository;
 import dev.chojo.ember.feature.messages.repository.ConversationRepository;
 import dev.chojo.ember.feature.messages.repository.MessagePeopleRepository;
 import dev.chojo.ember.feature.messages.repository.MessageRepository;
+import dev.chojo.ember.feature.messages.repository.StationChatRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -32,13 +35,16 @@ public class MessageGuards {
     private final ConversationRepository conversations;
     private final MessageRepository messages;
     private final AccountBlockRepository blocks;
+    private final StationChatRepository stationChats;
 
     @Inject
     public MessageGuards(
             MessagePeopleRepository people,
             ConversationRepository conversations,
             MessageRepository messages,
-            AccountBlockRepository blocks) {
+            AccountBlockRepository blocks,
+            StationChatRepository stationChats) {
+        this.stationChats = stationChats;
         this.people = people;
         this.conversations = conversations;
         this.messages = messages;
@@ -86,6 +92,44 @@ public class MessageGuards {
                 .filter(message ->
                         message.conversationId() == participation.conversation().id())
                 .orElseThrow(MessageRefusal.MESSAGE_NOT_HERE::raise);
+    }
+
+    /**
+     * Refuses anything new in a closed station chat: messages, changes to them and reactions. A
+     * closed chat stays readable, and one's own messages can still be deleted.
+     *
+     * @param participation the reader in the conversation
+     */
+    public void requireOpen(Participation participation) {
+        StationScope scope = participation.conversation().station();
+        if (scope != null && scope.closed()) throw MessageRefusal.CHAT_CLOSED.raise();
+    }
+
+    /**
+     * The same, asked again inside the transaction that writes, and holding a close back until that
+     * transaction ends. Without it a message could land after a close that was committed between the
+     * first look and the write.
+     *
+     * @param participation the reader in the conversation
+     */
+    public void requireStillOpen(Participation participation) {
+        Conversation conversation = participation.conversation();
+        if (conversation.isStation() && stationChats.closedNow(conversation.id())) {
+            throw MessageRefusal.CHAT_CLOSED.raise();
+        }
+    }
+
+    /**
+     * The same for sending, which touches the chat's row afterwards: the row is locked the way that
+     * touch locks it, so senders queue on it instead of waiting on each other.
+     *
+     * @param participation the writer in the conversation
+     */
+    public void requireStillOpenForSending(Participation participation) {
+        Conversation conversation = participation.conversation();
+        if (conversation.isStation() && stationChats.closedNowForSending(conversation.id())) {
+            throw MessageRefusal.CHAT_CLOSED.raise();
+        }
     }
 
     /**

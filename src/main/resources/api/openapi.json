@@ -34080,6 +34080,16 @@
           "204" : {
             "description" : "No Content"
           },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
           "404" : {
             "description" : "Not Found",
             "content" : {
@@ -34139,6 +34149,16 @@
           },
           "404" : {
             "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -34434,6 +34454,16 @@
                 }
               }
             }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
           }
         },
         "parameters" : [ {
@@ -34479,6 +34509,16 @@
           },
           "404" : {
             "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -34899,6 +34939,310 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/messages/station-chats" : {
+      "post" : {
+        "summary" : "Open a chat for the whole station, a group or a tag",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationChatResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OpenStationChatRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "The station's chats, the open ones first",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StationChatResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/messages/station-chats/{conversationUid}/close" : {
+      "post" : {
+        "summary" : "Close one of the station's chats; it stays readable and takes nothing new",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "conversationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ]
+      }
+    },
+    "/api/v1/messages/station-chats/{conversationUid}/guardians" : {
+      "put" : {
+        "summary" : "Take the guardians of a group or tag chat's people in, or leave them out",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "conversationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StationChatGuardiansRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/messages/station-chats/{conversationUid}/name" : {
+      "put" : {
+        "summary" : "Rename one of the station's chats",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "conversationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StationChatNameRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/messages/station-chats/{conversationUid}/reopen" : {
+      "post" : {
+        "summary" : "Open a closed chat of the station again",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "conversationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ]
       }
     },
     "/api/v1/messages/status" : {
@@ -55122,6 +55466,10 @@
         },
         "required" : [ "version", "body", "releasedAt", "compareUrl" ]
       },
+      "ChatAudience" : {
+        "type" : "string",
+        "enum" : [ "STATION", "GROUP", "TAG" ]
+      },
       "CheckItemResult" : {
         "type" : "object",
         "properties" : {
@@ -56672,9 +57020,15 @@
           },
           "joinedAt" : {
             "$ref" : "#/components/schemas/Instant"
+          },
+          "guardianFor" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
           }
         },
-        "required" : [ "uid", "firstName", "lastName", "joinedAt" ]
+        "required" : [ "uid", "firstName", "lastName", "joinedAt", "guardianFor" ]
       },
       "ConversationMessagePage" : {
         "type" : "object",
@@ -56857,9 +57211,16 @@
           "lastReadMessageId" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "station" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/StationChatInfo"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "uid", "kind", "name", "ownerUid", "members", "muted", "lastReadMessageId" ]
+        "required" : [ "uid", "kind", "name", "ownerUid", "members", "muted", "lastReadMessageId", "station" ]
       },
       "ConversationSummaryResponse" : {
         "type" : "object",
@@ -56896,9 +57257,16 @@
           },
           "muted" : {
             "type" : "boolean"
+          },
+          "station" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/StationChatInfo"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "uid", "kind", "name", "others", "newest", "lastActivityAt", "unread", "muted" ]
+        "required" : [ "uid", "kind", "name", "others", "newest", "lastActivityAt", "unread", "muted", "station" ]
       },
       "ConversionStatus" : {
         "type" : "string",
@@ -72119,6 +72487,32 @@
         },
         "required" : [ "fieldId", "requestUid", "documentId", "documentTitle", "memberName", "purpose", "fieldName", "role", "capacity", "memberId", "signerName", "statement" ]
       },
+      "OpenStationChatRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "audience" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ChatAudience"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "groupId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "tagId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "includeGuardians" : {
+            "type" : [ "boolean", "null" ]
+          }
+        }
+      },
       "Option" : {
         "type" : "object",
         "properties" : {
@@ -82175,6 +82569,91 @@
           }
         },
         "required" : [ "serialNumber", "subject", "sha256Fingerprint", "validFrom", "validUntil", "authoritySerialNumber", "revokedAt" ]
+      },
+      "StationChatGuardiansRequest" : {
+        "type" : "object",
+        "properties" : {
+          "includeGuardians" : {
+            "type" : [ "boolean", "null" ]
+          }
+        }
+      },
+      "StationChatInfo" : {
+        "type" : "object",
+        "properties" : {
+          "stationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "audience" : {
+            "$ref" : "#/components/schemas/ChatAudience"
+          },
+          "includeGuardians" : {
+            "type" : "boolean"
+          },
+          "closed" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "stationUid", "stationName", "audience", "includeGuardians", "closed" ]
+      },
+      "StationChatNameRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
+      "StationChatResponse" : {
+        "type" : "object",
+        "properties" : {
+          "uid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "audience" : {
+            "$ref" : "#/components/schemas/ChatAudience"
+          },
+          "groupId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "tagId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "audienceName" : {
+            "type" : [ "string", "null" ]
+          },
+          "includeGuardians" : {
+            "type" : "boolean"
+          },
+          "members" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "lastActivityAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "closedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "uid", "name", "audience", "groupId", "tagId", "audienceName", "includeGuardians", "members", "createdAt", "lastActivityAt", "closedAt" ]
       },
       "StationClusterResponse" : {
         "type" : "object",

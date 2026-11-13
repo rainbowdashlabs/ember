@@ -11,6 +11,8 @@ import dev.chojo.ember.feature.messages.repository.ConversationRepository;
 import dev.chojo.ember.feature.messages.repository.MessagePeopleRepository;
 import dev.chojo.ember.feature.messages.repository.MessageRepository;
 import dev.chojo.ember.feature.messages.repository.ReactionRepository;
+import dev.chojo.ember.feature.messages.repository.StationChatRepository;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 
 import java.util.Set;
 
@@ -26,6 +28,8 @@ import java.util.Set;
  * @param blocks        blocking
  * @param settings      status, the mail setting and finding people
  * @param guards        the access decisions
+ * @param membership    the reconciliation of station chats with their audience
+ * @param stationChats  opening and handling station chats
  */
 public record MessageFixtures(
         MessageSignals signals,
@@ -35,7 +39,9 @@ public record MessageFixtures(
         ReactionService reactions,
         BlockService blocks,
         MessageSettingsService settings,
-        MessageGuards guards) {
+        MessageGuards guards,
+        StationChatMembership membership,
+        StationChatService stationChats) {
 
     /**
      * Every message service, freshly built.
@@ -47,18 +53,22 @@ public record MessageFixtures(
         var messageRepo = new MessageRepository();
         var peopleRepo = new MessagePeopleRepository();
         var blockRepo = new AccountBlockRepository();
-        var guards = new MessageGuards(peopleRepo, conversationRepo, messageRepo, blockRepo);
+        var stationChatRepo = new StationChatRepository();
+        var guards = new MessageGuards(peopleRepo, conversationRepo, messageRepo, blockRepo, stationChatRepo);
         var signals = new MessageSignals(conversationRepo);
         var views = new MessageViews(messageRepo, new ReactionRepository());
+        var membership = new StationChatMembership(stationChatRepo, conversationRepo, messageRepo, new TaskScheduler());
         return new MessageFixtures(
                 signals,
-                new ConversationService(conversationRepo, messageRepo, guards, signals),
+                new ConversationService(conversationRepo, messageRepo, guards, signals, stationChatRepo),
                 new GroupService(conversationRepo, messageRepo, guards, signals),
                 new MessageService(conversationRepo, messageRepo, guards, views, signals),
                 new ReactionService(new ReactionRepository(), guards, views, signals),
                 new BlockService(blockRepo, peopleRepo, guards),
                 new MessageSettingsService(peopleRepo, conversationRepo, guards, new DomainEventBus(Set.of())),
-                guards);
+                guards,
+                membership,
+                new StationChatService(stationChatRepo, conversationRepo, messageRepo, membership));
     }
 
     /**

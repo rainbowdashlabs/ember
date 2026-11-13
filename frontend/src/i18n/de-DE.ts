@@ -4633,8 +4633,8 @@ export default {
             desc: 'Kann die Stationsstatistiken einsehen.',
         },
         MESSAGE_CHAT_MANAGE: {
-            label: 'Stationschats verwalten',
-            desc: 'Kann Chats für die ganze Station, eine Gruppe oder einen Tag eröffnen, umbenennen und schließen, jede Nachricht darin entfernen und gemeldete Nachrichten bearbeiten.',
+            label: 'Wachenchats verwalten',
+            desc: 'Kann Chats für die ganze Wache, eine Gruppe oder einen Tag eröffnen, umbenennen und schließen, jede Nachricht darin entfernen und gemeldete Nachrichten bearbeiten.',
         },
         PAGE_MANAGER: {
             label: 'Seiten verwalten',

@@ -93,7 +93,8 @@ class StationChatMembershipTest extends MessageTestBase {
         UserTag tag = userTagRepo.create(station.id(), "Atemschutz");
         userTagRepo.addMember(tag.id(), member(anna).id());
         userTagRepo.addMember(tag.id(), member(trial).id());
-        Conversation chat = chats.create(station.id(), "Atemschutz", ChatAudience.TAG, null, tag.id(), false);
+        Conversation chat = chats.create(station.id(), "Atemschutz", ChatAudience.TAG, null, tag.id(), false)
+                .orElseThrow();
 
         membership.reconcile(station.id());
 
@@ -181,7 +182,8 @@ class StationChatMembershipTest extends MessageTestBase {
         guard(member(parent), waiting);
         UserTag tag = userTagRepo.create(station.id(), "Bambini");
         userTagRepo.addMember(tag.id(), waiting.id());
-        Conversation chat = chats.create(station.id(), "Bambini", ChatAudience.TAG, null, tag.id(), true);
+        Conversation chat = chats.create(station.id(), "Bambini", ChatAudience.TAG, null, tag.id(), true)
+                .orElseThrow();
 
         membership.reconcile(station.id());
 
@@ -272,7 +274,8 @@ class StationChatMembershipTest extends MessageTestBase {
     @Test
     void aChatWhoseTagIsDeletedIsClosedToo() {
         UserTag tag = userTagRepo.create(station.id(), "Atemschutz");
-        Conversation chat = chats.create(station.id(), "Atemschutz", ChatAudience.TAG, null, tag.id(), false);
+        Conversation chat = chats.create(station.id(), "Atemschutz", ChatAudience.TAG, null, tag.id(), false)
+                .orElseThrow();
 
         userTagRepo.delete(tag.id());
         membership.reconcile(station.id());
@@ -422,7 +425,8 @@ class StationChatMembershipTest extends MessageTestBase {
         Conversation broken = stationWide();
         UserTag tag = userTagRepo.create(station.id(), "Alle");
         userTagRepo.addMember(tag.id(), member(anna).id());
-        Conversation working = chats.create(station.id(), "Alle", ChatAudience.TAG, null, tag.id(), false);
+        Conversation working = chats.create(station.id(), "Alle", ChatAudience.TAG, null, tag.id(), false)
+                .orElseThrow();
         var failing = spy(chats);
         doThrow(new IllegalStateException("broken")).when(failing).audience(broken.id());
 
@@ -448,11 +452,13 @@ class StationChatMembershipTest extends MessageTestBase {
     }
 
     private Conversation stationWide() {
-        return chats.create(station.id(), "Alle", ChatAudience.STATION, null, null, false);
+        return chats.create(station.id(), "Alle", ChatAudience.STATION, null, null, false)
+                .orElseThrow();
     }
 
     private Conversation groupChat(MemberGroup group, boolean includeGuardians) {
-        return chats.create(station.id(), group.name(), ChatAudience.GROUP, group.id(), null, includeGuardians);
+        return chats.create(station.id(), group.name(), ChatAudience.GROUP, group.id(), null, includeGuardians)
+                .orElseThrow();
     }
 
     private StationMember member(Account account) {

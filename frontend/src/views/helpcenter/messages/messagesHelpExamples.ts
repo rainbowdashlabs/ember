@@ -55,12 +55,12 @@ export function exampleConversations(t: Translate): ConversationSummaryResponse[
     const {lena, tom} = examplePeople(t)
     return [
         {
-            uid: '00000000-0000-0000-0000-0000000000c1', kind: 'DIRECT', name: null, others: [lena], muted: false, unread: 2,
+            uid: '00000000-0000-0000-0000-0000000000c1', kind: 'DIRECT', name: null, others: [lena], muted: false, unread: 2, station: null,
             lastActivityAt: new Date(Date.now() - 5 * 60_000).toISOString(),
             newest: {id: 3, author: lena, text: t('helpCenter.messages.example.question'), systemKind: null, subject: null, deleted: false, createdAt: new Date().toISOString()},
         },
         {
-            uid: '00000000-0000-0000-0000-0000000000c2', kind: 'GROUP', name: t('helpCenter.messages.example.groupName'), others: [lena, tom], muted: true, unread: 4,
+            uid: '00000000-0000-0000-0000-0000000000c2', kind: 'GROUP', name: t('helpCenter.messages.example.groupName'), others: [lena, tom], muted: true, unread: 4, station: null,
             lastActivityAt: new Date(Date.now() - 3 * 3_600_000).toISOString(),
             newest: {id: 9, author: tom, text: t('helpCenter.messages.example.groupLine'), systemKind: null, subject: null, deleted: false, createdAt: new Date().toISOString()},
         },

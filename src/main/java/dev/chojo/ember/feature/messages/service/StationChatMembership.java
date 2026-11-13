@@ -111,7 +111,7 @@ public class StationChatMembership implements TaskSource {
         List<MembershipChange> changes = new ArrayList<>();
         for (Conversation chat : chats.ofStation(stationId)) {
             try {
-                Transactions.call(() -> reconcileChat(chat.id()))
+                Transactions.call(() -> reconcileLocked(chat.id()))
                         .filter(MembershipChange::any)
                         .ifPresent(changes::add);
             } catch (RuntimeException e) {
@@ -135,7 +135,17 @@ public class StationChatMembership implements TaskSource {
         }
     }
 
-    private Optional<MembershipChange> reconcileChat(int conversationId) {
+    /**
+     * Brings one chat in line with its audience now, as after it was opened or its audience changed.
+     *
+     * @param conversationId the chat
+     * @return what changed, empty where the chat is gone
+     */
+    public Optional<MembershipChange> reconcileChat(int conversationId) {
+        return Transactions.call(() -> reconcileLocked(conversationId));
+    }
+
+    private Optional<MembershipChange> reconcileLocked(int conversationId) {
         return chats.lock(conversationId).map(chat -> {
             StationScope scope = Objects.requireNonNull(chat.station(), "a station chat has its scope");
             boolean closed = scope.orphaned() && closeOrphaned(chat);

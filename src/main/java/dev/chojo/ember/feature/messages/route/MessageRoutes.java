@@ -99,7 +99,8 @@ public class MessageRoutes implements Routes {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = ConversationMessageResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     @StationFree(BELONGS_TO_PEOPLE)
     private void send(Context ctx) {
@@ -197,7 +198,8 @@ public class MessageRoutes implements Routes {
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = ConversationMessageResponse.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     @StationFree(BELONGS_TO_PEOPLE)
     private void react(Context ctx) {
@@ -223,7 +225,8 @@ public class MessageRoutes implements Routes {
             queryParams = @OpenApiParam(name = "emoji", type = String.class, required = true),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = ConversationMessageResponse.class)),
-                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     @StationFree(BELONGS_TO_PEOPLE)
     private void takeBack(Context ctx) {

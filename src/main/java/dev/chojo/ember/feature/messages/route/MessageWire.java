@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.messages.route;
 
+import dev.chojo.ember.feature.messages.entity.ChatAudience;
+import dev.chojo.ember.feature.messages.entity.Conversation;
 import dev.chojo.ember.feature.messages.entity.ConversationDetail;
 import dev.chojo.ember.feature.messages.entity.ConversationKind;
 import dev.chojo.ember.feature.messages.entity.ConversationSummary;
@@ -15,6 +17,8 @@ import dev.chojo.ember.feature.messages.entity.MessageView;
 import dev.chojo.ember.feature.messages.entity.Person;
 import dev.chojo.ember.feature.messages.entity.ReachablePerson;
 import dev.chojo.ember.feature.messages.entity.Reaction;
+import dev.chojo.ember.feature.messages.entity.StationRef;
+import dev.chojo.ember.feature.messages.entity.StationScope;
 import dev.chojo.ember.feature.messages.entity.SystemKind;
 import dev.chojo.ember.feature.messages.service.MessageTexts;
 import org.jspecify.annotations.Nullable;
@@ -101,6 +105,25 @@ public final class MessageWire {
     }
 
     /**
+     * What makes a conversation a station chat, as a reader sees it.
+     *
+     * @param stationUid       the station it belongs to
+     * @param stationName      the station's name
+     * @param audience         whom it is for: the whole station, a group or a tag
+     * @param includeGuardians whether the guardians of its people are members too
+     * @param closed           whether it is closed, readable but taking nothing new
+     */
+    public record StationChatInfo(
+            UUID stationUid, String stationName, ChatAudience audience, boolean includeGuardians, boolean closed) {
+        static @Nullable StationChatInfo of(Conversation conversation, @Nullable StationRef station) {
+            StationScope scope = conversation.station();
+            if (scope == null || station == null) return null;
+            return new StationChatInfo(
+                    station.uid(), station.name(), scope.audience(), scope.includeGuardians(), scope.closed());
+        }
+    }
+
+    /**
      * One row of the list of conversations.
      *
      * @param uid            the conversation
@@ -111,6 +134,7 @@ public final class MessageWire {
      * @param lastActivityAt when anything was last written in it
      * @param unread         how many messages the reader has not read
      * @param muted          whether the reader muted it
+     * @param station        the station of a station chat, or null for every other kind
      */
     public record ConversationSummaryResponse(
             UUID uid,
@@ -120,7 +144,8 @@ public final class MessageWire {
             @Nullable ConversationPreview newest,
             Instant lastActivityAt,
             int unread,
-            boolean muted) {
+            boolean muted,
+            @Nullable StationChatInfo station) {
         static ConversationSummaryResponse of(ConversationSummary summary) {
             var conversation = summary.overview().conversation();
             return new ConversationSummaryResponse(
@@ -131,7 +156,8 @@ public final class MessageWire {
                     ConversationPreview.of(summary.newest()),
                     conversation.lastActivityAt(),
                     summary.overview().unread(),
-                    summary.overview().muted());
+                    summary.overview().muted(),
+                    StationChatInfo.of(conversation, summary.station()));
         }
     }
 
@@ -141,13 +167,16 @@ public final class MessageWire {
      * @param uid       the account's identity
      * @param firstName the first name
      * @param lastName  the last name
-     * @param joinedAt  when they started or were added
+     * @param joinedAt    when they started or were added
+     * @param guardianFor in a station chat that takes guardians in, the people there this member looks
+     *                    after; empty for everybody else
      */
-    public record ConversationMemberResponse(UUID uid, String firstName, String lastName, Instant joinedAt) {
-        static ConversationMemberResponse of(Membership member) {
+    public record ConversationMemberResponse(
+            UUID uid, String firstName, String lastName, Instant joinedAt, List<String> guardianFor) {
+        static ConversationMemberResponse of(Membership member, List<String> guardianFor) {
             Person person = member.person();
             return new ConversationMemberResponse(
-                    person.uid(), person.firstName(), person.lastName(), member.joinedAt());
+                    person.uid(), person.firstName(), person.lastName(), member.joinedAt(), guardianFor);
         }
     }
 
@@ -161,6 +190,7 @@ public final class MessageWire {
      * @param members           everybody in it, the longest member first, the reader included
      * @param muted             whether the reader muted it
      * @param lastReadMessageId the last message the reader has read, where the unread part starts after
+     * @param station           the station of a station chat, or null for every other kind
      */
     public record ConversationResponse(
             UUID uid,
@@ -169,7 +199,8 @@ public final class MessageWire {
             @Nullable UUID ownerUid,
             List<ConversationMemberResponse> members,
             boolean muted,
-            @Nullable Integer lastReadMessageId) {
+            @Nullable Integer lastReadMessageId,
+            @Nullable StationChatInfo station) {
         static ConversationResponse of(ConversationDetail detail) {
             var conversation = detail.conversation();
             Integer ownerId = conversation.ownerAccountId();
@@ -185,10 +216,12 @@ public final class MessageWire {
                     conversation.name(),
                     ownerUid,
                     detail.members().stream()
-                            .map(ConversationMemberResponse::of)
+                            .map(member -> ConversationMemberResponse.of(
+                                    member, detail.guardianFor().getOrDefault(member.accountId(), List.of())))
                             .toList(),
                     detail.mine().muted(),
-                    detail.mine().lastReadMessageId());
+                    detail.mine().lastReadMessageId(),
+                    StationChatInfo.of(conversation, detail.station()));
         }
     }
 

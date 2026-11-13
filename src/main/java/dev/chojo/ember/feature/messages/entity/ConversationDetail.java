@@ -5,7 +5,10 @@
  */
 package dev.chojo.ember.feature.messages.entity;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
+import java.util.Map;
 
 /**
  * A conversation as its header and member list show it.
@@ -13,5 +16,13 @@ import java.util.List;
  * @param conversation the conversation
  * @param members      everybody taking part right now, the longest member first, the reader included
  * @param mine         the reader's own membership
+ * @param station      the station a station chat belongs to, or null for every other kind
+ * @param guardianFor  for a station chat that takes guardians in, the names of the people each
+ *                     guardian in it looks after there, by account; empty otherwise
  */
-public record ConversationDetail(Conversation conversation, List<Membership> members, Membership mine) {}
+public record ConversationDetail(
+        Conversation conversation,
+        List<Membership> members,
+        Membership mine,
+        @Nullable StationRef station,
+        Map<Integer, List<String>> guardianFor) {}

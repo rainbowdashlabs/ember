@@ -107,6 +107,7 @@ public class MessageService {
      */
     public MessageView send(int accountId, UUID conversationUid, String content, @Nullable Integer replyToId) {
         Participation participation = guards.requireParticipant(accountId, conversationUid);
+        guards.requireOpen(participation);
         String text = MessageTexts.content(content);
         if (replyToId != null) {
             messages.find(replyToId)
@@ -117,6 +118,7 @@ public class MessageService {
         guards.requireDeliverable(participation);
         int conversationId = participation.conversation().id();
         int id = Transactions.call(() -> {
+            guards.requireStillOpenForSending(participation);
             int written = messages.write(conversationId, accountId, text, replyToId);
             conversations.touch(conversationId);
             if (participation.conversation().isDirect()) conversations.returnAll(conversationId);
@@ -141,7 +143,12 @@ public class MessageService {
         Message message = guards.requireMessage(participation, messageId);
         if (!message.writtenBy(accountId)) throw MessageRefusal.EDIT_NOT_YOURS.raise();
         if (message.deleted()) throw MessageRefusal.EDIT_DELETED.raise();
-        messages.edit(messageId, MessageTexts.content(content));
+        guards.requireOpen(participation);
+        String text = MessageTexts.content(content);
+        Transactions.run(() -> {
+            guards.requireStillOpen(participation);
+            messages.edit(messageId, text);
+        });
         tell(participation, messageId);
         return one(accountId, conversationUid, messageId);
     }

@@ -15,8 +15,10 @@ import java.util.List;
  * @param overview the conversation with the reader's own state
  * @param others   the other people taking part, the longest member first
  * @param newest   the newest message or system line, or null where nothing was written yet
+ * @param station  the station a station chat belongs to, or null for every other kind
  */
 public record ConversationSummary(
         ConversationOverview overview,
         List<Person> others,
-        @Nullable Message newest) {}
+        @Nullable Message newest,
+        @Nullable StationRef station) {}

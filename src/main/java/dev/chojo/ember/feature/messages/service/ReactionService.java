@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.messages.entity.MessageEvent;
 import dev.chojo.ember.feature.messages.entity.MessageView;
 import dev.chojo.ember.feature.messages.entity.Participation;
 import dev.chojo.ember.feature.messages.repository.ReactionRepository;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -52,8 +53,13 @@ public class ReactionService {
         Participation participation = guards.requireParticipant(accountId, conversationUid);
         Message message = guards.requireMessage(participation, messageId);
         if (!message.written() || message.deleted()) throw MessageRefusal.REACTION_NOT_TAKEN.raise();
+        guards.requireOpen(participation);
         if (!MessageEmoji.isStandard(emoji)) throw MessageRefusal.EMOJI_NOT_TAKEN.raise();
-        if (reactions.add(messageId, accountId, emoji)) tell(participation, messageId);
+        boolean added = Transactions.call(() -> {
+            guards.requireStillOpen(participation);
+            return reactions.add(messageId, accountId, emoji);
+        });
+        if (added) tell(participation, messageId);
         return views.of(message, accountId);
     }
 
@@ -69,7 +75,12 @@ public class ReactionService {
     public MessageView takeBack(int accountId, UUID conversationUid, int messageId, String emoji) {
         Participation participation = guards.requireParticipant(accountId, conversationUid);
         Message message = guards.requireMessage(participation, messageId);
-        if (reactions.remove(messageId, accountId, emoji)) tell(participation, messageId);
+        guards.requireOpen(participation);
+        boolean removed = Transactions.call(() -> {
+            guards.requireStillOpen(participation);
+            return reactions.remove(messageId, accountId, emoji);
+        });
+        if (removed) tell(participation, messageId);
         return views.of(message, accountId);
     }
 
