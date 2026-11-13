@@ -2,13 +2,15 @@
 
 ## v26.25.0
 
-People who share a station can write to each other directly or in groups. One date of a series, or a series from one date on, can be changed on its own, and saving a change can tell the people it concerns. Parts of the inventory, such as lending or procurement, can be switched off on their own, and a switched-off module takes its notifications and permissions with it. Shared appointments with a partner station on another server need both stations on this version.
+People who share a station can write to each other directly, in groups, and in chats the station opens for everybody, a group or a tag. One date of a series, or a series from one date on, can be changed on its own, and saving a change can tell the people it concerns. Parts of the inventory, such as lending or procurement, can be switched off on their own, and a switched-off module takes its notifications and permissions with it. Shared appointments with a partner station on another server need both stations on this version.
 
 ### New Features
 
 - **Messages between people of a station.** Everybody can write to the people they share a station with, directly or in groups of up to 25, from the messages button in the header. A conversation looks the same whichever station is chosen, and a name in it opens the short profile at every station both share.
 - **New messages arrive without reloading.** Messages, changes and reactions appear as they are written, and the header shows how many wait unread. A message can be answered, changed, deleted and reacted to with any standard emoji, and people in a group can be mentioned.
-- **A mail for messages left unread.** A message unread for 15 minutes sends one mail per conversation with its first lines, and no further one until it is read. The mail can be turned off in the message settings, and muted conversations send none.
+- **Station chats for everybody, a group or a tag.** Holders of the new permission "Manage station chats" open, rename, close and reopen chats for the whole station, a group or a tag, can take the guardians of a group or tag in as well, and remove any message in them. Who is in a chat follows the station, the group or the tag, so a chat can be muted but not left, and it moves along when the station moves.
+- **Reporting messages in station chats.** A message in a station chat can be reported with an optional reason, and the people handling the station's chats are notified. They see it in context under "Reported messages" and remove it for the station or dismiss the report.
+- **A daily mail for messages left unread.** Once a day, one mail covers what is new and unread in private conversations, and from station chats the mentions or, if chosen in the message settings, every unread message. The hour is set with `messages.digestHour` (18 by default, in the server's time zone).
 - **People can be blocked for messages.** A blocked person can no longer start a direct conversation with the blocker or add them to a group, and their messages in shared groups are folded away. They are not told.
 - **Guardians decide about messages.** A member with a guardian at any station has no messages until a guardian turns them on under Profile → Managed profiles. Turning them off again hides the conversations without deleting anything.
 - **Change one date or later dates.** Saving a change to a series asks whether it applies to only this date, to this and all later dates, or to all dates. A single date becomes an appointment of its own and later dates go on as a new series; places and attendance sheets move along, and both appointments link to each other.
@@ -18,6 +20,8 @@ People who share a station can write to each other directly or in groups. One da
 
 ### Improvements
 
+- **Writing from the short profile.** The short profile of a member has a "Message" button that opens or starts the private conversation with them.
+- **Short profile for news authors.** The author's name in the news list and on the entry opens the short profile like every other name at the station.
 - **New start times show on save.** The save dialog says how many people holding a place are told a new start time, which now also reaches series dates. Somebody who is also told about the change gets one message instead of two.
 - **Switched-off modules take their notifications along.** Notifications of a switched-off module are no longer listed, counted or mailed, and none are written while it is off. They are kept and show again once the module is back, and the notification settings only list what the station uses.
 - **Switched-off modules grant no permissions.** The permission picker leaves out permissions of a switched-off module, and permissions already given grant nothing until the module is back. Requirements of a switched-off module, such as a mandatory poll, no longer hold anybody at the start page.

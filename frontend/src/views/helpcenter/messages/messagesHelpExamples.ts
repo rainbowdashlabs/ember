@@ -46,7 +46,7 @@ export function examplePeople(t: Translate) {
 }
 
 /**
- * Two rows of the list: an unread direct conversation and a muted group.
+ * Three rows of the list: an unread direct conversation, a muted group and a station chat.
  *
  * @param t the translator
  * @returns the rows
@@ -63,6 +63,12 @@ export function exampleConversations(t: Translate): ConversationSummaryResponse[
             uid: '00000000-0000-0000-0000-0000000000c2', kind: 'GROUP', name: t('helpCenter.messages.example.groupName'), others: [lena, tom], muted: true, unread: 4, station: null,
             lastActivityAt: new Date(Date.now() - 3 * 3_600_000).toISOString(),
             newest: {id: 9, author: tom, text: t('helpCenter.messages.example.groupLine'), systemKind: null, subject: null, deleted: false, createdAt: new Date().toISOString(), removedByStation: false},
+        },
+        {
+            uid: '00000000-0000-0000-0000-0000000000c3', kind: 'STATION', name: t('helpCenter.messages.example.stationChatName'), others: [], muted: false, unread: 1,
+            station: {stationUid: '00000000-0000-0000-0000-0000000000d1', stationName: t('helpCenter.messages.example.stationName'), audience: 'STATION', includeGuardians: false, closed: false},
+            lastActivityAt: new Date(Date.now() - 26 * 3_600_000).toISOString(),
+            newest: {id: 12, author: tom, text: t('helpCenter.messages.example.stationLine'), systemKind: null, subject: null, deleted: false, createdAt: new Date().toISOString(), removedByStation: false},
         },
     ]
 }
