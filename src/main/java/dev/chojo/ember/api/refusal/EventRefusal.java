@@ -768,7 +768,22 @@ public enum EventRefusal implements Refusal {
     COURSE_DECISION_UNKNOWN(208, HttpStatus.BAD_REQUEST, "A course sign-up can only be accepted or turned down"),
 
     /** A member adding or dropping a part of a course that already took place. */
-    COURSE_PART_TOOK_PLACE(209, HttpStatus.CONFLICT, "A part that already took place cannot be added or dropped");
+    COURSE_PART_TOOK_PLACE(209, HttpStatus.CONFLICT, "A part that already took place cannot be added or dropped"),
+
+    /** A part of a course changed into a repeating series. */
+    COURSE_PART_STAYS_ONE_TIME(
+            210, HttpStatus.BAD_REQUEST, "A part of a course stays a one-time appointment, nothing was saved"),
+
+    /** An audience set on a part of a course instead of on the course. */
+    COURSE_PART_AUDIENCE_FROM_COURSE(
+            211, HttpStatus.CONFLICT, "A part of a course is meant for the course's people, set them on the course"),
+
+    /** A part of a course shared with partners on its own. */
+    COURSE_PART_SHARED_WITH_COURSE(
+            212, HttpStatus.CONFLICT, "A part of a course is shared with its course, not on its own"),
+
+    /** A sign-up for somebody who is no member of the station. */
+    COURSE_MEMBER_NOT_HERE(213, HttpStatus.NOT_FOUND, "That member is not at this station");
 
     private final Definition definition;
 

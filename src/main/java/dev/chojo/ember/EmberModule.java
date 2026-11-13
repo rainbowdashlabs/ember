@@ -125,6 +125,7 @@ import dev.chojo.ember.feature.events.handler.EventsBatchCreatedHandler;
 import dev.chojo.ember.feature.events.handler.RegistrationDeadlineExpiredHandler;
 import dev.chojo.ember.feature.events.route.EventAttachmentRoutes;
 import dev.chojo.ember.feature.events.route.EventCancellationRoutes;
+import dev.chojo.ember.feature.events.route.EventCourseRoutes;
 import dev.chojo.ember.feature.events.route.EventEmbedRoutes;
 import dev.chojo.ember.feature.events.route.EventRegistrationRoutes;
 import dev.chojo.ember.feature.events.route.EventRoutes;
@@ -571,6 +572,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(EventTemplateSharingRoutes.class);
         routesBinder.addBinding().to(EventEmbedRoutes.class);
         routesBinder.addBinding().to(EventRegistrationRoutes.class);
+        routesBinder.addBinding().to(EventCourseRoutes.class);
         routesBinder.addBinding().to(EventSharingRoutes.class);
         routesBinder.addBinding().to(EventCancellationRoutes.class);
         routesBinder.addBinding().to(EventRoutes.class);

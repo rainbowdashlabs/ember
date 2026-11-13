@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.repository;
 
+import dev.chojo.ember.feature.events.entity.CoursePartSummary;
 import dev.chojo.ember.feature.events.entity.EventCourse;
 import dev.chojo.ember.feature.events.entity.EventCourseDetails;
 import dev.chojo.ember.feature.events.entity.EventCoursePart;
@@ -15,7 +16,9 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -197,6 +200,40 @@ public class EventCourseRepository {
                 .single(call().bind("course_id", courseId))
                 .map(EventCoursePart.map())
                 .all();
+    }
+
+    /**
+     * What every part of a station's courses says about its course in a list, by appointment.
+     *
+     * @param stationId the station
+     * @return the course of each part, numbered in date order within its course
+     */
+    public Map<Integer, CoursePartSummary> findPartSummaries(int stationId) {
+        return query("""
+                SELECT e.id AS event_id,
+                       c.id AS course_id,
+                       c.name AS course_name,
+                       s.id AS set_id,
+                       s.name AS set_name,
+                       row_number() OVER (PARTITION BY c.id ORDER BY e.start_time, e.id) AS number,
+                       count(*) OVER (PARTITION BY c.id) AS part_count
+                FROM station_event e
+                         JOIN event_course_set s ON s.id = e.course_set_id
+                         JOIN event_course c ON c.id = s.course_id
+                WHERE c.station_id = :station_id;""")
+                .single(call().bind("station_id", stationId))
+                .map(row -> Map.entry(
+                        row.getInt("event_id"),
+                        new CoursePartSummary(
+                                row.getInt("course_id"),
+                                row.getString("course_name"),
+                                row.getInt("set_id"),
+                                row.getString("set_name"),
+                                row.getInt("number"),
+                                row.getInt("part_count"))))
+                .all()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     /**

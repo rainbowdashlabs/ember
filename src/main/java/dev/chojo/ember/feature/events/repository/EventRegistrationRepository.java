@@ -78,6 +78,23 @@ public class EventRegistrationRepository {
     }
 
     /**
+     * Every registration tied to a sign-up for a course, for the whole course at once.
+     *
+     * @param courseId the course
+     * @return the tied registrations, by member and appointment
+     */
+    public List<EventRegistration> findLinkedToCourseOf(int courseId) {
+        return query("""
+                SELECT %s
+                FROM event_registration
+                WHERE course_registration_id IN (SELECT id FROM event_course_registration WHERE course_id = :course_id)
+                ORDER BY member_id, event_id;""", COLUMNS)
+                .single(call().bind("course_id", courseId))
+                .map(EventRegistration.map())
+                .all();
+    }
+
+    /**
      * A member's registrations for any of the given appointments.
      *
      * @param memberId the member

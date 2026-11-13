@@ -123,6 +123,7 @@ public class EventSharingRoutes implements Routes {
     private void setFederationShare(Context ctx) {
         int id = pathInt(ctx, "id");
         var event = requireOwnedOrNotFound(ctx, id, crudService::findById, StationEvent::stationId);
+        if (crudService.isCoursePart(id)) throw EventRefusal.COURSE_PART_SHARED_WITH_COURSE.raise();
         if (event.restricted()) {
             throw EventRefusal.RESTRICTED_EVENT_NOT_SHARED.raise();
         }
@@ -270,6 +271,7 @@ public class EventSharingRoutes implements Routes {
         int eventId = pathInt(ctx, "id");
         int partnerId = pathInt(ctx, "partnerId");
         requireOwnedOrNotFound(ctx, eventId, crudService::findById, StationEvent::stationId);
+        if (crudService.isCoursePart(eventId)) throw EventRefusal.COURSE_PART_SHARED_WITH_COURSE.raise();
         var req = ctx.bodyAsClass(SetPartnerPlacesRequest.class);
         Integer slotBudget = req.slotBudget();
         if (slotBudget != null && slotBudget < 0) {

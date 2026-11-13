@@ -18959,6 +18959,625 @@
         } ]
       }
     },
+    "/api/v1/events/courses" : {
+      "post" : {
+        "summary" : "Create a course with its sets and audiences",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CourseDetail"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CourseCreateRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "List the courses meant for the reader",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CourseSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/courses/{courseId}" : {
+      "get" : {
+        "summary" : "A course with its sets, parts and the reader's sign-ups",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CourseDetail"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Change a course's details and sign-up",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CourseDetail"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CourseDetailsRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Delete a course; its parts become appointments of their own",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/events/courses/{courseId}/audiences" : {
+      "put" : {
+        "summary" : "Set who may see and who may sign up for a course and every part",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CourseDetail"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CourseAudiences"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/courses/{courseId}/parts" : {
+      "post" : {
+        "summary" : "Make a one-time appointment a part of a course",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventCoursePart"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CoursePartRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/courses/{courseId}/parts/{eventId}" : {
+      "put" : {
+        "summary" : "Move a part into another set of its course",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventCoursePart"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "eventId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CoursePartMoveRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Make a part an appointment of its own again",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "eventId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/events/courses/{courseId}/sets" : {
+      "put" : {
+        "summary" : "Replace a course's sets",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CourseDetail"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CourseSetsRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/courses/{courseId}/sign-up" : {
+      "post" : {
+        "summary" : "Sign the reader, or somebody they look after, up for a course",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CourseSignUp"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CourseSignUpRequest"
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Change the parts chosen with a course sign-up",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CourseSignUp"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CourseSignUpRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Withdraw a course sign-up with every part chosen",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CourseSignUp"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "memberId",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/events/courses/{courseId}/sign-ups" : {
+      "get" : {
+        "summary" : "Every sign-up of a course, with the parts chosen and the sets each falls short of",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CourseSignUp"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/events/courses/{courseId}/sign-ups/{memberId}/status" : {
+      "put" : {
+        "summary" : "Accept or turn down a course sign-up and every part chosen with it",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CourseSignUp"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CourseDecisionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/eligible-members" : {
       "get" : {
         "summary" : "List whom the reader may register per event",
@@ -19713,6 +20332,46 @@
           "in" : "query",
           "schema" : {
             "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/events/{eventId}/course" : {
+      "get" : {
+        "summary" : "The course an appointment is a part of, or nothing for an appointment of its own",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CoursePartSummary"
+                }
+              }
+            }
+          },
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         } ]
       }
@@ -57073,6 +57732,262 @@
           }
         }
       },
+      "CourseAudiences" : {
+        "type" : "object",
+        "properties" : {
+          "registration" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionAudience"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "view" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionAudience"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
+      },
+      "CourseCreateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "details" : {
+            "$ref" : "#/components/schemas/EventCourseDetails"
+          },
+          "sets" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/EventCourseSetDraft"
+            }
+          },
+          "registration" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionAudience"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "view" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionAudience"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
+      },
+      "CourseDecisionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "$ref" : "#/components/schemas/RegistrationStatus"
+          }
+        }
+      },
+      "CourseDetail" : {
+        "type" : "object",
+        "properties" : {
+          "course" : {
+            "$ref" : "#/components/schemas/CourseSummary"
+          },
+          "sets" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EventCourseSet"
+            }
+          },
+          "parts" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EventCoursePartState"
+            }
+          },
+          "registration" : {
+            "$ref" : "#/components/schemas/RestrictionAudience"
+          },
+          "view" : {
+            "$ref" : "#/components/schemas/RestrictionAudience"
+          },
+          "household" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CourseSignUp"
+            }
+          }
+        },
+        "required" : [ "course", "sets", "parts", "registration", "view", "household" ]
+      },
+      "CourseDetailsRequest" : {
+        "type" : "object",
+        "properties" : {
+          "details" : {
+            "$ref" : "#/components/schemas/EventCourseDetails"
+          }
+        }
+      },
+      "CoursePartMoveRequest" : {
+        "type" : "object",
+        "properties" : {
+          "setId" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "CoursePartRequest" : {
+        "type" : "object",
+        "properties" : {
+          "eventId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "setId" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "CoursePartSummary" : {
+        "type" : "object",
+        "properties" : {
+          "courseId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "courseName" : {
+            "type" : "string"
+          },
+          "setId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "setName" : {
+            "type" : "string"
+          },
+          "number" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "courseId", "courseName", "setId", "setName", "number", "count" ]
+      },
+      "CourseSetsRequest" : {
+        "type" : "object",
+        "properties" : {
+          "sets" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/EventCourseSetDraft"
+            }
+          }
+        }
+      },
+      "CourseSignUp" : {
+        "type" : "object",
+        "properties" : {
+          "member" : {
+            "$ref" : "#/components/schemas/MemberIdentity"
+          },
+          "status" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RegistrationStatus"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "registeredAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "parts" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "sets" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SetResult"
+            }
+          },
+          "mayRegister" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "member", "status", "registeredAt", "parts", "sets", "mayRegister" ]
+      },
+      "CourseSignUpRequest" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "parts" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
+      },
+      "CourseSummary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "registrationLimit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "registrationDeadline" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "requiresConfirmation" : {
+            "type" : "boolean"
+          },
+          "cancelled" : {
+            "type" : "boolean"
+          },
+          "cancelReason" : {
+            "type" : [ "string", "null" ]
+          },
+          "partCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "holding" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "id", "name", "description", "registrationLimit", "registrationDeadline", "requiresConfirmation", "cancelled", "cancelReason", "partCount", "holding" ]
+      },
       "CreateAndAssignRequest" : {
         "type" : "object",
         "properties" : {
@@ -60436,6 +61351,119 @@
         "type" : "string",
         "enum" : [ "TIME", "DATE", "NAME", "DESCRIPTION", "FIELDS", "REGISTRATION_QUESTIONS", "ATTACHMENTS" ]
       },
+      "EventCourseDetails" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : [ "string", "null" ]
+          },
+          "registrationLimit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "registrationDeadline" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "requiresConfirmation" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "EventCoursePart" : {
+        "type" : "object",
+        "properties" : {
+          "eventId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "setId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "courseId" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "eventId", "setId", "courseId" ]
+      },
+      "EventCoursePartState" : {
+        "type" : "object",
+        "properties" : {
+          "eventId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "setId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "startTime" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "endTime" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "calledOff" : {
+            "type" : "boolean"
+          },
+          "tookPlace" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "eventId", "setId", "name", "startTime", "endTime", "calledOff", "tookPlace" ]
+      },
+      "EventCourseSet" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "courseId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "minimum" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "position" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "id", "courseId", "name", "minimum", "position" ]
+      },
+      "EventCourseSetDraft" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "minimum" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
       "EventExportRequest" : {
         "type" : "object",
         "properties" : {
@@ -60990,9 +62018,16 @@
           "registrationLimit" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "course" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/CoursePartSummary"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "requiresRegistration", "registrationDeadline", "categoryId", "templateId", "restricted", "seriesCancelled", "registrationLimit" ]
+        "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "requiresRegistration", "registrationDeadline", "categoryId", "templateId", "restricted", "seriesCancelled", "registrationLimit", "course" ]
       },
       "EventTemplate" : {
         "type" : "object",
@@ -80790,6 +81825,27 @@
             }
           }
         }
+      },
+      "SetResult" : {
+        "type" : "object",
+        "properties" : {
+          "setId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "required" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "chosen" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "setId", "name", "required", "chosen" ]
       },
       "SetSessionFieldsRequest" : {
         "type" : "object",

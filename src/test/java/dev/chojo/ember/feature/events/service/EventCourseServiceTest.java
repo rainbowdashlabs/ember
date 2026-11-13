@@ -36,6 +36,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -522,6 +523,92 @@ class EventCourseServiceTest extends RepositoryTestBase {
                 practice,
                 service.movePart(station.id(), course.id(), sunday.id(), practice)
                         .setId());
+    }
+
+    @Test
+    void editingAPartLeavesItTheCoursesSignUpAndKeepsItOneTime() {
+        var course = jugendflamme();
+        var saturday = oneTime(36);
+        service.addPart(
+                station.id(), course.id(), saturday.id(), set(course, "Übung").id());
+        var crud = newEventServices(new DomainEventBus(Set.of())).crud();
+
+        crud.update(
+                saturday.id(),
+                "Samstag",
+                null,
+                StationEvent.EventType.ONE_TIME,
+                null,
+                saturday.startTime(),
+                saturday.endTime(),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                40,
+                3,
+                2,
+                5);
+
+        var stored = eventRepo.findById(saturday.id()).orElseThrow();
+        assertEquals("Samstag", stored.name());
+        assertTrue(stored.requiresRegistration());
+        assertTrue(stored.requiresConfirmation());
+        assertEquals(deadline, stored.registrationDeadline());
+        assertNull(stored.registrationLimit());
+        assertNull(stored.minRegistrations());
+        assertRefused(
+                EventRefusal.COURSE_PART_STAYS_ONE_TIME,
+                () -> crud.update(
+                        saturday.id(),
+                        "Samstag",
+                        null,
+                        StationEvent.EventType.RECURRING,
+                        6,
+                        saturday.startTime(),
+                        saturday.endTime(),
+                        null,
+                        true,
+                        null,
+                        true,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null));
+    }
+
+    @Test
+    void listedPartsSayWhichCourseTheyBelongToAndWhereInIt() {
+        var course = service.create(
+                otherStation.id(),
+                details("Leistungsabzeichen", false),
+                List.of(new EventCourseSetDraft(null, "Teile", 1)),
+                RestrictionAudience.empty(),
+                RestrictionAudience.empty());
+        int parts = service.findSets(course.id()).getFirst().id();
+        var first = appointment(otherStation, 40, StationEvent.EventType.ONE_TIME);
+        var second = appointment(otherStation, 41, StationEvent.EventType.ONE_TIME);
+        var alone = appointment(otherStation, 42, StationEvent.EventType.ONE_TIME);
+        service.addPart(otherStation.id(), course.id(), second.id(), parts);
+        service.addPart(otherStation.id(), course.id(), first.id(), parts);
+        var occurrences = newEventServices(new DomainEventBus(Set.of()))
+                .occurrence()
+                .findUpcomingOccurrences(
+                        otherStation.id(),
+                        null,
+                        new EventOccurrenceService.OccurrenceQuery(null, null, false, null, null, null, 10, 0));
+
+        var byEvent =
+                occurrences.stream().collect(Collectors.toMap(o -> o.event().id(), o -> o.event()));
+        assertEquals(1, byEvent.get(first.id()).course().number());
+        assertEquals(2, byEvent.get(second.id()).course().number());
+        assertEquals(2, byEvent.get(second.id()).course().count());
+        assertEquals("Leistungsabzeichen", byEvent.get(first.id()).course().courseName());
+        assertNull(byEvent.get(alone.id()).course());
     }
 
     private static void assertRefused(Refusal refusal, Runnable call) {

@@ -479,6 +479,20 @@ class EventCourseRegistrationServiceTest extends RepositoryTestBase {
         assertEquals(RegistrationStatus.ACCEPTED, partsOf(anna).get(sat1));
     }
 
+    @Test
+    void theStandingsOfSeveralMembersAreReadInOneGo() {
+        signUp(anna, sat1, sun1, test);
+        service.register(station.id(), course.id(), ben.id(), Set.of(sat1), leader.id(), true);
+
+        var standings = service.standings(course.id(), List.of(anna.id(), ben.id(), carla.id()));
+
+        assertEquals(Set.of(sat1, sun1, test), standings.get(0).counted());
+        assertTrue(standings.get(0).sets().stream().allMatch(CourseRules.SetResult::met));
+        assertTrue(standings.get(1).sets().stream().anyMatch(result -> !result.met()));
+        assertEquals(null, standings.get(2).signUp());
+        assertTrue(standings.get(2).counted().isEmpty());
+    }
+
     private static void assertRefused(Refusal refusal, Runnable call) {
         var thrown = assertThrows(RefusalResponse.class, call::run);
         assertEquals(refusal, thrown.refusal());

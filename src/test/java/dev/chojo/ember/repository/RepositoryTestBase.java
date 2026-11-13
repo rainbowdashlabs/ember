@@ -80,6 +80,7 @@ import dev.chojo.ember.feature.equipment.service.EquipmentNeedService;
 import dev.chojo.ember.feature.equipment.service.EquipmentReleaseService;
 import dev.chojo.ember.feature.events.repository.EventBreakRepository;
 import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
+import dev.chojo.ember.feature.events.repository.EventCourseRepository;
 import dev.chojo.ember.feature.events.repository.EventDateCancellationRepository;
 import dev.chojo.ember.feature.events.repository.EventDetachedDateRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -1136,7 +1137,7 @@ public abstract class RepositoryTestBase {
                 new EventCancellationService(eventRepo, eventDateCancellationRepo, calendar, release, eventBus);
         return new EventServices(
                 crudService,
-                new EventOccurrenceService(crudService, calendar),
+                new EventOccurrenceService(crudService, calendar, new EventCourseRepository()),
                 new EventCategoryService(eventCategoryRepo),
                 breakService,
                 new EventRestrictionService(eventRepo, restrictionService),

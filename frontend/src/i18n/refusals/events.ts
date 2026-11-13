@@ -237,4 +237,8 @@ export default {
     'E-207': 'Die gewählten Termine erfüllen die Vorgaben des Lehrgangs nicht',
     'E-208': 'Eine Lehrgangsanmeldung kann nur angenommen oder abgelehnt werden',
     'E-209': 'Ein Termin, der schon stattgefunden hat, lässt sich nicht mehr hinzufügen oder abwählen',
+    'E-210': 'Ein Termin eines Lehrgangs bleibt ein einmaliger Termin, es wurde nichts gespeichert',
+    'E-211': 'Ein Termin eines Lehrgangs richtet sich an die Leute des Lehrgangs, lege sie beim Lehrgang fest',
+    'E-212': 'Ein Termin eines Lehrgangs wird mit dem Lehrgang geteilt, nicht einzeln',
+    'E-213': 'Dieses Mitglied gehört nicht zu dieser Wache',
 }

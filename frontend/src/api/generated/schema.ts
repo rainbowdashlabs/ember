@@ -23536,6 +23536,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{eventId}/course": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The course an appointment is a part of, or nothing for an appointment of its own */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CoursePartSummary"];
+                    };
+                };
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{eventId}/decline": {
         parameters: {
             query?: never;
@@ -27083,6 +27137,639 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the courses meant for the reader */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CourseSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create a course with its sets and audiences */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CourseCreateRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CourseDetail"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/courses/{courseId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A course with its sets, parts and the reader's sign-ups */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    courseId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CourseDetail"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Change a course's details and sign-up */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    courseId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CourseDetailsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CourseDetail"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Delete a course; its parts become appointments of their own */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    courseId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/courses/{courseId}/audiences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set who may see and who may sign up for a course and every part */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    courseId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CourseAudiences"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CourseDetail"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/courses/{courseId}/parts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make a one-time appointment a part of a course */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    courseId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CoursePartRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventCoursePart"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/courses/{courseId}/parts/{eventId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Move a part into another set of its course */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    courseId: number;
+                    eventId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CoursePartMoveRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventCoursePart"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Make a part an appointment of its own again */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    courseId: number;
+                    eventId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/courses/{courseId}/sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace a course's sets */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    courseId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CourseSetsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CourseDetail"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/courses/{courseId}/sign-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change the parts chosen with a course sign-up */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    courseId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CourseSignUpRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CourseSignUp"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Sign the reader, or somebody they look after, up for a course */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    courseId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CourseSignUpRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CourseSignUp"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Withdraw a course sign-up with every part chosen */
+        delete: {
+            parameters: {
+                query?: {
+                    memberId?: number;
+                };
+                header?: never;
+                path: {
+                    courseId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CourseSignUp"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/courses/{courseId}/sign-ups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every sign-up of a course, with the parts chosen and the sets each falls short of */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    courseId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CourseSignUp"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/courses/{courseId}/sign-ups/{memberId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Accept or turn down a course sign-up and every part chosen with it */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    courseId: number;
+                    memberId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CourseDecisionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CourseSignUp"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -67926,6 +68613,84 @@ export interface components {
         };
         /** @enum {string} */
         CountUnit: "DAYS" | "HOURS" | "YEARS" | "LINE";
+        CourseAudiences: {
+            registration?: components["schemas"]["RestrictionAudience"] | null;
+            view?: components["schemas"]["RestrictionAudience"] | null;
+        };
+        CourseCreateRequest: {
+            details?: components["schemas"]["EventCourseDetails"];
+            registration?: components["schemas"]["RestrictionAudience"] | null;
+            sets?: components["schemas"]["EventCourseSetDraft"][] | null;
+            view?: components["schemas"]["RestrictionAudience"] | null;
+        };
+        CourseDecisionRequest: {
+            status?: components["schemas"]["RegistrationStatus"];
+        };
+        CourseDetail: {
+            course: components["schemas"]["CourseSummary"];
+            household: components["schemas"]["CourseSignUp"][];
+            parts: components["schemas"]["EventCoursePartState"][];
+            registration: components["schemas"]["RestrictionAudience"];
+            sets: components["schemas"]["EventCourseSet"][];
+            view: components["schemas"]["RestrictionAudience"];
+        };
+        CourseDetailsRequest: {
+            details?: components["schemas"]["EventCourseDetails"];
+        };
+        CoursePartMoveRequest: {
+            /** Format: int32 */
+            setId?: number;
+        };
+        CoursePartRequest: {
+            /** Format: int32 */
+            eventId?: number;
+            /** Format: int32 */
+            setId?: number;
+        };
+        CoursePartSummary: {
+            /** Format: int32 */
+            count: number;
+            /** Format: int32 */
+            courseId: number;
+            courseName: string;
+            /** Format: int32 */
+            number: number;
+            /** Format: int32 */
+            setId: number;
+            setName: string;
+        };
+        CourseSetsRequest: {
+            sets?: components["schemas"]["EventCourseSetDraft"][] | null;
+        };
+        CourseSignUp: {
+            mayRegister: boolean;
+            member: components["schemas"]["MemberIdentity"];
+            parts: number[];
+            registeredAt: components["schemas"]["Instant"] | null;
+            sets: components["schemas"]["SetResult"][];
+            status: components["schemas"]["RegistrationStatus"] | null;
+        };
+        CourseSignUpRequest: {
+            /** Format: int32 */
+            memberId?: number | null;
+            parts?: number[] | null;
+        };
+        CourseSummary: {
+            cancelled: boolean;
+            cancelReason: string | null;
+            description: string | null;
+            /** Format: int32 */
+            holding: number;
+            /** Format: int32 */
+            id: number;
+            name: string;
+            /** Format: int32 */
+            partCount: number;
+            registrationDeadline: components["schemas"]["Instant"] | null;
+            /** Format: int32 */
+            registrationLimit: number | null;
+            requiresConfirmation: boolean;
+        };
         CreateAndAssignRequest: {
             /** Format: int32 */
             inventoryId?: number;
@@ -69079,6 +69844,51 @@ export interface components {
         };
         /** @enum {string} */
         EventChangePart: "TIME" | "DATE" | "NAME" | "DESCRIPTION" | "FIELDS" | "REGISTRATION_QUESTIONS" | "ATTACHMENTS";
+        EventCourseDetails: {
+            description?: string | null;
+            name?: string;
+            registrationDeadline?: components["schemas"]["Instant"] | null;
+            /** Format: int32 */
+            registrationLimit?: number | null;
+            requiresConfirmation?: boolean;
+        };
+        EventCoursePart: {
+            /** Format: int32 */
+            courseId: number;
+            /** Format: int32 */
+            eventId: number;
+            /** Format: int32 */
+            setId: number;
+        };
+        EventCoursePartState: {
+            calledOff: boolean;
+            endTime: components["schemas"]["Instant"];
+            /** Format: int32 */
+            eventId: number;
+            name: string;
+            /** Format: int32 */
+            setId: number;
+            startTime: components["schemas"]["Instant"];
+            tookPlace: boolean;
+        };
+        EventCourseSet: {
+            /** Format: int32 */
+            courseId: number;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            minimum: number;
+            name: string;
+            /** Format: int32 */
+            position: number;
+        };
+        EventCourseSetDraft: {
+            /** Format: int32 */
+            id?: number | null;
+            /** Format: int32 */
+            minimum?: number;
+            name?: string;
+        };
         EventExportRequest: {
             categoryIds?: number[];
             columns?: components["schemas"]["ExportColumnRequest"][];
@@ -69250,6 +70060,7 @@ export interface components {
         EventSummary: {
             /** Format: int32 */
             categoryId: number | null;
+            course: components["schemas"]["CoursePartSummary"] | null;
             /** Format: int32 */
             dayOfWeek: number | null;
             description: string | null;
@@ -76035,6 +76846,15 @@ export interface components {
         SetRemindersRequest: {
             daysBefore?: number[];
         };
+        SetResult: {
+            /** Format: int32 */
+            chosen: number;
+            name: string;
+            /** Format: int32 */
+            required: number;
+            /** Format: int32 */
+            setId: number;
+        };
         SetSessionFieldsRequest: {
             fields?: components["schemas"]["AttendanceFieldValueEntry"][];
         };
@@ -78684,6 +79504,18 @@ export type CountDetail = components['schemas']['CountDetail'];
 export type CountdownConfig = components['schemas']['CountdownConfig'];
 export type CountResponse = components['schemas']['CountResponse'];
 export type CountUnit = components['schemas']['CountUnit'];
+export type CourseAudiences = components['schemas']['CourseAudiences'];
+export type CourseCreateRequest = components['schemas']['CourseCreateRequest'];
+export type CourseDecisionRequest = components['schemas']['CourseDecisionRequest'];
+export type CourseDetail = components['schemas']['CourseDetail'];
+export type CourseDetailsRequest = components['schemas']['CourseDetailsRequest'];
+export type CoursePartMoveRequest = components['schemas']['CoursePartMoveRequest'];
+export type CoursePartRequest = components['schemas']['CoursePartRequest'];
+export type CoursePartSummary = components['schemas']['CoursePartSummary'];
+export type CourseSetsRequest = components['schemas']['CourseSetsRequest'];
+export type CourseSignUp = components['schemas']['CourseSignUp'];
+export type CourseSignUpRequest = components['schemas']['CourseSignUpRequest'];
+export type CourseSummary = components['schemas']['CourseSummary'];
 export type CreateAndAssignRequest = components['schemas']['CreateAndAssignRequest'];
 export type CreateBlockRequest = components['schemas']['CreateBlockRequest'];
 export type CreateBoardRequest = components['schemas']['CreateBoardRequest'];
@@ -78848,6 +79680,11 @@ export type EventAttachment = components['schemas']['EventAttachment'];
 export type EventBreak = components['schemas']['EventBreak'];
 export type EventCategory = components['schemas']['EventCategory'];
 export type EventChangePart = components['schemas']['EventChangePart'];
+export type EventCourseDetails = components['schemas']['EventCourseDetails'];
+export type EventCoursePart = components['schemas']['EventCoursePart'];
+export type EventCoursePartState = components['schemas']['EventCoursePartState'];
+export type EventCourseSet = components['schemas']['EventCourseSet'];
+export type EventCourseSetDraft = components['schemas']['EventCourseSetDraft'];
 export type EventExportRequest = components['schemas']['EventExportRequest'];
 export type EventFederationRegistration = components['schemas']['EventFederationRegistration'];
 export type EventFieldDefault = components['schemas']['EventFieldDefault'];
@@ -79802,6 +80639,7 @@ export type SetPasswordRequest = components['schemas']['SetPasswordRequest'];
 export type SetPermissionsRequest = components['schemas']['SetPermissionsRequest'];
 export type SetRegistrationFieldsRequest = components['schemas']['SetRegistrationFieldsRequest'];
 export type SetRemindersRequest = components['schemas']['SetRemindersRequest'];
+export type SetResult = components['schemas']['SetResult'];
 export type SetSessionFieldsRequest = components['schemas']['SetSessionFieldsRequest'];
 export type SetShareRequest = components['schemas']['SetShareRequest'];
 export type SetTemplateGroupsRequest = components['schemas']['SetTemplateGroupsRequest'];

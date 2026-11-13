@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventCourse;
 import dev.chojo.ember.feature.events.entity.EventCoursePart;
+import dev.chojo.ember.feature.events.entity.EventCoursePartState;
 import dev.chojo.ember.feature.events.entity.EventCourseRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -269,6 +270,114 @@ public class EventCourseRegistrationService {
         return signUps.find(courseId, memberId)
                 .map(signUp -> chosenRegistrations(signUp).keySet())
                 .orElse(Set.of());
+    }
+
+    /**
+     * The parts a sign-up counts for the course's rules: the tied places that still hold or wait,
+     * and while the sign-up is turned down, the places turned down with it. A place an appointment
+     * field gave and took back again does not count.
+     *
+     * @param courseId the course
+     * @param memberId the member
+     * @return the counted parts, empty where the member is not signed up
+     */
+    public Set<Integer> countedParts(int courseId, int memberId) {
+        return signUps.find(courseId, memberId)
+                .map(signUp -> counted(signUp, registrations.findLinkedToCourse(signUp.id())))
+                .orElse(Set.of());
+    }
+
+    private static Set<Integer> counted(EventCourseRegistration signUp, List<EventRegistration> tied) {
+        return tied.stream()
+                .filter(registration -> registration.status() == RegistrationStatus.PENDING
+                        || registration.status() == RegistrationStatus.ACCEPTED
+                        || (registration.status() == RegistrationStatus.DENIED
+                                && signUp.status() == RegistrationStatus.DENIED))
+                .map(EventRegistration::eventId)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Where each of the given members stands in a course: their sign-up, the parts that count and how
+     * those meet every set. The course's rules and cancellations are read once for all of them.
+     *
+     * @param courseId  the course
+     * @param memberIds the members asked about
+     * @return one standing per member, in the order asked
+     */
+    public List<CourseStanding> standings(int courseId, List<Integer> memberIds) {
+        if (memberIds.isEmpty()) return List.of();
+        var course = courses.findById(courseId).orElseThrow(EventRefusal.COURSE_NOT_HERE::raise);
+        var bySignUp = signUps.findByCourse(courseId).stream()
+                .collect(Collectors.toMap(EventCourseRegistration::memberId, Function.identity()));
+        var tiedByMember = registrations.findLinkedToCourseOf(courseId).stream()
+                .collect(Collectors.groupingBy(EventRegistration::memberId));
+        var parts = courses.findParts(courseId).stream()
+                .map(part -> events.findById(part.eventId()))
+                .flatMap(Optional::stream)
+                .collect(Collectors.toMap(StationEvent::id, Function.identity()));
+        var calledOff = Standing.of(course.stationId(), parts, calendar).calledOff();
+        var rules = rulesOf(courseId);
+        return memberIds.stream()
+                .map(memberId -> {
+                    var signUp = bySignUp.get(memberId);
+                    if (signUp == null) return new CourseStanding(memberId, null, Set.of(), List.of());
+                    var counted = counted(signUp, tiedByMember.getOrDefault(memberId, List.of()));
+                    return new CourseStanding(
+                            memberId, signUp, counted, CourseRules.evaluate(rules, counted, calledOff));
+                })
+                .toList();
+    }
+
+    /**
+     * Where a member stands in a course.
+     *
+     * @param memberId the member
+     * @param signUp   their sign-up, or null where they are not signed up
+     * @param counted  the parts that count for the rules
+     * @param sets     how those parts meet every set
+     */
+    public record CourseStanding(
+            int memberId, @Nullable EventCourseRegistration signUp, Set<Integer> counted, List<SetResult> sets) {}
+
+    /**
+     * How many sign-ups hold or wait for a place in a course.
+     *
+     * @param courseId the course
+     * @return the pending and accepted sign-ups
+     */
+    public int holding(int courseId) {
+        return signUps.countHolding(courseId);
+    }
+
+    /**
+     * The parts of a course in date order, each saying whether it is called off or already past.
+     *
+     * @param courseId the course
+     * @return its parts
+     */
+    public List<EventCoursePartState> partStates(int courseId) {
+        var course = courses.findById(courseId).orElseThrow(EventRefusal.COURSE_NOT_HERE::raise);
+        var parts = courses.findParts(courseId);
+        var events = parts.stream()
+                .map(part -> this.events.findById(part.eventId()))
+                .flatMap(Optional::stream)
+                .collect(Collectors.toMap(StationEvent::id, Function.identity()));
+        var standing = Standing.of(course.stationId(), events, calendar);
+        return parts.stream()
+                .filter(part -> events.containsKey(part.eventId()))
+                .map(part -> {
+                    var event = events.get(part.eventId());
+                    return new EventCoursePartState(
+                            event.id(),
+                            part.setId(),
+                            event.name(),
+                            event.startTime(),
+                            event.endTime(),
+                            standing.calledOff().contains(event.id()),
+                            standing.tookPlace(event.id()));
+                })
+                .toList();
     }
 
     /**

@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -37,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Owns the lifecycle of station events: lookups, creation, updates and deletion, including the
@@ -294,6 +296,9 @@ public class EventCrudService {
     /**
      * Updates a station event and returns the refreshed entity if the update was successful.
      *
+     * <p>A part of a course keeps the sign-up the course gives it: its sign-up settings, limit and
+     * minimum are left as they are whatever is sent, and it stays a one-time appointment.
+     *
      * @param id                   the event ID
      * @param name                 the new event name
      * @param description          the new description
@@ -328,33 +333,55 @@ public class EventCrudService {
             @Nullable Integer registrationCloseDays) {
         requireUsableSpan(startTime, endTime, EventRefusal.EVENT_ENDS_BEFORE_IT_STARTS_ON_CHANGE);
         attendanceTemplateGuards.requireOpenForNewWork(templateId);
-        var before = eventRepository.findById(id).orElse(null);
-        if (eventRepository.update(
-                id,
-                name,
-                description,
-                eventType,
-                dayOfWeek,
-                startTime,
-                endTime,
-                templateId,
-                requiresRegistration,
-                registrationDeadline,
-                requiresConfirmation,
-                categoryId,
-                isPublic,
-                registrationLimit,
-                minRegistrations,
-                thresholdDays,
-                registrationCloseDays)) {
+        var stored = new AtomicReference<StationEvent>();
+        boolean updated = Transactions.call(() -> {
+            eventRepository.lockForSignUp(id);
+            var before = eventRepository.findById(id).orElse(null);
+            stored.set(before);
+            boolean part = before != null && eventRepository.isCoursePart(id);
+            if (part && eventType != StationEvent.EventType.ONE_TIME) {
+                throw EventRefusal.COURSE_PART_STAYS_ONE_TIME.raise();
+            }
+            return eventRepository.update(
+                    id,
+                    name,
+                    description,
+                    eventType,
+                    dayOfWeek,
+                    startTime,
+                    endTime,
+                    templateId,
+                    part ? before.requiresRegistration() : requiresRegistration,
+                    part ? before.registrationDeadline() : registrationDeadline,
+                    part ? before.requiresConfirmation() : requiresConfirmation,
+                    categoryId,
+                    isPublic,
+                    part ? before.registrationLimit() : registrationLimit,
+                    part ? before.minRegistrations() : minRegistrations,
+                    part ? before.thresholdDays() : thresholdDays,
+                    part ? before.registrationCloseDays() : registrationCloseDays);
+        });
+        if (updated) {
             log.info("Updated event {}", id);
             var after = eventRepository.findById(id);
+            var before = stored.get();
             after.filter(event -> before != null)
                     .ifPresent(event -> eventBus.publish(new EventChanged(event.stationId(), before, event)));
             return after;
         }
         log.warn("Cannot update event: event {} not found", id);
         return Optional.empty();
+    }
+
+    /**
+     * Whether an appointment is a part of a course, whose sign-up, audiences and sharing the course
+     * decides.
+     *
+     * @param id the appointment
+     * @return true for a part
+     */
+    public boolean isCoursePart(int id) {
+        return eventRepository.isCoursePart(id);
     }
 
     /**

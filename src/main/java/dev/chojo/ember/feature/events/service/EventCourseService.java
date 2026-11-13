@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.feature.events.entity.CoursePartSummary;
 import dev.chojo.ember.feature.events.entity.EventCourse;
 import dev.chojo.ember.feature.events.entity.EventCourseDetails;
 import dev.chojo.ember.feature.events.entity.EventCoursePart;
@@ -20,6 +22,7 @@ import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashSet;
 import java.util.List;
@@ -318,6 +321,66 @@ public class EventCourseService {
      */
     public List<EventCoursePart> findParts(int courseId) {
         return courses.findParts(courseId);
+    }
+
+    /**
+     * Whether a member may see a course. Whoever runs events sees every course.
+     *
+     * @param courseId    the course
+     * @param memberId    the member
+     * @param permissions what the reader may do at the station
+     * @return true where the course is meant for the member
+     */
+    public boolean canSee(int courseId, int memberId, Set<StationPermission> permissions) {
+        return restrictions.checkRestriction(RestrictionType.EVENT_COURSE_VIEW, courseId, memberId, permissions);
+    }
+
+    /**
+     * Whether a course is meant for any of the given members, such as a parent and the children
+     * they look after.
+     *
+     * @param courseId    the course
+     * @param memberIds   the members
+     * @param permissions what the reader may do at the station
+     * @return true where it is meant for at least one of them
+     */
+    public boolean canSeeAny(int courseId, List<Integer> memberIds, Set<StationPermission> permissions) {
+        return memberIds.stream().anyMatch(memberId -> canSee(courseId, memberId, permissions));
+    }
+
+    /**
+     * Whether somebody is a member of the station, which a sign-up for them requires.
+     *
+     * @param stationId the station
+     * @param memberId  the member
+     * @return true for a member of the station
+     */
+    public boolean isMemberHere(int stationId, int memberId) {
+        return !restrictions.membersAt(stationId, List.of(memberId)).isEmpty();
+    }
+
+    /**
+     * What an appointment says about the course it is a part of.
+     *
+     * @param stationId the station
+     * @param eventId   the appointment
+     * @return the course, or null for an appointment of its own
+     */
+    public @Nullable CoursePartSummary partSummary(int stationId, int eventId) {
+        return courses.findPartSummaries(stationId).get(eventId);
+    }
+
+    /**
+     * Whether a member may sign up for a course: see it and be one of the people it takes.
+     *
+     * @param courseId    the course
+     * @param memberId    the member
+     * @param permissions what the reader may do at the station
+     * @return true where the member may sign up
+     */
+    public boolean canSignUp(int courseId, int memberId, Set<StationPermission> permissions) {
+        return canSee(courseId, memberId, permissions)
+                && restrictions.checkRestriction(RestrictionType.EVENT_COURSE, courseId, memberId, permissions);
     }
 
     /** Locks a course of the station for the running transaction and reads it. */
