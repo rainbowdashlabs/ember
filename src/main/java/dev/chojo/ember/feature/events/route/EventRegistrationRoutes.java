@@ -511,6 +511,7 @@ public class EventRegistrationRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         requireOwnedEvent(crudService, eventId, session);
+        if (crudService.isCoursePart(eventId)) throw EventRefusal.COURSE_PART_QUESTIONS_FROM_COURSE.raise();
         var req = ctx.bodyAsClass(RegistrationFieldDefinitionsRequest.class);
         var fields = req.fields() == null ? List.<RegistrationFieldDefinition>of() : req.fields();
         answerReminder.replaceQuestions(
@@ -765,7 +766,7 @@ public class EventRegistrationRoutes implements Routes {
      * Reads the submitted answers into a map keyed by question, keeping the last entry when a
      * question is sent twice.
      */
-    private static Map<Integer, String> answersOf(List<EventRegistrationFieldValue> fields) {
+    static Map<Integer, String> answersOf(@Nullable List<EventRegistrationFieldValue> fields) {
         if (fields == null) return Map.of();
         var answers = new LinkedHashMap<Integer, String>();
         for (var field : fields) {

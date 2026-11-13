@@ -266,7 +266,9 @@ async function writeEvent(choice: SaveChoice | null): Promise<number> {
   await fieldDefaults.save(eventFieldDefaultsPort(savedEventId), isEdit.value)
   await events.setEventReminders(savedEventId, form.state.reminders)
   await events.setEventFields(savedEventId, {fields: form.namedFields()})
-  await events.setRegistrationFields(savedEventId, registrationFields.value.filter(f => f.name?.trim()).map(asSaved))
+  if (!coursePart.value) {
+    await events.setRegistrationFields(savedEventId, registrationFields.value.filter(f => f.name?.trim()).map(asSaved))
+  }
   await federationShare.save(eventFederationPort(savedEventId))
   await documentRequirements.save({kind: 'events', id: savedEventId})
   if (scoped) await tellLater(savedEventId, choice.notice)

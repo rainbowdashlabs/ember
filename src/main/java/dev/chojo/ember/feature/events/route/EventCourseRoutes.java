@@ -19,14 +19,20 @@ import dev.chojo.ember.feature.events.entity.EventCoursePartState;
 import dev.chojo.ember.feature.events.entity.EventCourseRegistration;
 import dev.chojo.ember.feature.events.entity.EventCourseSet;
 import dev.chojo.ember.feature.events.entity.EventCourseSetDraft;
+import dev.chojo.ember.feature.events.entity.EventRegistrationField;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.route.EventRegistrationRoutes.AwaitingMember;
+import dev.chojo.ember.feature.events.route.EventRegistrationRoutes.EventRegistrationFieldValue;
+import dev.chojo.ember.feature.events.service.CourseQuestionService;
 import dev.chojo.ember.feature.events.service.CourseRules.SetResult;
 import dev.chojo.ember.feature.events.service.EventCourseCancellationService;
 import dev.chojo.ember.feature.events.service.EventCoursePartFactory;
 import dev.chojo.ember.feature.events.service.EventCourseRegistrationService;
 import dev.chojo.ember.feature.events.service.EventCourseRegistrationService.CourseStanding;
 import dev.chojo.ember.feature.events.service.EventCourseService;
+import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
@@ -49,6 +55,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -78,6 +85,7 @@ public class EventCourseRoutes implements Routes {
     private final EventVisibility visibility;
     private final EventCourseCancellationService cancellation;
     private final EventCoursePartFactory partFactory;
+    private final CourseQuestionService questions;
 
     @Inject
     public EventCourseRoutes(
@@ -87,7 +95,8 @@ public class EventCourseRoutes implements Routes {
             MemberIdentityFactory identities,
             EventVisibility visibility,
             EventCourseCancellationService cancellation,
-            EventCoursePartFactory partFactory) {
+            EventCoursePartFactory partFactory,
+            CourseQuestionService questions) {
         this.courses = courses;
         this.signUps = signUps;
         this.guardianPolicy = guardianPolicy;
@@ -95,6 +104,7 @@ public class EventCourseRoutes implements Routes {
         this.visibility = visibility;
         this.cancellation = cancellation;
         this.partFactory = partFactory;
+        this.questions = questions;
     }
 
     @Override
@@ -124,6 +134,11 @@ public class EventCourseRoutes implements Routes {
                 prefix + COURSE + "/parts/{eventId}",
                 this::removePart,
                 StationPermission.EVENT_EDIT,
+                StationModule.EVENTS);
+        routes.put(
+                prefix + COURSE + "/sign-up/answers",
+                this::changeAnswers,
+                StationPermission.USER,
                 StationModule.EVENTS);
         routes.post(prefix + COURSE + "/sign-up", this::signUp, StationPermission.USER, StationModule.EVENTS);
         routes.put(prefix + COURSE + "/sign-up", this::changeParts, StationPermission.USER, StationModule.EVENTS);
@@ -195,7 +210,8 @@ public class EventCourseRoutes implements Routes {
                 request.details(),
                 Objects.requireNonNullElse(request.sets(), List.of()),
                 audienceOr(request.registration()),
-                audienceOr(request.view()));
+                audienceOr(request.view()),
+                draftsOf(request.questions()));
         ctx.status(HttpStatus.CREATED).json(detailOf(session, course));
     }
 
@@ -234,7 +250,8 @@ public class EventCourseRoutes implements Routes {
                 request.details(),
                 request.sets(),
                 request.registration(),
-                request.view());
+                request.view(),
+                draftsOf(request.questions()));
         ctx.json(detailOf(session, course));
     }
 
@@ -455,7 +472,13 @@ public class EventCourseRoutes implements Routes {
         boolean override = overrides(session, memberId);
         requireMayJoin(session, course.id(), memberId, override);
         signUps.register(
-                session.stationId(), course.id(), memberId, partsOf(request), createdBy(session, memberId), override);
+                session.stationId(),
+                course.id(),
+                memberId,
+                partsOf(request),
+                EventRegistrationRoutes.answersOf(request.answers()),
+                createdBy(session, memberId),
+                override);
         ctx.status(HttpStatus.CREATED).json(signUpOf(session, course.id(), memberId));
     }
 
@@ -479,6 +502,32 @@ public class EventCourseRoutes implements Routes {
         requireMayJoin(session, course.id(), memberId, override);
         signUps.changeParts(
                 session.stationId(), course.id(), memberId, partsOf(request), createdBy(session, memberId), override);
+        ctx.json(signUpOf(session, course.id(), memberId));
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/courses/{courseId}/sign-up/answers",
+            methods = HttpMethod.PUT,
+            summary = "Change the answers given with a course sign-up",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "courseId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CourseAnswersRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = CourseSignUp.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void changeAnswers(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var request = ctx.bodyAsClass(CourseAnswersRequest.class);
+        var course = visibleCourse(ctx, session);
+        int memberId = targetMember(session, request.memberId());
+        signUps.changeAnswers(
+                session.stationId(),
+                course.id(),
+                memberId,
+                EventRegistrationRoutes.answersOf(request.answers()),
+                readsAnswersOf(session, memberId),
+                overrides(session, memberId));
         ctx.json(signUpOf(session, course.id(), memberId));
     }
 
@@ -519,9 +568,8 @@ public class EventCourseRoutes implements Routes {
                 .filter(signUp -> signUp.active() || signUp.status() == RegistrationStatus.DENIED)
                 .map(EventCourseRegistration::memberId)
                 .toList();
-        ctx.json(signUps.standings(course.id(), standing).stream()
-                .map(entry -> signUpOf(session.stationId(), entry, true))
-                .toList());
+        ctx.json(signUpsOf(
+                session, questions.findByCourse(course.id()), signUps.standings(course.id(), standing), entry -> true));
     }
 
     @OpenApi(
@@ -597,12 +645,19 @@ public class EventCourseRoutes implements Routes {
         return Set.copyOf(Objects.requireNonNullElse(request.parts(), List.of()));
     }
 
+    private static @Nullable List<RegistrationFieldDraft> draftsOf(@Nullable List<RegistrationFieldDefinition> fields) {
+        return fields == null
+                ? null
+                : fields.stream().map(RegistrationFieldDefinition::toDraft).toList();
+    }
+
     private static RestrictionAudience audienceOr(@Nullable RestrictionAudience audience) {
         return audience == null ? RestrictionAudience.empty() : audience;
     }
 
     private CourseDetail detailOf(StationSession session, EventCourse course) {
         var permissions = session.user().permissions();
+        var asked = questions.findByCourse(course.id());
         var household = guardianPolicy.household(session.user()).stream()
                 .filter(memberId -> courses.canSee(course.id(), memberId, permissions))
                 .toList();
@@ -612,32 +667,74 @@ public class EventCourseRoutes implements Routes {
                 signUps.partStates(course.id()),
                 courses.registrationAudience(course.id()),
                 courses.viewAudience(course.id()),
-                signUps.standings(course.id(), household).stream()
-                        .map(entry -> signUpOf(
-                                session.stationId(),
-                                entry,
-                                courses.canSignUp(course.id(), entry.memberId(), permissions)))
-                        .toList());
+                asked,
+                signUpsOf(
+                        session,
+                        asked,
+                        signUps.standings(course.id(), household),
+                        entry -> courses.canSignUp(course.id(), entry.memberId(), permissions)));
     }
 
     private CourseSignUp signUpOf(StationSession session, int courseId, int memberId) {
-        var entry = signUps.standings(courseId, List.of(memberId)).getFirst();
-        return signUpOf(
-                session.stationId(),
-                entry,
-                courses.canSignUp(courseId, memberId, session.user().permissions()));
+        var permissions = session.user().permissions();
+        return signUpsOf(
+                        session,
+                        questions.findByCourse(courseId),
+                        signUps.standings(courseId, List.of(memberId)),
+                        entry -> courses.canSignUp(courseId, entry.memberId(), permissions))
+                .getFirst();
     }
 
-    private CourseSignUp signUpOf(int stationId, CourseStanding entry, boolean mayRegister) {
-        var signUp = entry.signUp();
-        return new CourseSignUp(
-                entry.memberId(),
-                identities.local(stationId, entry.memberId()),
-                signUp == null ? null : signUp.status(),
-                signUp == null ? null : signUp.registeredAt(),
-                entry.counted().stream().sorted().toList(),
-                entry.sets(),
-                mayRegister);
+    /**
+     * Turns standings into what a response shows, reading the answers of all of them at once. Answers
+     * kept for organisers are left out unless the reader runs events or the answers are about them or
+     * somebody they look after. Whether a required answer is still owed is told either way.
+     */
+    private List<CourseSignUp> signUpsOf(
+            StationSession session,
+            List<EventRegistrationField> asked,
+            List<CourseStanding> entries,
+            Predicate<CourseStanding> mayRegister) {
+        var answers = questions.answersBySignUp(entries.stream()
+                .map(CourseStanding::signUp)
+                .filter(Objects::nonNull)
+                .map(EventCourseRegistration::id)
+                .toList());
+        var required = CourseQuestionService.requiredIds(asked);
+        var hidden = asked.stream()
+                .filter(field -> field.config().managersOnly())
+                .map(EventRegistrationField::id)
+                .collect(Collectors.toSet());
+        return entries.stream()
+                .map(entry -> {
+                    var signUp = entry.signUp();
+                    boolean readsHidden = readsAnswersOf(session, entry.memberId());
+                    var stored = signUp == null
+                            ? List.<RegistrationFieldValue>of()
+                            : answers.getOrDefault(signUp.id(), List.of());
+                    var given = stored.stream()
+                            .filter(value -> readsHidden || !hidden.contains(value.fieldId()))
+                            .map(value -> new EventRegistrationFieldValue(value.fieldId(), value.value()))
+                            .toList();
+                    return new CourseSignUp(
+                            entry.memberId(),
+                            identities.local(session.stationId(), entry.memberId()),
+                            signUp == null ? null : signUp.status(),
+                            signUp == null ? null : signUp.registeredAt(),
+                            entry.counted().stream().sorted().toList(),
+                            entry.sets(),
+                            given,
+                            signUp != null
+                                    && EventRegistrationFieldService.owesAnswer(signUp.status(), required, stored),
+                            mayRegister.test(entry));
+                })
+                .toList();
+    }
+
+    private boolean readsAnswersOf(StationSession session, int memberId) {
+        return session.hasPermission(StationPermission.EVENT_EDIT)
+                || memberId == session.member().id()
+                || guardianPolicy.mayActFor(session.user(), memberId);
     }
 
     /**
@@ -688,6 +785,7 @@ public class EventCourseRoutes implements Routes {
      * @param parts        its parts in date order
      * @param registration who may sign up
      * @param view         who may see it
+     * @param questions    what it asks of everybody signing up, in order
      * @param household    the sign-up of the reader and of everybody they look after who may see it
      */
     public record CourseDetail(
@@ -696,6 +794,7 @@ public class EventCourseRoutes implements Routes {
             List<EventCoursePartState> parts,
             RestrictionAudience registration,
             RestrictionAudience view,
+            List<EventRegistrationField> questions,
             List<CourseSignUp> household) {}
 
     /**
@@ -707,6 +806,9 @@ public class EventCourseRoutes implements Routes {
      * @param registeredAt when they signed up, or null
      * @param parts        the parts that count for the rules, in id order
      * @param sets         how those parts stand against every set
+     * @param answers      the answers given to the course's questions, those kept for organisers only
+     *                     where the reader may read them
+     * @param answersMissing whether a standing sign-up still owes an answer to a required question
      * @param mayRegister  whether the member is one of the people the course takes
      */
     public record CourseSignUp(
@@ -716,6 +818,8 @@ public class EventCourseRoutes implements Routes {
             @Nullable Instant registeredAt,
             List<Integer> parts,
             List<SetResult> sets,
+            List<EventRegistrationFieldValue> answers,
+            boolean answersMissing,
             boolean mayRegister) {}
 
     /**
@@ -725,12 +829,14 @@ public class EventCourseRoutes implements Routes {
      * @param sets         its sets in order, at least one
      * @param registration who may sign up, or null for everybody who may see it
      * @param view         who may see it, or null for everybody
+     * @param questions    what everybody signing up is asked, or null for nothing
      */
     public record CourseCreateRequest(
             EventCourseDetails details,
             @Nullable List<EventCourseSetDraft> sets,
             @Nullable RestrictionAudience registration,
-            @Nullable RestrictionAudience view) {}
+            @Nullable RestrictionAudience view,
+            @Nullable List<RegistrationFieldDefinition> questions) {}
 
     /**
      * A course saved from its editor. Sets and audiences left out stay as they are.
@@ -739,12 +845,14 @@ public class EventCourseRoutes implements Routes {
      * @param sets         its sets in their new order, or null
      * @param registration who may sign up, or null
      * @param view         who may see it, or null
+     * @param questions    what everybody signing up is asked from now on, or null
      */
     public record CourseDetailsRequest(
             EventCourseDetails details,
             @Nullable List<EventCourseSetDraft> sets,
             @Nullable RestrictionAudience registration,
-            @Nullable RestrictionAudience view) {}
+            @Nullable RestrictionAudience view,
+            @Nullable List<RegistrationFieldDefinition> questions) {}
 
     /** @param sets the sets in their new order */
     public record CourseSetsRequest(@Nullable List<EventCourseSetDraft> sets) {}
@@ -775,9 +883,21 @@ public class EventCourseRoutes implements Routes {
      *
      * @param memberId who signs up, or null for the reader
      * @param parts    the chosen parts
+     * @param answers  the answers to the course's questions, read on a new sign-up only
      */
     public record CourseSignUpRequest(
-            @Nullable Integer memberId, @Nullable List<Integer> parts) {}
+            @Nullable Integer memberId,
+            @Nullable List<Integer> parts,
+            @Nullable List<EventRegistrationFieldValue> answers) {}
+
+    /**
+     * New answers for a standing course sign-up.
+     *
+     * @param memberId whose sign-up, or null for the reader
+     * @param answers  the answers to the course's questions
+     */
+    public record CourseAnswersRequest(
+            @Nullable Integer memberId, @Nullable List<EventRegistrationFieldValue> answers) {}
 
     /**
      * A new appointment created straight into a course.

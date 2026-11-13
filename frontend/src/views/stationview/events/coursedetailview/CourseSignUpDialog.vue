@@ -15,6 +15,8 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import CourseQuestionInputs from './CourseQuestionInputs.vue'
+import {answersToSend, missingAnswers, seedAnswers} from './courseAnswers'
 import type {CourseDetail, CourseSignUp} from '@/api/generated/schema'
 import {RegistrationStatus} from '@/api/generated/schema'
 import {eventCourses} from '@/api'
@@ -27,7 +29,8 @@ import {formatDateTime} from '@/util/format'
  * Signs somebody up for a course, or changes the parts they chose: every part as a box, grouped by
  * set with the set's minimum beside it. Saving stays off while a set is short, and the dialog says
  * which one and by how much. A part called off cannot be newly chosen; one already held stays. A
- * part that already took place stays as it is.
+ * part that already took place stays as it is. A new sign-up also answers the course's questions;
+ * those are changed on their own afterwards.
  *
  * <p>Whoever runs events signing somebody else up may break the rules: the shortfalls are then only
  * shown, and the course marks the person as short.
@@ -57,11 +60,14 @@ const changing = computed(() =>
 const held = new Set(changing.value ? props.entry.parts : [])
 const chosen = ref<Set<number>>(new Set(held))
 const name = computed(() => props.entry.member.name ?? '')
+const asking = computed(() => !changing.value && props.detail.questions.length > 0)
+const answers = ref<Record<number, string>>(seedAnswers(props.detail.questions))
 
 const results = computed(() => evaluateChoice(props.detail.sets, props.detail.parts, chosen.value))
-const meets = computed(() => props.override
+const answered = computed(() => !asking.value || missingAnswers(props.detail.questions, answers.value).length === 0)
+const meets = computed(() => answered.value && (props.override
     ? chosen.value.size > 0
-    : choiceMeetsRules(props.detail.sets, props.detail.parts, chosen.value))
+    : choiceMeetsRules(props.detail.sets, props.detail.parts, chosen.value)))
 
 /**
  * Whether a part can be ticked or unticked: a part that took place stays as it is, and a part called
@@ -101,7 +107,8 @@ async function save() {
   try {
     const parts = [...chosen.value]
     if (changing.value) await eventCourses.changeParts(props.detail.course.id, parts, props.entry.memberId)
-    else await eventCourses.signUp(props.detail.course.id, parts, props.entry.memberId)
+    else await eventCourses.signUp(
+        props.detail.course.id, parts, answersToSend(props.detail.questions, answers.value), props.entry.memberId)
     open.value = false
     emit('saved')
   } catch (e) {
@@ -137,6 +144,7 @@ async function save() {
           <li v-if="!isMet(result)">{{ t('courses.setShort', {name: result.name, missing: missingOf(result)}) }}</li>
         </template>
       </ul>
+      <CourseQuestionInputs v-if="asking" v-model="answers" :fields="detail.questions"/>
       <ButtonRow pair align="end">
         <SecondaryButton data-cancel :disabled="busy" @click="close">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="busy || !meets" data-testid="course-sign-up-save" @click="save">

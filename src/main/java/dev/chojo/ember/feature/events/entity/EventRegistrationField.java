@@ -8,14 +8,20 @@ package dev.chojo.ember.feature.events.entity;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.Question;
+import org.jspecify.annotations.Nullable;
 
 /**
- * A question an event asks of everyone registering for it. Unlike {@link AppointmentField}, which
- * describes the event and holds one value, this holds one answer per registration.
+ * A question an event, or a course for all its parts, asks of everyone registering for it. Unlike
+ * {@link AppointmentField}, which describes the event and holds one value, this holds one answer per
+ * registration.
+ *
+ * @param eventId  the appointment that asks it, or null where a course does
+ * @param courseId the course that asks it, or null where an appointment does
  */
 public record EventRegistrationField(
         int id,
-        int eventId,
+        @Nullable Integer eventId,
+        @Nullable Integer courseId,
         String name,
         FieldType fieldType,
         EventQuestionSettings config,
@@ -35,7 +41,8 @@ public record EventRegistrationField(
     public static RowMapping<EventRegistrationField> map() {
         return row -> new EventRegistrationField(
                 row.getInt("id"),
-                row.getInt("event_id"),
+                (Integer) row.getObject("event_id"),
+                (Integer) row.getObject("course_id"),
                 row.getString("name"),
                 row.getEnum("field_type", FieldType.class),
                 EventQuestionSettings.parse(row.getString("config")),

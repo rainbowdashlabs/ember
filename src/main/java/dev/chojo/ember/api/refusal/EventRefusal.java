@@ -791,7 +791,15 @@ public enum EventRefusal implements Refusal {
 
     /** A new part of a course without a start or an end. */
     COURSE_PART_NEEDS_TIMES(
-            215, HttpStatus.BAD_REQUEST, "A new appointment needs a start and an end, nothing was saved");
+            215, HttpStatus.BAD_REQUEST, "A new appointment needs a start and an end, nothing was saved"),
+
+    /** Questions set on a part of a course instead of on the course. */
+    COURSE_PART_QUESTIONS_FROM_COURSE(
+            216, HttpStatus.CONFLICT, "A part of a course asks the course's questions, set them on the course"),
+
+    /** Two questions of a course under the same name. */
+    COURSE_QUESTION_NAME_TWICE(
+            217, HttpStatus.BAD_REQUEST, "A course asks each question once, two questions share a name");
 
     private final Definition definition;
 

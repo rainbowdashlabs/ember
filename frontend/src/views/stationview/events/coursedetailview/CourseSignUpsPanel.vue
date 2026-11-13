@@ -16,9 +16,12 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
+import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import CourseAnswersButton from './CourseAnswersButton.vue'
 import RegistrationStatusBadge from '../eventshared/RegistrationStatusBadge.vue'
 import CourseShortfall from './CourseShortfall.vue'
 import CourseSignUpDialog from './CourseSignUpDialog.vue'
+import RegistrationFieldAnswers from '../eventdetailview/RegistrationFieldAnswers.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromCompletion} from '@/components/input/select/memberOption'
 import {useSession} from '@/composables/useSession'
@@ -48,6 +51,13 @@ const picked = ref('')
 const adding = ref<CourseSignUp | null>(null)
 const {hasPermission, sessionInfo} = useSession()
 const canAdd = computed(() => hasPermission(StationPermission.EVENT_MANAGER) && !props.detail.course.cancelled)
+const answerable = computed(() => hasPermission(StationPermission.EVENT_EDIT)
+    ? props.detail.questions
+    : props.detail.questions.filter(question => !question.config.managersOnly))
+
+function standing(entry: CourseSignUp): boolean {
+  return entry.status === RegistrationStatus.PENDING || entry.status === RegistrationStatus.ACCEPTED
+}
 
 /** The station's members who hold no sign-up yet, offered for signing up. */
 const options = computed(() => {
@@ -61,7 +71,7 @@ const options = computed(() => {
 function startAdding(value: string) {
   const member = members.value.find(candidate => String(candidate.id) === value)
   if (!member) return
-  adding.value = {memberId: member.id, member, status: null, registeredAt: null, parts: [], sets: [], mayRegister: true}
+  adding.value = {memberId: member.id, member, status: null, registeredAt: null, parts: [], sets: [], answers: [], answersMissing: false, mayRegister: true}
   picked.value = ''
 }
 
@@ -125,8 +135,12 @@ defineExpose({reload})
             <RegistrationStatusBadge v-if="entry.status" :status="entry.status"/>
             <MutedText tag="span" size="sm">{{ t('courses.chosen', {count: entry.parts.length}) }}</MutedText>
             <CourseShortfall :sets="entry.sets"/>
+            <ErrorBadge v-if="entry.answersMissing" data-testid="course-answer-missing">{{ t('eventDetail.answerMissing') }}</ErrorBadge>
+            <RegistrationFieldAnswers :fields="detail.questions" :values="entry.answers" class="basis-full"/>
           </div>
-          <ButtonRow pair align="end">
+          <ButtonRow align="end">
+            <CourseAnswersButton v-if="canAdd && standing(entry) && answerable.length > 0" :course-id="detail.course.id"
+                                 :entry="entry" :questions="answerable" @saved="onChanged?.()"/>
             <SuccessButton v-if="entry.status !== RegistrationStatus.ACCEPTED" compact :disabled="deciding === entry.memberId"
                            data-testid="course-accept" @click="decide(entry, RegistrationStatus.ACCEPTED)">
               {{ t('courses.accept') }}

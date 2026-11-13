@@ -27778,6 +27778,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/courses/{courseId}/sign-up/answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change the answers given with a course sign-up */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    courseId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CourseAnswersRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CourseSignUp"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/courses/{courseId}/sign-ups": {
         parameters: {
             query?: never;
@@ -68751,6 +68802,11 @@ export interface components {
         };
         /** @enum {string} */
         CountUnit: "DAYS" | "HOURS" | "YEARS" | "LINE";
+        CourseAnswersRequest: {
+            answers?: components["schemas"]["EventRegistrationFieldValue"][] | null;
+            /** Format: int32 */
+            memberId?: number | null;
+        };
         CourseAudiences: {
             registration?: components["schemas"]["RestrictionAudience"] | null;
             view?: components["schemas"]["RestrictionAudience"] | null;
@@ -68767,6 +68823,7 @@ export interface components {
         };
         CourseCreateRequest: {
             details?: components["schemas"]["EventCourseDetails"];
+            questions?: components["schemas"]["RegistrationFieldDefinition"][] | null;
             registration?: components["schemas"]["RestrictionAudience"] | null;
             sets?: components["schemas"]["EventCourseSetDraft"][] | null;
             view?: components["schemas"]["RestrictionAudience"] | null;
@@ -68778,12 +68835,14 @@ export interface components {
             course: components["schemas"]["CourseSummary"];
             household: components["schemas"]["CourseSignUp"][];
             parts: components["schemas"]["EventCoursePartState"][];
+            questions: components["schemas"]["EventRegistrationField"][];
             registration: components["schemas"]["RestrictionAudience"];
             sets: components["schemas"]["EventCourseSet"][];
             view: components["schemas"]["RestrictionAudience"];
         };
         CourseDetailsRequest: {
             details?: components["schemas"]["EventCourseDetails"];
+            questions?: components["schemas"]["RegistrationFieldDefinition"][] | null;
             registration?: components["schemas"]["RestrictionAudience"] | null;
             sets?: components["schemas"]["EventCourseSetDraft"][] | null;
             view?: components["schemas"]["RestrictionAudience"] | null;
@@ -68822,6 +68881,8 @@ export interface components {
             sets?: components["schemas"]["EventCourseSetDraft"][] | null;
         };
         CourseSignUp: {
+            answers: components["schemas"]["EventRegistrationFieldValue"][];
+            answersMissing: boolean;
             mayRegister: boolean;
             member: components["schemas"]["MemberIdentity"];
             /** Format: int32 */
@@ -68832,6 +68893,7 @@ export interface components {
             status: components["schemas"]["RegistrationStatus"] | null;
         };
         CourseSignUpRequest: {
+            answers?: components["schemas"]["EventRegistrationFieldValue"][] | null;
             /** Format: int32 */
             memberId?: number | null;
             parts?: number[] | null;
@@ -70152,7 +70214,9 @@ export interface components {
         EventRegistrationField: {
             config: components["schemas"]["EventQuestionSettings"];
             /** Format: int32 */
-            eventId: number;
+            courseId: number | null;
+            /** Format: int32 */
+            eventId: number | null;
             fieldType: components["schemas"]["FieldType"];
             /** Format: int32 */
             id: number;
@@ -79665,6 +79729,7 @@ export type CountDetail = components['schemas']['CountDetail'];
 export type CountdownConfig = components['schemas']['CountdownConfig'];
 export type CountResponse = components['schemas']['CountResponse'];
 export type CountUnit = components['schemas']['CountUnit'];
+export type CourseAnswersRequest = components['schemas']['CourseAnswersRequest'];
 export type CourseAudiences = components['schemas']['CourseAudiences'];
 export type CourseAwaiting = components['schemas']['CourseAwaiting'];
 export type CourseCancelRequest = components['schemas']['CourseCancelRequest'];

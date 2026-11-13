@@ -37,12 +37,13 @@ function detail(): CourseDetail {
     }]),
     registration: {userTypes: [], groupIds: [], tagIds: [], memberIds: [], mode: 'AND'},
     view: {userTypes: [], groupIds: [], tagIds: [], memberIds: [], mode: 'AND'},
+    questions: [],
     household: [],
   }
 }
 
 function entry(overrides: Partial<CourseSignUp> = {}): CourseSignUp {
-  return {memberId: 12, member: createIdentity({name: 'Mara'}), status: null, registeredAt: null, parts: [], sets: [], mayRegister: true, ...overrides}
+  return {memberId: 12, member: createIdentity({name: 'Mara'}), status: null, registeredAt: null, parts: [], sets: [], answers: [], answersMissing: false, mayRegister: true, ...overrides}
 }
 
 let wrapper: VueWrapper | null = null
@@ -84,7 +85,7 @@ describe('CourseSignUpDialog', () => {
     save().click()
     await flushPromises()
 
-    expect(signUp).toHaveBeenCalledWith(70, expect.arrayContaining([11, 13, 21]), 12)
+    expect(signUp).toHaveBeenCalledWith(70, expect.arrayContaining([11, 13, 21]), [], 12)
     expect(wrapper.emitted('saved')).toHaveLength(1)
   })
 
@@ -103,6 +104,46 @@ describe('CourseSignUpDialog', () => {
 
     expect(changeParts).toHaveBeenCalledWith(70, expect.arrayContaining([11, 13, 21]), 12)
     expect(signUp).not.toHaveBeenCalled()
+  })
+
+  it('asks the course questions with a new sign-up and keeps saving off while a required one is open', async () => {
+    const asking = detail()
+    asking.questions = [
+      {id: 5, eventId: null, courseId: 70, name: 'T-Shirt', fieldType: 'TEXT', config: {required: true}, position: 0, overview: false},
+      {id: 6, eventId: null, courseId: 70, name: 'Allergien', fieldType: 'TEXT', config: {defaultValue: 'keine'}, position: 1, overview: false},
+    ] as CourseDetail['questions']
+    wrapper = mount(CourseSignUpDialog, {props: {detail: asking, entry: entry()}, attachTo: document.body})
+    await flushPromises()
+    await tick(11)
+    await tick(12)
+    await tick(21)
+
+    expect(save().disabled).toBe(true)
+    const shirt = document.body.querySelector('[data-testid="course-question-5"] input, input[data-testid="course-question-5"]') as HTMLInputElement
+    shirt.value = 'M'
+    shirt.dispatchEvent(new Event('input'))
+    await flushPromises()
+    expect(save().disabled).toBe(false)
+
+    save().click()
+    await flushPromises()
+    expect(signUp).toHaveBeenCalledWith(
+        70, expect.arrayContaining([11, 12, 21]), [{fieldId: 5, value: 'M'}, {fieldId: 6, value: 'keine'}], 12)
+  })
+
+  it('leaves the questions out when only the parts change', async () => {
+    const asking = detail()
+    asking.questions = [
+      {id: 5, eventId: null, courseId: 70, name: 'T-Shirt', fieldType: 'TEXT', config: {required: true}, position: 0, overview: false},
+    ] as CourseDetail['questions']
+    wrapper = mount(CourseSignUpDialog, {
+      props: {detail: asking, entry: entry({status: 'ACCEPTED', parts: [11, 12, 21]})},
+      attachTo: document.body,
+    })
+    await flushPromises()
+
+    expect(document.body.querySelector('[data-testid="course-questions"]')).toBeNull()
+    expect(save().disabled).toBe(false)
   })
 
   it('offers no called-off part that was not held already', async () => {
@@ -137,7 +178,7 @@ describe('CourseSignUpDialog', () => {
     save().click()
     await flushPromises()
 
-    expect(signUp).toHaveBeenCalledWith(70, [11], 12)
+    expect(signUp).toHaveBeenCalledWith(70, [11], [], 12)
   })
 })
 

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:280073551b58ce87a010837c61f0805692e080dfdf03af169d28b17123d1fdc1",
-  "generatedAt": "2026-11-13T10:38:44Z",
+  "schemaHash": "sha256:c517b5cb6ead18477f343c78284ccec4eadc1322a91e07f6bf3d488b89126403",
+  "generatedAt": "2026-11-13T12:07:07Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -9947,6 +9947,65 @@
       },
       "description": "A course: one-time appointments of a station that belong together and are signed up for once."
     },
+    "event_course_answer": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:dae664ad4cb330659ffe7a7b6b962ec4fc1a7192c650493bc7c3f5742a84786b",
+      "columns": [
+        {
+          "name": "course_registration_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The course sign-up the answer belongs to; the answer is removed with it."
+        },
+        {
+          "name": "field_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The question answered."
+        },
+        {
+          "name": "value",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The answer, stored as text in the same shape appointment answers use."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "course_registration_id",
+          "refTable": "event_course_registration",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "field_id",
+          "refTable": "event_registration_field",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "TRACKED"
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "course_registration_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE removes it with the course sign-up, which is removed with the member"
+          }
+        ]
+      },
+      "description": "One member's answer to one question of a course, given once with the course sign-up rather than per part."
+    },
     "event_course_deadline_reminder_sent": {
       "feature": "events",
       "scope": "STATION",
@@ -11697,7 +11756,7 @@
     "event_registration_field": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:359227999a431cbb781524646db662c17cf2b6b4414beb3fe6763bd8977b59d6",
+      "tableHash": "sha256:b54e2ae74ab20924395ac5fb03e8eb86fb298ec8ed207a8d162db23ec8e3e67e",
       "columns": [
         {
           "name": "id",
@@ -11709,9 +11768,9 @@
         {
           "name": "event_id",
           "type": "int4",
-          "nullable": false,
+          "nullable": true,
           "verified": true,
-          "description": "The event asking the question."
+          "description": "The event asking the question; NULL for a question of a course."
         },
         {
           "name": "name",
@@ -11747,9 +11806,22 @@
           "nullable": false,
           "verified": true,
           "description": "Whether the answer is shown next to the member in the registration list, rather than only on the registration itself."
+        },
+        {
+          "name": "course_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The course asking the question of everyone signing up for it; NULL for a question of an appointment. Exactly one of event_id and course_id is set."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "course_id",
+          "refTable": "event_course",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
         {
           "column": "event_id",
           "refTable": "station_event",

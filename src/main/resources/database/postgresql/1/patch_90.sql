@@ -327,6 +327,39 @@ CREATE INDEX IF NOT EXISTS idx_event_registration_course_registration_id
 COMMENT ON COLUMN ember_schema.event_registration.course_registration_id
     IS 'The course sign-up this registration for a part was chosen with; NULL for a registration of its own, and once the part was given up.';
 
+ALTER TABLE ember_schema.event_registration_field
+    ALTER COLUMN event_id DROP NOT NULL,
+    ADD COLUMN course_id INT REFERENCES ember_schema.event_course (id) ON DELETE CASCADE,
+    ADD CONSTRAINT event_registration_field_one_owner CHECK (num_nonnulls(event_id, course_id) = 1);
+
+CREATE UNIQUE INDEX IF NOT EXISTS event_registration_field_course_name
+    ON ember_schema.event_registration_field (course_id, name) WHERE course_id IS NOT NULL;
+
+COMMENT ON COLUMN ember_schema.event_registration_field.event_id
+    IS 'The event asking the question; NULL for a question of a course.';
+COMMENT ON COLUMN ember_schema.event_registration_field.course_id
+    IS 'The course asking the question of everyone signing up for it; NULL for a question of an appointment. Exactly one of event_id and course_id is set.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.event_course_answer
+(
+    course_registration_id INT  NOT NULL REFERENCES ember_schema.event_course_registration (id) ON DELETE CASCADE,
+    field_id               INT  NOT NULL REFERENCES ember_schema.event_registration_field (id) ON DELETE CASCADE,
+    value                  TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY (course_registration_id, field_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_course_answer_field
+    ON ember_schema.event_course_answer (field_id);
+
+COMMENT ON TABLE ember_schema.event_course_answer
+    IS 'One member''s answer to one question of a course, given once with the course sign-up rather than per part.';
+COMMENT ON COLUMN ember_schema.event_course_answer.course_registration_id
+    IS 'The course sign-up the answer belongs to; the answer is removed with it.';
+COMMENT ON COLUMN ember_schema.event_course_answer.field_id
+    IS 'The question answered.';
+COMMENT ON COLUMN ember_schema.event_course_answer.value
+    IS 'The answer, stored as text in the same shape appointment answers use.';
+
 CREATE TABLE IF NOT EXISTS ember_schema.event_course_restriction
 (
     id        SERIAL PRIMARY KEY,

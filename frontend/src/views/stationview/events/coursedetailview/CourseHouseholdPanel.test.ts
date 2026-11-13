@@ -11,11 +11,15 @@ import type {CourseDetail, CourseSignUp} from '@/api/generated/schema'
 import {createIdentity} from '@/test/mocks/factories'
 
 const withdraw = vi.fn(async (..._args: unknown[]) => ({}))
+const changeAnswers = vi.fn(async (..._args: unknown[]) => ({}))
 
-vi.mock('@/api', () => ({eventCourses: {withdraw: (...args: unknown[]) => withdraw(...args)}}))
+vi.mock('@/api', () => ({eventCourses: {
+  withdraw: (...args: unknown[]) => withdraw(...args),
+  changeAnswers: (...args: unknown[]) => changeAnswers(...args),
+}}))
 
 function entry(memberId: number, name: string, overrides: Partial<CourseSignUp> = {}): CourseSignUp {
-  return {memberId, member: createIdentity({name}), status: null, registeredAt: null, parts: [], sets: [], mayRegister: true, ...overrides}
+  return {memberId, member: createIdentity({name}), status: null, registeredAt: null, parts: [], sets: [], answers: [], answersMissing: false, mayRegister: true, ...overrides}
 }
 
 function detail(household: CourseSignUp[], deadline: string | null = null): CourseDetail {
@@ -28,6 +32,7 @@ function detail(household: CourseSignUp[], deadline: string | null = null): Cour
     parts: [{eventId: 11, setId: 1, name: 'Samstag', startTime: '2099-03-06T08:00:00Z', endTime: '2099-03-06T16:00:00Z', calledOff: false, tookPlace: false}],
     registration: {userTypes: [], groupIds: [], tagIds: [], memberIds: [], mode: 'AND'},
     view: {userTypes: [], groupIds: [], tagIds: [], memberIds: [], mode: 'AND'},
+    questions: [],
     household,
   }
 }
@@ -39,6 +44,7 @@ afterEach(() => {
   wrapper = null
   document.body.innerHTML = ''
   withdraw.mockClear()
+  changeAnswers.mockClear()
 })
 
 describe('CourseHouseholdPanel', () => {
@@ -66,6 +72,38 @@ describe('CourseHouseholdPanel', () => {
     await flushPromises()
 
     expect(withdraw).toHaveBeenCalledWith(70, 12)
+    expect(onChanged).toHaveBeenCalled()
+  })
+
+  it('shows the answers of a standing sign-up, marks one still owed and changes them', async () => {
+    const onChanged = vi.fn()
+    const asking = detail([entry(12, 'Mara', {
+      status: 'ACCEPTED', parts: [11], answers: [{fieldId: 5, value: 'Nüsse'}], answersMissing: true,
+    })])
+    asking.questions = [
+      {id: 5, eventId: null, courseId: 70, name: 'Allergien', fieldType: 'TEXT', config: {}, position: 0, overview: false},
+      {id: 6, eventId: null, courseId: 70, name: 'T-Shirt', fieldType: 'TEXT', config: {required: true}, position: 1, overview: false},
+    ] as CourseDetail['questions']
+    wrapper = mount(CourseHouseholdPanel, {
+      props: {detail: asking, onChanged},
+      attachTo: document.body,
+      global: {stubs: {MemberName: true}},
+    })
+
+    expect(wrapper.text()).toContain('Nüsse')
+    expect(wrapper.find('[data-testid="course-answer-missing"]').exists()).toBe(true)
+
+    await wrapper.find('[data-testid="course-change-answers"]').trigger('click')
+    await flushPromises()
+    const inputs = document.body.querySelectorAll('input')
+    const shirt = inputs[inputs.length - 1] as HTMLInputElement
+    shirt.value = 'M'
+    shirt.dispatchEvent(new Event('input'))
+    await flushPromises()
+    ;(document.body.querySelector('[data-onboarding="events.registration-fields.submit"]') as HTMLButtonElement).click()
+    await flushPromises()
+
+    expect(changeAnswers).toHaveBeenCalledWith(70, [{fieldId: 5, value: 'Nüsse'}, {fieldId: 6, value: 'M'}], 12)
     expect(onChanged).toHaveBeenCalled()
   })
 })

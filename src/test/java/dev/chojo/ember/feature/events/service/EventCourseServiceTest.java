@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.events.entity.EventCourseSetDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventCourseRepository;
+import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -87,7 +88,12 @@ class EventCourseServiceTest extends RepositoryTestBase {
 
     @BeforeEach
     void wire() {
-        service = new EventCourseService(courseRepo, eventRepo, restrictionService, occurrenceCalendar);
+        service = new EventCourseService(
+                courseRepo,
+                eventRepo,
+                restrictionService,
+                occurrenceCalendar,
+                new CourseQuestionService(new EventRegistrationFieldRepository(), memberEligibility));
         deadline = Instant.now().plus(Duration.ofDays(10)).truncatedTo(ChronoUnit.SECONDS);
     }
 
@@ -101,11 +107,13 @@ class EventCourseServiceTest extends RepositoryTestBase {
                 details("Jugendflamme 1", true),
                 List.of(new EventCourseSetDraft(null, "Übung", 2), new EventCourseSetDraft(null, "Prüfung", 1)),
                 RestrictionAudience.empty(),
-                RestrictionAudience.empty());
+                RestrictionAudience.empty(),
+                null);
     }
 
     private EventCourse create(EventCourseDetails details, List<EventCourseSetDraft> sets) {
-        return service.create(station.id(), details, sets, RestrictionAudience.empty(), RestrictionAudience.empty());
+        return service.create(
+                station.id(), details, sets, RestrictionAudience.empty(), RestrictionAudience.empty(), null);
     }
 
     private StationEvent appointment(Station at, int daysAhead, StationEvent.EventType type) {
@@ -394,7 +402,8 @@ class EventCourseServiceTest extends RepositoryTestBase {
                 details("  Jugendflamme 2  ", false),
                 List.of(new EventCourseSetDraft(null, "Teile", 1)),
                 youth(),
-                youth());
+                youth(),
+                null);
 
         assertEquals("Jugendflamme 2", course.name());
         assertEquals(
@@ -421,7 +430,8 @@ class EventCourseServiceTest extends RepositoryTestBase {
                         details("Kurs", false),
                         List.of(new EventCourseSetDraft(null, "Teile", 1)),
                         RestrictionAudience.empty(),
-                        stranger));
+                        stranger,
+                        null));
         assertRefused(
                 EventRefusal.COURSE_NOT_HERE,
                 () -> service.setAudiences(
@@ -593,7 +603,8 @@ class EventCourseServiceTest extends RepositoryTestBase {
                 details("Leistungsabzeichen", false),
                 List.of(new EventCourseSetDraft(null, "Teile", 1)),
                 RestrictionAudience.empty(),
-                RestrictionAudience.empty());
+                RestrictionAudience.empty(),
+                null);
         int parts = service.findSets(course.id()).getFirst().id();
         var first = appointment(otherStation, 40, StationEvent.EventType.ONE_TIME);
         var second = appointment(otherStation, 41, StationEvent.EventType.ONE_TIME);
@@ -640,13 +651,15 @@ class EventCourseServiceTest extends RepositoryTestBase {
                 new EventCourseDetails("Offen", null, null, Instant.now().plus(Duration.ofDays(3)), false),
                 List.of(new EventCourseSetDraft(null, "Teile", 1)),
                 RestrictionAudience.empty(),
-                RestrictionAudience.empty());
+                RestrictionAudience.empty(),
+                null);
         var empty = service.create(
                 otherStation.id(),
                 new EventCourseDetails("Leer", null, null, Instant.now().plus(Duration.ofDays(3)), false),
                 List.of(new EventCourseSetDraft(null, "Teile", 1)),
                 RestrictionAudience.empty(),
-                RestrictionAudience.empty());
+                RestrictionAudience.empty(),
+                null);
         var day = appointment(otherStation, 50, StationEvent.EventType.ONE_TIME);
         service.addPart(
                 otherStation.id(),
@@ -677,7 +690,8 @@ class EventCourseServiceTest extends RepositoryTestBase {
                         details("Umbenannt", false),
                         List.of(new EventCourseSetDraft(test.id(), "Prüfung", 1)),
                         youth(),
-                        youth()));
+                        youth(),
+                        null));
         assertEquals(
                 "Jugendflamme 1", courseRepo.findById(course.id()).orElseThrow().name());
         assertTrue(service.viewAudience(course.id()).namesNobody());
@@ -690,7 +704,8 @@ class EventCourseServiceTest extends RepositoryTestBase {
                         new EventCourseSetDraft(practice.id(), "Übung", 2),
                         new EventCourseSetDraft(test.id(), "Prüfung", 1)),
                 youth(),
-                youth());
+                youth(),
+                null);
         assertEquals("Umbenannt", courseRepo.findById(course.id()).orElseThrow().name());
         assertEquals(
                 List.of(StationUserType.MEMBER),

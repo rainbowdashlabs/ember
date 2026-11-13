@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.EventCourseDetails;
 import dev.chojo.ember.feature.events.entity.EventCoursePart;
 import dev.chojo.ember.feature.events.entity.EventCourseSet;
 import dev.chojo.ember.feature.events.entity.EventCourseSetDraft;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventCourseRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -54,12 +55,16 @@ public class EventCourseService {
     private final RestrictionService restrictions;
     private final OccurrenceCalendar calendar;
 
+    private final CourseQuestionService questions;
+
     @Inject
     public EventCourseService(
             EventCourseRepository courses,
             EventRepository events,
             RestrictionService restrictions,
-            OccurrenceCalendar calendar) {
+            OccurrenceCalendar calendar,
+            CourseQuestionService questions) {
+        this.questions = questions;
         this.courses = courses;
         this.events = events;
         this.restrictions = restrictions;
@@ -74,6 +79,7 @@ public class EventCourseService {
      * @param sets         its sets in order, at least one
      * @param registration who may sign up
      * @param view         who may see it
+     * @param asked        the questions everybody signing up answers, or null for none
      * @return the course
      */
     public EventCourse create(
@@ -81,7 +87,8 @@ public class EventCourseService {
             EventCourseDetails details,
             List<EventCourseSetDraft> sets,
             RestrictionAudience registration,
-            RestrictionAudience view) {
+            RestrictionAudience view,
+            @Nullable List<RegistrationFieldDraft> asked) {
         var checked = checked(details);
         requireValidSets(sets);
         if (sets.stream().anyMatch(set -> set.id() != null)) throw EventRefusal.COURSE_SET_NOT_IN_COURSE.raise();
@@ -94,6 +101,7 @@ public class EventCourseService {
             }
             restrictions.setAudience(RestrictionType.EVENT_COURSE, course.id(), registration);
             restrictions.setAudience(RestrictionType.EVENT_COURSE_VIEW, course.id(), view);
+            if (asked != null) questions.replaceQuestions(course.id(), asked);
             return courses.findById(course.id()).orElseThrow();
         });
     }
@@ -120,7 +128,7 @@ public class EventCourseService {
     }
 
     /**
-     * Saves everything the course editor holds in one go: details, then sets, then audiences. Either
+     * Saves everything the course editor holds in one go: details, sets, audiences and questions. Either
      * all of it is kept or, where any part is refused, none of it.
      *
      * @param stationId    the station asking
@@ -129,6 +137,7 @@ public class EventCourseService {
      * @param sets         its sets in their new order, or null to leave them
      * @param registration who may sign up, or null to leave it
      * @param view         who may see it, or null to leave it
+     * @param asked        the questions everybody signing up answers, or null to leave them
      * @return the course as it is now
      */
     public EventCourse save(
@@ -137,11 +146,13 @@ public class EventCourseService {
             EventCourseDetails details,
             @Nullable List<EventCourseSetDraft> sets,
             @Nullable RestrictionAudience registration,
-            @Nullable RestrictionAudience view) {
+            @Nullable RestrictionAudience view,
+            @Nullable List<RegistrationFieldDraft> asked) {
         return Transactions.call(() -> {
             var course = update(stationId, courseId, details);
             if (sets != null) replaceSets(stationId, courseId, sets);
             if (registration != null && view != null) setAudiences(stationId, courseId, registration, view);
+            if (asked != null) questions.replaceQuestions(courseId, asked);
             return courses.findById(courseId).orElse(course);
         });
     }
@@ -187,7 +198,7 @@ public class EventCourseService {
 
     /**
      * Makes an appointment a part of a course, in one of its sets. The part takes the course's
-     * sign-up and audiences from then on.
+     * sign-up, questions and audiences from then on, and the questions it asked of its own go.
      *
      * @param stationId the station asking
      * @param courseId  the course
@@ -213,6 +224,7 @@ public class EventCourseService {
             if (courses.isSharedWithPartners(eventId)) throw EventRefusal.COURSE_PART_SHARED.raise();
             requireCompatibleAudiences(courseId, eventId);
             if (!courses.claimPart(eventId, setId)) throw EventRefusal.COURSE_PART_TAKEN.raise();
+            questions.dropQuestionsOfPart(eventId);
             courses.alignParts(courseId, course.requiresConfirmation(), course.registrationDeadline());
             handDownAudiences(courseId, List.of(eventId));
             return courses.findPart(eventId).orElseThrow();

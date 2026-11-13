@@ -19597,6 +19597,52 @@
         } ]
       }
     },
+    "/api/v1/events/courses/{courseId}/sign-up/answers" : {
+      "put" : {
+        "summary" : "Change the answers given with a course sign-up",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CourseSignUp"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CourseAnswersRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/courses/{courseId}/sign-ups" : {
       "get" : {
         "summary" : "Every sign-up of a course, with the parts chosen and the sets each falls short of",
@@ -57845,6 +57891,21 @@
           }
         }
       },
+      "CourseAnswersRequest" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "answers" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/EventRegistrationFieldValue"
+            }
+          }
+        }
+      },
       "CourseAudiences" : {
         "type" : "object",
         "properties" : {
@@ -57923,6 +57984,12 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "questions" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/RegistrationFieldDefinition"
+            }
           }
         }
       },
@@ -57958,6 +58025,12 @@
           "view" : {
             "$ref" : "#/components/schemas/RestrictionAudience"
           },
+          "questions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EventRegistrationField"
+            }
+          },
           "household" : {
             "type" : "array",
             "items" : {
@@ -57965,7 +58038,7 @@
             }
           }
         },
-        "required" : [ "course", "sets", "parts", "registration", "view", "household" ]
+        "required" : [ "course", "sets", "parts", "registration", "view", "questions", "household" ]
       },
       "CourseDetailsRequest" : {
         "type" : "object",
@@ -57992,6 +58065,12 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "questions" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/RegistrationFieldDefinition"
+            }
           }
         }
       },
@@ -58122,11 +58201,20 @@
               "$ref" : "#/components/schemas/SetResult"
             }
           },
+          "answers" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EventRegistrationFieldValue"
+            }
+          },
+          "answersMissing" : {
+            "type" : "boolean"
+          },
           "mayRegister" : {
             "type" : "boolean"
           }
         },
-        "required" : [ "memberId", "member", "status", "registeredAt", "parts", "sets", "mayRegister" ]
+        "required" : [ "memberId", "member", "status", "registeredAt", "parts", "sets", "answers", "answersMissing", "mayRegister" ]
       },
       "CourseSignUpRequest" : {
         "type" : "object",
@@ -58140,6 +58228,12 @@
             "items" : {
               "type" : "integer",
               "format" : "int32"
+            }
+          },
+          "answers" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/EventRegistrationFieldValue"
             }
           }
         }
@@ -61969,7 +62063,11 @@
             "format" : "int32"
           },
           "eventId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "courseId" : {
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "name" : {
@@ -61989,7 +62087,7 @@
             "type" : "boolean"
           }
         },
-        "required" : [ "id", "eventId", "name", "fieldType", "config", "position", "overview" ]
+        "required" : [ "id", "eventId", "courseId", "name", "fieldType", "config", "position", "overview" ]
       },
       "EventRegistrationFieldValue" : {
         "type" : "object",

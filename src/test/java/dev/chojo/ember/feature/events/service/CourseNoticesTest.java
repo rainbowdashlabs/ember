@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.handler.EventCancelledHandler;
 import dev.chojo.ember.feature.events.repository.EventCourseRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventCourseRepository;
+import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -39,6 +40,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -97,7 +99,12 @@ class CourseNoticesTest extends RepositoryTestBase {
     void wire() {
         notifier = mock(Notifier.class);
         announcements = mock(DomainEventBus.class);
-        courses = new EventCourseService(courseRepo, eventRepo, restrictionService, occurrenceCalendar);
+        courses = new EventCourseService(
+                courseRepo,
+                eventRepo,
+                restrictionService,
+                occurrenceCalendar,
+                new CourseQuestionService(new EventRegistrationFieldRepository(), memberEligibility));
         var registrations = newEventServices(new DomainEventBus(Set.of())).registration();
         signUps = new EventCourseRegistrationService(
                 courseRepo,
@@ -107,7 +114,8 @@ class CourseNoticesTest extends RepositoryTestBase {
                 registrations,
                 occurrenceCalendar,
                 mock(DomainEventBus.class),
-                memberNameResolver);
+                memberNameResolver,
+                new CourseQuestionService(new EventRegistrationFieldRepository(), memberEligibility));
         zone = occurrenceCalendar.zoneOf(station.id());
     }
 
@@ -117,7 +125,8 @@ class CourseNoticesTest extends RepositoryTestBase {
                 new EventCourseDetails("Jugendflamme 1", null, null, deadline, confirm),
                 List.of(new EventCourseSetDraft(null, "Teile", 1)),
                 RestrictionAudience.empty(),
-                RestrictionAudience.empty());
+                RestrictionAudience.empty(),
+                null);
     }
 
     private StationEvent part(EventCourse course, int daysAhead) {
@@ -157,7 +166,7 @@ class CourseNoticesTest extends RepositoryTestBase {
         var past = part(course, -2);
         var first = part(course, 10);
         var second = part(course, 11);
-        signUps.register(station.id(), course.id(), anna.id(), Set.of(first.id(), second.id()), null, false);
+        signUps.register(station.id(), course.id(), anna.id(), Set.of(first.id(), second.id()), Map.of(), null, false);
         var bus = new DomainEventBus(
                 Set.of(new EventCancelledHandler(notifier, eventRegistrationRepo, occurrenceCalendar, courseRepo)));
         var cancellation = new EventCourseCancellationService(
@@ -191,7 +200,7 @@ class CourseNoticesTest extends RepositoryTestBase {
     void aPassedDeadlineWithSignUpsWaitingIsToldOnceForTheCourse() {
         var course = course(Instant.now().plus(Duration.ofDays(2)), true);
         var day = part(course, 12);
-        signUps.register(station.id(), course.id(), anna.id(), Set.of(day.id()), null, false);
+        signUps.register(station.id(), course.id(), anna.id(), Set.of(day.id()), Map.of(), null, false);
         query("UPDATE event_course SET registration_deadline = now() - INTERVAL '1 minute' WHERE id = :id;")
                 .single(call().bind("id", course.id()))
                 .update();
@@ -217,7 +226,7 @@ class CourseNoticesTest extends RepositoryTestBase {
     void membersWhoNeverAnsweredAreWarnedOnceBeforeTheCourseCloses() {
         var course = course(Instant.now().plus(Duration.ofHours(20)), false);
         var day = part(course, 13);
-        signUps.register(station.id(), course.id(), anna.id(), Set.of(day.id()), null, false);
+        signUps.register(station.id(), course.id(), anna.id(), Set.of(day.id()), Map.of(), null, false);
         var checker = checker();
 
         checker.check();
@@ -327,7 +336,7 @@ class CourseNoticesTest extends RepositoryTestBase {
         query("UPDATE station_member SET former = TRUE WHERE id = :id;")
                 .single(call().bind("id", former.id()))
                 .update();
-        signUps.register(station.id(), course.id(), anna.id(), Set.of(day.id()), null, false);
+        signUps.register(station.id(), course.id(), anna.id(), Set.of(day.id()), Map.of(), null, false);
         signUps.withdraw(station.id(), course.id(), anna.id());
         courses.setAudiences(
                 station.id(),
@@ -358,7 +367,7 @@ class CourseNoticesTest extends RepositoryTestBase {
     void aSinglePartCalledOffOnALiveCourseStillTellsItsPeople() {
         var course = course(null, false);
         var day = part(course, 20);
-        signUps.register(station.id(), course.id(), ben.id(), Set.of(day.id()), null, false);
+        signUps.register(station.id(), course.id(), ben.id(), Set.of(day.id()), Map.of(), null, false);
         var bus = new DomainEventBus(
                 Set.of(new EventCancelledHandler(notifier, eventRegistrationRepo, occurrenceCalendar, courseRepo)));
 

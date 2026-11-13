@@ -68,6 +68,7 @@ const {t} = useI18n()
         </div>
         <ButtonRow align="end">
           <SecondaryButton :icon="['fas', 'pen']">{{ t('courses.changeParts') }}</SecondaryButton>
+          <SecondaryButton :icon="['fas', 'list-check']">{{ t('courses.changeAnswers') }}</SecondaryButton>
           <SecondaryButton :icon="['fas', 'xmark']">{{ t('courses.withdraw') }}</SecondaryButton>
         </ButtonRow>
       </NeutralContainer>

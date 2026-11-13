@@ -54,6 +54,9 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.courseEdit.audienceTitle')">
       <p>{{ t('helpCenter.courseEdit.audienceText') }}</p>
     </HelpSection>
+    <HelpSection :title="t('helpCenter.courseEdit.questionsTitle')">
+      <p>{{ t('helpCenter.courseEdit.questionsText') }}</p>
+    </HelpSection>
     <HelpSection :title="t('helpCenter.courseEdit.partsTitle')">
       <p>{{ t('helpCenter.courseEdit.partsText') }}</p>
       <NeutralContainer class="flex flex-wrap items-center justify-between gap-2">

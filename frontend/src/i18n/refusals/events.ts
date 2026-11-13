@@ -243,4 +243,6 @@ export default {
     'E-213': 'Dieses Mitglied gehört nicht zu dieser Wache',
     'E-214': 'Der Lehrgang dieses Termins wurde abgesagt, seine Termine bleiben abgesagt',
     'E-215': 'Ein neuer Termin braucht einen Beginn und ein Ende, es wurde nichts gespeichert',
+    'E-216': 'Ein Termin eines Lehrgangs stellt die Fragen des Lehrgangs, lege sie beim Lehrgang fest',
+    'E-217': 'Ein Lehrgang stellt jede Frage einmal, zwei Fragen haben denselben Namen',
 }

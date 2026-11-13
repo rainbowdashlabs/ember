@@ -23,7 +23,9 @@ import CourseSetsEditor from './courseeditview/CourseSetsEditor.vue'
 import CourseDetailsForm from './courseeditview/CourseDetailsForm.vue'
 import type {SetRow} from './courseeditview/courseSetRow'
 import CoursePartsEditor from './courseeditview/CoursePartsEditor.vue'
-import type {CourseDetail, MemberGroup, RestrictionAudience, UserTag} from '@/api/generated/schema'
+import RegistrationFieldsEditor from './eventshared/RegistrationFieldsEditor.vue'
+import {asSaved} from './eventshared/eventQuestions'
+import type {CourseDetail, MemberGroup, RegistrationFieldDefinition, RestrictionAudience, UserTag} from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/api/types'
 import {eventCourses, memberGroups as memberGroupsApi, userTags as userTagsApi} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -57,6 +59,7 @@ const confirm = ref(false)
 const sets = ref<SetRow[]>([{id: null, name: t('courses.defaultSet'), minimum: 1}])
 const registration = ref<RestrictionSelection>(emptySelection())
 const view = ref<RestrictionSelection>(emptySelection())
+const questions = ref<RegistrationFieldDefinition[]>([])
 const saving = ref(false)
 const saveFailure = ref<Failure | null>(null)
 
@@ -85,6 +88,11 @@ function fill(loadedDetail: CourseDetail) {
   sets.value = loadedDetail.sets.map(set => ({id: set.id, name: set.name, minimum: set.minimum}))
   registration.value = selectionOf(loadedDetail.registration)
   view.value = selectionOf(loadedDetail.view)
+  questions.value = loadedDetail.questions.map(({name, fieldType, config, overview}) => ({name, fieldType, config, overview}))
+}
+
+function savedQuestions(): RegistrationFieldDefinition[] {
+  return questions.value.filter(question => question.name?.trim()).map(asSaved)
 }
 
 const {loading, failure} = useAsyncLoader(async () => {
@@ -125,6 +133,7 @@ async function save() {
         sets: drafts,
         registration: registration.value,
         view: view.value,
+        questions: savedQuestions(),
       })
       showToast(t('courses.saved'), 'success')
       await router.replace({name: 'event-course-edit', params: {courseId: created.course.id}})
@@ -134,7 +143,7 @@ async function save() {
     fill(await eventCourses.updateCourse(courseId.value, details(), drafts, {
       registration: registration.value,
       view: view.value,
-    }))
+    }, savedQuestions()))
   } catch (e) {
     saveFailure.value = describeFailure(e, t)
     throw e
@@ -172,6 +181,12 @@ async function save() {
           <RestrictionsField v-model="registration" :groups="groups" :tags="tags"/>
           <FieldLabel>{{ t('courses.viewAudience') }}</FieldLabel>
           <RestrictionsField v-model="view" :groups="groups" :tags="tags"/>
+        </NeutralContainer>
+
+        <NeutralContainer class="space-y-3">
+          <SectionHeader>{{ t('courses.questions') }}</SectionHeader>
+          <MutedText tag="p" size="sm">{{ t('courses.questionsHint') }}</MutedText>
+          <RegistrationFieldsEditor v-model="questions"/>
         </NeutralContainer>
 
         <FailureAlert v-if="saveFailure" :failure="saveFailure"/>

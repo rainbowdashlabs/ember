@@ -15,9 +15,12 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
+import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import RegistrationStatusBadge from '../eventshared/RegistrationStatusBadge.vue'
 import CourseSignUpDialog from './CourseSignUpDialog.vue'
 import CourseShortfall from './CourseShortfall.vue'
+import CourseAnswersButton from './CourseAnswersButton.vue'
+import RegistrationFieldAnswers from '../eventdetailview/RegistrationFieldAnswers.vue'
 import type {CourseDetail, CourseSignUp} from '@/api/generated/schema'
 import {RegistrationStatus} from '@/api/generated/schema'
 import {eventCourses} from '@/api'
@@ -106,6 +109,8 @@ async function confirmWithdraw() {
         <MutedText v-else tag="span" size="sm">{{ t('courses.notSignedUp') }}</MutedText>
         <MutedText v-if="active(entry)" tag="span" size="sm">{{ t('courses.chosen', {count: entry.parts.length}) }}</MutedText>
         <CourseShortfall v-if="active(entry)" :sets="entry.sets"/>
+        <ErrorBadge v-if="entry.answersMissing" data-testid="course-answer-missing">{{ t('eventDetail.answerMissing') }}</ErrorBadge>
+        <RegistrationFieldAnswers v-if="active(entry)" :fields="detail.questions" :values="entry.answers" class="basis-full"/>
       </div>
       <MutedText v-if="!entry.mayRegister && !active(entry)" tag="span" size="sm">
         {{ t('courses.notMeantFor', {name: entry.member.name ?? ''}) }}
@@ -126,6 +131,8 @@ async function confirmWithdraw() {
           >
             {{ t('courses.changeParts') }}
           </SecondaryButton>
+          <CourseAnswersButton v-if="!changeClosed && detail.questions.length > 0" :course-id="detail.course.id"
+                               :entry="entry" :questions="detail.questions" @saved="onChanged?.()"/>
           <SecondaryButton :icon="['fas', 'xmark']" data-testid="course-withdraw" @click="askWithdraw(entry)">
             {{ t('courses.withdraw') }}
           </SecondaryButton>

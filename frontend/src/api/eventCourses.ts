@@ -15,6 +15,8 @@ import type {
     EventCourseDetails,
     EventCoursePart,
     EventCourseSetDraft,
+    RegistrationFieldDefinition,
+    EventRegistrationFieldValue,
     RegistrationStatus,
     RestrictionAudience,
 } from './generated/schema'
@@ -37,16 +39,17 @@ export async function createCourse(request: CourseCreateRequest): Promise<Course
 }
 
 /**
- * Saves what the course editor holds in one go: details, and where given its sets and audiences.
- * Either all of it is kept or, where any part is refused, none of it.
+ * Saves what the course editor holds in one go: details, and where given its sets, audiences and
+ * questions. Either all of it is kept or, where any part is refused, none of it.
  */
 export async function updateCourse(
     courseId: number,
     details: EventCourseDetails,
     sets?: EventCourseSetDraft[],
     audiences?: {registration: RestrictionAudience; view: RestrictionAudience},
+    questions?: RegistrationFieldDefinition[],
 ): Promise<CourseDetail> {
-    return (await client.put<CourseDetail>(`${COURSES}/${courseId}`, {details, sets, ...audiences})).data
+    return (await client.put<CourseDetail>(`${COURSES}/${courseId}`, {details, sets, ...audiences, questions})).data
 }
 
 /** Deletes a course; its parts become appointments of their own. */
@@ -93,9 +96,23 @@ export async function removePart(courseId: number, eventId: number): Promise<voi
     await client.delete(`${COURSES}/${courseId}/parts/${eventId}`)
 }
 
-/** Signs the reader, or somebody they look after, up with a choice of parts. */
-export async function signUp(courseId: number, parts: number[], memberId?: number): Promise<CourseSignUp> {
-    return (await client.post<CourseSignUp>(`${COURSES}/${courseId}/sign-up`, {parts, memberId})).data
+/** Signs the reader, or somebody they look after, up with a choice of parts and the answers to the course's questions. */
+export async function signUp(
+    courseId: number,
+    parts: number[],
+    answers: EventRegistrationFieldValue[],
+    memberId?: number,
+): Promise<CourseSignUp> {
+    return (await client.post<CourseSignUp>(`${COURSES}/${courseId}/sign-up`, {parts, answers, memberId})).data
+}
+
+/** Changes the answers given with a standing sign-up. */
+export async function changeAnswers(
+    courseId: number,
+    answers: EventRegistrationFieldValue[],
+    memberId?: number,
+): Promise<CourseSignUp> {
+    return (await client.put<CourseSignUp>(`${COURSES}/${courseId}/sign-up/answers`, {answers, memberId})).data
 }
 
 /** Changes the parts chosen with a sign-up. */

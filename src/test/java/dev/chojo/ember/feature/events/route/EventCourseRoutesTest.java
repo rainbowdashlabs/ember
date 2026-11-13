@@ -14,8 +14,12 @@ import dev.chojo.ember.feature.events.entity.CoursePartSummary;
 import dev.chojo.ember.feature.events.entity.EventCourse;
 import dev.chojo.ember.feature.events.entity.EventCoursePart;
 import dev.chojo.ember.feature.events.entity.EventCourseRegistration;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
+import dev.chojo.ember.feature.events.entity.EventRegistrationField;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.service.CourseQuestionService;
 import dev.chojo.ember.feature.events.service.EventCourseCancellationService;
 import dev.chojo.ember.feature.events.service.EventCoursePartFactory;
 import dev.chojo.ember.feature.events.service.EventCourseRegistrationService;
@@ -23,6 +27,7 @@ import dev.chojo.ember.feature.events.service.EventCourseRegistrationService.Cou
 import dev.chojo.ember.feature.events.service.EventCourseService;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import io.javalin.testtools.Response;
@@ -31,6 +36,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -42,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -62,6 +69,7 @@ class EventCourseRoutesTest {
 
     private EventCourseService courses;
     private EventCourseRegistrationService signUps;
+    private CourseQuestionService questions;
     private GuardianPolicy guardians;
     private EventVisibility visibility;
     private EventCourseCancellationService cancellation;
@@ -97,7 +105,7 @@ class EventCourseRoutesTest {
         when(courses.canSeeAny(eq(COURSE_ID), anyList(), anySet())).thenReturn(true);
         when(courses.isMemberHere(eq(STATION_ID), anyInt())).thenReturn(true);
         when(courses.canSignUp(eq(COURSE_ID), anyInt(), anySet())).thenReturn(true);
-        when(courses.create(anyInt(), any(), any(), any(), any())).thenReturn(course);
+        when(courses.create(anyInt(), any(), any(), any(), any(), any())).thenReturn(course);
         when(guardians.household(any())).thenReturn(List.of(TestSessions.MEMBER_ID));
         when(signUps.standings(eq(COURSE_ID), anyList())).thenAnswer(call -> {
             List<Integer> members = call.getArgument(1);
@@ -113,8 +121,9 @@ class EventCourseRoutesTest {
         visibility = mock(EventVisibility.class);
         cancellation = mock(EventCourseCancellationService.class);
         partFactory = mock(EventCoursePartFactory.class);
-        harness = RouteHarness.serving(
-                new EventCourseRoutes(courses, signUps, guardians, identities, visibility, cancellation, partFactory));
+        questions = mock(CourseQuestionService.class);
+        harness = RouteHarness.serving(new EventCourseRoutes(
+                courses, signUps, guardians, identities, visibility, cancellation, partFactory, questions));
     }
 
     private Response call(String method, String path, String json, StationPermission... permissions) {
@@ -179,7 +188,8 @@ class EventCourseRoutesTest {
         var response = call("POST", COURSE + "/sign-up", "{\"parts\": [101, 102]}", StationPermission.USER);
 
         assertEquals(201, response.code());
-        verify(signUps).register(STATION_ID, COURSE_ID, TestSessions.MEMBER_ID, Set.of(101, 102), null, false);
+        verify(signUps)
+                .register(STATION_ID, COURSE_ID, TestSessions.MEMBER_ID, Set.of(101, 102), Map.of(), null, false);
     }
 
     @Test
@@ -189,7 +199,7 @@ class EventCourseRoutesTest {
         var response = call("POST", COURSE + "/sign-up", "{\"parts\": [101]}", StationPermission.USER);
 
         assertEquals(EventRefusal.MEMBER_NOT_INVITED_TO_EVENT, refusalOf(response));
-        verify(signUps, never()).register(anyInt(), anyInt(), anyInt(), anySet(), any(), eq(false));
+        verify(signUps, never()).register(anyInt(), anyInt(), anyInt(), anySet(), anyMap(), any(), eq(false));
     }
 
     @Test
@@ -201,7 +211,7 @@ class EventCourseRoutesTest {
                 201,
                 call("POST", COURSE + "/sign-up", forChild, StationPermission.USER)
                         .code());
-        verify(signUps).register(STATION_ID, COURSE_ID, CHILD_ID, Set.of(101), TestSessions.MEMBER_ID, false);
+        verify(signUps).register(STATION_ID, COURSE_ID, CHILD_ID, Set.of(101), Map.of(), TestSessions.MEMBER_ID, false);
 
         String forStranger = "{\"memberId\": 99, \"parts\": [101]}";
         assertEquals(
@@ -218,7 +228,7 @@ class EventCourseRoutesTest {
                 call("POST", COURSE + "/sign-up", forOther, StationPermission.USER, StationPermission.EVENT_MANAGER);
 
         assertEquals(201, response.code());
-        verify(signUps).register(STATION_ID, COURSE_ID, 99, Set.of(101), TestSessions.MEMBER_ID, true);
+        verify(signUps).register(STATION_ID, COURSE_ID, 99, Set.of(101), Map.of(), TestSessions.MEMBER_ID, true);
     }
 
     @Test
@@ -280,6 +290,84 @@ class EventCourseRoutesTest {
                 1,
                 json(call("GET", PREFIX + "/events/courses", null, StationPermission.USER))
                         .size());
+    }
+
+    private void askAllergiesForOrganisersAndARequiredShirt() {
+        var forOrganisers =
+                new EventQuestionSettings(null, null, null, null, null, false, false, false, null, null, null, true);
+        var required =
+                new EventQuestionSettings(null, null, null, null, null, false, false, true, null, null, null, false);
+        when(questions.findByCourse(COURSE_ID))
+                .thenReturn(List.of(
+                        new EventRegistrationField(
+                                5, null, COURSE_ID, "Allergien", FieldType.TEXT, forOrganisers, 0, false),
+                        new EventRegistrationField(6, null, COURSE_ID, "T-Shirt", FieldType.TEXT, required, 1, false)));
+        when(questions.answersBySignUp(anyList()))
+                .thenReturn(Map.of(1, List.of(new RegistrationFieldValue(1, 5, "Nüsse"))));
+        when(signUps.findByCourse(COURSE_ID))
+                .thenReturn(List.of(new EventCourseRegistration(
+                        1, COURSE_ID, CHILD_ID, RegistrationStatus.ACCEPTED, Instant.now(), null)));
+    }
+
+    @Test
+    void anAnswerKeptForOrganisersReachesWhoeverEditsAppointmentsButNotWhoeverOnlyHandlesRegistrations() {
+        askAllergiesForOrganisersAndARequiredShirt();
+
+        var handled = json(call("GET", COURSE + "/sign-ups", null, StationPermission.EVENT_REGISTRATION));
+        assertEquals(0, handled.get(0).get("answers").size());
+        assertEquals(true, handled.get(0).get("answersMissing").asBoolean());
+
+        var decided = json(call(
+                "PUT",
+                COURSE + "/sign-ups/" + CHILD_ID + "/status",
+                "{\"status\": \"ACCEPTED\"}",
+                StationPermission.EVENT_REGISTRATION));
+        assertEquals(0, decided.get("answers").size());
+
+        var edited = json(call(
+                "GET", COURSE + "/sign-ups", null, StationPermission.EVENT_REGISTRATION, StationPermission.EVENT_EDIT));
+        assertEquals("Nüsse", edited.get(0).get("answers").get(0).get("value").asString());
+    }
+
+    @Test
+    void aGuardianReadsTheAnswersKeptForOrganisersOfTheirChild() {
+        askAllergiesForOrganisersAndARequiredShirt();
+        when(guardians.household(any())).thenReturn(List.of(CHILD_ID));
+        when(guardians.mayActFor(any(), eq(CHILD_ID))).thenReturn(true);
+
+        var opened = json(call("GET", COURSE, null, StationPermission.USER));
+
+        assertEquals(
+                "Nüsse",
+                opened.get("household")
+                        .get(0)
+                        .get("answers")
+                        .get(0)
+                        .get("value")
+                        .asString());
+        assertEquals(2, opened.get("questions").size());
+    }
+
+    @Test
+    void answersAreChangedByTheMemberAndPastTheDeadlineByWhoeverRunsEventsForSomebodyElse() {
+        String own = "{\"answers\": [{\"fieldId\": 6, \"value\": \"M\"}]}";
+        assertEquals(
+                200,
+                call("PUT", COURSE + "/sign-up/answers", own, StationPermission.USER)
+                        .code());
+        verify(signUps).changeAnswers(STATION_ID, COURSE_ID, TestSessions.MEMBER_ID, Map.of(6, "M"), true, false);
+
+        String forOther = "{\"memberId\": 99, \"answers\": [{\"fieldId\": 6, \"value\": \"L\"}]}";
+        assertEquals(
+                200,
+                call(
+                                "PUT",
+                                COURSE + "/sign-up/answers",
+                                forOther,
+                                StationPermission.USER,
+                                StationPermission.EVENT_MANAGER)
+                        .code());
+        verify(signUps).changeAnswers(STATION_ID, COURSE_ID, 99, Map.of(6, "L"), false, true);
     }
 
     @Test
@@ -420,11 +508,11 @@ class EventCourseRoutesTest {
                  "registration": {"userTypes": [], "groupIds": [], "tagIds": [], "memberIds": [], "mode": "AND"},
                  "view": {"userTypes": [], "groupIds": [], "tagIds": [], "memberIds": [], "mode": "AND"}}""";
         var course = courses.requireCourse(STATION_ID, COURSE_ID);
-        when(courses.save(eq(STATION_ID), eq(COURSE_ID), any(), any(), any(), any()))
+        when(courses.save(eq(STATION_ID), eq(COURSE_ID), any(), any(), any(), any(), any()))
                 .thenReturn(course);
 
         assertEquals(
                 200, call("PUT", COURSE, body, StationPermission.EVENT_EDIT).code());
-        verify(courses).save(eq(STATION_ID), eq(COURSE_ID), any(), any(), any(), any());
+        verify(courses).save(eq(STATION_ID), eq(COURSE_ID), any(), any(), any(), any(), any());
     }
 }

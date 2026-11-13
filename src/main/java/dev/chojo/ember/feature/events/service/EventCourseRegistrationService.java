@@ -69,6 +69,7 @@ public class EventCourseRegistrationService {
     private final OccurrenceCalendar calendar;
     private final DomainEventBus eventBus;
     private final MemberNameResolver names;
+    private final CourseQuestionService questions;
 
     @Inject
     public EventCourseRegistrationService(
@@ -79,7 +80,8 @@ public class EventCourseRegistrationService {
             EventRegistrationService registrationService,
             OccurrenceCalendar calendar,
             DomainEventBus eventBus,
-            MemberNameResolver names) {
+            MemberNameResolver names,
+            CourseQuestionService questions) {
         this.courses = courses;
         this.signUps = signUps;
         this.events = events;
@@ -88,6 +90,7 @@ public class EventCourseRegistrationService {
         this.calendar = calendar;
         this.eventBus = eventBus;
         this.names = names;
+        this.questions = questions;
     }
 
     /**
@@ -97,6 +100,7 @@ public class EventCourseRegistrationService {
      * @param courseId  the course
      * @param memberId  the member
      * @param partIds   the chosen parts
+     * @param answers   the answers to the course's questions, keyed by question id
      * @param createdBy the member who signs somebody else up, or null
      * @param override  whether whoever runs events signs up, which passes the deadline, the limit,
      *                  parts already past and the rules
@@ -107,6 +111,7 @@ public class EventCourseRegistrationService {
             int courseId,
             int memberId,
             Set<Integer> partIds,
+            Map<Integer, String> answers,
             @Nullable Integer createdBy,
             boolean override) {
         var written = new ArrayList<EventRegistration>();
@@ -125,11 +130,13 @@ public class EventCourseRegistrationService {
             var standing = Standing.of(stationId, parts, calendar);
             requireChoosable(partIds, parts.keySet(), standing, Set.of(), override);
             requireRulesMet(courseId, partIds, standing, override);
+            var resolved = questions.resolveAnswers(courseId, answers);
             var status = course.requiresConfirmation() ? RegistrationStatus.PENDING : RegistrationStatus.ACCEPTED;
             existing.ifPresent(earlier -> registrations.findLinkedToCourse(earlier.id()).stream()
                     .filter(registration -> !partIds.contains(registration.eventId()))
                     .forEach(registration -> written.add(registrationService.releaseFromCourse(registration, null))));
             var stored = signUps.signUp(courseId, memberId, status, createdBy);
+            questions.writeAnswers(stored.id(), resolved);
             for (int partId : ascending(partIds)) {
                 written.add(place(parts.get(partId), memberId, status, createdBy, stored.id()));
             }
@@ -190,6 +197,33 @@ public class EventCourseRegistrationService {
     }
 
     /**
+     * Changes the answers a standing sign-up gives to the course's questions. The deadline holds for
+     * the member as it does for a change of parts; whoever runs events may correct them later.
+     *
+     * @param stationId          the station asking
+     * @param courseId           the course
+     * @param memberId           the member
+     * @param answers            the answers keyed by question id, as submitted
+     * @param readsHiddenAnswers whether the caller may read the answers kept for organisers
+     * @param override           whether whoever runs events changes them, which passes the deadline
+     * @return the sign-up
+     */
+    public EventCourseRegistration changeAnswers(
+            int stationId,
+            int courseId,
+            int memberId,
+            Map<Integer, String> answers,
+            boolean readsHiddenAnswers,
+            boolean override) {
+        return Transactions.call(() -> {
+            lockOpenCourse(stationId, courseId, override);
+            var current = requireActive(courseId, memberId);
+            questions.replaceAnswers(courseId, current.id(), answers, readsHiddenAnswers);
+            return current;
+        });
+    }
+
+    /**
      * Takes a member's sign-up back, with every part they chose. A confirmed place is withdrawn, a
      * sign-up still waiting is declined. Parts that already took place keep their record.
      *
@@ -205,6 +239,7 @@ public class EventCourseRegistrationService {
             var parts = lockParts(courseId);
             var standing = Standing.of(stationId, parts, calendar);
             signUps.updateStatus(signUp.id(), givenUp(signUp.status()));
+            questions.forgetAnswers(signUp.id());
             for (var registration : registrations.findLinkedToCourse(signUp.id())) {
                 var endsWith = standing.tookPlace(registration.eventId()) ? null : givenUp(registration.status());
                 written.add(registrationService.releaseFromCourse(registration, endsWith));

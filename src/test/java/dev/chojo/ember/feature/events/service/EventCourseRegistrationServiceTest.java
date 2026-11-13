@@ -15,12 +15,18 @@ import dev.chojo.ember.feature.events.entity.EventCourse;
 import dev.chojo.ember.feature.events.entity.EventCourseDetails;
 import dev.chojo.ember.feature.events.entity.EventCourseSet;
 import dev.chojo.ember.feature.events.entity.EventCourseSetDraft;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.EventRegistrationField;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
+import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventCourseRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventCourseRepository;
+import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -66,6 +72,7 @@ class EventCourseRegistrationServiceTest extends RepositoryTestBase {
     private final EventCourseRepository courseRepo = new EventCourseRepository();
     private EventCourseService courses;
     private EventCourseRegistrationService service;
+    private CourseQuestionService questions;
     private EventRegistrationService registrations;
     private EventCancellationService cancellation;
     private DomainEventBus bus;
@@ -104,7 +111,13 @@ class EventCourseRegistrationServiceTest extends RepositoryTestBase {
         var eventServices = newEventServices(new DomainEventBus(Set.of()));
         registrations = eventServices.registration();
         cancellation = eventServices.cancellation();
-        courses = new EventCourseService(courseRepo, eventRepo, restrictionService, occurrenceCalendar);
+        courses = new EventCourseService(
+                courseRepo,
+                eventRepo,
+                restrictionService,
+                occurrenceCalendar,
+                new CourseQuestionService(new EventRegistrationFieldRepository(), memberEligibility));
+        questions = new CourseQuestionService(new EventRegistrationFieldRepository(), memberEligibility);
         service = new EventCourseRegistrationService(
                 courseRepo,
                 new EventCourseRegistrationRepository(),
@@ -113,7 +126,8 @@ class EventCourseRegistrationServiceTest extends RepositoryTestBase {
                 registrations,
                 occurrenceCalendar,
                 bus,
-                memberNameResolver);
+                memberNameResolver,
+                questions);
         zone = occurrenceCalendar.zoneOf(station.id());
         course = jugendflamme(null, false, Instant.now().plus(Duration.ofDays(5)));
     }
@@ -124,7 +138,8 @@ class EventCourseRegistrationServiceTest extends RepositoryTestBase {
                 new EventCourseDetails("Jugendflamme 1", null, limit, deadline, confirm),
                 List.of(new EventCourseSetDraft(null, "Übung", 2), new EventCourseSetDraft(null, "Prüfung", 1)),
                 RestrictionAudience.empty(),
-                RestrictionAudience.empty());
+                RestrictionAudience.empty(),
+                null);
         var sets = courses.findSets(created.id()).stream()
                 .collect(Collectors.toMap(EventCourseSet::name, EventCourseSet::id));
         sat1 = part(created, sets.get("Übung"), 20);
@@ -173,7 +188,195 @@ class EventCourseRegistrationServiceTest extends RepositoryTestBase {
     }
 
     private void signUp(StationMember member, Integer... parts) {
-        service.register(station.id(), course.id(), member.id(), Set.of(parts), null, false);
+        service.register(station.id(), course.id(), member.id(), Set.of(parts), Map.of(), null, false);
+    }
+
+    private Map<String, Integer> askShirtAndAllergies() {
+        var required =
+                new EventQuestionSettings(null, null, null, null, null, false, false, true, null, null, null, false);
+        var forOrganisers =
+                new EventQuestionSettings(null, null, null, null, null, false, false, false, null, null, null, true);
+        questions.replaceQuestions(
+                course.id(),
+                List.of(
+                        new RegistrationFieldDraft("T-Shirt", FieldType.TEXT, required, false),
+                        new RegistrationFieldDraft("Allergien", FieldType.TEXT, forOrganisers, false)));
+        return questions.findByCourse(course.id()).stream()
+                .collect(Collectors.toMap(EventRegistrationField::name, EventRegistrationField::id));
+    }
+
+    private Map<Integer, String> answersOf(StationMember member) {
+        int signUpId = service.find(course.id(), member.id()).id();
+        return questions.answersBySignUp(List.of(signUpId)).getOrDefault(signUpId, List.of()).stream()
+                .collect(Collectors.toMap(RegistrationFieldValue::fieldId, RegistrationFieldValue::value));
+    }
+
+    @Test
+    void aSignUpAnswersTheCourseOnceAndARequiredQuestionIsAskedFor() {
+        var asked = askShirtAndAllergies();
+        int shirt = asked.get("T-Shirt");
+        int allergies = asked.get("Allergien");
+
+        assertRefused(EventRefusal.REGISTRATION_ANSWER_NOT_ACCEPTED, () -> signUp(anna, sat1, sun1, test));
+        assertEquals(Map.of(), partsOf(anna));
+
+        service.register(
+                station.id(),
+                course.id(),
+                anna.id(),
+                Set.of(sat1, sun1, test),
+                Map.of(shirt, "M", allergies, "Nüsse"),
+                null,
+                false);
+        assertEquals(Map.of(shirt, "M", allergies, "Nüsse"), answersOf(anna));
+        assertEquals(List.of(), eventRegistrationFieldRepo().findValuesForRegistrations(registrationIdsOf(anna)));
+    }
+
+    @Test
+    void anAnswerToAQuestionTheCourseDoesNotAskIsRefused() {
+        assertRefused(
+                EventRefusal.REGISTRATION_ANSWER_TO_UNKNOWN_QUESTION,
+                () -> service.register(
+                        station.id(), course.id(), anna.id(), Set.of(sat1, sun1, test), Map.of(-1, "x"), null, false));
+    }
+
+    @Test
+    void changingAnswersLeavesTheOnesKeptForOrganisersToThem() {
+        var asked = askShirtAndAllergies();
+        int shirt = asked.get("T-Shirt");
+        int allergies = asked.get("Allergien");
+        service.register(
+                station.id(),
+                course.id(),
+                anna.id(),
+                Set.of(sat1, sun1, test),
+                Map.of(shirt, "M", allergies, "Nüsse"),
+                null,
+                false);
+
+        service.changeAnswers(station.id(), course.id(), anna.id(), Map.of(shirt, "L"), false, false);
+        assertEquals(Map.of(shirt, "L", allergies, "Nüsse"), answersOf(anna));
+
+        service.changeAnswers(station.id(), course.id(), anna.id(), Map.of(shirt, "S"), true, false);
+        assertEquals(Map.of(shirt, "S"), answersOf(anna));
+    }
+
+    @Test
+    void signingUpAgainStartsFromTheAnswersGivenThen() {
+        var asked = askShirtAndAllergies();
+        int shirt = asked.get("T-Shirt");
+        int allergies = asked.get("Allergien");
+        service.register(
+                station.id(),
+                course.id(),
+                anna.id(),
+                Set.of(sat1, sun1, test),
+                Map.of(shirt, "M", allergies, "Nüsse"),
+                null,
+                false);
+        service.withdraw(station.id(), course.id(), anna.id());
+
+        service.register(
+                station.id(), course.id(), anna.id(), Set.of(sat1, sun1, test), Map.of(shirt, "S"), null, false);
+        assertEquals(Map.of(shirt, "S"), answersOf(anna));
+    }
+
+    @Test
+    void aQuestionKeepingItsNameKeepsItsAnswers() {
+        var asked = askShirtAndAllergies();
+        int shirt = asked.get("T-Shirt");
+        service.register(
+                station.id(), course.id(), anna.id(), Set.of(sat1, sun1, test), Map.of(shirt, "M"), null, false);
+
+        questions.replaceQuestions(
+                course.id(),
+                List.of(new RegistrationFieldDraft("T-Shirt", FieldType.TEXT, EventQuestionSettings.empty(), true)));
+
+        assertEquals(Map.of(shirt, "M"), answersOf(anna));
+    }
+
+    @Test
+    void twoQuestionsUnderOneNameAreRefused() {
+        var twice = List.of(
+                new RegistrationFieldDraft("Größe", FieldType.TEXT, EventQuestionSettings.empty(), false),
+                new RegistrationFieldDraft("Größe", FieldType.TEXT, EventQuestionSettings.empty(), false));
+
+        assertRefused(EventRefusal.COURSE_QUESTION_NAME_TWICE, () -> questions.replaceQuestions(course.id(), twice));
+    }
+
+    @Test
+    void aWithdrawalForgetsTheAnswers() {
+        var asked = askShirtAndAllergies();
+        int shirt = asked.get("T-Shirt");
+        service.register(
+                station.id(), course.id(), anna.id(), Set.of(sat1, sun1, test), Map.of(shirt, "M"), null, false);
+        int signUpId = service.find(course.id(), anna.id()).id();
+
+        service.withdraw(station.id(), course.id(), anna.id());
+
+        assertEquals(Map.of(), questions.answersBySignUp(List.of(signUpId)));
+    }
+
+    @Test
+    void afterTheDeadlineOnlyWhoeverRunsEventsChangesAnswers() {
+        var asked = askShirtAndAllergies();
+        int shirt = asked.get("T-Shirt");
+        service.register(
+                station.id(), course.id(), anna.id(), Set.of(sat1, sun1, test), Map.of(shirt, "M"), null, false);
+        courses.update(
+                station.id(),
+                course.id(),
+                new EventCourseDetails(
+                        "Jugendflamme 1", null, null, Instant.now().minus(Duration.ofHours(1)), false));
+
+        assertRefused(
+                EventRefusal.COURSE_REGISTRATION_CLOSED,
+                () -> service.changeAnswers(station.id(), course.id(), anna.id(), Map.of(shirt, "L"), true, false));
+        service.changeAnswers(station.id(), course.id(), anna.id(), Map.of(shirt, "L"), false, true);
+        assertEquals(Map.of(shirt, "L"), answersOf(anna));
+    }
+
+    @Test
+    void anAppointmentJoiningACourseLeavesItsOwnQuestionsBehind() {
+        var start = LocalDate.now().plusDays(40).atTime(9, 0).atZone(zone).toInstant();
+        var appointment = eventRepo.create(
+                station.id(),
+                "Zusatztag",
+                null,
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(Duration.ofHours(4)),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        var required =
+                new EventQuestionSettings(null, null, null, null, null, false, false, true, null, null, null, false);
+        eventRegistrationFieldRepo()
+                .replaceFields(
+                        appointment.id(),
+                        List.of(new RegistrationFieldDraft("Schuhgröße", FieldType.TEXT, required, false)));
+
+        var set = courses.findSets(course.id()).getFirst();
+        courses.addPart(station.id(), course.id(), appointment.id(), set.id());
+
+        assertEquals(List.of(), eventRegistrationFieldRepo().findByEvent(appointment.id()));
+    }
+
+    private List<Integer> registrationIdsOf(StationMember member) {
+        return eventRegistrationRepo.findByMemberInEvents(member.id(), List.of(sat1, sun1, sat2, test)).stream()
+                .map(EventRegistration::id)
+                .toList();
+    }
+
+    private static EventRegistrationFieldRepository eventRegistrationFieldRepo() {
+        return new EventRegistrationFieldRepository();
     }
 
     @Test
@@ -200,7 +403,7 @@ class EventCourseRegistrationServiceTest extends RepositoryTestBase {
         assertRefused(EventRefusal.COURSE_CHOICE_SHORT, () -> signUp(anna, sat1, test));
         assertRefused(EventRefusal.COURSE_CHOICE_SHORT, () -> signUp(anna, sat1, sun1));
 
-        service.register(station.id(), course.id(), anna.id(), Set.of(sat1), leader.id(), true);
+        service.register(station.id(), course.id(), anna.id(), Set.of(sat1), Map.of(), leader.id(), true);
 
         assertEquals(Map.of(sat1, RegistrationStatus.ACCEPTED), partsOf(anna));
         var standing = service.evaluate(course.id(), service.chosenParts(course.id(), anna.id()));
@@ -236,7 +439,7 @@ class EventCourseRegistrationServiceTest extends RepositoryTestBase {
         signUp(anna, sat1, sun1, test);
 
         assertRefused(EventRefusal.COURSE_FULL, () -> signUp(ben, sat1, sun1, test));
-        service.register(station.id(), course.id(), carla.id(), Set.of(sat1, sun1, test), leader.id(), true);
+        service.register(station.id(), course.id(), carla.id(), Set.of(sat1, sun1, test), Map.of(), leader.id(), true);
 
         service.withdraw(station.id(), course.id(), anna.id());
         service.withdraw(station.id(), course.id(), carla.id());
@@ -250,7 +453,7 @@ class EventCourseRegistrationServiceTest extends RepositoryTestBase {
         course = jugendflamme(null, false, Instant.now().minus(Duration.ofHours(1)));
 
         assertRefused(EventRefusal.COURSE_REGISTRATION_CLOSED, () -> signUp(anna, sat1, sun1, test));
-        service.register(station.id(), course.id(), anna.id(), Set.of(sat1, sun1, test), leader.id(), true);
+        service.register(station.id(), course.id(), anna.id(), Set.of(sat1, sun1, test), Map.of(), leader.id(), true);
         assertEquals(
                 RegistrationStatus.ACCEPTED,
                 service.find(course.id(), anna.id()).status());
@@ -423,7 +626,8 @@ class EventCourseRegistrationServiceTest extends RepositoryTestBase {
         var sets = courses.findSets(course.id()).stream()
                 .collect(Collectors.toMap(EventCourseSet::name, EventCourseSet::id));
         int yesterday = part(course, sets.get("Übung"), -1);
-        service.register(station.id(), course.id(), anna.id(), Set.of(yesterday, sat1, test), leader.id(), true);
+        service.register(
+                station.id(), course.id(), anna.id(), Set.of(yesterday, sat1, test), Map.of(), leader.id(), true);
 
         assertRefused(
                 EventRefusal.COURSE_PART_TOOK_PLACE,
@@ -494,7 +698,7 @@ class EventCourseRegistrationServiceTest extends RepositoryTestBase {
     @Test
     void theStandingsOfSeveralMembersAreReadInOneGo() {
         signUp(anna, sat1, sun1, test);
-        service.register(station.id(), course.id(), ben.id(), Set.of(sat1), leader.id(), true);
+        service.register(station.id(), course.id(), ben.id(), Set.of(sat1), Map.of(), leader.id(), true);
 
         var standings = service.standings(course.id(), List.of(anna.id(), ben.id(), carla.id()));
 

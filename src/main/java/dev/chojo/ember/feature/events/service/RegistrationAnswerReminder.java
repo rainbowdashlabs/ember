@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -18,6 +19,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -71,7 +73,11 @@ public class RegistrationAnswerReminder {
      */
     public void replaceQuestions(int eventId, List<RegistrationFieldDraft> fields) {
         var owedBefore = owing(eventId).stream().map(EventRegistration::id).collect(Collectors.toSet());
-        fieldService.replaceFields(eventId, fields);
+        Transactions.run(() -> {
+            eventRepository.lockForSignUp(eventId);
+            if (eventRepository.isCoursePart(eventId)) throw EventRefusal.COURSE_PART_QUESTIONS_FROM_COURSE.raise();
+            fieldService.replaceFields(eventId, fields);
+        });
         var newlyOwing = owing(eventId).stream()
                 .filter(registration -> !owedBefore.contains(registration.id()))
                 .toList();
