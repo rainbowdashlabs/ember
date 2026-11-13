@@ -76,7 +76,6 @@ function getEligibleMembers(eventId: number): AnswerablePerson[] {
       t('eventsUpcoming.myself'))
 }
 
-/** Why somebody who sees the appointment may still be unable to answer it, or null. */
 /** Who may see a kept appointment, and who may answer it where that is fewer, as one line. */
 function getRestrictionNote(eventId: number): string | null {
   const notes = [
