@@ -96,6 +96,7 @@ class EventGroupRoutesTest {
                 RestrictionMode.AND,
                 false,
                 null,
+                null,
                 null);
         when(eventGroups.requireEventGroup(STATION_ID, EVENT_GROUP_ID)).thenReturn(eventGroup);
         when(eventGroups.findByStation(STATION_ID)).thenReturn(List.of(eventGroup));
@@ -438,7 +439,7 @@ class EventGroupRoutesTest {
         when(visibility.requireVisibleEvent(any(), eq(101))).thenReturn(event);
         when(visibility.requireVisibleEvent(any(), eq(102))).thenReturn(event);
         when(eventGroups.partSummary(STATION_ID, 101))
-                .thenReturn(new EventGroupPartSummary(EVENT_GROUP_ID, "Jugendflamme 1", 5, "Übung", 2, 4));
+                .thenReturn(new EventGroupPartSummary(EVENT_GROUP_ID, "Jugendflamme 1", 5, "Übung", 2, 4, null));
 
         var part = call("GET", PREFIX + "/events/101/group", null, StationPermission.USER);
         assertEquals(2, json(part).get("number").asInt());
@@ -494,6 +495,7 @@ class EventGroupRoutesTest {
                 RestrictionMode.AND,
                 RestrictionMode.AND,
                 false,
+                null,
                 null,
                 null);
         when(eventGroups.findOpenWithDeadline(STATION_ID)).thenReturn(List.of(open));

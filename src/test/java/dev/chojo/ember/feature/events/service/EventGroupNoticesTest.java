@@ -126,7 +126,7 @@ class EventGroupNoticesTest extends RepositoryTestBase {
     private EventGroup eventGroup(Instant deadline, boolean confirm) {
         return eventGroups.create(
                 station.id(),
-                new EventGroupDetails("Jugendflamme 1", null, null, deadline, confirm),
+                new EventGroupDetails("Jugendflamme 1", null, null, deadline, confirm, null),
                 List.of(new EventGroupSetDraft(null, "Teile", 1)),
                 RestrictionAudience.empty(),
                 RestrictionAudience.empty(),
@@ -319,7 +319,7 @@ class EventGroupNoticesTest extends RepositoryTestBase {
                 station.id(),
                 eventGroup.id(),
                 new EventGroupDetails(
-                        "Jugendflamme 1", null, null, Instant.now().plus(Duration.ofHours(30)), false));
+                        "Jugendflamme 1", null, null, Instant.now().plus(Duration.ofHours(30)), false, null));
         var later = mock(Notifier.class);
         notifier = later;
         checker().check();

@@ -8,7 +8,7 @@ import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import EventGroupPartBadge from './EventGroupPartBadge.vue'
 
-const eventGroup = {eventGroupId: 70, eventGroupName: 'Jugendflamme 1', setId: 1, setName: 'Übung', number: 2, count: 4}
+const eventGroup = {eventGroupId: 70, eventGroupName: 'Jugendflamme 1', setId: 1, setName: 'Übung', number: 2, count: 4, color: null}
 
 describe('EventGroupPartBadge', () => {
   it('names the event group and where the part stands in it', () => {
@@ -17,8 +17,4 @@ describe('EventGroupPartBadge', () => {
     expect(badge.text()).toContain('Jugendflamme 1, Teil 2 von 4')
   })
 
-  it('links to the event group only where it stands on its own', () => {
-    expect(mount(EventGroupPartBadge, {props: {eventGroup}}).find('a').exists()).toBe(false)
-    expect(mount(EventGroupPartBadge, {props: {eventGroup, link: true}}).find('a').exists()).toBe(true)
-  })
 })

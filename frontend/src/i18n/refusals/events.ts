@@ -245,4 +245,5 @@ export default {
     'E-215': 'Ein neuer Termin braucht einen Beginn und ein Ende, es wurde nichts gespeichert',
     'E-216': 'Ein Termin einer Terminreihe stellt die Fragen der Terminreihe, lege sie bei der Terminreihe fest',
     'E-217': 'Eine Terminreihe stellt jede Frage einmal, zwei Fragen haben denselben Namen',
+    'E-218': 'Die Farbe einer Terminreihe wird als #RRGGBB angegeben, nichts wurde gespeichert',
 }

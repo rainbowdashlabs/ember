@@ -41,6 +41,8 @@ import java.util.Set;
  * practice days over two weekends of which two count, and a test on the last day that everybody
  * attends. The T-shirt size is asked once for the whole event group.
  *
+ * <p>The Jugendflamme carries a colour of its own; the Grundlehrgang shows the one picked by its id.
+ *
  * <p>The sign-ups show every state an event group page knows: a few young people with a valid choice, one
  * with all four days, one still waiting for the team to confirm, and one the team signed up with a
  * single practice day, who shows as short.
@@ -102,7 +104,8 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
                         "Acht Abende Grundausbildung für die Neuen. Sechs davon müssen besucht werden.",
                         null,
                         days.at(firstThursday, 17, 0),
-                        false),
+                        false,
+                        null),
                 List.of(new EventGroupSetDraft(null, "Ausbildungsabende", 6)),
                 youthAndTeam(),
                 youthAndTeam(),
@@ -155,7 +158,8 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
                                 + " die Prüfung ist Pflicht.",
                         12,
                         days.at(saturday.minusDays(7), 23, 59),
-                        true),
+                        true,
+                        "#8b5cf6"),
                 List.of(new EventGroupSetDraft(null, "Übung", 2), new EventGroupSetDraft(null, "Prüfung", 1)),
                 youthAndTeam,
                 youthAndTeam,

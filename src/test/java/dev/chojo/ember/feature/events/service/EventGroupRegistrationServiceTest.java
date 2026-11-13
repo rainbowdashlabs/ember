@@ -141,7 +141,7 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
     private EventGroup jugendflamme(Integer limit, boolean confirm, Instant deadline) {
         var created = eventGroups.create(
                 station.id(),
-                new EventGroupDetails("Jugendflamme 1", null, limit, deadline, confirm),
+                new EventGroupDetails("Jugendflamme 1", null, limit, deadline, confirm, null),
                 List.of(new EventGroupSetDraft(null, "Übung", 2), new EventGroupSetDraft(null, "Prüfung", 1)),
                 RestrictionAudience.empty(),
                 RestrictionAudience.empty(),
@@ -340,7 +340,7 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
                 station.id(),
                 eventGroup.id(),
                 new EventGroupDetails(
-                        "Jugendflamme 1", null, null, Instant.now().minus(Duration.ofHours(1)), false));
+                        "Jugendflamme 1", null, null, Instant.now().minus(Duration.ofHours(1)), false, null));
 
         assertRefused(
                 EventRefusal.EVENT_GROUP_REGISTRATION_CLOSED,

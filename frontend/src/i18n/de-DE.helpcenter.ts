@@ -3381,7 +3381,7 @@ volumes:
             whatIsText: 'Eine Terminreihe fasst mehrere Termine zusammen, die nur gemeinsam Sinn ergeben. Du meldest dich einmal für die ganze Terminreihe an und wählst dabei die Termine, an denen du teilnimmst.',
             whatIsExample: 'Ein Beispiel ist die Jugendflamme Stufe 1: Zwei Übungstage von dreien und der Prüfungstag gehören dazu.',
             howTo: 'Wie komme ich zu einer Terminreihe?',
-            howToText: 'Ein Termin, der zu einer Terminreihe gehört, zeigt oben einen Hinweis mit dem Namen der Terminreihe. Von dort geht es zur Terminreihe. Auch „Kommende Termine“, die Benachrichtigungen und die Übersicht offener Anmeldungen führen dorthin. Wer Termine verwaltet, legt neue Terminreihen unter Termine → Verwalten über „Neue Terminreihe“ an.',
+            howToText: 'Termine einer Terminreihe tragen in Listen und auf der Übersicht einen farbigen Streifen am linken Rand, im Kalender eine farbige Marke vor dem Namen. Beide nennen die Terminreihe, wenn man darauf zeigt. Ein Termin, der zu einer Terminreihe gehört, zeigt oben einen Hinweis mit dem Namen der Terminreihe. Von dort geht es zur Terminreihe. Auch „Kommende Termine“, die Benachrichtigungen und die Übersicht offener Anmeldungen führen dorthin. Wer Termine verwaltet, legt neue Terminreihen unter Termine → Verwalten über „Neue Terminreihe“ an.',
             exampleName: 'Jugendflamme Stufe 1',
         },
         eventGroupDetail: {
@@ -3425,7 +3425,7 @@ volumes:
             title: 'Terminreihe bearbeiten',
             subtitle: 'Anmeldung, Blöcke, Zielgruppe und Termine festlegen.',
             whatIs: 'Was stelle ich ein?',
-            whatIsText: 'Gib der Terminreihe einen Namen und eine Beschreibung. Bei „Plätze“ legst du fest, wie viele Leute mitmachen können. Lass das Feld leer, wenn es keine Grenze gibt. Beim Anmeldeschluss endet die Anmeldung. Mit „Anmeldungen bestätigen“ entscheidet die Leitung über jede Anmeldung. Unten speicherst du alles auf einmal.',
+            whatIsText: 'Gib der Terminreihe einen Namen und eine Beschreibung. Bei „Plätze“ legst du fest, wie viele Leute mitmachen können. Lass das Feld leer, wenn es keine Grenze gibt. Beim Anmeldeschluss endet die Anmeldung. Mit „Anmeldungen bestätigen“ entscheidet die Leitung über jede Anmeldung. Die Farbe markiert die Termine der Terminreihe mit einem Streifen am linken Rand; ohne eigene Farbe kommt eine aus der Palette. Unten speicherst du alles auf einmal.',
             setsTitle: 'Blöcke',
             setsText: 'Jeder Termin gehört zu einem Block. Bei jedem Block steht, wie viele seiner Termine mindestens gewählt werden müssen. Steht dort die Zahl aller Termine, sind sie alle Pflicht. Mit den Pfeilen links änderst du die Reihenfolge.',
             audienceTitle: 'Zielgruppe',

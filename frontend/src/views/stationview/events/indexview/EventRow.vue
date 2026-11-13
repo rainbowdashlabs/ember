@@ -10,7 +10,7 @@ import {useEventRoutes} from '@/composables/useEventRoutes'
 import EditButton from '@/components/button/EditButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
-import EventGroupPartBadge from '../eventshared/EventGroupPartBadge.vue'
+import EventGroupBand from '../eventshared/EventGroupBand.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -99,7 +99,9 @@ const detailRoute = computed(() => {
   <RowLink :to="detailRoute">
     <NeutralContainer data-testid="event-entry"
                       :data-registration="item.event.requiresRegistration ? 'true' : 'false'"
-                      class="flex items-center justify-between cursor-pointer hover:bg-(--bg-accent) transition-colors">
+                      class="flex items-center justify-between cursor-pointer hover:bg-(--bg-accent) transition-colors"
+                      :class="{'relative pl-5': item.event.eventGroup}">
+      <EventGroupBand v-if="item.event.eventGroup" :event-group="item.event.eventGroup"/>
       <div class="flex items-center gap-2 flex-wrap">
         <ColorBadge v-if="category" :color="category.color" data-testid="event-entry-category">
           {{ category.name }}
@@ -110,7 +112,6 @@ const detailRoute = computed(() => {
         </SecondaryBadge>
         <span class="font-medium text-primary" :class="{'line-through': item.cancellation}">{{ item.event.name }}</span>
         <ErrorBadge v-if="item.cancellation" data-testid="event-entry-cancelled">{{ t('events.cancelled') }}</ErrorBadge>
-        <EventGroupPartBadge v-if="item.event.eventGroup" :event-group="item.event.eventGroup"/>
         <MutedIcon v-if="item.event.restricted" :icon="['fas', 'lock']" class="ml-1"/>
         <span class="text-sm text-(--text-muted)">{{ when }}</span>
         <span v-if="dateNote" class="text-sm text-(--text-muted)">{{ dateNote }}</span>

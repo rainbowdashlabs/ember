@@ -7,6 +7,7 @@
 import type {RouteLocationRaw} from 'vue-router'
 import EventChipLink from '@/components/navigation/EventChipLink.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
+import EventGroupBand from '../../eventshared/EventGroupBand.vue'
 import type {EventSummary} from '@/api/generated/schema'
 import type {DayCell} from '@/composables/useEventCalendarGrid'
 
@@ -56,7 +57,7 @@ void props
           :data-cancelled="isCancelled(evRef.event, evRef.date)"
       >
         <MutedIcon v-if="evRef.event.restricted" :icon="['fas', 'lock']" class="mr-0.5 inline"/>
-        <MutedIcon v-if="evRef.event.eventGroup" :icon="['fas', 'graduation-cap']" class="mr-0.5 inline" data-testid="calendar-event-group-part"/>
+        <EventGroupBand v-if="evRef.event.eventGroup" :event-group="evRef.event.eventGroup" variant="mark"/>
         <span class="hidden sm:inline">{{ formatTime(evRef.event.startTime) }}&nbsp;</span>
         <span>{{ evRef.event.name }}</span>
       </EventChipLink>

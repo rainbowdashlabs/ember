@@ -64,6 +64,7 @@ const description = ref('')
 const limit = ref<number | undefined>(undefined)
 const deadline = ref('')
 const confirm = ref(false)
+const color = ref('')
 const sets = ref<SetRow[]>([{id: null, name: t('eventGroups.defaultSet'), minimum: 1}])
 const registration = ref<RestrictionSelection>(emptySelection())
 const view = ref<RestrictionSelection>(emptySelection())
@@ -95,6 +96,7 @@ function fill(loadedDetail: EventGroupDetail) {
   limit.value = loadedDetail.eventGroup.registrationLimit ?? undefined
   deadline.value = instantToLocalInput(loadedDetail.eventGroup.registrationDeadline)
   confirm.value = loadedDetail.eventGroup.requiresConfirmation
+  color.value = loadedDetail.eventGroup.color ?? ''
   sets.value = loadedDetail.sets.map(set => ({id: set.id, name: set.name, minimum: set.minimum}))
   registration.value = selectionOf(loadedDetail.registration)
   view.value = selectionOf(loadedDetail.view)
@@ -161,6 +163,7 @@ function details() {
     registrationLimit: limit.value ?? null,
     registrationDeadline: deadline.value ? localInputToInstant(deadline.value) : null,
     requiresConfirmation: confirm.value,
+    color: color.value || null,
   }
 }
 
@@ -212,6 +215,7 @@ async function save() {
             v-model:limit="limit"
             v-model:deadline="deadline"
             v-model:confirm="confirm"
+            v-model:color="color" :event-group-id="eventGroupId"
         />
 
         <NeutralContainer class="space-y-3">

@@ -177,7 +177,7 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
         var created = eventGroups.create(
                 holder.id(),
                 new EventGroupDetails(
-                        "Jugendflamme 1", null, limit, Instant.now().plus(Duration.ofDays(5)), false),
+                        "Jugendflamme 1", null, limit, Instant.now().plus(Duration.ofDays(5)), false, null),
                 List.of(new EventGroupSetDraft(null, "Übung", 2), new EventGroupSetDraft(null, "Prüfung", 1)),
                 RestrictionAudience.empty(),
                 RestrictionAudience.empty(),
@@ -297,7 +297,7 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
                 holder.id(),
                 eventGroup.id(),
                 new EventGroupDetails(
-                        "Jugendflamme 1", null, null, Instant.now().plus(Duration.ofDays(5)), true));
+                        "Jugendflamme 1", null, null, Instant.now().plus(Duration.ofDays(5)), true, null));
         partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
         var signUp =
                 partnerRepo.find(eventGroup.id(), partnerOfHolder, mara.uid()).orElseThrow();
@@ -397,7 +397,7 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
         eventGroups.save(
                 holder.id(),
                 eventGroup.id(),
-                new EventGroupDetails(eventGroup.name(), null, null, eventGroup.registrationDeadline(), false),
+                new EventGroupDetails(eventGroup.name(), null, null, eventGroup.registrationDeadline(), false, null),
                 null,
                 null,
                 null,

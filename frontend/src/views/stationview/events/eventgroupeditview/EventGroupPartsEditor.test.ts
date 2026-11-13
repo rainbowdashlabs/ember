@@ -21,7 +21,7 @@ vi.mock('@/composables/useSession', () => ({useSession: () => ({stationTimezone:
 const detail: EventGroupDetail = {
   eventGroup: {
     id: 70, name: 'Jugendflamme 1', description: null, registrationLimit: null, registrationDeadline: null,
-    requiresConfirmation: false, cancelled: false, cancelReason: null, partCount: 0, holding: 0,
+    requiresConfirmation: false, cancelled: false, cancelReason: null, partCount: 0, holding: 0, color: null,
   },
   sets: [{id: 1, eventGroupId: 70, name: 'Übung', minimum: 2, position: 0}, {id: 2, eventGroupId: 70, name: 'Prüfung', minimum: 1, position: 1}],
   parts: [],

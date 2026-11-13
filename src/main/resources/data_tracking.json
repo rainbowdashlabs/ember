@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:c481e8dfeece740fe4a086cbcbe9d9d9df317d567bd54c36466f78d555c775c9",
-  "generatedAt": "2026-11-13T15:41:57Z",
+  "schemaHash": "sha256:f689a47770b4f791d9a56e49f388d897329644857ee0d66ce87629e943792ff4",
+  "generatedAt": "2026-11-13T17:23:19Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -10882,7 +10882,7 @@
     "event_group": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:2a66c9bc661f0288092b0849716a0457a2ee108de6e190c0f5f328fb9758a6a5",
+      "tableHash": "sha256:a1e847a21c1ba4c93b6e749dbd6f9c606139c08418cf6a24fe3eb70ad770c5f9",
       "columns": [
         {
           "name": "id",
@@ -10974,6 +10974,13 @@
           "nullable": true,
           "verified": true,
           "description": "Why the event group was called off, as told to the people signed up; NULL for no reason given."
+        },
+        {
+          "name": "color",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The colour that marks the parts of the event group in lists, as #rrggbb; NULL takes one picked by its id."
         },
         {
           "name": "created_at",

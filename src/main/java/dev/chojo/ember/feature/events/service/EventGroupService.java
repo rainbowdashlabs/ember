@@ -30,8 +30,10 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -53,6 +55,8 @@ import java.util.stream.Collectors;
  */
 @Singleton
 public class EventGroupService {
+    private static final Pattern HEX_COLOR = Pattern.compile("#[0-9a-fA-F]{6}");
+
     private final EventGroupRepository eventGroups;
     private final EventRepository events;
     private final RestrictionService restrictions;
@@ -606,7 +610,15 @@ public class EventGroupService {
                 details.description(),
                 limit,
                 details.registrationDeadline(),
-                details.requiresConfirmation());
+                details.requiresConfirmation(),
+                checkedColor(details.color()));
+    }
+
+    /** A colour is six hex digits after a hash, the form a colour picker writes; nothing else is stored. */
+    private static @Nullable String checkedColor(@Nullable String color) {
+        if (color == null || color.isBlank()) return null;
+        if (!HEX_COLOR.matcher(color).matches()) throw EventRefusal.EVENT_GROUP_COLOR_INVALID.raise();
+        return color.toLowerCase(Locale.ROOT);
     }
 
     private static void requireValidSets(List<EventGroupSetDraft> sets) {

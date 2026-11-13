@@ -17,10 +17,13 @@ import java.time.Instant;
  * @param registrationLimit    how many people it takes, or null for no limit
  * @param registrationDeadline when sign-ups close, or null for no deadline
  * @param requiresConfirmation whether a manager confirms each sign-up
+ * @param color                the colour that marks its parts in lists (#RRGGBB), or null for one
+ *                             picked by its id
  */
 public record EventGroupDetails(
         String name,
         @Nullable String description,
         @Nullable Integer registrationLimit,
         @Nullable Instant registrationDeadline,
-        boolean requiresConfirmation) {}
+        boolean requiresConfirmation,
+        @Nullable String color) {}

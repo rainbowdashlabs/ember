@@ -788,6 +788,7 @@ public class EventGroupRoutes implements Routes {
      * @param cancelReason         why, where it was
      * @param partCount            how many parts it has
      * @param holding              how many sign-ups hold or wait for a place
+     * @param color                the colour that marks its parts (#RRGGBB), or null for one picked by its id
      */
     public record EventGroupSummary(
             int id,
@@ -799,7 +800,8 @@ public class EventGroupRoutes implements Routes {
             boolean cancelled,
             @Nullable String cancelReason,
             int partCount,
-            int holding) {
+            int holding,
+            @Nullable String color) {
         public static EventGroupSummary of(EventGroup eventGroup, int partCount, int holding) {
             return new EventGroupSummary(
                     eventGroup.id(),
@@ -811,7 +813,8 @@ public class EventGroupRoutes implements Routes {
                     eventGroup.cancelled(),
                     eventGroup.cancelReason(),
                     partCount,
-                    holding);
+                    holding,
+                    eventGroup.color());
         }
     }
 

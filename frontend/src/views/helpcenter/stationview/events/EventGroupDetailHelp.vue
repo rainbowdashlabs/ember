@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
@@ -21,9 +22,20 @@ import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import RegistrationStatusBadge from '@/views/stationview/events/eventshared/RegistrationStatusBadge.vue'
+import EventGroupBand from '@/views/stationview/events/eventshared/EventGroupBand.vue'
 import {RegistrationStatus, StationPermission} from '@/api/generated/schema'
 
 const {t} = useI18n()
+
+const examplePart = computed(() => ({
+  eventGroupId: 1,
+  eventGroupName: t('helpCenter.eventGroups.exampleName'),
+  setId: 1,
+  setName: t('helpCenter.eventGroupDetail.practice'),
+  number: 2,
+  count: 4,
+  color: '#8b5cf6',
+}))
 </script>
 
 <template>
@@ -34,6 +46,10 @@ const {t} = useI18n()
     </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroups.howTo')">
       <p>{{ t('helpCenter.eventGroups.howToText') }}</p>
+      <NeutralContainer class="relative pl-5">
+        <EventGroupBand :event-group="examplePart"/>
+        <span class="font-medium">{{ t('helpCenter.eventGroupDetail.day2') }}</span>
+      </NeutralContainer>
     </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupDetail.whatIs')">
       <p>{{ t('helpCenter.eventGroupDetail.whatIsText') }}</p>

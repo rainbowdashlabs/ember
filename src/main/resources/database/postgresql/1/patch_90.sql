@@ -216,6 +216,7 @@ CREATE TABLE IF NOT EXISTS ember_schema.event_group
     cancelled             BOOLEAN     NOT NULL DEFAULT FALSE,
     cancelled_at          TIMESTAMPTZ,
     cancel_reason         TEXT,
+    color                 TEXT CHECK (color IS NULL OR color ~ '^#[0-9a-f]{6}$'),
     created_at            TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -250,6 +251,8 @@ COMMENT ON COLUMN ember_schema.event_group.cancelled_at
     IS 'When the event group was called off; NULL while it takes place.';
 COMMENT ON COLUMN ember_schema.event_group.cancel_reason
     IS 'Why the event group was called off, as told to the people signed up; NULL for no reason given.';
+COMMENT ON COLUMN ember_schema.event_group.color
+    IS 'The colour that marks the parts of the event group in lists, as #rrggbb; NULL takes one picked by its id.';
 COMMENT ON COLUMN ember_schema.event_group.created_at
     IS 'When the event group was created.';
 

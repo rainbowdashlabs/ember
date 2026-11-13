@@ -19,6 +19,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import ColorInput from '@/components/input/ColorInput.vue'
 
 const {t} = useI18n()
 </script>
@@ -33,6 +34,11 @@ const {t} = useI18n()
         <FieldLabel>{{ t('eventGroups.limit') }}</FieldLabel>
         <NumberInput :model-value="12"/>
         <FieldLabel inline><ToggleInput :model-value="true"/> {{ t('eventGroups.confirmationField') }}</FieldLabel>
+        <FieldLabel>{{ t('eventGroups.color') }}</FieldLabel>
+        <div class="flex items-center gap-2">
+          <ColorInput model-value="#8b5cf6"/>
+          <SecondaryButton compact>{{ t('eventGroups.colorReset') }}</SecondaryButton>
+        </div>
       </NeutralContainer>
     </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupEdit.setsTitle')">

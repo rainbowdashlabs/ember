@@ -70481,6 +70481,7 @@ export interface components {
             view: components["schemas"]["RestrictionAudience"];
         };
         EventGroupDetails: {
+            color?: string | null;
             description?: string | null;
             name?: string;
             registrationDeadline?: components["schemas"]["Instant"] | null;
@@ -70543,6 +70544,7 @@ export interface components {
             tookPlace: boolean;
         };
         EventGroupPartSummary: {
+            color: string | null;
             /** Format: int32 */
             count: number;
             /** Format: int32 */
@@ -70596,6 +70598,7 @@ export interface components {
         EventGroupSummary: {
             cancelled: boolean;
             cancelReason: string | null;
+            color: string | null;
             description: string | null;
             /** Format: int32 */
             holding: number;

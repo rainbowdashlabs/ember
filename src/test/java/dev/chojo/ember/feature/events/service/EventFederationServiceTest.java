@@ -1618,7 +1618,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 null);
         var eventGroupRepo = new EventGroupRepository();
         var eventGroup =
-                eventGroupRepo.create(stationA.id(), new EventGroupDetails("Lehrgang", null, null, null, false));
+                eventGroupRepo.create(stationA.id(), new EventGroupDetails("Lehrgang", null, null, null, false, null));
         var set = eventGroupRepo.createSet(eventGroup.id(), "Block", 1, 0);
         eventGroupRepo.claimPart(part.id(), set.id());
         service.setShare(part.id(), ShareScope.ALL_PARTNERS, List.of());

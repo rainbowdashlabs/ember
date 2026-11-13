@@ -811,7 +811,11 @@ public enum EventRefusal implements Refusal {
 
     /** Two questions of an event group under the same name. */
     EVENT_GROUP_QUESTION_NAME_TWICE(
-            217, HttpStatus.BAD_REQUEST, "An event group asks each question once, two questions share a name");
+            217, HttpStatus.BAD_REQUEST, "An event group asks each question once, two questions share a name"),
+
+    /** An event group colour that is not six hex digits after a hash. */
+    EVENT_GROUP_COLOR_INVALID(
+            218, HttpStatus.BAD_REQUEST, "An event group colour is written as #RRGGBB, nothing was saved");
 
     private final Definition definition;
 

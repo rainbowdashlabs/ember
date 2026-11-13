@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.events.entity;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * What a listed appointment says about the event group it is a part of: "Jugendflamme 1, part 2 of 4".
  *
@@ -14,6 +16,13 @@ package dev.chojo.ember.feature.events.entity;
  * @param setName    the set's name
  * @param number     the part's place among the event group's parts in date order, from one
  * @param count      how many parts the event group has
+ * @param color      the event group's colour (#RRGGBB), or null for one picked by its id
  */
 public record EventGroupPartSummary(
-        int eventGroupId, String eventGroupName, int setId, String setName, int number, int count) {}
+        int eventGroupId,
+        String eventGroupName,
+        int setId,
+        String setName,
+        int number,
+        int count,
+        @Nullable String color) {}

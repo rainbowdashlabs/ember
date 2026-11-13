@@ -32,6 +32,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param cancelled            whether the whole event group was called off
  * @param cancelledAt          when it was called off
  * @param cancelReason         why it was called off
+ * @param color                the colour that marks its parts in lists (#RRGGBB), or null for one
+ *                             picked by its id
  */
 public record EventGroup(
         int id,
@@ -45,11 +47,12 @@ public record EventGroup(
         RestrictionMode viewRestrictionMode,
         boolean cancelled,
         @Nullable Instant cancelledAt,
-        @Nullable String cancelReason) {
+        @Nullable String cancelReason,
+        @Nullable String color) {
 
     /** The columns {@link #map()} reads. */
     public static final String COLUMNS =
-            "id, station_id, name, description, registration_limit, registration_deadline, requires_confirmation, restriction_mode, view_restriction_mode, cancelled, cancelled_at, cancel_reason";
+            "id, station_id, name, description, registration_limit, registration_deadline, requires_confirmation, restriction_mode, view_restriction_mode, cancelled, cancelled_at, cancel_reason, color";
 
     /** Reads an event group from a row holding {@link #COLUMNS}. */
     public static RowMapping<EventGroup> map() {
@@ -65,7 +68,8 @@ public record EventGroup(
                 row.getEnum("view_restriction_mode", RestrictionMode.class),
                 row.getBoolean("cancelled"),
                 row.get("cancelled_at", INSTANT_TIMESTAMP),
-                row.getString("cancel_reason"));
+                row.getString("cancel_reason"),
+                row.getString("color"));
     }
 
     /**

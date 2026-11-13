@@ -90,6 +90,7 @@ class FederatedEventGroupRoutesTest {
                 RestrictionMode.AND,
                 false,
                 null,
+                null,
                 null);
         when(partnerEventGroups.eventGroup(anyInt(), eq(HOLDER), eq(70), any()))
                 .thenReturn(new RemoteEventGroupDetail(

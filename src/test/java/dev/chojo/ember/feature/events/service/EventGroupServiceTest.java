@@ -107,7 +107,7 @@ class EventGroupServiceTest extends RepositoryTestBase {
     }
 
     private EventGroupDetails details(String name, boolean confirm) {
-        return new EventGroupDetails(name, "Lehrgang", 12, deadline, confirm);
+        return new EventGroupDetails(name, "Lehrgang", 12, deadline, confirm, null);
     }
 
     private EventGroup jugendflamme() {
@@ -189,10 +189,42 @@ class EventGroupServiceTest extends RepositoryTestBase {
                 () -> create(details("Kurs", false), List.of(new EventGroupSetDraft(null, "Teile", -1))));
         assertRefused(
                 EventRefusal.EVENT_GROUP_LIMIT_NOT_POSITIVE,
-                () -> create(new EventGroupDetails("Kurs", null, 0, null, false), sets));
+                () -> create(new EventGroupDetails("Kurs", null, 0, null, false, null), sets));
         assertRefused(
                 EventRefusal.EVENT_GROUP_NEEDS_A_SET,
                 () -> service.replaceSets(station.id(), jugendflamme().id(), List.of()));
+    }
+
+    @Test
+    void anEventGroupKeepsAColourWrittenAsHexAndHandsItToItsParts() {
+        var sets = List.of(new EventGroupSetDraft(null, "Teile", 1));
+        for (var invalid : List.of("red", "#abc", "#3694ffaa", "3694ff")) {
+            assertRefused(
+                    EventRefusal.EVENT_GROUP_COLOR_INVALID,
+                    () -> create(new EventGroupDetails("Kurs", null, null, null, false, invalid), sets));
+        }
+        assertNull(create(new EventGroupDetails("Kurs", null, null, null, false, " "), sets)
+                .color());
+
+        var eventGroup = create(new EventGroupDetails("Kurs", null, null, null, false, "#3694FF"), sets);
+        var saturday = oneTime(20);
+        service.addPart(
+                station.id(),
+                eventGroup.id(),
+                saturday.id(),
+                set(eventGroup, "Teile").id());
+
+        assertEquals("#3694ff", eventGroup.color());
+        assertEquals("#3694ff", service.partSummary(station.id(), saturday.id()).color());
+
+        assertRefused(
+                EventRefusal.EVENT_GROUP_COLOR_INVALID,
+                () -> service.update(
+                        station.id(), eventGroup.id(), new EventGroupDetails("Kurs", null, null, null, false, "#abc")));
+        assertEquals("#3694ff", service.partSummary(station.id(), saturday.id()).color());
+
+        service.update(station.id(), eventGroup.id(), new EventGroupDetails("Kurs", null, null, null, false, null));
+        assertNull(service.partSummary(station.id(), saturday.id()).color());
     }
 
     @Test
@@ -225,7 +257,8 @@ class EventGroupServiceTest extends RepositoryTestBase {
                 saturday.id(),
                 set(eventGroup, "Übung").id());
 
-        service.update(station.id(), eventGroup.id(), new EventGroupDetails("Jugendflamme 1", null, null, null, false));
+        service.update(
+                station.id(), eventGroup.id(), new EventGroupDetails("Jugendflamme 1", null, null, null, false, null));
 
         var stored = eventRepo.findById(saturday.id()).orElseThrow();
         assertFalse(stored.requiresConfirmation());
@@ -698,14 +731,14 @@ class EventGroupServiceTest extends RepositoryTestBase {
     void onlyEventGroupsStillOpenWithAPartToComeAwaitAnswers() {
         var open = service.create(
                 otherStation.id(),
-                new EventGroupDetails("Offen", null, null, Instant.now().plus(Duration.ofDays(3)), false),
+                new EventGroupDetails("Offen", null, null, Instant.now().plus(Duration.ofDays(3)), false, null),
                 List.of(new EventGroupSetDraft(null, "Teile", 1)),
                 RestrictionAudience.empty(),
                 RestrictionAudience.empty(),
                 null);
         var empty = service.create(
                 otherStation.id(),
-                new EventGroupDetails("Leer", null, null, Instant.now().plus(Duration.ofDays(3)), false),
+                new EventGroupDetails("Leer", null, null, Instant.now().plus(Duration.ofDays(3)), false, null),
                 List.of(new EventGroupSetDraft(null, "Teile", 1)),
                 RestrictionAudience.empty(),
                 RestrictionAudience.empty(),

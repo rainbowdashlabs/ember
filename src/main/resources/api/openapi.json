@@ -62015,6 +62015,9 @@
           },
           "requiresConfirmation" : {
             "type" : "boolean"
+          },
+          "color" : {
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -62180,9 +62183,12 @@
           "count" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "color" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "eventGroupId", "eventGroupName", "setId", "setName", "number", "count" ]
+        "required" : [ "eventGroupId", "eventGroupName", "setId", "setName", "number", "count", "color" ]
       },
       "EventGroupPartnerSignUp" : {
         "type" : "object",
@@ -62394,9 +62400,12 @@
           "holding" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "color" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "id", "name", "description", "registrationLimit", "registrationDeadline", "requiresConfirmation", "cancelled", "cancelReason", "partCount", "holding" ]
+        "required" : [ "id", "name", "description", "registrationLimit", "registrationDeadline", "requiresConfirmation", "cancelled", "cancelReason", "partCount", "holding", "color" ]
       },
       "EventItem" : {
         "type" : "object",

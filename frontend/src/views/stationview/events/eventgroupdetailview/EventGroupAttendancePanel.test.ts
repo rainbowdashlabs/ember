@@ -18,7 +18,7 @@ function detail(): EventGroupDetail {
   return {
     eventGroup: {
       id: 70, name: 'Jugendflamme 1', description: null, registrationLimit: null, registrationDeadline: null,
-      requiresConfirmation: false, cancelled: false, cancelReason: null, partCount: 4, holding: 2,
+      requiresConfirmation: false, cancelled: false, cancelReason: null, partCount: 4, holding: 2, color: null,
     },
     sets: [],
     parts: [],

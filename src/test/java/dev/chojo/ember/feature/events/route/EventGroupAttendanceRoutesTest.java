@@ -63,6 +63,7 @@ class EventGroupAttendanceRoutesTest {
                         RestrictionMode.AND,
                         false,
                         null,
+                        null,
                         null));
         when(eventGroups.findSets(70))
                 .thenReturn(

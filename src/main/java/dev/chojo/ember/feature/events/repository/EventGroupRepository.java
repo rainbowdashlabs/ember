@@ -47,15 +47,16 @@ public class EventGroupRepository {
     public EventGroup create(int stationId, EventGroupDetails details) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO event_group(station_id, name, description, registration_limit, registration_deadline, requires_confirmation)
-                VALUES (:station_id, :name, :description, :registration_limit, :registration_deadline, :requires_confirmation)
+                INSERT INTO event_group(station_id, name, description, registration_limit, registration_deadline, requires_confirmation, color)
+                VALUES (:station_id, :name, :description, :registration_limit, :registration_deadline, :requires_confirmation, :color)
                 RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", details.name())
                         .bind("description", details.description())
                         .bind("registration_limit", details.registrationLimit())
                         .bind("registration_deadline", details.registrationDeadline(), INSTANT_TIMESTAMP)
-                        .bind("requires_confirmation", details.requiresConfirmation()),
+                        .bind("requires_confirmation", details.requiresConfirmation())
+                        .bind("color", details.color()),
                 EventGroup.map(),
                 EventGroup.COLUMNS);
     }
@@ -76,14 +77,16 @@ public class EventGroupRepository {
                     registration_limit    = :registration_limit,
                     deadline_notified     = deadline_notified AND registration_deadline IS NOT DISTINCT FROM :registration_deadline,
                     registration_deadline = :registration_deadline,
-                    requires_confirmation = :requires_confirmation
+                    requires_confirmation = :requires_confirmation,
+                    color                 = :color
                 WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("name", details.name())
                         .bind("description", details.description())
                         .bind("registration_limit", details.registrationLimit())
                         .bind("registration_deadline", details.registrationDeadline(), INSTANT_TIMESTAMP)
-                        .bind("requires_confirmation", details.requiresConfirmation()))
+                        .bind("requires_confirmation", details.requiresConfirmation())
+                        .bind("color", details.color()))
                 .update()
                 .changed();
     }
@@ -216,6 +219,7 @@ public class EventGroupRepository {
                 SELECT e.id AS event_id,
                        c.id AS group_id,
                        c.name AS group_name,
+                       c.color AS group_color,
                        s.id AS set_id,
                        s.name AS set_name,
                        row_number() OVER (PARTITION BY c.id ORDER BY e.start_time, e.id) AS number,
@@ -233,7 +237,8 @@ public class EventGroupRepository {
                                 row.getInt("set_id"),
                                 row.getString("set_name"),
                                 row.getInt("number"),
-                                row.getInt("part_count"))))
+                                row.getInt("part_count"),
+                                row.getString("group_color"))))
                 .all()
                 .stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
