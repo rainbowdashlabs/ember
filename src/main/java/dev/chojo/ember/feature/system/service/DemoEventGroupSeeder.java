@@ -5,19 +5,23 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventGroupContent;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
+import dev.chojo.ember.feature.events.entity.EventGroupSettings;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventGroupPartFactory;
 import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
 import dev.chojo.ember.feature.events.service.EventGroupRegistrationService;
 import dev.chojo.ember.feature.events.service.EventGroupService;
+import dev.chojo.ember.feature.events.service.EventGroupSettingsService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
@@ -46,16 +50,26 @@ import java.util.Set;
  * <p>The sign-ups show every state an event group page knows: a few young people with a valid choice, one
  * with all four days, one still waiting for the team to confirm, and one the team signed up with a
  * single practice day, who shows as short.
+ *
+ * <p>The Jugendflamme also shows what an event group hands its dates: a "Betreuer" field the team puts
+ * itself into, with one supervisor entered for the whole weekend, one who misses the test and one who
+ * comes on Sunday only; and the practice attendance sheet, the practice category and reminders, which
+ * every date follows because none sets its own.
  */
 @Singleton
 public class DemoEventGroupSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoEventGroupSeeder.class);
     private static final String[] SIZES = {"M", "S", "L", "M", "XL", "S", "M"};
 
+    /** The name of the Jugendflamme's field the team puts itself into. */
+    static final String SUPERVISORS = "Betreuer";
+
     private final EventGroupService eventGroups;
     private final EventGroupRegistrationService signUps;
     private final EventGroupQuestionService questions;
     private final EventGroupPartFactory partFactory;
+    private final EventGroupSettingsService settings;
+    private final EventFieldService fields;
     private final DemoClock clock;
 
     @Inject
@@ -64,7 +78,11 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
             EventGroupRegistrationService signUps,
             EventGroupQuestionService questions,
             EventGroupPartFactory partFactory,
+            EventGroupSettingsService settings,
+            EventFieldService fields,
             DemoClock clock) {
+        this.settings = settings;
+        this.fields = fields;
         this.eventGroups = eventGroups;
         this.signUps = signUps;
         this.questions = questions;
@@ -81,7 +99,14 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
     public void seedStation(DemoRunContext run, DemoStationContext station) {
         var members = station.members();
         var days = clock.of(station.station());
-        seedJugendflamme(days, station.stationId(), members.fortgeschritten(), members.betreuer());
+        int jugendflamme = seedJugendflamme(
+                days,
+                station.stationId(),
+                members.fortgeschritten(),
+                members.betreuer(),
+                members.groupBetreuer().id());
+        handDown(station, jugendflamme);
+        seedSupervisors(jugendflamme, members.groupBetreuer().id(), members.betreuer());
         seedGrundlehrgang(
                 days,
                 station.stationId(),
@@ -146,8 +171,43 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
                 List.of(DemoEventSeeder.JUGENDFEUERWEHR), List.of(), List.of(), List.of(), RestrictionMode.OR);
     }
 
-    private void seedJugendflamme(
-            DemoStationDays days, int stationId, List<StationMember> youth, List<StationMember> team) {
+    /**
+     * The practice attendance sheet, the practice category and two reminders, set on the Jugendflamme
+     * and followed by every one of its dates.
+     */
+    private void handDown(DemoStationContext station, int eventGroupId) {
+        var events = station.events();
+        settings.save(
+                station.stationId(),
+                eventGroupId,
+                new EventGroupSettings(
+                        events.templateUebung().id(), events.evUebung().categoryId(), List.of(7, 1), List.of()));
+    }
+
+    /**
+     * Puts the team into the "Betreuer" field the way they would themselves: the first supervisor for
+     * the whole weekend, the third for the whole weekend but not the test, and the second for the
+     * Sunday practice only.
+     */
+    private void seedSupervisors(int eventGroupId, int teamGroupId, List<StationMember> team) {
+        if (team.size() < 3) return;
+        int field = eventGroups.findFields(eventGroupId).stream()
+                .filter(found -> found.name().equals(SUPERVISORS))
+                .map(AppointmentField::id)
+                .findFirst()
+                .orElseThrow();
+        var parts = eventGroups.findParts(eventGroupId);
+        int sunday = parts.get(1).eventId();
+        int exam = parts.getLast().eventId();
+        fields.toggleGroupSelfRegistration(eventGroupId, field, team.get(0).id(), true);
+        fields.toggleGroupSelfRegistration(eventGroupId, field, team.get(2).id(), true);
+        fields.toggleSelfRegistration(exam, -field, team.get(2).id(), null, true);
+        fields.toggleSelfRegistration(sunday, -field, team.get(1).id(), null, true);
+        log.info("Demo: Put the team into the Betreuer field of event group {} (group {})", eventGroupId, teamGroupId);
+    }
+
+    private int seedJugendflamme(
+            DemoStationDays days, int stationId, List<StationMember> youth, List<StationMember> team, int teamGroupId) {
         LocalDate saturday = days.today().plusWeeks(3).with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY));
         var youthAndTeam = youthAndTeam();
         var eventGroup = eventGroups.create(
@@ -175,6 +235,15 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
                                         true,
                                         null,
                                         true),
+                                new EventFieldDraft(
+                                        null,
+                                        SUPERVISORS,
+                                        FieldType.MEMBER_LIST_OF_GROUP,
+                                        supervisorField(teamGroupId),
+                                        "",
+                                        true,
+                                        null,
+                                        false),
                                 new EventFieldDraft(
                                         null,
                                         "Mitbringen",
@@ -240,6 +309,7 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
             signUps.decide(stationId, eventGroup.id(), youth.get(i).id(), RegistrationStatus.ACCEPTED);
         }
         log.info("Demo: Created the Jugendflamme event group with four parts and {} sign-ups", signedUp + 1);
+        return eventGroup.id();
     }
 
     private int part(
@@ -263,6 +333,12 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
                         days.at(day, from + hours, 0),
                         categoryId)
                 .eventId();
+    }
+
+    /** Members of the team group, who put themselves in. */
+    private static EventQuestionSettings supervisorField(int teamGroupId) {
+        return new EventQuestionSettings(
+                null, teamGroupId, null, null, null, true, false, false, null, null, null, false);
     }
 
     /** A size chosen from the usual ones, starting from M, that has to be answered. */

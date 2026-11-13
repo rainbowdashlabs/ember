@@ -32,6 +32,7 @@ import dev.chojo.ember.feature.content.service.CellDescriptions;
 import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
 import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
 import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -39,6 +40,7 @@ import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupSettingsRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
@@ -48,6 +50,7 @@ import dev.chojo.ember.feature.events.service.EventGroupPartFactory;
 import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
 import dev.chojo.ember.feature.events.service.EventGroupRegistrationService;
 import dev.chojo.ember.feature.events.service.EventGroupService;
+import dev.chojo.ember.feature.events.service.EventGroupSettingsService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -107,6 +110,7 @@ import dev.chojo.ember.feature.procedure.service.DocumentStepSigning;
 import dev.chojo.ember.feature.procedure.service.ProcedureService;
 import dev.chojo.ember.feature.procedure.service.SuitableDocuments;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
+import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.quiz.service.QuizAnswerGrader;
 import dev.chojo.ember.feature.quiz.service.QuizAttemptService;
 import dev.chojo.ember.feature.quiz.service.QuizCatalogService;
@@ -449,6 +453,22 @@ class DemoServiceTest extends RepositoryTestBase {
                         new EventGroupPartnerRepository()),
                 eventGroupQuestions,
                 new EventGroupPartFactory(eventServices.crud(), eventGroupService),
+                new EventGroupSettingsService(
+                        eventGroupService,
+                        eventGroupRepository,
+                        new EventGroupSettingsRepository(),
+                        eventReminderRepo,
+                        eventServices.fieldDefault(),
+                        attendanceRepo,
+                        new AttendanceTemplateGuards(attendanceRepo),
+                        eventCategoryRepo),
+                new EventFieldService(
+                        eventFieldRepo,
+                        stationMemberRepo,
+                        memberEligibility,
+                        eventRepo,
+                        attendanceRepo,
+                        eventFieldRegistrationService),
                 demoClock);
         var containerSvc =
                 new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo, itemCustodyService);
@@ -737,6 +757,55 @@ class DemoServiceTest extends RepositoryTestBase {
                                 .findLinkedToEventGroup(signUp.id())
                                 .size()
                         == 4));
+    }
+
+    /**
+     * The Jugendflamme hands its dates a "Betreuer" field the team put itself into, and its practice
+     * attendance sheet: every date names the supervisors it has and takes the event group's sheet.
+     */
+    @Test
+    @Order(4)
+    void verifyTheJugendflammeHandsItsDatesSupervisorsAndASheet() {
+        var station = stationRepo.findAll().stream()
+                .filter(s -> "Jugendfeuerwehr Musterstadt".equals(s.name()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The demo station should exist"));
+        var eventGroupRepository = new EventGroupRepository();
+        var eventGroup = eventGroupRepository.findByStation(station.id()).stream()
+                .filter(c -> c.name().startsWith("Jugendflamme"))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The demo should have a Jugendflamme event group"));
+        var team = eventGroupRepository.findParts(eventGroup.id()).stream()
+                .map(part -> supervisorsOn(part.eventId()))
+                .toList();
+        var sunday = team.get(1);
+        var exam = team.get(3);
+
+        assertEquals(2, team.getFirst().size(), "two supervisors come to the first practice");
+        assertEquals(3, sunday.size(), "one more comes on Sunday only");
+        assertEquals(1, exam.size(), "one supervisor misses the test");
+        assertTrue(sunday.containsAll(exam));
+
+        var practiceSheet = attendanceRepo.findTemplatesByStation(station.id()).stream()
+                .filter(template -> template.name().equals("Übung"))
+                .findFirst()
+                .orElseThrow();
+        eventGroupRepository
+                .findParts(eventGroup.id())
+                .forEach(part -> assertEquals(
+                        practiceSheet.id(),
+                        eventRepo.findById(part.eventId()).orElseThrow().templateId(),
+                        "every date takes the event group's attendance sheet"));
+    }
+
+    private static List<Integer> supervisorsOn(int eventId) {
+        return new EventFieldRepository()
+                .findInherited(List.of(eventId), false).stream()
+                        .filter(field -> field.name().equals("Betreuer"))
+                        .map(AppointmentField::value)
+                        .map(QuestionValues::memberIds)
+                        .findFirst()
+                        .orElseThrow();
     }
 
     /**
