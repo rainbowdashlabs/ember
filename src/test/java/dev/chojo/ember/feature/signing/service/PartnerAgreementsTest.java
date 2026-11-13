@@ -28,6 +28,7 @@ import dev.chojo.ember.feature.events.service.EventAttachmentService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
+import dev.chojo.ember.feature.events.service.EventGroupPartDates;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.FederatedRegistrantService;
 import dev.chojo.ember.feature.federation.FederationTestTransport;
@@ -293,7 +294,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 new EventRestrictionService(eventRepo, restrictionService),
                 RequirementSignatures.NONE,
                 stationMemberRepo,
-                occurrenceCalendar);
+                occurrenceCalendar,
+                new EventGroupPartDates(new EventGroupRepository(), eventRepo, occurrenceCalendar));
         var notices = TestNotices.notices(
                 newNotifier(), emailQueueRepo, stationRepo, stationMemberRepo, accountRepo, memberDocumentRepo);
         agreements = new PartnerAgreements(

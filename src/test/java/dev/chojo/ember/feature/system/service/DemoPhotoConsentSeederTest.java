@@ -30,6 +30,7 @@ import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.events.service.EventGroupPartDates;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
@@ -246,7 +247,8 @@ class DemoPhotoConsentSeederTest extends DemoTestBase {
                 new EventRestrictionService(eventRepo, restrictionService),
                 RequirementSignatures.NONE,
                 stationMemberRepo,
-                occurrenceCalendar);
+                occurrenceCalendar,
+                new EventGroupPartDates(new EventGroupRepository(), eventRepo, occurrenceCalendar));
         var signatures = new AppointmentSignatures(
                 eventRepo,
                 eventRegistrationRepo,
@@ -257,7 +259,8 @@ class DemoPhotoConsentSeederTest extends DemoTestBase {
                 requests,
                 new DocumentGenerationRepository(),
                 new IssuerSignatureRepository(),
-                mock(IssuedLetterSigner.class));
+                mock(IssuedLetterSigner.class),
+                new EventGroupPartDates(new EventGroupRepository(), eventRepo, occurrenceCalendar));
         changes = new ChangedRequirementSignatures(
                 eventRepo, eventRegistrationRepo, stationRepo, signatures, requestRepo, requests);
         return new DemoPhotoConsentSeeder(

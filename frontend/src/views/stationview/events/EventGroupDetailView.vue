@@ -16,6 +16,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import EventGroupOverview from './eventgroupdetailview/EventGroupOverview.vue'
 import EventGroupMaterialsPanel from './eventgroupdetailview/EventGroupMaterialsPanel.vue'
+import AgreementSignersPanel from './eventdetailview/AgreementSignersPanel.vue'
 import EventGroupHouseholdPanel from './eventgroupdetailview/EventGroupHouseholdPanel.vue'
 import EventGroupSignUpsPanel from './eventgroupdetailview/EventGroupSignUpsPanel.vue'
 import EventGroupPartnerSignUpsPanel from './eventgroupdetailview/EventGroupPartnerSignUpsPanel.vue'
@@ -132,6 +133,7 @@ async function deleteEventGroup() {
         <EventGroupSignUpsPanel v-if="canDecide" ref="signUpsPanel" :detail="detail" :on-changed="refresh"/>
         <EventGroupPartnerSignUpsPanel v-if="canDecide" :detail="detail" :on-changed="refresh"/>
         <EventGroupAttendancePanel v-if="canDecide" ref="attendancePanel" :detail="detail"/>
+        <AgreementSignersPanel v-if="canDecide" :event-group-id="detail.eventGroup.id"/>
         <EventGroupProbeVisitorsPanel v-if="readsWaitingLists" :parts="detail.parts"/>
         <NeutralContainer v-if="canEdit">
           <NoteEditor entity-type="EVENT_GROUP" :entity-id="eventGroupId"/>

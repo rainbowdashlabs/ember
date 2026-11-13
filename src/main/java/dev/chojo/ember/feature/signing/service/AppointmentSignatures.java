@@ -12,9 +12,11 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.events.service.EventGroupPartDates;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.PaperState;
 import dev.chojo.ember.feature.generator.entity.PaperSubmission;
+import dev.chojo.ember.feature.generator.entity.RequiredTemplate;
 import dev.chojo.ember.feature.generator.entity.RequirementGeneration;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.repository.EventRequirementRepository;
@@ -61,6 +63,12 @@ import java.util.stream.Collectors;
  * holds a place: its agreements are offered on its page ({@link #askAgreement}), and only saying they will
  * not come withdraws what is still open, while taking that back does not.
  *
+ * <p>A document an event group asks every part for is signed once for the event group: it is asked for on
+ * the first part the member takes a place on, and a part whose event group's document already stands asked
+ * for, signed or confirmed on paper on another part asks for nothing more. Giving up the part it was asked on
+ * while keeping another hands what is still open over to that other part; what was signed stays and keeps
+ * covering every part.
+ *
  * <p>A document that cannot be generated or asked for, such as at a station that keeps no documents, is
  * logged and left out, and the registration stands.
  */
@@ -78,6 +86,7 @@ public class AppointmentSignatures {
     private final DocumentGenerationRepository generations;
     private final IssuerSignatureRepository issuerSignatures;
     private final IssuedLetterSigner letterSigner;
+    private final EventGroupPartDates partDates;
 
     @Inject
     public AppointmentSignatures(
@@ -90,7 +99,8 @@ public class AppointmentSignatures {
             SignatureRequestService requestService,
             DocumentGenerationRepository generations,
             IssuerSignatureRepository issuerSignatures,
-            IssuedLetterSigner letterSigner) {
+            IssuedLetterSigner letterSigner,
+            EventGroupPartDates partDates) {
         this.events = events;
         this.registrations = registrations;
         this.appointments = appointments;
@@ -101,6 +111,7 @@ public class AppointmentSignatures {
         this.generations = generations;
         this.issuerSignatures = issuerSignatures;
         this.letterSigner = letterSigner;
+        this.partDates = partDates;
     }
 
     /**
@@ -143,6 +154,7 @@ public class AppointmentSignatures {
                 .toList();
         if (signable.isEmpty()) return 0;
         var settled = settledTemplates(eventId, date, memberId);
+        settled.addAll(coveredOnOtherParts(eventId, memberId));
         var filed = copies.latest(eventId, date, List.of(memberId));
         int generatedBy = Objects.requireNonNullElse(registration.createdBy(), memberId);
         int asked = 0;
@@ -179,7 +191,53 @@ public class AppointmentSignatures {
                 ? placeOf(eventId, date, memberId) == null
                 : refused(eventId, date, memberId);
         if (!leaving) return 0;
-        return requestService.withdrawForAppointment(eventId, date, memberId);
+        int withdrawn = requestService.withdrawForAppointment(eventId, date, memberId);
+        handOverToAnotherPart(eventId, memberId);
+        return withdrawn;
+    }
+
+    /**
+     * The documents an event group asks every part for that stand asked for, signed or confirmed on paper
+     * for the member on another part of the event group, which covers this part too.
+     *
+     * @param eventId  the part, or an appointment of its own, which nothing covers
+     * @param memberId the member
+     * @return the documents settled elsewhere
+     */
+    public Set<Integer> coveredOnOtherParts(int eventId, int memberId) {
+        var eventGroup = partDates.eventGroupOf(eventId);
+        if (eventGroup.isEmpty()) return Set.of();
+        var groupDocuments = groupDocuments(eventGroup.get());
+        if (groupDocuments.isEmpty()) return Set.of();
+        var covered = new HashSet<Integer>();
+        for (var part : partDates.siblings(eventId)) {
+            settledTemplates(part.eventId(), part.date(), memberId).stream()
+                    .filter(groupDocuments::contains)
+                    .forEach(covered::add);
+        }
+        return covered;
+    }
+
+    /**
+     * After the member gave a part up, asks for the event group's documents on the first other part they
+     * still hold, where nothing covers them any more.
+     */
+    private void handOverToAnotherPart(int eventId, int memberId) {
+        var eventGroup = partDates.eventGroupOf(eventId);
+        if (eventGroup.isEmpty()) return;
+        var groupDocuments = groupDocuments(eventGroup.get());
+        if (groupDocuments.isEmpty()) return;
+        partDates.siblings(eventId).stream()
+                .filter(part -> placeOf(part.eventId(), part.date(), memberId) != null)
+                .findFirst()
+                .ifPresent(part -> askFor(
+                        part.eventId(), part.date(), memberId, template -> groupDocuments.contains(template.id())));
+    }
+
+    private Set<Integer> groupDocuments(int eventGroupId) {
+        return copies.forEventGroup(eventGroupId).stream()
+                .map(RequiredTemplate::templateId)
+                .collect(Collectors.toSet());
     }
 
     /**

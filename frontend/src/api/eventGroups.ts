@@ -9,6 +9,7 @@ import type {ExportSeparator} from '@/util/exportFormat'
 import {stationMentionables, type CommentSource} from './comments'
 import {StationPermission} from './generated/schema'
 import type {
+    AgreementSigner,
     AppointmentField,
     CommentResponse,
     EventAttachment,
@@ -220,6 +221,11 @@ export async function exportSignUps(
         params: format === 'csv' ? {separator} : undefined,
     })
     return documentFrom(res, `Anmeldungen.${format}`)
+}
+
+/** Who signed the documents an event group asks every part for, once per person and document. */
+export async function agreementSigners(eventGroupId: number): Promise<AgreementSigner[]> {
+    return (await client.get<AgreementSigner[]>(`${EVENT_GROUPS}/${eventGroupId}/agreement-signers`)).data
 }
 
 /**

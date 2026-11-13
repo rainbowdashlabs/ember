@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.events.route.EventGroupRoutes.EventGroupSignUp;
 import dev.chojo.ember.feature.events.route.EventGroupRoutes.EventGroupSignUpRequest;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService.PartnerStanding;
 import dev.chojo.ember.feature.events.service.PartnerEventGroupService;
+import dev.chojo.ember.feature.events.service.PartnerEventGroupSignatures;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
@@ -48,7 +49,9 @@ import static dev.chojo.ember.api.RouteSupport.pathUuid;
 /**
  * An event group a partner station shares with this one, as this station's members see it: the event group
  * with the standing of the reader and everybody they look after, and their sign-ups. Every answer
- * comes from the station holding the event group.
+ * comes from the station holding the event group. A sign-up, a change of parts or a withdrawal takes on
+ * the documents of every part newly held and lets the open signatures of every part given up go, as a
+ * registration for a shared appointment does ({@link PartnerEventGroupSignatures}).
  */
 @Singleton
 public class FederatedEventGroupRoutes implements Routes {
@@ -58,17 +61,20 @@ public class FederatedEventGroupRoutes implements Routes {
     private final StationMemberService members;
     private final GuardianPolicy guardianPolicy;
     private final MemberIdentityFactory identities;
+    private final PartnerEventGroupSignatures signatures;
 
     @Inject
     public FederatedEventGroupRoutes(
             PartnerEventGroupService partnerEventGroups,
             StationMemberService members,
             GuardianPolicy guardianPolicy,
-            MemberIdentityFactory identities) {
+            MemberIdentityFactory identities,
+            PartnerEventGroupSignatures signatures) {
         this.partnerEventGroups = partnerEventGroups;
         this.members = members;
         this.guardianPolicy = guardianPolicy;
         this.identities = identities;
+        this.signatures = signatures;
     }
 
     @Override
@@ -130,12 +136,11 @@ public class FederatedEventGroupRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(EventGroupSignUpRequest.class);
         var member = target(session, request.memberId());
-        var standing = partnerEventGroups.signUp(
-                session.stationId(),
-                pathUuid(ctx, "stationuid"),
-                pathInt(ctx, "eventGroupId"),
-                member,
-                partsOf(request));
+        var partner = pathUuid(ctx, "stationuid");
+        int eventGroupId = pathInt(ctx, "eventGroupId");
+        var before = signatures.before(session.stationId(), partner, eventGroupId, member);
+        var standing = partnerEventGroups.signUp(session.stationId(), partner, eventGroupId, member, partsOf(request));
+        signatures.after(session, partner, before, Set.copyOf(standing.parts()), member.uid());
         ctx.status(HttpStatus.CREATED).json(signUpOf(session, member.id(), standing));
     }
 
@@ -157,12 +162,12 @@ public class FederatedEventGroupRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(EventGroupSignUpRequest.class);
         var member = target(session, request.memberId());
+        var partner = pathUuid(ctx, "stationuid");
+        int eventGroupId = pathInt(ctx, "eventGroupId");
+        var before = signatures.before(session.stationId(), partner, eventGroupId, member);
         var standing = partnerEventGroups.changeParts(
-                session.stationId(),
-                pathUuid(ctx, "stationuid"),
-                pathInt(ctx, "eventGroupId"),
-                member.uid(),
-                partsOf(request));
+                session.stationId(), partner, eventGroupId, member.uid(), partsOf(request));
+        signatures.after(session, partner, before, Set.copyOf(standing.parts()), member.uid());
         ctx.json(signUpOf(session, member.id(), standing));
     }
 
@@ -181,8 +186,11 @@ public class FederatedEventGroupRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var asked = ctx.queryParam("memberId");
         var member = target(session, asked == null ? null : Integer.valueOf(asked));
-        partnerEventGroups.withdraw(
-                session.stationId(), pathUuid(ctx, "stationuid"), pathInt(ctx, "eventGroupId"), member);
+        var partner = pathUuid(ctx, "stationuid");
+        int eventGroupId = pathInt(ctx, "eventGroupId");
+        var before = signatures.before(session.stationId(), partner, eventGroupId, member);
+        partnerEventGroups.withdraw(session.stationId(), partner, eventGroupId, member);
+        signatures.after(session, partner, before, Set.of(), member.uid());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

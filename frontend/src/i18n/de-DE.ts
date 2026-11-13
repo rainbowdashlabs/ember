@@ -3562,6 +3562,7 @@ export default {
             signers: {
                 title: 'Zusagen per Unterschrift',
                 hint: 'Wer die Vereinbarung dieses Termins unterschrieben hat, hat damit zugesagt.',
+                eventGroupHint: 'Wer die Vereinbarungen der Terminreihe unterschrieben hat. Eine Unterschrift gilt für alle Termine.',
                 signedAt: 'Unterschrieben am {date}',
                 refused: 'Später abgesagt',
             },

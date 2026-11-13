@@ -118,6 +118,8 @@ const exampleVisitors = computed((): WaitingListVisitor[] => [{
     </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupDetail.materialsTitle')">
       <p>{{ t('helpCenter.eventGroupDetail.materialsText') }}</p>
+      <p>{{ t('helpCenter.eventGroupDetail.signingText') }}</p>
+      <p>{{ t('helpCenter.eventGroupDetail.partSigningText') }}</p>
     </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupDetail.manageTitle')">
       <HelpPermissionGuard :permissions="[StationPermission.EVENT_REGISTRATION]" :label="t('helpCenter.permissionLabel.eventRegistration')">
@@ -137,6 +139,7 @@ const exampleVisitors = computed((): WaitingListVisitor[] => [{
         <SecondaryButton :icon="['fas', 'file-export']">{{ t('eventGroups.exportSignUps') }}</SecondaryButton>
         <p>{{ t('helpCenter.eventGroupDetail.partnerText') }}</p>
         <p>{{ t('helpCenter.eventGroupDetail.attendanceText') }}</p>
+        <p>{{ t('helpCenter.eventGroupDetail.signersText') }}</p>
       </HelpPermissionGuard>
       <HelpPermissionGuard :permissions="[StationPermission.EVENT_EDIT]" :label="t('helpCenter.permissionLabel.eventEdit')">
         <p>{{ t('helpCenter.eventGroupDetail.editText') }}</p>

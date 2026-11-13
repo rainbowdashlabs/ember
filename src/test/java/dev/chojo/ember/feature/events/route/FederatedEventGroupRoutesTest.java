@@ -17,6 +17,8 @@ import dev.chojo.ember.feature.events.route.EventGroupRoutes.EventGroupSummary;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupDetail;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService.PartnerStanding;
 import dev.chojo.ember.feature.events.service.PartnerEventGroupService;
+import dev.chojo.ember.feature.events.service.PartnerEventGroupSignatures;
+import dev.chojo.ember.feature.events.service.PartnerEventGroupSignatures.Holding;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
@@ -55,6 +57,7 @@ class FederatedEventGroupRoutesTest {
     private static final String EVENT_GROUP = PREFIX + "/federated/" + HOLDER + "/events/groups/70";
 
     private PartnerEventGroupService partnerEventGroups;
+    private PartnerEventGroupSignatures partnerSignatures;
     private GuardianPolicy guardians;
     private RouteHarness harness;
 
@@ -66,6 +69,8 @@ class FederatedEventGroupRoutesTest {
     @BeforeEach
     void serve() {
         partnerEventGroups = mock(PartnerEventGroupService.class);
+        partnerSignatures = mock(PartnerEventGroupSignatures.class);
+        when(partnerSignatures.before(anyInt(), any(), anyInt(), any())).thenReturn(Holding.unknown());
         guardians = mock(GuardianPolicy.class);
         var members = mock(StationMemberService.class);
         var self = TestSessions.member(STATION_ID).member();
@@ -101,14 +106,15 @@ class FederatedEventGroupRoutesTest {
                         List.of(),
                         List.of(standing, new PartnerStanding(UUID.randomUUID(), null, null, List.of(), List.of())),
                         null));
-        harness =
-                RouteHarness.serving(new FederatedEventGroupRoutes(partnerEventGroups, members, guardians, identities));
+        harness = RouteHarness.serving(
+                new FederatedEventGroupRoutes(partnerEventGroups, members, guardians, identities, partnerSignatures));
     }
 
     private Response call(String method, String path, String json) {
         var session = harness.as(TestSessions.member(STATION_ID, StationPermission.USER));
         return harness.request(client -> switch (method) {
             case "GET" -> client.get(path, session);
+            case "DELETE" -> client.delete(path, null, session);
             default -> client.post(path, body(json), session);
         });
     }
@@ -139,10 +145,21 @@ class FederatedEventGroupRoutesTest {
                 call("POST", EVENT_GROUP + "/sign-up", "{\"memberId\": 12, \"parts\": [101]}")
                         .code());
         verify(partnerEventGroups).signUp(eq(STATION_ID), eq(HOLDER), eq(70), any(), eq(Set.of(101)));
+        verify(partnerSignatures).after(any(), eq(HOLDER), eq(Holding.unknown()), eq(Set.of(101)), eq(CHILD_UID));
 
         assertEquals(
                 EventRefusal.MEMBER_NOT_YOURS_TO_REGISTER,
                 refusalOf(call("POST", EVENT_GROUP + "/sign-up", "{\"memberId\": 99, \"parts\": [101]}")));
         verify(partnerEventGroups, never()).signUp(anyInt(), any(), anyInt(), eq(member(99, CHILD_UID)), any());
+    }
+
+    @Test
+    void aWithdrawalLetsTheDocumentsOfEveryPartHeldGo() {
+        var held = new Holding(Set.of(101), Map.of());
+        when(partnerSignatures.before(anyInt(), eq(HOLDER), eq(70), any())).thenReturn(held);
+
+        assertEquals(204, call("DELETE", EVENT_GROUP + "/sign-up", null).code());
+
+        verify(partnerSignatures).after(any(), eq(HOLDER), eq(held), eq(Set.of()), any());
     }
 }

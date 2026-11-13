@@ -348,6 +348,7 @@ import dev.chojo.ember.feature.quiz.service.QuizFederationService;
 import dev.chojo.ember.feature.signing.handler.RegistrationSignaturesHandler;
 import dev.chojo.ember.feature.signing.handler.RequirementChangeSignaturesHandler;
 import dev.chojo.ember.feature.signing.route.AgreementRoutes;
+import dev.chojo.ember.feature.signing.route.EventGroupAgreementRoutes;
 import dev.chojo.ember.feature.signing.route.PartnerAgreementRoutes;
 import dev.chojo.ember.feature.signing.route.PublicSigningRoutes;
 import dev.chojo.ember.feature.signing.route.RemoteSigningRoutes;
@@ -696,6 +697,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(SigningKeyAdminRoutes.class);
         routesBinder.addBinding().to(SignatureImageRoutes.class);
         routesBinder.addBinding().to(AgreementRoutes.class);
+        routesBinder.addBinding().to(EventGroupAgreementRoutes.class);
         routesBinder.addBinding().to(UtilRoutes.class);
         routesBinder.addBinding().to(TestProtocolExaminerRoutes.class);
         routesBinder.addBinding().to(TestProtocolRoutes.class);

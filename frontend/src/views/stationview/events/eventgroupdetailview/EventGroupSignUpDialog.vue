@@ -16,6 +16,9 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EventGroupQuestionInputs from './EventGroupQuestionInputs.vue'
+import RegistrationSigningStep from '../eventshared/RegistrationSigningStep.vue'
+import {eventGroupSigningStep} from './eventGroupSigning'
+import type {SigningStep} from '@/composables/useRegistrationSigningStep'
 import {answersToSend, missingAnswers, seedAnswers} from './eventGroupAnswers'
 import type {EventGroupDetail, EventGroupSignUp} from '@/api/generated/schema'
 import {RegistrationStatus} from '@/api/generated/schema'
@@ -34,6 +37,9 @@ import {formatDateTime} from '@/util/format'
  *
  * <p>Whoever runs events signing somebody else up may break the rules: the shortfalls are then only
  * shown, and the event group marks the person as short.
+ *
+ * <p>Where the event group asks every part for documents to sign, a sign-up of this station's event group
+ * ends on the signing step once, for the whole event group; closing it finishes the sign-up.
  */
 const props = withDefaults(defineProps<{
   detail: EventGroupDetail
@@ -65,6 +71,8 @@ const chosen = ref<Set<number>>(new Set(held))
 const name = computed(() => props.entry.member.name ?? '')
 const asking = computed(() => !changing.value && props.detail.questions.length > 0)
 const answers = ref<Record<number, string>>(seedAnswers(props.detail.questions))
+const signingStep = ref<SigningStep | null>(null)
+const signingOpen = ref(false)
 
 const results = computed(() => evaluateChoice(props.detail.sets, props.detail.parts, chosen.value))
 const answered = computed(() => !asking.value || missingAnswers(props.detail.questions, answers.value).length === 0)
@@ -104,6 +112,13 @@ function close() {
   emit('close')
 }
 
+/** Closing the signing step finishes the sign-up; the documents stay among the open tasks. */
+function signingClosed(value: boolean) {
+  if (value) return
+  signingStep.value = null
+  emit('saved')
+}
+
 async function save() {
   busy.value = true
   failure.value = null
@@ -113,7 +128,11 @@ async function save() {
     if (changing.value) await port.changeParts(parts, props.entry.memberId)
     else await port.signUp(parts, answersToSend(props.detail.questions, answers.value), props.entry.memberId)
     open.value = false
-    emit('saved')
+    signingStep.value = props.port
+      ? null
+      : await eventGroupSigningStep(props.detail.parts, parts, props.entry.memberId, stationTimezone.value)
+    if (signingStep.value) signingOpen.value = true
+    else emit('saved')
   } catch (e) {
     failure.value = describeFailure(e, t)
   } finally {
@@ -156,4 +175,6 @@ async function save() {
       </ButtonRow>
     </div>
   </Modal>
+  <RegistrationSigningStep v-if="signingStep" :model-value="signingOpen" :step="signingStep"
+                           @update:model-value="signingClosed"/>
 </template>
