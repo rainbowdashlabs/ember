@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.messages.service;
 
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.messages.entity.MessagesStatus;
 import dev.chojo.ember.feature.messages.entity.ReachablePerson;
 import dev.chojo.ember.feature.messages.repository.ConversationRepository;
@@ -29,10 +31,15 @@ public class MessageSettingsService {
     private final MessagePeopleRepository people;
     private final ConversationRepository conversations;
     private final MessageGuards guards;
+    private final DomainEventBus eventBus;
 
     @Inject
     public MessageSettingsService(
-            MessagePeopleRepository people, ConversationRepository conversations, MessageGuards guards) {
+            MessagePeopleRepository people,
+            ConversationRepository conversations,
+            MessageGuards guards,
+            DomainEventBus eventBus) {
+        this.eventBus = eventBus;
         this.people = people;
         this.conversations = conversations;
         this.guards = guards;
@@ -87,12 +94,13 @@ public class MessageSettingsService {
 
     /**
      * Turns messages on or off for an account a guardian looks after. Who may do so is decided by
-     * the caller, which checks the guardian.
+     * the caller, which checks the guardian. The account's station chats follow.
      *
      * @param accountId the account
      * @param allowed   whether it may use messages
      */
     public void setGuardianAllowed(int accountId, boolean allowed) {
         people.setGuardianAllowed(accountId, allowed);
+        eventBus.publish(StationAudienceChanged.ofAccount(accountId));
     }
 }

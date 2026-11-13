@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.TagVisibility;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -31,7 +33,7 @@ class UserTagServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new UserTagService(userTagRepo, memberGroupRepo);
+        service = new UserTagService(userTagRepo, memberGroupRepo, new DomainEventBus(Set.of()));
         station = stationRepo.create("TagStation");
         account = accountRepo.create("tag-svc@test.com", "Tag", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());

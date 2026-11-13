@@ -94,8 +94,8 @@ public class ConversationRepository {
      */
     public Conversation createGroup(int ownerId, @Nullable String name) {
         return query("""
-                INSERT INTO conversation(kind, name, owner_account_id) VALUES ('GROUP', :name, :owner_id)
-                RETURNING id, uid, kind, name, owner_account_id, created_at, last_activity_at;""")
+                INSERT INTO conversation AS c (kind, name, owner_account_id) VALUES ('GROUP', :name, :owner_id)
+                RETURNING %s;""", Conversation.COLUMNS)
                 .single(call().bind("name", name).bind("owner_id", ownerId))
                 .map(Conversation.map())
                 .first()
@@ -132,6 +132,30 @@ public class ConversationRepository {
                     joined_at            = now(),
                     left_at              = NULL,
                     muted                = FALSE,
+                    mailed_at            = NULL,
+                    last_read_message_id = excluded.last_read_message_id
+                WHERE conversation_member.left_at IS NOT NULL;""")
+                .single(call().bind("conversation_id", conversationId).bind("account_id", accountId))
+                .insert();
+    }
+
+    /**
+     * Lets an account take part in a station chat, or take part again, without anybody asking: it
+     * follows the chat's audience. Its read marker starts at the newest message, so the history it
+     * can now read does not count as unread; whether it muted the chat stays as it was, since muting
+     * is all a member of a station chat decides about it.
+     *
+     * @param conversationId the chat
+     * @param accountId      the account
+     */
+    public void follow(int conversationId, int accountId) {
+        query("""
+                INSERT INTO conversation_member(conversation_id, account_id, last_read_message_id)
+                VALUES (:conversation_id, :account_id,
+                        (SELECT max(id) FROM message WHERE conversation_id = :conversation_id))
+                ON CONFLICT (conversation_id, account_id) DO UPDATE SET
+                    joined_at            = now(),
+                    left_at              = NULL,
                     mailed_at            = NULL,
                     last_read_message_id = excluded.last_read_message_id
                 WHERE conversation_member.left_at IS NOT NULL;""")
@@ -361,8 +385,8 @@ public class ConversationRepository {
 
     /**
      * Takes an account out of every conversation before it is deleted: its memberships go, the
-     * direct conversations it was in no longer name it, and a conversation nobody is left in goes
-     * with its messages.
+     * direct conversations it was in no longer name it, and a direct conversation or group nobody
+     * is left in goes with its messages. A station chat stays with its station, empty or not.
      *
      * @param accountId the account being deleted
      */
@@ -375,6 +399,7 @@ public class ConversationRepository {
                 DELETE FROM conversation_member WHERE account_id = :account_id;""").single(call().bind("account_id", accountId)).delete();
         query("""
                 DELETE FROM conversation c
-                WHERE NOT EXISTS (SELECT 1 FROM conversation_member m WHERE m.conversation_id = c.id);""").single().delete();
+                WHERE c.kind <> 'STATION'
+                AND NOT EXISTS (SELECT 1 FROM conversation_member m WHERE m.conversation_id = c.id);""").single().delete();
     }
 }

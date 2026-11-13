@@ -272,11 +272,13 @@ import dev.chojo.ember.feature.members.service.MemberFeedDetails;
 import dev.chojo.ember.feature.members.service.ProfileFieldOwner;
 import dev.chojo.ember.feature.members.service.StationMemberEligibility;
 import dev.chojo.ember.feature.members.service.StationProfileFields;
+import dev.chojo.ember.feature.messages.handler.StationAudienceChangedHandler;
 import dev.chojo.ember.feature.messages.route.ConversationRoutes;
 import dev.chojo.ember.feature.messages.route.MessageEventRoutes;
 import dev.chojo.ember.feature.messages.route.MessagePeopleRoutes;
 import dev.chojo.ember.feature.messages.route.MessageRoutes;
 import dev.chojo.ember.feature.messages.service.MessageSignals;
+import dev.chojo.ember.feature.messages.service.StationChatMembership;
 import dev.chojo.ember.feature.messages.service.UnreadMessageMail;
 import dev.chojo.ember.feature.news.handler.NewsCreatedHandler;
 import dev.chojo.ember.feature.news.handler.NewsDeletedHandler;
@@ -778,6 +780,7 @@ public class EmberModule extends AbstractModule {
 
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});
         eventBinder.addBinding().to(EventCreatedHandler.class);
+        eventBinder.addBinding().to(StationAudienceChangedHandler.class);
         eventBinder.addBinding().to(EventsBatchCreatedHandler.class);
         eventBinder.addBinding().to(EventDeletedHandler.class);
         eventBinder.addBinding().to(EventChangedHandler.class);
@@ -920,6 +923,7 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(AccountLinkSweeper.class);
         taskSources.addBinding().to(MessageSignals.class);
         taskSources.addBinding().to(UnreadMessageMail.class);
+        taskSources.addBinding().to(StationChatMembership.class);
 
         Multibinder<ShutdownFlush> flushes = Multibinder.newSetBinder(binder(), ShutdownFlush.class);
         flushes.addBinding().to(PageHitRecorder.class);

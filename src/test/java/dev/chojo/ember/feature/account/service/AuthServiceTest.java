@@ -14,6 +14,7 @@ import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.TokenType;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailConfirmationPolicy;
@@ -36,6 +37,7 @@ import org.mockito.ArgumentCaptor;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -94,7 +96,8 @@ class AuthServiceTest extends RepositoryTestBase {
                 twoFactorRepoLocal,
                 trustedDeviceService,
                 passkeyModeService,
-                new UsageRecorder(new UsageRepository()));
+                new UsageRecorder(new UsageRepository()),
+                new DomainEventBus(Set.of()));
     }
 
     @Test
@@ -1145,7 +1148,8 @@ class AuthServiceTest extends RepositoryTestBase {
                 twoFactorRepoLocal,
                 trustedDeviceService,
                 passkeyModeService,
-                new UsageRecorder(new UsageRepository()));
+                new UsageRecorder(new UsageRepository()),
+                new DomainEventBus(Set.of()));
     }
 
     /**
@@ -1579,7 +1583,8 @@ class AuthServiceTest extends RepositoryTestBase {
                 twoFactorRepoLocal,
                 trustedDeviceService,
                 modeService,
-                new UsageRecorder(new UsageRepository()));
+                new UsageRecorder(new UsageRepository()),
+                new DomainEventBus(Set.of()));
     }
 
     /** G3: an account may hold no credential row, and the login refuses it deliberately. */

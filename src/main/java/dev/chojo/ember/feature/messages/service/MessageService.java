@@ -119,7 +119,7 @@ public class MessageService {
         int id = Transactions.call(() -> {
             int written = messages.write(conversationId, accountId, text, replyToId);
             conversations.touch(conversationId);
-            if (!participation.conversation().isGroup()) conversations.returnAll(conversationId);
+            if (participation.conversation().isDirect()) conversations.returnAll(conversationId);
             conversations.markRead(conversationId, accountId, written);
             return written;
         });

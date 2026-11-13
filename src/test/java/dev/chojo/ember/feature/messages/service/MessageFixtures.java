@@ -5,11 +5,14 @@
  */
 package dev.chojo.ember.feature.messages.service;
 
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.messages.repository.AccountBlockRepository;
 import dev.chojo.ember.feature.messages.repository.ConversationRepository;
 import dev.chojo.ember.feature.messages.repository.MessagePeopleRepository;
 import dev.chojo.ember.feature.messages.repository.MessageRepository;
 import dev.chojo.ember.feature.messages.repository.ReactionRepository;
+
+import java.util.Set;
 
 /**
  * The message services on the test database's real repositories, wired the way the application
@@ -54,7 +57,7 @@ public record MessageFixtures(
                 new MessageService(conversationRepo, messageRepo, guards, views, signals),
                 new ReactionService(new ReactionRepository(), guards, views, signals),
                 new BlockService(blockRepo, peopleRepo, guards),
-                new MessageSettingsService(peopleRepo, conversationRepo, guards),
+                new MessageSettingsService(peopleRepo, conversationRepo, guards, new DomainEventBus(Set.of())),
                 guards);
     }
 

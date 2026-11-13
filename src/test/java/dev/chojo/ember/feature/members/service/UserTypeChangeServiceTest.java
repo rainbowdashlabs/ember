@@ -6,11 +6,13 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -19,7 +21,7 @@ class UserTypeChangeServiceTest extends RepositoryTestBase {
 
     @Test
     void aTypeChangeSaysAndDoesWhichGroupsAreLeft() {
-        var service = new UserTypeChangeService(stationMemberRepo, newGroupMemberships());
+        var service = new UserTypeChangeService(stationMemberRepo, newGroupMemberships(), new DomainEventBus(Set.of()));
         var station = stationRepo.create("Type Station " + System.nanoTime());
         var account = accountRepo.create("type-" + System.nanoTime() + "@test.com", "Ty", "Pe");
         var member = stationMemberRepo.create(station.id(), account.id());

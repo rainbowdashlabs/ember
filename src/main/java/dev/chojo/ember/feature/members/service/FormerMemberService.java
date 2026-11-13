@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.documents.service.DocumentService;
@@ -14,6 +16,7 @@ import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import dev.chojo.ember.feature.inventory.service.ItemMovementService;
 import dev.chojo.ember.feature.inventory.service.SelfCheckService;
 import dev.chojo.ember.feature.members.entity.NameParts;
+import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
@@ -23,7 +26,9 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Service for managing former members including converting active members to former status,
@@ -44,6 +49,8 @@ public class FormerMemberService {
     private final DocumentService documentService;
     private final SelfCheckService selfCheckService;
 
+    private final DomainEventBus eventBus;
+
     @Inject
     public FormerMemberService(
             StationMemberRepository memberRepository,
@@ -55,7 +62,9 @@ public class FormerMemberService {
             AttendanceRepository attendanceRepository,
             ProfileFieldCore profileFields,
             DocumentService documentService,
-            SelfCheckService selfCheckService) {
+            SelfCheckService selfCheckService,
+            DomainEventBus eventBus) {
+        this.eventBus = eventBus;
         this.selfCheckService = selfCheckService;
         this.memberRepository = memberRepository;
         this.accountRepository = accountRepository;
@@ -120,6 +129,7 @@ public class FormerMemberService {
 
         memberRepository.revokeAllPermissions(memberId);
 
+        List<Integer> linkedAccounts = linkedAccounts(memberId);
         memberRepository.removeAllManagers(memberId);
         memberRepository.removeAllManaged(memberId);
 
@@ -156,6 +166,8 @@ public class FormerMemberService {
         memberRepository.setFormer(memberId, true);
 
         log.info("Member {} marked as former", memberId);
+        eventBus.publish(StationAudienceChanged.at(member.stationId()));
+        linkedAccounts.forEach(linked -> eventBus.publish(StationAudienceChanged.ofAccount(linked)));
     }
 
     /**
@@ -185,10 +197,30 @@ public class FormerMemberService {
                 .ifPresent(r -> memberRepository.grantPermission(memberId, r.id()));
 
         log.info("Former member {} reactivated", memberId);
+        eventBus.publish(StationAudienceChanged.at(member.stationId()));
     }
 
     /** Whether this kind of membership carries the right to sign in without anybody granting it. */
     private static boolean signsInOfItsOwnAccord(StationUserType userType) {
         return userType != null && List.of(userType.defaultPermissions()).contains(StationPermission.LOGIN);
+    }
+
+    /**
+     * The accounts whose guardian links change when a member leaves: their own, those of their
+     * guardians and those of the people they look after. Whether an account has a guardian decides
+     * whether it may use messages at every station it belongs to.
+     */
+    private List<Integer> linkedAccounts(int memberId) {
+        List<Integer> accounts = new ArrayList<>();
+        memberRepository.findById(memberId).map(StationMember::accountId).ifPresent(accounts::add);
+        memberRepository.findManagers(memberId).stream()
+                .map(StationMember::accountId)
+                .filter(Objects::nonNull)
+                .forEach(accounts::add);
+        memberRepository.findManaged(memberId).stream()
+                .map(StationMember::accountId)
+                .filter(Objects::nonNull)
+                .forEach(accounts::add);
+        return accounts;
     }
 }

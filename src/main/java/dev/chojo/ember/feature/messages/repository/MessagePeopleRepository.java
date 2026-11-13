@@ -32,7 +32,7 @@ public class MessagePeopleRepository {
      * The condition an account aliased {@code a} meets when it can use messages: it has no current
      * guardian anywhere, or a guardian turned messages on for it.
      */
-    private static final String USABLE = """
+    static final String USABLE = """
             (a.messages_guardian_allowed OR NOT EXISTS (
                 SELECT 1
                 FROM station_member managed

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -57,5 +58,52 @@ class TransactionsTest extends RepositoryTestBase {
                 }));
 
         assertTrue(stationRepo.findById(written.get()).isEmpty());
+    }
+
+    /** Work planned inside a transaction waits for the commit and sees what it wrote. */
+    @Test
+    void workAfterTheCommitRunsOnceTheOutermostBodyCommitted() {
+        var seen = new AtomicInteger();
+        var station = new AtomicInteger();
+
+        Transactions.run(() -> {
+            station.set(stationRepo.create("Transaction After").id());
+            Transactions.run(() -> Transactions.afterCommit(seen::incrementAndGet));
+            assertEquals(0, seen.get());
+        });
+
+        assertEquals(1, seen.get());
+        assertTrue(stationRepo.findById(station.get()).isPresent());
+    }
+
+    /** Work planned in a transaction that gives up never runs. */
+    @Test
+    void workAfterTheCommitIsDroppedOnARollback() {
+        var seen = new AtomicInteger();
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> Transactions.run(() -> {
+                    Transactions.afterCommit(seen::incrementAndGet);
+                    throw new IllegalStateException("halfway");
+                }));
+
+        assertEquals(0, seen.get());
+    }
+
+    /** Outside a transaction the work runs at once, and a failing piece does not stop the others. */
+    @Test
+    void workAfterTheCommitRunsAtOnceOutsideATransactionAndFailuresStayAlone() {
+        var seen = new AtomicInteger();
+
+        Transactions.afterCommit(seen::incrementAndGet);
+        Transactions.run(() -> {
+            Transactions.afterCommit(() -> {
+                throw new IllegalStateException("broken");
+            });
+            Transactions.afterCommit(seen::incrementAndGet);
+        });
+
+        assertEquals(2, seen.get());
     }
 }

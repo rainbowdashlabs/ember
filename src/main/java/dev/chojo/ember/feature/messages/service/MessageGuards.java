@@ -91,12 +91,13 @@ public class MessageGuards {
     /**
      * Refuses a message to a direct conversation whose other side cannot take it: the account is
      * gone, has no messages any more, or blocked the writer. The refusal does not say which, so a
-     * blocked writer is not told. A group takes every message; blocking there only hides.
+     * blocked writer is not told. A group or station chat takes every message; blocking there only
+     * hides.
      *
      * @param participation the writer in the conversation
      */
     public void requireDeliverable(Participation participation) {
-        if (participation.conversation().isGroup()) return;
+        if (!participation.conversation().isDirect()) return;
         int writerId = participation.accountId();
         boolean delivered = conversations
                 .everyMember(participation.conversation().id())

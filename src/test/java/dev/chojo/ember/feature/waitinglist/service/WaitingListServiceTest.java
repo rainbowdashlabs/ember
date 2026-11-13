@@ -100,7 +100,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 stationRepo,
                 stationMemberRepo,
                 newGroupMemberships(),
-                new UserTypeChangeService(stationMemberRepo, newGroupMemberships()),
+                new UserTypeChangeService(stationMemberRepo, newGroupMemberships(), new DomainEventBus(Set.of())),
                 accountRepo,
                 emailService,
                 notificationService,
