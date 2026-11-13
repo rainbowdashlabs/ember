@@ -4,8 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 /** @vitest-environment happy-dom */
-import {describe, expect, it, vi} from 'vitest'
-import {groupFieldsOf, useEventGroupTemplate} from './eventGroupTemplate'
+import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {AxiosError, type AxiosResponse} from 'axios'
+import {groupFieldsOf, newByName, useEventGroupTemplate} from './eventGroupTemplate'
 import type {AppointmentTemplateField} from '@/api/generated/schema'
 
 const api = vi.hoisted(() => ({
@@ -39,6 +40,8 @@ describe('groupFieldsOf', () => {
 })
 
 describe('useEventGroupTemplate', () => {
+  beforeEach(() => vi.clearAllMocks())
+
   it('attaches the template files once, in their order', async () => {
     api.events.getTemplate.mockResolvedValue({template: {id: 5}})
     api.events.listTemplateAttachments.mockResolvedValue([
@@ -52,5 +55,31 @@ describe('useEventGroupTemplate', () => {
     await template.attachFiles(7)
 
     expect(api.eventGroups.attachFile.mock.calls).toEqual([[7, 40, 'Anfahrt', false], [7, 41, null, true]])
+  })
+
+  it('leaves out a file the library no longer holds and names it, attaching the rest', async () => {
+    api.events.getTemplate.mockResolvedValue({template: {id: 5}})
+    api.events.listTemplateAttachments.mockResolvedValue([
+      {fileId: 40, label: 'Anfahrt', internal: false, fileName: 'anfahrt.pdf'},
+      {fileId: 41, label: null, internal: true, fileName: 'plan.pdf'},
+    ])
+    api.eventGroups.attachFile.mockRejectedValueOnce(
+        new AxiosError('gone', '404', undefined, undefined, {status: 404} as AxiosResponse))
+    const template = useEventGroupTemplate()
+    await template.read(5)
+
+    expect(await template.attachFiles(7)).toEqual(['Anfahrt'])
+    expect(api.eventGroups.attachFile).toHaveBeenLastCalledWith(7, 41, null, true)
+    expect(template.files.value).toEqual([])
+  })
+})
+
+/** A template adds to the form what it does not hold yet, matched by name as the server matches. */
+describe('newByName', () => {
+  it('leaves out names the form holds already, ignoring case and spaces, and names them', () => {
+    const merged = newByName([{name: 'T-Shirt-Größe'}], [{name: ' t-shirt-größe '}, {name: 'Allergien'}, {name: 'allergien'}])
+
+    expect(merged.added).toEqual([{name: 'Allergien'}])
+    expect(merged.present).toEqual([' t-shirt-größe ', 'allergien'])
   })
 })

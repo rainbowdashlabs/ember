@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, ref} from 'vue'
+import {AxiosError} from 'axios'
 import {eventGroups, events} from '@/api'
 import {OfferedFieldTypes} from '@/api/fieldTypes'
 import type {
@@ -51,6 +52,35 @@ export function groupFieldsOf(fields: readonly AppointmentTemplateField[]): Grou
 }
 
 /**
+ * The entries of a template not yet in the form, matched by name the way the server matches them:
+ * trimmed and ignoring case. Taking a question or field whose name the form already holds would ask
+ * it twice, which the server refuses for questions and every part would show twice for fields.
+ *
+ * @param current  what the form holds
+ * @param incoming what the template brings
+ * @return the entries to add, and the names of those left out because the form has them already
+ */
+export function newByName<T extends {name?: string | null}>(current: readonly T[], incoming: readonly T[]): {added: T[], present: string[]} {
+    const held = new Set(current.map(entry => nameKey(entry.name)))
+    const added: T[] = []
+    const present: string[] = []
+    for (const entry of incoming) {
+        const key = nameKey(entry.name)
+        if (held.has(key)) {
+            present.push(entry.name ?? '')
+            continue
+        }
+        held.add(key)
+        added.push(entry)
+    }
+    return {added, present}
+}
+
+function nameKey(name: string | null | undefined): string {
+    return (name ?? '').trim().toLowerCase()
+}
+
+/**
  * The registration questions of an appointment template as the event group editor holds them.
  *
  * @param detail the template
@@ -67,6 +97,7 @@ export function groupQuestionsOf(detail: TemplateDetailResponse): RegistrationFi
 export function useEventGroupTemplate() {
     const templates = ref<EventTemplate[]>([])
     const leftOut = ref<string[]>([])
+    const present = ref<string[]>([])
     const files = ref<EventAttachment[]>([])
 
     async function loadTemplates() {
@@ -83,16 +114,30 @@ export function useEventGroupTemplate() {
         return detail
     }
 
-    /** Attaches the noted files to the event group just created, in the template's order and with its labels. */
-    async function attachFiles(eventGroupId: number) {
+    /**
+     * Attaches the noted files to the event group just created, in the template's order and with its
+     * labels. A file leaves the list once it is attached, so a save tried again does not attach it twice.
+     * A file the library no longer holds is left out rather than holding up the save, and its name is
+     * given back so the page can say so.
+     *
+     * @return the names of the files left out because they are gone
+     */
+    async function attachFiles(eventGroupId: number): Promise<string[]> {
+        const gone: string[] = []
         while (files.value.length > 0) {
-            const [file] = files.value
-            await eventGroups.attachFile(eventGroupId, file!.fileId, file!.label, file!.internal)
+            const file = files.value[0]!
+            try {
+                await eventGroups.attachFile(eventGroupId, file.fileId, file.label, file.internal)
+            } catch (e) {
+                if (!(e instanceof AxiosError) || e.response?.status !== 404) throw e
+                gone.push(file.label ?? file.fileName)
+            }
             files.value = files.value.slice(1)
         }
+        return gone
     }
 
-    const props = computed(() => ({templates: templates.value, leftOut: leftOut.value, files: files.value}))
+    const props = computed(() => ({templates: templates.value, leftOut: leftOut.value, present: present.value, files: files.value}))
 
-    return {templates, leftOut, files, props, loadTemplates, read, attachFiles}
+    return {templates, leftOut, present, files, props, loadTemplates, read, attachFiles}
 }

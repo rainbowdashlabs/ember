@@ -43,7 +43,7 @@ const templates = computed(() => [{id: 1, name: t('helpCenter.eventGroupNew.exam
     </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupNew.templateTitle')">
       <p>{{ t('helpCenter.eventGroupNew.templateText') }}</p>
-      <EventGroupTemplateStart :templates="templates" :left-out="[t('helpCenter.eventGroupNew.exampleLeftOut')]" :files="[]"/>
+      <EventGroupTemplateStart :templates="templates" :left-out="[t('helpCenter.eventGroupNew.exampleLeftOut')]" :present="[]" :files="[]"/>
     </HelpSection>
     <HelpTip>{{ t('helpCenter.eventGroupNew.tip') }}</HelpTip>
   </HelpArticle>

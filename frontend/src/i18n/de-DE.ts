@@ -12119,6 +12119,8 @@ export default {
         fromTemplate: 'Aus Vorlage',
         fromTemplateHint: 'Eine Terminvorlage füllt Beschreibung, Kategorie, Anwesenheitsliste mit vorbelegten Feldern, Erinnerungen, Felder, Fragen, Dokumente zum Mitbringen und Zielgruppen. Zeiten und Blöcke bleiben, wie sie sind.',
         fromTemplateLeftOut: 'Diese Felder der Vorlage gelten für einen einzelnen Termin und wurden nicht übernommen: {fields}',
+        fromTemplatePresent: 'Schon im Formular, daher nicht noch einmal übernommen: {names}',
+        fromTemplateFilesGone: 'Diese Dateien der Vorlage gibt es nicht mehr, sie wurden nicht angehängt: {files}',
         fromTemplateFiles: 'Diese Dateien der Vorlage werden angehängt, sobald die Terminreihe gespeichert ist.',
         documentsHint: 'Gilt für jeden Termin der Terminreihe. Ein Termin zeigt diese Dokumente vor seinen eigenen und kann sie nicht entfernen.',
         attachmentsHint: 'Jeder Termin der Terminreihe gibt diese Dateien vor seinen eigenen weiter. Ein Termin kann sie nicht entfernen.',

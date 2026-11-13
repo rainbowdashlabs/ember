@@ -35,7 +35,7 @@ import {useDocumentRequirements} from './eventshared/useDocumentRequirements'
 import type {RequirementOwner} from '@/api/appointmentDocuments'
 import {useEventGroupSettings} from './eventgroupeditview/useEventGroupSettings'
 import EventGroupTemplateStart from './eventgroupeditview/EventGroupTemplateStart.vue'
-import {groupFieldsOf, groupQuestionsOf, useEventGroupTemplate} from './eventgroupeditview/eventGroupTemplate'
+import {groupFieldsOf, groupQuestionsOf, useEventGroupTemplate, newByName} from './eventgroupeditview/eventGroupTemplate'
 import {toRestriction} from '@/components/input/restriction'
 import {entryOf, namedEntries} from './eventshared/eventQuestions'
 import type {EventGroupDetail, MemberGroup, MemberWithName, EventFieldEntry, RegistrationFieldDefinition, RestrictionAudience, StationEvent, UserTag} from '@/api/generated/schema'
@@ -99,14 +99,22 @@ async function applyTemplate(templateId: number) {
   dateSettings.takeFrom(template)
   await dateSettings.fieldDefaults.takeFrom(templateFieldDefaultsPort(templateId))
   const taken = groupFieldsOf(template.fields)
-  fields.value = [...fields.value, ...taken.kept]
+  const newFields = newByName(fields.value, taken.kept)
+  const newQuestions = newByName(questions.value, groupQuestionsOf(template))
+  fields.value = [...fields.value, ...newFields.added]
+  questions.value = [...questions.value, ...newQuestions.added]
   fromTemplate.leftOut.value = taken.leftOut
-  questions.value = [...questions.value, ...groupQuestionsOf(template)]
+  fromTemplate.present.value = [...newFields.present, ...newQuestions.present]
   if (template.restriction) {
     registration.value = toRestriction(template.restriction.register)
     view.value = toRestriction(template.restriction.view)
   }
   await requirements.takeFrom({kind: 'event-templates', id: templateId})
+}
+
+/** Says which of a template's files could not be attached because the library no longer holds them. */
+function reportGoneFiles(gone: string[]) {
+  if (gone.length > 0) showToast(t('eventGroups.fromTemplateFilesGone', {files: gone.join(', ')}), 'error')
 }
 
 function requirementOwner(id: number): RequirementOwner {
@@ -268,7 +276,7 @@ async function save() {
       fill(created)
       await dateSettings.save(created.eventGroup.id)
       await requirements.save(requirementOwner(created.eventGroup.id))
-      await fromTemplate.attachFiles(created.eventGroup.id)
+      reportGoneFiles(await fromTemplate.attachFiles(created.eventGroup.id))
       showToast(t('eventGroups.saved'), 'success')
       await router.replace({name: 'event-group-edit', params: {eventGroupId: created.eventGroup.id}})
       return
@@ -280,7 +288,7 @@ async function save() {
     await dateSettings.save(savedId)
     await requirements.save(requirementOwner(savedId))
     if (eventGroupId.value == null) {
-      await fromTemplate.attachFiles(savedId)
+      reportGoneFiles(await fromTemplate.attachFiles(savedId))
       showToast(t('eventGroups.saved'), 'success')
       await router.replace({name: 'event-group-edit', params: {eventGroupId: savedId}})
       return

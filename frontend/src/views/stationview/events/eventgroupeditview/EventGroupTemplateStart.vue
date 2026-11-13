@@ -22,6 +22,8 @@ const props = defineProps<{
   templates: EventTemplate[]
   /** The names of the template's fields the event group could not take. */
   leftOut: string[]
+  /** The names of the template's fields and questions the form held already, which it kept as they are. */
+  present: string[]
   /** The template's files, attached once the event group is saved. */
   files: EventAttachment[]
 }>()
@@ -47,6 +49,9 @@ function pick(value: unknown) {
     </SelectInput>
     <Alert v-if="props.leftOut.length > 0" variant="info" data-testid="event-group-template-left-out">
       {{ t('eventGroups.fromTemplateLeftOut', {fields: props.leftOut.join(', ')}) }}
+    </Alert>
+    <Alert v-if="props.present.length > 0" variant="info" data-testid="event-group-template-present">
+      {{ t('eventGroups.fromTemplatePresent', {names: props.present.join(', ')}) }}
     </Alert>
   </NeutralContainer>
   <TemplateFilesNote v-if="props.files.length > 0" :files="props.files" :hint="t('eventGroups.fromTemplateFiles')"/>
