@@ -25,7 +25,7 @@ import java.util.Set;
  *
  * <p>A permission of a module names it. While that module is switched off at a station, the permission is
  * kept wherever it was granted but grants nothing there, and the permission picker does not offer it.
- * Permissions of the station itself and of its members name no module.
+ * Permissions of the station itself, of its members and of its chats name no module.
  */
 public enum StationPermission implements RouteRole {
 
@@ -515,6 +515,12 @@ public enum StationPermission implements RouteRole {
     KNOWLEDGE_MANAGER(StationModule.KNOWLEDGE_BASE, KNOWLEDGE_EDIT, KNOWLEDGE_FEDERATE),
 
     /**
+     * Allows opening, renaming, closing and reopening the station's chats, removing any message in them and
+     * handling the messages members report there.
+     */
+    MESSAGE_CHAT_MANAGE,
+
+    /**
      * Allows editing the stations look and feel.
      */
     STATION_LOOK_AND_FEEL,
@@ -574,6 +580,7 @@ public enum StationPermission implements RouteRole {
             LOGIN,
             LOST_AND_FOUND_MANAGER,
             MEMBER_MANAGER,
+            MESSAGE_CHAT_MANAGE,
             NEWS_MANAGER,
             PAGE_MANAGER,
             POLL_MANAGER,

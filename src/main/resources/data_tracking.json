@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "schemaHash": "sha256:041af62ecf24cdd3e9133ebfc53ad1e4962f8a854dae41ee8a1f22d6909f4d84",
-  "generatedAt": "2026-11-12T16:54:30Z",
+  "schemaHash": "sha256:08c66849f098e2fb6811c0cfa0d49fe72f1ea1245e0bd73091652ea21bf07af6",
+  "generatedAt": "2026-11-13T11:24:00Z",
   "tables": {
     "account": {
       "feature": "account",
       "scope": "USER",
-      "tableHash": "sha256:93a2be7f8476fca3e50c895d88835f6ffd5710db1c07f96a31ddf9787f0ec69d",
+      "tableHash": "sha256:67b4a01946a4b94b835f1b438cc4567613667fb87ce3f970bf925ef1513a6491",
       "columns": [
         {
           "name": "id",
@@ -138,6 +138,20 @@
           "nullable": false,
           "verified": true,
           "description": "Whether the account is sent a mail about messages that stayed unread for a while."
+        },
+        {
+          "name": "messages_station_digest",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the daily mail about messages takes from station chats: MENTIONS for the messages that mention the account, ALL for every unread message."
+        },
+        {
+          "name": "message_digest_sent_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the account was last sent the daily mail about messages; only messages written after it go into the next one. NULL before the first."
         }
       ],
       "foreignKeys": [
@@ -162,7 +176,8 @@
           "instance_user_type",
           "full_name",
           "unconfirmed_since",
-          "last_active_on"
+          "last_active_on",
+          "message_digest_sent_at"
         ],
         "rationale": "Reached via station_member.account_id; engine uses customScope to filter accounts referenced by this station's members. Importer matches by email or creates anew."
       },
@@ -6685,7 +6700,7 @@
       "description": "The rows and cells of one piece of authored content. A page, a news entry or a knowledge-base article owns one; the container itself knows nothing about which."
     },
     "conversation": {
-      "tableHash": "sha256:b38d95ea69040ddfeea2c3feedcc5c62ee447fc7a1de7a751749a7ed128aa2ba",
+      "tableHash": "sha256:bc06c9eeb1b6db718ce84c1f54e3337eb3515323245ca6476189875916e20f0c",
       "columns": [
         {
           "name": "id",
@@ -6706,14 +6721,14 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "DIRECT for exactly two accounts, GROUP for several."
+          "description": "DIRECT for exactly two accounts, GROUP for several, STATION for a station chat whose members follow its audience."
         },
         {
           "name": "name",
           "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "The name a group was given; NULL for a direct conversation and for a group named after its members."
+          "description": "The name a group or station chat was given; NULL for a direct conversation and for a group named after its members. A station chat always has one."
         },
         {
           "name": "owner_account_id",
@@ -6742,19 +6757,92 @@
           "nullable": false,
           "verified": true,
           "description": "When anything was last written in it, which orders the list of conversations."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The station a station chat belongs to. NULL for direct conversations and groups, which belong to no station."
+        },
+        {
+          "name": "audience",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Whom a station chat is for: STATION for everybody at the station but trial members, GROUP for the members of a group, TAG for the members with a tag. NULL for every other kind."
+        },
+        {
+          "name": "audience_group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The group whose members a GROUP station chat is for. NULL for every other chat, and once the group is deleted; a chat left without its group is closed."
+        },
+        {
+          "name": "audience_tag_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The tag whose members a TAG station chat is for. NULL for every other chat, and once the tag is deleted; a chat left without its tag is closed."
+        },
+        {
+          "name": "include_guardians",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the guardians of the people in a group or tag station chat are members of it as well. Always false for every other conversation."
+        },
+        {
+          "name": "closed_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When a station chat was closed: it stays readable for its members and takes nothing new. NULL while open and for every other kind."
+        },
+        {
+          "name": "closed_by_account_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The account that closed a station chat. NULL while open, when it closed because its group or tag was deleted, and once that account is deleted."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "audience_group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "audience_tag_id",
+          "refTable": "user_tag",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "closed_by_account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
         {
           "column": "owner_account_id",
           "refTable": "account",
           "refColumn": "id",
           "onDelete": "SET NULL"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
         }
       ],
       "stationTransfer": {
         "status": "IGNORED",
-        "reason": "A conversation belongs to the accounts in it, not to a station, and stays on this installation"
+        "reason": "A direct conversation or group belongs to the accounts in it, not to a station, and stays on this installation; station chats stay with it for now"
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -6762,6 +6850,10 @@
           {
             "type": "ACCOUNT_ID",
             "column": "owner_account_id"
+          },
+          {
+            "type": "ACCOUNT_ID",
+            "column": "closed_by_account_id"
           }
         ],
         "ignoredColumns": [
@@ -6775,10 +6867,15 @@
             "column": "owner_account_id",
             "strategy": "NULL",
             "reason": "FK ON DELETE SET NULL keeps the group for the others, its owner cleared; MessageErasure clears direct_pair and deletes a conversation nobody is left in before the engine runs"
+          },
+          {
+            "column": "closed_by_account_id",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps a closed station chat closed, who closed it cleared"
           }
         ]
       },
-      "description": "A conversation between accounts: a direct one between two people, or a group. It belongs to the people in it, not to a station."
+      "description": "A conversation between accounts: a direct one between two people, a group, or a station chat. Direct conversations and groups belong to the people in them; a station chat belongs to its station, and its members follow the station, a group or a tag."
     },
     "conversation_member": {
       "tableHash": "sha256:9bf06097eba9f793f88fac4445e33765b0c978fad2fe011af45b99b1254d714b",
@@ -6855,7 +6952,7 @@
       ],
       "stationTransfer": {
         "status": "IGNORED",
-        "reason": "Taking part in a conversation belongs to the account, not to a station"
+        "reason": "Taking part in a direct conversation or group belongs to the account, not to a station; station chat memberships stay on this installation for now"
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -21286,7 +21383,7 @@
       "description": "A named set of columns a station wants when it lists people, used both for who is coming to an appointment and for the register. Saved per station rather than per screen, so the two never drift apart."
     },
     "message": {
-      "tableHash": "sha256:e596f22dfd3f1f5d677ee9dad70eff799d5c3e6530dbf60b6a1835e97ade0440",
+      "tableHash": "sha256:fec2b6e9e9bca5b5f8b07bc3a7769fc5ab3ce091c96fb63951dc8783fed1575b",
       "columns": [
         {
           "name": "id",
@@ -21328,7 +21425,7 @@
           "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "What a system line says: ADDED, LEFT, REMOVED, RENAMED or OWNER_PASSED. NULL for a message somebody wrote."
+          "description": "What a system line says: ADDED, LEFT, REMOVED, RENAMED or OWNER_PASSED in a group, OPENED, RENAMED, CLOSED or REOPENED in a station chat. NULL for a message somebody wrote."
         },
         {
           "name": "system_subject_account_id",
@@ -21356,7 +21453,21 @@
           "type": "timestamptz",
           "nullable": true,
           "verified": true,
-          "description": "When its author deleted it; the text is emptied then. NULL while it stands."
+          "description": "When its author or the station deleted it; the text is emptied then. NULL while it stands."
+        },
+        {
+          "name": "removed_by_station",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the station removed it from a station chat rather than its author deleting it, which everybody sees as removed by the station."
+        },
+        {
+          "name": "deleted_by_account_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The account that deleted it: its author, or the moderator who removed it for the station. NULL while it stands and once that account is deleted."
         }
       ],
       "foreignKeys": [
@@ -21373,6 +21484,12 @@
           "onDelete": "CASCADE"
         },
         {
+          "column": "deleted_by_account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
           "column": "reply_to_id",
           "refTable": "message",
           "refColumn": "id",
@@ -21387,15 +21504,19 @@
       ],
       "stationTransfer": {
         "status": "IGNORED",
-        "reason": "Messages belong to the conversations of accounts, not to a station"
+        "reason": "Messages of direct conversations and groups belong to the accounts in them, not to a station; those of station chats stay on this installation for now"
       },
       "gdprExport": {
         "status": "TRACKED",
-        "reason": "Only the account's own messages; what others wrote in the same conversations is theirs",
+        "reason": "The account's own messages, and the ones it deleted or removed for a station with their text already emptied; what others wrote stays theirs",
         "identityColumns": [
           {
             "type": "ACCOUNT_ID",
             "column": "author_account_id"
+          },
+          {
+            "type": "ACCOUNT_ID",
+            "column": "deleted_by_account_id"
           }
         ]
       },
@@ -21411,10 +21532,15 @@
             "column": "system_subject_account_id",
             "strategy": "NULL",
             "reason": "FK ON DELETE SET NULL keeps the system line, whom it was about cleared"
+          },
+          {
+            "column": "deleted_by_account_id",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the deleted message's place, who deleted it cleared"
           }
         ]
       },
-      "description": "One message in a conversation, or a quiet system line saying who joined, left, was removed, or renamed a group."
+      "description": "One message in a conversation, or a quiet system line saying who joined, left, was removed, or renamed a group, or who opened, renamed, closed or reopened a station chat."
     },
     "message_reaction": {
       "tableHash": "sha256:4afaf4a8ac0c0a35fcd693f11edfb2fefe4838d3eaec69d743b51f268f63d01d",
@@ -21464,7 +21590,7 @@
       ],
       "stationTransfer": {
         "status": "IGNORED",
-        "reason": "Reactions belong to messages between accounts, not to a station"
+        "reason": "Reactions in direct conversations and groups belong to the accounts in them, not to a station; those in station chats stay on this installation for now"
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -21486,6 +21612,121 @@
         ]
       },
       "description": "An emoji somebody reacted to a message with, at most once per emoji and message."
+    },
+    "message_report": {
+      "tableHash": "sha256:27728fa33b052446d01426b6e06b483af12d43d8d8c13e196dd0565db3194145",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key."
+        },
+        {
+          "name": "message_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The message reported."
+        },
+        {
+          "name": "reporter_account_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The account that reported it. NULL once that account is deleted; the report stays for the station."
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the reporter wrote about why, at most 500 characters. NULL where they gave no reason."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When it was reported."
+        },
+        {
+          "name": "handled_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the report was handled, by removing the message or dismissing it. NULL while it is open; one account has at most one open report per message."
+        },
+        {
+          "name": "handled_by_account_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The account that handled the report. NULL while open and once that account is deleted."
+        },
+        {
+          "name": "outcome",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "How the report was handled: DELETED when the message was removed, DISMISSED when it stayed. NULL while open."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "handled_by_account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "message_id",
+          "refTable": "message",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "reporter_account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Reports belong to the station chats, which stay on this installation for now"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "reason": "The reports the account made, with the reason it gave, and the ones it handled",
+        "identityColumns": [
+          {
+            "type": "ACCOUNT_ID",
+            "column": "reporter_account_id"
+          },
+          {
+            "type": "ACCOUNT_ID",
+            "column": "handled_by_account_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "reporter_account_id",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the report for the station, its reporter cleared"
+          },
+          {
+            "column": "handled_by_account_id",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the handled report, who handled it cleared"
+          }
+        ]
+      },
+      "description": "A message of a station chat that a member reported to the people handling the station's chats, and what became of the report."
     },
     "movement_flow": {
       "feature": "inventory",
