@@ -20,8 +20,13 @@ const api = vi.hoisted(() => ({
     getFederationShare: vi.fn(async () => null),
     setSettings: vi.fn(),
     getSettings: vi.fn(async () => ({templateId: null, categoryId: null, reminderDays: [], fieldDefaults: []})),
+    attachFile: vi.fn(),
   },
-  events: {getEvent: vi.fn(), getRestrictions: vi.fn(), listCategories: vi.fn(async () => [])},
+  events: {
+    getEvent: vi.fn(), getRestrictions: vi.fn(), listCategories: vi.fn(async () => []),
+    listTemplates: vi.fn(async (): Promise<unknown[]> => []), getTemplate: vi.fn(),
+    listTemplateAttachments: vi.fn(async (): Promise<unknown[]> => []), getTemplateFieldDefaults: vi.fn(async () => []),
+  },
   attendance: {listTemplates: vi.fn(async () => []), listTemplateFields: vi.fn(async () => [])},
   memberGroups: {listGroups: vi.fn(async () => []), getGroupMembers: vi.fn(async () => [])},
   stationMembers: {listMembers: vi.fn(async () => [])},
@@ -186,5 +191,55 @@ describe('EventGroupEditView after a part changed', () => {
 
     expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue')).toEqual([{id: 1, name: 'Übung', minimum: 2}])
     expect(toast).toHaveBeenCalledOnce()
+  })
+})
+
+/**
+ * A new event group made from an appointment template takes what an event group can carry from it,
+ * names the fields it cannot take and attaches the template's files once it exists.
+ */
+describe('EventGroupEditView from an appointment template', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    route.query = {}
+    route.params = {}
+    api.events.listTemplates.mockResolvedValue([{id: 5, name: 'Jugendflamme'}])
+    api.events.getTemplate.mockResolvedValue({
+      template: {id: 5, description: 'Abzeichen', categoryId: 2, attendanceTemplateId: 4},
+      fields: [
+        {name: 'Ort', fieldType: 'TEXT', config: {perDate: false}, defaultValue: 'Gerätehaus', overview: false,
+          attendanceFieldId: null, isPublic: true},
+        {name: 'Fahrer', fieldType: 'MEMBER', config: {perDate: true}, defaultValue: null, overview: false,
+          attendanceFieldId: null, isPublic: false},
+      ],
+      registrationFields: [{name: 'Größe', fieldType: 'TEXT', config: {}, overview: true}],
+      reminderDays: [3],
+      restriction: {register: YOUTH, view: YOUTH},
+    })
+    api.events.listTemplateAttachments.mockResolvedValue([{id: 9, fileId: 40, label: 'Anfahrt', internal: false, fileName: 'a.pdf'}])
+    api.eventGroups.createEventGroup.mockResolvedValue({eventGroup: {id: 7}, sets: [], parts: [], questions: [], fields: [],
+      registration: YOUTH, view: YOUTH})
+    api.eventGroups.setSettings.mockResolvedValue({templateId: 4, categoryId: 2, reminderDays: [3], fieldDefaults: []})
+  })
+
+  it('fills the group, names what it left out and attaches the files after saving', async () => {
+    const wrapper = mountEditor()
+    await flushPromises()
+
+    await wrapper.find('[data-testid="event-group-apply-template"]').setValue('5')
+    await flushPromises()
+    expect(wrapper.find('[data-testid="event-group-template-left-out"]').text()).toContain('Fahrer')
+
+    await wrapper.find('[data-testid="event-group-save"]').trigger('click')
+    await flushPromises()
+
+    expect(api.eventGroups.createEventGroup).toHaveBeenCalledWith(expect.objectContaining({
+      details: expect.objectContaining({description: 'Abzeichen'}),
+      fields: [expect.objectContaining({name: 'Ort', value: 'Gerätehaus'})],
+      questions: [expect.objectContaining({name: 'Größe'})],
+      registration: expect.objectContaining({groupIds: [4]}),
+    }))
+    expect(api.eventGroups.setSettings).toHaveBeenCalledWith(7, expect.objectContaining({templateId: 4, categoryId: 2, reminderDays: [3]}))
+    expect(api.eventGroups.attachFile).toHaveBeenCalledWith(7, 40, 'Anfahrt', false)
   })
 })

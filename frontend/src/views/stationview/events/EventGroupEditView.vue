@@ -26,7 +26,7 @@ import type {SetRow} from './eventgroupeditview/eventGroupSetRow'
 import EventGroupPartsEditor from './eventgroupeditview/EventGroupPartsEditor.vue'
 import EventGroupShareCard from './eventgroupeditview/EventGroupShareCard.vue'
 import {useEventFederationShare} from './eventeditview/useEventFederationShare'
-import {eventGroupFederationPort} from './eventeditview/eventOwnerPorts'
+import {eventGroupFederationPort, templateFieldDefaultsPort} from './eventeditview/eventOwnerPorts'
 import EventGroupQuestionsCard from './eventgroupeditview/EventGroupQuestionsCard.vue'
 import EventGroupFieldsCard from './eventgroupeditview/EventGroupFieldsCard.vue'
 import EventGroupDateSettingsSection from './eventgroupeditview/EventGroupDateSettingsSection.vue'
@@ -34,6 +34,9 @@ import EventGroupFilesSection from './eventgroupeditview/EventGroupFilesSection.
 import {useDocumentRequirements} from './eventshared/useDocumentRequirements'
 import type {RequirementOwner} from '@/api/appointmentDocuments'
 import {useEventGroupSettings} from './eventgroupeditview/useEventGroupSettings'
+import EventGroupTemplateStart from './eventgroupeditview/EventGroupTemplateStart.vue'
+import {groupFieldsOf, groupQuestionsOf, useEventGroupTemplate} from './eventgroupeditview/eventGroupTemplate'
+import {toRestriction} from '@/components/input/restriction'
 import {entryOf, namedEntries} from './eventshared/eventQuestions'
 import type {EventGroupDetail, MemberGroup, MemberWithName, EventFieldEntry, RegistrationFieldDefinition, RestrictionAudience, StationEvent, UserTag} from '@/api/generated/schema'
 import {EventType, StationPermission} from '@/api/generated/schema'
@@ -83,6 +86,28 @@ const dateSettings = useEventGroupSettings()
 const cancelTarget = computed(() =>
     eventGroupId.value == null ? {name: 'events'} : {name: 'event-group', params: {eventGroupId: eventGroupId.value}})
 const requirements = useDocumentRequirements()
+const fromTemplate = useEventGroupTemplate()
+
+/**
+ * Fills the new event group from an appointment template: its description, category, attendance
+ * template with its pre-fills, reminders, the fields an event group can take, its questions, documents
+ * to bring and audiences. Times and sets stay as they are; the files are attached once it is saved.
+ */
+async function applyTemplate(templateId: number) {
+  const template = await fromTemplate.read(templateId)
+  if (template.template.description) description.value = template.template.description
+  dateSettings.takeFrom(template)
+  await dateSettings.fieldDefaults.takeFrom(templateFieldDefaultsPort(templateId))
+  const taken = groupFieldsOf(template.fields)
+  fields.value = [...fields.value, ...taken.kept]
+  fromTemplate.leftOut.value = taken.leftOut
+  questions.value = [...questions.value, ...groupQuestionsOf(template)]
+  if (template.restriction) {
+    registration.value = toRestriction(template.restriction.register)
+    view.value = toRestriction(template.restriction.view)
+  }
+  await requirements.takeFrom({kind: 'event-templates', id: templateId})
+}
 
 function requirementOwner(id: number): RequirementOwner {
   return {kind: 'events/groups', id}
@@ -142,6 +167,7 @@ const {loading, failure} = useAsyncLoader(async () => {
     await federationShare.load(eventGroupFederationPort(eventGroupId.value))
   } else {
     await requirements.load(null)
+    await fromTemplate.loadTemplates()
     await takeStartingAppointment()
   }
 })
@@ -242,6 +268,7 @@ async function save() {
       fill(created)
       await dateSettings.save(created.eventGroup.id)
       await requirements.save(requirementOwner(created.eventGroup.id))
+      await fromTemplate.attachFiles(created.eventGroup.id)
       showToast(t('eventGroups.saved'), 'success')
       await router.replace({name: 'event-group-edit', params: {eventGroupId: created.eventGroup.id}})
       return
@@ -275,6 +302,7 @@ async function save() {
     <AsyncSection :loading="loading" :failure="failure">
       <div class="space-y-6">
         <StartingAppointmentNotice v-if="startingAppointment" :name="startingAppointment.name" @drop="dropStartingAppointment"/>
+        <EventGroupTemplateStart v-if="eventGroupId == null" v-bind="fromTemplate.props.value" @apply="applyTemplate"/>
         <EventGroupDetailsForm
             v-model:name="name" v-model:description="description"
             v-model:limit="limit"

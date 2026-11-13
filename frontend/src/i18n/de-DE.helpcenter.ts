@@ -3436,6 +3436,10 @@ volumes:
             step2: 'Lege die Blöcke fest. Eine neue Terminreihe hat schon einen Block, in dem ein Termin reicht.',
             step3: 'Speichere die Terminreihe. Danach fügst du auf derselben Seite die Termine hinzu. Solange sie keinen Termin hat, steht sie unter Termine → Verwalten bei „Terminreihen ohne Termine“.',
             tip: 'Ein vorhandener Termin passt nur dazu, wenn er für alle gedacht ist oder für dieselben Leute wie die Terminreihe.',
+            templateTitle: 'Aus Vorlage',
+            templateText: 'Unter „Aus Vorlage“ wählst du eine Terminvorlage. Sie füllt Beschreibung, Kategorie, Anwesenheitsliste, Erinnerungen, Felder, Fragen, Dokumente zum Mitbringen und Zielgruppen. Felder, die nur für einen einzelnen Termin gelten, übernimmt die Terminreihe nicht, ein Hinweis nennt sie. Die Dateien der Vorlage werden angehängt, sobald du die Terminreihe speicherst.',
+            exampleTemplate: 'Jugendflamme',
+            exampleLeftOut: 'Fahrer',
         },
         eventGroupEdit: {
             title: 'Terminreihe bearbeiten',

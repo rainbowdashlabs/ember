@@ -5,7 +5,7 @@
  */
 import {ref} from 'vue'
 import {eventGroups} from '@/api'
-import type {EventGroupSettings, EventGroupSettingsRequest} from '@/api/generated/schema'
+import type {EventGroupSettings, EventGroupSettingsRequest, TemplateDetailResponse} from '@/api/generated/schema'
 import {useEventFieldDefaults} from '../eventeditview/useEventFieldDefaults'
 
 /**
@@ -48,6 +48,17 @@ export function useEventGroupSettings() {
     fill(await eventGroups.setSettings(eventGroupId, request()))
   }
 
+  /**
+   * Takes the category, attendance template and reminders of an appointment template, keeping what the
+   * template leaves open. Its pre-fills are taken separately, through the template's own address.
+   */
+  function takeFrom(detail: TemplateDetailResponse) {
+    const template = detail.template
+    if (template.categoryId != null) categoryId.value = String(template.categoryId)
+    if (template.attendanceTemplateId != null) templateId.value = String(template.attendanceTemplateId)
+    reminders.value = [...new Set([...reminders.value, ...detail.reminderDays])].sort((a, b) => a - b)
+  }
+
   function setTemplate(id: string) {
     templateId.value = id
   }
@@ -60,5 +71,5 @@ export function useEventGroupSettings() {
     reminders.value = days
   }
 
-  return {templateId, categoryId, reminders, fieldDefaults, setTemplate, setCategory, setReminders, request, load, save}
+  return {templateId, categoryId, reminders, fieldDefaults, takeFrom, setTemplate, setCategory, setReminders, request, load, save}
 }

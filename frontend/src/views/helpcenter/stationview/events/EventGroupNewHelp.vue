@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
@@ -13,8 +14,12 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
+import EventGroupTemplateStart from '@/views/stationview/events/eventgroupeditview/EventGroupTemplateStart.vue'
+import type {EventTemplate} from '@/api/generated/schema'
 
 const {t} = useI18n()
+
+const templates = computed(() => [{id: 1, name: t('helpCenter.eventGroupNew.exampleTemplate')}] as EventTemplate[])
 </script>
 
 <template>
@@ -35,6 +40,10 @@ const {t} = useI18n()
         </div>
       </NeutralContainer>
       <p>{{ t('helpCenter.eventGroupNew.step3') }}</p>
+    </HelpSection>
+    <HelpSection :title="t('helpCenter.eventGroupNew.templateTitle')">
+      <p>{{ t('helpCenter.eventGroupNew.templateText') }}</p>
+      <EventGroupTemplateStart :templates="templates" :left-out="[t('helpCenter.eventGroupNew.exampleLeftOut')]" :files="[]"/>
     </HelpSection>
     <HelpTip>{{ t('helpCenter.eventGroupNew.tip') }}</HelpTip>
   </HelpArticle>
