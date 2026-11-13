@@ -20,6 +20,7 @@ vi.mock('@/composables/useSession', () => ({useSession: () => ({sessionInfo})}))
 vi.mock('@/composables/useFinePointer', () => ({useFinePointer: () => ({finePointer})}))
 vi.mock('@/composables/useMemberCards', () => ({
   loadMemberCard: (memberUid: string) => loadMemberCard(memberUid),
+  loadWritableMember: () => Promise.resolve(null),
   useMemberCardsShown: () => true,
 }))
 

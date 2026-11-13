@@ -141,4 +141,61 @@ class BlockAndSettingsTest extends MessageTestBase {
         assertFalse(services.settings().status(-1).mail());
         assertFalse(services.settings().guardianAllowed(-1));
     }
+
+    @Test
+    void aMemberCardOffersToWriteOnlyToSomebodyTheReaderReaches() {
+        var benAtStation = stationMemberRepo
+                .findByStationAndAccount(station.id(), ben.id())
+                .orElseThrow();
+        var annaAtStation = stationMemberRepo
+                .findByStationAndAccount(station.id(), anna.id())
+                .orElseThrow();
+        var elsewhere = station();
+        join(elsewhere, anna);
+        var stranger = memberOf(elsewhere, "Sven");
+        var strangerMember = stationMemberRepo.findByAccount(stranger.id()).getFirst();
+        var waiting = stationMemberRepo.createWithoutAccount(station.id(), "Wanda Warten");
+        var child = memberOf(station, "Kim");
+        var childMember = stationMemberRepo
+                .findByStationAndAccount(station.id(), child.id())
+                .orElseThrow();
+        guard(benAtStation, childMember);
+
+        assertEquals(
+                ben.uid(),
+                services.settings()
+                        .writableMember(anna.id(), station.id(), benAtStation.uid())
+                        .orElseThrow()
+                        .uid());
+        assertTrue(services.settings()
+                .writableMember(anna.id(), station.id(), annaAtStation.uid())
+                .isEmpty());
+        assertTrue(
+                services.settings()
+                        .writableMember(anna.id(), station.id(), strangerMember.uid())
+                        .isEmpty(),
+                "a member of another station is not found through this one");
+        assertTrue(services.settings()
+                .writableMember(anna.id(), station.id(), waiting.uid())
+                .isEmpty());
+        assertTrue(
+                services.settings()
+                        .writableMember(anna.id(), station.id(), childMember.uid())
+                        .isEmpty(),
+                "a child without messages");
+        assertTrue(
+                services.settings()
+                        .writableMember(child.id(), station.id(), benAtStation.uid())
+                        .isEmpty(),
+                "a reader without messages");
+        services.blocks().block(ben.id(), anna.uid());
+        assertTrue(services.settings()
+                .writableMember(anna.id(), station.id(), benAtStation.uid())
+                .isEmpty());
+        services.blocks().unblock(ben.id(), anna.uid());
+        stationMemberRepo.setFormer(benAtStation.id(), true);
+        assertTrue(services.settings()
+                .writableMember(anna.id(), station.id(), benAtStation.uid())
+                .isEmpty());
+    }
 }

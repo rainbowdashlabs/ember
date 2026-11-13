@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.messages.service;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.messages.entity.MessagesStatus;
+import dev.chojo.ember.feature.messages.entity.Person;
 import dev.chojo.ember.feature.messages.entity.ReachablePerson;
 import dev.chojo.ember.feature.messages.entity.StationDigest;
 import dev.chojo.ember.feature.messages.repository.ConversationRepository;
@@ -17,6 +18,8 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
  * What an account allows about its messages, and whom it can write to.
@@ -85,6 +88,22 @@ public class MessageSettingsService {
     public List<ReachablePerson> reachable(int accountId, String search) {
         guards.requireUsable(accountId);
         return people.searchReachable(accountId, search, SEARCH_LIMIT);
+    }
+
+    /**
+     * The person behind a member of the reader's station, where the reader may write to them: both
+     * can use messages, the person is somebody else and has not blocked the reader. A member card
+     * offers to write to them then.
+     *
+     * @param accountId the reader
+     * @param stationId the reader's station
+     * @param memberUid the member looked at
+     * @return the person, or empty alike for every reason so a block stays unseen
+     */
+    public Optional<Person> writableMember(int accountId, int stationId, UUID memberUid) {
+        if (!people.usable(accountId)) return Optional.empty();
+        return people.memberAccount(stationId, memberUid)
+                .filter(person -> people.reaches(accountId, person.accountId()));
     }
 
     /**

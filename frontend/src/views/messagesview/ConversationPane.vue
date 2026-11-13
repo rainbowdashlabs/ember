@@ -14,6 +14,7 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import type {ConversationMessageResponse, MessagePersonResponse} from '@/api/generated/schema'
 import {block, getBlocks, leaveConversation, muteConversation, unblock} from '@/api/messages'
 import {useConversation} from '@/composables/useConversation'
+import {forgetWritableMembers} from '@/composables/useMemberCards'
 import {useMessageWords} from '@/composables/useMessageWords'
 import {useSession} from '@/composables/useSession'
 import {mentionablesOf} from '@/util/messageText'
@@ -119,6 +120,7 @@ function askBlock(person: MessagePersonResponse) {
     label: t('messages.block'),
     run: async () => {
       await block(person.uid)
+      forgetWritableMembers()
       await loadBlocks()
       await changed()
     },
@@ -128,6 +130,7 @@ function askBlock(person: MessagePersonResponse) {
 async function setBlocked(person: MessagePersonResponse, wanted: boolean) {
   if (wanted) return askBlock(person)
   await unblock(person.uid)
+  forgetWritableMembers()
   await loadBlocks()
   await changed()
 }

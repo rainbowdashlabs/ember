@@ -19,6 +19,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {StationDigest, type MessagePersonResponse} from '@/api/generated/schema'
 import {getBlocks, unblock} from '@/api/messages'
 import {useMessagesStatus} from '@/composables/useMessagesStatus'
+import {forgetWritableMembers} from '@/composables/useMemberCards'
 import {personName} from '@/util/conversationTitle'
 import {describeFailure, type Failure} from '@/util/failure'
 
@@ -57,6 +58,7 @@ const stationDigest = computed({
 async function letBackIn(person: MessagePersonResponse) {
   try {
     await unblock(person.uid)
+    forgetWritableMembers()
     blocked.value = blocked.value.filter(entry => entry.uid !== person.uid)
   } catch (e) {
     failure.value = describeFailure(e, t)

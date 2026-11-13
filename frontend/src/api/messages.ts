@@ -202,3 +202,9 @@ export async function removeReported(reportId: number): Promise<void> {
 export async function dismissReport(reportId: number): Promise<void> {
     await client.post(`/messages/reports/${reportId}/dismiss`)
 }
+
+/** The person behind a member of the chosen station, where the reader may write to them; null otherwise. */
+export async function findWritableMember(memberUid: string): Promise<MessagePersonResponse | null> {
+    const res = await client.get<MessagePersonResponse>(`/messages/members/${memberUid}`)
+    return res.status === 204 ? null : res.data
+}

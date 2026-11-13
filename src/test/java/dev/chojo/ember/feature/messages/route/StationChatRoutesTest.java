@@ -228,4 +228,17 @@ class StationChatRoutesTest extends MessageTestBase {
                     refusalOf(client.post(messages + "/" + id + "/report", body("{}"), as(manager))));
         });
     }
+
+    @Test
+    void aMemberCardFindsWhomToWriteTo() {
+        harness.run((server, client) -> {
+            var found = client.get(PREFIX + "/messages/members/" + member.uid(), as(manager));
+            assertEquals(200, found.code());
+            assertEquals(memberAccount.uid().toString(), json(found).get("uid").asString());
+            assertEquals(
+                    204,
+                    client.get(PREFIX + "/messages/members/" + manager.uid(), as(manager))
+                            .code());
+        });
+    }
 }

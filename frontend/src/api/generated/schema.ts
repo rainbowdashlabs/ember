@@ -43745,6 +43745,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/messages/members/{memberUid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The person behind a member of the reader's station, where the reader may write to them */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    memberUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessagePersonResponse"];
+                    };
+                };
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/messages/people": {
         parameters: {
             query?: never;

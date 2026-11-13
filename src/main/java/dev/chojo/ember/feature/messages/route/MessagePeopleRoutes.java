@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.messages.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -60,6 +61,7 @@ public class MessagePeopleRoutes implements Routes {
         routes.put(prefix + "/messages/settings", this::setMail, StationPermission.LOGIN);
         routes.get(prefix + "/messages/people", this::people, StationPermission.LOGIN);
         routes.get(prefix + "/messages/people/{personUid}/cards", this::cards, StationPermission.LOGIN);
+        routes.get(prefix + "/messages/members/{memberUid}", this::member, StationPermission.LOGIN);
         routes.get(prefix + "/messages/blocks", this::blocked, StationPermission.LOGIN);
         routes.post(prefix + "/messages/blocks", this::block, StationPermission.LOGIN);
         routes.delete(prefix + "/messages/blocks/{personUid}", this::unblock, StationPermission.LOGIN);
@@ -121,6 +123,24 @@ public class MessagePeopleRoutes implements Routes {
             "an account is looked at from every station the reader shares with it, each card read as a reader there")
     private void cards(Context ctx) {
         ctx.json(cards.cardsOf(UserSession.from(ctx).accountId(), pathUuid(ctx, "personUid")));
+    }
+
+    @OpenApi(
+            path = "/api/v1/messages/members/{memberUid}",
+            methods = HttpMethod.GET,
+            summary = "The person behind a member of the reader's station, where the reader may write to them",
+            description = "Answers no content where the reader may not write to them, for every reason alike.",
+            tags = {"Messages"},
+            pathParams = @OpenApiParam(name = "memberUid", type = UUID.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessagePersonResponse.class)),
+                @OpenApiResponse(status = "204")
+            })
+    private void member(Context ctx) {
+        var session = StationSession.from(ctx);
+        settings.writableMember(session.user().accountId(), session.stationId(), pathUuid(ctx, "memberUid"))
+                .ifPresentOrElse(
+                        person -> ctx.json(MessagePersonResponse.of(person)), () -> ctx.status(HttpStatus.NO_CONTENT));
     }
 
     @OpenApi(

@@ -4086,6 +4086,7 @@ export default {
         showFewer: 'Weniger zeigen',
     },
     memberCard: {
+        message: 'Nachricht',
         open: 'Kurzprofil von {name} öffnen',
         label: 'Kurzprofil von {name}',
         guardians: 'Erziehungsberechtigte',

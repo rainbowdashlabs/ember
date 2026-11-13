@@ -34883,6 +34883,36 @@
         }
       }
     },
+    "/api/v1/messages/members/{memberUid}" : {
+      "get" : {
+        "summary" : "The person behind a member of the reader's station, where the reader may write to them",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessagePersonResponse"
+                }
+              }
+            }
+          },
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "memberUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ]
+      }
+    },
     "/api/v1/messages/people" : {
       "get" : {
         "summary" : "Find people the reader may write to: everybody sharing a station with them",

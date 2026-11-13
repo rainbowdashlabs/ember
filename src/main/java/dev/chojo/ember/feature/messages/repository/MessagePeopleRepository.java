@@ -221,4 +221,21 @@ public class MessagePeopleRepository {
                 .single(call().bind("account_id", accountId).bind("wanted", wanted))
                 .update();
     }
+
+    /**
+     * The account of a current member of a station, by the member's identity.
+     *
+     * @param stationId the station
+     * @param memberUid the member's identity
+     * @return the person, or empty where the uid names no current member with an account there
+     */
+    public Optional<Person> memberAccount(int stationId, UUID memberUid) {
+        return query("""
+                SELECT a.id AS account_id, a.uid, a.first_name, a.last_name
+                FROM station_member sm JOIN account a ON a.id = sm.account_id
+                WHERE sm.station_id = :station_id AND sm.uid = :uid::uuid AND sm.former = FALSE;""")
+                .single(call().bind("station_id", stationId).bind("uid", memberUid, UUID_STRING))
+                .map(row -> Person.require(row, ""))
+                .first();
+    }
 }
