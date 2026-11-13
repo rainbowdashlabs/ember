@@ -9,6 +9,7 @@ import dev.chojo.ember.api.refusal.MessageRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.entity.TagVisibility;
 import dev.chojo.ember.feature.messages.entity.ChatAudience;
 import dev.chojo.ember.feature.messages.entity.Conversation;
 import dev.chojo.ember.feature.messages.entity.ConversationKind;
@@ -95,6 +96,19 @@ class StationChatServiceTest extends MessageTestBase {
         assertRefused(
                 MessageRefusal.STATION_CHAT_TAG_NOT_HERE,
                 () -> chats.open(station.id(), manager.id(), "Fremd", ChatAudience.TAG, null, foreignTag.id(), false));
+    }
+
+    @Test
+    void aPrivateTagHasNoChatAndATagWithAChatStaysVisible() {
+        var hidden = userTagRepo.create(station.id(), "Vertraulich", null, TagVisibility.PRIVATE);
+        var shown = userTagRepo.create(station.id(), "Atemschutz");
+
+        assertRefused(
+                MessageRefusal.STATION_CHAT_TAG_PRIVATE,
+                () -> chats.open(
+                        station.id(), manager.id(), "Vertraulich", ChatAudience.TAG, null, hidden.id(), false));
+        chats.open(station.id(), manager.id(), "Atemschutz", ChatAudience.TAG, null, shown.id(), false);
+        assertEquals(1, userTagRepo.countSelectingUses(shown.id()));
     }
 
     @Test

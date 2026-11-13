@@ -51,4 +51,5 @@ export default {
     'MS-044': 'Ein Grund darf höchstens 500 Zeichen lang sein',
     'MS-045': 'Diese Meldung ist hier nicht mehr offen',
     'MS-046': 'Diese Wache zieht gerade auf eine andere Instanz um, bis dahin lässt sich nichts ändern',
+    'MS-047': 'Ein privater Tag kann keinen Chat haben, denn der Chat zeigt, wer ihn trägt',
 }

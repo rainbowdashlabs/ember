@@ -162,7 +162,11 @@ public enum MessageRefusal implements Refusal {
     REPORT_NOT_HERE(45, HttpStatus.NOT_FOUND, "That report is not open here any more"),
 
     /** Changing anything in a station chat while its station moves to another installation. */
-    STATION_CHAT_MOVING(46, HttpStatus.SERVICE_UNAVAILABLE, Sentences.STATION_BEING_TRANSFERRED);
+    STATION_CHAT_MOVING(46, HttpStatus.SERVICE_UNAVAILABLE, Sentences.STATION_BEING_TRANSFERRED),
+
+    /** A chat for a private tag, which would show everybody in it who carries the tag. */
+    STATION_CHAT_TAG_PRIVATE(
+            47, HttpStatus.BAD_REQUEST, "A private tag cannot have a chat, since the chat shows who carries it");
 
     private final Definition definition;
 

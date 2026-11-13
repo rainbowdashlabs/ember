@@ -7,6 +7,7 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
+import BareButton from '@/components/button/BareButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -33,14 +34,22 @@ const props = defineProps<{
 const {t} = useI18n()
 const {titleOf} = useMessageWords()
 
+/** Which conversations the list shows: all of them, or only the station chats. */
+const FILTERS = ['all', 'station'] as const
+type Filter = typeof FILTERS[number]
+
 const search = ref('')
+const filter = ref<Filter>('all')
 const starting = ref(false)
 const settings = ref(false)
 
+const hasStationChats = computed(() => props.conversations.some(conversation => conversation.station))
+
 const shown = computed(() => {
   const needle = search.value.trim().toLocaleLowerCase()
-  if (!needle) return props.conversations
-  return props.conversations.filter(conversation => titleOf(conversation).toLocaleLowerCase().includes(needle))
+  return props.conversations
+    .filter(conversation => !hasStationChats.value || filter.value === 'all' || conversation.station)
+    .filter(conversation => !needle || titleOf(conversation).toLocaleLowerCase().includes(needle))
 })
 </script>
 
@@ -51,6 +60,14 @@ const shown = computed(() => {
                 class="text-primary hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent" @click="starting = true"/>
     <IconButton :icon="['fas', 'gear']" :label="t('messages.settings.title')"
                 class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent" @click="settings = true"/>
+  </div>
+  <div v-if="hasStationChats" role="group" :aria-label="t('messages.filter.label')" class="flex gap-1 px-3 pt-2">
+    <BareButton v-for="choice in FILTERS" :key="choice" :aria-pressed="filter === choice"
+                :data-testid="`messages-filter-${choice}`"
+                :class="filter === choice ? 'bg-primary/10 text-primary' : 'text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent'"
+                class="rounded-full px-3 py-1 text-xs font-medium" @click="filter = choice">
+      {{ t(`messages.filter.${choice}`) }}
+    </BareButton>
   </div>
   <nav :aria-label="t('messages.listLabel')" class="flex-1 overflow-y-auto p-2 space-y-1">
     <Spinner v-if="loading" size="md"/>

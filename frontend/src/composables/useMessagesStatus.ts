@@ -4,8 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {readonly} from 'vue'
-import type {MessagesStatus} from '@/api/generated/schema'
-import {getStatus, setMail as saveMail} from '@/api/messages'
+import type {MessagesStatus, StationDigest} from '@/api/generated/schema'
+import {getStatus, updateSettings} from '@/api/messages'
 
 /**
  * Whether the reader can use messages and how many wait unread, as the header's messages button
@@ -20,14 +20,20 @@ export function useMessagesStatus() {
         await getStatus().then(found => { status.value = found }).catch(() => {})
     }
 
-    /** Turns the mail about unread messages on or off. */
+    /** Turns the daily mail about unread messages on or off. */
     async function setMail(mail: boolean) {
-        status.value = await saveMail(mail)
+        status.value = await updateSettings({mail})
+    }
+
+    /** Chooses what the daily mail takes from station chats. */
+    async function setStationDigest(stationDigest: StationDigest) {
+        status.value = await updateSettings({stationDigest})
     }
 
     return {
         status: readonly(status),
         refresh,
         setMail,
+        setStationDigest,
     }
 }

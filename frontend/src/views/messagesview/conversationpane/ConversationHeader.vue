@@ -11,10 +11,12 @@ import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {ConversationResponse, MessagePersonResponse} from '@/api/generated/schema'
 import ConversationAvatar from '../conversationlist/ConversationAvatar.vue'
+import StationChatAvatar from '../conversationlist/StationChatAvatar.vue'
 
 /**
  * The top of an open conversation: the way back to the list on a phone, who it is with, the
- * member list of a group, and the conversation's menu.
+ * member list of a group or station chat, and the conversation's menu. A station chat names its
+ * station and cannot be left, only muted.
  */
 defineProps<{
   conversation: ConversationResponse
@@ -41,14 +43,19 @@ const {t} = useI18n()
       <IconButton :icon="['fas', 'arrow-left']" :label="t('messages.back')" to="/messages"
                   class="text-(--text) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent"/>
     </div>
-    <ConversationAvatar :people="others"/>
+    <StationChatAvatar v-if="conversation.station" :station-uid="conversation.station.stationUid"/>
+    <ConversationAvatar v-else :people="others"/>
     <div class="min-w-0 flex-1">
       <p class="truncate font-semibold" data-testid="conversation-title">{{ title }}</p>
-      <MutedText v-if="conversation.kind === 'GROUP'">
+      <MutedText v-if="conversation.station">
+        {{ t('messages.station.marker', {station: conversation.station.stationName}) }} ·
+        {{ t('messages.memberCount', {count: conversation.members.length}) }}
+      </MutedText>
+      <MutedText v-else-if="conversation.kind === 'GROUP'">
         {{ t('messages.memberCount', {count: conversation.members.length}) }}
       </MutedText>
     </div>
-    <IconButton v-if="conversation.kind === 'GROUP'" :icon="['fas', 'users']" :label="t('messages.members.open')"
+    <IconButton v-if="conversation.kind !== 'DIRECT'" :icon="['fas', 'users']" :label="t('messages.members.open')"
                 data-testid="conversation-members"
                 class="text-(--text-muted) hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent"
                 @click="$emit('members')"/>
@@ -61,7 +68,7 @@ const {t} = useI18n()
                         @click="$emit('block', other, !otherBlocked)">
         {{ otherBlocked ? t('messages.unblock') : t('messages.block') }}
       </DropdownMenuItem>
-      <DropdownMenuItem :icon="['fas', 'right-from-bracket']" destructive @click="$emit('leave')">
+      <DropdownMenuItem v-if="!conversation.station" :icon="['fas', 'right-from-bracket']" destructive @click="$emit('leave')">
         {{ conversation.kind === 'GROUP' ? t('messages.leaveGroup') : t('messages.closeDirect') }}
       </DropdownMenuItem>
     </ActionsMenu>

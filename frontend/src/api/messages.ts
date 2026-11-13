@@ -11,8 +11,12 @@ import type {
     ConversationSummaryResponse,
     MessagePersonResponse,
     MessagesStatus,
+    OpenStationChatRequest,
     ReachablePersonResponse,
+    ReportedMessageResponse,
     SharedMemberCard,
+    StationChatResponse,
+    StationDigest,
 } from './generated/schema'
 
 /** Where the stream of message signals is opened, which the browser reaches with its cookie. */
@@ -37,8 +41,9 @@ export async function getStatus(): Promise<MessagesStatus> {
     return res.data
 }
 
-export async function setMail(mail: boolean): Promise<MessagesStatus> {
-    const res = await client.put<MessagesStatus>('/messages/settings', {mail})
+/** Changes the daily mail: whether it comes, and what it takes from station chats. Left out stays as it is. */
+export async function updateSettings(settings: {mail?: boolean, stationDigest?: StationDigest}): Promise<MessagesStatus> {
+    const res = await client.put<MessagesStatus>('/messages/settings', settings)
     return res.data
 }
 
@@ -144,4 +149,56 @@ export async function unblock(personUid: string): Promise<void> {
 export async function getPersonCards(personUid: string): Promise<SharedMemberCard[]> {
     const res = await client.get<SharedMemberCard[]>(`/messages/people/${personUid}/cards`)
     return res.data
+}
+
+/** Reports a message of a station chat to the people handling the station's chats. */
+export async function reportMessage(uid: string, messageId: number, reason: string | null): Promise<void> {
+    await client.post(`${messagePath(uid, messageId)}/report`, {reason})
+}
+
+function stationChatPath(uid: string): string {
+    return `/messages/station-chats/${uid}`
+}
+
+/** The chosen station's chats, the open ones first. */
+export async function listStationChats(): Promise<StationChatResponse[]> {
+    const res = await client.get<StationChatResponse[]>('/messages/station-chats')
+    return res.data
+}
+
+export async function openStationChat(request: OpenStationChatRequest): Promise<StationChatResponse> {
+    const res = await client.post<StationChatResponse>('/messages/station-chats', request)
+    return res.data
+}
+
+export async function renameStationChat(uid: string, name: string): Promise<void> {
+    await client.put(`${stationChatPath(uid)}/name`, {name})
+}
+
+export async function setStationChatGuardians(uid: string, includeGuardians: boolean): Promise<void> {
+    await client.put(`${stationChatPath(uid)}/guardians`, {includeGuardians})
+}
+
+export async function closeStationChat(uid: string): Promise<void> {
+    await client.post(`${stationChatPath(uid)}/close`)
+}
+
+export async function reopenStationChat(uid: string): Promise<void> {
+    await client.post(`${stationChatPath(uid)}/reopen`)
+}
+
+/** The open reports of the chosen station's chats, each with the message in its context. */
+export async function listReports(): Promise<ReportedMessageResponse[]> {
+    const res = await client.get<ReportedMessageResponse[]>('/messages/reports')
+    return res.data
+}
+
+/** Removes a reported message for the station, which handles all its reports. */
+export async function removeReported(reportId: number): Promise<void> {
+    await client.post(`/messages/reports/${reportId}/remove`)
+}
+
+/** Dismisses the reports of a message, which stays. */
+export async function dismissReport(reportId: number): Promise<void> {
+    await client.post(`/messages/reports/${reportId}/dismiss`)
 }

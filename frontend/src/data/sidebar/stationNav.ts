@@ -179,6 +179,14 @@ export const STATION_NAV: Entry[] = [
         ],
     },
     {
+        kind: 'group', key: 'station-messages', label: 'sidebar.stationChats', icon: 'comments', prefix: ['/station/messages'],
+        visible: can(StationPermission.MESSAGE_CHAT_MANAGE),
+        children: [
+            {kind: 'page', key: 'message-station-chats', label: 'sidebar.stationChats', icon: 'comments', to: '/station/messages/chats', visible: can(StationPermission.MESSAGE_CHAT_MANAGE)},
+            {kind: 'page', key: 'message-reports', label: 'sidebar.messageReports', icon: 'flag', to: '/station/messages/reports', visible: can(StationPermission.MESSAGE_CHAT_MANAGE)},
+        ],
+    },
+    {
         kind: 'group', key: 'documents', label: 'sidebar.documents', icon: 'file', visible: runs(StationModule.DOCUMENTS),
         children: [
             {kind: 'page', key: 'documents-own', label: 'sidebar.ownDocuments', icon: 'file', to: '/station/documents'},

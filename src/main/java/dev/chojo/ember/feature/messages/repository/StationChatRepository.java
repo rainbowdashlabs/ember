@@ -305,7 +305,7 @@ public class StationChatRepository {
      */
     public boolean tagOf(int tagId, int stationId) {
         return query("""
-                SELECT id FROM user_tag WHERE id = :id AND station_id = :station_id FOR KEY SHARE;""")
+                SELECT id FROM user_tag WHERE id = :id AND station_id = :station_id FOR SHARE;""")
                 .single(call().bind("id", tagId).bind("station_id", stationId))
                 .map(row -> row.getInt("id"))
                 .first()
@@ -549,5 +549,20 @@ public class StationChatRepository {
                 .map(row -> row.getBoolean("moving"))
                 .first()
                 .orElse(true);
+    }
+
+    /**
+     * Whether a tag is private, kept to readers allowed to view members.
+     *
+     * @param tagId the tag
+     * @return whether it is private; false for no tag
+     */
+    public boolean tagPrivate(int tagId) {
+        return query("""
+                SELECT visibility = 'PRIVATE' AS private FROM user_tag WHERE id = :id;""")
+                .single(call().bind("id", tagId))
+                .map(row -> row.getBoolean("private"))
+                .first()
+                .orElse(false);
     }
 }

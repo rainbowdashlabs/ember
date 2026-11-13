@@ -10,11 +10,12 @@ import BareButton from '@/components/button/BareButton.vue'
 import Popover from '@/components/feedback/Popover.vue'
 import EmojiPicker from '@/components/emoji/EmojiPicker.vue'
 import type {ConversationMessageResponse} from '@/api/generated/schema'
-import {QUICK_REACTIONS, type MessageActions} from './messageActions'
+import {QUICK_REACTIONS, othersStanding, type MessageActions} from './messageActions'
 
 /**
  * The small bar a mouse finds over a message: six quick reactions, the full emoji picker, answering,
- * and for the reader's own message changing and deleting it, for somebody else's blocking them.
+ * and for the reader's own message changing and deleting it, for somebody else's blocking them. In a
+ * station chat somebody else's message can be reported, and removed by those handling its chats.
  */
 const props = defineProps<{
   message: ConversationMessageResponse
@@ -31,13 +32,13 @@ function own(): boolean {
 <template>
   <div class="flex items-center gap-0.5 rounded-theme border border-(--border) bg-(--bg) px-1 shadow-sm"
        :data-testid="`message-actions-${message.id}`">
-    <ul class="flex items-center">
+    <ul v-if="!actions.closed" class="flex items-center">
       <li v-for="emoji in QUICK_REACTIONS" :key="emoji">
         <BareButton :aria-label="t('messages.actions.reactWith', {emoji})" class="rounded-theme px-1 text-base hover:bg-bg-light-accent dark:hover:bg-bg-dark-accent"
                     @click="actions.react(message, emoji)">{{ emoji }}</BareButton>
       </li>
     </ul>
-    <Popover :label="t('messages.actions.moreEmoji')" role="dialog" align="end" panel-class="p-0">
+    <Popover v-if="!actions.closed" :label="t('messages.actions.moreEmoji')" role="dialog" align="end" panel-class="p-0">
       <template #trigger="{toggle, triggerAttrs}">
         <IconButton v-bind="triggerAttrs" :icon="['fas', 'face-smile']" :label="t('messages.actions.moreEmoji')" @click="toggle"/>
       </template>
@@ -45,12 +46,18 @@ function own(): boolean {
         <EmojiPicker @pick="emoji => { actions.react(message, emoji); close() }"/>
       </template>
     </Popover>
-    <IconButton :icon="['fas', 'reply']" :label="t('messages.actions.reply')" @click="actions.reply(message)"/>
+    <IconButton v-if="!actions.closed" :icon="['fas', 'reply']" :label="t('messages.actions.reply')" @click="actions.reply(message)"/>
     <template v-if="own()">
-      <IconButton :icon="['fas', 'pen']" :label="t('messages.actions.edit')" @click="actions.edit(message)"/>
+      <IconButton v-if="!actions.closed" :icon="['fas', 'pen']" :label="t('messages.actions.edit')" @click="actions.edit(message)"/>
       <IconButton :icon="['fas', 'trash']" :label="t('messages.actions.delete')" class="text-error" @click="actions.remove(message)"/>
     </template>
     <IconButton v-else-if="message.author" :icon="['fas', 'ban']" :label="t('messages.block')"
                 @click="message.author && actions.block(message.author)"/>
+    <IconButton v-if="actions.report && othersStanding(message, actions)" :icon="['fas', 'flag']"
+                :label="t('messages.actions.report')" :data-testid="`message-report-${message.id}`"
+                @click="actions.report?.(message)"/>
+    <IconButton v-if="actions.moderate && othersStanding(message, actions)" :icon="['fas', 'trash']"
+                :label="t('messages.actions.removeForStation')" class="text-error"
+                :data-testid="`message-moderate-${message.id}`" @click="actions.moderate?.(message)"/>
   </div>
 </template>

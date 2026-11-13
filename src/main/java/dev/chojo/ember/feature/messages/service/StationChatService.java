@@ -186,6 +186,8 @@ public class StationChatService {
         StationScope scope = scopeOf(chat);
         if (!scope.closed()) return;
         if (scope.orphaned()) throw MessageRefusal.STATION_CHAT_AUDIENCE_GONE.raise();
+        Integer tagId = scope.tagId();
+        if (tagId != null && chats.tagPrivate(tagId)) throw MessageRefusal.STATION_CHAT_TAG_PRIVATE.raise();
         Transactions.run(() -> {
             chats.lockOpening(stationId);
             if (chats.findOpen(stationId, scope.audience(), scope.groupId(), scope.tagId())
@@ -252,6 +254,7 @@ public class StationChatService {
             case TAG -> {
                 if (tagId == null || groupId != null) throw MessageRefusal.STATION_CHAT_AUDIENCE_UNCLEAR.raise();
                 if (!chats.tagOf(tagId, stationId)) throw MessageRefusal.STATION_CHAT_TAG_NOT_HERE.raise();
+                if (chats.tagPrivate(tagId)) throw MessageRefusal.STATION_CHAT_TAG_PRIVATE.raise();
             }
         }
     }

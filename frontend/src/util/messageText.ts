@@ -68,3 +68,16 @@ export function mentionablesOf(people: readonly {uid: string, firstName: string,
         displayTag: null,
     }))
 }
+
+/**
+ * A message's text as plain reading text, every mention written as an at sign and the name, for a
+ * place that shows a message without its links and mentions drawn.
+ *
+ * @param content the text as it is kept
+ * @returns the text as read
+ */
+export function plainTextOf(content: string): string {
+    return segmentsOf(content)
+        .map(segment => segment.kind === 'mention' ? `@${segment.name}` : segment.text)
+        .join('')
+}
