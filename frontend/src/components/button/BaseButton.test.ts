@@ -17,6 +17,7 @@ describe('BaseButton', () => {
         expect(wrapper.find('a').attributes('href')).toBe('/station/inventory/movements/7')
         expect(wrapper.text()).toBe('Ablauf ansehen')
         expect(wrapper.find('button').exists()).toBe(false)
+        expect(wrapper.find('a').classes()).toContain('row-link')
     })
 
     it('is a button without a page, and while disabled', () => {
