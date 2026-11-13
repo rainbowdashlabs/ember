@@ -134,7 +134,8 @@ public class ConversationService {
                 conversations.activeMembers(conversation.id()),
                 participation.membership(),
                 scope == null ? null : stationOf(conversation, stationChats.stations(Set.of(scope.stationId()))),
-                scope == null ? Map.of() : stationChats.guardiansFor(conversation.id()));
+                scope == null ? Map.of() : stationChats.guardiansFor(conversation.id()),
+                scope != null && stationChats.moderates(accountId, scope.stationId()));
     }
 
     private static @Nullable StationRef stationOf(Conversation conversation, Map<Integer, StationRef> stations) {

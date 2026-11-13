@@ -277,6 +277,7 @@ CREATE TABLE IF NOT EXISTS ember_schema.message_report
     message_id            INT         NOT NULL REFERENCES ember_schema.message (id) ON DELETE CASCADE,
     reporter_account_id   INT REFERENCES ember_schema.account (id) ON DELETE SET NULL,
     reason                TEXT CHECK (length(reason) <= 500 AND btrim(reason) <> ''),
+    reported_content      TEXT        NOT NULL,
     created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
     handled_at            TIMESTAMPTZ,
     handled_by_account_id INT REFERENCES ember_schema.account (id) ON DELETE SET NULL,
@@ -299,6 +300,8 @@ COMMENT ON COLUMN ember_schema.message_report.reporter_account_id
     IS 'The account that reported it. NULL once that account is deleted; the report stays for the station.';
 COMMENT ON COLUMN ember_schema.message_report.reason
     IS 'What the reporter wrote about why, at most 500 characters. NULL where they gave no reason.';
+COMMENT ON COLUMN ember_schema.message_report.reported_content
+    IS 'The text of the message as it read when it was reported, so a later change to it does not change what was reported.';
 COMMENT ON COLUMN ember_schema.message_report.created_at
     IS 'When it was reported.';
 COMMENT ON COLUMN ember_schema.message_report.handled_at

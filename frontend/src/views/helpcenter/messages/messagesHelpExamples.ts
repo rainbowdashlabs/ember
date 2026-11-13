@@ -57,12 +57,12 @@ export function exampleConversations(t: Translate): ConversationSummaryResponse[
         {
             uid: '00000000-0000-0000-0000-0000000000c1', kind: 'DIRECT', name: null, others: [lena], muted: false, unread: 2, station: null,
             lastActivityAt: new Date(Date.now() - 5 * 60_000).toISOString(),
-            newest: {id: 3, author: lena, text: t('helpCenter.messages.example.question'), systemKind: null, subject: null, deleted: false, createdAt: new Date().toISOString()},
+            newest: {id: 3, author: lena, text: t('helpCenter.messages.example.question'), systemKind: null, subject: null, deleted: false, createdAt: new Date().toISOString(), removedByStation: false},
         },
         {
             uid: '00000000-0000-0000-0000-0000000000c2', kind: 'GROUP', name: t('helpCenter.messages.example.groupName'), others: [lena, tom], muted: true, unread: 4, station: null,
             lastActivityAt: new Date(Date.now() - 3 * 3_600_000).toISOString(),
-            newest: {id: 9, author: tom, text: t('helpCenter.messages.example.groupLine'), systemKind: null, subject: null, deleted: false, createdAt: new Date().toISOString()},
+            newest: {id: 9, author: tom, text: t('helpCenter.messages.example.groupLine'), systemKind: null, subject: null, deleted: false, createdAt: new Date().toISOString(), removedByStation: false},
         },
     ]
 }
@@ -71,6 +71,7 @@ function message(id: number, author: MessagePersonResponse, content: string, min
     return {
         id, author, content, replyTo: null, systemKind: null, subject: null,
         createdAt: new Date(Date.now() - minutesAgo * 60_000).toISOString(), editedAt: null, deleted: false, reactions: [],
+        removedByStation: false, removedBy: null,
     }
 }
 
@@ -89,7 +90,7 @@ export function exampleMessages(t: Translate): ConversationMessageResponse[] {
         message(2, lena, t('helpCenter.messages.example.followUp'), 28),
         {
             ...message(3, reader, t('helpCenter.messages.example.answer'), 10),
-            replyTo: {id: 1, author: lena, text: question.content, deleted: false},
+            replyTo: {id: 1, author: lena, text: question.content, deleted: false, removedByStation: false},
             reactions: [{emoji: '👍', count: 1, mine: false, people: [lena]}],
             editedAt: new Date().toISOString(),
         },

@@ -34374,7 +34374,7 @@
         }
       },
       "delete" : {
-        "summary" : "Delete one's own message; its place stays",
+        "summary" : "Delete one's own message, or remove anybody's in a station chat for its station; its place stays",
         "tags" : [ "Messages" ],
         "responses" : {
           "204" : {
@@ -34552,6 +34552,63 @@
             "type" : "string"
           }
         } ]
+      }
+    },
+    "/api/v1/messages/conversations/{conversationUid}/messages/{messageId}/report" : {
+      "post" : {
+        "summary" : "Report a message of a station chat to the people handling the station's chats",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "conversationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "messageId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReportMessageRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/messages/conversations/{conversationUid}/mute" : {
@@ -34900,6 +34957,117 @@
           "schema" : {
             "type" : "string",
             "format" : "uuid"
+          }
+        } ]
+      }
+    },
+    "/api/v1/messages/reports" : {
+      "get" : {
+        "summary" : "The open reports of the station's chats, each with the message in its context",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReportedMessageResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/messages/reports/{reportId}/dismiss" : {
+      "post" : {
+        "summary" : "Dismiss the reports of a message, which stays",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "reportId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/messages/reports/{reportId}/remove" : {
+      "post" : {
+        "summary" : "Remove a reported message for the station, which handles all its reports",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "reportId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         } ]
       }
@@ -57101,9 +57269,19 @@
             "items" : {
               "$ref" : "#/components/schemas/ReactionGroupResponse"
             }
+          },
+          "removedByStation" : {
+            "type" : "boolean"
+          },
+          "removedBy" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MessagePersonResponse"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "author", "content", "replyTo", "systemKind", "subject", "createdAt", "editedAt", "deleted", "reactions" ]
+        "required" : [ "id", "author", "content", "replyTo", "systemKind", "subject", "createdAt", "editedAt", "deleted", "reactions", "removedByStation", "removedBy" ]
       },
       "ConversationMuteRequest" : {
         "type" : "object",
@@ -57169,9 +57347,12 @@
           },
           "createdAt" : {
             "$ref" : "#/components/schemas/Instant"
+          },
+          "removedByStation" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "id", "author", "text", "systemKind", "subject", "deleted", "createdAt" ]
+        "required" : [ "id", "author", "text", "systemKind", "subject", "deleted", "createdAt", "removedByStation" ]
       },
       "ConversationReadRequest" : {
         "type" : "object",
@@ -57218,9 +57399,12 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "moderator" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "uid", "kind", "name", "ownerUid", "members", "muted", "lastReadMessageId", "station" ]
+        "required" : [ "uid", "kind", "name", "ownerUid", "members", "muted", "lastReadMessageId", "station", "moderator" ]
       },
       "ConversationSummaryResponse" : {
         "type" : "object",
@@ -72268,7 +72452,7 @@
       },
       "NotificationType" : {
         "type" : "string",
-        "enum" : [ "NEW_NEWS", "NEWS_COMMENT", "COMMENT_MENTION", "EVENT_COMMENT", "EVENT_REGISTRATION_STATUS", "MOVEMENT_ADVANCED", "MOVEMENT_RAISED", "MOVEMENT_DECLINED", "MOVEMENT_CANCELLED", "NEW_EVENT", "NEW_EVENTS_BATCH", "MEMBER_ADDED_TO_GROUP", "PROFILE_FIELD_CHANGED", "PROCUREMENT_REQUESTED", "PROCUREMENT_FULFILLED", "NEW_FORM", "LOST_AND_FOUND_NEW", "LOST_AND_FOUND_CLAIMED", "WAITLIST_NEW_ENTRY", "LENDING_NEW_REQUEST", "LENDING_STATUS_CHANGE", "LENDING_NEW_MESSAGE", "BOARD_TICKET_UPDATE", "REGISTRATION_DEADLINE_EXPIRED", "EVENT_CANCELLED", "EVENT_REMINDER", "REGISTRATION_CLOSING", "REGISTRATION_ANSWER_MISSING", "EVENT_DATE_DROPPED", "EVENT_MOVED", "EVENT_DATE_RESTORED", "EVENT_CHANGED", "PROCEDURE_ASSIGNED", "PROCEDURE_RESOLVED", "PROCEDURE_REOPENED", "PROCEDURE_ITEM_CHECKED", "PROCEDURE_DOCUMENT_WITHDRAWN", "SELF_CHECK_ASSIGNED", "SELF_CHECK_SUBMITTED", "SELF_CHECK_ROW_REFUSED", "WAITLIST_PUBLIC_REGISTRATION", "WAITLIST_INVITATION_ANSWERED", "WAITLIST_TRIAL_ENDED", "STORAGE_WARNING", "MAILBOX_SUSPENDED", "MAIL_IMPORT_UNBOUND", "CLUSTER_APPLICATION_SUBMITTED", "CLUSTER_APPLICATION_APPROVED", "CLUSTER_APPLICATION_DENIED", "CLUSTER_APPLICATION_WITHDRAWN", "CLUSTER_STATION_RELEASED", "CLUSTER_MODULE_DENIED", "CLUSTER_ITEM_ISSUED", "CLUSTER_ITEM_LOST", "CLUSTER_QUOTA_CHANGED", "CLUSTER_MEMBER_ROLE_CHANGED", "CLUSTER_FIELD_VALUE_CHANGED", "EXPIRY_REMINDER", "FEDERATION_REQUEST_RECEIVED", "FEDERATION_REQUEST_ACCEPTED", "FEDERATION_REQUEST_DECLINED", "NAME_CHANGE_REQUESTED", "NAME_CHANGE_APPROVED", "NAME_CHANGE_DENIED", "SIGNATURE_REQUESTED", "SIGNATURE_REMINDER", "DOCUMENT_SIGNED", "DOCUMENT_SCAN_REJECTED", "ACCOUNT_LINK_ACCEPTED", "ASSOCIATION_LINK_ACCEPTED", "SIGNATURE_WITHDRAWN", "PARTNER_SIGNATURE_WITHDRAWN" ]
+        "enum" : [ "NEW_NEWS", "NEWS_COMMENT", "COMMENT_MENTION", "EVENT_COMMENT", "EVENT_REGISTRATION_STATUS", "MOVEMENT_ADVANCED", "MOVEMENT_RAISED", "MOVEMENT_DECLINED", "MOVEMENT_CANCELLED", "NEW_EVENT", "NEW_EVENTS_BATCH", "MEMBER_ADDED_TO_GROUP", "PROFILE_FIELD_CHANGED", "PROCUREMENT_REQUESTED", "PROCUREMENT_FULFILLED", "NEW_FORM", "LOST_AND_FOUND_NEW", "LOST_AND_FOUND_CLAIMED", "WAITLIST_NEW_ENTRY", "LENDING_NEW_REQUEST", "LENDING_STATUS_CHANGE", "LENDING_NEW_MESSAGE", "BOARD_TICKET_UPDATE", "REGISTRATION_DEADLINE_EXPIRED", "EVENT_CANCELLED", "EVENT_REMINDER", "REGISTRATION_CLOSING", "REGISTRATION_ANSWER_MISSING", "EVENT_DATE_DROPPED", "EVENT_MOVED", "EVENT_DATE_RESTORED", "EVENT_CHANGED", "PROCEDURE_ASSIGNED", "PROCEDURE_RESOLVED", "PROCEDURE_REOPENED", "PROCEDURE_ITEM_CHECKED", "PROCEDURE_DOCUMENT_WITHDRAWN", "SELF_CHECK_ASSIGNED", "SELF_CHECK_SUBMITTED", "SELF_CHECK_ROW_REFUSED", "WAITLIST_PUBLIC_REGISTRATION", "WAITLIST_INVITATION_ANSWERED", "WAITLIST_TRIAL_ENDED", "STORAGE_WARNING", "MAILBOX_SUSPENDED", "MAIL_IMPORT_UNBOUND", "CLUSTER_APPLICATION_SUBMITTED", "CLUSTER_APPLICATION_APPROVED", "CLUSTER_APPLICATION_DENIED", "CLUSTER_APPLICATION_WITHDRAWN", "CLUSTER_STATION_RELEASED", "CLUSTER_MODULE_DENIED", "CLUSTER_ITEM_ISSUED", "CLUSTER_ITEM_LOST", "CLUSTER_QUOTA_CHANGED", "CLUSTER_MEMBER_ROLE_CHANGED", "CLUSTER_FIELD_VALUE_CHANGED", "EXPIRY_REMINDER", "FEDERATION_REQUEST_RECEIVED", "FEDERATION_REQUEST_ACCEPTED", "FEDERATION_REQUEST_DECLINED", "NAME_CHANGE_REQUESTED", "NAME_CHANGE_APPROVED", "NAME_CHANGE_DENIED", "SIGNATURE_REQUESTED", "SIGNATURE_REMINDER", "DOCUMENT_SIGNED", "DOCUMENT_SCAN_REJECTED", "ACCOUNT_LINK_ACCEPTED", "ASSOCIATION_LINK_ACCEPTED", "SIGNATURE_WITHDRAWN", "PARTNER_SIGNATURE_WITHDRAWN", "MESSAGE_REPORTED" ]
       },
       "NumberConfig" : {
         "type" : "object",
@@ -78402,9 +78586,12 @@
           },
           "deleted" : {
             "type" : "boolean"
+          },
+          "removedByStation" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "id", "author", "text", "deleted" ]
+        "required" : [ "id", "author", "text", "deleted", "removedByStation" ]
       },
       "ReportData" : {
         "type" : "object",
@@ -78432,6 +78619,14 @@
           }
         },
         "required" : [ "filterLabel", "members", "sessions", "monthlySummaries" ]
+      },
+      "ReportMessageRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : [ "string", "null" ]
+          }
+        }
       },
       "ReportPayload" : {
         "type" : "object",
@@ -78501,6 +78696,49 @@
             "type" : [ "string", "null" ]
           }
         }
+      },
+      "ReportedMessageResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "conversationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "chatName" : {
+            "type" : "string"
+          },
+          "reporter" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MessagePersonResponse"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "reason" : {
+            "type" : [ "string", "null" ]
+          },
+          "reportedText" : {
+            "type" : "string"
+          },
+          "reportedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "messageId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "context" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ConversationMessageResponse"
+            }
+          }
+        },
+        "required" : [ "id", "conversationUid", "chatName", "reporter", "reason", "reportedText", "reportedAt", "messageId", "context" ]
       },
       "RequestState" : {
         "type" : "string",

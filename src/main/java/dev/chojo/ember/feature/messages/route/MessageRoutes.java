@@ -167,7 +167,8 @@ public class MessageRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/messages/conversations/{conversationUid}/messages/{messageId}",
             methods = HttpMethod.DELETE,
-            summary = "Delete one's own message; its place stays",
+            summary =
+                    "Delete one's own message, or remove anybody's in a station chat for its station; its place stays",
             tags = {"Messages"},
             pathParams = {
                 @OpenApiParam(name = "conversationUid", type = UUID.class, required = true),

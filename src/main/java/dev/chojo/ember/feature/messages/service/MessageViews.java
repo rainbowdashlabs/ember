@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.messages.entity.MessageView;
 import dev.chojo.ember.feature.messages.entity.Reaction;
 import dev.chojo.ember.feature.messages.repository.MessageRepository;
 import dev.chojo.ember.feature.messages.repository.ReactionRepository;
+import dev.chojo.ember.feature.messages.repository.StationChatRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -23,17 +24,20 @@ import java.util.stream.Collectors;
 
 /**
  * Puts together what a reader sees of messages: the message each answers and the reactions to it,
- * read in one go for a whole page.
+ * read in one go for a whole page. Who removed a message for the station is shown only to the people
+ * handling the station's chats.
  */
 @Singleton
 public class MessageViews {
     private final MessageRepository messages;
     private final ReactionRepository reactions;
+    private final StationChatRepository stationChats;
 
     @Inject
-    public MessageViews(MessageRepository messages, ReactionRepository reactions) {
+    public MessageViews(MessageRepository messages, ReactionRepository reactions, StationChatRepository stationChats) {
         this.messages = messages;
         this.reactions = reactions;
+        this.stationChats = stationChats;
     }
 
     /**
@@ -43,7 +47,10 @@ public class MessageViews {
      * @param readerId the reader
      * @return each with its answered message and its reactions
      */
-    public List<MessageView> of(List<Message> page, int readerId) {
+    public List<MessageView> of(List<Message> shown, int readerId) {
+        List<Message> page = seesRemovers(shown, readerId)
+                ? shown
+                : shown.stream().map(Message::withoutRemover).toList();
         Map<Integer, Message> known = page.stream().collect(Collectors.toMap(Message::id, Function.identity()));
         List<Integer> missing = page.stream()
                 .map(Message::replyToId)
@@ -70,6 +77,15 @@ public class MessageViews {
      */
     public MessageView of(Message message, int readerId) {
         return of(List.of(message), readerId).getFirst();
+    }
+
+    private boolean seesRemovers(List<Message> page, int readerId) {
+        return page.stream()
+                .filter(message -> message.removedByStation() && message.deletedBy() != null)
+                .findFirst()
+                .flatMap(removed -> stationChats.stationOf(removed.conversationId()))
+                .map(stationId -> stationChats.moderates(readerId, stationId))
+                .orElse(true);
     }
 
     private static @Nullable Message replyOf(Message message, Map<Integer, Message> answered) {

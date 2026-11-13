@@ -6,10 +6,12 @@
 package dev.chojo.ember.feature.messages.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.messages.entity.ChatAudience;
 import dev.chojo.ember.feature.messages.entity.Conversation;
 import dev.chojo.ember.feature.messages.entity.StationChatSummary;
 import dev.chojo.ember.feature.messages.entity.StationRef;
+import dev.chojo.ember.util.sql.PermissionHolderSql;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
@@ -453,5 +455,58 @@ public class StationChatRepository {
                 .stream()
                 .collect(Collectors.groupingBy(
                         Map.Entry::getKey, Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
+    }
+
+    /**
+     * Whether an account handles a station's chats there: it is a current member of the station
+     * holding the permission to, directly, through its type, a group, or a wider right.
+     *
+     * @param accountId the account
+     * @param stationId the station
+     * @return whether it may remove messages and handle reports there
+     */
+    public boolean moderates(int accountId, int stationId) {
+        return query("""
+                SELECT EXISTS(
+                    SELECT 1 FROM station_member sm
+                    WHERE sm.station_id = :station_id AND sm.account_id = :account_id AND sm.former = FALSE
+                    AND (%s)
+                ) AS moderates;""", PermissionHolderSql.HOLDS_PERMISSION)
+                .single(PermissionHolderSql.bind(
+                        call().bind("station_id", stationId).bind("account_id", accountId),
+                        Set.of(StationPermission.MESSAGE_CHAT_MANAGE)))
+                .map(row -> row.getBoolean("moderates"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
+     * The member an account is at a station right now.
+     *
+     * @param accountId the account
+     * @param stationId the station
+     * @return the member, or empty where the account is no current member there
+     */
+    public Optional<Integer> memberAt(int accountId, int stationId) {
+        return query("""
+                SELECT id FROM station_member
+                WHERE account_id = :account_id AND station_id = :station_id AND former = FALSE;""")
+                .single(call().bind("account_id", accountId).bind("station_id", stationId))
+                .map(row -> row.getInt("id"))
+                .first();
+    }
+
+    /**
+     * The station a conversation belongs to.
+     *
+     * @param conversationId the conversation
+     * @return the station of a station chat, empty for any other conversation
+     */
+    public Optional<Integer> stationOf(int conversationId) {
+        return query("""
+                SELECT station_id FROM conversation WHERE id = :id AND kind = 'STATION';""")
+                .single(call().bind("id", conversationId))
+                .map(row -> row.getInt("station_id"))
+                .first();
     }
 }

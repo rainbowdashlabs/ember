@@ -9,12 +9,16 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.messages.repository.AccountBlockRepository;
 import dev.chojo.ember.feature.messages.repository.ConversationRepository;
 import dev.chojo.ember.feature.messages.repository.MessagePeopleRepository;
+import dev.chojo.ember.feature.messages.repository.MessageReportRepository;
 import dev.chojo.ember.feature.messages.repository.MessageRepository;
 import dev.chojo.ember.feature.messages.repository.ReactionRepository;
 import dev.chojo.ember.feature.messages.repository.StationChatRepository;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 
 import java.util.Set;
+
+import static org.mockito.Mockito.mock;
 
 /**
  * The message services on the test database's real repositories, wired the way the application
@@ -30,6 +34,9 @@ import java.util.Set;
  * @param guards        the access decisions
  * @param membership    the reconciliation of station chats with their audience
  * @param stationChats  opening and handling station chats
+ * @param moderation    removing messages for a station
+ * @param reports       reporting messages and handling the reports
+ * @param notifier      a mock that the reports tell the people handling a station's chats through
  */
 public record MessageFixtures(
         MessageSignals signals,
@@ -41,7 +48,10 @@ public record MessageFixtures(
         MessageSettingsService settings,
         MessageGuards guards,
         StationChatMembership membership,
-        StationChatService stationChats) {
+        StationChatService stationChats,
+        MessageModeration moderation,
+        MessageReportService reports,
+        Notifier notifier) {
 
     /**
      * Every message service, freshly built.
@@ -56,19 +66,31 @@ public record MessageFixtures(
         var stationChatRepo = new StationChatRepository();
         var guards = new MessageGuards(peopleRepo, conversationRepo, messageRepo, blockRepo, stationChatRepo);
         var signals = new MessageSignals(conversationRepo);
-        var views = new MessageViews(messageRepo, new ReactionRepository());
+        var views = new MessageViews(messageRepo, new ReactionRepository(), stationChatRepo);
+        var moderation = new MessageModeration(messageRepo, new MessageReportRepository(), stationChatRepo, signals);
+        var notifier = mock(Notifier.class);
         var membership = new StationChatMembership(stationChatRepo, conversationRepo, messageRepo, new TaskScheduler());
         return new MessageFixtures(
                 signals,
                 new ConversationService(conversationRepo, messageRepo, guards, signals, stationChatRepo),
                 new GroupService(conversationRepo, messageRepo, guards, signals),
-                new MessageService(conversationRepo, messageRepo, guards, views, signals),
+                new MessageService(conversationRepo, messageRepo, guards, views, signals, moderation),
                 new ReactionService(new ReactionRepository(), guards, views, signals),
                 new BlockService(blockRepo, peopleRepo, guards),
                 new MessageSettingsService(peopleRepo, conversationRepo, guards, new DomainEventBus(Set.of())),
                 guards,
                 membership,
-                new StationChatService(stationChatRepo, conversationRepo, messageRepo, membership));
+                new StationChatService(stationChatRepo, conversationRepo, messageRepo, membership),
+                moderation,
+                new MessageReportService(
+                        new MessageReportRepository(),
+                        messageRepo,
+                        guards,
+                        views,
+                        moderation,
+                        notifier,
+                        stationChatRepo),
+                notifier);
     }
 
     /**

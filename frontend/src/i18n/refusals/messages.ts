@@ -45,4 +45,9 @@ export default {
     'MS-038': 'Ein Gruppenchat nennt seine Gruppe, ein Tag-Chat seinen Tag, ein Chat für die ganze Wache keins von beiden',
     'MS-039': 'Ein Chatname darf höchstens 100 Zeichen lang sein',
     'MS-040': 'Sag, ob die Erziehungsberechtigten im Chat sein sollen',
+    'MS-041': 'Nur Nachrichten in einem Wachenchat lassen sich melden',
+    'MS-042': 'Deine eigene Nachricht kannst du nicht melden, aber löschen',
+    'MS-043': 'Das lässt sich nicht melden',
+    'MS-044': 'Ein Grund darf höchstens 500 Zeichen lang sein',
+    'MS-045': 'Diese Meldung ist hier nicht mehr offen',
 }

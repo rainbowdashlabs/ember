@@ -53,7 +53,8 @@ class StationChatRoutesTest extends MessageTestBase {
                                 services.settings(),
                                 services.blocks(),
                                 new PersonCardService(new MessagePeopleRepository(), mock(SharedMemberCards.class))),
-                        new StationChatRoutes(services.stationChats()))
+                        new StationChatRoutes(services.stationChats()),
+                        new MessageReportRoutes(services.reports()))
                 .withStations(stationRepo);
         station = station();
         manager = join(station, account("Mia"));
@@ -182,6 +183,49 @@ class StationChatRoutesTest extends MessageTestBase {
             assertEquals(
                     MessageRefusal.STATION_CHAT_NOT_HERE,
                     refusalOf(client.post(PREFIX + "/messages/station-chats/" + uid + "/close", null, asStranger)));
+        });
+    }
+
+    @Test
+    void aReportedMessageIsListedAndRemovedByThoseHandlingTheChats() {
+        harness.run((server, client) -> {
+            String uid = json(client.post(
+                            PREFIX + "/messages/station-chats",
+                            body("{\"name\":\"Alle\",\"audience\":\"STATION\"}"),
+                            as(manager, StationPermission.MESSAGE_CHAT_MANAGE)))
+                    .get("uid")
+                    .asString();
+            String messages = PREFIX + "/messages/conversations/" + uid + "/messages";
+            int id = json(client.post(messages, body("{\"text\":\"Unfug\"}"), as(member)))
+                    .get("id")
+                    .asInt();
+
+            assertEquals(
+                    204,
+                    client.post(messages + "/" + id + "/report", body("{\"reason\":\"Spam\"}"), as(manager))
+                            .code());
+            assertEquals(
+                    403, client.get(PREFIX + "/messages/reports", as(member)).code());
+            var open =
+                    json(client.get(PREFIX + "/messages/reports", as(manager, StationPermission.MESSAGE_CHAT_MANAGE)));
+            assertEquals(1, open.size());
+            assertEquals("Spam", open.get(0).get("reason").asString());
+            assertEquals(id, open.get(0).get("messageId").asInt());
+            int reportId = open.get(0).get("id").asInt();
+
+            assertEquals(
+                    204,
+                    client.post(
+                                    PREFIX + "/messages/reports/" + reportId + "/remove",
+                                    null,
+                                    as(manager, StationPermission.MESSAGE_CHAT_MANAGE))
+                            .code());
+            var removed = json(client.get(messages + "/" + id, as(member)));
+            assertTrue(removed.get("removedByStation").asBoolean());
+            assertTrue(removed.get("removedBy").isNull());
+            assertEquals(
+                    MessageRefusal.REPORT_NOT_TAKEN,
+                    refusalOf(client.post(messages + "/" + id + "/report", body("{}"), as(manager))));
         });
     }
 }

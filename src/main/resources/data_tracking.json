@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:08c66849f098e2fb6811c0cfa0d49fe72f1ea1245e0bd73091652ea21bf07af6",
-  "generatedAt": "2026-11-13T11:24:00Z",
+  "schemaHash": "sha256:90c840f698184cbfe27b06e5647d37086bc8453c5db782b204e58fb0b8842d4d",
+  "generatedAt": "2026-11-13T13:01:41Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -21614,7 +21614,7 @@
       "description": "An emoji somebody reacted to a message with, at most once per emoji and message."
     },
     "message_report": {
-      "tableHash": "sha256:27728fa33b052446d01426b6e06b483af12d43d8d8c13e196dd0565db3194145",
+      "tableHash": "sha256:e761074bf5a22bdf33dc1fb80c87c7e1d7c41ca6b23e994c2c64a8f3ec6c62fb",
       "columns": [
         {
           "name": "id",
@@ -21643,6 +21643,13 @@
           "nullable": true,
           "verified": true,
           "description": "What the reporter wrote about why, at most 500 characters. NULL where they gave no reason."
+        },
+        {
+          "name": "reported_content",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The text of the message as it read when it was reported, so a later change to it does not change what was reported."
         },
         {
           "name": "created_at",
@@ -21699,7 +21706,7 @@
       },
       "gdprExport": {
         "status": "TRACKED",
-        "reason": "The reports the account made, with the reason it gave, and the ones it handled",
+        "reason": "The reports the account made, with the reason it gave, and the ones it handled; the reported text is the author's and stays out",
         "identityColumns": [
           {
             "type": "ACCOUNT_ID",
@@ -21709,6 +21716,9 @@
             "type": "ACCOUNT_ID",
             "column": "handled_by_account_id"
           }
+        ],
+        "ignoredColumns": [
+          "reported_content"
         ]
       },
       "gdprDeletion": {

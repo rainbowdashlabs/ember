@@ -144,7 +144,22 @@ public enum MessageRefusal implements Refusal {
     STATION_CHAT_NAME_TOO_LONG(39, HttpStatus.BAD_REQUEST, "A chat name can be at most 100 characters long"),
 
     /** Changing whether a chat takes the guardians in without saying which way. */
-    STATION_CHAT_GUARDIANS_UNSAID(40, HttpStatus.BAD_REQUEST, "Say whether the guardians are to be in the chat");
+    STATION_CHAT_GUARDIANS_UNSAID(40, HttpStatus.BAD_REQUEST, "Say whether the guardians are to be in the chat"),
+
+    /** Reporting a message outside a station chat, where nobody handles reports. */
+    REPORT_NOT_A_STATION_CHAT(41, HttpStatus.BAD_REQUEST, "Only messages in a station chat can be reported"),
+
+    /** Reporting one's own message. */
+    REPORT_OWN_MESSAGE(42, HttpStatus.BAD_REQUEST, "Your own message cannot be reported; delete it instead"),
+
+    /** Reporting a system line or a message that is gone already. */
+    REPORT_NOT_TAKEN(43, HttpStatus.BAD_REQUEST, "That cannot be reported"),
+
+    /** A report reason longer than a reason can be. */
+    REPORT_REASON_TOO_LONG(44, HttpStatus.BAD_REQUEST, "A reason can be at most 500 characters long"),
+
+    /** A report that is handled already, belongs to another station, or does not exist. */
+    REPORT_NOT_HERE(45, HttpStatus.NOT_FOUND, "That report is not open here any more");
 
     private final Definition definition;
 

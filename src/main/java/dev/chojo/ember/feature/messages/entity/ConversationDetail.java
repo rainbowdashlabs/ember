@@ -19,10 +19,13 @@ import java.util.Map;
  * @param station      the station a station chat belongs to, or null for every other kind
  * @param guardianFor  for a station chat that takes guardians in, the names of the people each
  *                     guardian in it looks after there, by account; empty otherwise
+ * @param moderator    whether the reader handles the chats of a station chat's station, and so may
+ *                     remove any message in it
  */
 public record ConversationDetail(
         Conversation conversation,
         List<Membership> members,
         Membership mine,
         @Nullable StationRef station,
-        Map<Integer, List<String>> guardianFor) {}
+        Map<Integer, List<String>> guardianFor,
+        boolean moderator) {}

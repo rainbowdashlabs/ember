@@ -276,6 +276,7 @@ import dev.chojo.ember.feature.messages.handler.StationAudienceChangedHandler;
 import dev.chojo.ember.feature.messages.route.ConversationRoutes;
 import dev.chojo.ember.feature.messages.route.MessageEventRoutes;
 import dev.chojo.ember.feature.messages.route.MessagePeopleRoutes;
+import dev.chojo.ember.feature.messages.route.MessageReportRoutes;
 import dev.chojo.ember.feature.messages.route.MessageRoutes;
 import dev.chojo.ember.feature.messages.route.StationChatRoutes;
 import dev.chojo.ember.feature.messages.service.MessageSignals;
@@ -721,6 +722,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(AccountAdminRoutes.class);
         routesBinder.addBinding().to(ConversationRoutes.class);
         routesBinder.addBinding().to(StationChatRoutes.class);
+        routesBinder.addBinding().to(MessageReportRoutes.class);
         routesBinder.addBinding().to(MessageRoutes.class);
         routesBinder.addBinding().to(MessagePeopleRoutes.class);
         routesBinder.addBinding().to(MessageEventRoutes.class);

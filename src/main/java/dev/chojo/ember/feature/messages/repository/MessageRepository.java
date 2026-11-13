@@ -186,20 +186,42 @@ public class MessageRepository {
      *
      * @param id      the message
      * @param content the new text
+     * @return whether it still stood and was changed
      */
-    public void edit(int id, String content) {
-        query("""
-                UPDATE message SET content = :content, edited_at = now() WHERE id = :id;""").single(call().bind("id", id).bind("content", content)).update();
+    public boolean edit(int id, String content) {
+        return query("""
+                UPDATE message SET content = :content, edited_at = now() WHERE id = :id AND deleted_at IS NULL;""")
+                .single(call().bind("id", id).bind("content", content))
+                .update()
+                .changed();
     }
 
     /**
      * Deletes a message, keeping its place: the text goes, the row stays.
      *
-     * @param id the message
+     * @param id          the message
+     * @param byAccountId its author, who deletes it
      */
-    public void delete(int id) {
+    public void delete(int id, int byAccountId) {
         query("""
-                UPDATE message SET content = '', deleted_at = now() WHERE id = :id AND deleted_at IS NULL;""").single(call().bind("id", id)).update();
+                UPDATE message SET content = '', deleted_at = now(), deleted_by_account_id = :by
+                WHERE id = :id AND deleted_at IS NULL;""").single(call().bind("id", id).bind("by", byAccountId)).update();
+    }
+
+    /**
+     * Removes a message for the station: like a deletion, but it shows as removed by the station.
+     *
+     * @param id          the message
+     * @param byAccountId the account removing it
+     * @return whether it stood until now
+     */
+    public boolean removeForStation(int id, int byAccountId) {
+        return query("""
+                UPDATE message SET content = '', deleted_at = now(), deleted_by_account_id = :by, removed_by_station = TRUE
+                WHERE id = :id AND deleted_at IS NULL;""")
+                .single(call().bind("id", id).bind("by", byAccountId))
+                .update()
+                .changed();
     }
 
     /**

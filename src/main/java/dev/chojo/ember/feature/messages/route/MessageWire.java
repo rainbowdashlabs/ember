@@ -82,6 +82,7 @@ public final class MessageWire {
      * @param subject    whom a system line is about, or null
      * @param deleted    whether it was deleted
      * @param createdAt  when it was written
+     * @param removedByStation whether the station removed it
      */
     public record ConversationPreview(
             int id,
@@ -90,7 +91,8 @@ public final class MessageWire {
             @Nullable SystemKind systemKind,
             @Nullable MessagePersonResponse subject,
             boolean deleted,
-            Instant createdAt) {
+            Instant createdAt,
+            boolean removedByStation) {
         static @Nullable ConversationPreview of(@Nullable Message message) {
             if (message == null) return null;
             return new ConversationPreview(
@@ -100,7 +102,8 @@ public final class MessageWire {
                     message.systemKind(),
                     MessagePersonResponse.ofNullable(message.subject()),
                     message.deleted(),
-                    message.createdAt());
+                    message.createdAt(),
+                    message.removedByStation());
         }
     }
 
@@ -191,6 +194,7 @@ public final class MessageWire {
      * @param muted             whether the reader muted it
      * @param lastReadMessageId the last message the reader has read, where the unread part starts after
      * @param station           the station of a station chat, or null for every other kind
+     * @param moderator         whether the reader may remove any message in it for its station
      */
     public record ConversationResponse(
             UUID uid,
@@ -200,7 +204,8 @@ public final class MessageWire {
             List<ConversationMemberResponse> members,
             boolean muted,
             @Nullable Integer lastReadMessageId,
-            @Nullable StationChatInfo station) {
+            @Nullable StationChatInfo station,
+            boolean moderator) {
         static ConversationResponse of(ConversationDetail detail) {
             var conversation = detail.conversation();
             Integer ownerId = conversation.ownerAccountId();
@@ -221,7 +226,8 @@ public final class MessageWire {
                             .toList(),
                     detail.mine().muted(),
                     detail.mine().lastReadMessageId(),
-                    StationChatInfo.of(conversation, detail.station()));
+                    StationChatInfo.of(conversation, detail.station()),
+                    detail.moderator());
         }
     }
 
@@ -232,15 +238,18 @@ public final class MessageWire {
      * @param author  who wrote it, or null for a deleted account
      * @param text    the start of its text, mentions written as names
      * @param deleted whether it was deleted
+     * @param removedByStation whether the station removed it
      */
-    public record ReplyPreviewResponse(int id, @Nullable MessagePersonResponse author, String text, boolean deleted) {
+    public record ReplyPreviewResponse(
+            int id, @Nullable MessagePersonResponse author, String text, boolean deleted, boolean removedByStation) {
         static @Nullable ReplyPreviewResponse of(@Nullable Message message) {
             if (message == null) return null;
             return new ReplyPreviewResponse(
                     message.id(),
                     MessagePersonResponse.ofNullable(message.author()),
                     MessageTexts.shortened(MessageTexts.plain(message.content()), PREVIEW_LENGTH),
-                    message.deleted());
+                    message.deleted(),
+                    message.removedByStation());
         }
     }
 
@@ -267,6 +276,9 @@ public final class MessageWire {
      * @param editedAt   when it was last changed, or null
      * @param deleted    whether it was deleted
      * @param reactions  the reactions, grouped by emoji in the order they were first given
+     * @param removedByStation whether the station removed it rather than its author deleting it
+     * @param removedBy  who removed it for the station, shown only to the people handling the
+     *                   station's chats; null otherwise
      */
     public record ConversationMessageResponse(
             int id,
@@ -278,7 +290,9 @@ public final class MessageWire {
             Instant createdAt,
             @Nullable Instant editedAt,
             boolean deleted,
-            List<ReactionGroupResponse> reactions) {
+            List<ReactionGroupResponse> reactions,
+            boolean removedByStation,
+            @Nullable MessagePersonResponse removedBy) {
         static ConversationMessageResponse of(MessageView view, UUID readerUid) {
             Message message = view.message();
             return new ConversationMessageResponse(
@@ -291,7 +305,9 @@ public final class MessageWire {
                     message.createdAt(),
                     message.editedAt(),
                     message.deleted(),
-                    grouped(view.reactions(), readerUid));
+                    grouped(view.reactions(), readerUid),
+                    message.removedByStation(),
+                    message.removedByStation() ? MessagePersonResponse.ofNullable(message.deletedBy()) : null);
         }
 
         private static List<ReactionGroupResponse> grouped(List<Reaction> reactions, UUID readerUid) {
