@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.entity.EventGroupContent;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
+import dev.chojo.ember.feature.events.entity.EventGroupPart;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
@@ -683,7 +684,8 @@ class EventGroupServiceTest extends RepositoryTestBase {
                 "Samstag",
                 null,
                 start,
-                start.plusSeconds(28800));
+                start.plusSeconds(28800),
+                null);
 
         var stored = eventRepo.findById(part.eventId()).orElseThrow();
         assertEquals(eventGroup.id(), part.eventGroupId());
@@ -968,5 +970,39 @@ class EventGroupServiceTest extends RepositoryTestBase {
         service.removePart(station.id(), group.id(), part.id());
 
         assertTrue(fields.findByEvent(part.id()).isEmpty());
+    }
+
+    @Test
+    void aGroupStartedFromAnAppointmentTakesItInOrIsNotCreatedAtAll() {
+        var forYouth = appointment(station, 33, StationEvent.EventType.ONE_TIME);
+        restrictionService.setAudience(RestrictionType.EVENT_VIEW, forYouth.id(), youth());
+        var before = eventGroupRepo.findByStation(station.id()).size();
+        var sets = List.of(new EventGroupSetDraft(null, "Tage", 1));
+
+        assertRefused(
+                EventRefusal.EVENT_GROUP_PART_AUDIENCE_DIFFERS,
+                () -> service.createWith(
+                        station.id(),
+                        details("Wettkampf", false),
+                        sets,
+                        RestrictionAudience.empty(),
+                        RestrictionAudience.empty(),
+                        null,
+                        forYouth.id()));
+        assertEquals(before, eventGroupRepo.findByStation(station.id()).size());
+
+        var created = service.createWith(
+                station.id(),
+                details("Wettkampf", false),
+                sets,
+                RestrictionAudience.empty(),
+                youth(),
+                null,
+                forYouth.id());
+        assertEquals(
+                List.of(forYouth.id()),
+                service.findParts(created.id()).stream()
+                        .map(EventGroupPart::eventId)
+                        .toList());
     }
 }

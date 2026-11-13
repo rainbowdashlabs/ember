@@ -19,6 +19,7 @@ import {eventGroups, events} from '@/api'
 import {
   EditScopeKind,
   EventChangePart,
+  EventType,
   StationPermission,
   type AppointmentField,
   type ChangeNotice,
@@ -28,6 +29,7 @@ import {
 } from '@/api/generated/schema'
 import {isRecurringEvent} from '@/api/events'
 import EventGroupPartNotice from './eventshared/EventGroupPartNotice.vue'
+import AddToEventGroupCard from './eventeditview/AddToEventGroupCard.vue'
 import {todayIsoDate} from '@/util/format'
 import EventEditBody from './eventeditview/EventEditBody.vue'
 import {useEventForm} from './eventeditview/useEventForm'
@@ -208,7 +210,6 @@ async function loadRegistrationFields(id: number) {
   registrationFields.value = loadedFields.map(asDefinition)
 }
 
-/** Fills the editor once the session is there, since the choices it offers depend on the station. */
 /**
  * Notes which event group the appointment belongs to and reads the fields that group hands down, as
  * the group stores them: an own field of the same name replaces one on the appointment's page, but
@@ -220,6 +221,12 @@ async function loadEventGroupPart(part: EventGroupPartSummary | null) {
   inheritedFields.value = (await eventGroups.getEventGroup(part.eventGroupId)).fields
 }
 
+/** Reads the group again after the appointment joined one, which locks the settings the group decides. */
+async function reloadEventGroupPart() {
+  await loadEventGroupPart(await eventGroups.eventGroupOfEvent(eventId.value!))
+}
+
+/** Fills the editor once the session is there, since the choices it offers depend on the station. */
 const {loading, failure} = useAsyncLoader(async () => {
   await until(loaded).toBe(true)
   try {
@@ -244,6 +251,11 @@ const {loading, failure} = useAsyncLoader(async () => {
     throw e
   }
 })
+
+/** Whether the appointment may join an event group: saved, one-time, in none yet, and in a station. */
+const joinsGroup = computed(() =>
+    isEdit.value && !loading.value && !!eventRoutes.eventGroupCreate
+    && form.state.eventType === EventType.ONE_TIME && eventGroupPart.value === null)
 
 /**
  * Saves the appointment and everything that hangs off it.
@@ -282,7 +294,7 @@ async function writeEvent(choice: SaveChoice | null): Promise<number> {
   if (!eventGroupPart.value) {
     await events.setRegistrationFields(savedEventId, namedEntries(registrationFields.value))
   }
-  await federationShare.save(eventFederationPort(savedEventId))
+  if (!eventGroupPart.value) await federationShare.save(eventFederationPort(savedEventId))
   await documentRequirements.save({kind: 'events', id: savedEventId})
   if (scoped) await tellLater(savedEventId, choice.notice)
   return savedEventId
@@ -430,6 +442,7 @@ const bodyHandlers = {
       <FailureAlert v-else :failure="failure ?? saveFailure ?? confirmFailure"/>
       <Alert v-if="templateAppliedMessage" variant="success">{{ templateAppliedMessage }}</Alert>
       <EventGroupPartNotice v-if="eventGroupPart" :event-group="eventGroupPart" :message="t('eventGroups.lockedByEventGroup')"/>
+      <AddToEventGroupCard v-else-if="joinsGroup" :event-id="eventId!" :on-added="reloadEventGroupPart"/>
 
       <EventEditBody
           v-if="!loading"

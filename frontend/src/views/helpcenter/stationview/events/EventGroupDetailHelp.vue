@@ -28,6 +28,13 @@ const {t} = useI18n()
 
 <template>
   <HelpArticle :title="t('helpCenter.eventGroupDetail.title')" :subtitle="t('helpCenter.eventGroupDetail.subtitle')">
+    <HelpSection :title="t('helpCenter.eventGroups.whatIs')">
+      <p>{{ t('helpCenter.eventGroups.whatIsText') }}</p>
+      <p>{{ t('helpCenter.eventGroups.whatIsExample') }}</p>
+    </HelpSection>
+    <HelpSection :title="t('helpCenter.eventGroups.howTo')">
+      <p>{{ t('helpCenter.eventGroups.howToText') }}</p>
+    </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupDetail.whatIs')">
       <p>{{ t('helpCenter.eventGroupDetail.whatIsText') }}</p>
       <NeutralContainer class="space-y-2">

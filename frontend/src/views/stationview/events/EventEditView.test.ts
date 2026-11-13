@@ -54,7 +54,8 @@ vi.mock('@/composables/useSession', () => ({
         hasPermission: (permission: string) => held.value.includes(permission),
     }),
 }))
-vi.mock('@/composables/useEventRoutes', () => ({useEventRoutes: () => ({index: 'events'})}))
+const routes = vi.hoisted(() => ({current: {index: 'events'} as {index: string, eventGroupCreate?: string}}))
+vi.mock('@/composables/useEventRoutes', () => ({useEventRoutes: () => routes.current}))
 const route = vi.hoisted(() => ({params: {} as Record<string, string>, query: {}}))
 vi.mock('vue-router', () => ({
     useRoute: () => route,
@@ -287,3 +288,66 @@ describe('EventEditView of a part of an event group', () => {
     })
 })
 
+/**
+ * A saved one-time appointment of a station that is in no group yet offers to join one. A repeating
+ * appointment, a new one, a part of a group and the association's appointments, which have no event
+ * groups, do not.
+ */
+describe('EventEditView offering to join an event group', () => {
+    function mountEditor() {
+        return mount(EventEditView, {
+            global: {stubs: {ViewContent: {template: '<div><slot/></div>'}, EventEditBody: true, DocumentRequirementsEditor: true, AddToEventGroupCard: true}},
+        })
+    }
+
+    beforeEach(() => {
+        vi.clearAllMocks()
+        route.params = {id: '12'}
+        held.value = []
+        routes.current = {index: 'events', eventGroupCreate: 'event-group-new'}
+        api.events.getEvent.mockResolvedValue({id: 12, name: 'Dienst', eventType: EventType.ONE_TIME})
+        api.events.getRestrictions.mockResolvedValue({register: NOBODY, view: NOBODY})
+        api.events.getEventFields.mockResolvedValue([])
+        api.events.getEventReminders.mockResolvedValue([])
+        api.events.getFieldDefaults.mockResolvedValue([])
+        api.events.getFederationShare.mockResolvedValue({shared: false, scope: null, partnerIds: null})
+        api.events.getPartnerPlaces.mockResolvedValue([])
+        api.events.listRegistrationFields.mockResolvedValue([])
+        api.events.listEventAttachments.mockResolvedValue([])
+        api.federation.listPartners.mockResolvedValue([])
+        api.appointmentDocuments.offeredTemplates.mockResolvedValue({total: 0, items: []})
+        api.appointmentDocuments.listRequirements.mockResolvedValue([])
+        api.eventGroups.eventGroupOfEvent.mockResolvedValue(null)
+    })
+
+    it('offers it for a saved one-time appointment of the station', async () => {
+        const wrapper = mountEditor()
+        await flushPromises()
+
+        expect(wrapper.findComponent({name: 'AddToEventGroupCard'}).exists()).toBe(true)
+    })
+
+    it('does not offer it for a repeating appointment', async () => {
+        api.events.getEvent.mockResolvedValue({id: 12, name: 'Dienst', eventType: EventType.RECURRING})
+        const wrapper = mountEditor()
+        await flushPromises()
+
+        expect(wrapper.findComponent({name: 'AddToEventGroupCard'}).exists()).toBe(false)
+    })
+
+    it('does not offer it where there are no event groups', async () => {
+        routes.current = {index: 'events'}
+        const wrapper = mountEditor()
+        await flushPromises()
+
+        expect(wrapper.findComponent({name: 'AddToEventGroupCard'}).exists()).toBe(false)
+    })
+
+    it('does not offer it for a new appointment', async () => {
+        route.params = {}
+        const wrapper = mountEditor()
+        await flushPromises()
+
+        expect(wrapper.findComponent({name: 'AddToEventGroupCard'}).exists()).toBe(false)
+    })
+})

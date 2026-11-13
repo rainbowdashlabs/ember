@@ -116,6 +116,40 @@ public class EventGroupService {
     }
 
     /**
+     * Creates an event group and, where one is named, takes an appointment into its first set, all or
+     * nothing: an appointment that cannot join leaves no group behind.
+     *
+     * @param stationId     the station
+     * @param details       what the event group holds
+     * @param sets          its sets in order, at least one
+     * @param registration  who may sign up
+     * @param view          who may see it
+     * @param content       the questions and fields it carries, or null for none
+     * @param appointmentId the appointment to take in, or null
+     * @return the event group
+     */
+    public EventGroup createWith(
+            int stationId,
+            EventGroupDetails details,
+            List<EventGroupSetDraft> sets,
+            RestrictionAudience registration,
+            RestrictionAudience view,
+            @Nullable EventGroupContent content,
+            @Nullable Integer appointmentId) {
+        return Transactions.call(() -> {
+            var eventGroup = create(stationId, details, sets, registration, view, content);
+            if (appointmentId != null) {
+                addPart(
+                        stationId,
+                        eventGroup.id(),
+                        appointmentId,
+                        findSets(eventGroup.id()).getFirst().id());
+            }
+            return eventGroup;
+        });
+    }
+
+    /**
      * Changes what an event group holds and hands the sign-up down to its parts.
      *
      * @param stationId the station asking
@@ -170,10 +204,10 @@ public class EventGroupService {
 
     private void writeContent(int eventGroupId, @Nullable EventGroupContent content) {
         if (content == null) return;
-        if (content.questions() != null) questions.replaceQuestions(eventGroupId, content.questions());
-        if (content.fields() != null) {
-            fields.replaceGroupFields(eventGroupId, questions.checkedFields(content.fields()));
-        }
+        var askedQuestions = content.questions();
+        if (askedQuestions != null) questions.replaceQuestions(eventGroupId, askedQuestions);
+        var handedDown = content.fields();
+        if (handedDown != null) fields.replaceGroupFields(eventGroupId, questions.checkedFields(handedDown));
     }
 
     /**
@@ -182,8 +216,9 @@ public class EventGroupService {
      * appointment.
      */
     private static void requireGroupFieldTypes(@Nullable EventGroupContent content) {
-        if (content == null || content.fields() == null) return;
-        for (var field : content.fields()) {
+        var handedDown = content == null ? null : content.fields();
+        if (handedDown == null) return;
+        for (var field : handedDown) {
             if (!FieldTypes.EVENT_GROUP.contains(field.fieldType()) || field.attendanceFieldId() != null) {
                 throw EventRefusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED.raise();
             }

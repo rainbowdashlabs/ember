@@ -61933,6 +61933,10 @@
             "items" : {
               "$ref" : "#/components/schemas/EventFieldEntry"
             }
+          },
+          "appointmentId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         }
       },

@@ -116,6 +116,9 @@ class EventSharingRoutesTest {
                     EventRefusal.EVENT_GROUP_PART_SHARED_WITH_EVENT_GROUP,
                     refusalOf(client.put(
                             PREFIX + "/events/4/partner-places/7", body("{\"partnerConfirms\": true}"), sharer)));
+            assertEquals(
+                    EventRefusal.EVENT_GROUP_PART_SHARED_WITH_EVENT_GROUP,
+                    refusalOf(client.delete(PREFIX + "/events/4/federation", null, sharer)));
         });
     }
 }

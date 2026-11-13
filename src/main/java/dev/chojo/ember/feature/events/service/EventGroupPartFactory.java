@@ -42,6 +42,7 @@ public class EventGroupPartFactory {
      * @param description what it is about, as Markdown, or null
      * @param startTime   when it begins
      * @param endTime     when it ends
+     * @param categoryId  the category it is filed under, or null
      * @return the part
      */
     public EventGroupPart create(
@@ -51,7 +52,8 @@ public class EventGroupPartFactory {
             String name,
             @Nullable String description,
             Instant startTime,
-            Instant endTime) {
+            Instant endTime,
+            @Nullable Integer categoryId) {
         eventGroups.requireEventGroup(stationId, eventGroupId);
         return Transactions.call(() -> {
             var event = crud.createWithoutEvent(
@@ -66,7 +68,7 @@ public class EventGroupPartFactory {
                     true,
                     null,
                     false,
-                    null,
+                    categoryId,
                     null,
                     null,
                     null,

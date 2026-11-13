@@ -712,6 +712,13 @@ class DemoServiceTest extends RepositoryTestBase {
                 .orElseThrow(() -> new AssertionError("The demo should have a Jugendflamme event group"));
 
         assertEquals(4, eventGroupRepository.findParts(eventGroup.id()).size());
+        var grundlehrgang = eventGroupRepository.findByStation(station.id()).stream()
+                .filter(c -> c.name().equals("Grundlehrgang"))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The demo should have the Grundlehrgang as an event group"));
+        assertEquals(8, eventGroupRepository.findParts(grundlehrgang.id()).size());
+        assertTrue(eventRepo.findByStation(station.id()).stream()
+                .noneMatch(event -> event.name().equals("Grundlehrgang")));
         var signUps = new EventGroupRegistrationRepository().findByEventGroup(eventGroup.id());
         assertEquals(7, signUps.size());
         assertEquals(

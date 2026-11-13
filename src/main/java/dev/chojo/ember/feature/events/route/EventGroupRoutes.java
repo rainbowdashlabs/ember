@@ -219,13 +219,14 @@ public class EventGroupRoutes implements Routes {
     private void create(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(EventGroupCreateRequest.class);
-        var eventGroup = eventGroups.create(
+        var eventGroup = eventGroups.createWith(
                 session.stationId(),
                 request.details(),
                 Objects.requireNonNullElse(request.sets(), List.of()),
                 audienceOr(request.registration()),
                 audienceOr(request.view()),
-                new EventGroupContent(draftsOf(request.questions()), fieldDraftsOf(request.fields())));
+                new EventGroupContent(draftsOf(request.questions()), fieldDraftsOf(request.fields())),
+                request.appointmentId());
         ctx.status(HttpStatus.CREATED).json(detailOf(session, eventGroup));
     }
 
@@ -394,7 +395,8 @@ public class EventGroupRoutes implements Routes {
                         name.strip(),
                         request.description(),
                         start,
-                        end));
+                        end,
+                        null));
     }
 
     @OpenApi(
@@ -869,6 +871,8 @@ public class EventGroupRoutes implements Routes {
      * @param view         who may see it, or null for everybody
      * @param questions    what everybody signing up is asked, or null for nothing
      * @param fields       what every appointment shows, or null for nothing
+     * @param appointmentId a one-time appointment that becomes the first part, in the first set, or
+     *                      null; where it cannot join, nothing is created
      */
     public record EventGroupCreateRequest(
             EventGroupDetails details,
@@ -876,7 +880,8 @@ public class EventGroupRoutes implements Routes {
             @Nullable RestrictionAudience registration,
             @Nullable RestrictionAudience view,
             @Nullable List<RegistrationFieldDefinition> questions,
-            @Nullable List<EventFieldEntry> fields) {}
+            @Nullable List<EventFieldEntry> fields,
+            @Nullable Integer appointmentId) {}
 
     /**
      * An event group saved from its editor. Sets and audiences left out stay as they are.

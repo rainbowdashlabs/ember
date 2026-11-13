@@ -56,8 +56,8 @@ const {t} = useI18n()
                  to="/helpcenter/station/events/upcoming" @navigate="close">
       {{ t('sidebar.upcomingEvents') }}
     </SidebarLink>
-    <SidebarLink :icon="['fas', 'graduation-cap']" name="help-event-groups"
-                 to="/helpcenter/station/events/groups" @navigate="close">
+    <SidebarLink :icon="['fas', 'layer-group']" name="help-event-group"
+                 to="/helpcenter/station/events/groups/0" @navigate="close">
       {{ t('sidebar.eventGroups') }}
     </SidebarLink>
     <SidebarLink :icon="['fas', 'clipboard-list']" name="help-events-registrations"

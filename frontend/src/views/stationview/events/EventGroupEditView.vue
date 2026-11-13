@@ -21,6 +21,7 @@ import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EventGroupSetsEditor from './eventgroupeditview/EventGroupSetsEditor.vue'
 import EventGroupDetailsForm from './eventgroupeditview/EventGroupDetailsForm.vue'
+import StartingAppointmentNotice from './eventgroupeditview/StartingAppointmentNotice.vue'
 import type {SetRow} from './eventgroupeditview/eventGroupSetRow'
 import EventGroupPartsEditor from './eventgroupeditview/EventGroupPartsEditor.vue'
 import EventGroupShareCard from './eventgroupeditview/EventGroupShareCard.vue'
@@ -29,10 +30,10 @@ import {eventGroupFederationPort} from './eventeditview/eventOwnerPorts'
 import EventGroupQuestionsCard from './eventgroupeditview/EventGroupQuestionsCard.vue'
 import EventGroupFieldsCard from './eventgroupeditview/EventGroupFieldsCard.vue'
 import {entryOf, namedEntries} from './eventshared/eventQuestions'
-import type {EventGroupDetail, MemberGroup, EventFieldEntry, RegistrationFieldDefinition, RestrictionAudience, UserTag} from '@/api/generated/schema'
-import {StationPermission} from '@/api/generated/schema'
+import type {EventGroupDetail, MemberGroup, EventFieldEntry, RegistrationFieldDefinition, RestrictionAudience, StationEvent, UserTag} from '@/api/generated/schema'
+import {EventType, StationPermission} from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/api/types'
-import {eventGroups, memberGroups as memberGroupsApi, userTags as userTagsApi} from '@/api'
+import {eventGroups, events, memberGroups as memberGroupsApi, userTags as userTagsApi} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -68,6 +69,7 @@ const registration = ref<RestrictionSelection>(emptySelection())
 const view = ref<RestrictionSelection>(emptySelection())
 const questions = ref<RegistrationFieldDefinition[]>([])
 const fields = ref<EventFieldEntry[]>([])
+const startingAppointment = ref<StationEvent | null>(null)
 const saving = ref(false)
 const saveFailure = ref<Failure | null>(null)
 
@@ -115,8 +117,36 @@ const {loading, failure} = useAsyncLoader(async () => {
   if (eventGroupId.value != null) {
     fill(await eventGroups.getEventGroup(eventGroupId.value))
     await federationShare.load(eventGroupFederationPort(eventGroupId.value))
+  } else {
+    await takeStartingAppointment()
   }
 })
+
+/**
+ * A new event group started from an appointment ("new event group with this appointment") names it,
+ * starts from its name and audiences, and takes it in as its first part when it is created, in the
+ * same request: where it cannot join, no group is left behind. Only a one-time appointment of this
+ * station is taken; any other address is ignored.
+ */
+async function takeStartingAppointment() {
+  const id = Number(route.query.appointment)
+  if (!Number.isInteger(id) || id <= 0) return
+  const [event, audiences] = await Promise.all([
+    events.getEvent(id).catch(() => null),
+    events.getRestrictions(id).catch(() => null),
+  ])
+  if (!event || event.eventType !== EventType.ONE_TIME) return
+  startingAppointment.value = event
+  if (!name.value) name.value = event.name ?? ''
+  if (audiences) {
+    registration.value = selectionOf(audiences.register)
+    view.value = selectionOf(audiences.view)
+  }
+}
+
+function dropStartingAppointment() {
+  startingAppointment.value = null
+}
 
 /** Reads the event group again after a part changed, touching nothing the form holds unsaved. */
 async function refreshParts() {
@@ -147,6 +177,7 @@ async function save() {
         view: view.value,
         questions: savedQuestions(),
         fields: namedEntries(fields.value),
+        appointmentId: startingAppointment.value?.id ?? null,
       })
       showToast(t('eventGroups.saved'), 'success')
       await router.replace({name: 'event-group-edit', params: {eventGroupId: created.eventGroup.id}})
@@ -174,6 +205,7 @@ async function save() {
   >
     <AsyncSection :loading="loading" :failure="failure">
       <div class="space-y-6">
+        <StartingAppointmentNotice v-if="startingAppointment" :name="startingAppointment.name" @drop="dropStartingAppointment"/>
         <EventGroupDetailsForm
             v-model:name="name"
             v-model:description="description"
@@ -205,7 +237,7 @@ async function save() {
         <FailureAlert v-if="saveFailure" :failure="saveFailure"/>
         <ButtonRow pair align="end">
           <SecondaryButton
-              :to="eventGroupId == null ? {name: 'event-groups'} : {name: 'event-group', params: {eventGroupId}}"
+              :to="eventGroupId == null ? {name: 'events'} : {name: 'event-group', params: {eventGroupId}}"
           >
             {{ t('common.cancel') }}
           </SecondaryButton>

@@ -105,7 +105,8 @@ class EventGroupRoutesTest {
         when(eventGroups.canSeeAny(eq(EVENT_GROUP_ID), anyList(), anySet())).thenReturn(true);
         when(eventGroups.isMemberHere(eq(STATION_ID), anyInt())).thenReturn(true);
         when(eventGroups.canSignUp(eq(EVENT_GROUP_ID), anyInt(), anySet())).thenReturn(true);
-        when(eventGroups.create(anyInt(), any(), any(), any(), any(), any())).thenReturn(eventGroup);
+        when(eventGroups.createWith(anyInt(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(eventGroup);
         when(guardians.household(any())).thenReturn(List.of(TestSessions.MEMBER_ID));
         when(signUps.standings(eq(EVENT_GROUP_ID), anyList())).thenAnswer(call -> {
             List<Integer> members = call.getArgument(1);
@@ -466,7 +467,8 @@ class EventGroupRoutesTest {
         String part = """
                 {"setId": 5, "name": "Samstag", "startTime": "2027-03-06T08:00:00Z",
                  "endTime": "2027-03-06T16:00:00Z"}""";
-        when(partFactory.create(eq(STATION_ID), eq(EVENT_GROUP_ID), eq(5), eq("Samstag"), isNull(), any(), any()))
+        when(partFactory.create(
+                        eq(STATION_ID), eq(EVENT_GROUP_ID), eq(5), eq("Samstag"), isNull(), any(), any(), isNull()))
                 .thenReturn(new EventGroupPart(101, 5, EVENT_GROUP_ID));
 
         assertEquals(
@@ -532,5 +534,19 @@ class EventGroupRoutesTest {
                 200,
                 call("PUT", EVENT_GROUP, body, StationPermission.EVENT_EDIT).code());
         verify(eventGroups).save(eq(STATION_ID), eq(EVENT_GROUP_ID), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void anEventGroupStartedFromAnAppointmentHandsItToTheCreation() {
+        String body = """
+                {"details": {"name": "Grundlehrgang", "requiresConfirmation": false},
+                 "sets": [{"name": "Ausbildungsabende", "minimum": 6}],
+                 "appointmentId": 12}""";
+
+        assertEquals(
+                201,
+                call("POST", PREFIX + "/events/groups", body, StationPermission.EVENT_EDIT)
+                        .code());
+        verify(eventGroups).createWith(eq(STATION_ID), any(), any(), any(), any(), any(), eq(12));
     }
 }

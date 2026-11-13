@@ -142,6 +142,7 @@ public class EventSharingRoutes implements Routes {
     private void removeFederationShare(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, crudService::findById, StationEvent::stationId);
+        if (crudService.isEventGroupPart(id)) throw EventRefusal.EVENT_GROUP_PART_SHARED_WITH_EVENT_GROUP.raise();
         eventFederationService.removeShare(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }

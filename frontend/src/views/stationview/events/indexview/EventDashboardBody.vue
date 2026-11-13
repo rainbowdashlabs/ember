@@ -12,6 +12,8 @@ import BreaksList from './BreaksList.vue'
 import EventDashboardActions from './EventDashboardActions.vue'
 import EventExportPanel from './EventExportPanel.vue'
 import EventListSection from './EventListSection.vue'
+import EmptyEventGroups from './EmptyEventGroups.vue'
+import {useEventRoutes} from '@/composables/useEventRoutes'
 import type {PagedListView} from '@/composables/usePagedList'
 import type {
   AttendanceTemplate,
@@ -54,6 +56,7 @@ defineEmits<{
 }>()
 
 const {t} = useI18n()
+const eventRoutes = useEventRoutes()
 
 const dateTitle = computed(() => props.isPast ? t('events.pastDates') : t('events.upcomingDates'))
 const seriesTitle = computed(() => props.isPast ? t('events.endedSeries') : t('events.series'))
@@ -91,6 +94,8 @@ const emptyMessage = computed(() => props.isPast ? t('events.noPastEvents') : t(
           @load-more="$emit('loadMoreSeries')"
       />
     </NeutralContainer>
+
+    <EmptyEventGroups v-if="!isPast && eventRoutes.eventGroupCreate"/>
 
     <BreaksList
         v-if="!isPast"

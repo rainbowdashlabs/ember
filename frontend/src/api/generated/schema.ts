@@ -70458,6 +70458,8 @@ export interface components {
             reason?: string | null;
         };
         EventGroupCreateRequest: {
+            /** Format: int32 */
+            appointmentId?: number | null;
             details?: components["schemas"]["EventGroupDetails"];
             fields?: components["schemas"]["EventFieldEntry"][] | null;
             questions?: components["schemas"]["RegistrationFieldDefinition"][] | null;

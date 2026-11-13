@@ -24,12 +24,14 @@ import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -76,15 +78,75 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
     @Override
     public void seedStation(DemoRunContext run, DemoStationContext station) {
         var members = station.members();
-        seedJugendflamme(
-                clock.of(station.station()), station.stationId(), members.fortgeschritten(), members.betreuer());
+        var days = clock.of(station.station());
+        seedJugendflamme(days, station.stationId(), members.fortgeschritten(), members.betreuer());
+        seedGrundlehrgang(
+                days,
+                station.stationId(),
+                members.anfaenger(),
+                station.events().evUebung().categoryId());
+    }
+
+    /**
+     * The basic training of the newcomers: eight Thursday evenings, of which six have to be attended.
+     * Most of the beginners signed up for all eight, some for six. The evenings are filed as practice,
+     * as the repeating appointment they replace was.
+     */
+    private void seedGrundlehrgang(
+            DemoStationDays days, int stationId, List<StationMember> beginners, @Nullable Integer practice) {
+        LocalDate firstThursday = days.today().plusDays(1).with(TemporalAdjusters.nextOrSame(DayOfWeek.THURSDAY));
+        var eventGroup = eventGroups.create(
+                stationId,
+                new EventGroupDetails(
+                        "Grundlehrgang",
+                        "Acht Abende Grundausbildung für die Neuen. Sechs davon müssen besucht werden.",
+                        null,
+                        days.at(firstThursday, 17, 0),
+                        false),
+                List.of(new EventGroupSetDraft(null, "Ausbildungsabende", 6)),
+                youthAndTeam(),
+                youthAndTeam(),
+                new EventGroupContent(
+                        null,
+                        List.of(new EventFieldDraft(
+                                null,
+                                "Ort",
+                                FieldType.LOCATION,
+                                EventQuestionSettings.empty(),
+                                "Gerätehaus Musterstadt",
+                                true,
+                                null,
+                                true))));
+        int evenings = eventGroups.findSets(eventGroup.id()).getFirst().id();
+        var parts = new ArrayList<Integer>();
+        for (int week = 0; week < 8; week++) {
+            parts.add(part(
+                    days,
+                    stationId,
+                    eventGroup.id(),
+                    evenings,
+                    "Grundlehrgang " + (week + 1),
+                    firstThursday.plusWeeks(week),
+                    18,
+                    2,
+                    practice));
+        }
+        for (int i = 0; i < beginners.size() && i < 6; i++) {
+            var chosen = i % 3 == 2 ? Set.copyOf(parts.subList(0, 6)) : Set.copyOf(parts);
+            signUps.register(stationId, eventGroup.id(), beginners.get(i).id(), chosen, Map.of(), null, false);
+        }
+        log.info("Demo: Created the Grundlehrgang event group with eight evenings");
+    }
+
+    private static RestrictionAudience youthAndTeam() {
+        return new RestrictionAudience(
+                List.of(DemoEventSeeder.JUGENDFEUERWEHR), List.of(), List.of(), List.of(), RestrictionMode.OR);
     }
 
     private void seedJugendflamme(
             DemoStationDays days, int stationId, List<StationMember> youth, List<StationMember> team) {
         LocalDate saturday = days.today().plusWeeks(3).with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY));
-        var youthAndTeam = new RestrictionAudience(
-                List.of(DemoEventSeeder.JUGENDFEUERWEHR), List.of(), List.of(), List.of(), RestrictionMode.OR);
+        var youthAndTeam = youthAndTeam();
         var eventGroup = eventGroups.create(
                 stationId,
                 new EventGroupDetails(
@@ -121,11 +183,11 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
         var sets = eventGroups.findSets(eventGroup.id());
         int practice = setId(sets, "Übung");
         int test = setId(sets, "Prüfung");
-        int saturdayPractice = part(days, stationId, eventGroup.id(), practice, "Übung Samstag", saturday, 9);
+        int saturdayPractice = part(days, stationId, eventGroup.id(), practice, "Übung Samstag", saturday, 9, 6, null);
         int sundayPractice =
-                part(days, stationId, eventGroup.id(), practice, "Übung Sonntag", saturday.plusDays(1), 10);
+                part(days, stationId, eventGroup.id(), practice, "Übung Sonntag", saturday.plusDays(1), 10, 6, null);
         int nextSaturdayPractice =
-                part(days, stationId, eventGroup.id(), practice, "Übung Samstag", saturday.plusWeeks(1), 9);
+                part(days, stationId, eventGroup.id(), practice, "Übung Samstag", saturday.plusWeeks(1), 9, 6, null);
         int exam = part(
                 days,
                 stationId,
@@ -133,7 +195,9 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
                 test,
                 "Prüfung",
                 saturday.plusWeeks(1).plusDays(1),
-                10);
+                10,
+                6,
+                null);
 
         int sizeField = questions.findByEventGroup(eventGroup.id()).stream()
                 .map(EventRegistrationField::id)
@@ -175,9 +239,25 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
     }
 
     private int part(
-            DemoStationDays days, int stationId, int eventGroupId, int setId, String name, LocalDate day, int from) {
+            DemoStationDays days,
+            int stationId,
+            int eventGroupId,
+            int setId,
+            String name,
+            LocalDate day,
+            int from,
+            int hours,
+            @Nullable Integer categoryId) {
         return partFactory
-                .create(stationId, eventGroupId, setId, name, null, days.at(day, from, 0), days.at(day, from + 6, 0))
+                .create(
+                        stationId,
+                        eventGroupId,
+                        setId,
+                        name,
+                        null,
+                        days.at(day, from, 0),
+                        days.at(day, from + hours, 0),
+                        categoryId)
                 .eventId();
     }
 

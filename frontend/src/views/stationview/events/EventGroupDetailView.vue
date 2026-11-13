@@ -79,7 +79,7 @@ async function deleteEventGroup() {
   busy.value = true
   try {
     await eventGroups.deleteEventGroup(eventGroupId.value)
-    await router.push({name: 'event-groups'})
+    await router.push({name: 'events'})
   } catch (e) {
     actionFailure.value = describeFailure(e, t)
     deleteOpen.value = false
