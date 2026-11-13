@@ -44000,7 +44000,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Turn the mail about unread messages on or off */
+        /** Change the daily mail about unread messages: whether it comes, and what station chats add */
         put: {
             parameters: {
                 query?: never;
@@ -44010,7 +44010,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["MessageMailRequest"];
+                    "application/json": components["schemas"]["MessageSettingsRequest"];
                 };
             };
             responses: {
@@ -73136,9 +73136,6 @@ export interface components {
         };
         /** @enum {string} */
         MessageEventKind: "MESSAGE" | "CONVERSATION" | "READ";
-        MessageMailRequest: {
-            mail?: boolean;
-        };
         MessagePersonResponse: {
             firstName: string;
             lastName: string;
@@ -73148,9 +73145,14 @@ export interface components {
         MessageResponse: {
             message: string;
         };
+        MessageSettingsRequest: {
+            mail?: boolean | null;
+            stationDigest?: components["schemas"]["StationDigest"] | null;
+        };
         MessagesStatus: {
             available: boolean;
             mail: boolean;
+            stationDigest: components["schemas"]["StationDigest"];
             /** Format: int32 */
             unread: number;
         };
@@ -77204,6 +77206,8 @@ export interface components {
             manager: components["schemas"]["ManagerDetail"] | null;
             name: string;
         };
+        /** @enum {string} */
+        StationDigest: "MENTIONS" | "ALL";
         StationEvent: {
             cancelled: boolean;
             cancelledAt: components["schemas"]["Instant"] | null;
@@ -79985,9 +79989,9 @@ export type MergedValue = components['schemas']['MergedValue'];
 export type MessageBody = components['schemas']['MessageBody'];
 export type MessageEvent = components['schemas']['MessageEvent'];
 export type MessageEventKind = components['schemas']['MessageEventKind'];
-export type MessageMailRequest = components['schemas']['MessageMailRequest'];
 export type MessagePersonResponse = components['schemas']['MessagePersonResponse'];
 export type MessageResponse = components['schemas']['MessageResponse'];
+export type MessageSettingsRequest = components['schemas']['MessageSettingsRequest'];
 export type MessagesStatus = components['schemas']['MessagesStatus'];
 export type MetricsBatch = components['schemas']['MetricsBatch'];
 export type MetricsSubject = components['schemas']['MetricsSubject'];
@@ -80552,6 +80556,7 @@ export type StationChatNameRequest = components['schemas']['StationChatNameReque
 export type StationChatResponse = components['schemas']['StationChatResponse'];
 export type StationClusterResponse = components['schemas']['StationClusterResponse'];
 export type StationDetail = components['schemas']['StationDetail'];
+export type StationDigest = components['schemas']['StationDigest'];
 export type StationEvent = components['schemas']['StationEvent'];
 export type StationFailedMails = components['schemas']['StationFailedMails'];
 export type StationFile = components['schemas']['StationFile'];
@@ -82147,6 +82152,11 @@ export const SmtpEncryption = {
     IMPLICIT_TLS: "IMPLICIT_TLS",
     NONE: "NONE",
     STARTTLS: "STARTTLS",
+} as const;
+
+export const StationDigest = {
+    ALL: "ALL",
+    MENTIONS: "MENTIONS",
 } as const;
 
 export const StationModule = {

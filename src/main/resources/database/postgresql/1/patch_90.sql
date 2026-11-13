@@ -49,7 +49,7 @@ ALTER TABLE ember_schema.account
 COMMENT ON COLUMN ember_schema.account.messages_guardian_allowed
     IS 'Whether a guardian turned messages on for this account. Only read while the account has a guardian at any station; an account without one can use messages regardless.';
 COMMENT ON COLUMN ember_schema.account.messages_mail
-    IS 'Whether the account is sent a mail about messages that stayed unread for a while.';
+    IS 'Whether the account is sent the daily mail about messages it has not read yet.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.conversation
 (
@@ -188,7 +188,6 @@ CREATE TABLE IF NOT EXISTS ember_schema.conversation_member
     left_at              TIMESTAMPTZ,
     last_read_message_id INT REFERENCES ember_schema.message (id) ON DELETE SET NULL,
     muted                BOOLEAN     NOT NULL DEFAULT FALSE,
-    mailed_at            TIMESTAMPTZ,
     PRIMARY KEY (conversation_id, account_id)
 );
 
@@ -210,8 +209,6 @@ COMMENT ON COLUMN ember_schema.conversation_member.last_read_message_id
     IS 'The last message the account has read, which unread counts start after. NULL before anything was read.';
 COMMENT ON COLUMN ember_schema.conversation_member.muted
     IS 'Whether the account muted the conversation: no badge count and no mail.';
-COMMENT ON COLUMN ember_schema.conversation_member.mailed_at
-    IS 'When the account was last mailed about unread messages here. Cleared once it reads again, so one mail goes out per unread stretch.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.message_reaction
 (
@@ -269,7 +266,7 @@ ALTER TABLE ember_schema.account
 COMMENT ON COLUMN ember_schema.account.messages_station_digest
     IS 'What the daily mail about messages takes from station chats: MENTIONS for the messages that mention the account, ALL for every unread message.';
 COMMENT ON COLUMN ember_schema.account.message_digest_sent_at
-    IS 'When the account was last sent the daily mail about messages; only messages written after it go into the next one. NULL before the first.';
+    IS 'When the newest message the account''s last daily mail about messages took was written; only messages written after it go into the next one. NULL before the first mail.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.message_report
 (

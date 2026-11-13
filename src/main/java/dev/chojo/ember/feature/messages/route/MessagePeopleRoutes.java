@@ -12,6 +12,7 @@ import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.entity.SharedMemberCard;
 import dev.chojo.ember.feature.messages.entity.MessagesStatus;
+import dev.chojo.ember.feature.messages.entity.StationDigest;
 import dev.chojo.ember.feature.messages.route.MessageWire.MessagePersonResponse;
 import dev.chojo.ember.feature.messages.route.MessageWire.ReachablePersonResponse;
 import dev.chojo.ember.feature.messages.service.BlockService;
@@ -77,16 +78,16 @@ public class MessagePeopleRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/messages/settings",
             methods = HttpMethod.PUT,
-            summary = "Turn the mail about unread messages on or off",
+            summary = "Change the daily mail about unread messages: whether it comes, and what station chats add",
             tags = {"Messages"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MessageMailRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MessageSettingsRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessagesStatus.class)),
                 @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setMail(Context ctx) {
-        var request = ctx.bodyAsClass(MessageMailRequest.class);
-        ctx.json(settings.setMail(UserSession.from(ctx).accountId(), request.mail()));
+        var request = ctx.bodyAsClass(MessageSettingsRequest.class);
+        ctx.json(settings.update(UserSession.from(ctx).accountId(), request.mail(), request.stationDigest()));
     }
 
     @OpenApi(
@@ -168,9 +169,11 @@ public class MessagePeopleRoutes implements Routes {
     }
 
     /**
-     * @param mail whether the reader wants mail about messages left unread
+     * @param mail          whether the reader wants the daily mail about messages left unread, absent to leave it
+     * @param stationDigest what that mail takes from station chats, absent to leave it
      */
-    public record MessageMailRequest(boolean mail) {}
+    public record MessageSettingsRequest(
+            @Nullable Boolean mail, @Nullable StationDigest stationDigest) {}
 
     /**
      * @param person the account to block, by its identity

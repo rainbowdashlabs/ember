@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.messages.repository;
 
 import dev.chojo.ember.feature.messages.entity.Person;
 import dev.chojo.ember.feature.messages.entity.ReachablePerson;
+import dev.chojo.ember.feature.messages.entity.StationDigest;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -178,6 +179,34 @@ public class MessagePeopleRepository {
                 .map(row -> row.getBoolean("messages_mail"))
                 .first()
                 .orElse(false);
+    }
+
+    /**
+     * What the daily mail takes from an account's station chats.
+     *
+     * @param accountId the account
+     * @return the setting, mentions only for no account
+     */
+    public StationDigest stationDigest(int accountId) {
+        return query("""
+                SELECT messages_station_digest FROM account WHERE id = :account_id;""")
+                .single(call().bind("account_id", accountId))
+                .map(row -> row.getEnum("messages_station_digest", StationDigest.class))
+                .first()
+                .orElse(StationDigest.MENTIONS);
+    }
+
+    /**
+     * Sets what the daily mail takes from an account's station chats.
+     *
+     * @param accountId the account
+     * @param digest    mentions only, or every unread message
+     */
+    public void setStationDigest(int accountId, StationDigest digest) {
+        query("""
+                UPDATE account SET messages_station_digest = :digest WHERE id = :account_id;""")
+                .single(call().bind("account_id", accountId).bind("digest", digest))
+                .update();
     }
 
     /**

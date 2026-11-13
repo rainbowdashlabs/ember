@@ -632,36 +632,22 @@ public class EmailService implements TaskSource {
     }
 
     /**
-     * Tells somebody that messages wait unread in one of their conversations, quoting the first
-     * lines. It goes to the account's own address only: a private message is never forwarded to the
-     * people who look after somebody.
+     * Sends the daily mail about messages an account has not read yet: one section per
+     * conversation, each linking to it. The sections are written by the caller, escaped already.
      *
-     * @param email        the account's own address
-     * @param name         how to greet them
-     * @param sender       who wrote the first unread message
-     * @param conversation what the conversation is called
-     * @param lines        the first unread messages, shortened
-     * @param path         where the conversation opens, below the instance address
-     * @param locale       the language to write in
+     * @param email    the account's address
+     * @param name     how the account is greeted
+     * @param sections the conversations, as HTML
+     * @param count    how many messages the mail is about
+     * @param locale   the language to write in
      */
-    public void sendUnreadMessages(
-            String email,
-            String name,
-            String sender,
-            String conversation,
-            List<String> lines,
-            String path,
-            String locale) {
+    public void sendMessageDigest(String email, String name, String sections, int count, String locale) {
         var vars = baseVars(name, null);
-        vars.put("sender", sender);
-        vars.put("conversation", conversation);
-        vars.put("lines", String.join("\n\n", lines));
-        vars.put("url", api.baseUrl() + path);
-        vars.put("settingsUrl", api.baseUrl() + "/messages");
+        vars.put("sections", sections);
+        vars.put("count", String.valueOf(count));
+        vars.put("url", api.baseUrl() + "/messages");
         enqueueGlobal(
-                email,
-                subject("unread-messages", locale, Map.of("sender", sender)),
-                loadTemplate("unread-messages.html", locale, vars));
+                email, subject("message-digest", locale, Map.of()), loadTemplate("message-digest.html", locale, vars));
     }
 
     /**

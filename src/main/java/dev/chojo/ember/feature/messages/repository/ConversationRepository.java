@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.messages.entity.Membership;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,7 +36,7 @@ public class ConversationRepository {
      * aliased {@code m}: written by somebody else whom the member has not blocked, still standing,
      * and after the member's read marker.
      */
-    private static final String UNREAD = """
+    static final String UNREAD = """
             msg.conversation_id = m.conversation_id
             AND msg.id > coalesce(m.last_read_message_id, 0)
             AND msg.system_kind IS NULL AND msg.deleted_at IS NULL
@@ -117,6 +118,21 @@ public class ConversationRepository {
     }
 
     /**
+     * Conversations by their ids, in any order.
+     *
+     * @param ids the conversations
+     * @return the ones that exist
+     */
+    public List<Conversation> findAll(Collection<Integer> ids) {
+        if (ids.isEmpty()) return List.of();
+        return query("""
+                SELECT %s FROM conversation c WHERE c.id = ANY(:ids);""", Conversation.COLUMNS)
+                .single(call().bind("ids", List.copyOf(ids), PostgreSqlTypes.INTEGER))
+                .map(Conversation.map())
+                .all();
+    }
+
+    /**
      * Lets an account take part, or take part again. Its read marker starts at the newest message,
      * so the history it can now read does not count as unread.
      *
@@ -132,7 +148,6 @@ public class ConversationRepository {
                     joined_at            = now(),
                     left_at              = NULL,
                     muted                = FALSE,
-                    mailed_at            = NULL,
                     last_read_message_id = excluded.last_read_message_id
                 WHERE conversation_member.left_at IS NOT NULL;""")
                 .single(call().bind("conversation_id", conversationId).bind("account_id", accountId))
@@ -156,7 +171,6 @@ public class ConversationRepository {
                 ON CONFLICT (conversation_id, account_id) DO UPDATE SET
                     joined_at            = now(),
                     left_at              = NULL,
-                    mailed_at            = NULL,
                     last_read_message_id = excluded.last_read_message_id
                 WHERE conversation_member.left_at IS NOT NULL;""")
                 .single(call().bind("conversation_id", conversationId).bind("account_id", accountId))
@@ -326,8 +340,7 @@ public class ConversationRepository {
     }
 
     /**
-     * Moves a member's read marker forward to a message. A marker never moves back, and reading
-     * again makes the next unread stretch worth a mail again.
+     * Moves a member's read marker forward to a message. A marker never moves back.
      *
      * @param conversationId the conversation
      * @param accountId      the member
@@ -336,7 +349,7 @@ public class ConversationRepository {
      */
     public boolean markRead(int conversationId, int accountId, int messageId) {
         return query("""
-                UPDATE conversation_member SET last_read_message_id = :message_id, mailed_at = NULL
+                UPDATE conversation_member SET last_read_message_id = :message_id
                 WHERE conversation_id = :conversation_id AND account_id = :account_id
                 AND coalesce(last_read_message_id, 0) < :message_id;""")
                 .single(call().bind("conversation_id", conversationId)

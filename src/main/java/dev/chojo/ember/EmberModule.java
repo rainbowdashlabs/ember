@@ -32,6 +32,7 @@ import dev.chojo.ember.conf.file.elements.KnowledgeBase;
 import dev.chojo.ember.conf.file.elements.Logging;
 import dev.chojo.ember.conf.file.elements.MailImport;
 import dev.chojo.ember.conf.file.elements.Mailing;
+import dev.chojo.ember.conf.file.elements.Messages;
 import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
@@ -279,9 +280,9 @@ import dev.chojo.ember.feature.messages.route.MessagePeopleRoutes;
 import dev.chojo.ember.feature.messages.route.MessageReportRoutes;
 import dev.chojo.ember.feature.messages.route.MessageRoutes;
 import dev.chojo.ember.feature.messages.route.StationChatRoutes;
+import dev.chojo.ember.feature.messages.service.MessageDigestMail;
 import dev.chojo.ember.feature.messages.service.MessageSignals;
 import dev.chojo.ember.feature.messages.service.StationChatMembership;
-import dev.chojo.ember.feature.messages.service.UnreadMessageMail;
 import dev.chojo.ember.feature.news.handler.NewsCreatedHandler;
 import dev.chojo.ember.feature.news.handler.NewsDeletedHandler;
 import dev.chojo.ember.feature.news.route.AdminNewsRoutes;
@@ -926,8 +927,8 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(CredentialKeyStamps.class);
         taskSources.addBinding().to(AccountLinkSweeper.class);
         taskSources.addBinding().to(MessageSignals.class);
-        taskSources.addBinding().to(UnreadMessageMail.class);
         taskSources.addBinding().to(StationChatMembership.class);
+        taskSources.addBinding().to(MessageDigestMail.class);
 
         Multibinder<ShutdownFlush> flushes = Multibinder.newSetBinder(binder(), ShutdownFlush.class);
         flushes.addBinding().to(PageHitRecorder.class);
@@ -1068,6 +1069,12 @@ public class EmberModule extends AbstractModule {
     @Singleton
     Changelog changelog(File config) {
         return config.changelog();
+    }
+
+    @Provides
+    @Singleton
+    Messages messages(File config) {
+        return config.messages();
     }
 
     @Provides

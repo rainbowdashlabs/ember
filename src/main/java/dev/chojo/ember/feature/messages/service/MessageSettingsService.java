@@ -9,10 +9,12 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.messages.entity.MessagesStatus;
 import dev.chojo.ember.feature.messages.entity.ReachablePerson;
+import dev.chojo.ember.feature.messages.entity.StationDigest;
 import dev.chojo.ember.feature.messages.repository.ConversationRepository;
 import dev.chojo.ember.feature.messages.repository.MessagePeopleRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -54,19 +56,22 @@ public class MessageSettingsService {
     public MessagesStatus status(int accountId) {
         boolean available = people.usable(accountId);
         int unread = available ? conversations.unreadTotal(accountId) : 0;
-        return new MessagesStatus(available, unread, people.mailWanted(accountId));
+        return new MessagesStatus(available, unread, people.mailWanted(accountId), people.stationDigest(accountId));
     }
 
     /**
-     * Turns the mail about unread messages on or off.
+     * Changes the daily mail: whether it comes at all, and what it takes from station chats. A
+     * setting left out stays as it is.
      *
-     * @param accountId the account
-     * @param wanted    whether it wants the mail
+     * @param accountId     the account
+     * @param mail          whether it wants the mail, or null to leave it
+     * @param stationDigest what the mail takes from station chats, or null to leave it
      * @return the status after the change
      */
-    public MessagesStatus setMail(int accountId, boolean wanted) {
+    public MessagesStatus update(int accountId, @Nullable Boolean mail, @Nullable StationDigest stationDigest) {
         guards.requireUsable(accountId);
-        people.setMailWanted(accountId, wanted);
+        if (mail != null) people.setMailWanted(accountId, mail);
+        if (stationDigest != null) people.setStationDigest(accountId, stationDigest);
         return status(accountId);
     }
 

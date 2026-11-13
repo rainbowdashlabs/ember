@@ -35074,7 +35074,7 @@
     },
     "/api/v1/messages/settings" : {
       "put" : {
-        "summary" : "Turn the mail about unread messages on or off",
+        "summary" : "Change the daily mail about unread messages: whether it comes, and what station chats add",
         "tags" : [ "Messages" ],
         "responses" : {
           "200" : {
@@ -35102,7 +35102,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/MessageMailRequest"
+                "$ref" : "#/components/schemas/MessageSettingsRequest"
               }
             }
           }
@@ -70840,14 +70840,6 @@
         "type" : "string",
         "enum" : [ "MESSAGE", "CONVERSATION", "READ" ]
       },
-      "MessageMailRequest" : {
-        "type" : "object",
-        "properties" : {
-          "mail" : {
-            "type" : "boolean"
-          }
-        }
-      },
       "MessagePersonResponse" : {
         "type" : "object",
         "properties" : {
@@ -70873,6 +70865,21 @@
         },
         "required" : [ "message" ]
       },
+      "MessageSettingsRequest" : {
+        "type" : "object",
+        "properties" : {
+          "mail" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "stationDigest" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/StationDigest"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
+      },
       "MessagesStatus" : {
         "type" : "object",
         "properties" : {
@@ -70885,9 +70892,12 @@
           },
           "mail" : {
             "type" : "boolean"
+          },
+          "stationDigest" : {
+            "$ref" : "#/components/schemas/StationDigest"
           }
         },
-        "required" : [ "available", "unread", "mail" ]
+        "required" : [ "available", "unread", "mail", "stationDigest" ]
       },
       "MetricsBatch" : {
         "type" : "object",
@@ -82933,6 +82943,10 @@
           }
         },
         "required" : [ "id", "name", "manager" ]
+      },
+      "StationDigest" : {
+        "type" : "string",
+        "enum" : [ "MENTIONS", "ALL" ]
       },
       "StationEvent" : {
         "type" : "object",

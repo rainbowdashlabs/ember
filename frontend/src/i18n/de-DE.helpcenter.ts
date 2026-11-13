@@ -1082,6 +1082,9 @@ volumes:
                     changelog: {
                         announceUpdates: 'Ob Ember nach einem Update eine Meldung in die Neuigkeiten jeder Wache schreibt. Das Änderungsprotokoll bleibt auch ohne lesbar.',
                     },
+                    messages: {
+                        digestHour: 'Die Stunde des Tages (0 bis 23), zu der die tägliche E-Mail über ungelesene Nachrichten verschickt wird. Sie gilt in der Zeitzone des Servers; das mitgelieferte Image läuft ohne gesetzte Variable TZ in UTC.',
+                    },
                     mailImport: {
                         enabled: 'Ob Ember Postfächer der Wachen nach Dokumenten abruft. Aus schaltet den Abruf für die ganze Instanz ab.',
                         minimumIntervalMinutes: 'Kürzester Abrufabstand in Minuten, den eine Wache für ein Postfach einstellen darf. Mindestens 15.',

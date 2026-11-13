@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:90c840f698184cbfe27b06e5647d37086bc8453c5db782b204e58fb0b8842d4d",
-  "generatedAt": "2026-11-13T13:01:41Z",
+  "schemaHash": "sha256:444030e3d88a72fcc89c1ed74c44308c10730c6f3ce1381400a1b1ca4c4232ec",
+  "generatedAt": "2026-11-13T13:12:12Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -137,7 +137,7 @@
           "type": "bool",
           "nullable": false,
           "verified": true,
-          "description": "Whether the account is sent a mail about messages that stayed unread for a while."
+          "description": "Whether the account is sent the daily mail about messages it has not read yet."
         },
         {
           "name": "messages_station_digest",
@@ -151,7 +151,7 @@
           "type": "timestamptz",
           "nullable": true,
           "verified": true,
-          "description": "When the account was last sent the daily mail about messages; only messages written after it go into the next one. NULL before the first."
+          "description": "When the newest message the account's last daily mail about messages took was written; only messages written after it go into the next one. NULL before the first mail."
         }
       ],
       "foreignKeys": [
@@ -6878,7 +6878,7 @@
       "description": "A conversation between accounts: a direct one between two people, a group, or a station chat. Direct conversations and groups belong to the people in them; a station chat belongs to its station, and its members follow the station, a group or a tag."
     },
     "conversation_member": {
-      "tableHash": "sha256:9bf06097eba9f793f88fac4445e33765b0c978fad2fe011af45b99b1254d714b",
+      "tableHash": "sha256:36250fe2073fc58053a31def523db29ed38de931e6d3df0d100f81e3a3f7ef96",
       "columns": [
         {
           "name": "conversation_id",
@@ -6921,13 +6921,6 @@
           "nullable": false,
           "verified": true,
           "description": "Whether the account muted the conversation: no badge count and no mail."
-        },
-        {
-          "name": "mailed_at",
-          "type": "timestamptz",
-          "nullable": true,
-          "verified": true,
-          "description": "When the account was last mailed about unread messages here. Cleared once it reads again, so one mail goes out per unread stretch."
         }
       ],
       "foreignKeys": [

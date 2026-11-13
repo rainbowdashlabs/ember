@@ -131,8 +131,8 @@ class BlockAndSettingsTest extends MessageTestBase {
     void theMailCanBeTurnedOff() {
         assertTrue(services.settings().status(anna.id()).mail());
 
-        assertFalse(services.settings().setMail(anna.id(), false).mail());
-        assertTrue(services.settings().setMail(anna.id(), true).mail());
+        assertFalse(services.settings().update(anna.id(), false, null).mail());
+        assertTrue(services.settings().update(anna.id(), true, null).mail());
     }
 
     @Test
