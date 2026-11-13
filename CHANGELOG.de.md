@@ -2,7 +2,7 @@
 
 ## v26.25.0
 
-Wer eine Wache teilt, kann sich direkt oder in Gruppen Nachrichten schreiben. Ein einzelner Termin einer Serie oder eine Serie ab einem Termin lässt sich für sich ändern, und beim Speichern können die Betroffenen benachrichtigt werden. Teile des Inventars wie der Verleih oder die Beschaffung lassen sich einzeln abschalten, und ein abgeschaltetes Modul nimmt seine Benachrichtigungen und Berechtigungen mit. Geteilte Termine mit einer Partnerwache auf einem anderen Server brauchen auf beiden Seiten diese Version.
+Wer eine Wache teilt, kann sich direkt oder in Gruppen Nachrichten schreiben. Ein einzelner Termin einer Serie oder eine Serie ab einem Termin lässt sich für sich ändern, und beim Speichern können die Betroffenen benachrichtigt werden. Lehrgänge wie die Jugendflamme fassen Termine in Blöcke, nehmen eine Anmeldung für alle Termine an und lassen sich mit Partnerwachen teilen. Geteilte Termine mit einer Partnerwache auf einem anderen Server brauchen auf beiden Seiten diese Version.
 
 ### Neue Funktionen
 
@@ -14,6 +14,11 @@ Wer eine Wache teilt, kann sich direkt oder in Gruppen Nachrichten schreiben. Ei
 - **Einzelne Termine oder Serien ab einem Datum ändern.** Beim Speichern einer Serie wird gefragt, ob die Änderung nur für diesen Termin, für diesen und alle späteren oder für alle Termine gilt. Ein einzelner Termin wird ein eigener Termin und spätere Termine gehen als neue Serie weiter; Anmeldungen und Anwesenheitslisten ziehen mit, und beide Termine verweisen aufeinander.
 - **Betroffene über Änderungen benachrichtigen.** Beim Speichern einer Änderung lassen sich alle Angemeldeten benachrichtigen, bei Terminen ohne Anmeldung alle, die den Termin sehen, mit einem Hinweis von bis zu 500 Zeichen. Die Nachricht nennt, was sich geändert hat, und Partnerwachen geben sie an ihre Mitglieder weiter.
 - **Aufgeteilte Serien zählen als eine.** In der Statistik der Wache zählen eine Serie, die als neue Serie weitergeht, und die aus ihr gelösten Termine als ein Termin unter dem neuesten Namen.
+- **Lehrgänge fassen Termine zusammen.** Ein Lehrgang wie die Jugendflamme fasst einmalige Termine in Blöcke, und jeder Block sagt, wie viele seiner Termine besucht werden müssen. Lehrgänge haben eine eigene Liste und Seite neben den Terminen, und jeder Termin eines Lehrgangs verweist darauf.
+- **Eine Anmeldung für den ganzen Lehrgang.** Angemeldet wird einmal mit Auswahl der Termine, und gespeichert werden kann erst, wenn kein Block mehr fehlt. Plätze, Anmeldeschluss, Bestätigung und Fragen gehören zum Lehrgang, und wer Termine leitet, kann jemanden auch abweichend anmelden, der dann als unvollständig markiert ist.
+- **Eine Nachricht pro Lehrgang statt pro Termin.** Anmeldung, Entscheidung, die Erinnerung vor dem Anmeldeschluss und eine Absage erreichen die Betroffenen einmal für den Lehrgang statt für jeden Termin.
+- **Lehrgänge mit Partnerwachen.** Ein Lehrgang lässt sich mit allen Terminen mit Partnerwachen teilen, und deren Mitglieder melden sich nach denselben Vorgaben und Plätzen an. Die Partnerwache gibt eine Absage an sie weiter.
+- **Anwesenheit im ganzen Lehrgang im Blick.** Die Lehrgangsseite zeigt für alle Teilnehmenden, wie viele Termine jedes Blocks sie laut den Anwesenheitslisten besucht haben und ob alle Blöcke erfüllt sind. Die Übersicht lässt sich als Tabelle exportieren.
 - **Teile des Inventars einzeln abschalten.** Vorgänge, Verleih, Beschaffung, das Selbstprüfen der Ausrüstung und Inventarprüfungen haben unter Wache → Module je einen eigenen Schalter unter dem Inventar. Verbände können jeden Teil ihren Wachen genauso verwehren wie ein ganzes Modul.
 
 ### Verbesserungen

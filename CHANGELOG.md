@@ -2,7 +2,7 @@
 
 ## v26.25.0
 
-People who share a station can write to each other directly or in groups. One date of a series, or a series from one date on, can be changed on its own, and saving a change can tell the people it concerns. Parts of the inventory, such as lending or procurement, can be switched off on their own, and a switched-off module takes its notifications and permissions with it. Shared appointments with a partner station on another server need both stations on this version.
+People who share a station can write to each other directly or in groups. One date of a series, or a series from one date on, can be changed on its own, and saving a change can tell the people it concerns. Courses such as the Jugendflamme group appointments into blocks, take one sign-up for all their dates and can be shared with partner stations. Shared appointments with a partner station on another server need both stations on this version.
 
 ### New Features
 
@@ -14,6 +14,11 @@ People who share a station can write to each other directly or in groups. One da
 - **Change one date or later dates.** Saving a change to a series asks whether it applies to only this date, to this and all later dates, or to all dates. A single date becomes an appointment of its own and later dates go on as a new series; places and attendance sheets move along, and both appointments link to each other.
 - **Tell the people an appointment concerns.** Saving a change can notify everybody holding a place, or everybody who may see an appointment without registration, with an optional note of up to 500 characters. The message names what changed, and partner stations pass it on to their members.
 - **Split series count as one.** In the station statistics, a series that goes on as a new one and the dates taken out of it count as one appointment under its newest name.
+- **Courses group appointments into blocks.** A course such as the Jugendflamme groups one-time appointments into blocks, each saying how many of its dates have to be attended. Courses have their own list and page next to the appointments, and every date of a course points to it.
+- **One sign-up for a whole course.** People sign up once and choose their dates, and a sign-up cannot be saved while a block is short. Places, deadline, confirmation and questions belong to the course, and whoever runs events can sign somebody up past the rules, which the course marks as short.
+- **Course notifications come once per course.** Signing up, decisions, a warning before sign-ups close and a called-off course each reach the people concerned once for the course instead of once per date.
+- **Courses with partner stations.** A course can be shared with partner stations together with all its dates, and their members sign up by the same rules and places. The partner station passes the notice of a called-off course on to them.
+- **Attendance across a course.** The course page shows for every participant how many dates of each block they attended according to the attendance sheets, and whether every block is met. The overview can be exported as a spreadsheet.
 - **Inventory parts switch off on their own.** Movements, lending, procurement, self-checks and inventory checks each have a switch under the inventory on Station → Modules. Associations can deny each part to their stations the same way as a whole module.
 
 ### Improvements
