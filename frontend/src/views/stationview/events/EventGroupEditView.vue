@@ -29,6 +29,8 @@ import {useEventFederationShare} from './eventeditview/useEventFederationShare'
 import {eventGroupFederationPort} from './eventeditview/eventOwnerPorts'
 import EventGroupQuestionsCard from './eventgroupeditview/EventGroupQuestionsCard.vue'
 import EventGroupFieldsCard from './eventgroupeditview/EventGroupFieldsCard.vue'
+import EventGroupDateSettingsSection from './eventgroupeditview/EventGroupDateSettingsSection.vue'
+import {useEventGroupSettings} from './eventgroupeditview/useEventGroupSettings'
 import {entryOf, namedEntries} from './eventshared/eventQuestions'
 import type {EventGroupDetail, MemberGroup, MemberWithName, EventFieldEntry, RegistrationFieldDefinition, RestrictionAudience, StationEvent, UserTag} from '@/api/generated/schema'
 import {EventType, StationPermission} from '@/api/generated/schema'
@@ -74,6 +76,7 @@ const questions = ref<RegistrationFieldDefinition[]>([])
 const fields = ref<EventFieldEntry[]>([])
 const startingAppointment = ref<StationEvent | null>(null)
 const saving = ref(false)
+const dateSettings = useEventGroupSettings()
 const saveFailure = ref<Failure | null>(null)
 
 function emptySelection(): RestrictionSelection {
@@ -124,6 +127,7 @@ const {loading, failure} = useAsyncLoader(async () => {
   groupMembers.value = new Map(ofGroups)
   if (eventGroupId.value != null) {
     fill(await eventGroups.getEventGroup(eventGroupId.value))
+    await dateSettings.load(eventGroupId.value)
     await federationShare.load(eventGroupFederationPort(eventGroupId.value))
   } else {
     await takeStartingAppointment()
@@ -213,6 +217,7 @@ async function save() {
         fields: namedEntries(fields.value),
         appointmentId: startingAppointment.value?.id ?? null,
       })
+      await dateSettings.save(created.eventGroup.id)
       showToast(t('eventGroups.saved'), 'success')
       await router.replace({name: 'event-group-edit', params: {eventGroupId: created.eventGroup.id}})
       fill(created)
@@ -222,6 +227,7 @@ async function save() {
       registration: registration.value,
       view: view.value,
     }, savedQuestions(), namedEntries(fields.value)))
+    await dateSettings.save(eventGroupId.value)
     await federationShare.save(eventGroupFederationPort(eventGroupId.value))
   } catch (e) {
     saveFailure.value = describeFailure(e, t)
@@ -241,8 +247,7 @@ async function save() {
       <div class="space-y-6">
         <StartingAppointmentNotice v-if="startingAppointment" :name="startingAppointment.name" @drop="dropStartingAppointment"/>
         <EventGroupDetailsForm
-            v-model:name="name"
-            v-model:description="description"
+            v-model:name="name" v-model:description="description"
             v-model:limit="limit"
             v-model:deadline="deadline"
             v-model:confirm="confirm"
@@ -264,6 +269,7 @@ async function save() {
           <RestrictionsField v-model="view" :groups="groups" :tags="tags"/>
         </NeutralContainer>
 
+        <EventGroupDateSettingsSection :settings="dateSettings"/>
         <EventGroupFieldsCard v-model="fields" :all-members="members" :groups="groups" :group-members="groupMembers" :tags="tags"/>
         <EventGroupQuestionsCard v-model="questions"/>
 

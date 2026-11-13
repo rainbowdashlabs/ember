@@ -24125,6 +24125,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{eventId}/group-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What a part of an event group sets itself and what it takes over from the event group */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupPartSettings"];
+                    };
+                };
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{eventId}/register": {
         parameters: {
             query?: never;
@@ -28328,6 +28373,88 @@ export interface paths {
                 };
                 /** @description Conflict */
                 409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The attendance template, pre-fills, category and reminders an event group hands to its parts */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupSettings"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Set the attendance template, pre-fills, category and reminders an event group hands to its parts */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupSettingsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupSettings"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -70877,6 +71004,15 @@ export interface components {
             /** Format: int32 */
             setId?: number;
         };
+        EventGroupPartSettings: {
+            eventGroup: components["schemas"]["EventGroupSettings"];
+            /** Format: int32 */
+            eventGroupId: number;
+            /** Format: int32 */
+            ownCategoryId: number | null;
+            /** Format: int32 */
+            ownTemplateId: number | null;
+        };
         EventGroupPartState: {
             calledOff: boolean;
             endTime: components["schemas"]["Instant"];
@@ -70923,6 +71059,22 @@ export interface components {
         };
         EventGroupSetsRequest: {
             sets?: components["schemas"]["EventGroupSetDraft"][] | null;
+        };
+        EventGroupSettings: {
+            /** Format: int32 */
+            categoryId: number | null;
+            fieldDefaults: components["schemas"]["EventFieldDefault"][];
+            reminderDays: number[];
+            /** Format: int32 */
+            templateId: number | null;
+        };
+        EventGroupSettingsRequest: {
+            /** Format: int32 */
+            categoryId?: number | null;
+            fieldDefaults?: components["schemas"]["FieldDefaultEntry"][] | null;
+            reminderDays?: number[] | null;
+            /** Format: int32 */
+            templateId?: number | null;
         };
         EventGroupSignUp: {
             answers: components["schemas"]["EventRegistrationFieldValue"][];
@@ -80719,11 +80871,14 @@ export type EventGroupPartCreateRequest = components['schemas']['EventGroupPartC
 export type EventGroupPartMoveRequest = components['schemas']['EventGroupPartMoveRequest'];
 export type EventGroupPartnerSignUp = components['schemas']['EventGroupPartnerSignUp'];
 export type EventGroupPartRequest = components['schemas']['EventGroupPartRequest'];
+export type EventGroupPartSettings = components['schemas']['EventGroupPartSettings'];
 export type EventGroupPartState = components['schemas']['EventGroupPartState'];
 export type EventGroupPartSummary = components['schemas']['EventGroupPartSummary'];
 export type EventGroupSet = components['schemas']['EventGroupSet'];
 export type EventGroupSetDraft = components['schemas']['EventGroupSetDraft'];
 export type EventGroupSetsRequest = components['schemas']['EventGroupSetsRequest'];
+export type EventGroupSettings = components['schemas']['EventGroupSettings'];
+export type EventGroupSettingsRequest = components['schemas']['EventGroupSettingsRequest'];
 export type EventGroupSignUp = components['schemas']['EventGroupSignUp'];
 export type EventGroupSignUpRequest = components['schemas']['EventGroupSignUpRequest'];
 export type EventGroupSummary = components['schemas']['EventGroupSummary'];

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
@@ -20,8 +21,13 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import ColorInput from '@/components/input/ColorInput.vue'
+import EventGroupDateSettingsCard from '@/views/stationview/events/eventgroupeditview/EventGroupDateSettingsCard.vue'
+import type {AttendanceTemplate, EventCategory} from '@/api/generated/schema'
 
 const {t} = useI18n()
+
+const categories = computed(() => [{id: 1, name: t('helpCenter.eventEdit.exampleGroupCategory')}] as EventCategory[])
+const templates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exampleGroupTemplate')}] as AttendanceTemplate[])
 </script>
 
 <template>
@@ -59,6 +65,18 @@ const {t} = useI18n()
     </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupEdit.audienceTitle')">
       <p>{{ t('helpCenter.eventGroupEdit.audienceText') }}</p>
+    </HelpSection>
+    <HelpSection :title="t('helpCenter.eventGroupEdit.dateSettingsTitle')">
+      <p>{{ t('helpCenter.eventGroupEdit.dateSettingsText') }}</p>
+      <EventGroupDateSettingsCard
+          category-id="1"
+          template-id="4"
+          :reminders="[7, 1]"
+          :categories="categories"
+          :templates="templates"
+          :template-fields="[]"
+          :field-defaults="new Map()"
+      />
     </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupEdit.fieldsTitle')">
       <p>{{ t('helpCenter.eventGroupEdit.fieldsText') }}</p>

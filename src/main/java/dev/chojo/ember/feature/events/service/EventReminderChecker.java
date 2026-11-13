@@ -89,7 +89,7 @@ public class EventReminderChecker implements TaskSource {
                 if (!readOnlyGuard.isWritable(event.stationId())) continue;
                 var calendar = calendars.computeIfAbsent(event.stationId(), occurrenceCalendar::forStation);
                 LocalDate today = calendar.today();
-                var reminderDays = reminderRepository.findDays(event.id());
+                var reminderDays = reminderRepository.findEffectiveDays(event.id());
                 var occurrences = computeOccurrences(event, today, reminderDays, calendar);
 
                 for (var occurrence : occurrences) {

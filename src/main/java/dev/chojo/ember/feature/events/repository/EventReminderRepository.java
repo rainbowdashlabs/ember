@@ -38,6 +38,62 @@ public class EventReminderRepository {
     }
 
     /**
+     * The reminder lead times that take effect for an appointment, ascending: its own, or for a part of
+     * an event group without reminders of its own the event group's.
+     *
+     * @param eventId the appointment
+     * @return the days-before values
+     */
+    public List<Integer> findEffectiveDays(int eventId) {
+        return query("""
+                SELECT days_before
+                FROM event_reminder
+                WHERE event_id = :event_id
+                UNION ALL
+                SELECT gr.days_before
+                FROM event_group_reminder gr
+                         JOIN event_group_set gs ON gs.group_id = gr.group_id
+                         JOIN station_event e ON e.event_group_set_id = gs.id
+                WHERE e.id = :event_id
+                  AND NOT EXISTS (SELECT 1 FROM event_reminder own WHERE own.event_id = :event_id)
+                ORDER BY days_before;""")
+                .single(call().bind("event_id", eventId))
+                .map(row -> row.getInt("days_before"))
+                .all();
+    }
+
+    /**
+     * The reminder lead times an event group hands to its parts, ascending.
+     *
+     * @param groupId the event group
+     * @return the days-before values
+     */
+    public List<Integer> findGroupDays(int groupId) {
+        return query("SELECT days_before FROM event_group_reminder WHERE group_id = :group_id ORDER BY days_before;")
+                .single(call().bind("group_id", groupId))
+                .map(row -> row.getInt("days_before"))
+                .all();
+    }
+
+    /**
+     * Replaces the reminder lead times an event group hands to its parts, dropping duplicates.
+     *
+     * @param groupId    the event group
+     * @param daysBefore the new days-before values, each above zero
+     */
+    public void replaceGroupDays(int groupId, List<Integer> daysBefore) {
+        query("DELETE FROM event_group_reminder WHERE group_id = :group_id;")
+                .single(call().bind("group_id", groupId))
+                .delete();
+        query("""
+                INSERT INTO event_group_reminder(group_id, days_before)
+                SELECT DISTINCT :group_id, days
+                FROM unnest(:days::INT[]) AS chosen(days);""")
+                .single(call().bind("group_id", groupId).bind("days", daysBefore, PostgreSqlTypes.INTEGER))
+                .insert();
+    }
+
+    /**
      * Replaces an event's reminder lead times with the given ones, dropping duplicates.
      *
      * @param eventId    the event ID

@@ -20052,6 +20052,87 @@
         }
       }
     },
+    "/api/v1/events/groups/{eventGroupId}/settings" : {
+      "get" : {
+        "summary" : "The attendance template, pre-fills, category and reminders an event group hands to its parts",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventGroupSettings"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Set the attendance template, pre-fills, category and reminders an event group hands to its parts",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventGroupSettings"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventGroupSettingsRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/groups/{eventGroupId}/sign-up" : {
       "post" : {
         "summary" : "Sign the reader, or somebody they look after, up for an event group",
@@ -21486,6 +21567,36 @@
                 }
               }
             }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/events/{eventId}/group-settings" : {
+      "get" : {
+        "summary" : "What a part of an event group sets itself and what it takes over from the event group",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventGroupPartSettings"
+                }
+              }
+            }
+          },
+          "204" : {
+            "description" : "No Content"
           }
         },
         "parameters" : [ {
@@ -62514,6 +62625,27 @@
           }
         }
       },
+      "EventGroupPartSettings" : {
+        "type" : "object",
+        "properties" : {
+          "eventGroupId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "ownTemplateId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "ownCategoryId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "eventGroup" : {
+            "$ref" : "#/components/schemas/EventGroupSettings"
+          }
+        },
+        "required" : [ "eventGroupId", "ownTemplateId", "ownCategoryId", "eventGroup" ]
+      },
       "EventGroupPartState" : {
         "type" : "object",
         "properties" : {
@@ -62672,6 +62804,59 @@
             "type" : [ "array", "null" ],
             "items" : {
               "$ref" : "#/components/schemas/EventGroupSetDraft"
+            }
+          }
+        }
+      },
+      "EventGroupSettings" : {
+        "type" : "object",
+        "properties" : {
+          "templateId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "categoryId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "reminderDays" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "fieldDefaults" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EventFieldDefault"
+            }
+          }
+        },
+        "required" : [ "templateId", "categoryId", "reminderDays", "fieldDefaults" ]
+      },
+      "EventGroupSettingsRequest" : {
+        "type" : "object",
+        "properties" : {
+          "templateId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "categoryId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "reminderDays" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "fieldDefaults" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/FieldDefaultEntry"
             }
           }
         }

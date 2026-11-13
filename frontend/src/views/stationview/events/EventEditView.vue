@@ -21,9 +21,7 @@ import {
   EventChangePart,
   EventType,
   StationPermission,
-  type AppointmentField,
   type ChangeNotice,
-  type EventGroupPartSummary,
   type EventAttachment,
   type RegistrationFieldDefinition,
 } from '@/api/generated/schema'
@@ -33,6 +31,7 @@ import AddToEventGroupCard from './eventeditview/AddToEventGroupCard.vue'
 import {todayIsoDate} from '@/util/format'
 import EventEditBody from './eventeditview/EventEditBody.vue'
 import {useEventForm} from './eventeditview/useEventForm'
+import {useEventGroupPart} from './eventeditview/useEventGroupPart'
 import {useEventEditData} from './eventeditview/useEventEditData'
 import {useEventFieldDefaults} from './eventeditview/useEventFieldDefaults'
 import {useEventFederationShare} from './eventeditview/useEventFederationShare'
@@ -71,12 +70,12 @@ const canFederate = computed(() => hasPermission(StationPermission.EVENTS_FEDERA
 const savedInto = ref<number | null>(null)
 const eventId = computed(() => savedInto.value ?? (route.params.id ? Number(route.params.id) : null))
 const isEdit = computed(() => eventId.value !== null)
-const eventGroupPart = ref<EventGroupPartSummary | null>(null)
-const inheritedFields = ref<AppointmentField[]>([])
 
 const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 
 const form = useEventForm()
+const groupPart = useEventGroupPart(() => eventId.value, form.state)
+const eventGroupPart = groupPart.part
 const attachments = useEventAttachments(() => (eventId.value === null ? null : eventAttachmentPort(eventId.value)), t)
 const data = useEventEditData(
     () => form.state.templateId,
@@ -210,22 +209,6 @@ async function loadRegistrationFields(id: number) {
   registrationFields.value = loadedFields.map(asDefinition)
 }
 
-/**
- * Notes which event group the appointment belongs to and reads the fields that group hands down, as
- * the group stores them: an own field of the same name replaces one on the appointment's page, but
- * the editor still shows it, struck through, so removing the own field visibly brings it back.
- */
-async function loadEventGroupPart(part: EventGroupPartSummary | null) {
-  eventGroupPart.value = part
-  if (!part) return
-  inheritedFields.value = (await eventGroups.getEventGroup(part.eventGroupId)).fields
-}
-
-/** Reads the group again after the appointment joined one, which locks the settings the group decides. */
-async function reloadEventGroupPart() {
-  await loadEventGroupPart(await eventGroups.eventGroupOfEvent(eventId.value!))
-}
-
 /** Fills the editor once the session is there, since the choices it offers depend on the station. */
 const {loading, failure} = useAsyncLoader(async () => {
   await until(loaded).toBe(true)
@@ -235,12 +218,13 @@ const {loading, failure} = useAsyncLoader(async () => {
     if (isEdit.value) {
       await Promise.all([
         form.loadEvent(eventId.value!),
-        eventGroups.eventGroupOfEvent(eventId.value!).then(loadEventGroupPart).catch(() => {}),
+        eventGroups.eventGroupOfEvent(eventId.value!).then(groupPart.load).catch(() => {}),
         fieldDefaults.load(eventFieldDefaultsPort(eventId.value!)),
         federationShare.load(eventFederationPort(eventId.value!)),
         loadRegistrationFields(eventId.value!),
         attachments.load(),
       ])
+      groupPart.keepOwnDateSettings()
       openedName.value = form.state.name
       opened.value = snapshotOf()
       openedRecurring.value = isRecurringEvent(form.state.eventType)
@@ -408,7 +392,8 @@ const bodyProps = computed(() => ({
   canFederate: canFederate.value,
   federationNote: federationNote.value,
   eventGroupPart: eventGroupPart.value !== null,
-  inheritedFields: inheritedFields.value,
+  inheritedFields: groupPart.inheritedFields.value,
+  inheritedSettings: groupPart.settings.value?.eventGroup ?? null,
   ...data.props.value,
   ...fieldDefaults.props.value,
   ...federationShare.props.value,
@@ -442,7 +427,7 @@ const bodyHandlers = {
       <FailureAlert v-else :failure="failure ?? saveFailure ?? confirmFailure"/>
       <Alert v-if="templateAppliedMessage" variant="success">{{ templateAppliedMessage }}</Alert>
       <EventGroupPartNotice v-if="eventGroupPart" :event-group="eventGroupPart" :message="t('eventGroups.lockedByEventGroup')"/>
-      <AddToEventGroupCard v-else-if="joinsGroup" :event-id="eventId!" :on-added="reloadEventGroupPart"/>
+      <AddToEventGroupCard v-else-if="joinsGroup" :event-id="eventId!" :on-added="groupPart.reload"/>
 
       <EventEditBody
           v-if="!loading"

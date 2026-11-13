@@ -247,4 +247,5 @@ export default {
     'E-217': 'Eine Terminreihe stellt jede Frage einmal, zwei Fragen haben denselben Namen',
     'E-218': 'Die Farbe einer Terminreihe wird als #RRGGBB angegeben, nichts wurde gespeichert',
     'E-219': 'Ein Block kann nicht mehr Termine verlangen, als er hat, nichts wurde gespeichert',
+    'E-221': 'Diese Kategorie gibt es hier nicht mehr',
 }

@@ -40,7 +40,7 @@ const api = vi.hoisted(() => ({
         listEventAttachments: vi.fn(),
         attachEventFile: vi.fn(),
     },
-    eventGroups: {eventGroupOfEvent: vi.fn(async (): Promise<unknown> => null), getEventGroup: vi.fn()},
+    eventGroups: {eventGroupOfEvent: vi.fn(async (): Promise<unknown> => null), getEventGroup: vi.fn(), partSettings: vi.fn()},
     federation: {listPartners: vi.fn()},
     appointmentDocuments: {offeredTemplates: vi.fn(), listRequirements: vi.fn()},
 }))
@@ -256,7 +256,7 @@ describe('EventEditView of a part of an event group', () => {
         vi.clearAllMocks()
         route.params = {id: '12'}
         held.value = []
-        api.events.getEvent.mockResolvedValue({id: 12, name: 'Übung Samstag', eventType: EventType.ONE_TIME})
+        api.events.getEvent.mockResolvedValue({id: 12, name: 'Übung Samstag', eventType: EventType.ONE_TIME, templateId: 4, categoryId: 6})
         api.events.getRestrictions.mockResolvedValue({register: NOBODY, view: NOBODY})
         api.events.getEventFields.mockResolvedValue([])
         api.events.getEventReminders.mockResolvedValue([])
@@ -272,6 +272,23 @@ describe('EventEditView of a part of an event group', () => {
             eventGroupId: 3, eventGroupName: 'Jugendflamme', setId: 1, setName: 'Übung', number: 1, count: 4,
         })
         api.eventGroups.getEventGroup.mockResolvedValue({fields: [{id: 5, name: 'Ort', value: 'Gerätehaus'}]})
+        api.eventGroups.partSettings.mockResolvedValue({
+            eventGroupId: 3, ownTemplateId: null, ownCategoryId: 6,
+            eventGroup: {templateId: 4, categoryId: 2, reminderDays: [3], fieldDefaults: []},
+        })
+    })
+
+    it('edits the part\'s own template and category and shows the group\'s beside them', async () => {
+        const wrapper = mount(EventEditView, {
+            global: {stubs: {ViewContent: {template: '<div><slot/></div>'}, EventEditBody: true, DocumentRequirementsEditor: true}},
+        })
+        await flushPromises()
+
+        const body = wrapper.findComponent(EventEditBody)
+        expect(api.eventGroups.partSettings).toHaveBeenCalledWith(12)
+        expect(body.props('templateId')).toBe('')
+        expect(body.props('categoryId')).toBe('6')
+        expect(body.props('inheritedSettings')).toEqual({templateId: 4, categoryId: 2, reminderDays: [3], fieldDefaults: []})
     })
 
     it('reads the own fields for editing and the group fields as the group stores them', async () => {

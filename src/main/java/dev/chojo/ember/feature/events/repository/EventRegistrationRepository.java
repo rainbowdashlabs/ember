@@ -374,14 +374,14 @@ public class EventRegistrationRepository {
                     FROM station_event
                     WHERE id = :event_id
                                       )
-                  AND ( :category_id IS NULL OR se.category_id = :category_id )
+                  AND ( :category_id IS NULL OR %s = :category_id )
                   AND er.event_date >= ( current_date - make_interval(months => :months) )
                   AND er.member_id IN (
                     SELECT member_id
                     FROM event_registration
                     WHERE event_id = :event_id
                                       )
-                GROUP BY er.member_id;""", RefusalSql.NOT_COMING)
+                GROUP BY er.member_id;""", RefusalSql.NOT_COMING, EventGroupInheritance.category("se"))
                 .single(call().bind("event_id", eventId)
                         .bind("category_id", categoryId)
                         .bind("months", months))

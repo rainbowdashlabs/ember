@@ -15,9 +15,10 @@ import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
- * Repository for the {@code event_field_default} and {@code event_template_field_default} tables:
- * the prefill rules of an event, or of a template for the events made from it, that decide which value
- * an attendance template field starts with.
+ * Repository for the {@code event_field_default}, {@code event_template_field_default} and
+ * {@code event_group_field_default} tables: the prefill rules of an event, of a template for the events
+ * made from it, or of an event group for its parts, that decide which value an attendance template
+ * field starts with.
  */
 @Singleton
 public class EventFieldDefaultRepository {
@@ -57,6 +58,72 @@ public class EventFieldDefaultRepository {
                 .single(call().bind("owner_id", ownerId))
                 .map(EventFieldDefault.map())
                 .all();
+    }
+
+    /**
+     * The starting values that take effect for an appointment's attendance sheet. A part of an event
+     * group without an attendance template of its own takes the event group's template and with it the
+     * event group's values; every other appointment its own. Each carries the appointment's id.
+     *
+     * @param eventId the appointment
+     * @return the field defaults
+     */
+    public List<EventFieldDefault> findEffective(int eventId) {
+        return query("""
+                SELECT d.event_id, d.field_id, d.source, d.value
+                FROM event_field_default d
+                         JOIN station_event e ON e.id = d.event_id
+                WHERE d.event_id = :event_id
+                  AND (e.template_id IS NOT NULL OR e.event_group_set_id IS NULL)
+                UNION ALL
+                SELECT e.id AS event_id, d.field_id, d.source, d.value
+                FROM event_group_field_default d
+                         JOIN event_group_set gs ON gs.group_id = d.group_id
+                         JOIN station_event e ON e.event_group_set_id = gs.id
+                WHERE e.id = :event_id
+                  AND e.template_id IS NULL;""")
+                .single(call().bind("event_id", eventId))
+                .map(EventFieldDefault.map())
+                .all();
+    }
+
+    /**
+     * The starting values an event group holds for the sheets of its parts that take its template.
+     * Each carries the event group's id.
+     *
+     * @param groupId the event group
+     * @return the field defaults
+     */
+    public List<EventFieldDefault> findByGroup(int groupId) {
+        return query("""
+                SELECT group_id AS event_id, field_id, source, value
+                FROM event_group_field_default
+                WHERE group_id = :group_id;""")
+                .single(call().bind("group_id", groupId))
+                .map(EventFieldDefault.map())
+                .all();
+    }
+
+    /**
+     * Replaces the starting values of an event group.
+     *
+     * @param groupId  the event group
+     * @param defaults the new values
+     */
+    public void replaceForGroup(int groupId, List<EventFieldDefault> defaults) {
+        query("DELETE FROM event_group_field_default WHERE group_id = :group_id;")
+                .single(call().bind("group_id", groupId))
+                .delete();
+        for (var def : defaults) {
+            query("""
+                    INSERT INTO event_group_field_default(group_id, field_id, source, value)
+                    VALUES (:group_id, :field_id, :source, :value);""")
+                    .single(call().bind("group_id", groupId)
+                            .bind("field_id", def.fieldId())
+                            .bind("source", def.source())
+                            .bind("value", def.value()))
+                    .insert();
+        }
     }
 
     /**

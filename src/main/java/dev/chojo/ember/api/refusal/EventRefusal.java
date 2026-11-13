@@ -819,7 +819,10 @@ public enum EventRefusal implements Refusal {
 
     /** A set asking for more of its parts than it holds. */
     EVENT_GROUP_SET_MINIMUM_ABOVE_PARTS(
-            219, HttpStatus.BAD_REQUEST, "A set cannot ask for more parts than it holds, nothing was saved");
+            219, HttpStatus.BAD_REQUEST, "A set cannot ask for more parts than it holds, nothing was saved"),
+
+    /** An event group filed under a category of another station, or one that is gone. */
+    EVENT_GROUP_CATEGORY_NOT_HERE(221, HttpStatus.NOT_FOUND, Sentences.EVENT_CATEGORY_NOT_HERE);
 
     private final Definition definition;
 

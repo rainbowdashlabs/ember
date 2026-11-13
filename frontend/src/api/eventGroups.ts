@@ -18,6 +18,9 @@ import type {
     EventGroupPartnerSignUp,
     EventGroupPartCreateRequest,
     EventGroupPartSummary,
+    EventGroupPartSettings,
+    EventGroupSettings,
+    EventGroupSettingsRequest,
     EventGroupSignUp,
     EventGroupSummary,
     EventGroupDetails,
@@ -216,4 +219,20 @@ export function eventGroupCommentSource(eventGroupId: number): CommentSource {
         mentionables: () => stationMentionables({type: 'EVENT_GROUP_VIEW', entityId: eventGroupId}),
         moderator: StationPermission.EVENT_MANAGER,
     }
+}
+
+/** The attendance template, pre-fills, category and reminders an event group hands to its parts. */
+export async function getSettings(eventGroupId: number): Promise<EventGroupSettings> {
+    return (await client.get<EventGroupSettings>(`${EVENT_GROUPS}/${eventGroupId}/settings`)).data
+}
+
+/** Sets what an event group hands to every part without a setting of its own. */
+export async function setSettings(eventGroupId: number, request: EventGroupSettingsRequest): Promise<EventGroupSettings> {
+    return (await client.put<EventGroupSettings>(`${EVENT_GROUPS}/${eventGroupId}/settings`, request)).data
+}
+
+/** What a part sets itself and what it takes over from its event group, or null for an appointment of its own. */
+export async function partSettings(eventId: number): Promise<EventGroupPartSettings | null> {
+    const res = await client.get<EventGroupPartSettings | ''>(`/events/${eventId}/group-settings`)
+    return res.status === 204 || !res.data ? null : res.data
 }

@@ -98,6 +98,43 @@ public class EventFieldDefaultService {
     }
 
     /**
+     * The starting values an event group holds for the sheets of its parts that take its template.
+     *
+     * @param groupId the event group
+     * @return the field defaults, each carrying the event group's id
+     */
+    public List<EventFieldDefault> findForGroup(int groupId) {
+        return fieldDefaultRepository.findByGroup(groupId);
+    }
+
+    /**
+     * Checks the starting values an event group is to hold for its attendance template, the way a
+     * template's are: a value for a field the template does not use is dropped, none are kept without
+     * a template, and a typed value has to be one the field takes.
+     *
+     * @param sheetId  the event group's attendance template, or null for none
+     * @param defaults the values asked for
+     * @return the values to keep
+     */
+    public List<EventFieldDefault> checkedForGroup(@Nullable Integer sheetId, List<EventFieldDefault> defaults) {
+        var questions = sheetQuestions(sheetId);
+        requireAnswerable(questions, defaults);
+        return defaults.stream()
+                .filter(chosen -> questions.containsKey(chosen.fieldId()))
+                .toList();
+    }
+
+    /**
+     * Replaces the starting values of an event group, already checked.
+     *
+     * @param groupId  the event group
+     * @param defaults the values, from {@link #checkedForGroup}
+     */
+    public void replaceForGroup(int groupId, List<EventFieldDefault> defaults) {
+        fieldDefaultRepository.replaceForGroup(groupId, defaults);
+    }
+
+    /**
      * Refuses a value the sheet field it fills in would not take.
      *
      * <p>What an appointment writes into a field of the attendance sheet lands there as the answer,
@@ -145,7 +182,7 @@ public class EventFieldDefaultService {
         var event = eventRepository.findById(eventId).orElse(null);
         if (event == null) return Map.of();
 
-        var defaults = fieldDefaultRepository.findByOwner(AppointmentOwner.EVENT, eventId);
+        var defaults = fieldDefaultRepository.findEffective(eventId);
         var result = new HashMap<Integer, String>();
         for (var def : defaults) {
             String resolved =

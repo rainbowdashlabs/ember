@@ -17,8 +17,11 @@ const api = vi.hoisted(() => ({
     createEventGroup: vi.fn(),
     getEventGroup: vi.fn(),
     getFederationShare: vi.fn(async () => null),
+    setSettings: vi.fn(),
+    getSettings: vi.fn(async () => ({templateId: null, categoryId: null, reminderDays: [], fieldDefaults: []})),
   },
-  events: {getEvent: vi.fn(), getRestrictions: vi.fn()},
+  events: {getEvent: vi.fn(), getRestrictions: vi.fn(), listCategories: vi.fn(async () => [])},
+  attendance: {listTemplates: vi.fn(async () => []), listTemplateFields: vi.fn(async () => [])},
   memberGroups: {listGroups: vi.fn(async () => []), getGroupMembers: vi.fn(async () => [])},
   stationMembers: {listMembers: vi.fn(async () => [])},
   userTags: {listChoosableTags: vi.fn(async () => [])},
@@ -37,7 +40,7 @@ vi.mock('@/util/toast', () => ({showToast: toast}))
 function mountEditor() {
   return mount(EventGroupEditView, {
     global: {stubs: {ViewContent: {template: '<div><slot/></div>'}, EventGroupDetailsForm: true, RestrictionsField: true, EventGroupSetsEditor: true,
-      EventGroupQuestionsCard: true, EventGroupFieldsCard: true, EventGroupShareCard: true, EventGroupPartsEditor: true}},
+      EventGroupQuestionsCard: true, EventGroupFieldsCard: true, EventGroupShareCard: true, EventGroupPartsEditor: true, EventGroupDateSettingsSection: true}},
   })
 }
 
@@ -54,6 +57,17 @@ describe('EventGroupEditView started from an appointment', () => {
     api.events.getRestrictions.mockResolvedValue({register: YOUTH, view: YOUTH})
     api.eventGroups.createEventGroup.mockResolvedValue({eventGroup: {id: 7}, sets: [], parts: [], questions: [], fields: [],
       registration: YOUTH, view: YOUTH})
+    api.eventGroups.setSettings.mockResolvedValue({templateId: null, categoryId: null, reminderDays: [], fieldDefaults: []})
+  })
+
+  it('saves the date settings for the group it created', async () => {
+    const wrapper = mountEditor()
+    await flushPromises()
+
+    await wrapper.find('[data-testid="event-group-save"]').trigger('click')
+    await flushPromises()
+
+    expect(api.eventGroups.setSettings).toHaveBeenCalledWith(7, {templateId: null, categoryId: null, reminderDays: [], fieldDefaults: []})
   })
 
   it('names the appointment, takes over its audiences and creates the group with it', async () => {

@@ -610,3 +610,50 @@ COMMENT ON TABLE ember_schema.comment
     IS 'Threaded comments on appointments, event groups, news entries, knowledge base files and board tickets. Exactly one target column is set, and that column says what the comment was written on.';
 COMMENT ON COLUMN ember_schema.comment.event_group_id
     IS 'The event group the comment was written on, NULL for every other target.';
+
+-- Date settings of an event group: the attendance template with its field pre-fills, the category and
+-- the reminders. Every part without a setting of its own follows the event group's, read live, so a
+-- change to the event group reaches every part that has none of its own.
+
+ALTER TABLE ember_schema.event_group
+    ADD COLUMN template_id INT REFERENCES ember_schema.attendance_template (id) ON DELETE SET NULL,
+    ADD COLUMN category_id INT REFERENCES ember_schema.event_category (id) ON DELETE SET NULL;
+
+COMMENT ON COLUMN ember_schema.event_group.template_id
+    IS 'The attendance template a part without one of its own takes its attendance sheet from. NULL for none.';
+COMMENT ON COLUMN ember_schema.event_group.category_id
+    IS 'The category a part without one of its own is filed under. NULL for none.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.event_group_field_default
+(
+    group_id INT  NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
+    field_id INT  NOT NULL REFERENCES ember_schema.attendance_template_field (id) ON DELETE CASCADE,
+    source   TEXT NOT NULL,
+    value    TEXT,
+    PRIMARY KEY (group_id, field_id)
+);
+
+COMMENT ON TABLE ember_schema.event_group_field_default
+    IS 'The values an event group fills into the attendance sheet of a part that takes the event group''s attendance template.';
+COMMENT ON COLUMN ember_schema.event_group_field_default.group_id
+    IS 'The event group.';
+COMMENT ON COLUMN ember_schema.event_group_field_default.field_id
+    IS 'The field of the event group''s attendance template that is filled in.';
+COMMENT ON COLUMN ember_schema.event_group_field_default.source
+    IS 'Where the value comes from: VALUE for the value below, or a property of the part such as EVENT_NAME, EVENT_DESCRIPTION, EVENT_START_TIME or EVENT_END_TIME.';
+COMMENT ON COLUMN ember_schema.event_group_field_default.value
+    IS 'The value filled in where source is VALUE, NULL otherwise.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.event_group_reminder
+(
+    group_id    INT NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
+    days_before INT NOT NULL CHECK (days_before > 0),
+    PRIMARY KEY (group_id, days_before)
+);
+
+COMMENT ON TABLE ember_schema.event_group_reminder
+    IS 'How many days before a part of an event group the people taking part are reminded, for every part without reminders of its own.';
+COMMENT ON COLUMN ember_schema.event_group_reminder.group_id
+    IS 'The event group.';
+COMMENT ON COLUMN ember_schema.event_group_reminder.days_before
+    IS 'How many days before the part the reminder goes out.';

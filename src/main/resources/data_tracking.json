@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:0baee6ddfad22b3752b26ba35665c51b00e84b5d1779a347f37f84296d436bd8",
-  "generatedAt": "2026-11-13T22:27:36Z",
+  "schemaHash": "sha256:d6f423a00a24c9426120c78ebf92bcef998486a46b93991d31d6b828fc8f3c7d",
+  "generatedAt": "2026-11-13T22:44:10Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -10895,7 +10895,7 @@
     "event_group": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:a1e847a21c1ba4c93b6e749dbd6f9c606139c08418cf6a24fe3eb70ad770c5f9",
+      "tableHash": "sha256:4b37258cd42daa4b9b2a1aa8ee9359daf2c3e0e9844e35612bd23b8ec8dfc794",
       "columns": [
         {
           "name": "id",
@@ -11001,14 +11001,40 @@
           "nullable": false,
           "verified": true,
           "description": "When the event group was created."
+        },
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The attendance template a part without one of its own takes its attendance sheet from. NULL for none."
+        },
+        {
+          "name": "category_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The category a part without one of its own is filed under. NULL for none."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "category_id",
+          "refTable": "event_category",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
         {
           "column": "station_id",
           "refTable": "station",
           "refColumn": "id",
           "onDelete": "CASCADE"
+        },
+        {
+          "column": "template_id",
+          "refTable": "attendance_template",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
         }
       ],
       "stationTransfer": {
@@ -11226,6 +11252,67 @@
         "reason": "Event group structure data, not per-member"
       },
       "description": "Fields of an event group, such as its place or meeting point. Every appointment of the group shows them; an appointment field of the same name replaces one."
+    },
+    "event_group_field_default": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:a7d382765bd62dae237f50293739060889cd940f870884c331f4af0809031f6a",
+      "columns": [
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The event group."
+        },
+        {
+          "name": "field_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The field of the event group's attendance template that is filled in."
+        },
+        {
+          "name": "source",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Where the value comes from: VALUE for the value below, or a property of the part such as EVENT_NAME, EVENT_DESCRIPTION, EVENT_START_TIME or EVENT_END_TIME."
+        },
+        {
+          "name": "value",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The value filled in where source is VALUE, NULL otherwise."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "field_id",
+          "refTable": "attendance_template_field",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "group_id",
+          "refTable": "event_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Event group structure data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Event group structure data, not per-member"
+      },
+      "description": "The values an event group fills into the attendance sheet of a part that takes the event group's attendance template."
     },
     "event_group_field_entry": {
       "feature": "events",
@@ -11481,6 +11568,47 @@
         ]
       },
       "description": "One member's sign-up for an event group. The chosen parts carry an event_registration each with the same status."
+    },
+    "event_group_reminder": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:0c0f542d444d186496f1563b5ab2f9f14e0662c8416dc80dafb2aa510c3de34f",
+      "columns": [
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The event group."
+        },
+        {
+          "name": "days_before",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "How many days before the part the reminder goes out."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "event_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Event group structure data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Event group structure data, not per-member"
+      },
+      "description": "How many days before a part of an event group the people taking part are reminded, for every part without reminders of its own."
     },
     "event_group_restriction": {
       "feature": "events",
