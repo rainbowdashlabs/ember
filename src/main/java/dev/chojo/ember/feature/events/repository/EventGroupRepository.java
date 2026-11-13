@@ -412,6 +412,24 @@ public class EventGroupRepository {
     }
 
     /**
+     * Lowers a set's minimum by one after it lost a part that it asked for every one of, so it asks for
+     * all it still holds. A set still filling up, asking for more than it held already, keeps its
+     * minimum, and so does a set left without parts.
+     *
+     * @param setId the set
+     * @return whether the minimum was lowered
+     */
+    public boolean capMinimum(int setId) {
+        return query("""
+                UPDATE event_group_set s
+                SET minimum = c.parts
+                FROM (SELECT count(*) AS parts FROM station_event WHERE event_group_set_id = :set_id) c
+                WHERE s.id = :set_id
+                  AND c.parts > 0
+                  AND s.minimum = c.parts + 1;""").single(call().bind("set_id", setId)).update().changed();
+    }
+
+    /**
      * How many parts a set holds.
      *
      * @param setId the set

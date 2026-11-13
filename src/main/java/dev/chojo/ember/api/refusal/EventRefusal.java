@@ -815,7 +815,11 @@ public enum EventRefusal implements Refusal {
 
     /** An event group colour that is not six hex digits after a hash. */
     EVENT_GROUP_COLOR_INVALID(
-            218, HttpStatus.BAD_REQUEST, "An event group colour is written as #RRGGBB, nothing was saved");
+            218, HttpStatus.BAD_REQUEST, "An event group colour is written as #RRGGBB, nothing was saved"),
+
+    /** A set asking for more of its parts than it holds. */
+    EVENT_GROUP_SET_MINIMUM_ABOVE_PARTS(
+            219, HttpStatus.BAD_REQUEST, "A set cannot ask for more parts than it holds, nothing was saved");
 
     private final Definition definition;
 

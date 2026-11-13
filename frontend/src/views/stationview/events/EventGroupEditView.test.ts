@@ -16,6 +16,7 @@ const api = vi.hoisted(() => ({
   eventGroups: {
     createEventGroup: vi.fn(),
     getEventGroup: vi.fn(),
+    getFederationShare: vi.fn(async () => null),
   },
   events: {getEvent: vi.fn(), getRestrictions: vi.fn()},
   memberGroups: {listGroups: vi.fn(async () => [])},
@@ -29,6 +30,8 @@ vi.mock('@/composables/useSession', () => ({
 const route = vi.hoisted(() => ({params: {} as Record<string, string>, query: {} as Record<string, string>}))
 const replace = vi.hoisted(() => vi.fn())
 vi.mock('vue-router', () => ({useRoute: () => route, useRouter: () => ({replace})}))
+const toast = vi.hoisted(() => vi.fn())
+vi.mock('@/util/toast', () => ({showToast: toast}))
 
 function mountEditor() {
   return mount(EventGroupEditView, {
@@ -84,5 +87,63 @@ describe('EventGroupEditView started from an appointment', () => {
     await flushPromises()
 
     expect(wrapper.find('[role="status"]').exists()).toBe(false)
+  })
+})
+
+/** A minimum the server lowered after a part left its set reaches the form, which says so. */
+describe('EventGroupEditView after a part changed', () => {
+  const group = {id: 7, name: 'Jugendflamme', description: null, registrationLimit: null, registrationDeadline: null,
+    requiresConfirmation: false, color: null}
+
+  function detailWith(minimum: number, parts: number) {
+    return {eventGroup: group, sets: [{id: 1, name: 'Übung', minimum}], questions: [], fields: [],
+      registration: YOUTH, view: YOUTH,
+      parts: Array.from({length: parts}, (_, index) => ({eventId: index + 1, setId: 1}))}
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    route.params = {eventGroupId: '7'}
+    route.query = {}
+  })
+
+  it('takes the lowered minimum into the form and says so', async () => {
+    api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(3, 3))
+    const wrapper = mountEditor()
+    await flushPromises()
+
+    api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(2, 2))
+    await (wrapper.findComponent({name: 'EventGroupPartsEditor'}).props('onChanged') as () => Promise<void>)()
+    await flushPromises()
+
+    expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue')).toEqual([{id: 1, name: 'Übung', minimum: 2}])
+    expect(toast).toHaveBeenCalledOnce()
+  })
+
+  it('leaves a set alone the server did not lower', async () => {
+    api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(3, 2))
+    const wrapper = mountEditor()
+    await flushPromises()
+
+    api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(3, 1))
+    await (wrapper.findComponent({name: 'EventGroupPartsEditor'}).props('onChanged') as () => Promise<void>)()
+    await flushPromises()
+
+    expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue')).toEqual([{id: 1, name: 'Übung', minimum: 3}])
+    expect(toast).not.toHaveBeenCalled()
+  })
+
+  it('brings an unsaved minimum above the parts now held down to them', async () => {
+    api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(2, 3))
+    const wrapper = mountEditor()
+    await flushPromises()
+    await wrapper.findComponent({name: 'EventGroupSetsEditor'}).vm.$emit('update:modelValue', [{id: 1, name: 'Übung', minimum: 3}])
+
+    api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(2, 2))
+    await (wrapper.findComponent({name: 'EventGroupPartsEditor'}).props('onChanged') as () => Promise<void>)()
+    await flushPromises()
+
+    expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue')).toEqual([{id: 1, name: 'Übung', minimum: 2}])
+    expect(toast).toHaveBeenCalledOnce()
   })
 })

@@ -371,6 +371,84 @@ class EventGroupServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void aChangedMinimumAsksForNoMorePartsThanTheSetHolds() {
+        var eventGroup = jugendflamme();
+        var practice = set(eventGroup, "Übung");
+        var test = set(eventGroup, "Prüfung");
+        service.addPart(station.id(), eventGroup.id(), oneTime(40).id(), practice.id());
+
+        assertRefused(
+                EventRefusal.EVENT_GROUP_SET_MINIMUM_ABOVE_PARTS,
+                () -> service.replaceSets(
+                        station.id(),
+                        eventGroup.id(),
+                        List.of(
+                                new EventGroupSetDraft(practice.id(), "Übung", 3),
+                                new EventGroupSetDraft(test.id(), "Prüfung", 1))));
+
+        var filling = service.replaceSets(
+                station.id(),
+                eventGroup.id(),
+                List.of(
+                        new EventGroupSetDraft(practice.id(), "Übung", 2),
+                        new EventGroupSetDraft(test.id(), "Prüfung", 1)));
+        assertEquals(2, filling.getFirst().minimum());
+
+        var sets = service.replaceSets(
+                station.id(),
+                eventGroup.id(),
+                List.of(
+                        new EventGroupSetDraft(practice.id(), "Übung", 1),
+                        new EventGroupSetDraft(test.id(), "Prüfung", 5)));
+        assertEquals(List.of(1, 5), sets.stream().map(EventGroupSet::minimum).toList());
+    }
+
+    @Test
+    void aSetThatAskedForAllItsPartsAsksForAllItStillHolds() {
+        var eventGroup = jugendflamme();
+        var practice = set(eventGroup, "Übung");
+        var test = set(eventGroup, "Prüfung");
+        var saturday = oneTime(41);
+        var sunday = oneTime(42);
+        var monday = oneTime(43);
+        service.addPart(station.id(), eventGroup.id(), saturday.id(), practice.id());
+        service.addPart(station.id(), eventGroup.id(), sunday.id(), practice.id());
+        service.addPart(station.id(), eventGroup.id(), monday.id(), practice.id());
+
+        service.removePart(station.id(), eventGroup.id(), monday.id());
+        assertEquals(2, set(eventGroup, "Übung").minimum());
+
+        service.movePart(station.id(), eventGroup.id(), sunday.id(), test.id());
+        assertEquals(1, set(eventGroup, "Übung").minimum());
+
+        newEventServices(new DomainEventBus(Set.of())).crud().delete(saturday.id());
+        assertEquals(1, set(eventGroup, "Übung").minimum());
+        assertEquals(1, set(eventGroup, "Prüfung").minimum());
+    }
+
+    @Test
+    void aSetStillFillingUpKeepsItsMinimumWhenItLosesOrKeepsAPart() {
+        var eventGroup = jugendflamme();
+        var practice = set(eventGroup, "Übung");
+        service.replaceSets(
+                station.id(),
+                eventGroup.id(),
+                List.of(
+                        new EventGroupSetDraft(practice.id(), "Übung", 3),
+                        new EventGroupSetDraft(set(eventGroup, "Prüfung").id(), "Prüfung", 1)));
+        var saturday = oneTime(44);
+        var sunday = oneTime(45);
+        service.addPart(station.id(), eventGroup.id(), saturday.id(), practice.id());
+        service.addPart(station.id(), eventGroup.id(), sunday.id(), practice.id());
+
+        service.movePart(station.id(), eventGroup.id(), sunday.id(), practice.id());
+        assertEquals(3, set(eventGroup, "Übung").minimum());
+
+        service.removePart(station.id(), eventGroup.id(), sunday.id());
+        assertEquals(3, set(eventGroup, "Übung").minimum());
+    }
+
+    @Test
     void aSetHoldingPartsOrOneOfAnotherEventGroupIsRefused() {
         var eventGroup = jugendflamme();
         var other = jugendflamme();

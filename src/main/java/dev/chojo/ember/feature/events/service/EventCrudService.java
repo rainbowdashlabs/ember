@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.equipment.service.EquipmentReleaseService;
 import dev.chojo.ember.feature.events.entity.PickerEvent;
 import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
@@ -53,6 +54,7 @@ public class EventCrudService {
     private final EquipmentReleaseService equipmentRelease;
     private final RestrictionService restrictionService;
     private final AttendanceTemplateGuards attendanceTemplateGuards;
+    private final EventGroupRepository eventGroups;
 
     @Inject
     public EventCrudService(
@@ -60,12 +62,14 @@ public class EventCrudService {
             DomainEventBus eventBus,
             EquipmentReleaseService equipmentRelease,
             RestrictionService restrictionService,
-            AttendanceTemplateGuards attendanceTemplateGuards) {
+            AttendanceTemplateGuards attendanceTemplateGuards,
+            EventGroupRepository eventGroups) {
         this.eventRepository = eventRepository;
         this.eventBus = eventBus;
         this.equipmentRelease = equipmentRelease;
         this.restrictionService = restrictionService;
         this.attendanceTemplateGuards = attendanceTemplateGuards;
+        this.eventGroups = eventGroups;
     }
 
     /**
@@ -445,7 +449,8 @@ public class EventCrudService {
     }
 
     /**
-     * Deletes a station event by ID.
+     * Deletes a station event by ID. Where it was a part of an event group whose set asked for every
+     * one of its parts, the set asks for all it still holds afterwards.
      *
      * @param id the event ID
      * @return true if the event was deleted
@@ -457,13 +462,30 @@ public class EventCrudService {
             return false;
         }
         equipmentRelease.release(id, event.stationId());
-        if (eventRepository.delete(id)) {
+        if (deleteKeepingSetMinimum(id)) {
             log.info("Deleted event {} for station {}", id, event.stationId());
             eventBus.publish(new EventDeleted(event.stationId(), id, event.name()));
             return true;
         }
         log.warn("Failed to delete event {}", id);
         return false;
+    }
+
+    /**
+     * Deletes an appointment in one transaction with the minimum of the event group set it was a part
+     * of, under the event group's lock (taken before the appointment's row, the order adding a part
+     * takes), so a minimum changed at the same moment cannot end up asking for a part that is gone.
+     */
+    private boolean deleteKeepingSetMinimum(int id) {
+        return Transactions.call(() -> {
+            var part = eventGroups.findPart(id);
+            if (part.isEmpty()) return eventRepository.delete(id);
+            eventGroups.lockEventGroup(part.get().eventGroupId());
+            var locked = eventGroups.findPart(id);
+            boolean deleted = eventRepository.delete(id);
+            if (deleted) locked.ifPresent(left -> eventGroups.capMinimum(left.setId()));
+            return deleted;
+        });
     }
 
     /**

@@ -241,7 +241,9 @@ public class EventGroupService {
 
     /**
      * Replaces the sets of an event group: drafts with an id change that set, drafts without one add a
-     * set, and sets left out are removed, which a set still holding parts refuses.
+     * set, and sets left out are removed, which a set still holding parts refuses. A minimum changed on a
+     * set holding parts cannot ask for more of them than it holds; a set without parts takes any
+     * minimum, and one left unchanged stays while the set fills up.
      *
      * @param stationId the station asking
      * @param eventGroupId  the event group
@@ -252,14 +254,22 @@ public class EventGroupService {
         requireValidSets(drafts);
         return Transactions.call(() -> {
             lockEventGroup(stationId, eventGroupId);
-            var existing = eventGroups.findSets(eventGroupId).stream()
-                    .map(EventGroupSet::id)
-                    .collect(Collectors.toSet());
+            var current = eventGroups.findSets(eventGroupId);
+            var existing = current.stream().map(EventGroupSet::id).collect(Collectors.toSet());
+            var stored = current.stream().collect(Collectors.toMap(EventGroupSet::id, EventGroupSet::minimum));
             var kept = new HashSet<Integer>();
             for (var draft : drafts) {
                 if (draft.id() == null) continue;
                 if (!existing.contains(draft.id()) || !kept.add(draft.id())) {
                     throw EventRefusal.EVENT_GROUP_SET_NOT_IN_EVENT_GROUP.raise();
+                }
+            }
+            for (var draft : drafts) {
+                Integer setId = draft.id();
+                if (setId == null || Objects.equals(stored.get(setId), draft.minimum())) continue;
+                int parts = eventGroups.countPartsInSet(setId);
+                if (parts > 0 && draft.minimum() > parts) {
+                    throw EventRefusal.EVENT_GROUP_SET_MINIMUM_ABOVE_PARTS.raise();
                 }
             }
             var removed = existing.stream().filter(id -> !kept.contains(id)).toList();
@@ -318,7 +328,8 @@ public class EventGroupService {
     }
 
     /**
-     * Moves a part into another set of its event group.
+     * Moves a part into another set of its event group. A set that asked for every one of its parts
+     * asks for all it still holds afterwards.
      *
      * @param stationId the station asking
      * @param eventGroupId  the event group
@@ -331,7 +342,9 @@ public class EventGroupService {
             lockEventGroup(stationId, eventGroupId);
             requirePartOf(eventGroupId, eventId);
             requireSetOf(eventGroupId, setId);
+            int left = eventGroups.findPart(eventId).orElseThrow().setId();
             eventGroups.setPartSet(eventId, setId);
+            if (left != setId) eventGroups.capMinimum(left);
             return eventGroups.findPart(eventId).orElseThrow();
         });
     }
@@ -339,7 +352,8 @@ public class EventGroupService {
     /**
      * Makes a part an appointment of its own again. Who was signed up for it stays signed up, and
      * it keeps the sign-up settings, audiences and partner share it had as a part until somebody
-     * changes them, so partners' members signed up for it can still be seen and decided.
+     * changes them, so partners' members signed up for it can still be seen and decided. A set that
+     * asked for every one of its parts asks for all it still holds afterwards.
      *
      * @param stationId the station asking
      * @param eventGroupId  the event group
@@ -349,8 +363,10 @@ public class EventGroupService {
         Transactions.run(() -> {
             lockEventGroup(stationId, eventGroupId);
             requirePartOf(eventGroupId, eventId);
+            int left = eventGroups.findPart(eventId).orElseThrow().setId();
             eventGroups.setPartSet(eventId, null);
             eventGroups.untieRegistrations(eventId);
+            eventGroups.capMinimum(left);
         });
     }
 

@@ -1132,7 +1132,12 @@ public abstract class RepositoryTestBase {
         var lending = newLendingService(eventBus, availability);
         var release = new EquipmentReleaseService(equipmentNeedRepo, lending);
         var crudService = new EventCrudService(
-                eventRepo, eventBus, release, restrictionService, new AttendanceTemplateGuards(attendanceRepo));
+                eventRepo,
+                eventBus,
+                release,
+                restrictionService,
+                new AttendanceTemplateGuards(attendanceRepo),
+                new EventGroupRepository());
         var cancellation =
                 new EventCancellationService(eventRepo, eventDateCancellationRepo, calendar, release, eventBus);
         return new EventServices(

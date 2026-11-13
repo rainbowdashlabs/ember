@@ -3427,7 +3427,7 @@ volumes:
             whatIs: 'Was stelle ich ein?',
             whatIsText: 'Gib der Terminreihe einen Namen und eine Beschreibung. Bei „Plätze“ legst du fest, wie viele Leute mitmachen können. Lass das Feld leer, wenn es keine Grenze gibt. Beim Anmeldeschluss endet die Anmeldung. Mit „Anmeldungen bestätigen“ entscheidet die Leitung über jede Anmeldung. Die Farbe markiert die Termine der Terminreihe mit einem Streifen am linken Rand; ohne eigene Farbe kommt eine aus der Palette. Unten speicherst du alles auf einmal.',
             setsTitle: 'Blöcke',
-            setsText: 'Jeder Termin gehört zu einem Block. Bei jedem Block steht, wie viele seiner Termine mindestens gewählt werden müssen. Steht dort die Zahl aller Termine, sind sie alle Pflicht. Mit den Pfeilen links änderst du die Reihenfolge.',
+            setsText: 'Jeder Termin gehört zu einem Block. Bei jedem Block steht, wie viele seiner Termine mindestens gewählt werden müssen. Steht dort die Zahl aller Termine, sind sie alle Pflicht. Mehr, als der Block Termine hat, lässt sich nicht neu einstellen. Ein Block ohne Termine nimmt jede Zahl, sie gilt, sobald genug Termine dazukommen. Verliert ein Block, der alle seine Termine verlangt, einen Termin (herausgenommen, verschoben oder gelöscht), verlangt er danach die übrigen. Mit den Pfeilen links änderst du die Reihenfolge.',
             audienceTitle: 'Zielgruppe',
             audienceText: 'Hier legst du fest, wer die Terminreihe sieht und wer sich anmelden darf. Das gilt automatisch für alle Termine der Terminreihe.',
             fieldsTitle: 'Felder für alle Termine',

@@ -150,11 +150,36 @@ function dropStartingAppointment() {
   startingAppointment.value = null
 }
 
-/** Reads the event group again after a part changed, touching nothing the form holds unsaved. */
+/**
+ * Reads the event group again after a part changed, touching nothing the form holds unsaved, except a
+ * set minimum that now asks for more parts than the set holds and is not the one the set keeps while it
+ * fills up: the form takes the server's, or the part count where that is lower, and says so, or the next
+ * save would be refused.
+ */
 async function refreshParts() {
   if (eventGroupId.value == null) return
+  const before = new Map((detail.value?.sets ?? []).map(set => [set.id, set.minimum]))
   detail.value = await eventGroups.getEventGroup(eventGroupId.value)
+  for (const set of detail.value.sets) {
+    const parts = partCounts.value[set.id] ?? 0
+    const row = sets.value.find(candidate => candidate.id === set.id)
+    if (!row || parts === 0 || row.minimum <= parts || row.minimum === set.minimum) continue
+    const to = Math.min(set.minimum, parts)
+    sets.value = sets.value.map(candidate => (candidate.id === set.id ? {...candidate, minimum: to} : candidate))
+    showToast(t('eventGroups.setMinimumLowered', {set: set.name, from: before.get(set.id) ?? row.minimum, to}))
+  }
 }
+
+/** The minimum each saved set was stored with, which a set still filling up may keep. */
+const storedMinimums = computed<Record<number, number>>(() =>
+    Object.fromEntries((detail.value?.sets ?? []).map(set => [set.id, set.minimum])))
+
+/** How many parts each saved set holds, which bounds its minimum. */
+const partCounts = computed<Record<number, number>>(() => {
+  const counts: Record<number, number> = {}
+  for (const part of detail.value?.parts ?? []) counts[part.setId] = (counts[part.setId] ?? 0) + 1
+  return counts
+})
 
 function details() {
   return {
@@ -221,7 +246,7 @@ async function save() {
         <NeutralContainer class="space-y-3">
           <SectionHeader>{{ t('eventGroups.sets') }}</SectionHeader>
           <MutedText tag="p" size="sm">{{ t('eventGroups.setsHint') }}</MutedText>
-          <EventGroupSetsEditor v-model="sets"/>
+          <EventGroupSetsEditor v-model="sets" :part-counts="partCounts" :stored-minimums="storedMinimums"/>
         </NeutralContainer>
 
         <NeutralContainer class="space-y-3">
