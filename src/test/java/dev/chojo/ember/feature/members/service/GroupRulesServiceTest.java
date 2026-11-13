@@ -55,7 +55,7 @@ class GroupRulesServiceTest extends RepositoryTestBase {
                 stepUp,
                 () -> mock(MemberNameResolver.class),
                 new DomainEventBus(Set.of()));
-        service = new GroupRulesService(memberGroupRepo, sets, memberships);
+        service = new GroupRulesService(memberGroupRepo, sets, memberships, new DomainEventBus(Set.of()));
         station = stationRepo.create("Rules Station " + System.nanoTime());
         child = member(StationUserType.MEMBER);
         parent = member(StationUserType.GUARDIAN);

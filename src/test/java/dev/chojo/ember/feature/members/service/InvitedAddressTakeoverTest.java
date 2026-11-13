@@ -12,6 +12,7 @@ import dev.chojo.ember.api.auth.StepUpGuard;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.auth.TokenHasher;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountAction;
 import dev.chojo.ember.feature.account.service.AccountEmailService;
@@ -28,6 +29,8 @@ import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -134,7 +137,8 @@ class InvitedAddressTakeoverTest extends RepositoryTestBase {
                 new TwoFactorAuditService(twoFactorRepo),
                 mock(Notifier.class),
                 TokenHasher.forTesting(TestAccountLinks.PEPPER),
-                TestAccountLinks.associationAnswers(accountRepo, clusterRepo, twoFactorRepo, mock(Notifier.class)));
+                TestAccountLinks.associationAnswers(accountRepo, clusterRepo, twoFactorRepo, mock(Notifier.class)),
+                new DomainEventBus(Set.of()));
         var request = new AccountLinkRepository()
                 .findUnansweredForMember(invited.memberId())
                 .orElseThrow();

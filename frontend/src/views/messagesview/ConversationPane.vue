@@ -14,21 +14,29 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import type {ConversationMessageResponse, MessagePersonResponse} from '@/api/generated/schema'
 import {block, getBlocks, leaveConversation, muteConversation, unblock} from '@/api/messages'
 import {useConversation} from '@/composables/useConversation'
+import {forgetWritableMembers} from '@/composables/useMemberCards'
 import {useMessageWords} from '@/composables/useMessageWords'
 import {useSession} from '@/composables/useSession'
 import {mentionablesOf} from '@/util/messageText'
 import {timelineOf} from '@/util/messageTimeline'
 import {personName} from '@/util/conversationTitle'
+import {showToast} from '@/util/toast'
+import {describeFailure} from '@/util/failure'
 import ConversationHeader from './conversationpane/ConversationHeader.vue'
 import MessageTimeline from './conversationpane/MessageTimeline.vue'
 import MessageComposer from './conversationpane/MessageComposer.vue'
 import GroupMembersPanel from './conversationpane/GroupMembersPanel.vue'
+import StationChatMembersPanel from './conversationpane/StationChatMembersPanel.vue'
+import ReportMessageModal from './conversationpane/ReportMessageModal.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import MessageActionSheet from './conversationpane/MessageActionSheet.vue'
 import type {MessageActions} from './conversationpane/messageActions'
 
 /**
  * One open conversation: its header, its messages and the box to write in. Reading it at the
- * bottom marks it read; deleting, blocking and leaving each ask first.
+ * bottom marks it read; deleting, blocking and leaving each ask first. In a station chat others'
+ * messages can be reported, those handling its chats remove any message, and a closed chat takes
+ * nothing new.
  */
 const props = defineProps<{
   uid: string
@@ -60,12 +68,15 @@ const menuOpen = ref(false)
 const confirmation = ref<Confirmation | null>(null)
 const confirming = ref(false)
 const atBottom = ref(true)
+const reporting = ref<ConversationMessageResponse | null>(null)
+const reportOpen = ref(false)
 
 const others = computed(() => detail.value?.members.filter(member => member.uid !== readerUid.value) ?? [])
 const title = computed(() => detail.value ? titleOf({...detail.value, others: others.value}) : '')
 const directOther = computed(() => detail.value?.kind === 'DIRECT' ? others.value[0] ?? null : null)
 const items = computed(() => timelineOf(messages.value, unreadAfter.value, readerUid.value))
-const mentionables = computed(() => detail.value?.kind === 'GROUP' ? mentionablesOf(others.value) : [])
+const mentionables = computed(() => detail.value?.kind === 'DIRECT' ? [] : mentionablesOf(others.value))
+const closed = computed(() => !!detail.value?.station?.closed)
 
 async function loadBlocks() {
   blocked.value = (await getBlocks().catch(() => [])).map(person => person.uid)
@@ -94,7 +105,12 @@ function ask(question: Confirmation) {
 async function confirm() {
   const question = confirmation.value
   confirming.value = false
-  if (question) await question.run()
+  if (!question) return
+  try {
+    await question.run()
+  } catch (e) {
+    showToast(describeFailure(e, t).message, 'error')
+  }
 }
 
 function askBlock(person: MessagePersonResponse) {
@@ -104,6 +120,7 @@ function askBlock(person: MessagePersonResponse) {
     label: t('messages.block'),
     run: async () => {
       await block(person.uid)
+      forgetWritableMembers()
       await loadBlocks()
       await changed()
     },
@@ -113,6 +130,7 @@ function askBlock(person: MessagePersonResponse) {
 async function setBlocked(person: MessagePersonResponse, wanted: boolean) {
   if (wanted) return askBlock(person)
   await unblock(person.uid)
+  forgetWritableMembers()
   await loadBlocks()
   await changed()
 }
@@ -149,6 +167,7 @@ function jumpTo(messageId: number) {
 const actions = computed<MessageActions>(() => ({
   readerUid: readerUid.value,
   blocked: blocked.value,
+  closed: closed.value,
   reply: message => { editing.value = null; replyTo.value = message },
   edit: message => { replyTo.value = null; editing.value = message },
   remove: message => ask({
@@ -161,6 +180,15 @@ const actions = computed<MessageActions>(() => ({
   block: askBlock,
   jumpTo,
   menu: message => { menuMessage.value = message; menuOpen.value = true },
+  report: detail.value?.station && !detail.value.moderator
+    ? message => { reporting.value = message; reportOpen.value = true }
+    : undefined,
+  moderate: detail.value?.moderator ? message => ask({
+    title: t('messages.moderateConfirm.title'),
+    message: t('messages.moderateConfirm.text'),
+    label: t('messages.actions.removeForStation'),
+    run: () => conversation.remove(message.id),
+  }) : undefined,
 }))
 
 async function send(text: string) {
@@ -185,11 +213,16 @@ async function save(message: ConversationMessageResponse, text: string) {
                         @members="membersOpen = true" @mute="mute" @leave="askLeave" @block="setBlocked"/>
     <MessageTimeline :items="items" :has-older="hasOlder" :actions="actions" :load-older="conversation.loadOlder"
                      @at-bottom="value => atBottom = value"/>
-    <MessageComposer :placeholder="t('messages.composer.placeholder', {name: title})" :mentionables="mentionables"
+    <MutedText v-if="closed" tag="p" class="border-t border-(--border) p-3 text-center" data-testid="conversation-closed">
+      {{ t('messages.station.closedNotice') }}
+    </MutedText>
+    <MessageComposer v-else :placeholder="t('messages.composer.placeholder', {name: title})" :mentionables="mentionables"
                      :reply-to="replyTo" :editing="editing" :send="send" :save="save"
                      @cancel="replyTo = null; editing = null" @edit-last="editLast"/>
     <GroupMembersPanel v-if="detail.kind === 'GROUP'" v-model="membersOpen" :conversation="detail"
                        :reader-uid="readerUid" :on-changed="changed"/>
+    <StationChatMembersPanel v-if="detail.station" v-model="membersOpen" :conversation="detail"/>
+    <ReportMessageModal v-if="reporting" v-model="reportOpen" :conversation-uid="uid" :message="reporting"/>
     <MessageActionSheet v-if="menuMessage" v-model="menuOpen" :message="menuMessage" :actions="actions"/>
     <ConfirmDeleteModal v-if="confirmation" v-model="confirming" :title="confirmation.title"
                         :message="confirmation.message" :confirm-label="confirmation.label" @confirm="confirm"/>

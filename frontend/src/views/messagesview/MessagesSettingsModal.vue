@@ -10,24 +10,27 @@ import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import ToggleSetting from '@/components/input/toggle/ToggleSetting.vue'
+import SelectInput from '@/components/input/select/SelectInput.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import type {MessagePersonResponse} from '@/api/generated/schema'
+import {StationDigest, type MessagePersonResponse} from '@/api/generated/schema'
 import {getBlocks, unblock} from '@/api/messages'
 import {useMessagesStatus} from '@/composables/useMessagesStatus'
+import {forgetWritableMembers} from '@/composables/useMemberCards'
 import {personName} from '@/util/conversationTitle'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**
- * The reader's message settings: whether they are mailed about messages left unread, and the
- * people they blocked, each of whom can be let back in.
+ * The reader's message settings: whether the daily mail about unread messages comes, what it takes
+ * from station chats, and the people they blocked, each of whom can be let back in.
  */
 const open = defineModel<boolean>({required: true})
 
 const {t} = useI18n()
-const {status, setMail} = useMessagesStatus()
+const {status, setMail, setStationDigest} = useMessagesStatus()
 
 const blocked = ref<MessagePersonResponse[]>([])
 const failure = ref<Failure | null>(null)
@@ -45,9 +48,17 @@ const mail = computed({
   },
 })
 
+const stationDigest = computed({
+  get: () => status.value.stationDigest,
+  set: (wanted: StationDigest) => {
+    setStationDigest(wanted).catch(e => { failure.value = describeFailure(e, t) })
+  },
+})
+
 async function letBackIn(person: MessagePersonResponse) {
   try {
     await unblock(person.uid)
+    forgetWritableMembers()
     blocked.value = blocked.value.filter(entry => entry.uid !== person.uid)
   } catch (e) {
     failure.value = describeFailure(e, t)
@@ -60,6 +71,14 @@ async function letBackIn(person: MessagePersonResponse) {
     <div class="space-y-4 p-4">
       <SubHeader>{{ t('messages.settings.title') }}</SubHeader>
       <ToggleSetting v-model="mail" :label="t('messages.settings.mail')" :hint="t('messages.settings.mailHint')"/>
+      <div v-if="mail" class="space-y-1">
+        <FieldLabel for="messages-station-digest">{{ t('messages.settings.stationDigest') }}</FieldLabel>
+        <SelectInput id="messages-station-digest" v-model="stationDigest" data-testid="messages-station-digest">
+          <option :value="StationDigest.MENTIONS">{{ t('messages.settings.stationDigestMentions') }}</option>
+          <option :value="StationDigest.ALL">{{ t('messages.settings.stationDigestAll') }}</option>
+        </SelectInput>
+        <MutedText tag="p">{{ t('messages.settings.stationDigestHint') }}</MutedText>
+      </div>
       <FieldLabel>{{ t('messages.settings.blocked') }}</FieldLabel>
       <EmptyState v-if="blocked.length === 0" compact :message="t('messages.settings.noneBlocked')"/>
       <ul class="divide-y divide-(--border)">

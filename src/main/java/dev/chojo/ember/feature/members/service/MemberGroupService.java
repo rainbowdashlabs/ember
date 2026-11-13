@@ -9,6 +9,8 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -40,12 +42,16 @@ public class MemberGroupService {
     private final UserTagRepository tagRepository;
     private final GroupMembershipService memberships;
 
+    private final DomainEventBus eventBus;
+
     @Inject
     public MemberGroupService(
             MemberGroupRepository groupRepository,
             StationMemberRepository memberRepository,
             UserTagRepository tagRepository,
-            GroupMembershipService memberships) {
+            GroupMembershipService memberships,
+            DomainEventBus eventBus) {
+        this.eventBus = eventBus;
         this.groupRepository = groupRepository;
         this.memberRepository = memberRepository;
         this.tagRepository = tagRepository;
@@ -82,7 +88,9 @@ public class MemberGroupService {
         requireNothingLimitedTo(group.id(), MemberRefusal.GROUP_STILL_LIMITS_CONTENT_ON_DELETE);
         memberships.requireMayDissolve(group, by, MemberRefusal.GROUP_GRANTS_MORE_THAN_YOURS_ON_DELETE);
         log.info("Group deleted: id={}", group.id());
-        return groupRepository.delete(group.id());
+        boolean deleted = groupRepository.delete(group.id());
+        if (deleted) eventBus.publish(StationAudienceChanged.at(group.stationId()));
+        return deleted;
     }
 
     private void requireNothingLimitedTo(int groupId, MemberRefusal refusal) {
@@ -145,5 +153,6 @@ public class MemberGroupService {
             return created;
         });
         log.info("Group {} converted to tag {} in station {}", group.id(), tag.id(), group.stationId());
+        eventBus.publish(StationAudienceChanged.at(group.stationId()));
     }
 }

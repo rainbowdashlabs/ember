@@ -13,8 +13,9 @@ import jakarta.inject.Singleton;
  * What an account's deletion does to messages.
  *
  * <p>Its memberships go, its messages stay for the others with the author shown as a deleted
- * account, and a conversation nobody is left in goes entirely. Blocks and reactions go with the
- * account by their foreign keys, and the author is cleared the same way.
+ * account, and a direct conversation or group nobody is left in goes entirely; a station chat
+ * stays with its station. Blocks and reactions go with the account by their foreign keys, and the
+ * author is cleared the same way.
  */
 @Singleton
 public class MessageErasure {

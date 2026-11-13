@@ -6,6 +6,9 @@
 package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.DomainEventHandler;
+import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
@@ -14,6 +17,13 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.federation.service.LendingUidClashes;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.messages.entity.ChatAudience;
+import dev.chojo.ember.feature.messages.repository.ConversationRepository;
+import dev.chojo.ember.feature.messages.repository.MessageReportRepository;
+import dev.chojo.ember.feature.messages.repository.MessageRepository;
+import dev.chojo.ember.feature.messages.repository.ReactionRepository;
+import dev.chojo.ember.feature.messages.repository.StationChatRepository;
+import dev.chojo.ember.feature.messages.service.MessageFixtures;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
@@ -35,6 +45,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -54,6 +66,21 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
 
     private static StationExportService exportService;
     private static StationImportService importService;
+
+    /** The audience events the imports announce, so a test sees the chats being looked at again. */
+    private static final List<StationAudienceChanged> ANNOUNCED = new CopyOnWriteArrayList<>();
+
+    private static final DomainEventHandler<StationAudienceChanged> AUDIENCE_EVENTS = new DomainEventHandler<>() {
+        @Override
+        public Class<StationAudienceChanged> eventType() {
+            return StationAudienceChanged.class;
+        }
+
+        @Override
+        public void handle(StationAudienceChanged event) {
+            ANNOUNCED.add(event);
+        }
+    };
 
     @BeforeAll
     static void setup() {
@@ -89,7 +116,8 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
                 org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class),
                 TestAccountLinks.importedLinks(accountRepo, stationRepo, stationMemberRepo),
                 new ActiveImports(),
-                new TaskScheduler());
+                new TaskScheduler(),
+                new DomainEventBus(Set.of(AUDIENCE_EVENTS)));
     }
 
     /**
@@ -312,6 +340,83 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
                         .toList());
         var copy = inventoryRepo.findBorrowedItems(partner.id()).getFirst();
         assertEquals(result.stationId(), copy.ownerStationId(), "the partner's copy names its owner here again");
+    }
+
+    /**
+     * A station chat moves with its station: its group found again by its new id, its messages
+     * with their authors found again by address, its members, reactions and reports. A private
+     * conversation between the same people stays behind.
+     */
+    @Test
+    void stationChatsMoveWithTheirStationAndPrivateOnesStay() {
+        var messaging = MessageFixtures.build();
+        var sourceStation = stationRepo.create("Chat Source");
+        Account anna = accountRepo.create("chat-anna-" + System.nanoTime() + "@example.com", "Anna", "Aalto", true);
+        Account ben = accountRepo.create("chat-ben-" + System.nanoTime() + "@example.com", "Ben", "Berger", true);
+        var annaMember = stationMemberRepo.create(sourceStation.id(), anna.id());
+        var benMember = stationMemberRepo.create(sourceStation.id(), ben.id());
+        var group = memberGroupRepo.create(sourceStation.id(), "Jugend");
+        memberGroupRepo.addMember(group.id(), annaMember.id());
+        memberGroupRepo.addMember(group.id(), benMember.id());
+        var chat = messaging
+                .stationChats()
+                .open(sourceStation.id(), anna.id(), "Jugend", ChatAudience.GROUP, group.id(), null, false);
+        int hello = messaging
+                .messages()
+                .send(anna.id(), chat.uid(), "Hallo", null)
+                .message()
+                .id();
+        messaging.reactions().react(ben.id(), chat.uid(), hello, "👍");
+        messaging.reports().report(ben.id(), chat.uid(), hello, "Zu laut");
+        var direct = messaging.conversations().openDirect(anna.id(), ben.uid());
+        messaging.messages().send(anna.id(), direct.uid(), "Privat", null);
+
+        Map<String, Object> bundle = collectBundle(sourceStation.id());
+        assertEquals(1, ((List<?>) bundle.get("conversation")).size(), "only the station chat is exported");
+        assertTrue(
+                ((List<?>) bundle.get("message"))
+                        .stream().map(row -> ((Map<?, ?>) row).get("content")).noneMatch("Privat"::equals),
+                "no message of a private conversation is exported");
+        stationRepo.delete(sourceStation.id());
+        new ConversationRepository().forgetAccount(anna.id());
+        new ConversationRepository().forgetAccount(ben.id());
+        accountRepo.delete(anna.id());
+        accountRepo.delete(ben.id());
+
+        var result = importService.importStation(bundle);
+
+        assertTrue(ANNOUNCED.contains(StationAudienceChanged.at(result.stationId())), "the chats are looked at again");
+        var chats = new StationChatRepository().ofStation(result.stationId());
+        assertEquals(1, chats.size(), "only the station chat arrives");
+        var arrived = chats.getFirst();
+        var arrivedGroup = memberGroupRepo.findByStation(result.stationId()).stream()
+                .filter(found -> found.name().equals("Jugend"))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(arrivedGroup.id(), arrived.station().groupId());
+        var newAnna = accountRepo.findByEmail(anna.email()).orElseThrow();
+        var newBen = accountRepo.findByEmail(ben.email()).orElseThrow();
+        var lines = new MessageRepository().before(arrived.id(), null, 10);
+        var written = lines.stream()
+                .filter(line -> "Hallo".equals(line.content()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(newAnna.id(), written.author().accountId());
+        assertEquals(
+                List.of(newBen.id()),
+                new ReactionRepository()
+                        .forMessages(List.of(written.id()), newAnna.id()).stream()
+                                .map(reaction -> reaction.person().accountId())
+                                .toList());
+        var reports = new MessageReportRepository().open(result.stationId());
+        assertEquals(1, reports.size());
+        assertEquals(newBen.id(), reports.getFirst().reporter().accountId());
+        assertEquals(
+                Set.of(newAnna.id(), newBen.id()),
+                new ConversationRepository()
+                        .activeMembers(arrived.id()).stream()
+                                .map(member -> member.accountId())
+                                .collect(Collectors.toSet()));
     }
 
     /** Collects every wire entry produced by the exporter into a single Map. */

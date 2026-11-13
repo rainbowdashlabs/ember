@@ -10,6 +10,7 @@ import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.auth.TokenHasher;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.accountlink.entity.AccountLinkRequest;
 import dev.chojo.ember.feature.accountlink.entity.LinkAnswer;
@@ -34,6 +35,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
@@ -102,6 +104,7 @@ class LinkAnswerServiceTest extends RepositoryTestBase {
                 notifier,
                 HASHER,
                 TestAccountLinks.associationAnswers(accountRepo, clusterRepo, twoFactorRepo, notifier),
+                new DomainEventBus(Set.of()),
                 clock);
     }
 

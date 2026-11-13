@@ -17,6 +17,8 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -35,6 +37,7 @@ import javax.sql.DataSource;
 public final class Transactions {
     private static final Logger log = LoggerFactory.getLogger(Transactions.class);
     private static final ThreadLocal<ConnectedQueryConfigurationImpl> ACTIVE = new ThreadLocal<>();
+    private static final ThreadLocal<List<Runnable>> AFTER_COMMIT = new ThreadLocal<>();
 
     private Transactions() {}
 
@@ -75,15 +78,48 @@ public final class Transactions {
 
         var transaction = QueryConfiguration.getDefault().withSingleTransaction();
         ACTIVE.set(transaction);
-        try (transaction) {
-            try {
-                return body.get();
-            } catch (RuntimeException | Error e) {
-                rollback(transaction);
-                throw e;
+        AFTER_COMMIT.set(new ArrayList<>());
+        T result;
+        List<Runnable> committed;
+        try {
+            try (transaction) {
+                try {
+                    result = body.get();
+                } catch (RuntimeException | Error e) {
+                    rollback(transaction);
+                    throw e;
+                }
             }
         } finally {
             ACTIVE.remove();
+            committed = AFTER_COMMIT.get();
+            AFTER_COMMIT.remove();
+        }
+        committed.forEach(Transactions::runCommitted);
+        return result;
+    }
+
+    /**
+     * Runs a piece of work once the running transaction has committed, or right away where none is
+     * running. Work planned in a transaction that rolls back never runs. Work that throws is logged
+     * and does not keep the rest from running, since what it follows has been committed already.
+     *
+     * @param work what follows the commit, such as telling others about it
+     */
+    public static void afterCommit(Runnable work) {
+        List<Runnable> waiting = AFTER_COMMIT.get();
+        if (ACTIVE.get() == null || waiting == null) {
+            runCommitted(work);
+            return;
+        }
+        waiting.add(work);
+    }
+
+    private static void runCommitted(Runnable work) {
+        try {
+            work.run();
+        } catch (RuntimeException e) {
+            log.warn("Work planned after a commit failed", e);
         }
     }
 

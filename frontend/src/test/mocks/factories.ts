@@ -135,6 +135,7 @@ export function createSessionInfo(
         clusterPermissions: [],
         ownStationPermissions: [],
         canSendMail: true,
+        messagesEnabled: true,
         pdfHidesInstanceUrl: false,
         stationTimezone: 'UTC',
         ...rest,

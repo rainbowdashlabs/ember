@@ -10,5 +10,10 @@ public enum ConversationKind {
     /** Exactly two accounts, at most one conversation per pair. */
     DIRECT,
     /** Several accounts with an owner and an optional name. */
-    GROUP
+    GROUP,
+    /**
+     * A station's chat: named, owned by the station, and taking its members from an audience at the
+     * station rather than from anybody adding them.
+     */
+    STATION
 }

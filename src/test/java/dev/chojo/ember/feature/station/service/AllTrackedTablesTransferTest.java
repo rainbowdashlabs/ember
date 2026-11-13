@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.events.entity.AppointmentOwner;
@@ -107,7 +108,8 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
                 org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class),
                 TestAccountLinks.importedLinks(accountRepo, stationRepo, stationMemberRepo),
                 new ActiveImports(),
-                new TaskScheduler());
+                new TaskScheduler(),
+                new DomainEventBus(Set.of()));
     }
 
     @Test

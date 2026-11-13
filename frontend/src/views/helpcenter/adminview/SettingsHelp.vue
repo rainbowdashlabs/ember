@@ -27,6 +27,10 @@ async function noSave() {}
       <p>{{ t('helpCenter.adminSettings.registrationText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.adminSettings.messagesTitle')">
+      <p>{{ t('helpCenter.adminSettings.messagesText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.adminSettings.mailLocaleTitle')">
       <p>{{ t('helpCenter.adminSettings.mailLocaleText') }}</p>
     </HelpSection>
@@ -39,6 +43,7 @@ async function noSave() {}
       <div class="space-y-4">
         <GeneralPanel
           :registration-enabled="true"
+          :messages-enabled="true"
           :available-mail-locales="sampleMailLocales"
           :force-pride-flag="false"
           default-mail-locale="de"

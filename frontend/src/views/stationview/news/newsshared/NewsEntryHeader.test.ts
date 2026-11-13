@@ -8,6 +8,7 @@ import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import NewsEntryHeader from './NewsEntryHeader.vue'
 import type {NewsResponse} from '@/api/generated/schema'
+import {createIdentity} from '@/test/mocks/factories'
 
 function entry(overrides: Partial<NewsResponse> = {}): NewsResponse {
     return {
@@ -64,5 +65,20 @@ describe('NewsEntryHeader', () => {
         const view = header(entry(), false)
 
         expect(view.find('[data-testid="an-action"]').exists()).toBe(false)
+    })
+
+    it('opens the member card of an author the entry names, and draws a plain picture otherwise', () => {
+        const named = mount(NewsEntryHeader, {
+            props: {entry: entry({author: createIdentity({name: 'Anna Muster'}), authorName: 'Anna Muster'}), canManage: false},
+            global: {stubs: {NewsAuthorAvatar: {template: '<span data-testid="author-card"/>'}}},
+        })
+        const unnamed = mount(NewsEntryHeader, {
+            props: {entry: entry({authorName: 'Gelöschtes Mitglied'}), canManage: false},
+            global: {stubs: {NewsAuthorAvatar: {template: '<span data-testid="author-card"/>'}}},
+        })
+
+        expect(named.find('[data-testid="author-card"]').exists()).toBe(true)
+        expect(unnamed.find('[data-testid="author-card"]').exists()).toBe(false)
+        expect(unnamed.text()).toContain('Gelöschtes Mitglied')
     })
 })

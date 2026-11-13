@@ -28,6 +28,6 @@ const {nameOf} = useMessageWords()
               :title="t('messages.jumpToReply')" @click="$emit('jump', reply.id)">
     <AppIcon :icon="['fas', 'reply']" class="h-3 w-3 shrink-0 -scale-x-100"/>
     <span class="font-semibold">{{ nameOf(reply.author) }}</span>
-    <span class="truncate">{{ reply.deleted ? t('messages.deleted') : reply.text }}</span>
+    <span class="truncate">{{ reply.removedByStation ? t('messages.removedByStation') : reply.deleted ? t('messages.deleted') : reply.text }}</span>
   </BareButton>
 </template>

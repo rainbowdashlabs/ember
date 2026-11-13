@@ -10,6 +10,7 @@ package dev.chojo.ember.feature.messages.entity;
  *
  * @param available whether the reader can use messages at all; the button is hidden otherwise
  * @param unread    how many messages wait unread, muted conversations left out
- * @param mail      whether the reader is mailed about messages left unread for a while
+ * @param mail          whether the reader is sent the daily mail about messages left unread
+ * @param stationDigest what that mail takes from station chats: mentions of the reader, or everything
  */
-public record MessagesStatus(boolean available, int unread, boolean mail) {}
+public record MessagesStatus(boolean available, int unread, boolean mail, StationDigest stationDigest) {}

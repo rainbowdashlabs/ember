@@ -1,0 +1,8 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hi {{ name }},</h2>
+      <p>These messages are still unread:</p>
+      {{ sections | raw }}
+      <div class="btn-wrap"><a class="btn" href="{{ url }}">Open messages</a></div>
+      <p>This mail comes at most once a day, and only when something new has stayed unread since the last one. Under <a href="{{ url }}">Messages</a> it can be turned off, and what station chats add to it can be chosen.</p>
+{% endblock %}

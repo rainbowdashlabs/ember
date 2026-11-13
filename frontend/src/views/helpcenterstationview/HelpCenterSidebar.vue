@@ -170,6 +170,18 @@ function highlightSnippet(result: (typeof searchResults.value)[number]): string 
       </SidebarLink>
     </SidebarGroup>
 
+    <SidebarGroup :icon="['fas', 'comments']" :label="t('sidebar.stationChats')"
+                  to="/helpcenter/station/messages/chats" name="help-message-station-chats" @navigate="close">
+      <SidebarLink :icon="['fas', 'comments']" name="help-message-station-chats"
+                   to="/helpcenter/station/messages/chats" @navigate="close">
+        {{ t('sidebar.stationChats') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'flag']" name="help-message-reports"
+                   to="/helpcenter/station/messages/reports" @navigate="close">
+        {{ t('sidebar.messageReports') }}
+      </SidebarLink>
+    </SidebarGroup>
+
     <SidebarGroup :icon="['fas', 'user']" :label="t('sidebar.profile')"
                   to="/helpcenter/station/profile" name="help-profile-module-overview" @navigate="close">
       <SidebarLink :icon="['fas', 'calendar-days']" name="help-profile-absences"

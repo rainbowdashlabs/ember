@@ -80,6 +80,7 @@ const typeIcons: Partial<Record<NotificationType, string>> = {
   FEDERATION_REQUEST_ACCEPTED: 'share-nodes',
   FEDERATION_REQUEST_DECLINED: 'share-nodes',
   NAME_CHANGE_REQUESTED: 'id-card',
+  MESSAGE_REPORTED: 'flag',
   NAME_CHANGE_APPROVED: 'id-card',
   NAME_CHANGE_DENIED: 'id-card',
   SIGNATURE_REQUESTED: 'file-signature',
