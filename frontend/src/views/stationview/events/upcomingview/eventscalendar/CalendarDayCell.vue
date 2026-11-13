@@ -7,6 +7,7 @@
 import type {RouteLocationRaw} from 'vue-router'
 import EventChipLink from '@/components/navigation/EventChipLink.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
+import EventGroupBand from '../../eventshared/EventGroupBand.vue'
 import type {EventSummary} from '@/api/generated/schema'
 import type {DayCell} from '@/composables/useEventCalendarGrid'
 
@@ -49,13 +50,14 @@ void props
       <EventChipLink
           v-for="evRef in cell.events.slice(0, 3)"
           :key="`${evRef.event.id}-${evRef.date}`"
-          :title="`${evRef.event.name}${evRef.event.startTime ? ' · ' + formatTime(evRef.event.startTime) : ''}`"
+          :title="`${evRef.event.name}${evRef.event.startTime ? ' · ' + formatTime(evRef.event.startTime) : ''}${evRef.event.eventGroup ? ' · ' + evRef.event.eventGroup.eventGroupName : ''}`"
           :custom-style="chipStyle(evRef.event)"
           :to="detailRoute(evRef.event, evRef.date)"
           :class="{'line-through opacity-60': isCancelled(evRef.event, evRef.date)}"
           :data-cancelled="isCancelled(evRef.event, evRef.date)"
       >
         <MutedIcon v-if="evRef.event.restricted" :icon="['fas', 'lock']" class="mr-0.5 inline"/>
+        <EventGroupBand v-if="evRef.event.eventGroup" :event-group="evRef.event.eventGroup" variant="mark"/>
         <span class="hidden sm:inline">{{ formatTime(evRef.event.startTime) }}&nbsp;</span>
         <span>{{ evRef.event.name }}</span>
       </EventChipLink>

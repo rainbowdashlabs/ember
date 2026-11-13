@@ -2,7 +2,7 @@
 
 ## v26.25.0
 
-People who share a station can write to each other directly or in groups. One date of a series, or a series from one date on, can be changed on its own, and saving a change can tell the people it concerns. Parts of the inventory, such as lending or procurement, can be switched off on their own, and a switched-off module takes its notifications and permissions with it. Shared appointments with a partner station on another server need both stations on this version.
+People who share a station can write to each other directly or in groups. One date of a series, or a series from one date on, can be changed on its own, and saving a change can tell the people it concerns. Event groups such as the Jugendflamme group appointments into blocks, take one sign-up for all their dates and can be shared with partner stations. Shared appointments with a partner station on another server need both stations on this version.
 
 ### New Features
 
@@ -14,6 +14,14 @@ People who share a station can write to each other directly or in groups. One da
 - **Change one date or later dates.** Saving a change to a series asks whether it applies to only this date, to this and all later dates, or to all dates. A single date becomes an appointment of its own and later dates go on as a new series; places and attendance sheets move along, and both appointments link to each other.
 - **Tell the people an appointment concerns.** Saving a change can notify everybody holding a place, or everybody who may see an appointment without registration, with an optional note of up to 500 characters. The message names what changed, and partner stations pass it on to their members.
 - **Split series count as one.** In the station statistics, a series that goes on as a new one and the dates taken out of it count as one appointment under its newest name.
+- **Event groups group appointments into blocks.** An event group such as the Jugendflamme groups one-time appointments into blocks, each saying how many of its dates have to be attended. Every date of an event group points to the event group's page.
+- **A coloured band marks the dates of an event group.** Lists, partner tiles and the overview show a band in the event group's colour on the left of each of its dates, and the calendar a small mark before the name. Pointing at it names the event group and which date of how many it is.
+- **Event groups start from the appointments.** A new event group is created under Events → Manage, or from the editor of a one-time appointment, which also adds that appointment to an existing event group. Event groups without dates yet are listed under Events → Manage.
+- **Fields for every date of an event group.** Fields such as the place or what to bring are set once on the event group, and every one of its dates shows them. A date that differs replaces a field with its own.
+- **One sign-up for a whole event group.** People sign up once and choose their dates, and a sign-up cannot be saved while a block is short. Places, deadline, confirmation and questions belong to the event group, and whoever runs events can sign somebody up past the rules, which the event group marks as short.
+- **Event group notifications come once per event group.** Signing up, decisions, a warning before sign-ups close and a called-off event group each reach the people concerned once for the event group instead of once per date.
+- **Event groups with partner stations.** An event group can be shared with partner stations together with all its dates, and their members sign up by the same rules and places. The partner station passes the notice of a called-off event group on to them.
+- **Attendance across an event group.** The event group page shows for every participant how many dates of each block they attended according to the attendance sheets, and whether every block is met. The overview can be exported as a spreadsheet.
 - **Inventory parts switch off on their own.** Movements, lending, procurement, self-checks and inventory checks each have a switch under the inventory on Station → Modules. Associations can deny each part to their stations the same way as a whole module.
 
 ### Improvements

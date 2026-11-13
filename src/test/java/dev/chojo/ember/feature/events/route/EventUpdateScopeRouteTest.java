@@ -69,9 +69,16 @@ class EventUpdateScopeRouteTest {
     private StationEvent series;
     private RouteHarness harness;
 
+    private EventCrudService crudService;
+
+    private EventCrudService crudServiceOf() {
+        return crudService;
+    }
+
     @BeforeEach
     void serve() {
         var crudService = mock(EventCrudService.class);
+        this.crudService = crudService;
         var series = event(SERIES_ID);
         var created = event(NEW_ID);
         when(crudService.findById(SERIES_ID)).thenReturn(Optional.of(series));
@@ -220,5 +227,27 @@ class EventUpdateScopeRouteTest {
         var links = json(answer);
         assertEquals(NEW_ID, links.get("continuations").get(0).get("eventId").asInt());
         assertEquals(false, links.get("continuations").get(0).get("series").asBoolean());
+    }
+
+    @Test
+    void aPartOfAnEventGroupTakesItsAudienceFromTheEventGroup() {
+        when(crudServiceOf().isEventGroupPart(SERIES_ID)).thenReturn(true);
+
+        var response = harness.request(client -> client.put(
+                PREFIX + "/events/" + SERIES_ID + "/restrictions",
+                body("{}"),
+                harness.as(TestSessions.member(STATION_ID, StationPermission.EVENT_EDIT))));
+
+        assertEquals(EventRefusal.EVENT_GROUP_PART_AUDIENCE_FROM_EVENT_GROUP, refusalOf(response));
+    }
+
+    @Test
+    void savingAPartOfAnEventGroupLeavesTheAudienceTheEventGroupGaveIt() {
+        when(crudServiceOf().isEventGroupPart(NEW_ID)).thenReturn(true);
+
+        assertEquals(200, update("").code());
+
+        verify(restrictions, never()).setRestrictions(eq(NEW_ID), any());
+        verify(restrictions, never()).setViewRestrictions(eq(NEW_ID), any());
     }
 }

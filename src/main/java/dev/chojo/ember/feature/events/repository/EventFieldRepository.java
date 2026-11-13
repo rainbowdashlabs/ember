@@ -18,9 +18,11 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -243,11 +245,17 @@ public class EventFieldRepository {
 
     public List<String> findDistinctFieldNames(int stationId) {
         return query("""
-                SELECT DISTINCT ef.name
-                FROM event_field ef
-                JOIN station_event se ON se.id = ef.event_id
-                WHERE se.station_id = :station_id
-                ORDER BY ef.name;""")
+                SELECT name
+                FROM (SELECT ef.name
+                      FROM event_field ef
+                          JOIN station_event se ON se.id = ef.event_id
+                      WHERE se.station_id = :station_id
+                      UNION
+                      SELECT f.name
+                      FROM event_group_field f
+                          JOIN event_group g ON g.id = f.group_id
+                      WHERE g.station_id = :station_id) names
+                ORDER BY name;""")
                 .single(call().bind("station_id", stationId))
                 .map(row -> row.getString("name"))
                 .all();
@@ -279,6 +287,115 @@ public class EventFieldRepository {
                         .bind("public", isPublic),
                 AppointmentField.map(),
                 EVENT_FIELD_COLUMNS);
+    }
+
+    private static final String GROUP_FIELD_COLUMNS =
+            "f.name, f.field_type, f.config, f.value, f.position, f.overview, NULL::INT AS attendance_field_id, f.\"public\"";
+
+    /**
+     * What an appointment shows on one of its dates: the fields its event group hands down, then its
+     * own as they stand on that date, an own field replacing a group field of the same name.
+     *
+     * @param eventId the appointment
+     * @param date    the date
+     * @return the fields it shows
+     */
+    public List<AppointmentField> findShownOn(int eventId, LocalDate date) {
+        var own = findByEventOn(eventId, date);
+        return AppointmentField.shown(
+                own,
+                findInherited(List.of(eventId), false),
+                own.stream().map(AppointmentField::name).toList());
+    }
+
+    /**
+     * The fields of an event group as its own page shows them. They belong to no appointment, so they
+     * carry event id 0.
+     *
+     * @param groupId the event group
+     * @return its fields in order
+     */
+    public List<AppointmentField> findByGroup(int groupId) {
+        return query("""
+                SELECT f.id, 0 AS event_id, %s
+                FROM event_group_field f
+                WHERE f.group_id = :group_id
+                ORDER BY f.position, f.id;""", GROUP_FIELD_COLUMNS)
+                .single(call().bind("group_id", groupId))
+                .map(AppointmentField.map())
+                .all();
+    }
+
+    /**
+     * The fields appointments take over from the event group they belong to, each under the
+     * appointment it shows on. An inherited field carries the negative id of the group's field, so it
+     * never stands for a field of the appointment itself.
+     *
+     * @param eventIds     the appointments
+     * @param overviewOnly whether only the fields shown in lists are wanted
+     * @return the inherited fields, by appointment and position
+     */
+    public List<AppointmentField> findInherited(List<Integer> eventIds, boolean overviewOnly) {
+        if (eventIds.isEmpty()) return List.of();
+        return query("""
+                SELECT -f.id AS id, se.id AS event_id, %s
+                FROM station_event se
+                    JOIN event_group_set s ON s.id = se.event_group_set_id
+                    JOIN event_group_field f ON f.group_id = s.group_id
+                WHERE se.id = ANY(:event_ids)
+                  AND (NOT :overview_only OR f.overview)
+                ORDER BY se.id, f.position, f.id;""", GROUP_FIELD_COLUMNS)
+                .single(call().bind("event_ids", eventIds, PostgreSqlTypes.INTEGER)
+                        .bind("overview_only", overviewOnly))
+                .map(AppointmentField.map())
+                .all();
+    }
+
+    /**
+     * The names of the fields appointments carry themselves, which decide whether an appointment
+     * replaces a field of its event group.
+     *
+     * @param eventIds the appointments
+     * @return the names of each appointment's own fields
+     */
+    public Map<Integer, Set<String>> findOwnNames(List<Integer> eventIds) {
+        var names = new HashMap<Integer, Set<String>>();
+        if (eventIds.isEmpty()) return names;
+        query("SELECT event_id, name FROM event_field WHERE event_id = ANY(:event_ids);")
+                .single(call().bind("event_ids", eventIds, PostgreSqlTypes.INTEGER))
+                .map(row -> Map.entry(row.getInt("event_id"), row.getString("name")))
+                .all()
+                .forEach(entry -> names.computeIfAbsent(entry.getKey(), id -> new HashSet<>())
+                        .add(entry.getValue()));
+        return names;
+    }
+
+    /**
+     * Replaces the fields of an event group. Nothing hangs off a group field's row, so they are
+     * written anew.
+     *
+     * @param groupId the event group
+     * @param fields  the fields in their new order
+     */
+    public void replaceGroupFields(int groupId, List<EventFieldDraft> fields) {
+        query("DELETE FROM event_group_field WHERE group_id = :group_id;")
+                .single(call().bind("group_id", groupId))
+                .delete();
+        for (int i = 0; i < fields.size(); i++) {
+            var field = fields.get(i);
+            query("""
+                    INSERT INTO event_group_field(group_id, name, field_type, config, value, position, overview, "public")
+                    VALUES (:group_id, :name, :field_type, :config::JSONB, :value, :position, :overview, :public);""")
+                    .single(call().bind("group_id", groupId)
+                            .bind("name", field.name())
+                            .bind("field_type", field.fieldType())
+                            .bind("config", field.config().toJson())
+                            .bind("value", field.value())
+                            .bind("position", i)
+                            .bind("overview", field.overview())
+                            .bind("public", field.isPublic()))
+                    .insert();
+        }
     }
 
     public void deleteByEvent(int eventId) {

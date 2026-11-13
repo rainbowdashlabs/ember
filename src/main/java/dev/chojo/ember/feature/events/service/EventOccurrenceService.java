@@ -6,10 +6,12 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.feature.events.entity.DatedEvent;
+import dev.chojo.ember.feature.events.entity.EventGroupPartSummary;
 import dev.chojo.ember.feature.events.entity.EventSummary;
 import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -21,6 +23,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.function.BiFunction;
@@ -37,11 +40,48 @@ import java.util.function.UnaryOperator;
 public class EventOccurrenceService {
     private final EventCrudService eventCrudService;
     private final OccurrenceCalendar occurrenceCalendar;
+    private final EventGroupRepository eventGroupRepository;
 
     @Inject
-    public EventOccurrenceService(EventCrudService eventCrudService, OccurrenceCalendar occurrenceCalendar) {
+    public EventOccurrenceService(
+            EventCrudService eventCrudService,
+            OccurrenceCalendar occurrenceCalendar,
+            EventGroupRepository eventGroupRepository) {
         this.eventCrudService = eventCrudService;
         this.occurrenceCalendar = occurrenceCalendar;
+        this.eventGroupRepository = eventGroupRepository;
+    }
+
+    /**
+     * Appointments as a plain list shows them, each part of an event group saying which event group it belongs
+     * to.
+     *
+     * @param stationId the station
+     * @param events    the appointments
+     * @return their summaries
+     */
+    public List<EventSummary> summaries(int stationId, List<StationEvent> events) {
+        var parts = events.isEmpty()
+                ? Map.<Integer, EventGroupPartSummary>of()
+                : eventGroupRepository.findPartSummaries(stationId);
+        return events.stream()
+                .map(event -> EventSummary.of(event).withEventGroup(parts.get(event.id())))
+                .toList();
+    }
+
+    /** The occurrences as listed, each part of an event group saying which event group it belongs to. */
+    private List<UpcomingEventOccurrence> withEventGroups(int stationId, List<UpcomingEventOccurrence> occurrences) {
+        if (occurrences.isEmpty()) return occurrences;
+        var parts = eventGroupRepository.findPartSummaries(stationId);
+        if (parts.isEmpty()) return occurrences;
+        return occurrences.stream()
+                .map(occurrence -> new UpcomingEventOccurrence(
+                        occurrence
+                                .event()
+                                .withEventGroup(parts.get(occurrence.event().id())),
+                        occurrence.date(),
+                        occurrence.cancellation()))
+                .toList();
     }
 
     /**
@@ -83,7 +123,8 @@ public class EventOccurrenceService {
         BiFunction<StationEvent, LocalDate, Optional<LocalDate>> next =
                 query.registrationOpen() ? (event, day) -> nextOpenDate(event, day, last, calendar) : calendar::next;
         var walk = new Walk(next, day -> day.plusDays(1), day -> !day.isAfter(last), Comparator.naturalOrder());
-        return page(walk.from(first, events, query.offset() + query.limit(), calendar), query);
+        return withEventGroups(
+                stationId, page(walk.from(first, events, query.offset() + query.limit(), calendar), query));
     }
 
     /**
@@ -132,7 +173,8 @@ public class EventOccurrenceService {
                 day -> day.minusDays(1),
                 day -> oldest == null || !day.isBefore(oldest),
                 Comparator.reverseOrder());
-        return page(walk.from(newest, events, query.offset() + query.limit(), calendar), query);
+        return withEventGroups(
+                stationId, page(walk.from(newest, events, query.offset() + query.limit(), calendar), query));
     }
 
     /**
@@ -176,11 +218,13 @@ public class EventOccurrenceService {
         }
         placed.sort(byDate(past).thenComparing(entry -> entry.event().id()));
 
+        var parts = eventGroupRepository.findPartSummaries(stationId);
         return placed.stream()
                 .skip(filter.offset())
                 .limit(filter.limit())
                 .map(entry -> new DatedEvent(
-                        EventSummary.of(entry.event()),
+                        EventSummary.of(entry.event())
+                                .withEventGroup(parts.get(entry.event().id())),
                         entry.next(),
                         entry.previous(),
                         entry.on() == null

@@ -593,4 +593,16 @@ class NotificationTextTest {
         var data = NotificationData.of(params, new NotificationData.NotificationLink("dashboard-overview"));
         return new Notification(id, MEMBER, null, type, data, Instant.now(), null);
     }
+
+    /** A whole event group called off is named as an event group, not as an appointment. */
+    @Test
+    void aCalledOffEventGroupIsNamedAsAnEventGroup() {
+        var cancelled = notificationWith(
+                NotificationType.EVENT_CANCELLED,
+                new NotificationParams.EventCancelled("Jugendflamme 1", null, null, null, true),
+                7);
+
+        assertTrue(text.resolveMessage("de", cancelled).startsWith("Terminreihe abgesagt"));
+        assertTrue(text.resolveMessage("en", cancelled).startsWith("Event group cancelled"));
+    }
 }

@@ -10,7 +10,11 @@ import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.Question;
 import org.jspecify.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 /**
  * A question the organiser answers once for an appointment, or once per date of it, together with
@@ -82,6 +86,39 @@ public record AppointmentField(
             }
         }
         return null;
+    }
+
+    /**
+     * The key two field names are matched by when an appointment field replaces a field of its event
+     * group: the name without surrounding space, in lower case.
+     *
+     * @param name a field name
+     * @return its key
+     */
+    public static String nameKey(String name) {
+        return name.strip().toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * What an appointment shows: the fields its event group hands down, then its own. A group field
+     * whose name an own field carries is left out, because the own one replaces it.
+     *
+     * @param own       the appointment's own fields
+     * @param inherited the fields its event group hands down
+     * @param ownNames  the names of all of the appointment's own fields, which may be more than
+     *                  {@code own} where only some are read
+     * @return the fields the appointment shows
+     */
+    public static List<AppointmentField> shown(
+            List<AppointmentField> own, List<AppointmentField> inherited, Collection<String> ownNames) {
+        if (inherited.isEmpty()) return own;
+        var replaced = ownNames.stream().map(AppointmentField::nameKey).collect(Collectors.toSet());
+        var shown = new ArrayList<AppointmentField>();
+        inherited.stream()
+                .filter(field -> !replaced.contains(nameKey(field.name())))
+                .forEach(shown::add);
+        shown.addAll(own);
+        return shown;
     }
 
     /** The question this field asks, as the one check measures an answer against it. */

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {events} from '@/api'
+import {eventGroups, events} from '@/api'
 import type {
     EventAttachment,
     EventFieldDefault,
@@ -94,6 +94,15 @@ export function eventFederationPort(eventId: number): FederationSharePort {
             set: (partnerId, slotBudget, partnerConfirms) =>
                 events.setPartnerPlaces(eventId, partnerId, slotBudget, partnerConfirms),
         },
+    }
+}
+
+/** How an event group, and with it every part, is shared with partner stations. */
+export function eventGroupFederationPort(eventGroupId: number): FederationSharePort {
+    return {
+        get: () => eventGroups.getFederationShare(eventGroupId),
+        set: (scope, partnerIds) => eventGroups.setFederationShare(eventGroupId, scope, partnerIds),
+        remove: () => eventGroups.removeFederationShare(eventGroupId),
     }
 }
 

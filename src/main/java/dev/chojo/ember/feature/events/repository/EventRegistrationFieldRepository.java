@@ -29,16 +29,33 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class EventRegistrationFieldRepository {
 
-    private static final String FIELD_COLUMNS = "id, event_id, name, field_type, config, position, overview";
+    private static final String FIELD_COLUMNS = "id, event_id, group_id, name, field_type, config, position, overview";
     private static final String VALUE_COLUMNS = "registration_id, field_id, value";
+    private static final String EVENT_GROUP_VALUE_COLUMNS = "group_registration_id AS registration_id, field_id, value";
+    private static final String EVENT_OWNER = "event_id";
+    private static final String EVENT_GROUP_OWNER = "group_id";
 
     public List<EventRegistrationField> findByEvent(int eventId) {
+        return findByOwner(EVENT_OWNER, eventId);
+    }
+
+    /**
+     * The questions an event group asks of everyone signing up for it, in their order.
+     *
+     * @param eventGroupId the event group
+     * @return its questions
+     */
+    public List<EventRegistrationField> findByEventGroup(int eventGroupId) {
+        return findByOwner(EVENT_GROUP_OWNER, eventGroupId);
+    }
+
+    private List<EventRegistrationField> findByOwner(String ownerColumn, int ownerId) {
         return query("""
                 SELECT %s
                 FROM event_registration_field
-                WHERE event_id = :event_id
-                ORDER BY position, id;""", FIELD_COLUMNS)
-                .single(call().bind("event_id", eventId))
+                WHERE %s = :owner_id
+                ORDER BY position, id;""", FIELD_COLUMNS, ownerColumn)
+                .single(call().bind("owner_id", ownerId))
                 .map(EventRegistrationField.map())
                 .all();
     }
@@ -50,18 +67,30 @@ public class EventRegistrationFieldRepository {
             EventQuestionSettings config,
             int position,
             boolean overview) {
+        return createFor(EVENT_OWNER, eventId, name, fieldType, config, position, overview);
+    }
+
+    private EventRegistrationField createFor(
+            String ownerColumn,
+            int ownerId,
+            String name,
+            FieldType fieldType,
+            EventQuestionSettings config,
+            int position,
+            boolean overview) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO event_registration_field(event_id, name, field_type, config, position, overview)
-                VALUES (:event_id, :name, :field_type, :config::JSONB, :position, :overview)
+                INSERT INTO event_registration_field(%s, name, field_type, config, position, overview)
+                VALUES (:owner_id, :name, :field_type, :config::JSONB, :position, :overview)
                 RETURNING %s;""",
-                call().bind("event_id", eventId)
+                call().bind("owner_id", ownerId)
                         .bind("name", name)
                         .bind("field_type", fieldType)
                         .bind("config", config.toJson())
                         .bind("position", position)
                         .bind("overview", overview),
                 EventRegistrationField.map(),
+                ownerColumn,
                 FIELD_COLUMNS);
     }
 
@@ -79,8 +108,23 @@ public class EventRegistrationFieldRepository {
      * belong to a question nobody is asking any more.
      */
     public void replaceFields(int eventId, List<RegistrationFieldDraft> fields) {
+        replaceFieldsOf(EVENT_OWNER, eventId, fields);
+    }
+
+    /**
+     * Replaces the questions of an event group, keeping each question that keeps its name so its answers
+     * stay with it.
+     *
+     * @param eventGroupId the event group
+     * @param fields   the questions in their new order
+     */
+    public void replaceEventGroupFields(int eventGroupId, List<RegistrationFieldDraft> fields) {
+        replaceFieldsOf(EVENT_GROUP_OWNER, eventGroupId, fields);
+    }
+
+    private void replaceFieldsOf(String ownerColumn, int ownerId, List<RegistrationFieldDraft> fields) {
         var byName = new LinkedHashMap<String, List<EventRegistrationField>>();
-        for (var existing : findByEvent(eventId)) {
+        for (var existing : findByOwner(ownerColumn, ownerId)) {
             byName.computeIfAbsent(existing.name(), name -> new ArrayList<>()).add(existing);
         }
 
@@ -93,7 +137,7 @@ public class EventRegistrationFieldRepository {
                     .findFirst()
                     .orElse(null);
             if (match == null) {
-                create(eventId, field.name(), field.fieldType(), field.config(), i, field.overview());
+                createFor(ownerColumn, ownerId, field.name(), field.fieldType(), field.config(), i, field.overview());
                 continue;
             }
             kept.add(match.id());
@@ -196,6 +240,75 @@ public class EventRegistrationFieldRepository {
                 DELETE FROM event_registration_field_value
                 WHERE registration_id = :registration_id AND field_id = :field_id;""")
                 .single(call().bind("registration_id", registrationId).bind("field_id", fieldId))
+                .delete();
+    }
+
+    /**
+     * The answers given with event group sign-ups, keyed in the result by the event group sign-up.
+     *
+     * @param eventGroupRegistrationIds the event group sign-ups
+     * @return their answers
+     */
+    public List<RegistrationFieldValue> findEventGroupAnswers(List<Integer> eventGroupRegistrationIds) {
+        if (eventGroupRegistrationIds.isEmpty()) return List.of();
+        return query("""
+                SELECT %s
+                FROM event_group_answer
+                WHERE group_registration_id = ANY(:ids);""", EVENT_GROUP_VALUE_COLUMNS)
+                .single(call().bind("ids", eventGroupRegistrationIds, PostgreSqlTypes.INTEGER))
+                .map(RegistrationFieldValue.map())
+                .all();
+    }
+
+    /**
+     * Stores one answer of an event group sign-up.
+     *
+     * @param eventGroupRegistrationId the event group sign-up
+     * @param fieldId              the question
+     * @param value                the answer
+     */
+    public void setEventGroupAnswer(int eventGroupRegistrationId, int fieldId, String value) {
+        query("""
+                INSERT INTO event_group_answer(group_registration_id, field_id, value)
+                VALUES (:group_registration_id, :field_id, :value)
+                ON CONFLICT (group_registration_id, field_id) DO UPDATE SET value = :value;""")
+                .single(call().bind("group_registration_id", eventGroupRegistrationId)
+                        .bind("field_id", fieldId)
+                        .bind("value", value))
+                .insert();
+    }
+
+    /**
+     * Removes every question an appointment asks of its own, with the answers given to them.
+     *
+     * @param eventId the appointment
+     */
+    public void deleteEventFields(int eventId) {
+        query("DELETE FROM event_registration_field WHERE event_id = :event_id;")
+                .single(call().bind("event_id", eventId))
+                .delete();
+    }
+
+    /**
+     * Removes every answer of an event group sign-up.
+     *
+     * @param eventGroupRegistrationId the event group sign-up
+     */
+    public void deleteEventGroupAnswers(int eventGroupRegistrationId) {
+        query("DELETE FROM event_group_answer WHERE group_registration_id = :id;")
+                .single(call().bind("id", eventGroupRegistrationId))
+                .delete();
+    }
+
+    /**
+     * Removes one answer of an event group sign-up.
+     *
+     * @param eventGroupRegistrationId the event group sign-up
+     * @param fieldId              the question
+     */
+    public void deleteEventGroupAnswer(int eventGroupRegistrationId, int fieldId) {
+        query("DELETE FROM event_group_answer WHERE group_registration_id = :id AND field_id = :field_id;")
+                .single(call().bind("id", eventGroupRegistrationId).bind("field_id", fieldId))
                 .delete();
     }
 }

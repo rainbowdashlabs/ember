@@ -123,6 +123,7 @@ public class EventSharingRoutes implements Routes {
     private void setFederationShare(Context ctx) {
         int id = pathInt(ctx, "id");
         var event = requireOwnedOrNotFound(ctx, id, crudService::findById, StationEvent::stationId);
+        if (crudService.isEventGroupPart(id)) throw EventRefusal.EVENT_GROUP_PART_SHARED_WITH_EVENT_GROUP.raise();
         if (event.restricted()) {
             throw EventRefusal.RESTRICTED_EVENT_NOT_SHARED.raise();
         }
@@ -141,6 +142,7 @@ public class EventSharingRoutes implements Routes {
     private void removeFederationShare(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, crudService::findById, StationEvent::stationId);
+        if (crudService.isEventGroupPart(id)) throw EventRefusal.EVENT_GROUP_PART_SHARED_WITH_EVENT_GROUP.raise();
         eventFederationService.removeShare(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -190,6 +192,7 @@ public class EventSharingRoutes implements Routes {
                 .findRegistrationById(id)
                 .orElseThrow(EventRefusal.PARTNER_REGISTRATION_NOT_HERE_ON_DECISION::raise);
         requireOwnedOrNotFound(ctx, reg.eventId(), crudService::findById, StationEvent::stationId);
+        if (crudService.isEventGroupPart(reg.eventId())) throw EventRefusal.REGISTRATION_THROUGH_EVENT_GROUP.raise();
 
         var places = eventFederationService.partnerPlaces(reg.eventId(), reg.partnerId());
         if (places.partnerConfirms()) {
@@ -270,6 +273,7 @@ public class EventSharingRoutes implements Routes {
         int eventId = pathInt(ctx, "id");
         int partnerId = pathInt(ctx, "partnerId");
         requireOwnedOrNotFound(ctx, eventId, crudService::findById, StationEvent::stationId);
+        if (crudService.isEventGroupPart(eventId)) throw EventRefusal.EVENT_GROUP_PART_SHARED_WITH_EVENT_GROUP.raise();
         var req = ctx.bodyAsClass(SetPartnerPlacesRequest.class);
         Integer slotBudget = req.slotBudget();
         if (slotBudget != null && slotBudget < 0) {

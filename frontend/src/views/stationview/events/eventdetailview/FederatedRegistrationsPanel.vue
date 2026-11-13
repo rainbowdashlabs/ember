@@ -22,6 +22,8 @@ const props = defineProps<{
   registrations: EnrichedFederationRegistration[]
   /** What each partner may do here, by partner. Absent means this station decides, as it always did. */
   partnerPlaces: PartnerPlacesView[]
+  /** Whether the appointment is a part of an event group, whose partner sign-ups are decided on the event group. */
+  eventGroupPart?: boolean
 }>()
 
 /**
@@ -58,7 +60,10 @@ const {t} = useI18n()
             {{ t('eventDetail.federatedAgreementWithdrawn') }}
           </ErrorBadge>
         </div>
-        <MutedText v-if="partnerDecides(fr.registration.partnerId)" size="sm">
+        <MutedText v-if="eventGroupPart && fr.registration.status === 'PENDING'" size="sm" data-testid="federated-decided-on-group">
+          {{ t('eventGroups.decidedOnEventGroup') }}
+        </MutedText>
+        <MutedText v-else-if="partnerDecides(fr.registration.partnerId)" size="sm">
           {{ t('eventDetail.federatedPartnerDecides') }}
         </MutedText>
         <ButtonRow v-else-if="fr.registration.status === 'PENDING'" pair>

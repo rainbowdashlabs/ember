@@ -9,6 +9,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventPartnerPlaces;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -26,7 +27,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
+import static dev.chojo.ember.api.RouteHarness.body;
 import static dev.chojo.ember.api.RouteHarness.json;
+import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -85,6 +88,37 @@ class EventSharingRoutesTest {
             var onTheDay = json(client.get(PREFIX + "/events/4/partner-places?eventDate=2026-05-01", registrar))
                     .path(0);
             assertEquals(2, onTheDay.path("taken").asInt());
+        });
+    }
+
+    @Test
+    void aPartOfAnEventGroupIsSharedWithItsEventGroupAndNotOnItsOwn() {
+        var crud = mock(EventCrudService.class);
+        var events = mock(EventFederationService.class);
+        var event = mock(StationEvent.class);
+        when(event.stationId()).thenReturn(STATION);
+        when(crud.findById(4)).thenReturn(Optional.of(event));
+        when(crud.isEventGroupPart(4)).thenReturn(true);
+        var harness = RouteHarness.serving(new EventSharingRoutes(
+                crud, events, mock(FederatedRegistrantService.class), mock(EventRequirementService.class)));
+
+        harness.run((server, client) -> {
+            var sharer = harness.as(TestSessions.member(
+                    STATION,
+                    StationPermission.EVENTS_FEDERATE,
+                    StationPermission.EVENT_MANAGER,
+                    StationPermission.EVENT_EDIT));
+            assertEquals(
+                    EventRefusal.EVENT_GROUP_PART_SHARED_WITH_EVENT_GROUP,
+                    refusalOf(client.put(
+                            PREFIX + "/events/4/federation", body("{\"scope\": \"ALL_PARTNERS\"}"), sharer)));
+            assertEquals(
+                    EventRefusal.EVENT_GROUP_PART_SHARED_WITH_EVENT_GROUP,
+                    refusalOf(client.put(
+                            PREFIX + "/events/4/partner-places/7", body("{\"partnerConfirms\": true}"), sharer)));
+            assertEquals(
+                    EventRefusal.EVENT_GROUP_PART_SHARED_WITH_EVENT_GROUP,
+                    refusalOf(client.delete(PREFIX + "/events/4/federation", null, sharer)));
         });
     }
 }

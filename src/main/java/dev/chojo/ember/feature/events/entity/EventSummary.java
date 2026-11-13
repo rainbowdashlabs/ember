@@ -31,7 +31,8 @@ public record EventSummary(
         @Nullable Integer templateId,
         boolean restricted,
         boolean seriesCancelled,
-        @Nullable Integer registrationLimit) {
+        @Nullable Integer registrationLimit,
+        @Nullable EventGroupPartSummary eventGroup) {
 
     public static EventSummary of(StationEvent event) {
         return new EventSummary(
@@ -49,6 +50,33 @@ public record EventSummary(
                 event.templateId(),
                 event.restricted(),
                 event.cancelled(),
-                event.registrationLimit());
+                event.registrationLimit(),
+                null);
+    }
+
+    /**
+     * The same appointment, saying which event group it is a part of.
+     *
+     * @param part the event group it is a part of, or null for an appointment of its own
+     * @return the summary with the event group
+     */
+    public EventSummary withEventGroup(@Nullable EventGroupPartSummary part) {
+        return new EventSummary(
+                id,
+                stationId,
+                name,
+                description,
+                eventType,
+                dayOfWeek,
+                startTime,
+                endTime,
+                requiresRegistration,
+                registrationDeadline,
+                categoryId,
+                templateId,
+                restricted,
+                seriesCancelled,
+                registrationLimit,
+                part);
     }
 }

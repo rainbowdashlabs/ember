@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:041af62ecf24cdd3e9133ebfc53ad1e4962f8a854dae41ee8a1f22d6909f4d84",
-  "generatedAt": "2026-11-12T16:54:30Z",
+  "schemaHash": "sha256:f689a47770b4f791d9a56e49f388d897329644857ee0d66ce87629e943792ff4",
+  "generatedAt": "2026-11-13T17:23:19Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -10450,7 +10450,7 @@
     "event_federation_registration": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:dc5f484935eb06cf29de79d73296af12673b26312caf24ab1d67963dfedb21bf",
+      "tableHash": "sha256:a29141388d62c26711771c4c9f508062b781d603150461b0a82933bd81d4b0e6",
       "columns": [
         {
           "name": "id",
@@ -10521,6 +10521,13 @@
           "nullable": true,
           "verified": true,
           "description": "When the partner reported a signed agreement for this date, which one of the appointment's documents asked its member to sign, withdrawn there while the registration stood. Flags the registration for whoever runs the appointment. NULL where none was, and again once a complete signed copy comes back."
+        },
+        {
+          "name": "group_partner_registration_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The partner's event group sign-up this registration for a part was chosen with; NULL for a registration of its own, and once the part was given up."
         }
       ],
       "foreignKeys": [
@@ -10529,6 +10536,12 @@
           "refTable": "station_event",
           "refColumn": "id",
           "onDelete": "CASCADE"
+        },
+        {
+          "column": "group_partner_registration_id",
+          "refTable": "event_group_partner_registration",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
         },
         {
           "column": "partner_id",
@@ -10866,6 +10879,844 @@
       },
       "description": "Default values for attendance session fields when created from an event."
     },
+    "event_group": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:a1e847a21c1ba4c93b6e749dbd6f9c606139c08418cf6a24fe3eb70ad770c5f9",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station the event group and all its parts belong to."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The event group name, shown on every part."
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the event group is about, as Markdown."
+        },
+        {
+          "name": "registration_limit",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "How many people the event group takes; NULL for no limit."
+        },
+        {
+          "name": "registration_deadline",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "The instant members can no longer sign up or change their parts; NULL for no deadline. Unlike the appointment deadline it carries its time zone."
+        },
+        {
+          "name": "requires_confirmation",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether a manager confirms each sign-up before it holds a place."
+        },
+        {
+          "name": "restriction_mode",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "How the entries of event_group_restriction combine: AND or OR."
+        },
+        {
+          "name": "view_restriction_mode",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "How the entries of event_group_view_restriction combine: AND or OR."
+        },
+        {
+          "name": "deadline_notified",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether managers were told that the deadline passed with sign-ups still waiting for a decision."
+        },
+        {
+          "name": "cancelled",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the whole event group was called off; its parts are called off with it."
+        },
+        {
+          "name": "cancelled_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the event group was called off; NULL while it takes place."
+        },
+        {
+          "name": "cancel_reason",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Why the event group was called off, as told to the people signed up; NULL for no reason given."
+        },
+        {
+          "name": "color",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The colour that marks the parts of the event group in lists, as #rrggbb; NULL takes one picked by its id."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the event group was created."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "ignoredColumns": [
+          "station_id",
+          "deadline_notified"
+        ],
+        "rationale": "An event group moves with the appointments that are its parts."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Event group structure data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Event group structure data, not per-member"
+      },
+      "description": "An event group: one-time appointments of a station that belong together and are signed up for once."
+    },
+    "event_group_answer": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:4c0b255eaf77d14a120911332ee1ad21e2c31f5da10ef6eef1b2ce7206baeb0d",
+      "columns": [
+        {
+          "name": "group_registration_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The event group sign-up the answer belongs to; the answer is removed with it."
+        },
+        {
+          "name": "field_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The question answered."
+        },
+        {
+          "name": "value",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The answer, stored as text in the same shape appointment answers use."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "field_id",
+          "refTable": "event_registration_field",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "group_registration_id",
+          "refTable": "event_group_registration",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "TRACKED"
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "group_registration_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE removes it with the event group sign-up, which is removed with the member"
+          }
+        ]
+      },
+      "description": "One member's answer to one question of an event group, given once with the event group sign-up rather than per part."
+    },
+    "event_group_deadline_reminder_sent": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:ff9a542efc534a221bcd77d7e7e2f08449f0f81024dcf1c857c332551664aaaa",
+      "columns": [
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The event group warned about."
+        },
+        {
+          "name": "days_before",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "How many days before the event group deadline this warning was the one for."
+        },
+        {
+          "name": "sent_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the warning went out."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "event_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Notification dedup state for event group deadlines, ephemeral"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Event group structure data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Event group structure data, not per-member"
+      },
+      "description": "Which warnings that sign-ups for an event group close soon have gone out, so a sweep every few minutes warns once."
+    },
+    "event_group_field": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:fbd5b9642bb149f625063ee892545f66dfdac8634563e0457cd09a5d5ac0f3e4",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The event group the field belongs to."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the field is called; an appointment field with the same name, ignoring case, replaces it on that appointment."
+        },
+        {
+          "name": "field_type",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The kind of value, one of the plain value kinds an appointment field takes (no member kinds)."
+        },
+        {
+          "name": "config",
+          "type": "jsonb",
+          "nullable": false,
+          "verified": true,
+          "description": "The settings of the field, such as the options of a choice, as for an appointment field."
+        },
+        {
+          "name": "value",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The value every appointment of the group shows unless it replaces the field."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Order among the group's fields."
+        },
+        {
+          "name": "overview",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the value shows in lists of appointments."
+        },
+        {
+          "name": "public",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether readers outside the station, such as partner stations and the public calendar, see it."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "event_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Event group structure data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Event group structure data, not per-member"
+      },
+      "description": "Fields of an event group, such as its place or meeting point. Every appointment of the group shows them; an appointment field of the same name replaces one."
+    },
+    "event_group_partner_registration": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:c11379fba7d94dcfb8ec284628f2c27ebdf15a700a59d52ec2fddeca7804eeca",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The event group signed up for."
+        },
+        {
+          "name": "partner_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The partner station the member belongs to."
+        },
+        {
+          "name": "remote_member_id",
+          "type": "uuid",
+          "nullable": false,
+          "verified": true,
+          "description": "The member at the partner station, by the id that station gave them."
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "PENDING, ACCEPTED, DENIED, DECLINED or WITHDRAWN, as for a member of this station."
+        },
+        {
+          "name": "registered_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the member signed up, or last signed up again after withdrawing."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "event_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "partner_id",
+          "refTable": "federation_partner",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_UID",
+            "column": "remote_member_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "The member belongs to the partner station; their own station holds the account, as for appointment registrations from partners"
+      },
+      "description": "A partner station's member signed up for a shared event group. The chosen parts carry an event_federation_registration each."
+    },
+    "event_group_registration": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:87d332e856e68e6e3e3d3c15873aae843ee80ca652bb1993a41db489f20458a6",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The event group signed up for."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The member signed up."
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "PENDING, ACCEPTED, DENIED, DECLINED or WITHDRAWN, as for an appointment sign-up."
+        },
+        {
+          "name": "registered_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the member signed up, or last signed up again after withdrawing."
+        },
+        {
+          "name": "created_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member who signed somebody else up; NULL when members signed up themselves."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "created_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "group_id",
+          "refTable": "event_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on member delete"
+          },
+          {
+            "column": "created_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the sign-up, who made it cleared"
+          }
+        ]
+      },
+      "description": "One member's sign-up for an event group. The chosen parts carry an event_registration each with the same status."
+    },
+    "event_group_restriction": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:5b0f0e446083682ccaa208cd9b792ef16cabfa1681aec1d15c5d403006b38d02",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "event_group_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The event group restricted."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required group membership."
+        },
+        {
+          "name": "tag_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required tag."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Specific member (always OR-connected, bypasses AND/OR mode)."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "event_group_id",
+          "refTable": "event_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "tag_id",
+          "refTable": "user_tag",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Event group structure data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Event group structure data, not per-member"
+      },
+      "description": "Who may sign up for the event group. Empty means everybody who may see it. Applies to every part."
+    },
+    "event_group_set": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:21d66150b962cb85e859004469ea18abc7e8e3c0e059eabdfde76a6130c5907b",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The event group the set belongs to."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The set name shown to members."
+        },
+        {
+          "name": "minimum",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "How many parts of the set a sign-up has to choose; all of them makes every part mandatory."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Sort order of the set within the event group."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "event_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Event group structure data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Event group structure data, not per-member"
+      },
+      "description": "A named group of parts of an event group with the number of them a participant has to attend, such as \"Practice: at least 2\"."
+    },
+    "event_group_share": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:43ac493d6372549e5634adf6343eb9324c3874eb7c1291a08a83683ff58708e5",
+      "columns": [
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The event group shared."
+        },
+        {
+          "name": "scope",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "ALL_PARTNERS, or SPECIFIC for the partners listed in event_group_share_target."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "event_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "An event group's share with partners; without it partners stop seeing the event group and its parts."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Event group structure, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Event group structure, not per-member"
+      },
+      "description": "An event group shared with partner stations. Its parts carry the same appointment share, parts added later included."
+    },
+    "event_group_share_target": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:9f681f72e7688ad77dcceb15b4f4efd8c2739771c5c09fb90ca35786232e8ee7",
+      "columns": [
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The shared event group."
+        },
+        {
+          "name": "partner_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "A partner the event group is shared with."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "event_group_share",
+          "refColumn": "group_id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "partner_id",
+          "refTable": "federation_partner",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "An event group's share with partners; without it partners stop seeing the event group and its parts."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Event group structure, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Event group structure, not per-member"
+      },
+      "description": "The partners an event group is shared with where its share names them one by one."
+    },
+    "event_group_view_restriction": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:5b0f0e446083682ccaa208cd9b792ef16cabfa1681aec1d15c5d403006b38d02",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "event_group_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The event group restricted."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required group membership."
+        },
+        {
+          "name": "tag_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required tag."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Specific member (always OR-connected, bypasses AND/OR mode)."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "event_group_id",
+          "refTable": "event_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "tag_id",
+          "refTable": "user_tag",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Event group structure data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Event group structure data, not per-member"
+      },
+      "description": "Who may know the event group exists. Empty means everybody. Applies to every part."
+    },
     "event_partner_agreement": {
       "feature": "signing",
       "scope": "STATION",
@@ -11044,7 +11895,7 @@
     "event_registration": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:b7d5e935146f16aac6c298f8a3d03b3e9308b05d282cab0c2eb2056d1891fca1",
+      "tableHash": "sha256:be5d9529ffa6aa61b933865ec6c3d15f2e5534cd760f97a9a78eff0443f06c4c",
       "columns": [
         {
           "name": "id",
@@ -11122,6 +11973,13 @@
           "nullable": true,
           "verified": true,
           "description": "When a signed agreement for this date that one of the appointment's documents to bring asked for was withdrawn while the registration stood, which flags the registration for whoever runs the appointment. NULL where none was, and again once the agreement is signed anew."
+        },
+        {
+          "name": "group_registration_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The event group sign-up this registration for a part was chosen with; NULL for a registration of its own, and once the part was given up."
         }
       ],
       "foreignKeys": [
@@ -11136,6 +11994,12 @@
           "refTable": "station_event",
           "refColumn": "id",
           "onDelete": "CASCADE"
+        },
+        {
+          "column": "group_registration_id",
+          "refTable": "event_group_registration",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
         },
         {
           "column": "member_id",
@@ -11172,7 +12036,7 @@
     "event_registration_field": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:359227999a431cbb781524646db662c17cf2b6b4414beb3fe6763bd8977b59d6",
+      "tableHash": "sha256:aaea5ed32f89627c4b0439ca54463d09ab1e2876cd7573846a0b83df2203e295",
       "columns": [
         {
           "name": "id",
@@ -11184,9 +12048,9 @@
         {
           "name": "event_id",
           "type": "int4",
-          "nullable": false,
+          "nullable": true,
           "verified": true,
-          "description": "The event asking the question."
+          "description": "The event asking the question; NULL for a question of an event group."
         },
         {
           "name": "name",
@@ -11222,12 +12086,25 @@
           "nullable": false,
           "verified": true,
           "description": "Whether the answer is shown next to the member in the registration list, rather than only on the registration itself."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The event group asking the question of everyone signing up for it; NULL for a question of an appointment. Exactly one of event_id and group_id is set."
         }
       ],
       "foreignKeys": [
         {
           "column": "event_id",
           "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "group_id",
+          "refTable": "event_group",
           "refColumn": "id",
           "onDelete": "CASCADE"
         }
@@ -23156,6 +24033,67 @@
       },
       "description": "A sealed copy of a document an appointment asks partners to sign, as it came back from the member's home installation: sealed there and checked here against the partner's pinned signing authorities before it was taken. Each state the partner sealed is kept beside the earlier ones; the newest is the current one. Locked: a copy is never changed, and deleted only with its row in partner_agreement."
     },
+    "partner_event_group_signup": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:729289b4ea49e8d9a74fc77602367a47e9eea7eac7fdba12cb99d6539dc146be",
+      "columns": [
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The member of this station signed up."
+        },
+        {
+          "name": "partner_station_uid",
+          "type": "uuid",
+          "nullable": false,
+          "verified": true,
+          "description": "The partner station holding the event group."
+        },
+        {
+          "name": "remote_group_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The event group, by its id at the partner station."
+        },
+        {
+          "name": "signed_up_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When this station signed the member up."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Only vouches for event group sign-ups this station gave to its partners; a moved station pairs with its partners anew, and its members' next sign-ups are noted again."
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Goes with the member, who is deleted with it, and with a withdrawal of the sign-up."
+      },
+      "description": "Members this station signed up for an event group a partner station holds, so news from that partner about the event group is believed for them only."
+    },
     "partner_requirement_change": {
       "feature": "signing",
       "scope": "STATION",
@@ -28330,7 +29268,7 @@
     "station_event": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:05d59e1f2a565a04024dcf34e66ceaf7851cf614b759116fb6942d3a89bde9ce",
+      "tableHash": "sha256:5bac02636d9ccd340fe6084b562d1f63090b1d2bdb7a05257be1697fc177b296",
       "columns": [
         {
           "name": "id",
@@ -28548,6 +29486,13 @@
           "nullable": true,
           "verified": true,
           "description": "When an appointment that took over dates of another one became due to tell the people holding a place about it. Cleared once they are told, by the editor or, failing that, a few minutes later on its own. NULL for every other appointment."
+        },
+        {
+          "name": "event_group_set_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The event group set this one-time appointment is a part of, and through it the event group; NULL for an appointment of its own. A set or event group cannot be removed while parts still point at it, so a part never loses its event group unnoticed."
         }
       ],
       "foreignKeys": [
@@ -28562,6 +29507,12 @@
           "refTable": "station_event",
           "refColumn": "id",
           "onDelete": "SET NULL"
+        },
+        {
+          "column": "event_group_set_id",
+          "refTable": "event_group_set",
+          "refColumn": "id",
+          "onDelete": "NO ACTION"
         },
         {
           "column": "station_id",

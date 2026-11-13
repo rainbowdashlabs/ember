@@ -15,6 +15,9 @@ import MutedText from '@/components/typography/MutedText.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import ProseExcerpt from '@/components/display/ProseExcerpt.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
+import EventGroupBand from '../eventshared/EventGroupBand.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EventHeadline from '../eventshared/EventHeadline.vue'
 import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
 import EventRegistrationActions from '../eventshared/EventRegistrationActions.vue'
@@ -66,7 +69,8 @@ const {t} = useI18n()
 
 const containerClass = computed(() => [
   'space-y-2',
-  props.endDate ? 'border-l-4 border-(--color-primary)' : '',
+  props.event.eventGroup ? 'relative pl-5' : '',
+  props.endDate && !props.event.eventGroup ? 'border-l-4 border-(--color-primary)' : '',
 ])
 </script>
 
@@ -74,6 +78,7 @@ const containerClass = computed(() => [
   <NeutralContainer
       data-testid="upcoming-event" :data-event="event.id" :data-date="date" :data-cancelled="!!cancellation"
       :class="containerClass">
+    <EventGroupBand v-if="event.eventGroup" :event-group="event.eventGroup"/>
     <div class="flex items-center justify-between flex-wrap gap-2">
       <div>
         <EventHeadline
@@ -104,8 +109,14 @@ const containerClass = computed(() => [
         <ErrorBadge v-if="registrationSummary.declined">{{ registrationSummary.declined }} {{ t('eventsUpcoming.declinedCount') }}</ErrorBadge>
       </div>
     </div>
+    <ButtonRow v-if="event.eventGroup && answerable && !cancellation" align="end">
+      <SecondaryButton :icon="['fas', 'graduation-cap']" :to="{name: 'event-group', params: {eventGroupId: event.eventGroup.eventGroupId}}"
+                       data-testid="upcoming-event-group-sign-up">
+        {{ t('eventGroups.openEventGroup') }}
+      </SecondaryButton>
+    </ButtonRow>
     <EventRegistrationActions
-        v-if="answerable && !cancellation"
+        v-else-if="answerable && !cancellation"
         :people="eligibleMembers"
         :answers="answers"
         :requires-registration="!!event.requiresRegistration"

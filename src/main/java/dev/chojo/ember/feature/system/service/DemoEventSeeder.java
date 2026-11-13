@@ -33,10 +33,8 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -111,7 +109,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
      * whoever manages the station. A guardian belongs to the appointment put on for guardians, not to
      * the Saturday drill, and a demo that restricts nothing never shows that the setting exists.
      */
-    private static final StationUserType[] JUGENDFEUERWEHR = {
+    static final StationUserType[] JUGENDFEUERWEHR = {
         StationUserType.MEMBER, StationUserType.TEAM, StationUserType.MANAGER
     };
 
@@ -230,26 +228,6 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 null,
                 null);
 
-        LocalDate firstThursday = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.THURSDAY));
-        var grundlehrgang = crudService.create(
-                stationId,
-                "Grundlehrgang",
-                "Acht Abende Grundausbildung für die Neuen",
-                StationEvent.EventType.RECURRING,
-                DayOfWeek.THURSDAY.getValue(),
-                days.at(firstThursday, 18, 0),
-                days.at(firstThursday, 20, 0),
-                null,
-                false,
-                null,
-                false,
-                catUebung.id(),
-                null,
-                null,
-                null,
-                null);
-        crudService.setRepeatEnd(grundlehrgang.id(), null, 8);
-
         var elternabend = crudService.create(
                 stationId,
                 "Elternabend",
@@ -270,7 +248,6 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         restrictToUserTypes(elternabend.id(), StationUserType.GUARDIAN);
         restrictToUserTypes(evUebung.id(), JUGENDFEUERWEHR);
         restrictToUserTypes(evGesamt.id(), JUGENDFEUERWEHR);
-        restrictToUserTypes(grundlehrgang.id(), JUGENDFEUERWEHR);
 
         var dienstbesprechung = crudService.create(
                 stationId,

@@ -49,6 +49,73 @@ public class EventRegistrationRepository {
                     + "agreement_withdrawn_at";
 
     /**
+     * Ties a registration to the event group sign-up it was chosen with, or lets it go.
+     *
+     * @param id                   the registration
+     * @param eventGroupRegistrationId the event group sign-up, or null to let it go
+     */
+    public void linkToEventGroup(int id, @Nullable Integer eventGroupRegistrationId) {
+        query("UPDATE event_registration SET group_registration_id = :group_registration_id WHERE id = :id;")
+                .single(call().bind("id", id).bind("group_registration_id", eventGroupRegistrationId))
+                .update();
+    }
+
+    /**
+     * The registrations chosen with an event group sign-up, one per chosen part.
+     *
+     * @param eventGroupRegistrationId the event group sign-up
+     * @return its registrations, by appointment
+     */
+    public List<EventRegistration> findLinkedToEventGroup(int eventGroupRegistrationId) {
+        return query("""
+                SELECT %s
+                FROM event_registration
+                WHERE group_registration_id = :group_registration_id
+                ORDER BY event_id;""", COLUMNS)
+                .single(call().bind("group_registration_id", eventGroupRegistrationId))
+                .map(EventRegistration.map())
+                .all();
+    }
+
+    /**
+     * Every registration tied to a sign-up for an event group, for the whole event group at once.
+     *
+     * @param eventGroupId the event group
+     * @return the tied registrations, by member and appointment
+     */
+    public List<EventRegistration> findLinkedToEventGroupOf(int eventGroupId) {
+        return query("""
+                SELECT %s
+                FROM event_registration
+                WHERE group_registration_id IN (SELECT id FROM event_group_registration WHERE group_id = :group_id)
+                ORDER BY member_id, event_id;""", COLUMNS)
+                .single(call().bind("group_id", eventGroupId))
+                .map(EventRegistration.map())
+                .all();
+    }
+
+    /**
+     * A member's registrations for any of the given appointments.
+     *
+     * @param memberId the member
+     * @param eventIds the appointments
+     * @return the registrations, by appointment
+     */
+    public List<EventRegistration> findByMemberInEvents(int memberId, Collection<Integer> eventIds) {
+        if (eventIds.isEmpty()) return List.of();
+        return query("""
+                SELECT %s
+                FROM event_registration
+                WHERE member_id = :member_id
+                  AND event_id = ANY(:event_ids)
+                ORDER BY event_id, event_date;""", COLUMNS)
+                .single(call().bind("member_id", memberId)
+                        .bind("event_ids", List.copyOf(eventIds), PostgreSqlTypes.INTEGER))
+                .map(EventRegistration.map())
+                .all();
+    }
+
+    /**
      * Retrieves all registrations for an event on a specific date, ordered by creation time.
      *
      * @param eventId   the event ID
@@ -733,6 +800,7 @@ public class EventRegistrationRepository {
                 WHERE sm.id = ANY (:member_ids)
                   AND sm.former = FALSE
                   AND e.requires_registration
+                  AND e.event_group_set_id IS NULL
                   AND e.event_type = 'ONE_TIME'
                   AND e.cancelled = FALSE
                   AND %s

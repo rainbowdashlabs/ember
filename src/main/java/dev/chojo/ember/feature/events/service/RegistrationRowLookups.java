@@ -111,7 +111,7 @@ public final class RegistrationRowLookups {
         return questions
                 .computeIfAbsent(
                         new EventDay(registration.eventId(), registration.eventDate()),
-                        day -> eventFieldService.findByEvent(day.eventId(), day.date()))
+                        day -> eventFieldService.findOwnByEvent(day.eventId(), day.date()))
                 .stream()
                 .filter(field -> field.fieldType().namesMembers())
                 .filter(field -> QuestionValues.memberIds(field.value()).contains(registration.memberId()))

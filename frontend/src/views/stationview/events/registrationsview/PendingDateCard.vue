@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ErrorContainer from '@/components/container/ErrorContainer.vue'
-import EventGroupHeader from './EventGroupHeader.vue'
+import PendingDateHeader from './PendingDateHeader.vue'
 import StatusSections from './StatusSections.vue'
 import type {EventSummary, RegistrationResponse, RegistrationStatsResponse, RegistrationStatus} from '@/api/generated/schema'
 
@@ -35,7 +35,7 @@ const emit = defineEmits<{
       class="space-y-3 cursor-pointer"
       @click="emit('toggle')"
   >
-    <EventGroupHeader
+    <PendingDateHeader
         :event="event"
         :date="date"
         :counts="counts"

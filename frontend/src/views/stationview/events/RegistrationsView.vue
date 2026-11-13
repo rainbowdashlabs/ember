@@ -10,7 +10,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import EventGroupCard from './registrationsview/EventGroupCard.vue'
+import PendingDateCard from './registrationsview/PendingDateCard.vue'
 import {events} from '@/api'
 import {
   RegistrationStatus,
@@ -35,7 +35,7 @@ const expandedLoading = ref(false)
 
 type StatusCounts = Record<RegistrationStatus, number>
 
-interface EventGroup {
+interface PendingDate {
   key: string
   event: EventSummary
   date: string
@@ -57,7 +57,7 @@ function groupKey(eventId: number, date: string): string {
  * The dates of appointments with pending registrations, soonest deadline first and then by date. The
  * pending count never falls below the pending list, in case the counts lagged behind it.
  */
-const eventGroups = computed((): EventGroup[] => {
+const pendingDates = computed((): PendingDate[] => {
   const pendingByDate = new Map<string, RegistrationResponse[]>()
   for (const reg of pendingRegistrations.value) {
     const key = groupKey(reg.eventId, reg.eventDate)
@@ -74,7 +74,7 @@ const eventGroups = computed((): EventGroup[] => {
     countsByDate.set(key, cur)
   }
 
-  const result: EventGroup[] = []
+  const result: PendingDate[] = []
   for (const [key, regs] of pendingByDate) {
     const first = regs[0]
     const event = first && allEvents.value.find(e => e.id === first.eventId)
@@ -109,9 +109,9 @@ const expandedByStatus = computed(() => {
   return groups
 })
 
-const expandedGroup = computed(() => eventGroups.value.find(g => g.key === expandedKey.value) ?? null)
+const expandedGroup = computed(() => pendingDates.value.find(g => g.key === expandedKey.value) ?? null)
 
-async function toggleExpand(group: EventGroup) {
+async function toggleExpand(group: PendingDate) {
   if (expandedKey.value === group.key) {
     expandedKey.value = null
     expandedRegistrations.value = []
@@ -132,7 +132,7 @@ async function toggleExpand(group: EventGroup) {
   finally { expandedLoading.value = false }
 }
 
-async function refreshExpanded(group: EventGroup | null) {
+async function refreshExpanded(group: PendingDate | null) {
   if (!group) return
   try {
     const [regs, counts] = await Promise.all([
@@ -187,10 +187,10 @@ const {loading, failure} = useAsyncLoader(async () => {
       <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
-        <EmptyState v-if="eventGroups.length === 0">{{ t('eventsRegistrations.empty') }}</EmptyState>
+        <EmptyState v-if="pendingDates.length === 0">{{ t('eventsRegistrations.empty') }}</EmptyState>
         <div class="space-y-3">
-          <EventGroupCard
-              v-for="group in eventGroups"
+          <PendingDateCard
+              v-for="group in pendingDates"
               :key="group.key"
               :event="group.event"
               :date="group.date"

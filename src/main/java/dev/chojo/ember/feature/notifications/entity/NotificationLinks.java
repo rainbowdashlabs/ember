@@ -46,6 +46,29 @@ public final class NotificationLinks {
     }
 
     /**
+     * The link to one event group.
+     *
+     * @param eventGroupId the event group
+     * @return the link its notifications carry
+     */
+    public static NotificationLink eventGroup(int eventGroupId) {
+        return new NotificationLink("event-group", Map.of("eventGroupId", eventGroupId));
+    }
+
+    /**
+     * The link to an event group a partner station shares.
+     *
+     * @param stationUid the partner station holding the event group
+     * @param eventGroupId   the event group there
+     * @return the link
+     */
+    public static NotificationLink federatedEventGroup(UUID stationUid, int eventGroupId) {
+        return new NotificationLink(
+                "federated-event-group",
+                Map.of("stationUid", stationUid.toString(), "eventGroupId", String.valueOf(eventGroupId)));
+    }
+
+    /**
      * The link to one appointment.
      *
      * @param eventId the appointment

@@ -47,6 +47,8 @@ const props = defineProps<{
   tagMembers?: Map<number, MemberLike[]>
   /** Whether the event repeats, which is what offers answering a field per date. */
   recurring?: boolean
+  /** The kinds offered where fewer than an appointment's apply, such as on an event group. */
+  offeredTypes?: readonly FieldType[]
 }>()
 
 const emit = defineEmits<{
@@ -57,7 +59,8 @@ const {t} = useI18n()
 
 const organiser = computed(() => props.mode === 'organiser')
 const fieldType = computed<FieldType>(() => question.value.fieldType ?? FieldType.TEXT)
-const offered = computed(() => (organiser.value ? OfferedFieldTypes.APPOINTMENT : OfferedFieldTypes.REGISTRATION))
+const offered = computed(() =>
+    props.offeredTypes ?? (organiser.value ? OfferedFieldTypes.APPOINTMENT : OfferedFieldTypes.REGISTRATION))
 const settings = computed(() => settingsModelOf(question.value.config))
 const members = computed(() => (props.allMembers ?? []).map(fromMember))
 const nameLabel = computed(() =>

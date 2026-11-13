@@ -56,6 +56,10 @@ const {t} = useI18n()
                  to="/helpcenter/station/events/upcoming" @navigate="close">
       {{ t('sidebar.upcomingEvents') }}
     </SidebarLink>
+    <SidebarLink :icon="['fas', 'layer-group']" name="help-event-group"
+                 to="/helpcenter/station/events/groups/0" @navigate="close">
+      {{ t('sidebar.eventGroups') }}
+    </SidebarLink>
     <SidebarLink :icon="['fas', 'clipboard-list']" name="help-events-registrations"
                  to="/helpcenter/station/events/registrations" @navigate="close">
       {{ t('sidebar.pendingRegistrations') }}
@@ -75,6 +79,10 @@ const {t} = useI18n()
     <SidebarLink :icon="['fas', 'share-nodes']" name="help-federated-event-detail"
                  to="/helpcenter/station/federation/events/0/1" @navigate="close">
       {{ t('helpCenter.federatedEventDetail.title') }}
+    </SidebarLink>
+    <SidebarLink :icon="['fas', 'share-nodes']" name="help-federated-event-group"
+                 to="/helpcenter/station/federation/events/0/groups/1" @navigate="close">
+      {{ t('helpCenter.federatedEventGroup.title') }}
     </SidebarLink>
     <SidebarExpandableLink :icon="['fas', 'clone']" name="help-event-templates"
                            to="/helpcenter/station/events/templates"

@@ -668,7 +668,154 @@ public enum EventRefusal implements Refusal {
     EVENT_NOTICE_NOT_A_CONTINUATION(
             181,
             HttpStatus.BAD_REQUEST,
-            "Only an appointment that took over dates of another one sends its notice on its own");
+            "Only an appointment that took over dates of another one sends its notice on its own"),
+
+    /** An event group that does not exist, or belongs to another station. */
+    EVENT_GROUP_NOT_HERE(182, HttpStatus.NOT_FOUND, "There is no such event group here"),
+
+    /** An event group or set without a name. */
+    EVENT_GROUP_NAME_MISSING(
+            183, HttpStatus.BAD_REQUEST, "An event group and each of its sets need a name, nothing was saved"),
+
+    /** An event group left without any set to put parts in. */
+    EVENT_GROUP_NEEDS_A_SET(184, HttpStatus.BAD_REQUEST, "An event group needs at least one set, nothing was saved"),
+
+    /** A set asking for fewer than no parts. */
+    EVENT_GROUP_SET_MINIMUM_NEGATIVE(
+            185, HttpStatus.BAD_REQUEST, "A set cannot ask for fewer than no parts, nothing was saved"),
+
+    /** A set named by the editor that belongs to another event group. */
+    EVENT_GROUP_SET_NOT_IN_EVENT_GROUP(186, HttpStatus.BAD_REQUEST, "That set does not belong to this event group"),
+
+    /** Removing a set that still holds parts. */
+    EVENT_GROUP_SET_HOLDS_PARTS(
+            187, HttpStatus.CONFLICT, "A set that still holds parts cannot be removed, move or remove its parts first"),
+
+    /** A repeating series offered as a part of an event group. */
+    EVENT_GROUP_PART_NOT_ONE_TIME(
+            188, HttpStatus.BAD_REQUEST, "Only a one-time appointment can be a part of an event group"),
+
+    /** An appointment offered to an event group while it already is a part of one. */
+    EVENT_GROUP_PART_TAKEN(189, HttpStatus.CONFLICT, "That appointment is already a part of an event group"),
+
+    /** An appointment offered to an event group while people are signed up for it on their own. */
+    EVENT_GROUP_PART_HAS_SIGN_UPS(
+            190,
+            HttpStatus.CONFLICT,
+            "People are signed up for that appointment on its own, so it cannot become a part of an event group"),
+
+    /** An appointment named as a part of an event group that is not one. */
+    EVENT_GROUP_PART_NOT_IN_EVENT_GROUP(
+            191, HttpStatus.BAD_REQUEST, "That appointment is not a part of this event group"),
+
+    /** An appointment offered to an event group that does not exist, or belongs to another station. */
+    EVENT_GROUP_PART_NOT_HERE(192, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
+
+    /** An event group limit of no places or fewer. */
+    EVENT_GROUP_LIMIT_NOT_POSITIVE(
+            193, HttpStatus.BAD_REQUEST, "An event group takes at least one person, nothing was saved"),
+
+    /** An appointment shared with partner stations on its own offered to an event group. */
+    EVENT_GROUP_PART_SHARED(
+            194,
+            HttpStatus.CONFLICT,
+            "That appointment is shared with partner stations on its own, so it cannot become a part of an event group"),
+
+    /** An appointment with its own audience that differs from the event group's offered to an event group. */
+    EVENT_GROUP_PART_AUDIENCE_DIFFERS(
+            195,
+            HttpStatus.CONFLICT,
+            "That appointment is meant for other people than the event group, give both the same audience first"),
+
+    /** A called-off appointment offered to an event group. */
+    EVENT_GROUP_PART_CANCELLED(
+            196, HttpStatus.CONFLICT, "A called-off appointment cannot become a part of an event group"),
+
+    /** An event group audience naming a group, tag or member of another station. */
+    EVENT_GROUP_AUDIENCE_NOT_OF_STATION(
+            197, HttpStatus.BAD_REQUEST, "The audience names somebody who is not of this station, nothing was saved"),
+
+    /** A sign-up, answer or decision sent for a part of an event group instead of the event group. */
+    REGISTRATION_THROUGH_EVENT_GROUP(
+            198,
+            HttpStatus.CONFLICT,
+            "That appointment is a part of an event group, sign up through the event group instead"),
+
+    /** A sign-up for an event group that was called off. */
+    EVENT_GROUP_CANCELLED(199, HttpStatus.CONFLICT, "That event group was called off"),
+
+    /** A sign-up or change of parts after the event group's deadline. */
+    EVENT_GROUP_REGISTRATION_CLOSED(
+            200, HttpStatus.BAD_REQUEST, "Sign-ups for this event group are closed, ask whoever runs the event group"),
+
+    /** A sign-up for an event group that has no place left. */
+    EVENT_GROUP_FULL(201, HttpStatus.CONFLICT, "The event group has no place left"),
+
+    /** A second sign-up for an event group the member is already signed up for. */
+    EVENT_GROUP_ALREADY_SIGNED_UP(
+            202, HttpStatus.CONFLICT, "Already signed up for this event group, change the chosen parts instead"),
+
+    /** A change of parts, withdrawal or decision for a member not signed up for the event group. */
+    EVENT_GROUP_NOT_SIGNED_UP(203, HttpStatus.NOT_FOUND, "Not signed up for this event group"),
+
+    /** A sign-up choosing no part at all. */
+    EVENT_GROUP_CHOICE_EMPTY(204, HttpStatus.BAD_REQUEST, "Choose at least one part of the event group"),
+
+    /** A sign-up choosing an appointment that is no part of the event group. */
+    EVENT_GROUP_CHOICE_NOT_A_PART(
+            205, HttpStatus.BAD_REQUEST, "One of the chosen appointments is not a part of this event group"),
+
+    /** A sign-up adding a part that was called off. */
+    EVENT_GROUP_CHOICE_CALLED_OFF(206, HttpStatus.CONFLICT, "A called-off part cannot be chosen"),
+
+    /** A choice of parts that falls short of a set of the event group. */
+    EVENT_GROUP_CHOICE_SHORT(207, HttpStatus.BAD_REQUEST, "The chosen parts do not meet the event group's rules"),
+
+    /** A decision on an event group sign-up other than accepting or turning it down. */
+    EVENT_GROUP_DECISION_UNKNOWN(
+            208, HttpStatus.BAD_REQUEST, "An event group sign-up can only be accepted or turned down"),
+
+    /** A member adding or dropping a part of an event group that already took place. */
+    EVENT_GROUP_PART_TOOK_PLACE(209, HttpStatus.CONFLICT, "A part that already took place cannot be added or dropped"),
+
+    /** A part of an event group changed into a repeating series. */
+    EVENT_GROUP_PART_STAYS_ONE_TIME(
+            210, HttpStatus.BAD_REQUEST, "A part of an event group stays a one-time appointment, nothing was saved"),
+
+    /** An audience set on a part of an event group instead of on the event group. */
+    EVENT_GROUP_PART_AUDIENCE_FROM_EVENT_GROUP(
+            211,
+            HttpStatus.CONFLICT,
+            "A part of an event group is meant for the event group's people, set them on the event group"),
+
+    /** A part of an event group shared with partners on its own. */
+    EVENT_GROUP_PART_SHARED_WITH_EVENT_GROUP(
+            212, HttpStatus.CONFLICT, "A part of an event group is shared with its event group, not on its own"),
+
+    /** A sign-up for somebody who is no member of the station. */
+    EVENT_GROUP_MEMBER_NOT_HERE(213, HttpStatus.NOT_FOUND, "That member is not at this station"),
+
+    /** A date of a part brought back while its whole event group stays called off. */
+    EVENT_GROUP_PART_STAYS_CANCELLED(
+            214, HttpStatus.CONFLICT, "The event group this appointment belongs to was called off, its dates stay off"),
+
+    /** A new part of an event group without a start or an end. */
+    EVENT_GROUP_PART_NEEDS_TIMES(
+            215, HttpStatus.BAD_REQUEST, "A new appointment needs a start and an end, nothing was saved"),
+
+    /** Questions set on a part of an event group instead of on the event group. */
+    EVENT_GROUP_PART_QUESTIONS_FROM_EVENT_GROUP(
+            216,
+            HttpStatus.CONFLICT,
+            "A part of an event group asks the event group's questions, set them on the event group"),
+
+    /** Two questions of an event group under the same name. */
+    EVENT_GROUP_QUESTION_NAME_TWICE(
+            217, HttpStatus.BAD_REQUEST, "An event group asks each question once, two questions share a name"),
+
+    /** An event group colour that is not six hex digits after a hash. */
+    EVENT_GROUP_COLOR_INVALID(
+            218, HttpStatus.BAD_REQUEST, "An event group colour is written as #RRGGBB, nothing was saved");
 
     private final Definition definition;
 

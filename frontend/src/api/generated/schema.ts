@@ -24071,6 +24071,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{eventId}/group": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The event group an appointment is a part of, or nothing for an appointment of its own */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupPartSummary"];
+                    };
+                };
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{eventId}/register": {
         parameters: {
             query?: never;
@@ -26044,11 +26098,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get fields for an event */
+        /** Get the fields of an event, with those its event group hands down unless only its own are asked for */
         get: {
             parameters: {
                 query?: {
                     date?: string;
+                    own?: boolean;
                 };
                 header?: never;
                 path: {
@@ -27285,6 +27340,1103 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the event groups meant for the reader */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create an event group with its sets and audiences */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupCreateRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupDetail"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An event group with its sets, parts and the reader's sign-ups */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupDetail"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Change an event group's details and sign-up, and with them its sets and audiences where given */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupDetailsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupDetail"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Delete an event group; its parts become appointments of their own */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How the accepted participants of an event group attended its parts */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupAttendance"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/attendance/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The attendance of an event group's participants as a spreadsheet */
+        get: {
+            parameters: {
+                query?: {
+                    separator?: string;
+                };
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/audiences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set who may see and who may sign up for an event group and every part */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupAudiences"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupDetail"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Call an event group off with every part still to come */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupCancelRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupDetail"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/federation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How an event group is shared with partner stations */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederationShareResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Share an event group and every part with partner stations */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SetFederationShareRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederationShareResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Stop sharing an event group and its parts with partner stations */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/partner-sign-ups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The sign-ups partner stations' members sent for an event group */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupPartnerSignUp"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/partner-sign-ups/{signUpId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Accept or turn down a partner member's event group sign-up and every part chosen with it */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    signUpId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupDecisionRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/parts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make a one-time appointment a part of an event group */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupPartRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupPart"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/parts/{eventId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Move a part into another set of its event group */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    eventId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupPartMoveRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupPart"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Make a part an appointment of its own again */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    eventId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/parts/new": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a new one-time appointment straight into an event group */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupPartCreateRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupPart"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace an event group's sets */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupSetsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupDetail"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/sign-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change the parts chosen with an event group sign-up */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupSignUpRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupSignUp"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Sign the reader, or somebody they look after, up for an event group */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupSignUpRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupSignUp"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Withdraw an event group sign-up with every part chosen */
+        delete: {
+            parameters: {
+                query?: {
+                    memberId?: number;
+                };
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupSignUp"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/sign-up/answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change the answers given with an event group sign-up */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupAnswersRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupSignUp"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/sign-ups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every sign-up of an event group, with the parts chosen and the sets each falls short of */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupSignUp"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/sign-ups/{memberId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Accept or turn down an event group sign-up and every part chosen with it */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    memberId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupDecisionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupSignUp"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/awaiting": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Event groups still waiting on an answer from the reader or anyone they answer for */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupAwaiting"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/overview-fields": {
         parameters: {
             query?: never;
@@ -28385,6 +29537,165 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/events/groups/{eventGroupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An event group a partner station shares, with the standing of the reader's household */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    stationuid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupDetail"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/events/groups/{eventGroupId}/sign-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change the parts chosen with a sign-up for a partner station's event group */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    stationuid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupSignUpRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupSignUp"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Sign the reader, or somebody they look after, up for a partner station's event group */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    stationuid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupSignUpRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupSignUp"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Withdraw a sign-up for a partner station's event group */
+        delete: {
+            parameters: {
+                query?: {
+                    memberId?: number;
+                };
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    stationuid: string;
+                };
                 cookie?: never;
             };
             requestBody?: never;
@@ -69120,6 +70431,187 @@ export interface components {
             overview?: boolean | null;
             value?: string | null;
         };
+        EventGroupAnswersRequest: {
+            answers?: components["schemas"]["EventRegistrationFieldValue"][] | null;
+            /** Format: int32 */
+            memberId?: number | null;
+        };
+        EventGroupAttendance: {
+            complete: boolean;
+            member: components["schemas"]["MemberIdentity"];
+            /** Format: int32 */
+            memberId: number;
+            sets: components["schemas"]["SetResult"][];
+        };
+        EventGroupAudiences: {
+            registration?: components["schemas"]["RestrictionAudience"] | null;
+            view?: components["schemas"]["RestrictionAudience"] | null;
+        };
+        EventGroupAwaiting: {
+            /** Format: int32 */
+            eventGroupId: number;
+            members: components["schemas"]["AwaitingMember"][];
+            name: string;
+            registrationDeadline: components["schemas"]["Instant"] | null;
+        };
+        EventGroupCancelRequest: {
+            reason?: string | null;
+        };
+        EventGroupCreateRequest: {
+            /** Format: int32 */
+            appointmentId?: number | null;
+            details?: components["schemas"]["EventGroupDetails"];
+            fields?: components["schemas"]["EventFieldEntry"][] | null;
+            questions?: components["schemas"]["RegistrationFieldDefinition"][] | null;
+            registration?: components["schemas"]["RestrictionAudience"] | null;
+            sets?: components["schemas"]["EventGroupSetDraft"][] | null;
+            view?: components["schemas"]["RestrictionAudience"] | null;
+        };
+        EventGroupDecisionRequest: {
+            status?: components["schemas"]["RegistrationStatus"];
+        };
+        EventGroupDetail: {
+            eventGroup: components["schemas"]["EventGroupSummary"];
+            fields: components["schemas"]["AppointmentField"][];
+            household: components["schemas"]["EventGroupSignUp"][];
+            parts: components["schemas"]["EventGroupPartState"][];
+            questions: components["schemas"]["EventRegistrationField"][];
+            registration: components["schemas"]["RestrictionAudience"];
+            sets: components["schemas"]["EventGroupSet"][];
+            view: components["schemas"]["RestrictionAudience"];
+        };
+        EventGroupDetails: {
+            color?: string | null;
+            description?: string | null;
+            name?: string;
+            registrationDeadline?: components["schemas"]["Instant"] | null;
+            /** Format: int32 */
+            registrationLimit?: number | null;
+            requiresConfirmation?: boolean;
+        };
+        EventGroupDetailsRequest: {
+            details?: components["schemas"]["EventGroupDetails"];
+            fields?: components["schemas"]["EventFieldEntry"][] | null;
+            questions?: components["schemas"]["RegistrationFieldDefinition"][] | null;
+            registration?: components["schemas"]["RestrictionAudience"] | null;
+            sets?: components["schemas"]["EventGroupSetDraft"][] | null;
+            view?: components["schemas"]["RestrictionAudience"] | null;
+        };
+        EventGroupPart: {
+            /** Format: int32 */
+            eventGroupId: number;
+            /** Format: int32 */
+            eventId: number;
+            /** Format: int32 */
+            setId: number;
+        };
+        EventGroupPartCreateRequest: {
+            description?: string | null;
+            endTime?: components["schemas"]["Instant"] | null;
+            name?: string;
+            /** Format: int32 */
+            setId?: number;
+            startTime?: components["schemas"]["Instant"] | null;
+        };
+        EventGroupPartMoveRequest: {
+            /** Format: int32 */
+            setId?: number;
+        };
+        EventGroupPartnerSignUp: {
+            /** Format: int32 */
+            id: number;
+            member: components["schemas"]["MemberIdentity"] | null;
+            parts: number[];
+            registeredAt: components["schemas"]["Instant"] | null;
+            sets: components["schemas"]["SetResult"][];
+            status: components["schemas"]["RegistrationStatus"] | null;
+        };
+        EventGroupPartRequest: {
+            /** Format: int32 */
+            eventId?: number;
+            /** Format: int32 */
+            setId?: number;
+        };
+        EventGroupPartState: {
+            calledOff: boolean;
+            endTime: components["schemas"]["Instant"];
+            /** Format: int32 */
+            eventId: number;
+            name: string;
+            /** Format: int32 */
+            setId: number;
+            startTime: components["schemas"]["Instant"];
+            tookPlace: boolean;
+        };
+        EventGroupPartSummary: {
+            color: string | null;
+            /** Format: int32 */
+            count: number;
+            /** Format: int32 */
+            eventGroupId: number;
+            eventGroupName: string;
+            /** Format: int32 */
+            number: number;
+            /** Format: int32 */
+            setId: number;
+            setName: string;
+        };
+        EventGroupSet: {
+            /** Format: int32 */
+            eventGroupId: number;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            minimum: number;
+            name: string;
+            /** Format: int32 */
+            position: number;
+        };
+        EventGroupSetDraft: {
+            /** Format: int32 */
+            id?: number | null;
+            /** Format: int32 */
+            minimum?: number;
+            name?: string;
+        };
+        EventGroupSetsRequest: {
+            sets?: components["schemas"]["EventGroupSetDraft"][] | null;
+        };
+        EventGroupSignUp: {
+            answers: components["schemas"]["EventRegistrationFieldValue"][];
+            answersMissing: boolean;
+            mayRegister: boolean;
+            member: components["schemas"]["MemberIdentity"];
+            /** Format: int32 */
+            memberId: number;
+            parts: number[];
+            registeredAt: components["schemas"]["Instant"] | null;
+            sets: components["schemas"]["SetResult"][];
+            status: components["schemas"]["RegistrationStatus"] | null;
+        };
+        EventGroupSignUpRequest: {
+            answers?: components["schemas"]["EventRegistrationFieldValue"][] | null;
+            /** Format: int32 */
+            memberId?: number | null;
+            parts?: number[] | null;
+        };
+        EventGroupSummary: {
+            cancelled: boolean;
+            cancelReason: string | null;
+            color: string | null;
+            description: string | null;
+            /** Format: int32 */
+            holding: number;
+            /** Format: int32 */
+            id: number;
+            name: string;
+            /** Format: int32 */
+            partCount: number;
+            registrationDeadline: components["schemas"]["Instant"] | null;
+            /** Format: int32 */
+            registrationLimit: number | null;
+            requiresConfirmation: boolean;
+        };
         EventItem: {
             date?: string;
             location?: string;
@@ -69181,7 +70673,9 @@ export interface components {
         EventRegistrationField: {
             config: components["schemas"]["EventQuestionSettings"];
             /** Format: int32 */
-            eventId: number;
+            eventGroupId: number | null;
+            /** Format: int32 */
+            eventId: number | null;
             fieldType: components["schemas"]["FieldType"];
             /** Format: int32 */
             id: number;
@@ -69254,6 +70748,7 @@ export interface components {
             dayOfWeek: number | null;
             description: string | null;
             endTime: components["schemas"]["Instant"];
+            eventGroup: components["schemas"]["EventGroupPartSummary"] | null;
             eventType: components["schemas"]["EventType"];
             /** Format: int32 */
             id: number;
@@ -75392,7 +76887,7 @@ export interface components {
             userTypes?: components["schemas"]["StationUserType"][] | null;
         };
         /** @enum {string} */
-        RestrictionType: "EVENT" | "EVENT_VIEW" | "EVENT_TEMPLATE" | "EVENT_TEMPLATE_VIEW" | "QUIZ_TEST" | "FORM" | "NEWS" | "KB_FOLDER" | "KB_FILE" | "DOCUMENT_TEMPLATE" | "DOCUMENT_TEMPLATE_STATION_USE" | "WITNESS_REACH" | "ATTENDANCE_TEMPLATE_TIME_RULE" | "ATTENDANCE_SESSION_TIME_RULE" | "PROCEDURE" | "PROCEDURE_TEMPLATE";
+        RestrictionType: "EVENT" | "EVENT_VIEW" | "EVENT_TEMPLATE" | "EVENT_TEMPLATE_VIEW" | "EVENT_GROUP" | "EVENT_GROUP_VIEW" | "QUIZ_TEST" | "FORM" | "NEWS" | "KB_FOLDER" | "KB_FILE" | "DOCUMENT_TEMPLATE" | "DOCUMENT_TEMPLATE_STATION_USE" | "WITNESS_REACH" | "ATTENDANCE_TEMPLATE_TIME_RULE" | "ATTENDANCE_SESSION_TIME_RULE" | "PROCEDURE" | "PROCEDURE_TEMPLATE";
         ResultFieldCondition: {
             /** Format: int32 */
             fieldId?: number;
@@ -76035,6 +77530,15 @@ export interface components {
         SetRemindersRequest: {
             daysBefore?: number[];
         };
+        SetResult: {
+            /** Format: int32 */
+            chosen: number;
+            name: string;
+            /** Format: int32 */
+            required: number;
+            /** Format: int32 */
+            setId: number;
+        };
         SetSessionFieldsRequest: {
             fields?: components["schemas"]["AttendanceFieldValueEntry"][];
         };
@@ -76163,6 +77667,7 @@ export interface components {
             dayOfWeek: number;
             description: string;
             endTime: string;
+            eventGroup: components["schemas"]["EventGroupPartSummary"] | null;
             eventType: components["schemas"]["EventType"];
             /** Format: int32 */
             id: number;
@@ -78852,6 +80357,29 @@ export type EventExportRequest = components['schemas']['EventExportRequest'];
 export type EventFederationRegistration = components['schemas']['EventFederationRegistration'];
 export type EventFieldDefault = components['schemas']['EventFieldDefault'];
 export type EventFieldEntry = components['schemas']['EventFieldEntry'];
+export type EventGroupAnswersRequest = components['schemas']['EventGroupAnswersRequest'];
+export type EventGroupAttendance = components['schemas']['EventGroupAttendance'];
+export type EventGroupAudiences = components['schemas']['EventGroupAudiences'];
+export type EventGroupAwaiting = components['schemas']['EventGroupAwaiting'];
+export type EventGroupCancelRequest = components['schemas']['EventGroupCancelRequest'];
+export type EventGroupCreateRequest = components['schemas']['EventGroupCreateRequest'];
+export type EventGroupDecisionRequest = components['schemas']['EventGroupDecisionRequest'];
+export type EventGroupDetail = components['schemas']['EventGroupDetail'];
+export type EventGroupDetails = components['schemas']['EventGroupDetails'];
+export type EventGroupDetailsRequest = components['schemas']['EventGroupDetailsRequest'];
+export type EventGroupPart = components['schemas']['EventGroupPart'];
+export type EventGroupPartCreateRequest = components['schemas']['EventGroupPartCreateRequest'];
+export type EventGroupPartMoveRequest = components['schemas']['EventGroupPartMoveRequest'];
+export type EventGroupPartnerSignUp = components['schemas']['EventGroupPartnerSignUp'];
+export type EventGroupPartRequest = components['schemas']['EventGroupPartRequest'];
+export type EventGroupPartState = components['schemas']['EventGroupPartState'];
+export type EventGroupPartSummary = components['schemas']['EventGroupPartSummary'];
+export type EventGroupSet = components['schemas']['EventGroupSet'];
+export type EventGroupSetDraft = components['schemas']['EventGroupSetDraft'];
+export type EventGroupSetsRequest = components['schemas']['EventGroupSetsRequest'];
+export type EventGroupSignUp = components['schemas']['EventGroupSignUp'];
+export type EventGroupSignUpRequest = components['schemas']['EventGroupSignUpRequest'];
+export type EventGroupSummary = components['schemas']['EventGroupSummary'];
 export type EventItem = components['schemas']['EventItem'];
 export type EventLink = components['schemas']['EventLink'];
 export type EventLinks = components['schemas']['EventLinks'];
@@ -79802,6 +81330,7 @@ export type SetPasswordRequest = components['schemas']['SetPasswordRequest'];
 export type SetPermissionsRequest = components['schemas']['SetPermissionsRequest'];
 export type SetRegistrationFieldsRequest = components['schemas']['SetRegistrationFieldsRequest'];
 export type SetRemindersRequest = components['schemas']['SetRemindersRequest'];
+export type SetResult = components['schemas']['SetResult'];
 export type SetSessionFieldsRequest = components['schemas']['SetSessionFieldsRequest'];
 export type SetShareRequest = components['schemas']['SetShareRequest'];
 export type SetTemplateGroupsRequest = components['schemas']['SetTemplateGroupsRequest'];
@@ -81294,6 +82823,8 @@ export const RestrictionType = {
     DOCUMENT_TEMPLATE: "DOCUMENT_TEMPLATE",
     DOCUMENT_TEMPLATE_STATION_USE: "DOCUMENT_TEMPLATE_STATION_USE",
     EVENT: "EVENT",
+    EVENT_GROUP: "EVENT_GROUP",
+    EVENT_GROUP_VIEW: "EVENT_GROUP_VIEW",
     EVENT_TEMPLATE: "EVENT_TEMPLATE",
     EVENT_TEMPLATE_VIEW: "EVENT_TEMPLATE_VIEW",
     EVENT_VIEW: "EVENT_VIEW",

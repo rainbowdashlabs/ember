@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import EventGroupBand from '../../eventshared/EventGroupBand.vue'
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -76,7 +77,8 @@ const detailRoute = computed(() => ({
 </script>
 
 <template>
-  <NeutralContainer class="space-y-2" data-testid="federated-event">
+  <NeutralContainer class="space-y-2" :class="{'relative pl-5': fed.event.eventGroup}" data-testid="federated-event">
+    <EventGroupBand v-if="fed.event.eventGroup" :event-group="fed.event.eventGroup"/>
     <RowLink :to="detailRoute">
       <div class="cursor-pointer">
         <div class="flex items-center justify-between flex-wrap gap-2">
@@ -92,7 +94,7 @@ const detailRoute = computed(() => ({
     </RowLink>
 
     <EventRegistrationActions
-        v-if="fed.event.requiresRegistration"
+        v-if="fed.event.requiresRegistration && !fed.event.eventGroup"
         :people="eligibleMembers"
         :answers="answers"
         :requires-registration="true"

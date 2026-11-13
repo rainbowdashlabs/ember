@@ -12,8 +12,8 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
-import {events} from '@/api'
-import type {AwaitingAnswer, EventCategory} from '@/api/generated/schema'
+import {eventGroups, events} from '@/api'
+import type {AwaitingAnswer, EventGroupAwaiting, EventCategory} from '@/api/generated/schema'
 
 /**
  * The events whose registration is running out and which nobody in the household has answered.
@@ -25,11 +25,13 @@ import type {AwaitingAnswer, EventCategory} from '@/api/generated/schema'
  * stops the reminders as well.
  *
  * <p>Only events open to the person and still open for answers appear, which is the same question the
- * warning notification asks, so a reader who acts on the notification finds the row gone.
+ * warning notification asks, so a reader who acts on the notification finds the row gone. Event groups
+ * appear the same way, once each and not once per part, and lead to the event group.
  */
 const {t} = useI18n()
 
 const awaiting = ref<AwaitingAnswer[]>([])
+const awaitingGroups = ref<EventGroupAwaiting[]>([])
 const categories = ref<EventCategory[]>([])
 
 /** The event the row is about. */
@@ -43,22 +45,27 @@ function categoryOf(entry: AwaitingAnswer): EventCategory | undefined {
 }
 
 /** Whole days until registration closes, floored, so "today" reads as zero rather than as one. */
-function daysLeft(entry: AwaitingAnswer): number {
+function daysLeft(entry: {registrationDeadline?: string | null}): number {
+  if (!entry.registrationDeadline) return 0
   const closes = new Date(entry.registrationDeadline).getTime()
   return Math.max(0, Math.floor((closes - Date.now()) / 86400000))
 }
 
-const soonest = computed(() => awaiting.value.length > 0 ? daysLeft(awaiting.value[0]!) : 0)
+const soonest = computed(() => Math.min(
+    ...[...awaiting.value, ...awaitingGroups.value].map(entry => daysLeft(entry)),
+    Number.MAX_SAFE_INTEGER))
+const anything = computed(() => awaiting.value.length + awaitingGroups.value.length > 0)
 
 /** Loads the panel, which says nothing when it cannot load rather than breaking the page. */
 async function loadData() {
-  await Promise.all([
-    events.listAwaitingAnswer(),
+  const [entries, cats, open] = await Promise.all([
+    events.listAwaitingAnswer().catch(() => []),
     events.listCategories().catch(() => []),
-  ]).then(([entries, cats]) => {
-    awaiting.value = entries
-    categories.value = cats
-  }).catch(() => {})
+    eventGroups.listAwaiting().catch(() => []),
+  ])
+  awaiting.value = entries
+  categories.value = cats
+  awaitingGroups.value = [...open].sort((a, b) => daysLeft(a) - daysLeft(b))
 }
 
 onMounted(loadData)
@@ -67,14 +74,14 @@ defineExpose({reload: loadData})
 </script>
 
 <template>
-  <NeutralContainer v-if="awaiting.length > 0" class="flex flex-col max-h-[66vh]">
+  <NeutralContainer v-if="anything" class="flex flex-col max-h-[66vh]">
     <SectionHeader class="mb-3 shrink-0">
       <font-awesome-icon :icon="['fas', 'clock']" class="mr-2"/>
       {{ t('dashboard.awaitingAnswer') }}
       <InfoBadge v-if="soonest <= 1" class="ml-2">{{ t('dashboard.awaitingSoon') }}</InfoBadge>
     </SectionHeader>
     <div class="overflow-y-auto flex-1 space-y-2">
-      <EmptyState v-if="awaiting.length === 0" compact>{{ t('dashboard.noAwaitingAnswer') }}</EmptyState>
+      <EmptyState v-if="!anything" compact>{{ t('dashboard.noAwaitingAnswer') }}</EmptyState>
       <RowLink v-for="entry in awaiting" :key="entry.eventId" :to="eventPage(entry)">
         <NeutralContainer
             data-testid="awaiting-answer"
@@ -91,6 +98,23 @@ defineExpose({reload: loadData})
             <p class="text-xs text-(--text-muted)">
               {{ entry.members.map(m => m.name).join(', ') }}
             </p>
+          </div>
+          <span class="text-xs text-(--text-muted) shrink-0">
+            {{ t('dashboard.awaitingDaysLeft', {days: daysLeft(entry)}) }}
+          </span>
+        </NeutralContainer>
+      </RowLink>
+      <RowLink v-for="entry in awaitingGroups" :key="`event-group-${entry.eventGroupId}`"
+               :to="{name: 'event-group', params: {eventGroupId: entry.eventGroupId}}">
+        <NeutralContainer
+            data-testid="awaiting-group"
+            class="flex items-center justify-between gap-2 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
+        >
+          <div class="min-w-0">
+            <p class="truncate text-sm font-medium">
+              <font-awesome-icon :icon="['fas', 'graduation-cap']" class="mr-1 h-3 w-3"/>{{ entry.name }}
+            </p>
+            <p class="text-xs text-(--text-muted)">{{ entry.members.map(m => m.name).join(', ') }}</p>
           </div>
           <span class="text-xs text-(--text-muted) shrink-0">
             {{ t('dashboard.awaitingDaysLeft', {days: daysLeft(entry)}) }}
