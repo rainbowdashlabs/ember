@@ -27,8 +27,9 @@ import EventGroupShareCard from './eventgroupeditview/EventGroupShareCard.vue'
 import {useEventFederationShare} from './eventeditview/useEventFederationShare'
 import {eventGroupFederationPort} from './eventeditview/eventOwnerPorts'
 import EventGroupQuestionsCard from './eventgroupeditview/EventGroupQuestionsCard.vue'
-import {asSaved} from './eventshared/eventQuestions'
-import type {EventGroupDetail, MemberGroup, RegistrationFieldDefinition, RestrictionAudience, UserTag} from '@/api/generated/schema'
+import EventGroupFieldsCard from './eventgroupeditview/EventGroupFieldsCard.vue'
+import {entryOf, namedEntries} from './eventshared/eventQuestions'
+import type {EventGroupDetail, MemberGroup, EventFieldEntry, RegistrationFieldDefinition, RestrictionAudience, UserTag} from '@/api/generated/schema'
 import {StationPermission} from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/api/types'
 import {eventGroups, memberGroups as memberGroupsApi, userTags as userTagsApi} from '@/api'
@@ -66,6 +67,7 @@ const sets = ref<SetRow[]>([{id: null, name: t('eventGroups.defaultSet'), minimu
 const registration = ref<RestrictionSelection>(emptySelection())
 const view = ref<RestrictionSelection>(emptySelection())
 const questions = ref<RegistrationFieldDefinition[]>([])
+const fields = ref<EventFieldEntry[]>([])
 const saving = ref(false)
 const saveFailure = ref<Failure | null>(null)
 
@@ -95,10 +97,11 @@ function fill(loadedDetail: EventGroupDetail) {
   registration.value = selectionOf(loadedDetail.registration)
   view.value = selectionOf(loadedDetail.view)
   questions.value = loadedDetail.questions.map(({name, fieldType, config, overview}) => ({name, fieldType, config, overview}))
+  fields.value = loadedDetail.fields.map(entryOf)
 }
 
 function savedQuestions(): RegistrationFieldDefinition[] {
-  return questions.value.filter(question => question.name?.trim()).map(asSaved)
+  return namedEntries(questions.value)
 }
 
 const {loading, failure} = useAsyncLoader(async () => {
@@ -143,6 +146,7 @@ async function save() {
         registration: registration.value,
         view: view.value,
         questions: savedQuestions(),
+        fields: namedEntries(fields.value),
       })
       showToast(t('eventGroups.saved'), 'success')
       await router.replace({name: 'event-group-edit', params: {eventGroupId: created.eventGroup.id}})
@@ -152,7 +156,7 @@ async function save() {
     fill(await eventGroups.updateEventGroup(eventGroupId.value, details(), drafts, {
       registration: registration.value,
       view: view.value,
-    }, savedQuestions()))
+    }, savedQuestions(), namedEntries(fields.value)))
     await federationShare.save(eventGroupFederationPort(eventGroupId.value))
   } catch (e) {
     saveFailure.value = describeFailure(e, t)
@@ -193,6 +197,7 @@ async function save() {
           <RestrictionsField v-model="view" :groups="groups" :tags="tags"/>
         </NeutralContainer>
 
+        <EventGroupFieldsCard v-model="fields"/>
         <EventGroupQuestionsCard v-model="questions"/>
 
         <EventGroupShareCard v-if="detail" :federation-share="federationShare" :can-federate="canFederate"/>

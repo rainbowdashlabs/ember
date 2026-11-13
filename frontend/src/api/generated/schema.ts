@@ -26098,11 +26098,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get fields for an event */
+        /** Get the fields of an event, with those its event group hands down unless only its own are asked for */
         get: {
             parameters: {
                 query?: {
                     date?: string;
+                    own?: boolean;
                 };
                 header?: never;
                 path: {
@@ -70458,6 +70459,7 @@ export interface components {
         };
         EventGroupCreateRequest: {
             details?: components["schemas"]["EventGroupDetails"];
+            fields?: components["schemas"]["EventFieldEntry"][] | null;
             questions?: components["schemas"]["RegistrationFieldDefinition"][] | null;
             registration?: components["schemas"]["RestrictionAudience"] | null;
             sets?: components["schemas"]["EventGroupSetDraft"][] | null;
@@ -70468,6 +70470,7 @@ export interface components {
         };
         EventGroupDetail: {
             eventGroup: components["schemas"]["EventGroupSummary"];
+            fields: components["schemas"]["AppointmentField"][];
             household: components["schemas"]["EventGroupSignUp"][];
             parts: components["schemas"]["EventGroupPartState"][];
             questions: components["schemas"]["EventRegistrationField"][];
@@ -70485,6 +70488,7 @@ export interface components {
         };
         EventGroupDetailsRequest: {
             details?: components["schemas"]["EventGroupDetails"];
+            fields?: components["schemas"]["EventFieldEntry"][] | null;
             questions?: components["schemas"]["RegistrationFieldDefinition"][] | null;
             registration?: components["schemas"]["RestrictionAudience"] | null;
             sets?: components["schemas"]["EventGroupSetDraft"][] | null;

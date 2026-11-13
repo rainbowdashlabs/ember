@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventGroupPartState;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.route.EventGroupRoutes.EventGroupSummary;
@@ -100,12 +101,15 @@ public class RemoteEventGroupRoutes implements Routes {
      * @param sets      its sets in order
      * @param parts     its parts in date order
      * @param standings where each member asked about stands
+     * @param fields    the fields it shows readers outside the station; a partner that has never
+     *                  heard of them ignores them
      */
     public record RemoteEventGroupDetail(
             EventGroupSummary eventGroup,
             List<EventGroupSet> sets,
             List<EventGroupPartState> parts,
-            List<PartnerStanding> standings) {}
+            List<PartnerStanding> standings,
+            @Nullable List<AppointmentField> fields) {}
 
     /**
      * A partner's member signing up, or changing the parts they chose.

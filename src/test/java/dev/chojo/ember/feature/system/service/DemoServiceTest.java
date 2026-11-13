@@ -35,6 +35,7 @@ import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
@@ -427,7 +428,12 @@ class DemoServiceTest extends RepositoryTestBase {
                 new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility);
         var eventGroupRepository = new EventGroupRepository();
         var eventGroupService = new EventGroupService(
-                eventGroupRepository, eventRepo, restrictionService, occurrenceCalendar, eventGroupQuestions);
+                eventGroupRepository,
+                eventRepo,
+                restrictionService,
+                occurrenceCalendar,
+                eventGroupQuestions,
+                new EventFieldRepository());
         var eventGroupSeeder = new DemoEventGroupSeeder(
                 eventGroupService,
                 new EventGroupRegistrationService(

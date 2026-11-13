@@ -96,7 +96,8 @@ class FederatedEventGroupRoutesTest {
                         EventGroupSummary.of(eventGroup, 1, 1),
                         List.of(),
                         List.of(),
-                        List.of(standing, new PartnerStanding(UUID.randomUUID(), null, null, List.of(), List.of()))));
+                        List.of(standing, new PartnerStanding(UUID.randomUUID(), null, null, List.of(), List.of())),
+                        null));
         harness =
                 RouteHarness.serving(new FederatedEventGroupRoutes(partnerEventGroups, members, guardians, identities));
     }

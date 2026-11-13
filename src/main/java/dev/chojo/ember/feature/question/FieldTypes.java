@@ -62,6 +62,22 @@ public final class FieldTypes {
             FieldType.CHOICE,
             FieldType.LANE_ASSIGNEE);
 
+    /**
+     * The fields an event group hands down to its appointments: plain values only. Fields that name
+     * members, are answered per date or take self-registration are about one date and stay on the
+     * appointment.
+     */
+    public static final Set<FieldType> EVENT_GROUP = of(
+            FieldType.TEXT,
+            FieldType.LONG_TEXT,
+            FieldType.NUMBER,
+            FieldType.DATE,
+            FieldType.TIME,
+            FieldType.BOOLEAN,
+            FieldType.CHOICE,
+            FieldType.URL,
+            FieldType.LOCATION);
+
     /** The fields an organiser fills in on an appointment. */
     public static final Set<FieldType> APPOINTMENT = of(
             FieldType.TEXT,

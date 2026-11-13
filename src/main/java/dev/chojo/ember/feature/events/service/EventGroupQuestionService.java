@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
@@ -41,6 +42,16 @@ public class EventGroupQuestionService {
     public EventGroupQuestionService(EventRegistrationFieldRepository repository, MemberEligibility eligibility) {
         this.repository = repository;
         this.eligibility = eligibility;
+    }
+
+    /**
+     * Group fields checked and shaped the way an appointment's are before they are stored.
+     *
+     * @param fields the fields as submitted
+     * @return the fields to store
+     */
+    List<EventFieldDraft> checkedFields(List<EventFieldDraft> fields) {
+        return EventFieldService.checkedGroupFields(fields, eligibility);
     }
 
     /**

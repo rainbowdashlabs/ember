@@ -108,6 +108,7 @@ public class FederatedEventGroupRoutes implements Routes {
                 RestrictionAudience.empty(),
                 RestrictionAudience.empty(),
                 List.of(),
+                Objects.requireNonNullElse(remote.fields(), List.of()),
                 standings));
     }
 

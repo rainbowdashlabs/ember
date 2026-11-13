@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
@@ -119,7 +120,8 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
                 eventRepo,
                 restrictionService,
                 occurrenceCalendar,
-                new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility));
+                new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
+                new EventFieldRepository());
         questions = new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility);
         service = new EventGroupRegistrationService(
                 eventGroupRepo,

@@ -148,7 +148,7 @@ class EventGroupRoutesTest {
     }
 
     @Test
-    void aEventGroupKeptFromTheReaderReadsAsAbsent() {
+    void anEventGroupKeptFromTheReaderReadsAsAbsent() {
         when(eventGroups.canSeeAny(eq(EVENT_GROUP_ID), anyList(), anySet())).thenReturn(false);
 
         assertEquals(
@@ -480,7 +480,7 @@ class EventGroupRoutesTest {
     }
 
     @Test
-    void aEventGroupStillOwedAnAnswerNamesWhoOwesIt() {
+    void anEventGroupStillOwedAnAnswerNamesWhoOwesIt() {
         var open = new EventGroup(
                 EVENT_GROUP_ID,
                 STATION_ID,

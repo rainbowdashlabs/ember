@@ -101,7 +101,7 @@ class EventGroupRulesTest {
     }
 
     @Test
-    void aEventGroupWithoutSetsIsMetByAnything() {
+    void anEventGroupWithoutSetsIsMetByAnything() {
         assertTrue(EventGroupRules.met(List.of(), Set.of(), Set.of()));
     }
 

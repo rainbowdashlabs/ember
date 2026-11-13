@@ -15,6 +15,7 @@ import ProseContent from '@/components/display/ProseContent.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
+import EventGroupFields from './EventGroupFields.vue'
 import type {EventGroupDetail} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {asksForAll} from '@/util/eventGroupChoice'
@@ -70,6 +71,7 @@ function ruleOf(setId: number): string {
       <MutedText v-if="eventGroup.requiresConfirmation" tag="span" size="sm">{{ t('eventGroups.confirmation') }}</MutedText>
     </div>
     <ProseContent v-if="eventGroup.description" v-html="renderMarkdown(eventGroup.description)"/>
+    <EventGroupFields :fields="detail.fields"/>
     <SectionHeader>{{ t('eventGroups.parts') }}</SectionHeader>
     <MutedText v-if="detail.parts.length === 0" tag="p" size="sm">{{ t('eventGroups.noParts') }}</MutedText>
     <section v-for="set in detail.sets" :key="set.id" class="space-y-2" :data-testid="`event-group-set-${set.id}`">

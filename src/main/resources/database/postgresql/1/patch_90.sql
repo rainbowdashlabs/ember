@@ -525,3 +525,40 @@ COMMENT ON COLUMN ember_schema.partner_event_group_signup.remote_group_id
     IS 'The event group, by its id at the partner station.';
 COMMENT ON COLUMN ember_schema.partner_event_group_signup.signed_up_at
     IS 'When this station signed the member up.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.event_group_field
+(
+    id         SERIAL PRIMARY KEY,
+    group_id   INT     NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
+    name       TEXT    NOT NULL,
+    field_type TEXT    NOT NULL DEFAULT 'TEXT',
+    config     JSONB   NOT NULL DEFAULT '{}'::JSONB,
+    value      TEXT    NOT NULL DEFAULT '',
+    position   INT     NOT NULL DEFAULT 0,
+    overview   BOOLEAN NOT NULL DEFAULT FALSE,
+    "public"   BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_group_field_group
+    ON ember_schema.event_group_field (group_id);
+
+COMMENT ON TABLE ember_schema.event_group_field
+    IS 'Fields of an event group, such as its place or meeting point. Every appointment of the group shows them; an appointment field of the same name replaces one.';
+COMMENT ON COLUMN ember_schema.event_group_field.id
+    IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.event_group_field.group_id
+    IS 'The event group the field belongs to.';
+COMMENT ON COLUMN ember_schema.event_group_field.name
+    IS 'What the field is called; an appointment field with the same name, ignoring case, replaces it on that appointment.';
+COMMENT ON COLUMN ember_schema.event_group_field.field_type
+    IS 'The kind of value, one of the plain value kinds an appointment field takes (no member kinds).';
+COMMENT ON COLUMN ember_schema.event_group_field.config
+    IS 'The settings of the field, such as the options of a choice, as for an appointment field.';
+COMMENT ON COLUMN ember_schema.event_group_field.value
+    IS 'The value every appointment of the group shows unless it replaces the field.';
+COMMENT ON COLUMN ember_schema.event_group_field.position
+    IS 'Order among the group''s fields.';
+COMMENT ON COLUMN ember_schema.event_group_field.overview
+    IS 'Whether the value shows in lists of appointments.';
+COMMENT ON COLUMN ember_schema.event_group_field."public"
+    IS 'Whether readers outside the station, such as partner stations and the public calendar, see it.';

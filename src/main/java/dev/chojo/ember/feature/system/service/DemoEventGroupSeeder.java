@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.feature.events.entity.EventFieldDraft;
+import dev.chojo.ember.feature.events.entity.EventGroupContent;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
@@ -88,14 +90,34 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
                 new EventGroupDetails(
                         "Jugendflamme Stufe 1",
                         "Die erste Stufe der Jugendflamme. Von den drei Übungstagen müssen zwei besucht werden,"
-                                + " die Prüfung ist Pflicht. Treffpunkt ist jeweils das Gerätehaus.",
+                                + " die Prüfung ist Pflicht.",
                         12,
                         days.at(saturday.minusDays(7), 23, 59),
                         true),
                 List.of(new EventGroupSetDraft(null, "Übung", 2), new EventGroupSetDraft(null, "Prüfung", 1)),
                 youthAndTeam,
                 youthAndTeam,
-                List.of(new RegistrationFieldDraft("T-Shirt-Größe", FieldType.CHOICE, sizeQuestion(), true)));
+                new EventGroupContent(
+                        List.of(new RegistrationFieldDraft("T-Shirt-Größe", FieldType.CHOICE, sizeQuestion(), true)),
+                        List.of(
+                                new EventFieldDraft(
+                                        null,
+                                        "Ort",
+                                        FieldType.LOCATION,
+                                        EventQuestionSettings.empty(),
+                                        "Gerätehaus Musterstadt",
+                                        true,
+                                        null,
+                                        true),
+                                new EventFieldDraft(
+                                        null,
+                                        "Mitbringen",
+                                        FieldType.TEXT,
+                                        EventQuestionSettings.empty(),
+                                        "Einsatzkleidung, Helm, Handschuhe",
+                                        false,
+                                        null,
+                                        false))));
         var sets = eventGroups.findSets(eventGroup.id());
         int practice = setId(sets, "Übung");
         int test = setId(sets, "Prüfung");

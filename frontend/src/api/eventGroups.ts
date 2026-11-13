@@ -18,6 +18,7 @@ import type {
     EventGroupSummary,
     EventGroupDetails,
     EventGroupPart,
+    EventFieldEntry,
     EventGroupSetDraft,
     RegistrationFieldDefinition,
     EventRegistrationFieldValue,
@@ -45,8 +46,8 @@ export async function createEventGroup(request: EventGroupCreateRequest): Promis
 }
 
 /**
- * Saves what the event group editor holds in one go: details, and where given its sets, audiences and
- * questions. Either all of it is kept or, where any part is refused, none of it.
+ * Saves what the event group editor holds in one go: details, and where given its sets, audiences,
+ * questions and fields. Either all of it is kept or, where any part is refused, none of it.
  */
 export async function updateEventGroup(
     eventGroupId: number,
@@ -54,8 +55,9 @@ export async function updateEventGroup(
     sets?: EventGroupSetDraft[],
     audiences?: {registration: RestrictionAudience; view: RestrictionAudience},
     questions?: RegistrationFieldDefinition[],
+    fields?: EventFieldEntry[],
 ): Promise<EventGroupDetail> {
-    return (await client.put<EventGroupDetail>(`${EVENT_GROUPS}/${eventGroupId}`, {details, sets, ...audiences, questions})).data
+    return (await client.put<EventGroupDetail>(`${EVENT_GROUPS}/${eventGroupId}`, {details, sets, ...audiences, questions, fields})).data
 }
 
 /** Deletes an event group; its parts become appointments of their own. */

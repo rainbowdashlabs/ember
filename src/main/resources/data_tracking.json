@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:455e955b17ba57386fb6e63be390a55640fb756f65ef67fae5411ee5e3c4be24",
-  "generatedAt": "2026-11-13T15:31:04Z",
+  "schemaHash": "sha256:c481e8dfeece740fe4a086cbcbe9d9d9df317d567bd54c36466f78d555c775c9",
+  "generatedAt": "2026-11-13T15:41:57Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -11116,6 +11116,96 @@
         "reason": "Event group structure data, not per-member"
       },
       "description": "Which warnings that sign-ups for an event group close soon have gone out, so a sweep every few minutes warns once."
+    },
+    "event_group_field": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:fbd5b9642bb149f625063ee892545f66dfdac8634563e0457cd09a5d5ac0f3e4",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The event group the field belongs to."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the field is called; an appointment field with the same name, ignoring case, replaces it on that appointment."
+        },
+        {
+          "name": "field_type",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The kind of value, one of the plain value kinds an appointment field takes (no member kinds)."
+        },
+        {
+          "name": "config",
+          "type": "jsonb",
+          "nullable": false,
+          "verified": true,
+          "description": "The settings of the field, such as the options of a choice, as for an appointment field."
+        },
+        {
+          "name": "value",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The value every appointment of the group shows unless it replaces the field."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Order among the group's fields."
+        },
+        {
+          "name": "overview",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the value shows in lists of appointments."
+        },
+        {
+          "name": "public",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether readers outside the station, such as partner stations and the public calendar, see it."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "event_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Event group structure data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Event group structure data, not per-member"
+      },
+      "description": "Fields of an event group, such as its place or meeting point. Every appointment of the group shows them; an appointment field of the same name replaces one."
     },
     "event_group_partner_registration": {
       "feature": "events",

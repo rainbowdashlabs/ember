@@ -11,7 +11,10 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
+import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventGroup;
+import dev.chojo.ember.feature.events.entity.EventGroupContent;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupPart;
 import dev.chojo.ember.feature.events.entity.EventGroupPartState;
@@ -25,6 +28,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.route.EventRegistrationRoutes.AwaitingMember;
 import dev.chojo.ember.feature.events.route.EventRegistrationRoutes.EventRegistrationFieldValue;
+import dev.chojo.ember.feature.events.route.EventStructureRoutes.EventFieldEntry;
 import dev.chojo.ember.feature.events.service.EventGroupCancellationService;
 import dev.chojo.ember.feature.events.service.EventGroupPartFactory;
 import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
@@ -221,7 +225,7 @@ public class EventGroupRoutes implements Routes {
                 Objects.requireNonNullElse(request.sets(), List.of()),
                 audienceOr(request.registration()),
                 audienceOr(request.view()),
-                draftsOf(request.questions()));
+                new EventGroupContent(draftsOf(request.questions()), fieldDraftsOf(request.fields())));
         ctx.status(HttpStatus.CREATED).json(detailOf(session, eventGroup));
     }
 
@@ -261,7 +265,7 @@ public class EventGroupRoutes implements Routes {
                 request.sets(),
                 request.registration(),
                 request.view(),
-                draftsOf(request.questions()));
+                new EventGroupContent(draftsOf(request.questions()), fieldDraftsOf(request.fields())));
         ctx.json(detailOf(session, eventGroup));
     }
 
@@ -675,6 +679,12 @@ public class EventGroupRoutes implements Routes {
                 : fields.stream().map(RegistrationFieldDefinition::toDraft).toList();
     }
 
+    private static @Nullable List<EventFieldDraft> fieldDraftsOf(@Nullable List<EventFieldEntry> fields) {
+        return fields == null
+                ? null
+                : fields.stream().map(EventFieldEntry::toDraft).toList();
+    }
+
     private static RestrictionAudience audienceOr(@Nullable RestrictionAudience audience) {
         return audience == null ? RestrictionAudience.empty() : audience;
     }
@@ -693,6 +703,7 @@ public class EventGroupRoutes implements Routes {
                 eventGroups.registrationAudience(eventGroup.id()),
                 eventGroups.viewAudience(eventGroup.id()),
                 asked,
+                eventGroups.findFields(eventGroup.id()),
                 signUpsOf(
                         session,
                         asked,
@@ -811,6 +822,7 @@ public class EventGroupRoutes implements Routes {
      * @param registration who may sign up
      * @param view         who may see it
      * @param questions    what it asks of everybody signing up, in order
+     * @param fields       what every appointment of it shows, such as its place, in order
      * @param household    the sign-up of the reader and of everybody they look after who may see it
      */
     public record EventGroupDetail(
@@ -820,6 +832,7 @@ public class EventGroupRoutes implements Routes {
             RestrictionAudience registration,
             RestrictionAudience view,
             List<EventRegistrationField> questions,
+            List<AppointmentField> fields,
             List<EventGroupSignUp> household) {}
 
     /**
@@ -855,13 +868,15 @@ public class EventGroupRoutes implements Routes {
      * @param registration who may sign up, or null for everybody who may see it
      * @param view         who may see it, or null for everybody
      * @param questions    what everybody signing up is asked, or null for nothing
+     * @param fields       what every appointment shows, or null for nothing
      */
     public record EventGroupCreateRequest(
             EventGroupDetails details,
             @Nullable List<EventGroupSetDraft> sets,
             @Nullable RestrictionAudience registration,
             @Nullable RestrictionAudience view,
-            @Nullable List<RegistrationFieldDefinition> questions) {}
+            @Nullable List<RegistrationFieldDefinition> questions,
+            @Nullable List<EventFieldEntry> fields) {}
 
     /**
      * An event group saved from its editor. Sets and audiences left out stay as they are.
@@ -871,13 +886,15 @@ public class EventGroupRoutes implements Routes {
      * @param registration who may sign up, or null
      * @param view         who may see it, or null
      * @param questions    what everybody signing up is asked from now on, or null
+     * @param fields       what every appointment shows from now on, or null
      */
     public record EventGroupDetailsRequest(
             EventGroupDetails details,
             @Nullable List<EventGroupSetDraft> sets,
             @Nullable RestrictionAudience registration,
             @Nullable RestrictionAudience view,
-            @Nullable List<RegistrationFieldDefinition> questions) {}
+            @Nullable List<RegistrationFieldDefinition> questions,
+            @Nullable List<EventFieldEntry> fields) {}
 
     /** @param sets the sets in their new order */
     public record EventGroupSetsRequest(@Nullable List<EventGroupSetDraft> sets) {}

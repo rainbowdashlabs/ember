@@ -20,6 +20,7 @@ import {
   EditScopeKind,
   EventChangePart,
   StationPermission,
+  type AppointmentField,
   type ChangeNotice,
   type EventGroupPartSummary,
   type EventAttachment,
@@ -47,7 +48,7 @@ import {
 } from './eventeditview/eventOwnerPorts'
 import DocumentRequirementsEditor from './eventshared/DocumentRequirementsEditor.vue'
 import {useDocumentRequirements} from './eventshared/useDocumentRequirements'
-import {asSaved} from './eventshared/eventQuestions'
+import {namedEntries} from './eventshared/eventQuestions'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -69,6 +70,7 @@ const savedInto = ref<number | null>(null)
 const eventId = computed(() => savedInto.value ?? (route.params.id ? Number(route.params.id) : null))
 const isEdit = computed(() => eventId.value !== null)
 const eventGroupPart = ref<EventGroupPartSummary | null>(null)
+const inheritedFields = ref<AppointmentField[]>([])
 
 const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 
@@ -207,6 +209,17 @@ async function loadRegistrationFields(id: number) {
 }
 
 /** Fills the editor once the session is there, since the choices it offers depend on the station. */
+/**
+ * Notes which event group the appointment belongs to and reads the fields that group hands down, as
+ * the group stores them: an own field of the same name replaces one on the appointment's page, but
+ * the editor still shows it, struck through, so removing the own field visibly brings it back.
+ */
+async function loadEventGroupPart(part: EventGroupPartSummary | null) {
+  eventGroupPart.value = part
+  if (!part) return
+  inheritedFields.value = (await eventGroups.getEventGroup(part.eventGroupId)).fields
+}
+
 const {loading, failure} = useAsyncLoader(async () => {
   await until(loaded).toBe(true)
   try {
@@ -215,7 +228,7 @@ const {loading, failure} = useAsyncLoader(async () => {
     if (isEdit.value) {
       await Promise.all([
         form.loadEvent(eventId.value!),
-        eventGroups.eventGroupOfEvent(eventId.value!).then(part => { eventGroupPart.value = part }).catch(() => {}),
+        eventGroups.eventGroupOfEvent(eventId.value!).then(loadEventGroupPart).catch(() => {}),
         fieldDefaults.load(eventFieldDefaultsPort(eventId.value!)),
         federationShare.load(eventFederationPort(eventId.value!)),
         loadRegistrationFields(eventId.value!),
@@ -267,7 +280,7 @@ async function writeEvent(choice: SaveChoice | null): Promise<number> {
   await events.setEventReminders(savedEventId, form.state.reminders)
   await events.setEventFields(savedEventId, {fields: form.namedFields()})
   if (!eventGroupPart.value) {
-    await events.setRegistrationFields(savedEventId, registrationFields.value.filter(f => f.name?.trim()).map(asSaved))
+    await events.setRegistrationFields(savedEventId, namedEntries(registrationFields.value))
   }
   await federationShare.save(eventFederationPort(savedEventId))
   await documentRequirements.save({kind: 'events', id: savedEventId})
@@ -313,7 +326,7 @@ function snapshotOf() {
     name: form.state.name,
     description: form.state.description,
     fields: JSON.stringify(form.namedFields()),
-    questions: JSON.stringify(registrationFields.value.filter(f => f.name?.trim()).map(asSaved)),
+    questions: JSON.stringify(namedEntries(registrationFields.value)),
   }
 }
 
@@ -383,6 +396,7 @@ const bodyProps = computed(() => ({
   canFederate: canFederate.value,
   federationNote: federationNote.value,
   eventGroupPart: eventGroupPart.value !== null,
+  inheritedFields: inheritedFields.value,
   ...data.props.value,
   ...fieldDefaults.props.value,
   ...federationShare.props.value,

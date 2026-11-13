@@ -7,16 +7,19 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventGroup;
+import dev.chojo.ember.feature.events.entity.EventGroupContent;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupPart;
 import dev.chojo.ember.feature.events.entity.EventGroupPartSummary;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
-import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.question.FieldTypes;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
@@ -56,6 +59,7 @@ public class EventGroupService {
     private final OccurrenceCalendar calendar;
 
     private final EventGroupQuestionService questions;
+    private final EventFieldRepository fields;
 
     @Inject
     public EventGroupService(
@@ -63,8 +67,10 @@ public class EventGroupService {
             EventRepository events,
             RestrictionService restrictions,
             OccurrenceCalendar calendar,
-            EventGroupQuestionService questions) {
+            EventGroupQuestionService questions,
+            EventFieldRepository fields) {
         this.questions = questions;
+        this.fields = fields;
         this.eventGroups = eventGroups;
         this.events = events;
         this.restrictions = restrictions;
@@ -79,7 +85,8 @@ public class EventGroupService {
      * @param sets         its sets in order, at least one
      * @param registration who may sign up
      * @param view         who may see it
-     * @param asked        the questions everybody signing up answers, or null for none
+     * @param content      the questions and fields it carries for all its appointments, or null for
+     *                     none
      * @return the event group
      */
     public EventGroup create(
@@ -88,8 +95,9 @@ public class EventGroupService {
             List<EventGroupSetDraft> sets,
             RestrictionAudience registration,
             RestrictionAudience view,
-            @Nullable List<RegistrationFieldDraft> asked) {
+            @Nullable EventGroupContent content) {
         var checked = checked(details);
+        requireGroupFieldTypes(content);
         requireValidSets(sets);
         if (sets.stream().anyMatch(set -> set.id() != null))
             throw EventRefusal.EVENT_GROUP_SET_NOT_IN_EVENT_GROUP.raise();
@@ -102,7 +110,7 @@ public class EventGroupService {
             }
             restrictions.setAudience(RestrictionType.EVENT_GROUP, eventGroup.id(), registration);
             restrictions.setAudience(RestrictionType.EVENT_GROUP_VIEW, eventGroup.id(), view);
-            if (asked != null) questions.replaceQuestions(eventGroup.id(), asked);
+            writeContent(eventGroup.id(), content);
             return eventGroups.findById(eventGroup.id()).orElseThrow();
         });
     }
@@ -129,7 +137,8 @@ public class EventGroupService {
     }
 
     /**
-     * Saves everything the event group editor holds in one go: details, sets, audiences and questions. Either
+     * Saves everything the event group editor holds in one go: details, sets, audiences, questions and
+     * fields. Either
      * all of it is kept or, where any part is refused, none of it.
      *
      * @param stationId    the station asking
@@ -138,7 +147,7 @@ public class EventGroupService {
      * @param sets         its sets in their new order, or null to leave them
      * @param registration who may sign up, or null to leave it
      * @param view         who may see it, or null to leave it
-     * @param asked        the questions everybody signing up answers, or null to leave them
+     * @param content      the questions and fields it carries, or null to leave them
      * @return the event group as it is now
      */
     public EventGroup save(
@@ -148,14 +157,47 @@ public class EventGroupService {
             @Nullable List<EventGroupSetDraft> sets,
             @Nullable RestrictionAudience registration,
             @Nullable RestrictionAudience view,
-            @Nullable List<RegistrationFieldDraft> asked) {
+            @Nullable EventGroupContent content) {
+        requireGroupFieldTypes(content);
         return Transactions.call(() -> {
             var eventGroup = update(stationId, eventGroupId, details);
             if (sets != null) replaceSets(stationId, eventGroupId, sets);
             if (registration != null && view != null) setAudiences(stationId, eventGroupId, registration, view);
-            if (asked != null) questions.replaceQuestions(eventGroupId, asked);
+            writeContent(eventGroupId, content);
             return eventGroups.findById(eventGroupId).orElse(eventGroup);
         });
+    }
+
+    private void writeContent(int eventGroupId, @Nullable EventGroupContent content) {
+        if (content == null) return;
+        if (content.questions() != null) questions.replaceQuestions(eventGroupId, content.questions());
+        if (content.fields() != null) {
+            fields.replaceGroupFields(eventGroupId, questions.checkedFields(content.fields()));
+        }
+    }
+
+    /**
+     * Refuses a field an event group cannot hand down: one that names members, is answered per date,
+     * takes self-registration or feeds an attendance sheet is about one date and stays on the
+     * appointment.
+     */
+    private static void requireGroupFieldTypes(@Nullable EventGroupContent content) {
+        if (content == null || content.fields() == null) return;
+        for (var field : content.fields()) {
+            if (!FieldTypes.EVENT_GROUP.contains(field.fieldType()) || field.attendanceFieldId() != null) {
+                throw EventRefusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED.raise();
+            }
+        }
+    }
+
+    /**
+     * The fields an event group hands down to its appointments.
+     *
+     * @param eventGroupId the event group
+     * @return its fields in order
+     */
+    public List<AppointmentField> findFields(int eventGroupId) {
+        return fields.findByGroup(eventGroupId);
     }
 
     /**

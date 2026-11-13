@@ -10,14 +10,19 @@ import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
+import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventGroup;
+import dev.chojo.ember.feature.events.entity.EventGroupContent;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
@@ -33,6 +38,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -125,8 +131,13 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
     void wire() {
         var federationRepo = new FederationRepository();
         var questions = new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility);
-        eventGroups =
-                new EventGroupService(eventGroupRepo, eventRepo, restrictionService, occurrenceCalendar, questions);
+        eventGroups = new EventGroupService(
+                eventGroupRepo,
+                eventRepo,
+                restrictionService,
+                occurrenceCalendar,
+                questions,
+                new EventFieldRepository());
         signUps = new EventGroupRegistrationService(
                 eventGroupRepo,
                 new EventGroupRegistrationRepository(),
@@ -320,7 +331,7 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void aEventGroupNotSharedWithThePartnerIsNotThere() {
+    void anEventGroupNotSharedWithThePartnerIsNotThere() {
         partners.share(holder.id(), eventGroup.id(), ShareScope.SPECIFIC, List.of());
 
         assertRefused(
@@ -379,6 +390,44 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
         assertEquals(Set.of(sat1, sun1, test), heldParts());
         assertTrue(federationRegistrations.findRegistrations(sat2, null).stream()
                 .anyMatch(registration -> registration.status() == RegistrationStatus.ACCEPTED));
+    }
+
+    @Test
+    void aPartnerSeesOnlyTheGroupFieldsMeantForOutsideReaders() {
+        eventGroups.save(
+                holder.id(),
+                eventGroup.id(),
+                new EventGroupDetails(eventGroup.name(), null, null, eventGroup.registrationDeadline(), false),
+                null,
+                null,
+                null,
+                new EventGroupContent(
+                        null,
+                        List.of(
+                                new EventFieldDraft(
+                                        null,
+                                        "Ort",
+                                        FieldType.LOCATION,
+                                        EventQuestionSettings.empty(),
+                                        "Gerätehaus",
+                                        true,
+                                        null,
+                                        true),
+                                new EventFieldDraft(
+                                        null,
+                                        "Notfallnummer",
+                                        FieldType.TEXT,
+                                        EventQuestionSettings.empty(),
+                                        "0171",
+                                        false,
+                                        null,
+                                        false))));
+
+        var view = partnerSide.eventGroup(partner.id(), holder.uid(), eventGroup.id(), Map.of(mara.uid(), mara.id()));
+
+        assertEquals(
+                List.of("Ort"),
+                view.fields().stream().map(AppointmentField::name).toList());
     }
 
     private static void assertRefused(Refusal refusal, Runnable call) {

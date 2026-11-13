@@ -3435,6 +3435,8 @@ volumes:
             setsText: 'Jeder Termin gehört zu einem Block. Bei jedem Block steht, wie viele seiner Termine mindestens gewählt werden müssen. Steht dort die Zahl aller Termine, sind sie alle Pflicht. Mit den Pfeilen links änderst du die Reihenfolge.',
             audienceTitle: 'Zielgruppe',
             audienceText: 'Hier legst du fest, wer die Terminreihe sieht und wer sich anmelden darf. Das gilt automatisch für alle Termine der Terminreihe.',
+            fieldsTitle: 'Felder für alle Termine',
+            fieldsText: 'Felder wie Ort, Treffpunkt oder was mitzubringen ist, trägst du einmal bei der Terminreihe ein. Jeder Termin zeigt sie. Weicht ein Termin ab, überschreibst du das Feld im Termin, dann gilt dort der eigene Wert. Felder, die Personen nennen oder je Datum beantwortet werden, bleiben am einzelnen Termin.',
             questionsTitle: 'Fragen zur Anmeldung',
             questionsText: 'Fragen wie die T-Shirt-Größe stellst du einmal für die ganze Terminreihe. Jede Anmeldung beantwortet sie einmal, nicht für jeden Termin neu. Behält eine Frage ihren Namen, bleiben die Antworten erhalten.',
             partsTitle: 'Termine',

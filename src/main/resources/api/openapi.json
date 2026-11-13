@@ -23064,7 +23064,7 @@
     },
     "/api/v1/events/{id}/fields" : {
       "get" : {
-        "summary" : "Get fields for an event",
+        "summary" : "Get the fields of an event, with those its event group hands down unless only its own are asked for",
         "tags" : [ "Events" ],
         "responses" : {
           "200" : {
@@ -23094,6 +23094,12 @@
           "in" : "query",
           "schema" : {
             "type" : "string"
+          }
+        }, {
+          "name" : "own",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
           }
         } ]
       },
@@ -61921,6 +61927,12 @@
             "items" : {
               "$ref" : "#/components/schemas/RegistrationFieldDefinition"
             }
+          },
+          "fields" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/EventFieldEntry"
+            }
           }
         }
       },
@@ -61962,6 +61974,12 @@
               "$ref" : "#/components/schemas/EventRegistrationField"
             }
           },
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AppointmentField"
+            }
+          },
           "household" : {
             "type" : "array",
             "items" : {
@@ -61969,7 +61987,7 @@
             }
           }
         },
-        "required" : [ "eventGroup", "sets", "parts", "registration", "view", "questions", "household" ]
+        "required" : [ "eventGroup", "sets", "parts", "registration", "view", "questions", "fields", "household" ]
       },
       "EventGroupDetails" : {
         "type" : "object",
@@ -62026,6 +62044,12 @@
             "type" : [ "array", "null" ],
             "items" : {
               "$ref" : "#/components/schemas/RegistrationFieldDefinition"
+            }
+          },
+          "fields" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/EventFieldEntry"
             }
           }
         }

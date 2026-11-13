@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.route.EventGroupRoutes.EventGroupSummary;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupDetail;
@@ -88,7 +89,10 @@ public class EventGroupPartnerServer implements FederationServer {
                         eventGroup, eventGroups.findParts(eventGroupId).size(), signUps.holding(eventGroupId)),
                 eventGroups.findSets(eventGroupId),
                 signUps.partStates(eventGroupId),
-                partners.standings(eventGroupId, partner.partnerId(), asked));
+                partners.standings(eventGroupId, partner.partnerId(), asked),
+                eventGroups.findFields(eventGroupId).stream()
+                        .filter(AppointmentField::isPublic)
+                        .toList());
     }
 
     private int requireShared(ServingPartner partner, int eventGroupId) {

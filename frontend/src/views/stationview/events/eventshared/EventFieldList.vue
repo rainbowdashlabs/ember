@@ -18,6 +18,7 @@ import type {FieldWidthName, PreviewField} from '@/components/profilefields/fiel
 import {moveWithin} from '@/util/reorder'
 import type {
   AttendanceTemplateField,
+  FieldType,
   EventFieldEntry,
   MemberGroup,
   UserTag,
@@ -38,6 +39,8 @@ const props = defineProps<{
   tagMembers?: Map<number, MemberLike[]>
   /** Whether the event repeats, which is what offers answering a field per date. */
   recurring?: boolean
+  /** The kinds offered where fewer than an appointment's apply, such as on an event group. */
+  offeredTypes?: readonly FieldType[]
 }>()
 
 const {t} = useI18n()
@@ -165,6 +168,7 @@ function resizeField(shown: PreviewField, width: FieldWidthName) {
     <template #default="{index}">
       <EventQuestionEditor
           mode="organiser"
+          :offered-types="offeredTypes"
           :model-value="fields[index]!"
           :attendance-fields="attendanceFields"
           :show-value="showValue"

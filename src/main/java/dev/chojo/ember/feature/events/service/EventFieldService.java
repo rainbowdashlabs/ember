@@ -69,8 +69,74 @@ public class EventFieldService {
         return repository.findDistinctFieldNames(stationId);
     }
 
+    /**
+     * What an appointment shows: the fields it takes over from its event group, then its own. An own
+     * field with the same name as a group field, ignoring case, replaces it.
+     *
+     * @param eventId the appointment
+     * @return the fields it shows
+     */
     public List<AppointmentField> findByEvent(int eventId) {
+        return withInherited(eventId, repository.findByEvent(eventId));
+    }
+
+    /**
+     * The fields an appointment carries itself, without what its event group hands down, which is
+     * what its editor edits.
+     *
+     * @param eventId the appointment
+     * @return its own fields
+     */
+    public List<AppointmentField> findOwnByEvent(int eventId) {
         return repository.findByEvent(eventId);
+    }
+
+    /**
+     * The fields an appointment carries itself as they stand on one date, without what its event
+     * group hands down; enough wherever only fields that name members matter, which a group never
+     * hands down.
+     *
+     * @param eventId the appointment
+     * @param date    the date
+     * @return its own fields on that date
+     */
+    public List<AppointmentField> findOwnByEvent(int eventId, LocalDate date) {
+        return repository.findByEventOn(eventId, date);
+    }
+
+    /**
+     * Group fields as they are stored: checked like an appointment's, so a choice holds one of its
+     * options and a date reads as a date, in the one shape each kind is stored in. A group field
+     * carries no per-date answers and no self-registration.
+     *
+     * @param fields      the fields of an event group as submitted
+     * @param eligibility who passes a member narrowing; a group field names nobody
+     * @return the fields to store
+     */
+    static List<EventFieldDraft> checkedGroupFields(List<EventFieldDraft> fields, MemberEligibility eligibility) {
+        for (var field : fields) {
+            if (field.config().perDate() || field.config().selfRegistration()) {
+                throw EventRefusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED.raise();
+            }
+        }
+        return fields.stream().map(field -> answered(field, eligibility)).toList();
+    }
+
+    /**
+     * The fields of an event group as its own page shows them.
+     *
+     * @param groupId the event group
+     * @return its fields
+     */
+    public List<AppointmentField> findByGroup(int groupId) {
+        return repository.findByGroup(groupId);
+    }
+
+    private List<AppointmentField> withInherited(int eventId, List<AppointmentField> own) {
+        return AppointmentField.shown(
+                own,
+                repository.findInherited(List.of(eventId), false),
+                own.stream().map(AppointmentField::name).toList());
     }
 
     /**
@@ -81,7 +147,8 @@ public class EventFieldService {
      * @param date    the occurrence, or null to read the answers the appointment itself carries
      */
     public List<AppointmentField> findByEvent(int eventId, @Nullable LocalDate date) {
-        return date == null ? repository.findByEvent(eventId) : repository.findByEventOn(eventId, date);
+        return withInherited(
+                eventId, date == null ? repository.findByEvent(eventId) : repository.findByEventOn(eventId, date));
     }
 
     /**
@@ -101,7 +168,7 @@ public class EventFieldService {
     }
 
     public Map<Integer, List<AppointmentField>> findOverviewFieldsByEvents(List<Integer> eventIds) {
-        return grouped(repository.findOverviewFieldsByEvents(eventIds));
+        return withInheritedOverview(eventIds, grouped(repository.findOverviewFieldsByEvents(eventIds)));
     }
 
     /**
@@ -118,7 +185,25 @@ public class EventFieldService {
             List<Integer> eventIds, Map<Integer, LocalDate> datesById) {
         var asked = eventIds.stream().filter(datesById::containsKey).toList();
         var dates = asked.stream().map(datesById::get).toList();
-        return grouped(repository.findOverviewFieldsByEventsOn(asked, dates));
+        return withInheritedOverview(asked, grouped(repository.findOverviewFieldsByEventsOn(asked, dates)));
+    }
+
+    /**
+     * Adds to the fields of many appointments the overview fields their event groups hand down, read
+     * for all of them at once. An appointment's own field of the same name replaces a group field
+     * even where the own one is not shown in lists.
+     */
+    private Map<Integer, List<AppointmentField>> withInheritedOverview(
+            List<Integer> eventIds, Map<Integer, List<AppointmentField>> own) {
+        var inherited = grouped(repository.findInherited(eventIds, true));
+        if (inherited.isEmpty()) return own;
+        var names = repository.findOwnNames(List.copyOf(inherited.keySet()));
+        var result = new LinkedHashMap<>(own);
+        inherited.forEach((eventId, fields) -> result.put(
+                eventId,
+                AppointmentField.shown(
+                        own.getOrDefault(eventId, List.of()), fields, names.getOrDefault(eventId, Set.of()))));
+        return result;
     }
 
     private static Map<Integer, List<AppointmentField>> grouped(List<AppointmentField> fields) {

@@ -28,6 +28,7 @@ const detail: EventGroupDetail = {
   registration: {userTypes: [], groupIds: [], tagIds: [], memberIds: [], mode: 'AND'},
   view: {userTypes: [], groupIds: [], tagIds: [], memberIds: [], mode: 'AND'},
   questions: [],
+  fields: [],
   household: [],
 }
 

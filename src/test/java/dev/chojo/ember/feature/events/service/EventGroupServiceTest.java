@@ -11,15 +11,21 @@ import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventCreated;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
+import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventGroup;
+import dev.chojo.ember.feature.events.entity.EventGroupContent;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionType;
@@ -37,6 +43,7 @@ import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -93,7 +100,8 @@ class EventGroupServiceTest extends RepositoryTestBase {
                 eventRepo,
                 restrictionService,
                 occurrenceCalendar,
-                new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility));
+                new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
+                new EventFieldRepository());
         deadline = Instant.now().plus(Duration.ofDays(10)).truncatedTo(ChronoUnit.SECONDS);
     }
 
@@ -154,7 +162,7 @@ class EventGroupServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void aEventGroupIsCreatedWithItsSetsInOrder() {
+    void anEventGroupIsCreatedWithItsSetsInOrder() {
         var eventGroup = jugendflamme();
 
         var sets = service.findSets(eventGroup.id());
@@ -168,7 +176,7 @@ class EventGroupServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void aEventGroupNeedsANameAndASetAndNoSetAsksForLessThanNothing() {
+    void anEventGroupNeedsANameAndASetAndNoSetAsksForLessThanNothing() {
         var sets = List.of(new EventGroupSetDraft(null, "Teile", 1));
         assertRefused(EventRefusal.EVENT_GROUP_NAME_MISSING, () -> create(details(" ", false), sets));
         assertRefused(EventRefusal.EVENT_GROUP_NEEDS_A_SET, () -> create(details("Kurs", false), List.of()));
@@ -412,7 +420,7 @@ class EventGroupServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void aEventGroupOfAnotherStationIsNotHere() {
+    void anEventGroupOfAnotherStationIsNotHere() {
         var eventGroup = jugendflamme();
 
         assertRefused(
@@ -424,7 +432,7 @@ class EventGroupServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void aEventGroupIsCreatedWithItsAudiencesAndATrimmedName() {
+    void anEventGroupIsCreatedWithItsAudiencesAndATrimmedName() {
         var eventGroup = service.create(
                 station.id(),
                 details("  Jugendflamme 2  ", false),
@@ -758,5 +766,207 @@ class EventGroupServiceTest extends RepositoryTestBase {
     private static void assertRefused(Refusal refusal, Runnable call) {
         var thrown = assertThrows(RefusalResponse.class, call::run);
         assertEquals(refusal, thrown.refusal());
+    }
+
+    private static EventFieldDraft valueField(String name, FieldType type, String value, boolean overview) {
+        return new EventFieldDraft(null, name, type, EventQuestionSettings.empty(), value, overview, null, true);
+    }
+
+    @Test
+    void anAppointmentShowsTheGroupFieldsAndItsOwnFieldOfTheSameNameReplacesOne() {
+        var group = service.create(
+                station.id(),
+                details("Zeltlager", false),
+                List.of(new EventGroupSetDraft(null, "Tage", 1)),
+                RestrictionAudience.empty(),
+                RestrictionAudience.empty(),
+                new EventGroupContent(
+                        null,
+                        List.of(
+                                valueField("Ort", FieldType.LOCATION, "Gerätehaus", true),
+                                valueField("Mitbringen", FieldType.TEXT, "Schlafsack", false))));
+        var part = appointment(station, 30, StationEvent.EventType.ONE_TIME);
+        service.addPart(
+                station.id(),
+                group.id(),
+                part.id(),
+                service.findSets(group.id()).getFirst().id());
+        var fields = new EventFieldService(
+                eventFieldRepo,
+                stationMemberRepo,
+                memberEligibility,
+                eventRepo,
+                attendanceRepo,
+                eventFieldRegistrationService);
+
+        assertEquals(
+                List.of("Ort", "Mitbringen"),
+                fields.findByEvent(part.id()).stream()
+                        .map(AppointmentField::name)
+                        .toList());
+        assertTrue(fields.findOwnByEvent(part.id()).isEmpty());
+        assertTrue(fields.findByEvent(part.id()).stream().allMatch(field -> field.id() < 0));
+
+        fields.replaceFields(part.id(), List.of(valueField("ort", FieldType.LOCATION, "Zeltplatz", false)));
+
+        var shown = fields.findByEvent(part.id());
+        assertEquals(
+                List.of("Mitbringen", "ort"),
+                shown.stream().map(AppointmentField::name).toList());
+        assertEquals("Zeltplatz", shown.get(1).value());
+        assertEquals(
+                Map.of(),
+                fields.findOverviewFieldsByEvents(List.of(part.id())).entrySet().stream()
+                        .filter(entry -> !entry.getValue().isEmpty())
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+    }
+
+    @Test
+    void anEventGroupTakesOnlyPlainValueFields() {
+        var member = new EventFieldDraft(
+                null, "Leitung", FieldType.MEMBER, EventQuestionSettings.empty(), "", false, null, false);
+
+        assertRefused(
+                EventRefusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED,
+                () -> service.create(
+                        station.id(),
+                        details("Wettbewerb", false),
+                        List.of(new EventGroupSetDraft(null, "Tage", 1)),
+                        RestrictionAudience.empty(),
+                        RestrictionAudience.empty(),
+                        new EventGroupContent(null, List.of(member))));
+    }
+
+    private EventGroup groupWith(String name, EventFieldDraft... fields) {
+        return service.create(
+                station.id(),
+                details(name, false),
+                List.of(new EventGroupSetDraft(null, "Tage", 1)),
+                RestrictionAudience.empty(),
+                RestrictionAudience.empty(),
+                new EventGroupContent(null, List.of(fields)));
+    }
+
+    private StationEvent partOf(EventGroup group, int daysAhead) {
+        var part = appointment(station, daysAhead, StationEvent.EventType.ONE_TIME);
+        service.addPart(
+                station.id(),
+                group.id(),
+                part.id(),
+                service.findSets(group.id()).getFirst().id());
+        return part;
+    }
+
+    private EventFieldService fieldService() {
+        return new EventFieldService(
+                eventFieldRepo,
+                stationMemberRepo,
+                memberEligibility,
+                eventRepo,
+                attendanceRepo,
+                eventFieldRegistrationService);
+    }
+
+    @Test
+    void listsAndDatedReadsShowTheGroupOverviewFields() {
+        var group = groupWith("Wettbewerb", valueField("Ort", FieldType.LOCATION, "Sportplatz", true));
+        var part = partOf(group, 31);
+        var day = eventRepo
+                .findById(part.id())
+                .orElseThrow()
+                .startTime()
+                .atZone(ZoneOffset.UTC)
+                .toLocalDate();
+        var fields = fieldService();
+
+        assertEquals(
+                List.of("Ort"),
+                fields.findOverviewFieldsByEvents(List.of(part.id())).get(part.id()).stream()
+                        .map(AppointmentField::name)
+                        .toList());
+        assertEquals(
+                List.of("Ort"),
+                fields.findOverviewFieldsByEvents(List.of(part.id()), Map.of(part.id(), day)).get(part.id()).stream()
+                        .map(AppointmentField::name)
+                        .toList());
+        assertEquals("Sportplatz", AppointmentField.firstLocation(eventFieldRepo.findShownOn(part.id(), day)));
+    }
+
+    @Test
+    void savingWithoutFieldsKeepsThemAndSavingWithFieldsReplacesThem() {
+        var group = groupWith("Ausbildung", valueField("Ort", FieldType.LOCATION, "Gerätehaus", true));
+        var unchanged = details("Ausbildung", false);
+
+        service.save(station.id(), group.id(), unchanged, null, null, null, null);
+        assertEquals(
+                List.of("Ort"),
+                service.findFields(group.id()).stream()
+                        .map(AppointmentField::name)
+                        .toList());
+
+        service.save(
+                station.id(),
+                group.id(),
+                unchanged,
+                null,
+                null,
+                null,
+                new EventGroupContent(null, List.of(valueField("Mitbringen", FieldType.TEXT, "Helm", false))));
+        assertEquals(
+                List.of("Mitbringen"),
+                service.findFields(group.id()).stream()
+                        .map(AppointmentField::name)
+                        .toList());
+    }
+
+    @Test
+    void aGroupFieldIsCheckedLikeAnAppointmentField() {
+        var choice = new EventFieldDraft(
+                null,
+                "Kleidung",
+                FieldType.CHOICE,
+                new EventQuestionSettings(
+                        List.of("Uniform", "Zivil"),
+                        null,
+                        null,
+                        null,
+                        null,
+                        false,
+                        false,
+                        false,
+                        null,
+                        null,
+                        null,
+                        false),
+                "Badehose",
+                false,
+                null,
+                false);
+        var tied = new EventFieldDraft(null, "Ort", FieldType.TEXT, EventQuestionSettings.empty(), "", false, 4, false);
+
+        assertRefused(EventRefusal.APPOINTMENT_FIELD_VALUE_NOT_ACCEPTED, () -> groupWith("Wahl", choice));
+        assertRefused(EventRefusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED, () -> groupWith("Bindung", tied));
+        var perDate = new EventFieldDraft(
+                null,
+                "Thema",
+                FieldType.TEXT,
+                new EventQuestionSettings(null, null, null, null, null, false, true, false, null, null, null, false),
+                "",
+                false,
+                null,
+                false);
+        assertRefused(EventRefusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED, () -> groupWith("Datum", perDate));
+    }
+
+    @Test
+    void aPartLeavingTheGroupNoLongerShowsItsFields() {
+        var group = groupWith("Lager", valueField("Ort", FieldType.LOCATION, "Zeltplatz", true));
+        var part = partOf(group, 32);
+        var fields = fieldService();
+        assertEquals(1, fields.findByEvent(part.id()).size());
+
+        service.removePart(station.id(), group.id(), part.id());
+
+        assertTrue(fields.findByEvent(part.id()).isEmpty());
     }
 }

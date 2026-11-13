@@ -166,7 +166,7 @@ class RegistrationListReadsTest {
                 .thenReturn(memberIds.stream()
                         .map(RegistrationListReadsTest::member)
                         .toList());
-        when(eventFieldService.findByEvent(EVENT_ID, DATE)).thenReturn(List.of(driversNaming(memberIds)));
+        when(eventFieldService.findOwnByEvent(EVENT_ID, DATE)).thenReturn(List.of(driversNaming(memberIds)));
     }
 
     /** Asks for the date's list as somebody who runs the station's appointments. */
@@ -192,7 +192,7 @@ class RegistrationListReadsTest {
         verify(memberRepository, times(1)).findByIds(anyList());
         verify(memberRepository, never()).findById(anyInt());
         verify(crudService, times(1)).findById(EVENT_ID);
-        verify(eventFieldService, times(1)).findByEvent(any(Integer.class), any(LocalDate.class));
+        verify(eventFieldService, times(1)).findOwnByEvent(any(Integer.class), any(LocalDate.class));
         verify(registrationFieldService, times(1)).findValuesByRegistration(anyList());
         verify(registrationFieldService, times(1)).requiredFieldIds(EVENT_ID);
     }
