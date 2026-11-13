@@ -86,7 +86,7 @@ class DemoEventGroupMaterialsSeederTest {
         seeder.seedStation(null, station);
 
         verify(requirements).setForEventGroup(new Owner.Station(STATION), GROUP, List.of(2));
-        verify(attachments).attachToGroup(GROUP, STATION, 40, "Lageplan", false);
+        verify(attachments).attachToGroup(GROUP, STATION, 40, "Infoblatt", false);
     }
 
     @Test

@@ -73,7 +73,7 @@ public class DemoEventGroupMaterialsSeeder implements DemoPerStationSeeder {
                     log.info("Demo: The Jugendflamme at station {} asks for {}", stationId, template.name());
                 });
         media.listLibrary(stationId, false).stream().findFirst().ifPresent(listing -> {
-            attachments.attachToGroup(eventGroupId, stationId, listing.file().id(), "Lageplan", false);
+            attachments.attachToGroup(eventGroupId, stationId, listing.file().id(), "Infoblatt", false);
             log.info(
                     "Demo: The Jugendflamme at station {} hands over {}",
                     stationId,

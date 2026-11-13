@@ -99,13 +99,13 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
     public void seedStation(DemoRunContext run, DemoStationContext station) {
         var members = station.members();
         var days = clock.of(station.station());
-        int jugendflamme = seedJugendflamme(
+        var jugendflamme = seedJugendflamme(
                 days,
                 station.stationId(),
                 members.fortgeschritten(),
                 members.betreuer(),
                 members.groupBetreuer().id());
-        handDown(station, jugendflamme);
+        handDown(station, jugendflamme.id());
         seedSupervisors(jugendflamme, members.groupBetreuer().id(), members.betreuer());
         seedGrundlehrgang(
                 days,
@@ -189,16 +189,16 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
      * the whole weekend, the third for the whole weekend but not the test, and the second for the
      * Sunday practice only.
      */
-    private void seedSupervisors(int eventGroupId, int teamGroupId, List<StationMember> team) {
+    private void seedSupervisors(Jugendflamme jugendflamme, int teamGroupId, List<StationMember> team) {
         if (team.size() < 3) return;
+        int eventGroupId = jugendflamme.id();
         int field = eventGroups.findFields(eventGroupId).stream()
                 .filter(found -> found.name().equals(SUPERVISORS))
                 .map(AppointmentField::id)
                 .findFirst()
                 .orElseThrow();
-        var parts = eventGroups.findParts(eventGroupId);
-        int sunday = parts.get(1).eventId();
-        int exam = parts.getLast().eventId();
+        int sunday = jugendflamme.sundayPractice();
+        int exam = jugendflamme.exam();
         fields.toggleGroupSelfRegistration(eventGroupId, field, team.get(0).id(), true);
         fields.toggleGroupSelfRegistration(eventGroupId, field, team.get(2).id(), true);
         fields.toggleSelfRegistration(exam, -field, team.get(2).id(), null, true);
@@ -206,7 +206,17 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
         log.info("Demo: Put the team into the Betreuer field of event group {} (group {})", eventGroupId, teamGroupId);
     }
 
-    private int seedJugendflamme(
+    /**
+     * The Jugendflamme as the team is put into it: the event group and the two dates one of them is
+     * entered for or skips.
+     *
+     * @param id             the event group
+     * @param sundayPractice the Sunday practice
+     * @param exam           the test on the last day
+     */
+    private record Jugendflamme(int id, int sundayPractice, int exam) {}
+
+    private Jugendflamme seedJugendflamme(
             DemoStationDays days, int stationId, List<StationMember> youth, List<StationMember> team, int teamGroupId) {
         LocalDate saturday = days.today().plusWeeks(3).with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY));
         var youthAndTeam = youthAndTeam();
@@ -309,7 +319,7 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
             signUps.decide(stationId, eventGroup.id(), youth.get(i).id(), RegistrationStatus.ACCEPTED);
         }
         log.info("Demo: Created the Jugendflamme event group with four parts and {} sign-ups", signedUp + 1);
-        return eventGroup.id();
+        return new Jugendflamme(eventGroup.id(), sundayPractice, exam);
     }
 
     private int part(
