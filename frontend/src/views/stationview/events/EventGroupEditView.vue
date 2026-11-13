@@ -280,6 +280,7 @@ async function save() {
     await dateSettings.save(savedId)
     await requirements.save(requirementOwner(savedId))
     if (eventGroupId.value == null) {
+      await fromTemplate.attachFiles(savedId)
       showToast(t('eventGroups.saved'), 'success')
       await router.replace({name: 'event-group-edit', params: {eventGroupId: savedId}})
       return

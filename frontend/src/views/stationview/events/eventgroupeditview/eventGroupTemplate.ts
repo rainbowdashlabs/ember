@@ -85,10 +85,11 @@ export function useEventGroupTemplate() {
 
     /** Attaches the noted files to the event group just created, in the template's order and with its labels. */
     async function attachFiles(eventGroupId: number) {
-        for (const file of files.value) {
-            await eventGroups.attachFile(eventGroupId, file.fileId, file.label, file.internal)
+        while (files.value.length > 0) {
+            const [file] = files.value
+            await eventGroups.attachFile(eventGroupId, file!.fileId, file!.label, file!.internal)
+            files.value = files.value.slice(1)
         }
-        files.value = []
     }
 
     const props = computed(() => ({templates: templates.value, leftOut: leftOut.value, files: files.value}))
