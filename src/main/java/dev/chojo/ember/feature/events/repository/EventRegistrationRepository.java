@@ -800,6 +800,7 @@ public class EventRegistrationRepository {
                 WHERE sm.id = ANY (:member_ids)
                   AND sm.former = FALSE
                   AND e.requires_registration
+                  AND e.course_set_id IS NULL
                   AND e.event_type = 'ONE_TIME'
                   AND e.cancelled = FALSE
                   AND %s

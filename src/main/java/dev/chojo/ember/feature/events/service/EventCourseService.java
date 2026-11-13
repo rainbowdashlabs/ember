@@ -26,6 +26,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -108,8 +109,11 @@ public class EventCourseService {
     public EventCourse update(int stationId, int courseId, EventCourseDetails details) {
         var checked = checked(details);
         return Transactions.call(() -> {
-            lockCourse(stationId, courseId);
+            var before = lockCourse(stationId, courseId);
             courses.update(courseId, checked);
+            if (!Objects.equals(before.registrationDeadline(), checked.registrationDeadline())) {
+                courses.clearClosingWarnings(courseId);
+            }
             courses.alignParts(courseId, checked.requiresConfirmation(), checked.registrationDeadline());
             return courses.findById(courseId).orElseThrow();
         });
@@ -167,6 +171,7 @@ public class EventCourseService {
     public EventCoursePart addPart(int stationId, int courseId, int eventId, int setId) {
         return Transactions.call(() -> {
             var course = lockCourse(stationId, courseId);
+            if (course.cancelled()) throw EventRefusal.COURSE_CANCELLED.raise();
             courses.lockEvent(eventId);
             var event = requireEvent(stationId, eventId);
             requireSetOf(courseId, setId);

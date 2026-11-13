@@ -46,6 +46,16 @@ public final class NotificationLinks {
     }
 
     /**
+     * The link to one course.
+     *
+     * @param courseId the course
+     * @return the link its notifications carry
+     */
+    public static NotificationLink course(int courseId) {
+        return new NotificationLink("event-course", Map.of("courseId", courseId));
+    }
+
+    /**
      * The link to one appointment.
      *
      * @param eventId the appointment

@@ -19170,6 +19170,52 @@
         }
       }
     },
+    "/api/v1/events/courses/{courseId}/cancel" : {
+      "post" : {
+        "summary" : "Call a course off with every part still to come",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CourseDetail"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CourseCancelRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/courses/{courseId}/parts" : {
       "post" : {
         "summary" : "Make a one-time appointment a part of a course",
@@ -57748,6 +57794,14 @@
             }, {
               "type" : "null"
             } ]
+          }
+        }
+      },
+      "CourseCancelRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : [ "string", "null" ]
           }
         }
       },

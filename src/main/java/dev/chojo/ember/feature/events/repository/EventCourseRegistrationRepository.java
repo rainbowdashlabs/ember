@@ -104,4 +104,20 @@ public class EventCourseRegistrationRepository {
                 SELECT count(*) FROM event_course_registration
                 WHERE course_id = :course_id AND status IN ('PENDING', 'ACCEPTED');""", call().bind("course_id", courseId));
     }
+
+    /**
+     * The members whose sign-up for a course holds or waits for a place.
+     *
+     * @param courseId the course
+     * @return those members
+     */
+    public List<Integer> findHoldingMemberIds(int courseId) {
+        return query("""
+                SELECT member_id FROM event_course_registration
+                WHERE course_id = :course_id AND status IN ('PENDING', 'ACCEPTED')
+                ORDER BY member_id;""")
+                .single(call().bind("course_id", courseId))
+                .map(row -> row.getInt("member_id"))
+                .all();
+    }
 }

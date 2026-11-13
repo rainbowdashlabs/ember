@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.events.handler;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.EventCancelled;
+import dev.chojo.ember.feature.events.entity.EventCourse;
+import dev.chojo.ember.feature.events.repository.EventCourseRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
@@ -34,15 +36,18 @@ public class EventCancelledHandler implements DomainEventHandler<EventCancelled>
     private final Notifier notifier;
     private final EventRegistrationRepository registrationRepository;
     private final OccurrenceCalendar occurrenceCalendar;
+    private final EventCourseRepository courseRepository;
 
     @Inject
     public EventCancelledHandler(
             Notifier notifier,
             EventRegistrationRepository registrationRepository,
-            OccurrenceCalendar occurrenceCalendar) {
+            OccurrenceCalendar occurrenceCalendar,
+            EventCourseRepository courseRepository) {
         this.notifier = notifier;
         this.registrationRepository = registrationRepository;
         this.occurrenceCalendar = occurrenceCalendar;
+        this.courseRepository = courseRepository;
     }
 
     @Override
@@ -52,6 +57,7 @@ public class EventCancelledHandler implements DomainEventHandler<EventCancelled>
 
     @Override
     public void handle(EventCancelled event) {
+        if (partOfCancelledCourse(event.eventId())) return;
         var placeHolders = placeHolders(event);
         if (placeHolders.isEmpty()) return;
         LocalDate eventDate = event.eventDate();
@@ -66,6 +72,15 @@ public class EventCancelledHandler implements DomainEventHandler<EventCancelled>
                                 event.eventName(), event.reason(), event.eventDate(), event.cause()),
                         link),
                 Delivery.EVERY_TIME);
+    }
+
+    /** A part of a course called off as a whole, whose people the course tells once. */
+    private boolean partOfCancelledCourse(int eventId) {
+        return courseRepository
+                .findPart(eventId)
+                .flatMap(part -> courseRepository.findById(part.courseId()))
+                .map(EventCourse::cancelled)
+                .orElse(false);
     }
 
     private List<Integer> placeHolders(EventCancelled event) {

@@ -27373,6 +27373,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/courses/{courseId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Call a course off with every part still to come */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    courseId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CourseCancelRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CourseDetail"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/courses/{courseId}/parts": {
         parameters: {
             query?: never;
@@ -68617,6 +68668,9 @@ export interface components {
             registration?: components["schemas"]["RestrictionAudience"] | null;
             view?: components["schemas"]["RestrictionAudience"] | null;
         };
+        CourseCancelRequest: {
+            reason?: string | null;
+        };
         CourseCreateRequest: {
             details?: components["schemas"]["EventCourseDetails"];
             registration?: components["schemas"]["RestrictionAudience"] | null;
@@ -79505,6 +79559,7 @@ export type CountdownConfig = components['schemas']['CountdownConfig'];
 export type CountResponse = components['schemas']['CountResponse'];
 export type CountUnit = components['schemas']['CountUnit'];
 export type CourseAudiences = components['schemas']['CourseAudiences'];
+export type CourseCancelRequest = components['schemas']['CourseCancelRequest'];
 export type CourseCreateRequest = components['schemas']['CourseCreateRequest'];
 export type CourseDecisionRequest = components['schemas']['CourseDecisionRequest'];
 export type CourseDetail = components['schemas']['CourseDetail'];

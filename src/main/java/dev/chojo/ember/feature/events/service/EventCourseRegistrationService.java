@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.CourseRegistrationStatusChanged;
 import dev.chojo.ember.feature.events.entity.EventCourse;
 import dev.chojo.ember.feature.events.entity.EventCoursePart;
 import dev.chojo.ember.feature.events.entity.EventCoursePartState;
@@ -19,6 +21,7 @@ import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.service.CourseRules.SetResult;
 import dev.chojo.ember.feature.events.service.CourseRules.SetRule;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -64,6 +67,8 @@ public class EventCourseRegistrationService {
     private final EventRegistrationRepository registrations;
     private final EventRegistrationService registrationService;
     private final OccurrenceCalendar calendar;
+    private final DomainEventBus eventBus;
+    private final MemberNameResolver names;
 
     @Inject
     public EventCourseRegistrationService(
@@ -72,13 +77,17 @@ public class EventCourseRegistrationService {
             EventRepository events,
             EventRegistrationRepository registrations,
             EventRegistrationService registrationService,
-            OccurrenceCalendar calendar) {
+            OccurrenceCalendar calendar,
+            DomainEventBus eventBus,
+            MemberNameResolver names) {
         this.courses = courses;
         this.signUps = signUps;
         this.events = events;
         this.registrations = registrations;
         this.registrationService = registrationService;
         this.calendar = calendar;
+        this.eventBus = eventBus;
+        this.names = names;
     }
 
     /**
@@ -190,8 +199,8 @@ public class EventCourseRegistrationService {
      */
     public void withdraw(int stationId, int courseId, int memberId) {
         var written = new ArrayList<EventRegistration>();
-        Transactions.run(() -> {
-            lockCourse(stationId, courseId);
+        var freed = Transactions.call(() -> {
+            var course = lockCourse(stationId, courseId);
             var signUp = requireActive(courseId, memberId);
             var parts = lockParts(courseId);
             var standing = Standing.of(stationId, parts, calendar);
@@ -200,8 +209,10 @@ public class EventCourseRegistrationService {
                 var endsWith = standing.tookPlace(registration.eventId()) ? null : givenUp(registration.status());
                 written.add(registrationService.releaseFromCourse(registration, endsWith));
             }
+            return signUp.status() == RegistrationStatus.ACCEPTED ? course : null;
         });
         registrationService.recordedAll(written);
+        if (freed != null) announce(freed, memberId, RegistrationStatus.WITHDRAWN);
     }
 
     /**
@@ -219,8 +230,10 @@ public class EventCourseRegistrationService {
             throw EventRefusal.COURSE_DECISION_UNKNOWN.raise();
         }
         var written = new ArrayList<EventRegistration>();
+        var decided = new ArrayList<EventCourse>();
         var signUp = Transactions.call(() -> {
             var course = lockCourse(stationId, courseId);
+            decided.add(course);
             if (decision == RegistrationStatus.ACCEPTED && course.cancelled()) {
                 throw EventRefusal.COURSE_CANCELLED.raise();
             }
@@ -235,7 +248,14 @@ public class EventCourseRegistrationService {
             return signUps.find(courseId, memberId).orElseThrow();
         });
         registrationService.recordedAll(written);
+        announce(decided.getFirst(), memberId, decision);
         return signUp;
+    }
+
+    /** Tells the member and whoever runs events what became of the sign-up, once for the course. */
+    private void announce(EventCourse course, int memberId, RegistrationStatus status) {
+        eventBus.publish(new CourseRegistrationStatusChanged(
+                course.stationId(), course.id(), course.name(), memberId, names.called(memberId), status));
     }
 
     /**

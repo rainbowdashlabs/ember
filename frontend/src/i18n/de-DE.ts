@@ -7751,6 +7751,7 @@ export default {
         mailImportUnbound: '{count} per Mail eingegangene Dokumente sind noch keinem Mitglied zugeordnet',
         registrationDeadlineExpired: '{eventName}: {pendingCount} offene Anmeldungen nach Fristende',
         eventCancelled: '{eventName} wurde abgesagt',
+        courseCancelled: 'Der Lehrgang {eventName} wurde abgesagt',
         eventDateCancelled: '{eventName} am {eventDate} wurde abgesagt',
         eventDateCancelledTooFew: '{eventName} am {eventDate} wurde abgesagt, es haben sich zu wenige angemeldet.',
         eventDateRestored: '{eventName} am {eventDate} findet doch statt.',

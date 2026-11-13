@@ -384,3 +384,20 @@ COMMENT ON COLUMN ember_schema.event_course_view_restriction.tag_id
     IS 'Required tag.';
 COMMENT ON COLUMN ember_schema.event_course_view_restriction.member_id
     IS 'Specific member (always OR-connected, bypasses AND/OR mode).';
+
+CREATE TABLE IF NOT EXISTS ember_schema.event_course_deadline_reminder_sent
+(
+    course_id   INT         NOT NULL REFERENCES ember_schema.event_course (id) ON DELETE CASCADE,
+    days_before INT         NOT NULL,
+    sent_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (course_id, days_before)
+);
+
+COMMENT ON TABLE ember_schema.event_course_deadline_reminder_sent
+    IS 'Which warnings that sign-ups for a course close soon have gone out, so a sweep every few minutes warns once.';
+COMMENT ON COLUMN ember_schema.event_course_deadline_reminder_sent.course_id
+    IS 'The course warned about.';
+COMMENT ON COLUMN ember_schema.event_course_deadline_reminder_sent.days_before
+    IS 'How many days before the course deadline this warning was the one for.';
+COMMENT ON COLUMN ember_schema.event_course_deadline_reminder_sent.sent_at
+    IS 'When the warning went out.';

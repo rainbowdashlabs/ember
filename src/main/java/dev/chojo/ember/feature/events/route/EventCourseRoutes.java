@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.events.entity.EventCourseSet;
 import dev.chojo.ember.feature.events.entity.EventCourseSetDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.service.CourseRules.SetResult;
+import dev.chojo.ember.feature.events.service.EventCourseCancellationService;
 import dev.chojo.ember.feature.events.service.EventCourseRegistrationService;
 import dev.chojo.ember.feature.events.service.EventCourseRegistrationService.CourseStanding;
 import dev.chojo.ember.feature.events.service.EventCourseService;
@@ -71,6 +72,7 @@ public class EventCourseRoutes implements Routes {
     private final GuardianPolicy guardianPolicy;
     private final MemberIdentityFactory identities;
     private final EventVisibility visibility;
+    private final EventCourseCancellationService cancellation;
 
     @Inject
     public EventCourseRoutes(
@@ -78,12 +80,14 @@ public class EventCourseRoutes implements Routes {
             EventCourseRegistrationService signUps,
             GuardianPolicy guardianPolicy,
             MemberIdentityFactory identities,
-            EventVisibility visibility) {
+            EventVisibility visibility,
+            EventCourseCancellationService cancellation) {
         this.courses = courses;
         this.signUps = signUps;
         this.guardianPolicy = guardianPolicy;
         this.identities = identities;
         this.visibility = visibility;
+        this.cancellation = cancellation;
     }
 
     @Override
@@ -94,6 +98,7 @@ public class EventCourseRoutes implements Routes {
         routes.post(prefix + "/events/courses", this::create, StationPermission.EVENT_EDIT, StationModule.EVENTS);
         routes.get(prefix + COURSE, this::detail, StationPermission.USER, StationModule.EVENTS);
         routes.put(prefix + COURSE, this::update, StationPermission.EVENT_EDIT, StationModule.EVENTS);
+        routes.post(prefix + COURSE + "/cancel", this::cancel, StationPermission.EVENT_EDIT, StationModule.EVENTS);
         routes.delete(prefix + COURSE, this::delete, StationPermission.EVENT_EDIT, StationModule.EVENTS);
         routes.put(prefix + COURSE + "/sets", this::replaceSets, StationPermission.EVENT_EDIT, StationModule.EVENTS);
         routes.put(
@@ -230,6 +235,29 @@ public class EventCourseRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         courses.delete(session.stationId(), pathInt(ctx, "courseId"));
         ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/courses/{courseId}/cancel",
+            methods = HttpMethod.POST,
+            summary = "Call a course off with every part still to come",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "courseId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CourseCancelRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = CourseDetail.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void cancel(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        int courseId = pathInt(ctx, "courseId");
+        var request = ctx.bodyAsClass(CourseCancelRequest.class);
+        cancellation.cancel(
+                session.stationId(),
+                courseId,
+                request.reason(),
+                session.member().id());
+        ctx.json(detailOf(session, courses.requireCourse(session.stationId(), courseId)));
     }
 
     @OpenApi(
@@ -658,6 +686,9 @@ public class EventCourseRoutes implements Routes {
      */
     public record CourseSignUpRequest(
             @Nullable Integer memberId, @Nullable List<Integer> parts) {}
+
+    /** @param reason why the course is called off, as told to the people signed up, or null */
+    public record CourseCancelRequest(@Nullable String reason) {}
 
     /** @param status {@code ACCEPTED} or {@code DENIED} */
     public record CourseDecisionRequest(RegistrationStatus status) {}

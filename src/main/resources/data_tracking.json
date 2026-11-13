@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:90e81126830a531780449ad6047e45c412659515584069cdd7a47dd11778873b",
-  "generatedAt": "2026-11-12T23:57:12Z",
+  "schemaHash": "sha256:280073551b58ce87a010837c61f0805692e080dfdf03af169d28b17123d1fdc1",
+  "generatedAt": "2026-11-13T10:38:44Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -9946,6 +9946,55 @@
         "reason": "Course structure data, not per-member"
       },
       "description": "A course: one-time appointments of a station that belong together and are signed up for once."
+    },
+    "event_course_deadline_reminder_sent": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:4b43be5c69c7f74e35aecab89ec6f6362dcfe92a6ea1f8004f5b327fd87c514a",
+      "columns": [
+        {
+          "name": "course_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The course warned about."
+        },
+        {
+          "name": "days_before",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "How many days before the course deadline this warning was the one for."
+        },
+        {
+          "name": "sent_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the warning went out."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "course_id",
+          "refTable": "event_course",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Notification dedup state for course deadlines, ephemeral"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Course structure data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Course structure data, not per-member"
+      },
+      "description": "Which warnings that sign-ups for a course close soon have gone out, so a sweep every few minutes warns once."
     },
     "event_course_registration": {
       "feature": "events",

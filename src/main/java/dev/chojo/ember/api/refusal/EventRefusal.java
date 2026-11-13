@@ -783,7 +783,11 @@ public enum EventRefusal implements Refusal {
             212, HttpStatus.CONFLICT, "A part of a course is shared with its course, not on its own"),
 
     /** A sign-up for somebody who is no member of the station. */
-    COURSE_MEMBER_NOT_HERE(213, HttpStatus.NOT_FOUND, "That member is not at this station");
+    COURSE_MEMBER_NOT_HERE(213, HttpStatus.NOT_FOUND, "That member is not at this station"),
+
+    /** A date of a part brought back while its whole course stays called off. */
+    COURSE_PART_STAYS_CANCELLED(
+            214, HttpStatus.CONFLICT, "The course this appointment belongs to was called off, its dates stay off");
 
     private final Definition definition;
 

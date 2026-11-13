@@ -132,6 +132,7 @@ public class EventCancellationService {
      */
     public void restoreDate(StationEvent event, LocalDate date) {
         if (event.cancelled()) throw EventRefusal.DATE_OF_CANCELLED_SERIES_NOT_RESTORED.raise();
+        if (eventRepository.isPartOfCancelledCourse(event.id())) throw EventRefusal.COURSE_PART_STAYS_CANCELLED.raise();
         var calendar = occurrenceCalendar.forStation(event.stationId());
         if (calendar.cancellationOn(event, date).isEmpty()) throw EventRefusal.DATE_TO_RESTORE_NOT_CANCELLED.raise();
         if (date.isBefore(calendar.today())) throw EventRefusal.DATE_TO_RESTORE_IN_THE_PAST.raise();

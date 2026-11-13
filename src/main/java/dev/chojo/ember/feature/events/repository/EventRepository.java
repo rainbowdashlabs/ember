@@ -542,6 +542,22 @@ public class EventRepository {
     }
 
     /**
+     * Whether an appointment is a part of a course called off as a whole, whose parts stay off.
+     *
+     * @param id the appointment
+     * @return true for a part of a called-off course
+     */
+    public boolean isPartOfCancelledCourse(int id) {
+        return SqlSupport.exists("""
+                SELECT 1
+                FROM station_event e
+                         JOIN event_course_set s ON s.id = e.course_set_id
+                         JOIN event_course c ON c.id = s.course_id
+                WHERE e.id = :id
+                  AND c.cancelled;""", call().bind("id", id));
+    }
+
+    /**
      * Locks an appointment for the rest of the running transaction, so a sign-up for it and its
      * becoming a part of a course happen one after the other.
      *
@@ -620,6 +636,7 @@ public class EventRepository {
                   AND e.registration_deadline < now()
                   AND e.deadline_notified = FALSE
                   AND e.cancelled = FALSE
+                  AND e.course_set_id IS NULL
                   AND %s
                 GROUP BY e.id, e.station_id, e.name;""", CancellationSql.NO_DATE_CANCELLED)
                 .single(call())
@@ -653,6 +670,7 @@ public class EventRepository {
                 WHERE e.requires_registration
                   AND e.event_type = 'ONE_TIME'
                   AND e.cancelled = FALSE
+                  AND e.course_set_id IS NULL
                   AND %s
                   AND e.registration_deadline IS NOT NULL
                   AND e.registration_deadline > now()

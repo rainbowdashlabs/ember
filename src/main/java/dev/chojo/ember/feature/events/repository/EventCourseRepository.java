@@ -401,4 +401,159 @@ public class EventCourseRepository {
                   AND NOT from_field
                 LIMIT 1;""", call().bind("event_id", eventId));
     }
+
+    /**
+     * Calls a course off.
+     *
+     * @param courseId the course
+     * @param reason   why, or null
+     * @return false where it was called off already
+     */
+    public boolean cancel(int courseId, @Nullable String reason) {
+        return query("""
+                UPDATE event_course
+                SET cancelled     = TRUE,
+                    cancelled_at  = now(),
+                    cancel_reason = :reason
+                WHERE id = :id
+                  AND NOT cancelled;""")
+                .single(call().bind("id", courseId).bind("reason", reason))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Courses whose sign-ups closed while some still wait for a decision, and whose managers were not
+     * told yet.
+     *
+     * @return those courses
+     */
+    public List<ExpiredCourseDeadline> findExpiredDeadlines() {
+        return query("""
+                SELECT c.id AS course_id, c.station_id, c.name, count(r.id) AS pending_count
+                FROM event_course c
+                         JOIN event_course_registration r ON r.course_id = c.id AND r.status = 'PENDING'
+                WHERE c.registration_deadline IS NOT NULL
+                  AND c.registration_deadline < now()
+                  AND NOT c.deadline_notified
+                  AND NOT c.cancelled
+                GROUP BY c.id, c.station_id, c.name;""")
+                .single(call())
+                .map(row -> new ExpiredCourseDeadline(
+                        row.getInt("course_id"),
+                        row.getInt("station_id"),
+                        row.getString("name"),
+                        row.getInt("pending_count")))
+                .all();
+    }
+
+    /**
+     * Notes that managers were told that a course's sign-ups closed.
+     *
+     * @param courseId the course
+     */
+    public void markDeadlineNotified(int courseId) {
+        query("UPDATE event_course SET deadline_notified = TRUE WHERE id = :id;")
+                .single(call().bind("id", courseId))
+                .update();
+    }
+
+    /**
+     * Courses whose sign-ups close within the given number of days and whose warning for that lead
+     * time has not gone out yet.
+     *
+     * @param daysBefore the lead time warned about
+     * @return those courses
+     */
+    public List<ClosingCourse> findClosingIn(int daysBefore) {
+        return query("""
+                SELECT c.id AS course_id, c.station_id, c.name
+                FROM event_course c
+                WHERE NOT c.cancelled
+                  AND c.registration_deadline IS NOT NULL
+                  AND c.registration_deadline > now()
+                  AND c.registration_deadline <= now() + make_interval(days => :days_before)
+                  AND EXISTS (SELECT 1
+                              FROM station_event e
+                                       JOIN event_course_set cs ON cs.id = e.course_set_id
+                              WHERE cs.course_id = c.id
+                                AND e.start_time > now()
+                                AND NOT e.cancelled
+                                AND %s)
+                  AND NOT EXISTS (SELECT 1
+                                  FROM event_course_deadline_reminder_sent s
+                                  WHERE s.course_id = c.id
+                                    AND s.days_before = :days_before);""", CancellationSql.NO_DATE_CANCELLED)
+                .single(call().bind("days_before", daysBefore))
+                .map(row -> new ClosingCourse(row.getInt("course_id"), row.getInt("station_id"), row.getString("name")))
+                .all();
+    }
+
+    /**
+     * Forgets which warnings went out for a course, so a moved deadline is warned about again.
+     *
+     * @param courseId the course
+     */
+    public void clearClosingWarnings(int courseId) {
+        query("DELETE FROM event_course_deadline_reminder_sent WHERE course_id = :course_id;")
+                .single(call().bind("course_id", courseId))
+                .update();
+    }
+
+    /**
+     * Notes that the warning for a lead time went out for a course.
+     *
+     * @param courseId   the course
+     * @param daysBefore the lead time
+     */
+    public void markClosingWarned(int courseId, int daysBefore) {
+        query("""
+                INSERT INTO event_course_deadline_reminder_sent(course_id, days_before)
+                VALUES (:course_id, :days_before)
+                ON CONFLICT DO NOTHING;""")
+                .single(call().bind("course_id", courseId).bind("days_before", daysBefore))
+                .insert();
+    }
+
+    /**
+     * The current members of a station who never answered a course: neither signed up nor withdrew.
+     * Whether the course is meant for them is not decided here.
+     *
+     * @param courseId  the course
+     * @param stationId the station
+     * @return the members
+     */
+    public List<Integer> findUnansweredMemberIds(int courseId, int stationId) {
+        return query("""
+                SELECT sm.id AS member_id
+                FROM station_member sm
+                WHERE sm.station_id = :station_id
+                  AND sm.former = FALSE
+                  AND NOT EXISTS (SELECT 1
+                                  FROM event_course_registration r
+                                  WHERE r.course_id = :course_id
+                                    AND r.member_id = sm.id);""")
+                .single(call().bind("course_id", courseId).bind("station_id", stationId))
+                .map(row -> row.getInt("member_id"))
+                .all();
+    }
+
+    /**
+     * A course whose sign-ups closed with some still waiting.
+     *
+     * @param courseId     the course
+     * @param stationId    its station
+     * @param name         its name
+     * @param pendingCount how many wait for a decision
+     */
+    public record ExpiredCourseDeadline(int courseId, int stationId, String name, int pendingCount) {}
+
+    /**
+     * A course whose sign-ups close soon.
+     *
+     * @param courseId  the course
+     * @param stationId its station
+     * @param name      its name
+     */
+    public record ClosingCourse(int courseId, int stationId, String name) {}
 }

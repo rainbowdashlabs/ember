@@ -593,4 +593,16 @@ class NotificationTextTest {
         var data = NotificationData.of(params, new NotificationData.NotificationLink("dashboard-overview"));
         return new Notification(id, MEMBER, null, type, data, Instant.now(), null);
     }
+
+    /** A whole course called off is named as a course, not as an appointment. */
+    @Test
+    void aCalledOffCourseIsNamedAsACourse() {
+        var cancelled = notificationWith(
+                NotificationType.EVENT_CANCELLED,
+                new NotificationParams.EventCancelled("Jugendflamme 1", null, null, null, true),
+                7);
+
+        assertTrue(text.resolveMessage("de", cancelled).startsWith("Lehrgang abgesagt"));
+        assertTrue(text.resolveMessage("en", cancelled).startsWith("Course cancelled"));
+    }
 }

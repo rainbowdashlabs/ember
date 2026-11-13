@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.EventCoursePart;
 import dev.chojo.ember.feature.events.entity.EventCourseRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.service.EventCourseCancellationService;
 import dev.chojo.ember.feature.events.service.EventCourseRegistrationService;
 import dev.chojo.ember.feature.events.service.EventCourseRegistrationService.CourseStanding;
 import dev.chojo.ember.feature.events.service.EventCourseService;
@@ -62,6 +63,7 @@ class EventCourseRoutesTest {
     private EventCourseRegistrationService signUps;
     private GuardianPolicy guardians;
     private EventVisibility visibility;
+    private EventCourseCancellationService cancellation;
     private RouteHarness harness;
 
     @BeforeEach
@@ -107,7 +109,9 @@ class EventCourseRoutesTest {
                     .toList();
         });
         visibility = mock(EventVisibility.class);
-        harness = RouteHarness.serving(new EventCourseRoutes(courses, signUps, guardians, identities, visibility));
+        cancellation = mock(EventCourseCancellationService.class);
+        harness = RouteHarness.serving(
+                new EventCourseRoutes(courses, signUps, guardians, identities, visibility, cancellation));
     }
 
     private Response call(String method, String path, String json, StationPermission... permissions) {
@@ -337,5 +341,18 @@ class EventCourseRoutesTest {
                 204,
                 call("GET", PREFIX + "/events/101/course", null, StationPermission.USER)
                         .code());
+    }
+
+    @Test
+    void onlyWhoeverEditsAppointmentsCallsACourseOff() {
+        assertEquals(
+                403,
+                call("POST", COURSE + "/cancel", "{\"reason\": \"Krank\"}", StationPermission.USER)
+                        .code());
+        assertEquals(
+                200,
+                call("POST", COURSE + "/cancel", "{\"reason\": \"Krank\"}", StationPermission.EVENT_EDIT)
+                        .code());
+        verify(cancellation).cancel(STATION_ID, COURSE_ID, "Krank", TestSessions.MEMBER_ID);
     }
 }

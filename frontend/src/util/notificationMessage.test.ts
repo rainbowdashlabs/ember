@@ -40,6 +40,15 @@ describe('notificationMessage', () => {
         expect(message).toContain('"module":"Fundbüro"')
     })
 
+    it('words a whole course called off as a course', () => {
+        const message = notificationMessage(t, {
+            type: NotificationType.EVENT_CANCELLED,
+            localeKey: 'notification.eventCancelled',
+            params: {eventName: 'Jugendflamme 1', course: 'true'},
+        })
+        expect(message.startsWith('notification.courseCancelled')).toBe(true)
+    })
+
     it('leaves the parameters of other types as they arrived', () => {
         const message = notificationMessage(t, {
             type: NotificationType.WAITLIST_NEW_ENTRY,

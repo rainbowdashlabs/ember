@@ -333,6 +333,7 @@
     "notification.registrationDeadlineExpired.one": "Registration deadline expired for {eventName} ({pendingCount} pending)",
     "notification.registrationDeadlineExpired.other": "Registration deadline expired for {eventName} ({pendingCount} pending)",
     "notification.eventCancelled": "Event cancelled: {eventName}",
+    "notification.eventCancelled.COURSE": "Course cancelled: {eventName}",
     "notification.eventCancelled.DATE": "{eventName} on {eventDate} was cancelled",
     "notification.eventCancelled.THRESHOLD": "{eventName} on {eventDate} was cancelled: too few registrations",
     "notification.eventDateRestored": "{eventName} on {eventDate} takes place after all",

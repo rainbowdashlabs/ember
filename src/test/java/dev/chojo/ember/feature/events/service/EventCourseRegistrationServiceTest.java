@@ -8,7 +8,9 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.CourseRegistrationStatusChanged;
 import dev.chojo.ember.feature.events.entity.EventCourse;
 import dev.chojo.ember.feature.events.entity.EventCourseDetails;
 import dev.chojo.ember.feature.events.entity.EventCourseSet;
@@ -26,6 +28,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -42,6 +45,11 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 /**
  * Signing up for a Jugendflamme course: three practice days of which two count, and a test day that
@@ -60,6 +68,7 @@ class EventCourseRegistrationServiceTest extends RepositoryTestBase {
     private EventCourseRegistrationService service;
     private EventRegistrationService registrations;
     private EventCancellationService cancellation;
+    private DomainEventBus bus;
     private ZoneId zone;
 
     private EventCourse course;
@@ -91,6 +100,7 @@ class EventCourseRegistrationServiceTest extends RepositoryTestBase {
 
     @BeforeEach
     void wire() {
+        bus = mock(DomainEventBus.class);
         var eventServices = newEventServices(new DomainEventBus(Set.of()));
         registrations = eventServices.registration();
         cancellation = eventServices.cancellation();
@@ -101,7 +111,9 @@ class EventCourseRegistrationServiceTest extends RepositoryTestBase {
                 eventRepo,
                 eventRegistrationRepo,
                 registrations,
-                occurrenceCalendar);
+                occurrenceCalendar,
+                bus,
+                memberNameResolver);
         zone = occurrenceCalendar.zoneOf(station.id());
         course = jugendflamme(null, false, Instant.now().plus(Duration.ofDays(5)));
     }
@@ -491,6 +503,34 @@ class EventCourseRegistrationServiceTest extends RepositoryTestBase {
         assertTrue(standings.get(1).sets().stream().anyMatch(result -> !result.met()));
         assertEquals(null, standings.get(2).signUp());
         assertTrue(standings.get(2).counted().isEmpty());
+    }
+
+    @Test
+    void aDecisionAndAWithdrawnPlaceAreAnnouncedOnceForTheCourse() {
+        course = jugendflamme(null, true, null);
+        signUp(anna, sat1, sun1, test);
+
+        service.decide(station.id(), course.id(), anna.id(), RegistrationStatus.ACCEPTED);
+        service.withdraw(station.id(), course.id(), anna.id());
+
+        var announced = ArgumentCaptor.forClass(DomainEvent.class);
+        verify(bus, times(2)).publish(announced.capture());
+        var statuses = announced.getAllValues().stream()
+                .map(event -> (CourseRegistrationStatusChanged) event)
+                .map(CourseRegistrationStatusChanged::newStatus)
+                .toList();
+        assertEquals(List.of(RegistrationStatus.ACCEPTED, RegistrationStatus.WITHDRAWN), statuses);
+        assertEquals(course.id(), ((CourseRegistrationStatusChanged) announced.getValue()).courseId());
+    }
+
+    @Test
+    void withdrawingASignUpStillWaitingAnnouncesNothing() {
+        course = jugendflamme(null, true, null);
+        signUp(anna, sat1, sun1, test);
+
+        service.withdraw(station.id(), course.id(), anna.id());
+
+        verify(bus, never()).publish(any());
     }
 
     private static void assertRefused(Refusal refusal, Runnable call) {
