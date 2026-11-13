@@ -433,6 +433,13 @@ public sealed interface NotificationParams {
     record NameChangeRequested(String memberName, String requestedName) implements NotificationParams {}
 
     /**
+     * A member reported a message in one of the station's chats to the people handling them.
+     *
+     * @param chatName the name of the chat the message is in
+     */
+    record MessageReported(String chatName) implements NotificationParams {}
+
+    /**
      * The person behind a member accepted the station's request and linked their account to the member.
      *
      * @param memberName the name the station knows the member by

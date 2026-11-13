@@ -268,6 +268,15 @@ public final class NotificationLinks {
     }
 
     /**
+     * The list of messages reported in the station's chats.
+     *
+     * @return the link a report carries
+     */
+    public static NotificationLink messageReports() {
+        return new NotificationLink("message-reports", Map.of());
+    }
+
+    /**
      * The reader's own account profile, where their register name is shown and changed.
      *
      * @return the link a decision on their name request carries

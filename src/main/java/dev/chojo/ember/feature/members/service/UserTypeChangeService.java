@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.util.sql.Transactions;
@@ -32,8 +34,14 @@ public class UserTypeChangeService {
     private final StationMemberRepository memberRepository;
     private final GroupMembershipService membershipService;
 
+    private final DomainEventBus eventBus;
+
     @Inject
-    public UserTypeChangeService(StationMemberRepository memberRepository, GroupMembershipService membershipService) {
+    public UserTypeChangeService(
+            StationMemberRepository memberRepository,
+            GroupMembershipService membershipService,
+            DomainEventBus eventBus) {
+        this.eventBus = eventBus;
         this.memberRepository = memberRepository;
         this.membershipService = membershipService;
     }
@@ -78,6 +86,9 @@ public class UserTypeChangeService {
             return membershipService.leaveGroupsUnfitFor(memberId, userType);
         });
         log.info("User type changed for member {}: {}, left {} group(s)", memberId, userType, left.size());
+        memberRepository
+                .findById(memberId)
+                .ifPresent(member -> eventBus.publish(StationAudienceChanged.at(member.stationId())));
         return left;
     }
 }

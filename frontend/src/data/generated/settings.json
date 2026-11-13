@@ -662,4 +662,8 @@
   "configKey" : "signing.archiveTimestamps",
   "env" : "SIGNING_ARCHIVETIMESTAMPS",
   "default" : "false"
+}, {
+  "configKey" : "messages.digestHour",
+  "env" : "MESSAGES_DIGESTHOUR",
+  "default" : "18"
 } ]

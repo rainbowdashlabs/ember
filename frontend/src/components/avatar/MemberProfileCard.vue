@@ -7,11 +7,12 @@
 import {useI18n} from 'vue-i18n'
 import UserAvatar from './UserAvatar.vue'
 import MemberCardDetails from './MemberCardDetails.vue'
+import MemberMessageButton from './MemberMessageButton.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import type {MemberCard, SharedMemberCard} from '@/api/generated/schema'
+import type {MemberCard, MessagePersonResponse, SharedMemberCard} from '@/api/generated/schema'
 import type {PersonIdentity} from '@/util/personIdentity'
 
 /**
@@ -20,7 +21,8 @@ import type {PersonIdentity} from '@/util/personIdentity'
  *
  * <p>A member of another station shows only picture, name and station, since their own station
  * keeps the rest. A person met as an account, in messages, shows the parts once per station the
- * reader shares with them, under that station's name.
+ * reader shares with them, under that station's name. A member of the reader's own station whom the
+ * reader may write to gets a button that opens the private conversation with them.
  */
 withDefaults(defineProps<{
   identity: PersonIdentity
@@ -28,8 +30,11 @@ withDefaults(defineProps<{
   card: MemberCard | null
   state: 'loading' | 'failed' | 'ready' | 'external'
   shared?: readonly SharedMemberCard[] | null
+  /** The person behind the member, where the reader may write to them. */
+  writable?: MessagePersonResponse | null
 }>(), {
   shared: null,
+  writable: null,
 })
 
 const {t} = useI18n()
@@ -50,6 +55,7 @@ const {t} = useI18n()
     <MutedText v-else-if="state === 'failed'" tag="p">{{ t('memberCard.loadFailed') }}</MutedText>
 
     <MemberCardDetails v-if="state === 'ready' && card" :card="card"/>
+    <MemberMessageButton v-if="state === 'ready' && card && writable" :person="writable"/>
     <template v-if="state === 'ready' && shared">
       <div v-for="station in shared" :key="station.stationUid" class="flex flex-col gap-3" data-testid="shared-member-card">
         <SubHeader>{{ station.stationName }}</SubHeader>

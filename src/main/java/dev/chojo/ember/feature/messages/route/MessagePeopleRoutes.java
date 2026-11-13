@@ -7,16 +7,20 @@ package dev.chojo.ember.feature.messages.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MessageRefusal;
 import dev.chojo.ember.feature.members.entity.SharedMemberCard;
 import dev.chojo.ember.feature.messages.entity.MessagesStatus;
+import dev.chojo.ember.feature.messages.entity.StationDigest;
 import dev.chojo.ember.feature.messages.route.MessageWire.MessagePersonResponse;
 import dev.chojo.ember.feature.messages.route.MessageWire.ReachablePersonResponse;
 import dev.chojo.ember.feature.messages.service.BlockService;
 import dev.chojo.ember.feature.messages.service.MessageSettingsService;
 import dev.chojo.ember.feature.messages.service.PersonCardService;
+import dev.chojo.ember.feature.system.service.InstanceSettingsService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -39,29 +43,53 @@ import static dev.chojo.ember.api.RouteSupport.pathUuid;
  * The reader's messages beside the conversations: whether messages are on and how many wait, the
  * mail setting, finding somebody to write to, the card behind a person's name, and the people the
  * reader blocked.
+ *
+ * <p>It also holds the instance switch for messages. While an administrator has turned them off,
+ * every message route answers {@link MessageRefusal#MESSAGES_OFF} once the caller is signed in,
+ * except the status, which says that messages are not available so the client hides them.
  */
 @Singleton
 public class MessagePeopleRoutes implements Routes {
     private final MessageSettingsService settings;
     private final BlockService blocks;
     private final PersonCardService cards;
+    private final InstanceSettingsService instance;
 
     @Inject
-    public MessagePeopleRoutes(MessageSettingsService settings, BlockService blocks, PersonCardService cards) {
+    public MessagePeopleRoutes(
+            MessageSettingsService settings,
+            BlockService blocks,
+            PersonCardService cards,
+            InstanceSettingsService instance) {
         this.settings = settings;
         this.blocks = blocks;
         this.cards = cards;
+        this.instance = instance;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/messages/status", this::status, StationPermission.LOGIN);
+        String status = prefix + "/messages/status";
+        routes.beforeMatched(prefix + "/messages/*", ctx -> refuseWhileOff(ctx, status));
+        routes.get(status, this::status, StationPermission.LOGIN);
         routes.put(prefix + "/messages/settings", this::setMail, StationPermission.LOGIN);
         routes.get(prefix + "/messages/people", this::people, StationPermission.LOGIN);
         routes.get(prefix + "/messages/people/{personUid}/cards", this::cards, StationPermission.LOGIN);
+        routes.get(prefix + "/messages/members/{memberUid}", this::member, StationPermission.LOGIN);
         routes.get(prefix + "/messages/blocks", this::blocked, StationPermission.LOGIN);
         routes.post(prefix + "/messages/blocks", this::block, StationPermission.LOGIN);
         routes.delete(prefix + "/messages/blocks/{personUid}", this::unblock, StationPermission.LOGIN);
+    }
+
+    /**
+     * Refuses a message route while messages are turned off for the instance.
+     *
+     * @param ctx    the request
+     * @param status the status route, which always answers
+     */
+    private void refuseWhileOff(Context ctx, String status) {
+        if (ctx.path().equals(status) || instance.messagesEnabled()) return;
+        throw MessageRefusal.MESSAGES_OFF.raise();
     }
 
     @OpenApi(
@@ -77,16 +105,16 @@ public class MessagePeopleRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/messages/settings",
             methods = HttpMethod.PUT,
-            summary = "Turn the mail about unread messages on or off",
+            summary = "Change the daily mail about unread messages: whether it comes, and what station chats add",
             tags = {"Messages"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MessageMailRequest.class)),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MessageSettingsRequest.class)),
             responses = {
                 @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessagesStatus.class)),
                 @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void setMail(Context ctx) {
-        var request = ctx.bodyAsClass(MessageMailRequest.class);
-        ctx.json(settings.setMail(UserSession.from(ctx).accountId(), request.mail()));
+        var request = ctx.bodyAsClass(MessageSettingsRequest.class);
+        ctx.json(settings.update(UserSession.from(ctx).accountId(), request.mail(), request.stationDigest()));
     }
 
     @OpenApi(
@@ -120,6 +148,24 @@ public class MessagePeopleRoutes implements Routes {
             "an account is looked at from every station the reader shares with it, each card read as a reader there")
     private void cards(Context ctx) {
         ctx.json(cards.cardsOf(UserSession.from(ctx).accountId(), pathUuid(ctx, "personUid")));
+    }
+
+    @OpenApi(
+            path = "/api/v1/messages/members/{memberUid}",
+            methods = HttpMethod.GET,
+            summary = "The person behind a member of the reader's station, where the reader may write to them",
+            description = "Answers no content where the reader may not write to them, for every reason alike.",
+            tags = {"Messages"},
+            pathParams = @OpenApiParam(name = "memberUid", type = UUID.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessagePersonResponse.class)),
+                @OpenApiResponse(status = "204")
+            })
+    private void member(Context ctx) {
+        var session = StationSession.from(ctx);
+        settings.writableMember(session.user().accountId(), session.stationId(), pathUuid(ctx, "memberUid"))
+                .ifPresentOrElse(
+                        person -> ctx.json(MessagePersonResponse.of(person)), () -> ctx.status(HttpStatus.NO_CONTENT));
     }
 
     @OpenApi(
@@ -168,9 +214,11 @@ public class MessagePeopleRoutes implements Routes {
     }
 
     /**
-     * @param mail whether the reader wants mail about messages left unread
+     * @param mail          whether the reader wants the daily mail about messages left unread, absent to leave it
+     * @param stationDigest what that mail takes from station chats, absent to leave it
      */
-    public record MessageMailRequest(boolean mail) {}
+    public record MessageSettingsRequest(
+            @Nullable Boolean mail, @Nullable StationDigest stationDigest) {}
 
     /**
      * @param person the account to block, by its identity

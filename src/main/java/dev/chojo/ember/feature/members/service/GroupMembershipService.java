@@ -15,6 +15,7 @@ import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.MembersAddedToGroup;
+import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -121,6 +122,7 @@ public class GroupMembershipService {
                 ids(removed),
                 by.member().id());
         added.forEach(group -> announce(group, List.of(member.id()), by.member().id()));
+        if (!change.isEmpty()) eventBus.publish(StationAudienceChanged.at(member.stationId()));
         return groupRepository.findGroupsForMember(member.id());
     }
 
@@ -192,6 +194,9 @@ public class GroupMembershipService {
                 movedFrom.size(),
                 by.member().id());
         if (!added.isEmpty()) announce(group, added, by.member().id());
+        if (!added.isEmpty() || !removed.isEmpty() || !movedFrom.isEmpty()) {
+            eventBus.publish(StationAudienceChanged.at(group.stationId()));
+        }
         return groupRepository.findMembers(group.id());
     }
 
@@ -230,6 +235,7 @@ public class GroupMembershipService {
             return false;
         }
         groupRepository.addMember(groupId, memberId);
+        eventBus.publish(StationAudienceChanged.at(group.stationId()));
         return true;
     }
 
@@ -240,7 +246,10 @@ public class GroupMembershipService {
      * @param memberId the member
      */
     public void leaveAutomatically(int groupId, int memberId) {
-        groupRepository.removeMember(groupId, memberId);
+        if (!groupRepository.removeMember(groupId, memberId)) return;
+        groupRepository
+                .findById(groupId)
+                .ifPresent(group -> eventBus.publish(StationAudienceChanged.at(group.stationId())));
     }
 
     /**

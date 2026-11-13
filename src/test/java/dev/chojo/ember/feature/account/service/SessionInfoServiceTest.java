@@ -32,6 +32,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.station.service.StationService;
+import dev.chojo.ember.feature.system.service.InstanceSettingsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -41,6 +42,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -62,6 +64,7 @@ class SessionInfoServiceTest {
     private UserTagRepository userTagRepository;
     private AccountPreferenceRepository preferences;
     private MailChainService mailChainService;
+    private InstanceSettingsService instanceSettings;
     private SessionInfoService service;
 
     private static Account account(int id, String first, String last) {
@@ -97,6 +100,8 @@ class SessionInfoServiceTest {
         preferences = mock(AccountPreferenceRepository.class);
         when(preferences.sidebarOf(anyInt())).thenReturn(SidebarMode.SECTIONS);
         mailChainService = mock(MailChainService.class);
+        instanceSettings = mock(InstanceSettingsService.class);
+        when(instanceSettings.messagesEnabled()).thenReturn(true);
         when(mailChainService.forInstance()).thenReturn(List.of());
         service = new SessionInfoService(
                 stationService,
@@ -110,7 +115,18 @@ class SessionInfoServiceTest {
                 mailChainService,
                 mock(MemberNameResolver.class),
                 preferences,
+                instanceSettings,
                 new File());
+    }
+
+    @Test
+    void describe_saysWhetherMessagesAreOnForTheInstance() {
+        var session = new UserSession(account(1, "Max", "Meier"), 1, null, null, null, Set.of(), Set.of(), null);
+        assertTrue(service.describe(session).messagesEnabled());
+
+        when(instanceSettings.messagesEnabled()).thenReturn(false);
+
+        assertFalse(service.describe(session).messagesEnabled());
     }
 
     @Test

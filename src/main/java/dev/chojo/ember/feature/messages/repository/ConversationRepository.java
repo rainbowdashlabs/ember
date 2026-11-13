@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.messages.entity.Membership;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,11 +32,20 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING
 public class ConversationRepository {
 
     /**
+     * The condition a conversation aliased {@code c} meets while it is still here: every direct
+     * conversation and group, and a station chat only while its station has not moved to another
+     * installation, where the chat lives on.
+     */
+    static final String STILL_HERE = """
+            (c.station_id IS NULL OR NOT EXISTS (
+                SELECT 1 FROM station moved WHERE moved.id = c.station_id AND moved.moved_away_at IS NOT NULL))""";
+
+    /**
      * The condition a message aliased {@code msg} meets when it counts as unread for the member
      * aliased {@code m}: written by somebody else whom the member has not blocked, still standing,
      * and after the member's read marker.
      */
-    private static final String UNREAD = """
+    static final String UNREAD = """
             msg.conversation_id = m.conversation_id
             AND msg.id > coalesce(m.last_read_message_id, 0)
             AND msg.system_kind IS NULL AND msg.deleted_at IS NULL
@@ -94,8 +104,8 @@ public class ConversationRepository {
      */
     public Conversation createGroup(int ownerId, @Nullable String name) {
         return query("""
-                INSERT INTO conversation(kind, name, owner_account_id) VALUES ('GROUP', :name, :owner_id)
-                RETURNING id, uid, kind, name, owner_account_id, created_at, last_activity_at;""")
+                INSERT INTO conversation AS c (kind, name, owner_account_id) VALUES ('GROUP', :name, :owner_id)
+                RETURNING %s;""", Conversation.COLUMNS)
                 .single(call().bind("name", name).bind("owner_id", ownerId))
                 .map(Conversation.map())
                 .first()
@@ -117,6 +127,21 @@ public class ConversationRepository {
     }
 
     /**
+     * Conversations by their ids, in any order.
+     *
+     * @param ids the conversations
+     * @return the ones that exist
+     */
+    public List<Conversation> findAll(Collection<Integer> ids) {
+        if (ids.isEmpty()) return List.of();
+        return query("""
+                SELECT %s FROM conversation c WHERE c.id = ANY(:ids);""", Conversation.COLUMNS)
+                .single(call().bind("ids", List.copyOf(ids), PostgreSqlTypes.INTEGER))
+                .map(Conversation.map())
+                .all();
+    }
+
+    /**
      * Lets an account take part, or take part again. Its read marker starts at the newest message,
      * so the history it can now read does not count as unread.
      *
@@ -132,7 +157,29 @@ public class ConversationRepository {
                     joined_at            = now(),
                     left_at              = NULL,
                     muted                = FALSE,
-                    mailed_at            = NULL,
+                    last_read_message_id = excluded.last_read_message_id
+                WHERE conversation_member.left_at IS NOT NULL;""")
+                .single(call().bind("conversation_id", conversationId).bind("account_id", accountId))
+                .insert();
+    }
+
+    /**
+     * Lets an account take part in a station chat, or take part again, without anybody asking: it
+     * follows the chat's audience. Its read marker starts at the newest message, so the history it
+     * can now read does not count as unread; whether it muted the chat stays as it was, since muting
+     * is all a member of a station chat decides about it.
+     *
+     * @param conversationId the chat
+     * @param accountId      the account
+     */
+    public void follow(int conversationId, int accountId) {
+        query("""
+                INSERT INTO conversation_member(conversation_id, account_id, last_read_message_id)
+                VALUES (:conversation_id, :account_id,
+                        (SELECT max(id) FROM message WHERE conversation_id = :conversation_id))
+                ON CONFLICT (conversation_id, account_id) DO UPDATE SET
+                    joined_at            = now(),
+                    left_at              = NULL,
                     last_read_message_id = excluded.last_read_message_id
                 WHERE conversation_member.left_at IS NOT NULL;""")
                 .single(call().bind("conversation_id", conversationId).bind("account_id", accountId))
@@ -302,8 +349,7 @@ public class ConversationRepository {
     }
 
     /**
-     * Moves a member's read marker forward to a message. A marker never moves back, and reading
-     * again makes the next unread stretch worth a mail again.
+     * Moves a member's read marker forward to a message. A marker never moves back.
      *
      * @param conversationId the conversation
      * @param accountId      the member
@@ -312,7 +358,7 @@ public class ConversationRepository {
      */
     public boolean markRead(int conversationId, int accountId, int messageId) {
         return query("""
-                UPDATE conversation_member SET last_read_message_id = :message_id, mailed_at = NULL
+                UPDATE conversation_member SET last_read_message_id = :message_id
                 WHERE conversation_id = :conversation_id AND account_id = :account_id
                 AND coalesce(last_read_message_id, 0) < :message_id;""")
                 .single(call().bind("conversation_id", conversationId)
@@ -334,8 +380,8 @@ public class ConversationRepository {
                     (SELECT count(*) FROM message msg WHERE %s) AS unread
                 FROM conversation_member m
                 JOIN conversation c ON c.id = m.conversation_id
-                WHERE m.account_id = :account_id AND m.left_at IS NULL
-                ORDER BY c.last_activity_at DESC, c.id DESC;""", Conversation.COLUMNS, UNREAD)
+                WHERE m.account_id = :account_id AND m.left_at IS NULL AND %s
+                ORDER BY c.last_activity_at DESC, c.id DESC;""", Conversation.COLUMNS, UNREAD, STILL_HERE)
                 .single(call().bind("account_id", accountId))
                 .map(ConversationOverview.map())
                 .all();
@@ -351,8 +397,9 @@ public class ConversationRepository {
         return query("""
                 SELECT count(*) AS unread
                 FROM conversation_member m
+                JOIN conversation c ON c.id = m.conversation_id
                 JOIN message msg ON %s
-                WHERE m.account_id = :account_id AND m.left_at IS NULL AND m.muted = FALSE;""", UNREAD)
+                WHERE m.account_id = :account_id AND m.left_at IS NULL AND m.muted = FALSE AND %s;""", UNREAD, STILL_HERE)
                 .single(call().bind("account_id", accountId))
                 .map(row -> row.getInt("unread"))
                 .first()
@@ -361,8 +408,8 @@ public class ConversationRepository {
 
     /**
      * Takes an account out of every conversation before it is deleted: its memberships go, the
-     * direct conversations it was in no longer name it, and a conversation nobody is left in goes
-     * with its messages.
+     * direct conversations it was in no longer name it, and a direct conversation or group nobody
+     * is left in goes with its messages. A station chat stays with its station, empty or not.
      *
      * @param accountId the account being deleted
      */
@@ -375,6 +422,7 @@ public class ConversationRepository {
                 DELETE FROM conversation_member WHERE account_id = :account_id;""").single(call().bind("account_id", accountId)).delete();
         query("""
                 DELETE FROM conversation c
-                WHERE NOT EXISTS (SELECT 1 FROM conversation_member m WHERE m.conversation_id = c.id);""").single().delete();
+                WHERE c.kind <> 'STATION'
+                AND NOT EXISTS (SELECT 1 FROM conversation_member m WHERE m.conversation_id = c.id);""").single().delete();
     }
 }

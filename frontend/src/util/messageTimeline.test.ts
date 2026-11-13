@@ -23,6 +23,8 @@ function message(id: number, at: string, author = ANNA, systemKind: Conversation
         editedAt: null,
         deleted: false,
         reactions: [],
+        removedByStation: false,
+        removedBy: null,
     }
 }
 

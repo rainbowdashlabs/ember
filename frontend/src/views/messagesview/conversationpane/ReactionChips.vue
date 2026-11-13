@@ -16,6 +16,8 @@ import {personName} from '@/util/conversationTitle'
  */
 defineProps<{
   reactions: readonly ReactionGroupResponse[]
+  /** Shows the reactions without letting them be toggled, as in a closed chat. */
+  disabled?: boolean
 }>()
 
 defineEmits<{
@@ -34,7 +36,7 @@ function whoReacted(group: ReactionGroupResponse): string {
     <li v-for="group in reactions" :key="group.emoji">
       <ChipButton :title="whoReacted(group)" :aria-pressed="group.mine" :aria-label="`${group.emoji} ${whoReacted(group)}`"
                   :class="group.mine ? 'border-primary bg-primary/15' : ''"
-                  :data-testid="`reaction-${group.emoji}`" @click="$emit('toggle', group.emoji)">
+                  :disabled="disabled" :data-testid="`reaction-${group.emoji}`" @click="$emit('toggle', group.emoji)">
         <span>{{ group.emoji }}</span>
         <span>{{ group.count }}</span>
       </ChipButton>

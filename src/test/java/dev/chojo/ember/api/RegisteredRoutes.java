@@ -123,13 +123,15 @@ public final class RegisteredRoutes {
     }
 
     /**
-     * Every endpoint the Javalin router holds, as it holds them.
+     * Every route the Javalin router holds, as it holds them, without the handlers that run before
+     * routes, which {@link #routes()} leaves out as well.
      *
-     * @return the router's endpoints
+     * @return the router's routes
      */
     public List<Endpoint> routerEndpoints() {
         return router.unsafe.internalRouter.allHttpHandlers().stream()
                 .map(parsed -> parsed.endpoint)
+                .filter(endpoint -> endpoint.method.isHttpMethod())
                 .toList();
     }
 
@@ -170,7 +172,9 @@ public final class RegisteredRoutes {
 
     /**
      * Pairs the endpoints a route group registered with the methods answering them, by registering a
-     * twin of the group built from doubles and asking each of its handlers who it is.
+     * twin of the group built from doubles and asking each of its handlers who it is. A handler a
+     * group puts before its routes, such as the gate that closes messages while they are turned
+     * off, answers no request of its own and is no route, so it is left out.
      */
     private static List<Route> identified(Class<? extends Routes> owner, List<Endpoint> registered, Injector injector) {
         List<Endpoint> twins = new ArrayList<>();
@@ -187,6 +191,7 @@ public final class RegisteredRoutes {
                 throw new AssertionError("%s registers %s %s where its twin registers %s %s"
                         .formatted(owner.getSimpleName(), endpoint.method, endpoint.path, twin.method, twin.path));
             }
+            if (!endpoint.method.isHttpMethod()) continue;
             var frames = handlerFrames(owner, twin);
             routes.add(new Route(owner, endpoint, frames.frames(), frames.served()));
         }

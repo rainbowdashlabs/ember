@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.accountlink.entity.LinkOrigin;
 import dev.chojo.ember.feature.accountlink.repository.AccountLinkRepository;
 import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
@@ -142,7 +143,8 @@ class StationTransferTest extends RepositoryTestBase {
                 org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class),
                 TestAccountLinks.importedLinks(accountRepo, stationRepo, stationMemberRepo),
                 new ActiveImports(),
-                new TaskScheduler());
+                new TaskScheduler(),
+                new DomainEventBus(Set.of()));
 
         var station = stationRepo.create("Jugendfeuerwehr Musterstadt");
         sourceStationId = station.id();

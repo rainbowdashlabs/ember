@@ -32,6 +32,7 @@ import dev.chojo.ember.conf.file.elements.KnowledgeBase;
 import dev.chojo.ember.conf.file.elements.Logging;
 import dev.chojo.ember.conf.file.elements.MailImport;
 import dev.chojo.ember.conf.file.elements.Mailing;
+import dev.chojo.ember.conf.file.elements.Messages;
 import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
@@ -272,12 +273,16 @@ import dev.chojo.ember.feature.members.service.MemberFeedDetails;
 import dev.chojo.ember.feature.members.service.ProfileFieldOwner;
 import dev.chojo.ember.feature.members.service.StationMemberEligibility;
 import dev.chojo.ember.feature.members.service.StationProfileFields;
+import dev.chojo.ember.feature.messages.handler.StationAudienceChangedHandler;
 import dev.chojo.ember.feature.messages.route.ConversationRoutes;
 import dev.chojo.ember.feature.messages.route.MessageEventRoutes;
 import dev.chojo.ember.feature.messages.route.MessagePeopleRoutes;
+import dev.chojo.ember.feature.messages.route.MessageReportRoutes;
 import dev.chojo.ember.feature.messages.route.MessageRoutes;
+import dev.chojo.ember.feature.messages.route.StationChatRoutes;
+import dev.chojo.ember.feature.messages.service.MessageDigestMail;
 import dev.chojo.ember.feature.messages.service.MessageSignals;
-import dev.chojo.ember.feature.messages.service.UnreadMessageMail;
+import dev.chojo.ember.feature.messages.service.StationChatMembership;
 import dev.chojo.ember.feature.news.handler.NewsCreatedHandler;
 import dev.chojo.ember.feature.news.handler.NewsDeletedHandler;
 import dev.chojo.ember.feature.news.route.AdminNewsRoutes;
@@ -717,6 +722,8 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(TwoFactorAdminRoutes.class);
         routesBinder.addBinding().to(AccountAdminRoutes.class);
         routesBinder.addBinding().to(ConversationRoutes.class);
+        routesBinder.addBinding().to(StationChatRoutes.class);
+        routesBinder.addBinding().to(MessageReportRoutes.class);
         routesBinder.addBinding().to(MessageRoutes.class);
         routesBinder.addBinding().to(MessagePeopleRoutes.class);
         routesBinder.addBinding().to(MessageEventRoutes.class);
@@ -778,6 +785,7 @@ public class EmberModule extends AbstractModule {
 
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});
         eventBinder.addBinding().to(EventCreatedHandler.class);
+        eventBinder.addBinding().to(StationAudienceChangedHandler.class);
         eventBinder.addBinding().to(EventsBatchCreatedHandler.class);
         eventBinder.addBinding().to(EventDeletedHandler.class);
         eventBinder.addBinding().to(EventChangedHandler.class);
@@ -919,7 +927,8 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(CredentialKeyStamps.class);
         taskSources.addBinding().to(AccountLinkSweeper.class);
         taskSources.addBinding().to(MessageSignals.class);
-        taskSources.addBinding().to(UnreadMessageMail.class);
+        taskSources.addBinding().to(StationChatMembership.class);
+        taskSources.addBinding().to(MessageDigestMail.class);
 
         Multibinder<ShutdownFlush> flushes = Multibinder.newSetBinder(binder(), ShutdownFlush.class);
         flushes.addBinding().to(PageHitRecorder.class);
@@ -1060,6 +1069,12 @@ public class EmberModule extends AbstractModule {
     @Singleton
     Changelog changelog(File config) {
         return config.changelog();
+    }
+
+    @Provides
+    @Singleton
+    Messages messages(File config) {
+        return config.messages();
     }
 
     @Provides

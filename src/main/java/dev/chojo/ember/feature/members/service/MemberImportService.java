@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.SetupMail;
@@ -57,6 +59,8 @@ public class MemberImportService {
     private final ProfileFieldRepository profileFieldRepository;
     private final StationMemberInviteService inviteService;
 
+    private final DomainEventBus eventBus;
+
     @Inject
     public MemberImportService(
             AccountRepository accountRepository,
@@ -64,7 +68,9 @@ public class MemberImportService {
             MemberGroupRepository memberGroupRepository,
             GroupMembershipService groupMemberships,
             ProfileFieldRepository profileFieldRepository,
-            StationMemberInviteService inviteService) {
+            StationMemberInviteService inviteService,
+            DomainEventBus eventBus) {
+        this.eventBus = eventBus;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
@@ -280,6 +286,8 @@ public class MemberImportService {
                 }
 
                 stationMemberRepository.addManager(manager.id(), member.id());
+                Integer managedAccount = member.accountId();
+                if (managedAccount != null) eventBus.publish(StationAudienceChanged.ofAccount(managedAccount));
                 managersLinked++;
             }
         }
@@ -294,6 +302,7 @@ public class MemberImportService {
                 groupsAssigned,
                 profileFieldsSet,
                 warnings.size());
+        eventBus.publish(StationAudienceChanged.at(stationId));
         return new ImportResult(
                 membersCreated, managersCreated, managersLinked, groupsAssigned, profileFieldsSet, warnings);
     }
@@ -368,6 +377,7 @@ public class MemberImportService {
                 groupsAssigned,
                 profileFieldsSet,
                 warnings.size());
+        eventBus.publish(StationAudienceChanged.at(stationId));
         return new TeamImportResult(membersCreated, groupsAssigned, profileFieldsSet, warnings);
     }
 

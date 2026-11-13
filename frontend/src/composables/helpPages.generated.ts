@@ -239,6 +239,8 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-members-type-permissions', path: '/helpcenter/station/members/type-permissions', i18nPrefix: 'helpCenter.typePermissions'},
     {route: 'help-waiting-lists', path: '/helpcenter/station/members/waiting-lists', i18nPrefix: ['helpCenter.sample.members', 'helpCenter.waitingList']},
     {route: 'help-messages', path: '/helpcenter/station/messages', i18nPrefix: 'helpCenter.messages'},
+    {route: 'help-message-station-chats', path: '/helpcenter/station/messages/chats', i18nPrefix: ['helpCenter.stationChats', 'helpCenter.stationChats.example']},
+    {route: 'help-message-reports', path: '/helpcenter/station/messages/reports', i18nPrefix: ['helpCenter.messageReports', 'helpCenter.messageReports.example']},
     {route: 'help-station-feeds', path: '/helpcenter/station/monitoring/feeds', i18nPrefix: 'helpCenter.stationFeeds'},
     {route: 'help-station-insights', path: '/helpcenter/station/monitoring/insights', i18nPrefix: 'helpCenter.stationInsights'},
     {route: 'help-station-storage', path: '/helpcenter/station/monitoring/storage', i18nPrefix: 'helpCenter.stationStorage'},

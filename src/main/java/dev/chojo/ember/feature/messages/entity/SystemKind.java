@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.messages.entity;
 
-/** What a quiet system line in a group says happened. */
+/** What a quiet system line in a group or a station chat says happened. */
 public enum SystemKind {
     /** The author added the subject to the group. */
     ADDED,
@@ -13,8 +13,14 @@ public enum SystemKind {
     LEFT,
     /** The author, the owner, removed the subject from the group. */
     REMOVED,
-    /** The author renamed the group to the line's text, or took its name away when the text is empty. */
+    /** The author renamed the group or station chat to the line's text, or took a group's name away when the text is empty. */
     RENAMED,
     /** The subject became the owner because the owner left. */
-    OWNER_PASSED
+    OWNER_PASSED,
+    /** The author opened the station chat under the line's text as its name. */
+    OPENED,
+    /** The author closed the station chat, or nobody did where its group or tag was deleted. */
+    CLOSED,
+    /** The author opened the closed station chat again. */
+    REOPENED
 }

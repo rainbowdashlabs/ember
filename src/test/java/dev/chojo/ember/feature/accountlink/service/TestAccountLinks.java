@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.accountlink.service;
 
 import dev.chojo.ember.auth.TokenHasher;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -23,6 +24,8 @@ import dev.chojo.ember.feature.station.transfer.ImportedAccountLinks;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
+
+import java.util.Set;
 
 import static org.mockito.Mockito.mock;
 
@@ -90,7 +93,11 @@ public final class TestAccountLinks {
             GroupMembershipService groups,
             AuthService auth) {
         return new StationMemberInviteService(
-                members, groups, new AccountInviteService(accounts, auth), service(accounts, stations, members));
+                members,
+                groups,
+                new AccountInviteService(accounts, auth),
+                service(accounts, stations, members),
+                new DomainEventBus(Set.of()));
     }
 
     /**

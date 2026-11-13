@@ -130,7 +130,7 @@ class AdminSettingsRoutesTest {
 
     @Test
     void theGeneralSettingsAreReadAndWrittenByAnAdministratorOnly() {
-        var settings = new ApplicationSettings(true, "forest", "CORNERS", true, false, "de", List.of("de", "en"));
+        var settings = new ApplicationSettings(true, true, "forest", "CORNERS", true, false, "de", List.of("de", "en"));
         when(instanceSettings.settings()).thenReturn(settings);
         when(instanceSettings.update(any())).thenReturn(settings);
 
@@ -142,7 +142,7 @@ class AdminSettingsRoutesTest {
                             .asString());
 
             var saved = put(client, "/admin/settings", """
-                    {"stationRegistrationEnabled": true, "instanceDefaultTheme": "forest",
+                    {"stationRegistrationEnabled": true, "messagesEnabled": true, "instanceDefaultTheme": "forest",
                      "instanceDefaultFeel": "CORNERS", "instanceLockFeel": true, "forcePrideFlag": false,
                      "defaultMailLocale": "de", "availableMailLocales": []}""");
             assertEquals(200, saved.code());
@@ -152,7 +152,7 @@ class AdminSettingsRoutesTest {
         });
 
         verify(instanceSettings)
-                .update(new ApplicationSettings(true, "forest", "CORNERS", true, false, "de", List.of()));
+                .update(new ApplicationSettings(true, true, "forest", "CORNERS", true, false, "de", List.of()));
     }
 
     @Test

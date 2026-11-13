@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
@@ -28,6 +29,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -68,7 +70,8 @@ class MemberImportServiceTest extends RepositoryTestBase {
                 newGroupMemberships(),
                 profileFieldRepo,
                 TestAccountLinks.inviteService(
-                        accountRepo, stationRepo, stationMemberRepo, newGroupMemberships(), authService));
+                        accountRepo, stationRepo, stationMemberRepo, newGroupMemberships(), authService),
+                new DomainEventBus(Set.of()));
         station = stationRepo.create("ImportStation");
     }
 

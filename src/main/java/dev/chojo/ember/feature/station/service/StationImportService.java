@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
@@ -110,6 +112,8 @@ public class StationImportService {
     private final ActiveImports activeImports;
     private final SerialLane importLane;
 
+    private final DomainEventBus eventBus;
+
     @Inject
     public StationImportService(
             StationRepository stationRepository,
@@ -132,7 +136,9 @@ public class StationImportService {
             AuthService authService,
             ImportedAccountLinks importedLinks,
             ActiveImports activeImports,
-            TaskScheduler scheduler) {
+            TaskScheduler scheduler,
+            DomainEventBus eventBus) {
+        this.eventBus = eventBus;
         this.importLane = scheduler.lane("station-import");
         this.activeImports = activeImports;
         this.importedLinks = importedLinks;
@@ -442,6 +448,7 @@ public class StationImportService {
         assignDefaultOwnerIfNeeded(context.stationId());
         stationRepository.startWaitingAfterImport(context.stationId());
         importedLinks.ask(context);
+        eventBus.publish(StationAudienceChanged.at(context.stationId()));
         return total;
     }
 
@@ -515,6 +522,7 @@ public class StationImportService {
             relinkFolderIcons(stationId);
             stationRepository.startWaitingAfterImport(stationId);
             importedLinks.ask(context);
+            eventBus.publish(StationAudienceChanged.at(stationId));
             sharedStorage = adoptStorage(context, client, p, stationData);
             copyFiles(context, client, p, sharedStorage);
             federationFixup.rewriteAfterImport(stationId, p.sourceUrl());

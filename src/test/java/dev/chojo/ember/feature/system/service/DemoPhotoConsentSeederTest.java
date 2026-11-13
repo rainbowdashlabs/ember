@@ -294,7 +294,8 @@ class DemoPhotoConsentSeederTest extends DemoTestBase {
                 new TrustedDeviceService(
                         twoFactorRepo, TokenHasher.forTesting("demo-consent-device"), new TwoFactorSettings()),
                 passkeyModeService,
-                new UsageRecorder(new UsageRepository()));
+                new UsageRecorder(new UsageRepository()),
+                new DomainEventBus(Set.of()));
     }
 
     @Test

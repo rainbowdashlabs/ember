@@ -14,14 +14,14 @@ import {navPages, resolveNav} from '@/util/navTree'
  * The station sidebar for one reader: what they may reach is there, and nothing else.
  */
 describe('STATION_NAV', () => {
-    function readerWith(permissions: string[], modules: string[] = Object.values(StationModule)): StationNavContext {
+    function readerWith(permissions: string[], modules: string[] = Object.values(StationModule), messagesEnabled = true): StationNavContext {
         const session = {
             hasPermission: (permission: string) => permissions.includes(permission),
             isModuleEnabled: (module: string) => modules.includes(module),
             canTestProtocol: () => permissions.includes(StationPermission.PROTOCOL_TESTER),
             isManager: () => permissions.includes(StationPermission.STATION_ADMINISTRATOR),
             hasAnyMemberPermission: () => permissions.some(permission => permission.startsWith('MEMBER_')),
-            sessionInfo: {value: {setupCompletedAt: '2026-01-01T00:00:00Z'}},
+            sessionInfo: {value: {setupCompletedAt: '2026-01-01T00:00:00Z', messagesEnabled}},
         }
         const everythingElse = new Proxy(session, {get: (target, name) => name in target ? target[name as keyof typeof target] : () => false})
         return {
@@ -154,6 +154,15 @@ describe('STATION_NAV', () => {
             expect(pages).not.toContain('/station/inventory/lending')
             expect(pages).toContain('/station/inventory/procurement')
             expect(pages).toContain('/station/inventory')
+        })
+    })
+
+    describe('station chats', () => {
+        it('are there for whoever handles them while messages are on, and gone once the instance turned messages off', () => {
+            const manager = [StationPermission.MESSAGE_CHAT_MANAGE]
+
+            expect(section(nav(manager), 'station-messages')).toBeDefined()
+            expect(section(resolveNav(STATION_NAV, readerWith(manager, undefined, false), key => key), 'station-messages')).toBeUndefined()
         })
     })
 })
