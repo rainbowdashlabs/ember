@@ -3,7 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-
 /**
  * The colours an event group without one of its own is marked with, mostly taken from the station's
  * colour scheme. Neighbouring ids get different colours, so two event groups side by side rarely look

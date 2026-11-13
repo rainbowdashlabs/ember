@@ -3,7 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-
 /** A set as the event group editor holds it: an id for a stored set, null for a new one. */
 export interface SetRow {
     id: number | null

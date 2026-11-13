@@ -53,4 +53,3 @@ const color = computed(() => eventGroupColor(props.eventGroup.eventGroupId, prop
       data-testid="event-group-band"
   />
 </template>
-

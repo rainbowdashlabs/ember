@@ -182,4 +182,3 @@ describe('EventGroupSignUpDialog', () => {
     expect(signUp).toHaveBeenCalledWith(70, [11], [], 12)
   })
 })
-
