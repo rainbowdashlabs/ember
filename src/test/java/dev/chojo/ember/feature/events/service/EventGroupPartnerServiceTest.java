@@ -331,6 +331,18 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void theShareReadsBackWithItsNamedPartnersUntilItEnds() {
+        partners.share(holder.id(), eventGroup.id(), ShareScope.SPECIFIC, List.of(partnerOfHolder));
+
+        var share = partners.findShare(holder.id(), eventGroup.id()).orElseThrow();
+        assertEquals(ShareScope.SPECIFIC, share.scope());
+        assertEquals(List.of(partnerOfHolder), share.partnerIds());
+
+        partners.unshare(holder.id(), eventGroup.id());
+        assertTrue(partners.findShare(holder.id(), eventGroup.id()).isEmpty());
+    }
+
+    @Test
     void anEventGroupNotSharedWithThePartnerIsNotThere() {
         partners.share(holder.id(), eventGroup.id(), ShareScope.SPECIFIC, List.of());
 
