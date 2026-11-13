@@ -100,6 +100,10 @@ import dev.chojo.ember.feature.events.service.EventCommentTarget;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFieldDefaultService;
 import dev.chojo.ember.feature.events.service.EventFieldRegistrationService;
+import dev.chojo.ember.feature.events.service.EventGroupCommentTarget;
+import dev.chojo.ember.feature.events.service.EventGroupGuards;
+import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
+import dev.chojo.ember.feature.events.service.EventGroupService;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
@@ -999,6 +1003,27 @@ public abstract class RepositoryTestBase {
     }
 
     /**
+     * The event group service over the shared repositories.
+     *
+     * @return the service
+     */
+    protected static EventGroupService newEventGroupService() {
+        return new EventGroupService(
+                new EventGroupRepository(),
+                eventRepo,
+                restrictionService,
+                occurrenceCalendar,
+                new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
+                eventFieldRepo);
+    }
+
+    private static EventGroupCommentTarget eventGroupCommentTarget() {
+        var eventGroups = newEventGroupService();
+        return new EventGroupCommentTarget(
+                eventGroups, new EventGroupGuards(eventGroups, new GuardianPolicy(stationMemberRepo)));
+    }
+
+    /**
      * The comment service over the shared repositories, with a target bound for every kind that
      * goes through it, publishing to the given bus.
      *
@@ -1017,7 +1042,9 @@ public abstract class RepositoryTestBase {
                 CommentEntityType.NEWS,
                 new NewsCommentTarget(newNewsService(new DomainEventBus(Set.of()))),
                 CommentEntityType.BOARD_TICKET,
-                ticketCommentTarget());
+                ticketCommentTarget(),
+                CommentEntityType.EVENT_GROUP,
+                eventGroupCommentTarget());
         return new CommentService(
                 commentRepo,
                 targets,

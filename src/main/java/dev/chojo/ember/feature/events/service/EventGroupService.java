@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -441,6 +442,16 @@ public class EventGroupService {
                 .findById(eventGroupId)
                 .filter(eventGroup -> eventGroup.stationId() == stationId)
                 .orElseThrow(EventRefusal.EVENT_GROUP_NOT_HERE::raise);
+    }
+
+    /**
+     * An event group of any station, for a caller that checks the station itself.
+     *
+     * @param eventGroupId the event group
+     * @return the event group, empty where there is none
+     */
+    public Optional<EventGroup> findById(int eventGroupId) {
+        return eventGroups.findById(eventGroupId);
     }
 
     /**

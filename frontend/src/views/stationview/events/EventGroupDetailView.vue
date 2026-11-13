@@ -20,17 +20,23 @@ import EventGroupSignUpsPanel from './eventgroupdetailview/EventGroupSignUpsPane
 import EventGroupPartnerSignUpsPanel from './eventgroupdetailview/EventGroupPartnerSignUpsPanel.vue'
 import EventGroupAttendancePanel from './eventgroupdetailview/EventGroupAttendancePanel.vue'
 import EventGroupCancelDialog from './eventgroupdetailview/EventGroupCancelDialog.vue'
+import EventGroupProbeVisitorsPanel from './eventgroupdetailview/EventGroupProbeVisitorsPanel.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import CommentSection from '@/components/comment/CommentSection.vue'
+import NoteEditor from '@/components/comment/NoteEditor.vue'
 import type {EventGroupDetail, MemberCompletion} from '@/api/generated/schema'
 import {StationPermission} from '@/api/generated/schema'
 import {eventGroups, stationMembers} from '@/api'
+import {eventGroupCommentSource} from '@/api/eventGroups'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**
- * One event group: what it is, its parts by set with each set's minimum, and the sign-up of the reader and
- * everybody they look after. Whoever handles registrations sees every sign-up and decides on them;
- * whoever edits appointments edits, calls off or deletes the event group.
+ * One event group: what it is, its parts by set with each set's minimum, the sign-up of the reader and
+ * everybody they look after, and its comments. Whoever handles registrations sees every sign-up and
+ * decides on them; whoever edits appointments edits, calls off or deletes the event group and keeps
+ * its notes; whoever reads the waiting lists sees who comes to a part for a probe.
  */
 const {t} = useI18n()
 const route = useRoute()
@@ -48,6 +54,8 @@ const attendancePanel = ref<InstanceType<typeof EventGroupAttendancePanel> | nul
 
 const canEdit = computed(() => hasPermission(StationPermission.EVENT_EDIT))
 const canDecide = computed(() => hasPermission(StationPermission.EVENT_REGISTRATION))
+const readsWaitingLists = computed(() => hasPermission(StationPermission.WAITLIST_READ))
+const commentSource = computed(() => eventGroupCommentSource(eventGroupId.value))
 
 const members = ref<MemberCompletion[]>([])
 const currentMemberId = computed(() => sessionInfo.value?.member?.id)
@@ -122,6 +130,13 @@ async function deleteEventGroup() {
         <EventGroupSignUpsPanel v-if="canDecide" ref="signUpsPanel" :detail="detail" :on-changed="refresh"/>
         <EventGroupPartnerSignUpsPanel v-if="canDecide" :detail="detail" :on-changed="refresh"/>
         <EventGroupAttendancePanel v-if="canDecide" ref="attendancePanel" :detail="detail"/>
+        <EventGroupProbeVisitorsPanel v-if="readsWaitingLists" :parts="detail.parts"/>
+        <NeutralContainer v-if="canEdit">
+          <NoteEditor entity-type="EVENT_GROUP" :entity-id="eventGroupId"/>
+        </NeutralContainer>
+        <NeutralContainer>
+          <CommentSection :source="commentSource"/>
+        </NeutralContainer>
       </div>
     </AsyncSection>
     <EventGroupCancelDialog v-model="cancelOpen" :busy="busy" @confirm="cancelEventGroup"/>

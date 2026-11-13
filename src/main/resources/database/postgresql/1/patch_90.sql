@@ -590,3 +590,23 @@ COMMENT ON COLUMN ember_schema.event_group_field_entry.member_id
     IS 'The member entered or skipping.';
 COMMENT ON COLUMN ember_schema.event_group_field_entry.kind
     IS 'ENTERED: in the field on this appointment only. SKIPPED: entered for the whole group but not on this appointment.';
+
+-- Comments on an event group: its page carries a thread of its own, beside those of its parts.
+
+ALTER TABLE ember_schema.comment
+    ADD COLUMN IF NOT EXISTS event_group_id INT REFERENCES ember_schema.event_group (id) ON DELETE CASCADE;
+
+ALTER TABLE ember_schema.comment
+    DROP CONSTRAINT IF EXISTS comment_one_target;
+
+ALTER TABLE ember_schema.comment
+    ADD CONSTRAINT comment_one_target
+        CHECK (num_nonnulls(event_id, news_id, kb_file_id, board_ticket_id, event_group_id) = 1);
+
+CREATE INDEX IF NOT EXISTS idx_comment_event_group
+    ON ember_schema.comment (event_group_id) WHERE event_group_id IS NOT NULL;
+
+COMMENT ON TABLE ember_schema.comment
+    IS 'Threaded comments on appointments, event groups, news entries, knowledge base files and board tickets. Exactly one target column is set, and that column says what the comment was written on.';
+COMMENT ON COLUMN ember_schema.comment.event_group_id
+    IS 'The event group the comment was written on, NULL for every other target.';

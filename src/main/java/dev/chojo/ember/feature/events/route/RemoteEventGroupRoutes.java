@@ -6,10 +6,13 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventGroupPartState;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.route.EventGroupRoutes.EventGroupSummary;
+import dev.chojo.ember.feature.events.route.RemoteEventRoutes.RemoteCommentDeleteRequest;
+import dev.chojo.ember.feature.events.route.RemoteEventRoutes.RemoteCommentUpdateRequest;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService.PartnerStanding;
 import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
@@ -25,7 +28,7 @@ import java.util.UUID;
 
 /**
  * What a station serves its partners about the event groups it shares with them: an event group with the
- * standing of the partner's members, and their sign-ups.
+ * standing of the partner's members, their sign-ups, and the comments on it.
  *
  * <p>A partner that has never heard of these endpoints never calls them. Its members still see the
  * parts as shared appointments, and are told there that they sign up through the event group.
@@ -72,8 +75,41 @@ public class RemoteEventGroupRoutes implements Routes {
                     Void.class)
             .keepingInStep();
 
-    public static final List<FederationEndpoint> CONTRACT =
-            List.of(GET_EVENT_GROUP, SIGN_UP, CHANGE_PARTS, WITHDRAW, EVENT_GROUP_CANCELLED_WEBHOOK);
+    /** The comments on a shared event group. */
+    public static final FederationEndpoint LIST_COMMENTS = FederationEndpoint.getList(
+            FederationSurface.EVENT_SHARE, "/remote/events/groups/{id}/comments", CommentResponse.class);
+
+    /** One of the partner's members commenting on a shared event group. */
+    public static final FederationEndpoint CREATE_COMMENT = FederationEndpoint.post(
+            FederationSurface.EVENT_SHARE,
+            "/remote/events/groups/{id}/comments",
+            RemoteEventGroupComment.class,
+            CommentResponse.class);
+
+    /** One of the partner's members changing their comment on a shared event group. */
+    public static final FederationEndpoint UPDATE_COMMENT = FederationEndpoint.put(
+            FederationSurface.EVENT_SHARE,
+            "/remote/events/groups/{id}/comments/{commentId}",
+            RemoteCommentUpdateRequest.class,
+            CommentResponse.class);
+
+    /** One of the partner's members removing their comment on a shared event group. */
+    public static final FederationEndpoint DELETE_COMMENT = FederationEndpoint.delete(
+            FederationSurface.EVENT_SHARE,
+            "/remote/events/groups/{id}/comments/{commentId}",
+            RemoteCommentDeleteRequest.class,
+            Void.class);
+
+    public static final List<FederationEndpoint> CONTRACT = List.of(
+            GET_EVENT_GROUP,
+            SIGN_UP,
+            CHANGE_PARTS,
+            WITHDRAW,
+            EVENT_GROUP_CANCELLED_WEBHOOK,
+            LIST_COMMENTS,
+            CREATE_COMMENT,
+            UPDATE_COMMENT,
+            DELETE_COMMENT);
 
     private final FederationEndpoints endpoints;
 
@@ -88,7 +124,11 @@ public class RemoteEventGroupRoutes implements Routes {
                 .serveCreated(SIGN_UP)
                 .serve(CHANGE_PARTS)
                 .serve(WITHDRAW)
-                .serve(EVENT_GROUP_CANCELLED_WEBHOOK));
+                .serve(EVENT_GROUP_CANCELLED_WEBHOOK)
+                .serve(LIST_COMMENTS)
+                .serveCreated(CREATE_COMMENT)
+                .serve(UPDATE_COMMENT)
+                .serve(DELETE_COMMENT));
     }
 
     /** @param memberUids the partner's members whose standing is asked about */
@@ -121,6 +161,17 @@ public class RemoteEventGroupRoutes implements Routes {
 
     /** @param memberUid the member, by the id their own station gave them */
     public record RemoteEventGroupMember(UUID memberUid) {}
+
+    /**
+     * A comment one of the partner's members writes on a shared event group.
+     *
+     * @param memberUid   the member, by the id their own station gave them
+     * @param displayName the name to show for them
+     * @param parentId    the comment answered, or null for a new thread
+     * @param content     the comment
+     */
+    public record RemoteEventGroupComment(
+            UUID memberUid, String displayName, @Nullable Integer parentId, String content) {}
 
     /**
      * A shared event group that was called off.

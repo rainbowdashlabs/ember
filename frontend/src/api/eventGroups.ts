@@ -6,8 +6,11 @@
 import client from './client'
 import {documentFrom, type DocumentFile} from '@/util/documentFile'
 import type {ExportSeparator} from '@/util/exportFormat'
+import {stationMentionables, type CommentSource} from './comments'
+import {StationPermission} from './generated/schema'
 import type {
     AppointmentField,
+    CommentResponse,
     EventGroupAttendance,
     EventGroupAwaiting,
     EventGroupCreateRequest,
@@ -197,4 +200,20 @@ export async function listAttendance(eventGroupId: number): Promise<EventGroupAt
 export async function exportAttendance(eventGroupId: number, separator: ExportSeparator = 'semicolon'): Promise<DocumentFile> {
     const res = await client.get(`${EVENT_GROUPS}/${eventGroupId}/attendance/export.csv`, {responseType: 'blob', params: {separator}})
     return documentFrom(res, 'Terminreihe.csv')
+}
+
+/**
+ * The thread under one of the station's own event groups. Whoever may open the event group reads and
+ * writes it, and an appointment manager removes anybody's comment there, as under an appointment.
+ */
+export function eventGroupCommentSource(eventGroupId: number): CommentSource {
+    const comments = `${EVENT_GROUPS}/${eventGroupId}/comments`
+    return {
+        list: async () => (await client.get<CommentResponse[]>(comments)).data,
+        create: (parentId, content) => client.post(comments, {parentId, content}),
+        update: (commentId, content) => client.put(`${comments}/${commentId}`, {content}),
+        remove: commentId => client.delete(`${comments}/${commentId}`),
+        mentionables: () => stationMentionables({type: 'EVENT_GROUP_VIEW', entityId: eventGroupId}),
+        moderator: StationPermission.EVENT_MANAGER,
+    }
 }

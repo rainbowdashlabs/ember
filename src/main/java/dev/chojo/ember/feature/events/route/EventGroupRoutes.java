@@ -31,6 +31,7 @@ import dev.chojo.ember.feature.events.route.EventRegistrationRoutes.EventRegistr
 import dev.chojo.ember.feature.events.route.EventStructureRoutes.EventFieldEntry;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventGroupCancellationService;
+import dev.chojo.ember.feature.events.service.EventGroupGuards;
 import dev.chojo.ember.feature.events.service.EventGroupPartFactory;
 import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
 import dev.chojo.ember.feature.events.service.EventGroupRegistrationService;
@@ -91,6 +92,7 @@ public class EventGroupRoutes implements Routes {
     private final EventGroupCancellationService cancellation;
     private final EventGroupPartFactory partFactory;
     private final EventGroupQuestionService questions;
+    private final EventGroupGuards guards;
     private final EventFieldService fields;
 
     @Inject
@@ -103,6 +105,7 @@ public class EventGroupRoutes implements Routes {
             EventGroupCancellationService cancellation,
             EventGroupPartFactory partFactory,
             EventGroupQuestionService questions,
+            EventGroupGuards guards,
             EventFieldService fields) {
         this.eventGroups = eventGroups;
         this.signUps = signUps;
@@ -112,6 +115,7 @@ public class EventGroupRoutes implements Routes {
         this.cancellation = cancellation;
         this.partFactory = partFactory;
         this.questions = questions;
+        this.guards = guards;
         this.fields = fields;
     }
 
@@ -187,7 +191,7 @@ public class EventGroupRoutes implements Routes {
     private void list(Context ctx) {
         StationSession session = StationSession.from(ctx);
         ctx.json(eventGroups.findByStation(session.stationId()).stream()
-                .filter(eventGroup -> mayOpen(session, eventGroup.id()))
+                .filter(eventGroup -> guards.mayOpen(session, eventGroup.id()))
                 .map(eventGroup -> EventGroupSummary.of(
                         eventGroup, eventGroups.findParts(eventGroup.id()).size(), signUps.holding(eventGroup.id())))
                 .toList());
@@ -667,24 +671,7 @@ public class EventGroupRoutes implements Routes {
     }
 
     private EventGroup visibleEventGroup(Context ctx, StationSession session) {
-        var eventGroup = eventGroups.requireEventGroup(session.stationId(), pathInt(ctx, "eventGroupId"));
-        if (!mayOpen(session, eventGroup.id())) throw EventRefusal.EVENT_GROUP_NOT_HERE.raise();
-        return eventGroup;
-    }
-
-    /** Whether the reader may open an event group: it is meant for them or somebody they look after. */
-    private boolean mayOpen(StationSession session, int eventGroupId) {
-        return seesEverything(session)
-                || eventGroups.canSeeAny(
-                        eventGroupId,
-                        guardianPolicy.household(session.user()),
-                        session.user().permissions());
-    }
-
-    private static boolean seesEverything(StationSession session) {
-        return session.hasPermission(StationPermission.EVENT_EDIT)
-                || session.hasPermission(StationPermission.EVENT_MANAGER)
-                || session.hasPermission(StationPermission.EVENT_REGISTRATION);
+        return guards.requireOpen(session, pathInt(ctx, "eventGroupId"));
     }
 
     private void requireMayJoin(StationSession session, int eventGroupId, int memberId, boolean override) {

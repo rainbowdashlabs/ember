@@ -27707,6 +27707,170 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/groups/{eventGroupId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the comments on an event group */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommentResponse"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Comment on an event group */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CreateCommentRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommentResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/comments/{commentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change one's own comment on an event group */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    commentId: number;
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["UpdateCommentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommentResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Delete a comment on an event group (own or EVENT_MANAGER) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    commentId: number;
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/groups/{eventGroupId}/federation": {
         parameters: {
             query?: never;
@@ -29646,6 +29810,138 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/events/groups/{eventGroupId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the comments on a partner station's event group */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    stationuid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommentResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Comment on a partner station's event group */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    stationuid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CreateCommentRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommentResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/events/groups/{eventGroupId}/comments/{commentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change one's own comment on a partner station's event group */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    commentId: number;
+                    eventGroupId: number;
+                    stationuid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["UpdateCommentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CommentResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Delete one's own comment on a partner station's event group */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    commentId: number;
+                    eventGroupId: number;
+                    stationuid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -74546,7 +74842,7 @@ export interface components {
         };
         NoQuizAttempt: Record<string, never>;
         /** @enum {string} */
-        NoteEntityType: "ITEM" | "EVENT" | "MEMBER";
+        NoteEntityType: "ITEM" | "EVENT" | "MEMBER" | "EVENT_GROUP";
         NoteHistoryEntryResponse: {
             changedAt: components["schemas"]["Instant"];
             /** Format: int32 */
@@ -82522,6 +82818,7 @@ export const NewsVisibilityRole = {
 
 export const NoteEntityType = {
     EVENT: "EVENT",
+    EVENT_GROUP: "EVENT_GROUP",
     ITEM: "ITEM",
     MEMBER: "MEMBER",
 } as const;

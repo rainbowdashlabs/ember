@@ -12078,6 +12078,8 @@ export default {
         noRestrictions: 'Keine Einschränkungen - für alle sichtbar.',
     },
     eventGroups: {
+        probeVisitorsHint: 'Von der Warteliste eingeladen und haben einen Termin dieser Terminreihe gewählt. Sie stehen auf keiner Teilnehmerliste.',
+        probeVisitorsPart: '{name}, {date}',
         create: 'Neue Terminreihe',
         startingAppointment: 'Der Termin „{name}“ wird beim Anlegen der erste Termin des ersten Blocks dieser Terminreihe.',
         dropStartingAppointment: 'Ohne diesen Termin anlegen',

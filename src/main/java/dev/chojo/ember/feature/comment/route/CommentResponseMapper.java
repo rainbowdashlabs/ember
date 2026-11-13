@@ -34,6 +34,13 @@ public final class CommentResponseMapper {
     }
 
     /**
+     * Maps an event group comment.
+     */
+    public static CommentResponse fromEventGroup(MemberNameResolver resolver, Comment comment) {
+        return withResolvedName(resolver, new Scope(null, null, null, null), comment);
+    }
+
+    /**
      * Maps a news comment.
      */
     public static CommentResponse fromNews(MemberNameResolver resolver, Comment comment) {

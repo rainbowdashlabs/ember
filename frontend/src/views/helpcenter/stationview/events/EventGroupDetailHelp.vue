@@ -24,7 +24,8 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import RegistrationStatusBadge from '@/views/stationview/events/eventshared/RegistrationStatusBadge.vue'
 import EventGroupBand from '@/views/stationview/events/eventshared/EventGroupBand.vue'
 import EventGroupHeading from '@/views/stationview/events/eventshared/EventGroupHeading.vue'
-import {RegistrationStatus, StationPermission} from '@/api/generated/schema'
+import ProbeVisitorList from '@/views/stationview/events/eventshared/ProbeVisitorList.vue'
+import {RegistrationStatus, StationPermission, type WaitingListVisitor} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -39,6 +40,16 @@ const examplePart = computed(() => ({
   firstStart: '2026-12-12T08:00:00Z',
   lastEnd: '2026-12-20T15:00:00Z',
 }))
+
+const exampleVisitors = computed((): WaitingListVisitor[] => [{
+  entryId: 1,
+  listId: 1,
+  firstname: t('helpCenter.eventGroupDetail.exampleVisitor'),
+  lastname: t('helpCenter.eventGroupDetail.exampleVisitorLast'),
+  listName: t('helpCenter.eventGroupDetail.exampleList'),
+  arrivalTime: '09:30:00',
+  date: '2026-12-12',
+}])
 </script>
 
 <template>
@@ -128,6 +139,26 @@ const examplePart = computed(() => ({
           <ErrorButton :icon="['fas', 'trash']">{{ t('eventGroups.delete') }}</ErrorButton>
         </ButtonRow>
       </HelpPermissionGuard>
+    </HelpSection>
+    <HelpPermissionGuard :permissions="[StationPermission.WAITLIST_READ]" :label="t('helpCenter.permissionLabel.waitlistRead')">
+      <HelpSection :title="t('helpCenter.eventGroupDetail.probeVisitorsTitle')">
+        <p>{{ t('helpCenter.eventGroupDetail.probeVisitorsText') }}</p>
+        <NeutralContainer class="space-y-2">
+          <SubHeader>{{ t('eventDetail.probeVisitors') }}</SubHeader>
+          <MutedText tag="p" size="sm">{{ t('eventGroups.probeVisitorsHint') }}</MutedText>
+          <p class="text-sm font-medium">{{ t('helpCenter.eventGroupDetail.day1') }}</p>
+          <ProbeVisitorList :visitors="exampleVisitors"/>
+        </NeutralContainer>
+      </HelpSection>
+    </HelpPermissionGuard>
+    <HelpPermissionGuard :permissions="[StationPermission.EVENT_EDIT]" :label="t('helpCenter.permissionLabel.eventEdit')">
+      <HelpSection :title="t('helpCenter.eventGroupDetail.notesTitle')">
+        <p>{{ t('helpCenter.eventGroupDetail.notesText') }}</p>
+      </HelpSection>
+    </HelpPermissionGuard>
+    <HelpSection :title="t('helpCenter.eventGroupDetail.commentsTitle')">
+      <p>{{ t('helpCenter.eventGroupDetail.commentsText') }}</p>
+      <p>{{ t('helpCenter.eventGroupDetail.commentsPartnerText') }}</p>
     </HelpSection>
     <HelpTip>{{ t('helpCenter.eventGroupDetail.tip') }}</HelpTip>
   </HelpArticle>

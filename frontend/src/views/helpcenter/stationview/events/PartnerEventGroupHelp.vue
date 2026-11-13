@@ -20,5 +20,8 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.federatedEventGroup.signUpText') }}</p>
       <p>{{ t('helpCenter.federatedEventGroup.partsText') }}</p>
     </HelpSection>
+    <HelpSection :title="t('helpCenter.federatedEventGroup.commentsTitle')">
+      <p>{{ t('helpCenter.federatedEventGroup.commentsText') }}</p>
+    </HelpSection>
   </HelpArticle>
 </template>

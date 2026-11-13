@@ -131,6 +131,7 @@ import dev.chojo.ember.feature.events.route.EventAttachmentRoutes;
 import dev.chojo.ember.feature.events.route.EventCancellationRoutes;
 import dev.chojo.ember.feature.events.route.EventEmbedRoutes;
 import dev.chojo.ember.feature.events.route.EventGroupAttendanceRoutes;
+import dev.chojo.ember.feature.events.route.EventGroupCommentRoutes;
 import dev.chojo.ember.feature.events.route.EventGroupRoutes;
 import dev.chojo.ember.feature.events.route.EventGroupSharingRoutes;
 import dev.chojo.ember.feature.events.route.EventRegistrationRoutes;
@@ -140,6 +141,7 @@ import dev.chojo.ember.feature.events.route.EventStructureRoutes;
 import dev.chojo.ember.feature.events.route.EventTemplateAttachmentRoutes;
 import dev.chojo.ember.feature.events.route.EventTemplateRoutes;
 import dev.chojo.ember.feature.events.route.EventTemplateSharingRoutes;
+import dev.chojo.ember.feature.events.route.FederatedEventGroupCommentRoutes;
 import dev.chojo.ember.feature.events.route.FederatedEventGroupRoutes;
 import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
 import dev.chojo.ember.feature.events.route.PublicEventRoutes;
@@ -150,6 +152,8 @@ import dev.chojo.ember.feature.events.service.EventChangeNotifier;
 import dev.chojo.ember.feature.events.service.EventCommentTarget;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFeedDetails;
+import dev.chojo.ember.feature.events.service.EventGroupCommentFederation;
+import dev.chojo.ember.feature.events.service.EventGroupCommentTarget;
 import dev.chojo.ember.feature.events.service.EventGroupDeadlineChecker;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerServer;
 import dev.chojo.ember.feature.events.service.EventReminderChecker;
@@ -594,6 +598,8 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(FederatedEventGroupRoutes.class);
         routesBinder.addBinding().to(EventGroupSharingRoutes.class);
         routesBinder.addBinding().to(EventGroupAttendanceRoutes.class);
+        routesBinder.addBinding().to(EventGroupCommentRoutes.class);
+        routesBinder.addBinding().to(FederatedEventGroupCommentRoutes.class);
         routesBinder.addBinding().to(EventTemplateRoutes.class);
         routesBinder.addBinding().to(SavedFilterRoutes.class);
         routesBinder.addBinding().to(InventoryCheckRoutes.class);
@@ -789,6 +795,7 @@ public class EmberModule extends AbstractModule {
         commentTargets.addBinding(CommentEntityType.KB).to(KbCommentTarget.class);
         commentTargets.addBinding(CommentEntityType.NEWS).to(NewsCommentTarget.class);
         commentTargets.addBinding(CommentEntityType.BOARD_TICKET).to(TicketCommentTarget.class);
+        commentTargets.addBinding(CommentEntityType.EVENT_GROUP).to(EventGroupCommentTarget.class);
 
         MapBinder<FieldOrigin, ProfileFieldOwner> profileFieldOwners =
                 MapBinder.newMapBinder(binder(), FieldOrigin.class, ProfileFieldOwner.class);
@@ -868,6 +875,7 @@ public class EmberModule extends AbstractModule {
         federationServers.addBinding().to(EventFederationService.class);
         federationServers.addBinding().to(EventGroupPartnerServer.class);
         federationServers.addBinding().to(PartnerEventGroupService.class);
+        federationServers.addBinding().to(EventGroupCommentFederation.class);
         federationServers.addBinding().to(KnowledgeBaseFederationService.class);
         federationServers.addBinding().to(FederatedBoardDiscoveryService.class);
         federationServers.addBinding().to(FederatedBoardStructureProxy.class);

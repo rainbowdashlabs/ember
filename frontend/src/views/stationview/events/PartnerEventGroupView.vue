@@ -12,14 +12,17 @@ import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import EventGroupOverview from './eventgroupdetailview/EventGroupOverview.vue'
 import EventGroupHouseholdPanel from './eventgroupdetailview/EventGroupHouseholdPanel.vue'
 import {partnerEventGroupPort} from './eventgroupdetailview/eventGroupSignUpPort'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import CommentSection from '@/components/comment/CommentSection.vue'
 import type {EventGroupDetail} from '@/api/generated/schema'
 import {partnerEventGroups} from '@/api'
+import {partnerEventGroupCommentSource} from '@/api/partnerEventGroups'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 /**
- * An event group a partner station shares with this one: its parts by set and the sign-up of the reader and
- * everybody they look after, sent to the partner that holds it.
+ * An event group a partner station shares with this one: its parts by set, the sign-up of the reader and
+ * everybody they look after, and its comments, all sent to the partner that holds it.
  */
 const {t} = useI18n()
 const route = useRoute()
@@ -29,6 +32,7 @@ const stationUid = computed(() => route.params.stationUid as string)
 const eventGroupId = computed(() => Number(route.params.eventGroupId))
 const detail = ref<EventGroupDetail | null>(null)
 const port = computed(() => partnerEventGroupPort(stationUid.value, eventGroupId.value))
+const commentSource = computed(() => partnerEventGroupCommentSource(stationUid.value, eventGroupId.value))
 
 const {loading, failure, reload} = useAsyncLoader(async () => {
   detail.value = await partnerEventGroups.getEventGroup(stationUid.value, eventGroupId.value)
@@ -48,6 +52,9 @@ function partLink(eventId: number) {
       <div v-if="detail" class="space-y-6">
         <EventGroupOverview :detail="detail" :part-link="partLink"/>
         <EventGroupHouseholdPanel :detail="detail" :port="port" :on-changed="reload"/>
+        <NeutralContainer>
+          <CommentSection :source="commentSource"/>
+        </NeutralContainer>
       </div>
     </AsyncSection>
   </ViewContent>

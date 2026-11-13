@@ -32,13 +32,14 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class CommentRepository {
 
     private static final String COLUMNS =
-            "id, station_id, event_id, event_date, news_id, kb_file_id, board_ticket_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at";
+            "id, station_id, event_id, event_date, news_id, kb_file_id, board_ticket_id, event_group_id, parent_id, author_station_uid, author_member_uid, content, deleted, created_at, updated_at";
 
     private static String stationOf(CommentEntityType type) {
         return switch (type) {
             case EVENT -> "(SELECT station_id FROM station_event WHERE id = :target_id)";
             case NEWS -> "(SELECT station_id FROM news WHERE id = :target_id)";
             case KB -> "(SELECT station_id FROM kb_file WHERE id = :target_id)";
+            case EVENT_GROUP -> "(SELECT station_id FROM event_group WHERE id = :target_id)";
             case BOARD_TICKET ->
                 "(SELECT b.station_id FROM board_ticket t JOIN board b ON b.id = t.board_id WHERE t.id = :target_id)";
         };

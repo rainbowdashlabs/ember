@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventGroupCancellationService;
+import dev.chojo.ember.feature.events.service.EventGroupGuards;
 import dev.chojo.ember.feature.events.service.EventGroupPartFactory;
 import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
 import dev.chojo.ember.feature.events.service.EventGroupRegistrationService;
@@ -131,7 +132,16 @@ class EventGroupRoutesTest {
         fields = mock(EventFieldService.class);
         when(fields.asSeenOnGroup(anyInt(), any(), anyInt(), anyBoolean())).thenAnswer(call -> call.getArgument(1));
         harness = RouteHarness.serving(new EventGroupRoutes(
-                eventGroups, signUps, guardians, identities, visibility, cancellation, partFactory, questions, fields));
+                eventGroups,
+                signUps,
+                guardians,
+                identities,
+                visibility,
+                cancellation,
+                partFactory,
+                questions,
+                new EventGroupGuards(eventGroups, guardians),
+                fields));
     }
 
     private Response call(String method, String path, String json, StationPermission... permissions) {
