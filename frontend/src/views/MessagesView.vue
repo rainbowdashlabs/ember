@@ -6,39 +6,23 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import MessagesFrame from '@/views/messagesview/MessagesFrame.vue'
-import ConversationList from '@/views/messagesview/ConversationList.vue'
-import ConversationPane from '@/views/messagesview/ConversationPane.vue'
-import {useConversationList} from '@/composables/useConversationList'
+import MessagesWorkspace from '@/views/messagesview/MessagesWorkspace.vue'
+import {useSession} from '@/composables/useSession'
 
 /**
- * Messages between people: the list of the reader's conversations on the left and the open one on
- * the right, outside any station. On a phone the list is the page and a conversation opens over it.
+ * Messages between people, outside any station. While messages are turned off for the instance the
+ * page only says so and asks the server for nothing.
  */
 const {t} = useI18n()
-const route = useRoute()
-const list = useConversationList()
-
-const openUid = computed(() => {
-  const value = route.params.conversationUid
-  return typeof value === 'string' && value ? value : null
-})
+const {sessionInfo} = useSession()
+const messagesOn = computed(() => sessionInfo.value?.messagesEnabled !== false)
 </script>
 
 <template>
   <ViewContent :title="t('pages.messages.title')" :subtitle="t('pages.messages.subtitle')">
-    <MessagesFrame :open="openUid !== null">
-      <template #list>
-        <ConversationList :conversations="list.conversations.value" :loading="list.loading.value"
-                          :failure="list.failure.value" :open-uid="openUid" :on-changed="list.refresh"/>
-      </template>
-      <template #conversation>
-        <ConversationPane v-if="openUid" :key="openUid" :uid="openUid" :on-changed="list.refresh"/>
-        <EmptyState v-else :message="t('messages.chooseConversation')"/>
-      </template>
-    </MessagesFrame>
+    <MessagesWorkspace v-if="messagesOn"/>
+    <EmptyState v-else :message="t('messages.offForInstance')"/>
   </ViewContent>
 </template>

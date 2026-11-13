@@ -52307,6 +52307,9 @@
           "stationRegistrationEnabled" : {
             "type" : "boolean"
           },
+          "messagesEnabled" : {
+            "type" : "boolean"
+          },
           "instanceDefaultTheme" : {
             "type" : "string"
           },
@@ -52329,7 +52332,7 @@
             }
           }
         },
-        "required" : [ "stationRegistrationEnabled", "instanceDefaultTheme", "instanceDefaultFeel", "instanceLockFeel", "forcePrideFlag", "defaultMailLocale", "availableMailLocales" ]
+        "required" : [ "stationRegistrationEnabled", "messagesEnabled", "instanceDefaultTheme", "instanceDefaultFeel", "instanceLockFeel", "forcePrideFlag", "defaultMailLocale", "availableMailLocales" ]
       },
       "ApplicationStatus" : {
         "type" : "string",
@@ -81109,9 +81112,12 @@
           },
           "stationTimezone" : {
             "type" : "string"
+          },
+          "messagesEnabled" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "account", "stationId", "member", "permissions", "userType", "instanceUserType", "managedMembers", "groups", "tags", "roleIds", "groupIds", "tagIds", "profileComplete", "disabledModules", "theme", "publicKbMode", "setupCompletedAt", "clusterId", "clusterUserType", "clusterPermissions", "ownStationPermissions", "canSendMail", "pdfHidesInstanceUrl", "stationTimezone" ]
+        "required" : [ "account", "stationId", "member", "permissions", "userType", "instanceUserType", "managedMembers", "groups", "tags", "roleIds", "groupIds", "tagIds", "profileComplete", "disabledModules", "theme", "publicKbMode", "setupCompletedAt", "clusterId", "clusterUserType", "clusterPermissions", "ownStationPermissions", "canSendMail", "pdfHidesInstanceUrl", "stationTimezone", "messagesEnabled" ]
       },
       "SessionMemberEntry" : {
         "type" : "object",

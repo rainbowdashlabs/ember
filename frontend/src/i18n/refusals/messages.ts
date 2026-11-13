@@ -52,4 +52,5 @@ export default {
     'MS-045': 'Diese Meldung ist hier nicht mehr offen',
     'MS-046': 'Diese Wache zieht gerade auf eine andere Instanz um, bis dahin lässt sich nichts ändern',
     'MS-047': 'Ein privater Tag kann keinen Chat haben, denn der Chat zeigt, wer ihn trägt',
+    'MS-048': 'Nachrichten sind auf dieser Instanz ausgeschaltet',
 }

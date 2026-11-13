@@ -66786,6 +66786,7 @@ export interface components {
             instanceDefaultFeel: string;
             instanceDefaultTheme: string;
             instanceLockFeel: boolean;
+            messagesEnabled: boolean;
             stationRegistrationEnabled: boolean;
         };
         /** @enum {string} */
@@ -76596,6 +76597,7 @@ export interface components {
             instanceUserType: components["schemas"]["InstanceUserType"];
             managedMembers: components["schemas"]["ManagedMemberInfo"][];
             member: components["schemas"]["MemberInfo"] | null;
+            messagesEnabled: boolean;
             ownStationPermissions: string[];
             pdfHidesInstanceUrl: boolean;
             permissions: string[];

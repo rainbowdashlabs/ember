@@ -6395,6 +6395,9 @@ export default {
         title: 'Einstellungen',
         stationRegistration: 'Wachenregistrierung',
         stationRegistrationHint: 'Erlaubt neuen Nutzern, eine Wache über das Antragsformular zu beantragen.',
+        messages: 'Nachrichten',
+        messagesHint: 'Erlaubt private Unterhaltungen und Wachenchats. Ausgeschaltet verschwinden sie für alle, '
+            + 'und die tägliche Mail bleibt aus. Gelöscht wird nichts.',
         forcePrideFlag: 'Pride-Flagge erzwingen',
         forcePrideFlagHint: 'Zeigt die Regenbogen-Flagge im Logo ganzjährig an. Im Juni und Juli wird sie automatisch angezeigt.',
         mailLocale: 'Sprache für System-E-Mails',
@@ -7982,6 +7985,7 @@ export default {
         empty: 'Noch keine Unterhaltungen. Schreib jemandem aus deiner Wache.',
         noMatch: 'Keine Unterhaltung passt zur Suche.',
         chooseConversation: 'Wähle links eine Unterhaltung aus oder starte eine neue.',
+        offForInstance: 'Nachrichten sind auf dieser Instanz ausgeschaltet.',
         nothingYet: 'Noch keine Nachrichten',
         nobodyLeft: 'Niemand mehr da',
         deletedAccount: 'Gelöschtes Konto',

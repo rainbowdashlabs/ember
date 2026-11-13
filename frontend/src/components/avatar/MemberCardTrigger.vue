@@ -12,6 +12,7 @@ import {useDismiss} from '@/composables/useDismiss'
 import {useFinePointer} from '@/composables/useFinePointer'
 import {useExternalMember} from '@/composables/useExternalMember'
 import {loadMemberCard, loadPersonCards, loadWritableMember} from '@/composables/useMemberCards'
+import {useSession} from '@/composables/useSession'
 import type {MemberCard, MessagePersonResponse, SharedMemberCard} from '@/api/generated/schema'
 import type {PersonIdentity} from '@/util/personIdentity'
 
@@ -19,7 +20,8 @@ import type {PersonIdentity} from '@/util/personIdentity'
  * Opens a member's card from whatever names them: a name with its avatar, or a mention in a comment.
  * An identity that names an account rather than a member, as in messages, opens the person's cards
  * at every station the reader shares with them. A member's card is read together with whether the
- * reader may write to them, so the card is placed once with everything it shows.
+ * reader may write to them, so the card is placed once with everything it shows. While messages are
+ * turned off for the instance that question is not asked.
  *
  * <p>With a mouse the card opens after the pointer has rested on the name for a moment, and stays
  * while the pointer moves into it, so its contents can be read and its names hovered. Focus resting
@@ -44,6 +46,7 @@ const HOVER_CLOSE_MS = 200
 
 const {t} = useI18n()
 const {finePointer} = useFinePointer()
+const {sessionInfo} = useSession()
 const external = useExternalMember(() => props.identity)
 const open = ref(false)
 const rootRef = ref<HTMLElement | null>(null)
@@ -74,7 +77,7 @@ async function load() {
   try {
     if (memberUid) {
       card.value = await loadMemberCard(memberUid)
-      if (!card.value.former) writable.value = await loadWritableMember(memberUid).catch(() => null)
+      if (!card.value.former && sessionInfo.value?.messagesEnabled !== false) writable.value = await loadWritableMember(memberUid).catch(() => null)
     } else if (accountUid) {
       shared.value = await loadPersonCards(accountUid)
     }

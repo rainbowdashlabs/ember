@@ -29,6 +29,7 @@ function signedIn(canSendMail: boolean): SessionInfo {
       sidebar: SidebarMode.SECTIONS,
     },
     canSendMail,
+    messagesEnabled: true,
     clusterId: null,
     clusterPermissions: [],
     clusterUserType: null,

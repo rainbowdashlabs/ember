@@ -14,11 +14,13 @@ import dev.chojo.ember.feature.messages.repository.MessageRepository;
 import dev.chojo.ember.feature.messages.repository.ReactionRepository;
 import dev.chojo.ember.feature.messages.repository.StationChatRepository;
 import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.system.service.InstanceSettingsService;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 
 import java.util.Set;
 
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * The message services on the test database's real repositories, wired the way the application
@@ -37,6 +39,8 @@ import static org.mockito.Mockito.mock;
  * @param moderation    removing messages for a station
  * @param reports       reporting messages and handling the reports
  * @param notifier      a mock that the reports tell the people handling a station's chats through
+ * @param instance      a mock of the instance settings, with messages turned on until a test turns
+ *                      them off
  */
 public record MessageFixtures(
         MessageSignals signals,
@@ -51,7 +55,8 @@ public record MessageFixtures(
         StationChatService stationChats,
         MessageModeration moderation,
         MessageReportService reports,
-        Notifier notifier) {
+        Notifier notifier,
+        InstanceSettingsService instance) {
 
     /**
      * Every message service, freshly built.
@@ -69,6 +74,8 @@ public record MessageFixtures(
         var views = new MessageViews(messageRepo, new ReactionRepository(), stationChatRepo);
         var moderation = new MessageModeration(messageRepo, new MessageReportRepository(), stationChatRepo, signals);
         var notifier = mock(Notifier.class);
+        var instance = mock(InstanceSettingsService.class);
+        when(instance.messagesEnabled()).thenReturn(true);
         var membership =
                 new StationChatMembership(stationChatRepo, conversationRepo, messageRepo, new TaskScheduler(), signals);
         return new MessageFixtures(
@@ -78,7 +85,8 @@ public record MessageFixtures(
                 new MessageService(conversationRepo, messageRepo, guards, views, signals, moderation),
                 new ReactionService(new ReactionRepository(), guards, views, signals),
                 new BlockService(blockRepo, peopleRepo, guards),
-                new MessageSettingsService(peopleRepo, conversationRepo, guards, new DomainEventBus(Set.of())),
+                new MessageSettingsService(
+                        peopleRepo, conversationRepo, guards, new DomainEventBus(Set.of()), instance),
                 guards,
                 membership,
                 new StationChatService(stationChatRepo, conversationRepo, messageRepo, membership, signals),
@@ -91,7 +99,8 @@ public record MessageFixtures(
                         moderation,
                         notifier,
                         stationChatRepo),
-                notifier);
+                notifier,
+                instance);
     }
 
     /**

@@ -18,13 +18,14 @@ import {useMessageStream} from '@/composables/useMessageStream'
  * search beside it and turns to the primary colour only while something is unread.
  *
  * <p>The tab's message stream is opened here, since the header is on every signed-in page; while it
- * does not get through, the count is asked for once a minute.
+ * does not get through, the count is asked for once a minute. It is opened only while messages are
+ * available, so a tab on an instance that turned them off asks for nothing but that count.
  */
 const {t} = useI18n()
 const {status, refresh} = useMessagesStatus()
 
 onMounted(refresh)
-useMessageStream(() => { void refresh() }, 60_000, () => { void refresh() })
+useMessageStream(() => { void refresh() }, 60_000, () => { void refresh() }, () => status.value.available)
 </script>
 
 <template>

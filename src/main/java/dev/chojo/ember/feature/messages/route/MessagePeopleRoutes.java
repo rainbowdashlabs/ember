@@ -11,6 +11,7 @@ import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MessageRefusal;
 import dev.chojo.ember.feature.members.entity.SharedMemberCard;
 import dev.chojo.ember.feature.messages.entity.MessagesStatus;
 import dev.chojo.ember.feature.messages.entity.StationDigest;
@@ -19,6 +20,7 @@ import dev.chojo.ember.feature.messages.route.MessageWire.ReachablePersonRespons
 import dev.chojo.ember.feature.messages.service.BlockService;
 import dev.chojo.ember.feature.messages.service.MessageSettingsService;
 import dev.chojo.ember.feature.messages.service.PersonCardService;
+import dev.chojo.ember.feature.system.service.InstanceSettingsService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -41,23 +43,35 @@ import static dev.chojo.ember.api.RouteSupport.pathUuid;
  * The reader's messages beside the conversations: whether messages are on and how many wait, the
  * mail setting, finding somebody to write to, the card behind a person's name, and the people the
  * reader blocked.
+ *
+ * <p>It also holds the instance switch for messages. While an administrator has turned them off,
+ * every message route answers {@link MessageRefusal#MESSAGES_OFF} once the caller is signed in,
+ * except the status, which says that messages are not available so the client hides them.
  */
 @Singleton
 public class MessagePeopleRoutes implements Routes {
     private final MessageSettingsService settings;
     private final BlockService blocks;
     private final PersonCardService cards;
+    private final InstanceSettingsService instance;
 
     @Inject
-    public MessagePeopleRoutes(MessageSettingsService settings, BlockService blocks, PersonCardService cards) {
+    public MessagePeopleRoutes(
+            MessageSettingsService settings,
+            BlockService blocks,
+            PersonCardService cards,
+            InstanceSettingsService instance) {
         this.settings = settings;
         this.blocks = blocks;
         this.cards = cards;
+        this.instance = instance;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/messages/status", this::status, StationPermission.LOGIN);
+        String status = prefix + "/messages/status";
+        routes.beforeMatched(prefix + "/messages/*", ctx -> refuseWhileOff(ctx, status));
+        routes.get(status, this::status, StationPermission.LOGIN);
         routes.put(prefix + "/messages/settings", this::setMail, StationPermission.LOGIN);
         routes.get(prefix + "/messages/people", this::people, StationPermission.LOGIN);
         routes.get(prefix + "/messages/people/{personUid}/cards", this::cards, StationPermission.LOGIN);
@@ -65,6 +79,17 @@ public class MessagePeopleRoutes implements Routes {
         routes.get(prefix + "/messages/blocks", this::blocked, StationPermission.LOGIN);
         routes.post(prefix + "/messages/blocks", this::block, StationPermission.LOGIN);
         routes.delete(prefix + "/messages/blocks/{personUid}", this::unblock, StationPermission.LOGIN);
+    }
+
+    /**
+     * Refuses a message route while messages are turned off for the instance.
+     *
+     * @param ctx    the request
+     * @param status the status route, which always answers
+     */
+    private void refuseWhileOff(Context ctx, String status) {
+        if (ctx.path().equals(status) || instance.messagesEnabled()) return;
+        throw MessageRefusal.MESSAGES_OFF.raise();
     }
 
     @OpenApi(

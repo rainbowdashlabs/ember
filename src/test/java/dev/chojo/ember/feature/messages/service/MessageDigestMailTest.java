@@ -41,6 +41,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * The daily mail about unread messages: once a day at the instance's hour, everything new of
@@ -83,6 +84,7 @@ class MessageDigestMailTest extends MessageTestBase {
                 settings,
                 new MailLocaleService(accountRepo, settings),
                 email,
+                services.instance(),
                 hour,
                 ZoneOffset.UTC,
                 on);
@@ -133,6 +135,19 @@ class MessageDigestMailTest extends MessageTestBase {
         assertEquals(
                 Instant.EPOCH.toString(),
                 settings.get(MessageDigestMail.LAST_RUN).orElseThrow());
+    }
+
+    @Test
+    void whileMessagesAreOffForTheInstanceNothingIsSentAndTheUnreadWaitForLater() {
+        services.messages().send(anna.id(), direct.uid(), "Hallo", null);
+        when(services.instance().messagesEnabled()).thenReturn(false);
+
+        mail.sweep();
+
+        verify(email, never()).sendMessageDigest(eq(ben.email()), anyString(), anyString(), anyInt(), anyString());
+        when(services.instance().messagesEnabled()).thenReturn(true);
+        mail.sweep();
+        verify(email, times(1)).sendMessageDigest(eq(ben.email()), anyString(), anyString(), eq(1), anyString());
     }
 
     @Test

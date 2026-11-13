@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.messages.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.MessageRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -38,14 +39,17 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /** Who a station chat's members are, and how they follow the station, its groups and its tags. */
 class StationChatMembershipTest extends MessageTestBase {
@@ -471,16 +475,29 @@ class StationChatMembershipTest extends MessageTestBase {
     @Test
     void turningMessagesOnOrOffForSomebodySaysSoForTheirAccount() {
         var bus = mock(DomainEventBus.class);
+        var fixtures = MessageFixtures.build();
         var settings = new MessageSettingsService(
-                new MessagePeopleRepository(),
-                conversations,
-                MessageFixtures.build().guards(),
-                bus);
+                new MessagePeopleRepository(), conversations, fixtures.guards(), bus, fixtures.instance());
         var child = memberOf(station, "Kim");
 
         settings.setGuardianAllowed(child.id(), true);
 
         verify(bus).publish(StationAudienceChanged.ofAccount(child.id()));
+    }
+
+    @Test
+    void whileMessagesAreOffForTheInstanceAGuardianCannotTurnThemOn() {
+        var bus = mock(DomainEventBus.class);
+        var fixtures = MessageFixtures.build();
+        when(fixtures.instance().messagesEnabled()).thenReturn(false);
+        var settings = new MessageSettingsService(
+                new MessagePeopleRepository(), conversations, fixtures.guards(), bus, fixtures.instance());
+        var child = memberOf(station, "Kim");
+
+        var refused = assertThrows(RefusalResponse.class, () -> settings.setGuardianAllowed(child.id(), true));
+
+        assertEquals(MessageRefusal.MESSAGES_OFF, refused.refusal());
+        verify(bus, never()).publish(StationAudienceChanged.ofAccount(child.id()));
     }
 
     private Conversation stationWide() {

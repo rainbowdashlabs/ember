@@ -15,12 +15,13 @@ import type {PersonIdentity} from '@/util/personIdentity'
 const sessionInfo = ref<SessionInfo | null>(null)
 const finePointer = ref(false)
 const loadMemberCard = vi.fn<(memberUid: string) => Promise<MemberCard>>()
+const loadWritableMember = vi.fn(() => Promise.resolve(null))
 
 vi.mock('@/composables/useSession', () => ({useSession: () => ({sessionInfo})}))
 vi.mock('@/composables/useFinePointer', () => ({useFinePointer: () => ({finePointer})}))
 vi.mock('@/composables/useMemberCards', () => ({
   loadMemberCard: (memberUid: string) => loadMemberCard(memberUid),
-  loadWritableMember: () => Promise.resolve(null),
+  loadWritableMember: () => loadWritableMember(),
   useMemberCardsShown: () => true,
 }))
 
@@ -67,6 +68,7 @@ afterEach(() => {
   document.body.innerHTML = ''
   vi.useRealTimers()
   loadMemberCard.mockReset()
+  loadWritableMember.mockClear()
 })
 
 describe('MemberCardTrigger', () => {
@@ -83,6 +85,22 @@ describe('MemberCardTrigger', () => {
     expect(card()?.textContent).toContain('Petra Hoffmann')
     expect(card()?.textContent).toContain('Sanitäter')
     expect(card()?.textContent).toContain('Jugend')
+  })
+
+  it('asks whom it may write to only while messages are on for the instance', async () => {
+    mountInRow(createIdentity())
+    await wrapper!.get(TRIGGER).trigger('click')
+    await flushPromises()
+    expect(loadWritableMember).toHaveBeenCalledTimes(1)
+    wrapper!.unmount()
+
+    sessionInfo.value = createSessionInfo({stationId: 'station-uid', messagesEnabled: false})
+    mountInRow(createIdentity())
+    await wrapper!.get(TRIGGER).trigger('click')
+    await flushPromises()
+
+    expect(loadMemberCard).toHaveBeenCalledTimes(2)
+    expect(loadWritableMember).toHaveBeenCalledTimes(1)
   })
 
   it('closes on escape and gives focus back to the avatar without opening again', async () => {

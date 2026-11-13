@@ -52,7 +52,8 @@ class StationChatRoutesTest extends MessageTestBase {
                         new MessagePeopleRoutes(
                                 services.settings(),
                                 services.blocks(),
-                                new PersonCardService(new MessagePeopleRepository(), mock(SharedMemberCards.class))),
+                                new PersonCardService(new MessagePeopleRepository(), mock(SharedMemberCards.class)),
+                                services.instance()),
                         new StationChatRoutes(services.stationChats()),
                         new MessageReportRoutes(services.reports()))
                 .withStations(stationRepo);

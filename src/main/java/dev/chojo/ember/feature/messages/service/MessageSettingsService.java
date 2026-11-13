@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.messages.service;
 
+import dev.chojo.ember.api.refusal.MessageRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.messages.entity.MessagesStatus;
@@ -13,6 +14,7 @@ import dev.chojo.ember.feature.messages.entity.ReachablePerson;
 import dev.chojo.ember.feature.messages.entity.StationDigest;
 import dev.chojo.ember.feature.messages.repository.ConversationRepository;
 import dev.chojo.ember.feature.messages.repository.MessagePeopleRepository;
+import dev.chojo.ember.feature.system.service.InstanceSettingsService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -37,14 +39,17 @@ public class MessageSettingsService {
     private final ConversationRepository conversations;
     private final MessageGuards guards;
     private final DomainEventBus eventBus;
+    private final InstanceSettingsService instance;
 
     @Inject
     public MessageSettingsService(
             MessagePeopleRepository people,
             ConversationRepository conversations,
             MessageGuards guards,
-            DomainEventBus eventBus) {
+            DomainEventBus eventBus,
+            InstanceSettingsService instance) {
         this.eventBus = eventBus;
+        this.instance = instance;
         this.people = people;
         this.conversations = conversations;
         this.guards = guards;
@@ -54,10 +59,11 @@ public class MessageSettingsService {
      * Whether the account can use messages, how many wait unread, and whether it wants mail.
      *
      * @param accountId the account
-     * @return the status, with nothing unread for an account that cannot use messages
+     * @return the status, with nothing unread for an account that cannot use messages or while
+     *     messages are turned off for the instance
      */
     public MessagesStatus status(int accountId) {
-        boolean available = people.usable(accountId);
+        boolean available = instance.messagesEnabled() && people.usable(accountId);
         int unread = available ? conversations.unreadTotal(accountId) : 0;
         return new MessagesStatus(available, unread, people.mailWanted(accountId), people.stationDigest(accountId));
     }
@@ -118,12 +124,14 @@ public class MessageSettingsService {
 
     /**
      * Turns messages on or off for an account a guardian looks after. Who may do so is decided by
-     * the caller, which checks the guardian. The account's station chats follow.
+     * the caller, which checks the guardian. The account's station chats follow. Refused while
+     * messages are turned off for the instance, since there is nothing to allow then.
      *
      * @param accountId the account
      * @param allowed   whether it may use messages
      */
     public void setGuardianAllowed(int accountId, boolean allowed) {
+        if (!instance.messagesEnabled()) throw MessageRefusal.MESSAGES_OFF.raise();
         people.setGuardianAllowed(accountId, allowed);
         eventBus.publish(StationAudienceChanged.ofAccount(accountId));
     }

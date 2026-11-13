@@ -166,7 +166,10 @@ public enum MessageRefusal implements Refusal {
 
     /** A chat for a private tag, which would show everybody in it who carries the tag. */
     STATION_CHAT_TAG_PRIVATE(
-            47, HttpStatus.BAD_REQUEST, "A private tag cannot have a chat, since the chat shows who carries it");
+            47, HttpStatus.BAD_REQUEST, "A private tag cannot have a chat, since the chat shows who carries it"),
+
+    /** Anything about messages while an administrator turned them off for the whole instance. */
+    MESSAGES_OFF(48, HttpStatus.NOT_FOUND, "Messages are turned off on this instance");
 
     private final Definition definition;
 

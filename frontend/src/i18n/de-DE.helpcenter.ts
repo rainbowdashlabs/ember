@@ -4911,6 +4911,11 @@ volumes:
             subtitle: 'Globale Konfiguration der Plattform.',
             registrationTitle: 'Wachenregistrierung',
             registrationText: 'Hier kannst du festlegen, ob neue Wachen sich selbst registrieren können. Wenn deaktiviert, können nur Admins neue Wachen anlegen.',
+            messagesTitle: 'Nachrichten',
+            messagesText: 'Hier schaltest du Nachrichten für die ganze Instanz an oder aus. Ausgeschaltet '
+                + 'verschwinden private Unterhaltungen und Wachenchats für alle, der Knopf im Kopf der '
+                + 'Seite und im Kurzprofil fällt weg, und die tägliche Mail bleibt aus. Gelöscht wird '
+                + 'nichts: Schaltest du sie wieder an, ist alles wie vorher da.',
             mailLocaleTitle: 'Sprache für System-E-Mails',
             mailLocaleText: 'System-E-Mails werden in der Sprache der Wache geschrieben, aus der '
                 + 'das Konto angelegt wurde. Für Konten ohne Wache - Selbstregistrierung und das '

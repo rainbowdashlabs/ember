@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.messages.repository.ConversationRepository;
 import dev.chojo.ember.feature.messages.repository.MessageRepository;
 import dev.chojo.ember.feature.messages.repository.StationChatRepository;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
+import dev.chojo.ember.feature.system.service.InstanceSettingsService;
 import dev.chojo.ember.lifecycle.Schedule;
 import dev.chojo.ember.lifecycle.ScheduledTask;
 import dev.chojo.ember.lifecycle.TaskSource;
@@ -83,6 +84,7 @@ public class MessageDigestMail implements TaskSource {
     private final ApplicationSettingRepository settings;
     private final MailLocaleService locales;
     private final EmailService email;
+    private final InstanceSettingsService instance;
     private final int hour;
     private final ZoneId zone;
     private final Clock clock;
@@ -96,6 +98,7 @@ public class MessageDigestMail implements TaskSource {
             ApplicationSettingRepository settings,
             MailLocaleService locales,
             EmailService email,
+            InstanceSettingsService instance,
             Messages config) {
         this(
                 messages,
@@ -105,6 +108,7 @@ public class MessageDigestMail implements TaskSource {
                 settings,
                 locales,
                 email,
+                instance,
                 config.digestHour(),
                 ZoneId.systemDefault(),
                 Clock.systemUTC());
@@ -119,9 +123,11 @@ public class MessageDigestMail implements TaskSource {
             ApplicationSettingRepository settings,
             MailLocaleService locales,
             EmailService email,
+            InstanceSettingsService instance,
             int hour,
             ZoneId zone,
             Clock clock) {
+        this.instance = instance;
         this.messages = messages;
         this.conversations = conversations;
         this.stationChats = stationChats;
@@ -138,9 +144,12 @@ public class MessageDigestMail implements TaskSource {
      * Sends the daily mail once its hour has come today and it has not gone out today yet. The day
      * is compared, not the hour, so moving the hour later never sends a second mail on one day.
      * Afterwards every account that wants the mail starts its next one from this run, so what it
-     * left unread and nobody mailed is not looked at again every day.
+     * left unread and nobody mailed is not looked at again every day. While messages are turned off
+     * for the instance nothing goes out, and what is still unread comes with the first mail after
+     * they are turned on again.
      */
     void sweep() {
+        if (!instance.messagesEnabled()) return;
         Instant now = clock.instant();
         LocalDate today = LocalDate.ofInstant(now, zone);
         Instant due = today.atTime(hour, 0).atZone(zone).toInstant();
