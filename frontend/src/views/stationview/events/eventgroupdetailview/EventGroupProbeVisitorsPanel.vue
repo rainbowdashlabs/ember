@@ -35,6 +35,7 @@ const {t} = useI18n()
 const {stationTimezone} = useSession()
 
 const coming = ref<PartVisitors[]>([])
+let latestLoad = 0
 
 async function visitorsOf(part: EventGroupPartState): Promise<PartVisitors> {
   try {
@@ -46,7 +47,9 @@ async function visitorsOf(part: EventGroupPartState): Promise<PartVisitors> {
 }
 
 watch(() => props.parts, async parts => {
+  const load = ++latestLoad
   const loaded = await Promise.all(parts.map(visitorsOf))
+  if (load !== latestLoad) return
   coming.value = loaded.filter(entry => entry.visitors.length > 0)
 }, {immediate: true})
 </script>

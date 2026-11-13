@@ -3420,7 +3420,7 @@ volumes:
             notesTitle: 'Notizen',
             notesText: 'Wer Termine bearbeiten darf, kann sich hier Notizen zur Terminreihe machen, etwa wer den Schlüssel hat. Nur diese Leute sehen die Notizen.',
             commentsTitle: 'Kommentare',
-            commentsText: 'Ganz unten können alle, die die Terminreihe sehen, Fragen stellen oder Hinweise geben. Wer Termine verwaltet, bekommt zu jedem neuen Kommentar eine Nachricht. Eine Antwort meldet Ember der Person, deren Kommentar beantwortet wird. Deine eigenen Kommentare kannst du ändern und löschen. Wer Termine verwaltet, kann auch die Kommentare anderer löschen.',
+            commentsText: 'Ganz unten können alle, die die Terminreihe sehen, Fragen stellen oder Hinweise geben. Wer Termine verwaltet, bekommt zu jedem neuen Kommentar eine Nachricht, nicht aber zu Antworten. Eine Antwort meldet Ember der Person, deren Kommentar beantwortet wird. Deine eigenen Kommentare kannst du ändern und löschen. Wer Termine verwaltet, kann auch die Kommentare anderer löschen.',
             commentsPartnerText: 'Ist die Terminreihe mit Partnerwachen geteilt, schreiben deren Mitglieder in denselben Kommentarbereich.',
         },
         eventGroupNew: {
