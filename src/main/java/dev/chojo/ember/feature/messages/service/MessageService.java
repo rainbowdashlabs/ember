@@ -167,6 +167,7 @@ public class MessageService {
     public void delete(int accountId, UUID conversationUid, int messageId) {
         Participation participation = guards.requireParticipant(accountId, conversationUid);
         Message message = guards.requireMessage(participation, messageId);
+        guards.requireNotMoving(participation.conversation());
         if (message.writtenBy(accountId)) {
             moderation.deleteOwn(accountId, messageId);
             tell(participation, messageId);

@@ -69,7 +69,8 @@ public record MessageFixtures(
         var views = new MessageViews(messageRepo, new ReactionRepository(), stationChatRepo);
         var moderation = new MessageModeration(messageRepo, new MessageReportRepository(), stationChatRepo, signals);
         var notifier = mock(Notifier.class);
-        var membership = new StationChatMembership(stationChatRepo, conversationRepo, messageRepo, new TaskScheduler());
+        var membership =
+                new StationChatMembership(stationChatRepo, conversationRepo, messageRepo, new TaskScheduler(), signals);
         return new MessageFixtures(
                 signals,
                 new ConversationService(conversationRepo, messageRepo, guards, signals, stationChatRepo),
@@ -80,7 +81,7 @@ public record MessageFixtures(
                 new MessageSettingsService(peopleRepo, conversationRepo, guards, new DomainEventBus(Set.of())),
                 guards,
                 membership,
-                new StationChatService(stationChatRepo, conversationRepo, messageRepo, membership),
+                new StationChatService(stationChatRepo, conversationRepo, messageRepo, membership, signals),
                 moderation,
                 new MessageReportService(
                         new MessageReportRepository(),

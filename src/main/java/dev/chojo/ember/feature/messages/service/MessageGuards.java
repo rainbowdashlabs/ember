@@ -63,7 +63,8 @@ public class MessageGuards {
 
     /**
      * The conversation an account names, refused unless it takes part in it right now. A
-     * conversation that does not exist and one that is somebody else's answer alike.
+     * conversation that does not exist and one that is somebody else's answer alike, and so does a
+     * station chat whose station moved to another installation, where the chat lives on.
      *
      * @param accountId       the account
      * @param conversationUid the conversation
@@ -77,6 +78,10 @@ public class MessageGuards {
                 .membership(conversation.id(), accountId)
                 .filter(Membership::active)
                 .orElseThrow(MessageRefusal.CONVERSATION_NOT_HERE::raise);
+        StationScope scope = conversation.station();
+        if (scope != null && stationChats.movedAway(scope.stationId())) {
+            throw MessageRefusal.CONVERSATION_NOT_HERE.raise();
+        }
         return new Participation(conversation, membership);
     }
 
@@ -103,6 +108,20 @@ public class MessageGuards {
     public void requireOpen(Participation participation) {
         StationScope scope = participation.conversation().station();
         if (scope != null && scope.closed()) throw MessageRefusal.CHAT_CLOSED.raise();
+    }
+
+    /**
+     * Refuses any change to a station chat whose station is moving to another installation or has
+     * moved there: what is written after the move read the chat would never reach its new home.
+     * Direct conversations and groups stay here and are never refused.
+     *
+     * @param conversation the conversation
+     */
+    public void requireNotMoving(Conversation conversation) {
+        StationScope scope = conversation.station();
+        if (scope != null && stationChats.moving(scope.stationId())) {
+            throw MessageRefusal.STATION_CHAT_MOVING.raise();
+        }
     }
 
     /**

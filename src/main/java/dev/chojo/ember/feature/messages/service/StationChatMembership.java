@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.messages.service;
 import dev.chojo.ember.feature.messages.entity.Conversation;
 import dev.chojo.ember.feature.messages.entity.Membership;
 import dev.chojo.ember.feature.messages.entity.MembershipChange;
+import dev.chojo.ember.feature.messages.entity.MessageEvent;
 import dev.chojo.ember.feature.messages.entity.StationScope;
 import dev.chojo.ember.feature.messages.entity.SystemKind;
 import dev.chojo.ember.feature.messages.repository.ConversationRepository;
@@ -64,6 +65,7 @@ public class StationChatMembership implements TaskSource {
     private final ConversationRepository conversations;
     private final MessageRepository messages;
     private final TaskScheduler scheduler;
+    private final MessageSignals signals;
     private final Set<Integer> pending = ConcurrentHashMap.newKeySet();
 
     @Inject
@@ -71,7 +73,9 @@ public class StationChatMembership implements TaskSource {
             StationChatRepository chats,
             ConversationRepository conversations,
             MessageRepository messages,
-            TaskScheduler scheduler) {
+            TaskScheduler scheduler,
+            MessageSignals signals) {
+        this.signals = signals;
         this.chats = chats;
         this.conversations = conversations;
         this.messages = messages;
@@ -111,9 +115,7 @@ public class StationChatMembership implements TaskSource {
         List<MembershipChange> changes = new ArrayList<>();
         for (Conversation chat : chats.ofStation(stationId)) {
             try {
-                Transactions.call(() -> reconcileLocked(chat.id()))
-                        .filter(MembershipChange::any)
-                        .ifPresent(changes::add);
+                reconcileChat(chat.id()).filter(MembershipChange::any).ifPresent(changes::add);
             } catch (RuntimeException e) {
                 log.warn("Reconciling station chat {} of station {} failed", chat.id(), stationId, e);
             }
@@ -142,7 +144,18 @@ public class StationChatMembership implements TaskSource {
      * @return what changed, empty where the chat is gone
      */
     public Optional<MembershipChange> reconcileChat(int conversationId) {
-        return Transactions.call(() -> reconcileLocked(conversationId));
+        Optional<MembershipChange> change = Transactions.call(() -> reconcileLocked(conversationId));
+        change.filter(MembershipChange::any).ifPresent(changed -> Transactions.afterCommit(() -> tell(changed)));
+        return change;
+    }
+
+    /**
+     * Tells the tabs of everybody in a changed chat, and of everybody taken out of it, so the chat
+     * appears, disappears or shows its new members without a reload.
+     */
+    private void tell(MembershipChange change) {
+        Conversation chat = change.conversation();
+        signals.publishTo(chat.id(), MessageEvent.conversation(chat.uid()), change.removed());
     }
 
     private Optional<MembershipChange> reconcileLocked(int conversationId) {

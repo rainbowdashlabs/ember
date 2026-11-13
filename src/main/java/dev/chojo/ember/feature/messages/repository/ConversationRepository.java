@@ -32,6 +32,15 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING
 public class ConversationRepository {
 
     /**
+     * The condition a conversation aliased {@code c} meets while it is still here: every direct
+     * conversation and group, and a station chat only while its station has not moved to another
+     * installation, where the chat lives on.
+     */
+    static final String STILL_HERE = """
+            (c.station_id IS NULL OR NOT EXISTS (
+                SELECT 1 FROM station moved WHERE moved.id = c.station_id AND moved.moved_away_at IS NOT NULL))""";
+
+    /**
      * The condition a message aliased {@code msg} meets when it counts as unread for the member
      * aliased {@code m}: written by somebody else whom the member has not blocked, still standing,
      * and after the member's read marker.
@@ -371,8 +380,8 @@ public class ConversationRepository {
                     (SELECT count(*) FROM message msg WHERE %s) AS unread
                 FROM conversation_member m
                 JOIN conversation c ON c.id = m.conversation_id
-                WHERE m.account_id = :account_id AND m.left_at IS NULL
-                ORDER BY c.last_activity_at DESC, c.id DESC;""", Conversation.COLUMNS, UNREAD)
+                WHERE m.account_id = :account_id AND m.left_at IS NULL AND %s
+                ORDER BY c.last_activity_at DESC, c.id DESC;""", Conversation.COLUMNS, UNREAD, STILL_HERE)
                 .single(call().bind("account_id", accountId))
                 .map(ConversationOverview.map())
                 .all();
@@ -388,8 +397,9 @@ public class ConversationRepository {
         return query("""
                 SELECT count(*) AS unread
                 FROM conversation_member m
+                JOIN conversation c ON c.id = m.conversation_id
                 JOIN message msg ON %s
-                WHERE m.account_id = :account_id AND m.left_at IS NULL AND m.muted = FALSE;""", UNREAD)
+                WHERE m.account_id = :account_id AND m.left_at IS NULL AND m.muted = FALSE AND %s;""", UNREAD, STILL_HERE)
                 .single(call().bind("account_id", accountId))
                 .map(row -> row.getInt("unread"))
                 .first()

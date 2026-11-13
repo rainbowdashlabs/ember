@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.messages.entity.Conversation;
 import dev.chojo.ember.feature.messages.entity.ConversationKind;
 import dev.chojo.ember.feature.messages.entity.Membership;
 import dev.chojo.ember.feature.messages.entity.Message;
+import dev.chojo.ember.feature.messages.entity.MessageEvent;
 import dev.chojo.ember.feature.messages.entity.SystemKind;
 import dev.chojo.ember.feature.messages.repository.ConversationRepository;
 import dev.chojo.ember.feature.messages.repository.MessageRepository;
@@ -244,6 +245,63 @@ class StationChatServiceTest extends MessageTestBase {
 
         chats.includeGuardians(station.id(), chat.uid(), false);
         assertEquals(Set.of(), activeIn(chat));
+    }
+
+    @Test
+    void renamingAndClosingTellTheTabsOfTheChat() {
+        Conversation chat = chats.open(station.id(), manager.id(), "Alle", ChatAudience.STATION, null, null, false);
+        var annasTab = new RecordingStream();
+        services.signals().join(anna.id(), annasTab);
+
+        chats.rename(station.id(), manager.id(), chat.uid(), "Wache");
+        chats.close(station.id(), manager.id(), chat.uid());
+        chats.close(station.id(), manager.id(), chat.uid());
+
+        var told = MessageEvent.conversation(chat.uid());
+        assertEquals(List.of(told, told), annasTab.signals());
+    }
+
+    @Test
+    void reopeningAndTheGuardianToggleTellTheTabsOnce() {
+        var parent = memberOf(station, "Paula");
+        guard(member(parent), member(anna));
+        Conversation chat =
+                chats.open(station.id(), manager.id(), "Jugend", ChatAudience.GROUP, group.id(), null, false);
+        chats.close(station.id(), manager.id(), chat.uid());
+        var managersTab = new RecordingStream();
+        var parentsTab = new RecordingStream();
+        services.signals().join(manager.id(), managersTab);
+        services.signals().join(parent.id(), parentsTab);
+
+        chats.reopen(station.id(), manager.id(), chat.uid());
+        chats.includeGuardians(station.id(), chat.uid(), true);
+
+        var told = MessageEvent.conversation(chat.uid());
+        assertEquals(List.of(told), parentsTab.signals(), "taken in once, by the reconciliation");
+        assertEquals(List.of(), managersTab.signals(), "the manager is in no group chat of Jugend");
+    }
+
+    @Test
+    void aChatOfAStationBeingMovedTakesNothingNewAndOneThatMovedIsGone() {
+        Conversation chat = chats.open(station.id(), manager.id(), "Alle", ChatAudience.STATION, null, null, false);
+        int own = services.messages()
+                .send(anna.id(), chat.uid(), "Vorher", null)
+                .message()
+                .id();
+        stationRepo.markReadOnlyForTransfer(station.id());
+
+        assertRefused(
+                MessageRefusal.CHAT_CLOSED, () -> services.messages().send(anna.id(), chat.uid(), "Noch da?", null));
+        assertRefused(
+                MessageRefusal.STATION_CHAT_MOVING, () -> services.messages().delete(anna.id(), chat.uid(), own));
+        assertRefused(MessageRefusal.STATION_CHAT_MOVING, () -> services.reports()
+                .report(manager.id(), chat.uid(), own, null));
+
+        stationRepo.markMovedAway(station.id(), "https://elsewhere.example");
+        assertRefused(MessageRefusal.CONVERSATION_NOT_HERE, () -> services.messages()
+                .page(anna.id(), chat.uid(), null, null));
+        assertTrue(services.conversations().list(anna.id()).stream()
+                .noneMatch(summary -> summary.overview().conversation().id() == chat.id()));
     }
 
     @Test

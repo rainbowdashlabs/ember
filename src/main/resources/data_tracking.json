@@ -1,7 +1,7 @@
 {
   "version": 1,
   "schemaHash": "sha256:444030e3d88a72fcc89c1ed74c44308c10730c6f3ce1381400a1b1ca4c4232ec",
-  "generatedAt": "2026-11-13T13:12:12Z",
+  "generatedAt": "2026-11-13T13:34:00Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -176,8 +176,7 @@
           "instance_user_type",
           "full_name",
           "unconfirmed_since",
-          "last_active_on",
-          "message_digest_sent_at"
+          "last_active_on"
         ],
         "rationale": "Reached via station_member.account_id; engine uses customScope to filter accounts referenced by this station's members. Importer matches by email or creates anew."
       },
@@ -6700,6 +6699,8 @@
       "description": "The rows and cells of one piece of authored content. A page, a news entry or a knowledge-base article owns one; the container itself knows nothing about which."
     },
     "conversation": {
+      "feature": "messages",
+      "scope": "STATION",
       "tableHash": "sha256:bc06c9eeb1b6db718ce84c1f54e3337eb3515323245ca6476189875916e20f0c",
       "columns": [
         {
@@ -6840,9 +6841,31 @@
           "onDelete": "CASCADE"
         }
       ],
+      "lookups": [
+        {
+          "via": "closed_by_account_id",
+          "pick": "email",
+          "emitAs": "closed_by_email"
+        },
+        {
+          "via": "closed_by_account_id",
+          "pick": "uid",
+          "emitAs": "closed_by_uid"
+        }
+      ],
       "stationTransfer": {
-        "status": "IGNORED",
-        "reason": "A direct conversation or group belongs to the accounts in it, not to a station, and stays on this installation; station chats stay with it for now"
+        "status": "TRACKED",
+        "ignoredColumns": [
+          "direct_pair",
+          "owner_account_id",
+          "uid"
+        ],
+        "optionalReferences": [
+          "audience_group_id",
+          "audience_tag_id",
+          "closed_by_account_id"
+        ],
+        "rationale": "Only a station chat names a station, so only station chats move, with their station; direct conversations and groups belong to the accounts in them and stay. A chat's group or tag moves with the station; who closed it is found again where that account moved too. Each chat gets a new identity on the target, so a station moving back to an installation that still holds its old copy does not collide with it."
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -6878,6 +6901,8 @@
       "description": "A conversation between accounts: a direct one between two people, a group, or a station chat. Direct conversations and groups belong to the people in them; a station chat belongs to its station, and its members follow the station, a group or a tag."
     },
     "conversation_member": {
+      "feature": "messages",
+      "scope": "STATION",
       "tableHash": "sha256:36250fe2073fc58053a31def523db29ed38de931e6d3df0d100f81e3a3f7ef96",
       "columns": [
         {
@@ -6943,9 +6968,30 @@
           "onDelete": "SET NULL"
         }
       ],
+      "lookups": [
+        {
+          "via": "account_id",
+          "pick": "email",
+          "emitAs": "account_email"
+        },
+        {
+          "via": "account_id",
+          "pick": "uid",
+          "emitAs": "account_uid"
+        }
+      ],
+      "customScope": {
+        "viaTable": "conversation",
+        "viaColumn": "id",
+        "refColumn": "conversation_id",
+        "distinct": false
+      },
       "stationTransfer": {
-        "status": "IGNORED",
-        "reason": "Taking part in a direct conversation or group belongs to the account, not to a station; station chat memberships stay on this installation for now"
+        "status": "TRACKED",
+        "optionalReferences": [
+          "last_read_message_id"
+        ],
+        "rationale": "Who takes part in a station chat, with how far they read, moves with the chat. A row of an account that did not move stays behind, and the chats are brought in line with their audience right after the import."
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -21376,6 +21422,8 @@
       "description": "A named set of columns a station wants when it lists people, used both for who is coming to an appointment and for the register. Saved per station rather than per screen, so the two never drift apart."
     },
     "message": {
+      "feature": "messages",
+      "scope": "STATION",
       "tableHash": "sha256:fec2b6e9e9bca5b5f8b07bc3a7769fc5ab3ce091c96fb63951dc8783fed1575b",
       "columns": [
         {
@@ -21495,9 +21543,53 @@
           "onDelete": "SET NULL"
         }
       ],
+      "lookups": [
+        {
+          "via": "author_account_id",
+          "pick": "email",
+          "emitAs": "author_email"
+        },
+        {
+          "via": "author_account_id",
+          "pick": "uid",
+          "emitAs": "author_uid"
+        },
+        {
+          "via": "system_subject_account_id",
+          "pick": "email",
+          "emitAs": "subject_email"
+        },
+        {
+          "via": "system_subject_account_id",
+          "pick": "uid",
+          "emitAs": "subject_uid"
+        },
+        {
+          "via": "deleted_by_account_id",
+          "pick": "email",
+          "emitAs": "deleted_by_email"
+        },
+        {
+          "via": "deleted_by_account_id",
+          "pick": "uid",
+          "emitAs": "deleted_by_uid"
+        }
+      ],
+      "customScope": {
+        "viaTable": "conversation",
+        "viaColumn": "id",
+        "refColumn": "conversation_id",
+        "distinct": false
+      },
       "stationTransfer": {
-        "status": "IGNORED",
-        "reason": "Messages of direct conversations and groups belong to the accounts in them, not to a station; those of station chats stay on this installation for now"
+        "status": "TRACKED",
+        "optionalReferences": [
+          "author_account_id",
+          "system_subject_account_id",
+          "deleted_by_account_id",
+          "reply_to_id"
+        ],
+        "rationale": "The messages of a station chat move with it. Their author and whom a line is about are found again where those accounts moved with the station; somebody who left it arrives as a deleted account."
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -21536,6 +21628,8 @@
       "description": "One message in a conversation, or a quiet system line saying who joined, left, was removed, or renamed a group, or who opened, renamed, closed or reopened a station chat."
     },
     "message_reaction": {
+      "feature": "messages",
+      "scope": "STATION",
       "tableHash": "sha256:4afaf4a8ac0c0a35fcd693f11edfb2fefe4838d3eaec69d743b51f268f63d01d",
       "columns": [
         {
@@ -21581,9 +21675,27 @@
           "onDelete": "CASCADE"
         }
       ],
+      "lookups": [
+        {
+          "via": "account_id",
+          "pick": "email",
+          "emitAs": "account_email"
+        },
+        {
+          "via": "account_id",
+          "pick": "uid",
+          "emitAs": "account_uid"
+        }
+      ],
+      "customScope": {
+        "viaTable": "message",
+        "viaColumn": "id",
+        "refColumn": "message_id",
+        "distinct": false
+      },
       "stationTransfer": {
-        "status": "IGNORED",
-        "reason": "Reactions in direct conversations and groups belong to the accounts in them, not to a station; those in station chats stay on this installation for now"
+        "status": "TRACKED",
+        "rationale": "Reactions in a station chat move with its messages; one by an account that did not move stays behind."
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -21607,6 +21719,8 @@
       "description": "An emoji somebody reacted to a message with, at most once per emoji and message."
     },
     "message_report": {
+      "feature": "messages",
+      "scope": "STATION",
       "tableHash": "sha256:e761074bf5a22bdf33dc1fb80c87c7e1d7c41ca6b23e994c2c64a8f3ec6c62fb",
       "columns": [
         {
@@ -21693,9 +21807,41 @@
           "onDelete": "SET NULL"
         }
       ],
+      "lookups": [
+        {
+          "via": "reporter_account_id",
+          "pick": "email",
+          "emitAs": "reporter_email"
+        },
+        {
+          "via": "reporter_account_id",
+          "pick": "uid",
+          "emitAs": "reporter_uid"
+        },
+        {
+          "via": "handled_by_account_id",
+          "pick": "email",
+          "emitAs": "handled_by_email"
+        },
+        {
+          "via": "handled_by_account_id",
+          "pick": "uid",
+          "emitAs": "handled_by_uid"
+        }
+      ],
+      "customScope": {
+        "viaTable": "message",
+        "viaColumn": "id",
+        "refColumn": "message_id",
+        "distinct": false
+      },
       "stationTransfer": {
-        "status": "IGNORED",
-        "reason": "Reports belong to the station chats, which stay on this installation for now"
+        "status": "TRACKED",
+        "optionalReferences": [
+          "reporter_account_id",
+          "handled_by_account_id"
+        ],
+        "rationale": "Reports of a station chat's messages move with them, so the people handling the chats keep their list."
       },
       "gdprExport": {
         "status": "TRACKED",

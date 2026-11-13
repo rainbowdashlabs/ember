@@ -98,6 +98,7 @@ public class MessageReportService {
         Message message = guards.requireMessage(participation, messageId);
         if (!message.written() || message.deleted()) throw MessageRefusal.REPORT_NOT_TAKEN.raise();
         if (message.writtenBy(accountId)) throw MessageRefusal.REPORT_OWN_MESSAGE.raise();
+        guards.requireNotMoving(chat);
         String kept = reasonOf(reason);
         if (!reports.report(messageId, accountId, kept)) return;
         log.info("Message {} in station chat {} reported by account {}", messageId, chat.id(), accountId);
@@ -152,7 +153,9 @@ public class MessageReportService {
     }
 
     private MessageReport requireOpen(int stationId, int reportId) {
-        return reports.findOpen(stationId, reportId).orElseThrow(MessageRefusal.REPORT_NOT_HERE::raise);
+        MessageReport report = reports.findOpen(stationId, reportId).orElseThrow(MessageRefusal.REPORT_NOT_HERE::raise);
+        guards.requireNotMoving(report.conversation());
+        return report;
     }
 
     private List<Message> contextOf(MessageReport report) {

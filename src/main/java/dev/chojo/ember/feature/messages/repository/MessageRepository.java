@@ -229,10 +229,10 @@ public class MessageRepository {
      * from a station chat only where it mentions the account or the account takes everything.
      */
     private static final String IN_DIGEST = """
-            m.left_at IS NULL AND m.muted = FALSE
+            m.left_at IS NULL AND m.muted = FALSE AND %s
             AND msg.created_at > coalesce(a.message_digest_sent_at, '-infinity'::timestamptz)
             AND (c.kind <> 'STATION' OR a.messages_station_digest = 'ALL'
-                 OR strpos(msg.content, '@[account/' || a.uid::text || ':') > 0)""";
+                 OR strpos(msg.content, '@[account/' || a.uid::text || ':') > 0)""".formatted(ConversationRepository.STILL_HERE);
 
     /**
      * The accounts the daily mail goes to now: those that want it, can use messages and have

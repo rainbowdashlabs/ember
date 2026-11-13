@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.messages.service;
 import dev.chojo.ember.api.refusal.MessageRefusal;
 import dev.chojo.ember.feature.messages.entity.ChatAudience;
 import dev.chojo.ember.feature.messages.entity.Conversation;
+import dev.chojo.ember.feature.messages.entity.MembershipChange;
+import dev.chojo.ember.feature.messages.entity.MessageEvent;
 import dev.chojo.ember.feature.messages.entity.StationChatSummary;
 import dev.chojo.ember.feature.messages.entity.StationScope;
 import dev.chojo.ember.feature.messages.entity.SystemKind;
@@ -42,13 +44,16 @@ public class StationChatService {
     private final ConversationRepository conversations;
     private final MessageRepository messages;
     private final StationChatMembership membership;
+    private final MessageSignals signals;
 
     @Inject
     public StationChatService(
             StationChatRepository chats,
             ConversationRepository conversations,
             MessageRepository messages,
-            StationChatMembership membership) {
+            StationChatMembership membership,
+            MessageSignals signals) {
+        this.signals = signals;
         this.chats = chats;
         this.conversations = conversations;
         this.messages = messages;
@@ -129,6 +134,7 @@ public class StationChatService {
             messages.writeSystem(chat.id(), accountId, SystemKind.RENAMED, null, kept);
             conversations.touch(chat.id());
         });
+        tell(chat);
     }
 
     /**
@@ -145,7 +151,7 @@ public class StationChatService {
         if (scope.audience() == ChatAudience.STATION) throw MessageRefusal.STATION_CHAT_GUARDIANS_NOT_TAKEN.raise();
         if (scope.includeGuardians() == include) return;
         chats.setIncludeGuardians(chat.id(), include);
-        reconcileQuietly(chat);
+        if (!reconcileQuietly(chat)) tell(chat);
     }
 
     /**
@@ -158,11 +164,13 @@ public class StationChatService {
      */
     public void close(int stationId, int accountId, UUID conversationUid) {
         Conversation chat = requireChat(stationId, conversationUid);
-        Transactions.run(() -> {
-            if (!chats.close(chat.id(), accountId)) return;
+        boolean closed = Transactions.call(() -> {
+            if (!chats.close(chat.id(), accountId)) return false;
             messages.writeSystem(chat.id(), accountId, SystemKind.CLOSED, null, "");
             conversations.touch(chat.id());
+            return true;
         });
+        if (closed) tell(chat);
     }
 
     /**
@@ -188,19 +196,30 @@ public class StationChatService {
             messages.writeSystem(chat.id(), accountId, SystemKind.REOPENED, null, "");
             conversations.touch(chat.id());
         });
-        reconcileQuietly(chat);
+        if (!reconcileQuietly(chat)) tell(chat);
+    }
+
+    /**
+     * Tells the tabs of everybody in a chat that its name or state changed.
+     */
+    private void tell(Conversation chat) {
+        Transactions.afterCommit(() -> signals.publishTo(chat.id(), MessageEvent.conversation(chat.uid()), List.of()));
     }
 
     /**
      * Takes a chat's audience in after a change that has been committed. A failure here leaves the
      * change standing and is logged; the next change to the station or the daily sweep makes up for
-     * it.
+     * it. Answers whether anything changed, in which case the chat's tabs were told already.
      */
-    private void reconcileQuietly(Conversation chat) {
+    private boolean reconcileQuietly(Conversation chat) {
         try {
-            membership.reconcileChat(chat.id());
+            return membership
+                    .reconcileChat(chat.id())
+                    .filter(MembershipChange::any)
+                    .isPresent();
         } catch (RuntimeException e) {
             log.warn("Taking in the audience of station chat {} failed", chat.id(), e);
+            return false;
         }
     }
 

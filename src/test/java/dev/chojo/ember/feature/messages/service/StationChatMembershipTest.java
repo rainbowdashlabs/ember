@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.messages.entity.ChatAudience;
 import dev.chojo.ember.feature.messages.entity.Conversation;
 import dev.chojo.ember.feature.messages.entity.Membership;
 import dev.chojo.ember.feature.messages.entity.Message;
+import dev.chojo.ember.feature.messages.entity.MessageEvent;
 import dev.chojo.ember.feature.messages.entity.SystemKind;
 import dev.chojo.ember.feature.messages.repository.ConversationRepository;
 import dev.chojo.ember.feature.messages.repository.MessagePeopleRepository;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -52,12 +54,14 @@ class StationChatMembershipTest extends MessageTestBase {
     private final MessageRepository messages = new MessageRepository();
     private MessageFixtures services;
     private StationChatMembership membership;
+    private MessageSignals signals;
     private Station station;
 
     @BeforeEach
     void setUp() {
         services = MessageFixtures.build();
-        membership = new StationChatMembership(chats, conversations, messages, new TaskScheduler());
+        signals = new MessageSignals(conversations);
+        membership = new StationChatMembership(chats, conversations, messages, new TaskScheduler(), signals);
         station = station();
     }
 
@@ -309,7 +313,8 @@ class StationChatMembershipTest extends MessageTestBase {
     @Test
     void reconcilingSoonPlansOneRunPerStationUntilItRuns() {
         var scheduler = mock(TaskScheduler.class);
-        var planned = new StationChatMembership(chats, conversations, messages, scheduler);
+        var planned =
+                new StationChatMembership(chats, conversations, messages, scheduler, new MessageSignals(conversations));
 
         planned.soon(station.id());
         planned.soon(station.id());
@@ -320,7 +325,8 @@ class StationChatMembershipTest extends MessageTestBase {
     @Test
     void anAccountsChangeReachesEveryStationItIsAMemberOf() {
         var scheduler = mock(TaskScheduler.class);
-        var planned = new StationChatMembership(chats, conversations, messages, scheduler);
+        var planned =
+                new StationChatMembership(chats, conversations, messages, scheduler, new MessageSignals(conversations));
         var anna = memberOf(station, "Anna");
         join(station(), anna);
 
@@ -336,6 +342,30 @@ class StationChatMembershipTest extends MessageTestBase {
         assertEquals("station-chat-membership-sweep", task.name());
         assertEquals(Duration.ofDays(1), StationChatMembership.SWEEP_INTERVAL);
         task.work().run();
+    }
+
+    @Test
+    void theTabsOfThoseTakenInStayingAndTakenOutAreTold() {
+        var anna = memberOf(station, "Anna");
+        var ben = memberOf(station, "Ben");
+        MemberGroup group = memberGroupRepo.create(station.id(), "Jugend");
+        memberGroupRepo.addMember(group.id(), member(anna).id());
+        Conversation chat = groupChat(group, false);
+        membership.reconcile(station.id());
+        var annasTab = new RecordingStream();
+        var bensTab = new RecordingStream();
+        signals.join(anna.id(), annasTab);
+        signals.join(ben.id(), bensTab);
+
+        memberGroupRepo.addMember(group.id(), member(ben).id());
+        membership.reconcile(station.id());
+        memberGroupRepo.removeMember(group.id(), member(ben).id());
+        membership.reconcile(station.id());
+        membership.reconcile(station.id());
+
+        var told = MessageEvent.conversation(chat.uid());
+        assertEquals(List.of(told, told), annasTab.signals());
+        assertEquals(List.of(told, told), bensTab.signals());
     }
 
     @Test
@@ -430,7 +460,9 @@ class StationChatMembershipTest extends MessageTestBase {
         var failing = spy(chats);
         doThrow(new IllegalStateException("broken")).when(failing).audience(broken.id());
 
-        new StationChatMembership(failing, conversations, messages, new TaskScheduler()).reconcile(station.id());
+        new StationChatMembership(
+                        failing, conversations, messages, new TaskScheduler(), new MessageSignals(conversations))
+                .reconcile(station.id());
 
         assertEquals(Set.of(), activeIn(broken));
         assertEquals(Set.of(anna.id()), activeIn(working));

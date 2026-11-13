@@ -159,7 +159,10 @@ public enum MessageRefusal implements Refusal {
     REPORT_REASON_TOO_LONG(44, HttpStatus.BAD_REQUEST, "A reason can be at most 500 characters long"),
 
     /** A report that is handled already, belongs to another station, or does not exist. */
-    REPORT_NOT_HERE(45, HttpStatus.NOT_FOUND, "That report is not open here any more");
+    REPORT_NOT_HERE(45, HttpStatus.NOT_FOUND, "That report is not open here any more"),
+
+    /** Changing anything in a station chat while its station moves to another installation. */
+    STATION_CHAT_MOVING(46, HttpStatus.SERVICE_UNAVAILABLE, Sentences.STATION_BEING_TRANSFERRED);
 
     private final Definition definition;
 

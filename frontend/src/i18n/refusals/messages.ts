@@ -50,4 +50,5 @@ export default {
     'MS-043': 'Das lässt sich nicht melden',
     'MS-044': 'Ein Grund darf höchstens 500 Zeichen lang sein',
     'MS-045': 'Diese Meldung ist hier nicht mehr offen',
+    'MS-046': 'Diese Wache zieht gerade auf eine andere Instanz um, bis dahin lässt sich nichts ändern',
 }

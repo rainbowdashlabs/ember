@@ -107,8 +107,8 @@ public class StationChatRepository {
     public List<Conversation> ofStation(int stationId) {
         return query("""
                 SELECT %s FROM conversation c
-                WHERE c.kind = 'STATION' AND c.station_id = :station_id
-                ORDER BY c.created_at, c.id;""", Conversation.COLUMNS)
+                WHERE c.kind = 'STATION' AND c.station_id = :station_id AND %s
+                ORDER BY c.created_at, c.id;""", Conversation.COLUMNS, ConversationRepository.STILL_HERE)
                 .single(call().bind("station_id", stationId))
                 .map(Conversation.map())
                 .all();
@@ -138,7 +138,11 @@ public class StationChatRepository {
      */
     public List<Integer> stationsWithChats() {
         return query("""
-                SELECT DISTINCT station_id FROM conversation WHERE kind = 'STATION' ORDER BY station_id;""").single().map(row -> row.getInt("station_id")).all();
+                SELECT DISTINCT c.station_id FROM conversation c
+                WHERE c.kind = 'STATION' AND %s ORDER BY c.station_id;""", ConversationRepository.STILL_HERE)
+                .single()
+                .map(row -> row.getInt("station_id"))
+                .all();
     }
 
     /**
@@ -323,15 +327,18 @@ public class StationChatRepository {
     }
 
     /**
-     * Whether a station chat is closed, read with a lock that waits for a close running right now
-     * and holds a close back until the running transaction ends.
+     * Whether a station chat takes nothing new: it is closed, or its station is being moved to
+     * another installation or has moved there. Read with a lock that waits for a close running
+     * right now and holds a close back until the running transaction ends.
      *
      * @param conversationId the chat
      * @return whether it is closed
      */
     public boolean closedNow(int conversationId) {
         return query("""
-                SELECT closed_at IS NOT NULL AS closed FROM conversation WHERE id = :id FOR SHARE;""")
+                SELECT (c.closed_at IS NOT NULL OR s.read_only_for_transfer OR s.moved_away_at IS NOT NULL) AS closed
+                FROM conversation c JOIN station s ON s.id = c.station_id
+                WHERE c.id = :id FOR SHARE OF c;""")
                 .single(call().bind("id", conversationId))
                 .map(row -> row.getBoolean("closed"))
                 .first()
@@ -339,7 +346,7 @@ public class StationChatRepository {
     }
 
     /**
-     * Whether a station chat is closed, read with the lock a write to the chat's row takes anyway.
+     * The same as {@link #closedNow}, read with the lock a write to the chat's row takes anyway.
      * The sending of a message touches that row afterwards, and a share lock would have to be raised
      * to that, which two senders at once would wait on from each other.
      *
@@ -348,7 +355,9 @@ public class StationChatRepository {
      */
     public boolean closedNowForSending(int conversationId) {
         return query("""
-                SELECT closed_at IS NOT NULL AS closed FROM conversation WHERE id = :id FOR NO KEY UPDATE;""")
+                SELECT (c.closed_at IS NOT NULL OR s.read_only_for_transfer OR s.moved_away_at IS NOT NULL) AS closed
+                FROM conversation c JOIN station s ON s.id = c.station_id
+                WHERE c.id = :id FOR NO KEY UPDATE OF c;""")
                 .single(call().bind("id", conversationId))
                 .map(row -> row.getBoolean("closed"))
                 .first()
@@ -508,5 +517,37 @@ public class StationChatRepository {
                 .single(call().bind("id", conversationId))
                 .map(row -> row.getInt("station_id"))
                 .first();
+    }
+
+    /**
+     * Whether a station has moved to another installation, which takes its chats along and leaves
+     * the copy here to nobody.
+     *
+     * @param stationId the station
+     * @return whether it moved away
+     */
+    public boolean movedAway(int stationId) {
+        return query("""
+                SELECT moved_away_at IS NOT NULL AS moved FROM station WHERE id = :id;""")
+                .single(call().bind("id", stationId))
+                .map(row -> row.getBoolean("moved"))
+                .first()
+                .orElse(true);
+    }
+
+    /**
+     * Whether a station is being moved to another installation or has moved there, which leaves
+     * nothing in its chats to change here.
+     *
+     * @param stationId the station
+     * @return whether it is moving or gone
+     */
+    public boolean moving(int stationId) {
+        return query("""
+                SELECT read_only_for_transfer OR moved_away_at IS NOT NULL AS moving FROM station WHERE id = :id;""")
+                .single(call().bind("id", stationId))
+                .map(row -> row.getBoolean("moving"))
+                .first()
+                .orElse(true);
     }
 }
