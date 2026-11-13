@@ -103,7 +103,7 @@ function partner(id: number, status: FederationStatus = FederationStatus.ACTIVE)
 function file(id: number, fileName: string, label: string | null = null, internal = false): EventAttachment {
     return {
         id, eventId: 31, fileId: 40 + id, label, internal, sortOrder: id,
-        createdAt: '2026-05-12T10:00:00Z', fileName, mimeType: 'application/pdf', fileSize: 1024, contentHash: `h${id}`,
+        createdAt: '2026-05-12T10:00:00Z', fileName, mimeType: 'application/pdf', fileSize: 1024, contentHash: `h${id}`, fromEventGroup: false,
     }
 }
 

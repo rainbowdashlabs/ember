@@ -26,6 +26,8 @@ import dev.chojo.ember.feature.documents.service.DocumentAccessService;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
@@ -226,7 +228,9 @@ class DemoPhotoConsentSeederTest extends DemoTestBase {
                 new MemberNeutralTemplates(wiring.templates()),
                 new EventFederationRepository(),
                 new DomainEventBus(Set.of(new RequirementChangeSignaturesHandler(
-                        () -> changes, () -> mock(PartnerRequirementNotices.class)))));
+                        () -> changes, () -> mock(PartnerRequirementNotices.class)))),
+                new EventGroupRepository(),
+                new EventGroupPartnerRepository());
         var submissions = new PaperSubmissionRepository();
         var appointments = new AppointmentDocumentService(
                 requirementRepo,

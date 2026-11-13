@@ -19271,6 +19271,210 @@
         } ]
       }
     },
+    "/api/v1/events/groups/{eventGroupId}/attachments" : {
+      "post" : {
+        "summary" : "Attach a file of the station library to an event group",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventAttachment"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AttachmentRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "List the files an event group hands over on every part, as far as the caller may have them",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/EventAttachment"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/events/groups/{eventGroupId}/attachments/order" : {
+      "put" : {
+        "summary" : "Set the order of the files an event group hands over",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AttachmentOrderRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/groups/{eventGroupId}/attachments/{attachmentId}" : {
+      "put" : {
+        "summary" : "Change the label of a file an event group hands over and whether it is kept back",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "attachmentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AttachmentRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Take a file off an event group, leaving it in the library",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "attachmentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/events/groups/{eventGroupId}/attachments/{attachmentId}/file" : {
+      "get" : {
+        "summary" : "Download a file an event group hands over",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "attachmentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/events/groups/{eventGroupId}/attendance" : {
       "get" : {
         "summary" : "How the accepted participants of an event group attended its parts",
@@ -19601,6 +19805,93 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/events/groups/{eventGroupId}/document-requirements" : {
+      "get" : {
+        "summary" : "The documents an event group asks the participants of every part to bring",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RequiredTemplate"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Set the documents an event group asks the participants of every part to bring",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RequiredTemplate"
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RequirementsRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/events/groups/{eventGroupId}/federation" : {
@@ -62115,9 +62406,12 @@
           },
           "contentHash" : {
             "type" : "string"
+          },
+          "fromEventGroup" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "id", "eventId", "fileId", "label", "internal", "sortOrder", "createdAt", "fileName", "mimeType", "fileSize", "contentHash" ]
+        "required" : [ "id", "eventId", "fileId", "label", "internal", "sortOrder", "createdAt", "fileName", "mimeType", "fileSize", "contentHash", "fromEventGroup" ]
       },
       "EventBreak" : {
         "type" : "object",
@@ -80668,9 +80962,12 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "fromEventGroup" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "templateId", "name", "kind", "version", "archived", "lastUsedAt" ]
+        "required" : [ "templateId", "name", "kind", "version", "archived", "lastUsedAt", "fromEventGroup" ]
       },
       "RequirementItem" : {
         "type" : "object",

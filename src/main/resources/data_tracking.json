@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:d6f423a00a24c9426120c78ebf92bcef998486a46b93991d31d6b828fc8f3c7d",
-  "generatedAt": "2026-11-13T22:44:10Z",
+  "schemaHash": "sha256:2ae7438d399c925d555414199ac0f60eb4f9025f8422d66ebddbe17bc33ea20f",
+  "generatedAt": "2026-11-13T22:54:34Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -9675,7 +9675,7 @@
     "event_attachment": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:f3148e4decdbf561d179cffaf0d305324c8515d5fa37963fd7be2e958a62f073",
+      "tableHash": "sha256:74646b4b4cbf7eb727bbd4dcfe5605827de4b1fa82d4f57559b0ff47242f7609",
       "columns": [
         {
           "name": "id",
@@ -9686,8 +9686,9 @@
         {
           "name": "event_id",
           "type": "int4",
-          "nullable": false,
-          "verified": true
+          "nullable": true,
+          "verified": true,
+          "description": "The appointment that hands the file over. NULL for a file of an event group."
         },
         {
           "name": "file_id",
@@ -9721,9 +9722,22 @@
           "type": "timestamptz",
           "nullable": false,
           "verified": true
+        },
+        {
+          "name": "event_group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The event group that hands the file over on every part, before the part's own files. NULL for a file of an appointment; exactly one of event_id and event_group_id is set."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "event_group_id",
+          "refTable": "event_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
         {
           "column": "event_id",
           "refTable": "station_event",
@@ -9972,7 +9986,7 @@
       "description": "Which run-out warnings have gone out for an event, so a sweep every few minutes warns once."
     },
     "event_document_requirement": {
-      "tableHash": "sha256:91ab1c3c04a2511d3b950589ee9b2953462f08b7a091d5daf23180e3b6a53280",
+      "tableHash": "sha256:591d562239d4d84b2724cdab536c136bb7069e5340f5c93869f6c64c94d9c580",
       "columns": [
         {
           "name": "id",
@@ -10008,9 +10022,22 @@
           "nullable": false,
           "verified": true,
           "description": "Where the document stands in the list, counted from 0."
+        },
+        {
+          "name": "event_group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The event group that asks every part for the document, shown on each part before the part's own. Exactly one of event_id, event_template_id and event_group_id is set."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "event_group_id",
+          "refTable": "event_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
         {
           "column": "event_id",
           "refTable": "station_event",

@@ -213,6 +213,7 @@ const groupTemplates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exa
 
     <HelpSection :title="t('helpCenter.eventEdit.inheritedSettingsTitle')">
       <p>{{ t('helpCenter.eventEdit.inheritedSettingsText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.inheritedFilesText') }}</p>
       <InheritedSettingsCard
           class="mt-3"
           :settings="GROUP_SETTINGS"

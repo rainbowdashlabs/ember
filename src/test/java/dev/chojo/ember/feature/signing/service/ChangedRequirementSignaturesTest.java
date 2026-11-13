@@ -13,6 +13,8 @@ import dev.chojo.ember.feature.content.route.BlockRowRequest;
 import dev.chojo.ember.feature.documents.service.DocumentAccessService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
@@ -131,8 +133,9 @@ class ChangedRequirementSignaturesTest extends GeneratorTestBase {
                 wiring.templates(),
                 new MemberNeutralTemplates(wiring.templates()),
                 new EventFederationRepository(),
-                new DomainEventBus(
-                        Set.of(new RequirementChangeSignaturesHandler(() -> changes, () -> partnerNotices))));
+                new DomainEventBus(Set.of(new RequirementChangeSignaturesHandler(() -> changes, () -> partnerNotices))),
+                new EventGroupRepository(),
+                new EventGroupPartnerRepository());
         appointments = new AppointmentDocumentService(
                 requirementRepo,
                 submissions,

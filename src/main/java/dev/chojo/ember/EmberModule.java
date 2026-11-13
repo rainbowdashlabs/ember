@@ -130,6 +130,7 @@ import dev.chojo.ember.feature.events.handler.RegistrationDeadlineExpiredHandler
 import dev.chojo.ember.feature.events.route.EventAttachmentRoutes;
 import dev.chojo.ember.feature.events.route.EventCancellationRoutes;
 import dev.chojo.ember.feature.events.route.EventEmbedRoutes;
+import dev.chojo.ember.feature.events.route.EventGroupAttachmentRoutes;
 import dev.chojo.ember.feature.events.route.EventGroupAttendanceRoutes;
 import dev.chojo.ember.feature.events.route.EventGroupCommentRoutes;
 import dev.chojo.ember.feature.events.route.EventGroupRoutes;
@@ -200,6 +201,7 @@ import dev.chojo.ember.feature.generator.route.AssociationDocumentTemplateRoutes
 import dev.chojo.ember.feature.generator.route.DocumentFontRoutes;
 import dev.chojo.ember.feature.generator.route.DocumentGenerationRoutes;
 import dev.chojo.ember.feature.generator.route.DocumentTemplateRoutes;
+import dev.chojo.ember.feature.generator.route.EventGroupRequirementRoutes;
 import dev.chojo.ember.feature.generator.route.GenerationJobRoutes;
 import dev.chojo.ember.feature.generator.route.GenerationLogRoutes;
 import dev.chojo.ember.feature.generator.route.PaperSubmissionRoutes;
@@ -599,6 +601,8 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(FederatedEventGroupRoutes.class);
         routesBinder.addBinding().to(EventGroupSharingRoutes.class);
         routesBinder.addBinding().to(EventGroupSettingsRoutes.class);
+        routesBinder.addBinding().to(EventGroupAttachmentRoutes.class);
+        routesBinder.addBinding().to(EventGroupRequirementRoutes.class);
         routesBinder.addBinding().to(EventGroupAttendanceRoutes.class);
         routesBinder.addBinding().to(EventGroupCommentRoutes.class);
         routesBinder.addBinding().to(FederatedEventGroupCommentRoutes.class);

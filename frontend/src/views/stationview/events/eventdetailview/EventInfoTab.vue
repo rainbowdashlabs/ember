@@ -14,6 +14,7 @@ import NoteEditor from '@/components/comment/NoteEditor.vue'
 import EventGeneralInfoPanel from './EventGeneralInfoPanel.vue'
 import EventAttachmentsPanel from './EventAttachmentsPanel.vue'
 import DocumentsToBringPanel from './DocumentsToBringPanel.vue'
+import {eventAttachmentReader} from './attachmentReaders'
 import {isRecurringEvent} from '@/api/events'
 import {eventCommentSource} from '@/api/comments'
 import {
@@ -51,6 +52,7 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 const commentSource = computed(() => eventCommentSource(props.eventId, props.focusedDate))
+const attachmentReader = computed(() => eventAttachmentReader(props.eventId))
 
 const {isModuleEnabled} = useSession()
 const keepsDocuments = computed(() => isModuleEnabled(StationModule.DOCUMENTS))
@@ -80,7 +82,7 @@ const canEditEvent = computed(() => props.canManageEvents || props.hasPermission
         @field-updated="(f) => emit('field-updated', f)"
     />
 
-    <EventAttachmentsPanel :event-id="eventId"/>
+    <EventAttachmentsPanel :reader="attachmentReader"/>
 
     <DocumentsToBringPanel v-if="keepsDocuments && effectiveDate" :event-id="eventId" :date="effectiveDate"/>
 

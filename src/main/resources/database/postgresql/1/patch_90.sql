@@ -657,3 +657,31 @@ COMMENT ON COLUMN ember_schema.event_group_reminder.group_id
     IS 'The event group.';
 COMMENT ON COLUMN ember_schema.event_group_reminder.days_before
     IS 'How many days before the part the reminder goes out.';
+
+-- Documents to bring and files of an event group. Every part shows the event group's entries before its
+-- own, and a part cannot take one of the event group's entries off.
+
+ALTER TABLE ember_schema.event_document_requirement
+    ADD COLUMN event_group_id INT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
+    DROP CONSTRAINT event_document_requirement_check,
+    ADD CONSTRAINT event_document_requirement_one_owner
+        CHECK (num_nonnulls(event_id, event_template_id, event_group_id) = 1);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_event_document_requirement_event_group
+    ON ember_schema.event_document_requirement (event_group_id, template_id) WHERE event_group_id IS NOT NULL;
+
+COMMENT ON COLUMN ember_schema.event_document_requirement.event_group_id IS
+    'The event group that asks every part for the document, shown on each part before the part''s own. Exactly one of event_id, event_template_id and event_group_id is set.';
+
+ALTER TABLE ember_schema.event_attachment
+    ALTER COLUMN event_id DROP NOT NULL,
+    ADD COLUMN event_group_id INT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
+    ADD CONSTRAINT event_attachment_one_owner CHECK (num_nonnulls(event_id, event_group_id) = 1);
+
+CREATE INDEX IF NOT EXISTS event_attachment_event_group_idx
+    ON ember_schema.event_attachment (event_group_id, sort_order) WHERE event_group_id IS NOT NULL;
+
+COMMENT ON COLUMN ember_schema.event_attachment.event_id IS
+    'The appointment that hands the file over. NULL for a file of an event group.';
+COMMENT ON COLUMN ember_schema.event_attachment.event_group_id IS
+    'The event group that hands the file over on every part, before the part''s own files. NULL for a file of an appointment; exactly one of event_id and event_group_id is set.';

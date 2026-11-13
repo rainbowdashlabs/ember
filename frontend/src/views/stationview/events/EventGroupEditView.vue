@@ -30,6 +30,9 @@ import {eventGroupFederationPort} from './eventeditview/eventOwnerPorts'
 import EventGroupQuestionsCard from './eventgroupeditview/EventGroupQuestionsCard.vue'
 import EventGroupFieldsCard from './eventgroupeditview/EventGroupFieldsCard.vue'
 import EventGroupDateSettingsSection from './eventgroupeditview/EventGroupDateSettingsSection.vue'
+import EventGroupFilesSection from './eventgroupeditview/EventGroupFilesSection.vue'
+import {useDocumentRequirements} from './eventshared/useDocumentRequirements'
+import type {RequirementOwner} from '@/api/appointmentDocuments'
 import {useEventGroupSettings} from './eventgroupeditview/useEventGroupSettings'
 import {entryOf, namedEntries} from './eventshared/eventQuestions'
 import type {EventGroupDetail, MemberGroup, MemberWithName, EventFieldEntry, RegistrationFieldDefinition, RestrictionAudience, StationEvent, UserTag} from '@/api/generated/schema'
@@ -77,6 +80,13 @@ const fields = ref<EventFieldEntry[]>([])
 const startingAppointment = ref<StationEvent | null>(null)
 const saving = ref(false)
 const dateSettings = useEventGroupSettings()
+const cancelTarget = computed(() =>
+    eventGroupId.value == null ? {name: 'events'} : {name: 'event-group', params: {eventGroupId: eventGroupId.value}})
+const requirements = useDocumentRequirements()
+
+function requirementOwner(id: number): RequirementOwner {
+  return {kind: 'events/groups', id}
+}
 const saveFailure = ref<Failure | null>(null)
 
 function emptySelection(): RestrictionSelection {
@@ -128,8 +138,10 @@ const {loading, failure} = useAsyncLoader(async () => {
   if (eventGroupId.value != null) {
     fill(await eventGroups.getEventGroup(eventGroupId.value))
     await dateSettings.load(eventGroupId.value)
+    await requirements.load(requirementOwner(eventGroupId.value))
     await federationShare.load(eventGroupFederationPort(eventGroupId.value))
   } else {
+    await requirements.load(null)
     await takeStartingAppointment()
   }
 })
@@ -218,6 +230,7 @@ async function save() {
         appointmentId: startingAppointment.value?.id ?? null,
       })
       await dateSettings.save(created.eventGroup.id)
+      await requirements.save(requirementOwner(created.eventGroup.id))
       showToast(t('eventGroups.saved'), 'success')
       await router.replace({name: 'event-group-edit', params: {eventGroupId: created.eventGroup.id}})
       fill(created)
@@ -228,6 +241,7 @@ async function save() {
       view: view.value,
     }, savedQuestions(), namedEntries(fields.value)))
     await dateSettings.save(eventGroupId.value)
+    await requirements.save(requirementOwner(eventGroupId.value))
     await federationShare.save(eventGroupFederationPort(eventGroupId.value))
   } catch (e) {
     saveFailure.value = describeFailure(e, t)
@@ -270,6 +284,7 @@ async function save() {
         </NeutralContainer>
 
         <EventGroupDateSettingsSection :settings="dateSettings"/>
+        <EventGroupFilesSection :event-group-id="eventGroupId" :requirements="requirements"/>
         <EventGroupFieldsCard v-model="fields" :all-members="members" :groups="groups" :group-members="groupMembers" :tags="tags"/>
         <EventGroupQuestionsCard v-model="questions"/>
 
@@ -277,11 +292,7 @@ async function save() {
 
         <FailureAlert v-if="saveFailure" :failure="saveFailure"/>
         <ButtonRow pair align="end">
-          <SecondaryButton
-              :to="eventGroupId == null ? {name: 'events'} : {name: 'event-group', params: {eventGroupId}}"
-          >
-            {{ t('common.cancel') }}
-          </SecondaryButton>
+          <SecondaryButton :to="cancelTarget">{{ t('common.cancel') }}</SecondaryButton>
           <SaveButton :action="save" :disabled="saving" data-testid="event-group-save"/>
         </ButtonRow>
 

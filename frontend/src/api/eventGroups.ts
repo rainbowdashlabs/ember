@@ -11,6 +11,7 @@ import {StationPermission} from './generated/schema'
 import type {
     AppointmentField,
     CommentResponse,
+    EventAttachment,
     EventGroupAttendance,
     EventGroupAwaiting,
     EventGroupCreateRequest,
@@ -219,6 +220,40 @@ export function eventGroupCommentSource(eventGroupId: number): CommentSource {
         mentionables: () => stationMentionables({type: 'EVENT_GROUP_VIEW', entityId: eventGroupId}),
         moderator: StationPermission.EVENT_MANAGER,
     }
+}
+
+/** The files an event group hands over on every part, as far as the reader may have them. */
+export async function listAttachments(eventGroupId: number): Promise<EventAttachment[]> {
+    return (await client.get<EventAttachment[]>(`${EVENT_GROUPS}/${eventGroupId}/attachments`)).data
+}
+
+/** Hangs a file of the station library on an event group. */
+export async function attachFile(
+    eventGroupId: number, fileId: number, label: string | null, internal: boolean,
+): Promise<EventAttachment> {
+    return (await client.post<EventAttachment>(`${EVENT_GROUPS}/${eventGroupId}/attachments`, {fileId, label, internal})).data
+}
+
+/** Writes the label of an event group's file and whether it is kept back. */
+export async function updateAttachment(
+    eventGroupId: number, attachmentId: number, label: string | null, internal: boolean,
+): Promise<void> {
+    await client.put(`${EVENT_GROUPS}/${eventGroupId}/attachments/${attachmentId}`, {label, internal})
+}
+
+/** Writes the order of an event group's files. */
+export async function reorderAttachments(eventGroupId: number, attachmentIds: number[]): Promise<void> {
+    await client.put(`${EVENT_GROUPS}/${eventGroupId}/attachments/order`, {attachmentIds})
+}
+
+/** Takes a file off an event group, leaving it in the library. */
+export async function detachFile(eventGroupId: number, attachmentId: number): Promise<void> {
+    await client.delete(`${EVENT_GROUPS}/${eventGroupId}/attachments/${attachmentId}`)
+}
+
+/** Where the bytes of an event group's file are fetched from. */
+export function attachmentUrl(eventGroupId: number, attachmentId: number): string {
+    return `${EVENT_GROUPS}/${eventGroupId}/attachments/${attachmentId}/file`
 }
 
 /** The attendance template, pre-fills, category and reminders an event group hands to its parts. */

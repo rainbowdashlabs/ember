@@ -15,6 +15,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import EventGroupOverview from './eventgroupdetailview/EventGroupOverview.vue'
+import EventGroupMaterialsPanel from './eventgroupdetailview/EventGroupMaterialsPanel.vue'
 import EventGroupHouseholdPanel from './eventgroupdetailview/EventGroupHouseholdPanel.vue'
 import EventGroupSignUpsPanel from './eventgroupdetailview/EventGroupSignUpsPanel.vue'
 import EventGroupPartnerSignUpsPanel from './eventgroupdetailview/EventGroupPartnerSignUpsPanel.vue'
@@ -126,6 +127,7 @@ async function deleteEventGroup() {
           </ErrorButton>
         </ButtonRow>
         <EventGroupOverview :detail="detail" :current-member-id="currentMemberId" :member-names="memberNames" :on-changed="refresh"/>
+        <EventGroupMaterialsPanel :event-group-id="detail.eventGroup.id"/>
         <EventGroupHouseholdPanel :detail="detail" :on-changed="refresh"/>
         <EventGroupSignUpsPanel v-if="canDecide" ref="signUpsPanel" :detail="detail" :on-changed="refresh"/>
         <EventGroupPartnerSignUpsPanel v-if="canDecide" :detail="detail" :on-changed="refresh"/>

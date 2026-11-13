@@ -78,6 +78,9 @@ const templates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exampleG
           :field-defaults="new Map()"
       />
     </HelpSection>
+    <HelpSection :title="t('helpCenter.eventGroupEdit.filesTitle')">
+      <p>{{ t('helpCenter.eventGroupEdit.filesText') }}</p>
+    </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupEdit.fieldsTitle')">
       <p>{{ t('helpCenter.eventGroupEdit.fieldsText') }}</p>
     </HelpSection>

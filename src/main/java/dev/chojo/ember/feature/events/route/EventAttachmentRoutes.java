@@ -134,8 +134,8 @@ public class EventAttachmentRoutes implements Routes {
         visibility.requireVisibleEvent(session, eventId);
 
         var attachment = attachmentService
-                .findReadable(pathInt(ctx, "attachmentId"), session.user().permissions())
-                .filter(found -> found.eventId() == eventId)
+                .findReadableOn(
+                        eventId, pathInt(ctx, "attachmentId"), session.user().permissions())
                 .orElseThrow(EventRefusal.EVENT_FILE_NOT_HERE::raise);
 
         var file = media.read(session.stationId(), attachment.contentHash())
@@ -190,8 +190,8 @@ public class EventAttachmentRoutes implements Routes {
         visibility.requireVisibleEvent(session, eventId);
 
         var attachment = attachmentService
-                .findReadable(pathInt(ctx, "attachmentId"), session.user().permissions())
-                .filter(found -> found.eventId() == eventId)
+                .findReadableOn(
+                        eventId, pathInt(ctx, "attachmentId"), session.user().permissions())
                 .orElseThrow(EventRefusal.EVENT_FILE_NOT_HERE_FOR_PICTURE::raise);
 
         var picture = media.readPicture(

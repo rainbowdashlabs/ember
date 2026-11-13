@@ -114,6 +114,9 @@ const exampleVisitors = computed((): WaitingListVisitor[] => [{
         </ButtonRow>
       </NeutralContainer>
     </HelpSection>
+    <HelpSection :title="t('helpCenter.eventGroupDetail.materialsTitle')">
+      <p>{{ t('helpCenter.eventGroupDetail.materialsText') }}</p>
+    </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupDetail.manageTitle')">
       <HelpPermissionGuard :permissions="[StationPermission.EVENT_REGISTRATION]" :label="t('helpCenter.permissionLabel.eventRegistration')">
         <p>{{ t('helpCenter.eventGroupDetail.manageText') }}</p>

@@ -24,6 +24,11 @@ const api = vi.hoisted(() => ({
   attendance: {listTemplates: vi.fn(async () => []), listTemplateFields: vi.fn(async () => [])},
   memberGroups: {listGroups: vi.fn(async () => []), getGroupMembers: vi.fn(async () => [])},
   stationMembers: {listMembers: vi.fn(async () => [])},
+  appointmentDocuments: {
+    offeredTemplates: vi.fn(async () => ({total: 0, items: []})),
+    listRequirements: vi.fn(async () => []),
+    setRequirements: vi.fn(async () => []),
+  },
   userTags: {listChoosableTags: vi.fn(async () => [])},
   federation: {listPartners: vi.fn(async () => [])},
 }))
@@ -40,7 +45,7 @@ vi.mock('@/util/toast', () => ({showToast: toast}))
 function mountEditor() {
   return mount(EventGroupEditView, {
     global: {stubs: {ViewContent: {template: '<div><slot/></div>'}, EventGroupDetailsForm: true, RestrictionsField: true, EventGroupSetsEditor: true,
-      EventGroupQuestionsCard: true, EventGroupFieldsCard: true, EventGroupShareCard: true, EventGroupPartsEditor: true, EventGroupDateSettingsSection: true}},
+      EventGroupQuestionsCard: true, EventGroupFieldsCard: true, EventGroupShareCard: true, EventGroupPartsEditor: true, EventGroupDateSettingsSection: true, EventGroupFilesSection: true}},
   })
 }
 
@@ -68,6 +73,7 @@ describe('EventGroupEditView started from an appointment', () => {
     await flushPromises()
 
     expect(api.eventGroups.setSettings).toHaveBeenCalledWith(7, {templateId: null, categoryId: null, reminderDays: [], fieldDefaults: []})
+    expect(api.appointmentDocuments.setRequirements).toHaveBeenCalledWith({kind: 'events/groups', id: 7}, [])
   })
 
   it('names the appointment, takes over its audiences and creates the group with it', async () => {
