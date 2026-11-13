@@ -531,6 +531,27 @@ public class EventRepository {
     }
 
     /**
+     * Whether an appointment is a part of a course, which takes sign-ups only through the course.
+     *
+     * @param id the appointment
+     * @return true for a part
+     */
+    public boolean isCoursePart(int id) {
+        return SqlSupport.exists(
+                "SELECT 1 FROM station_event WHERE id = :id AND course_set_id IS NOT NULL;", call().bind("id", id));
+    }
+
+    /**
+     * Locks an appointment for the rest of the running transaction, so a sign-up for it and its
+     * becoming a part of a course happen one after the other.
+     *
+     * @param id the appointment
+     */
+    public void lockForSignUp(int id) {
+        SqlSupport.exists("SELECT 1 FROM station_event WHERE id = :id FOR UPDATE;", call().bind("id", id));
+    }
+
+    /**
      * Deletes a station event by ID.
      *
      * @param id the event ID

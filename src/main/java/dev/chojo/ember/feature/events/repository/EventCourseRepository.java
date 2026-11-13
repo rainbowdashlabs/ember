@@ -286,6 +286,18 @@ public class EventCourseRepository {
     }
 
     /**
+     * Unties the registrations of an appointment from the course sign-ups they were chosen with, so
+     * the appointment's sign-ups stand on their own once it is no part of a course.
+     *
+     * @param eventId the appointment
+     */
+    public void untieRegistrations(int eventId) {
+        query("UPDATE event_registration SET course_registration_id = NULL WHERE event_id = :event_id;")
+                .single(call().bind("event_id", eventId))
+                .update();
+    }
+
+    /**
      * Makes every part of a course an appointment of its own again.
      *
      * @param courseId the course

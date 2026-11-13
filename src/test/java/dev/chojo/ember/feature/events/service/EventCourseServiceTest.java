@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.events.entity.EventCourse;
 import dev.chojo.ember.feature.events.entity.EventCourseDetails;
 import dev.chojo.ember.feature.events.entity.EventCourseSet;
@@ -34,6 +35,7 @@ import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -79,7 +81,7 @@ class EventCourseServiceTest extends RepositoryTestBase {
 
     @BeforeEach
     void wire() {
-        service = new EventCourseService(courseRepo, eventRepo, restrictionService);
+        service = new EventCourseService(courseRepo, eventRepo, restrictionService, occurrenceCalendar);
         deadline = Instant.now().plus(Duration.ofDays(10)).truncatedTo(ChronoUnit.SECONDS);
     }
 
@@ -448,7 +450,16 @@ class EventCourseServiceTest extends RepositoryTestBase {
         var course = jugendflamme();
         int practice = set(course, "Übung").id();
         var calledOff = oneTime(32);
-        eventRepo.cancelEvent(calledOff.id(), "Unwetter");
+        newEventServices(new DomainEventBus(Set.of()))
+                .cancellation()
+                .cancelDate(
+                        calledOff,
+                        calledOff
+                                .startTime()
+                                .atZone(occurrenceCalendar.zoneOf(station.id()))
+                                .toLocalDate(),
+                        "Unwetter",
+                        null);
         var shared = oneTime(33);
         query("INSERT INTO event_federation_share(event_id) VALUES (:event_id);")
                 .single(call().bind("event_id", shared.id()))

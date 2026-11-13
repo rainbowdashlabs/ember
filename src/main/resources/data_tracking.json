@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:41d27cfa0d627b99e42d7be39d122195f84ad6726a0b472c2567a92e055351fa",
-  "generatedAt": "2026-11-12T23:12:48Z",
+  "schemaHash": "sha256:90e81126830a531780449ad6047e45c412659515584069cdd7a47dd11778873b",
+  "generatedAt": "2026-11-12T23:57:12Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -9931,11 +9931,11 @@
       ],
       "stationTransfer": {
         "status": "TRACKED",
-        "rationale": "A course moves with the appointments that are its parts.",
         "ignoredColumns": [
           "station_id",
           "deadline_notified"
-        ]
+        ],
+        "rationale": "A course moves with the appointments that are its parts."
       },
       "gdprExport": {
         "status": "IGNORED",
@@ -11507,7 +11507,7 @@
     "event_registration": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:b7d5e935146f16aac6c298f8a3d03b3e9308b05d282cab0c2eb2056d1891fca1",
+      "tableHash": "sha256:89344017257dca04f2a984ec7be57d9cf7983d0c704b98a2c6af13c45cc20df6",
       "columns": [
         {
           "name": "id",
@@ -11585,9 +11585,22 @@
           "nullable": true,
           "verified": true,
           "description": "When a signed agreement for this date that one of the appointment's documents to bring asked for was withdrawn while the registration stood, which flags the registration for whoever runs the appointment. NULL where none was, and again once the agreement is signed anew."
+        },
+        {
+          "name": "course_registration_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The course sign-up this registration for a part was chosen with; NULL for a registration of its own, and once the part was given up."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "course_registration_id",
+          "refTable": "event_course_registration",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
         {
           "column": "created_by",
           "refTable": "station_member",

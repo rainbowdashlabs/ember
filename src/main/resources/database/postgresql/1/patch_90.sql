@@ -318,6 +318,15 @@ COMMENT ON COLUMN ember_schema.event_course_registration.registered_at
 COMMENT ON COLUMN ember_schema.event_course_registration.created_by
     IS 'The member who signed somebody else up; NULL when members signed up themselves.';
 
+ALTER TABLE ember_schema.event_registration
+    ADD COLUMN course_registration_id INT REFERENCES ember_schema.event_course_registration (id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_event_registration_course_registration_id
+    ON ember_schema.event_registration (course_registration_id) WHERE course_registration_id IS NOT NULL;
+
+COMMENT ON COLUMN ember_schema.event_registration.course_registration_id
+    IS 'The course sign-up this registration for a part was chosen with; NULL for a registration of its own, and once the part was given up.';
+
 CREATE TABLE IF NOT EXISTS ember_schema.event_course_restriction
 (
     id        SERIAL PRIMARY KEY,

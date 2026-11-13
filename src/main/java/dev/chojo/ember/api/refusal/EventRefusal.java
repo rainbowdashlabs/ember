@@ -728,7 +728,47 @@ public enum EventRefusal implements Refusal {
 
     /** A course audience naming a group, tag or member of another station. */
     COURSE_AUDIENCE_NOT_OF_STATION(
-            197, HttpStatus.BAD_REQUEST, "The audience names somebody who is not of this station, nothing was saved");
+            197, HttpStatus.BAD_REQUEST, "The audience names somebody who is not of this station, nothing was saved"),
+
+    /** A sign-up, answer or decision sent for a part of a course instead of the course. */
+    REGISTRATION_THROUGH_COURSE(
+            198, HttpStatus.CONFLICT, "That appointment is a part of a course, sign up through the course instead"),
+
+    /** A sign-up for a course that was called off. */
+    COURSE_CANCELLED(199, HttpStatus.CONFLICT, "That course was called off"),
+
+    /** A sign-up or change of parts after the course's deadline. */
+    COURSE_REGISTRATION_CLOSED(
+            200, HttpStatus.BAD_REQUEST, "Sign-ups for this course are closed, ask whoever runs the course"),
+
+    /** A sign-up for a course that has no place left. */
+    COURSE_FULL(201, HttpStatus.CONFLICT, "The course has no place left"),
+
+    /** A second sign-up for a course the member is already signed up for. */
+    COURSE_ALREADY_SIGNED_UP(
+            202, HttpStatus.CONFLICT, "Already signed up for this course, change the chosen parts instead"),
+
+    /** A change of parts, withdrawal or decision for a member not signed up for the course. */
+    COURSE_NOT_SIGNED_UP(203, HttpStatus.NOT_FOUND, "Not signed up for this course"),
+
+    /** A sign-up choosing no part at all. */
+    COURSE_CHOICE_EMPTY(204, HttpStatus.BAD_REQUEST, "Choose at least one part of the course"),
+
+    /** A sign-up choosing an appointment that is no part of the course. */
+    COURSE_CHOICE_NOT_A_PART(
+            205, HttpStatus.BAD_REQUEST, "One of the chosen appointments is not a part of this course"),
+
+    /** A sign-up adding a part that was called off. */
+    COURSE_CHOICE_CALLED_OFF(206, HttpStatus.CONFLICT, "A called-off part cannot be chosen"),
+
+    /** A choice of parts that falls short of a set of the course. */
+    COURSE_CHOICE_SHORT(207, HttpStatus.BAD_REQUEST, "The chosen parts do not meet the course's rules"),
+
+    /** A decision on a course sign-up other than accepting or turning it down. */
+    COURSE_DECISION_UNKNOWN(208, HttpStatus.BAD_REQUEST, "A course sign-up can only be accepted or turned down"),
+
+    /** A member adding or dropping a part of a course that already took place. */
+    COURSE_PART_TOOK_PLACE(209, HttpStatus.CONFLICT, "A part that already took place cannot be added or dropped");
 
     private final Definition definition;
 

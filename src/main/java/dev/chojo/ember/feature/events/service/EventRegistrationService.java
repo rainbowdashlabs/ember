@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepositor
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -148,6 +149,17 @@ public class EventRegistrationService {
      */
     public EventRegistration register(
             int eventId, int memberId, LocalDate eventDate, boolean autoAccept, @Nullable Integer createdBy) {
+        var stored = Transactions.call(() -> {
+            eventRepository.lockForSignUp(eventId);
+            requireOwnSignUp(eventId);
+            return registerOwn(eventId, memberId, eventDate, autoAccept, createdBy);
+        });
+        recorded(stored);
+        return stored;
+    }
+
+    private EventRegistration registerOwn(
+            int eventId, int memberId, LocalDate eventDate, boolean autoAccept, @Nullable Integer createdBy) {
         var registration =
                 registrationRepository.create(eventId, memberId, eventDate, RegistrationStatus.PENDING, createdBy);
         log.info(
@@ -159,9 +171,7 @@ public class EventRegistrationService {
         if (autoAccept) {
             registrationRepository.updateStatus(registration.id(), RegistrationStatus.ACCEPTED);
         }
-        var stored = registrationRepository.findById(registration.id()).orElse(registration);
-        recorded(stored);
-        return stored;
+        return registrationRepository.findById(registration.id()).orElse(registration);
     }
 
     /**
@@ -255,11 +265,15 @@ public class EventRegistrationService {
      * @return true if the registration was updated
      */
     public boolean updateStatus(int id, RegistrationStatus status) {
-        registrationRepository
-                .findById(id)
-                .ifPresent(registration -> requireNotHeldByAField(
-                        registration, EventRefusal.REGISTRATION_HELD_BY_A_FIELD_ON_STATUS_CHANGE));
-        if (!registrationRepository.updateStatus(id, status)) {
+        boolean updated = Transactions.call(() -> {
+            var registration = registrationRepository.findById(id).orElse(null);
+            if (registration == null) return false;
+            eventRepository.lockForSignUp(registration.eventId());
+            requireOwnSignUp(registration.eventId());
+            requireNotHeldByAField(registration, EventRefusal.REGISTRATION_HELD_BY_A_FIELD_ON_STATUS_CHANGE);
+            return registrationRepository.updateStatus(id, status);
+        });
+        if (!updated) {
             log.warn("Cannot update registration status: registration {} not found", id);
             return false;
         }
@@ -341,6 +355,7 @@ public class EventRegistrationService {
             log.warn("Cannot withdraw registration: registration {} not found", id);
             return false;
         }
+        requireOwnSignUp(registration.eventId());
         requireNotHeldByAField(registration, EventRefusal.REGISTRATION_HELD_BY_A_FIELD_ON_WITHDRAWAL);
         if (!registrationRepository.recordAnswer(id, RegistrationStatus.WITHDRAWN)) return false;
         log.info("Withdrew registration {}", id);
@@ -365,7 +380,12 @@ public class EventRegistrationService {
     public boolean undoWithdrawal(int id) {
         var registration = registrationRepository.findById(id).orElse(null);
         if (registration == null) return false;
-        if (!registrationRepository.restorePreviousStatus(id, UNDO_WINDOW)) {
+        boolean restored = Transactions.call(() -> {
+            eventRepository.lockForSignUp(registration.eventId());
+            requireOwnSignUp(registration.eventId());
+            return registrationRepository.restorePreviousStatus(id, UNDO_WINDOW);
+        });
+        if (!restored) {
             log.info("Registration {} can no longer be taken back", id);
             return false;
         }
@@ -390,6 +410,7 @@ public class EventRegistrationService {
             log.warn("Cannot refuse registration: registration {} not found", id);
             return false;
         }
+        requireOwnSignUp(registration.eventId());
         requireNotHeldByAField(registration, EventRefusal.REGISTRATION_HELD_BY_A_FIELD_ON_REFUSAL);
         var status = refusalFor(registration.status(), registration.eventId());
         if (!registrationRepository.recordAnswer(id, status)) return false;
@@ -397,6 +418,86 @@ public class EventRegistrationService {
         announceFreedPlace(registration.eventId(), registration.memberId(), registration.status());
         recorded(id);
         return true;
+    }
+
+    /**
+     * Refuses a sign-up, answer or decision on a part of a course, which goes through the course so
+     * its rules, limit and confirmation hold for every part at once.
+     *
+     * @param eventId the appointment
+     */
+    public void requireOwnSignUp(int eventId) {
+        if (eventRepository.isCoursePart(eventId)) throw EventRefusal.REGISTRATION_THROUGH_COURSE.raise();
+    }
+
+    /**
+     * Writes a member's registration for one part of a course with the status of their course
+     * sign-up, tied to that sign-up. A place an appointment field already holds for the member is
+     * only tied, not rewritten: the field decides it. Nobody is told here; the course tells its
+     * people once for all its parts, and whoever keeps a record of the date learns of it through
+     * {@link #recordedAll} once the writes are kept.
+     *
+     * @param eventId              the part
+     * @param memberId             the member
+     * @param eventDate            the part's date
+     * @param status               the status of the course sign-up
+     * @param createdBy            the member who signed somebody else up, or null
+     * @param courseRegistrationId the course sign-up
+     * @return the stored registration
+     */
+    public EventRegistration placeForCourse(
+            int eventId,
+            int memberId,
+            LocalDate eventDate,
+            RegistrationStatus status,
+            @Nullable Integer createdBy,
+            int courseRegistrationId) {
+        var heldByField = registrationRepository.findByEventAndDate(eventId, eventDate).stream()
+                .filter(existing -> existing.memberId() == memberId && existing.fromField())
+                .findFirst();
+        int id = heldByField.map(EventRegistration::id).orElseGet(() -> registrationRepository
+                .create(eventId, memberId, eventDate, status, createdBy)
+                .id());
+        registrationRepository.linkToCourse(id, courseRegistrationId);
+        return registrationRepository.findById(id).orElseThrow();
+    }
+
+    /**
+     * Moves the registration for one part of a course to a new status, as the course sign-up moved.
+     * A place an appointment field holds keeps its status. Nobody is told here either.
+     *
+     * @param registration the registration
+     * @param status       the new status
+     * @return the registration as stored
+     */
+    public EventRegistration restateForCourse(EventRegistration registration, RegistrationStatus status) {
+        if (!registration.fromField()) registrationRepository.updateStatus(registration.id(), status);
+        return registrationRepository.findById(registration.id()).orElse(registration);
+    }
+
+    /**
+     * Lets a part go from a course sign-up: the registration is untied and, unless an appointment
+     * field holds it or the part already took place, given the status it ends with.
+     *
+     * @param registration the registration
+     * @param status       the status it ends with, or null to leave it as it is
+     * @return the registration as stored
+     */
+    public EventRegistration releaseFromCourse(EventRegistration registration, @Nullable RegistrationStatus status) {
+        registrationRepository.linkToCourse(registration.id(), null);
+        if (status == null)
+            return registrationRepository.findById(registration.id()).orElse(registration);
+        return restateForCourse(registration, status);
+    }
+
+    /**
+     * Tells whoever keeps a record of the dates what registrations written for a course say now.
+     * Called once the writes are kept, so nobody hears of a write that was undone.
+     *
+     * @param written the registrations as stored
+     */
+    public void recordedAll(List<EventRegistration> written) {
+        written.forEach(this::recorded);
     }
 
     /**
@@ -486,6 +587,7 @@ public class EventRegistrationService {
      * @return the stored declination
      */
     public EventRegistration decline(int eventId, int memberId, LocalDate eventDate, @Nullable Integer createdBy) {
+        requireOwnSignUp(eventId);
         var existing = registrationRepository.findByEventAndDate(eventId, eventDate).stream()
                 .filter(r -> r.memberId() == memberId)
                 .findFirst()

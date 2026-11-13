@@ -48,12 +48,18 @@ public class EventCourseService {
     private final EventCourseRepository courses;
     private final EventRepository events;
     private final RestrictionService restrictions;
+    private final OccurrenceCalendar calendar;
 
     @Inject
-    public EventCourseService(EventCourseRepository courses, EventRepository events, RestrictionService restrictions) {
+    public EventCourseService(
+            EventCourseRepository courses,
+            EventRepository events,
+            RestrictionService restrictions,
+            OccurrenceCalendar calendar) {
         this.courses = courses;
         this.events = events;
         this.restrictions = restrictions;
+        this.calendar = calendar;
     }
 
     /**
@@ -164,7 +170,9 @@ public class EventCourseService {
             if (event.eventType() != StationEvent.EventType.ONE_TIME) {
                 throw EventRefusal.COURSE_PART_NOT_ONE_TIME.raise();
             }
-            if (event.cancelled()) throw EventRefusal.COURSE_PART_CANCELLED.raise();
+            if (calendar.forStation(stationId).cancelledAltogether(event)) {
+                throw EventRefusal.COURSE_PART_CANCELLED.raise();
+            }
             if (courses.findPart(eventId).isPresent()) throw EventRefusal.COURSE_PART_TAKEN.raise();
             if (courses.hasOpenSignUps(eventId)) throw EventRefusal.COURSE_PART_HAS_SIGN_UPS.raise();
             if (courses.isSharedWithPartners(eventId)) throw EventRefusal.COURSE_PART_SHARED.raise();
@@ -208,6 +216,7 @@ public class EventCourseService {
             lockCourse(stationId, courseId);
             requirePartOf(courseId, eventId);
             courses.setPartSet(eventId, null);
+            courses.untieRegistrations(eventId);
         });
     }
 
