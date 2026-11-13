@@ -17,10 +17,12 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import ColorInput from '@/components/input/ColorInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {eventGroupColor} from '../eventshared/eventGroupColor'
+import {nonNegative} from '../templateeditview/signUpRules'
 
 /**
- * What an event group holds besides its sets, audiences and parts: name, description, its sign-up and
- * the colour that marks its parts. Without a colour of its own the picker shows the one its id picks,
+ * What an event group holds besides its sets, audiences and parts: name, description, its sign-up, the
+ * minimum of accepted sign-ups with the days before the first part it must be reached by, and the
+ * colour that marks its parts. The days are only asked once a minimum is given. Without a colour of its own the picker shows the one its id picks,
  * and choosing that one keeps it as its own. A new event group has no id yet, so its picker stays
  * neutral and says that the palette colour is picked once it is saved.
  */
@@ -35,6 +37,8 @@ const limit = defineModel<number | undefined>('limit', {required: true})
 const deadline = defineModel<string>('deadline', {required: true})
 const confirm = defineModel<boolean>('confirm', {required: true})
 const color = defineModel<string>('color', {required: true})
+const minRegistrations = defineModel<number | undefined>('minRegistrations', {required: true})
+const thresholdDays = defineModel<number | undefined>('thresholdDays', {required: true})
 
 const NEUTRAL = '#9ca3af'
 
@@ -63,6 +67,26 @@ const {t} = useI18n()
       <ToggleInput v-model="confirm"/>
       {{ t('eventGroups.confirmationField') }}
     </FieldLabel>
+    <FieldLabel for="event-group-minimum">{{ t('eventGroups.minimumField') }}</FieldLabel>
+    <NumberInput
+        id="event-group-minimum"
+        :model-value="minRegistrations"
+        min="0"
+        data-testid="event-group-minimum"
+        @update:model-value="value => minRegistrations = nonNegative(value)"
+    />
+    <template v-if="minRegistrations">
+      <FieldLabel for="event-group-threshold">{{ t('eventGroups.thresholdField') }}</FieldLabel>
+      <NumberInput
+          id="event-group-threshold"
+          :model-value="thresholdDays"
+          min="0"
+          :placeholder="t('events.thresholdDaysPlaceholder')"
+          data-testid="event-group-threshold"
+          @update:model-value="value => thresholdDays = nonNegative(value)"
+      />
+      <FieldHint>{{ t('eventGroups.minimumHint') }}</FieldHint>
+    </template>
     <FieldLabel>{{ t('eventGroups.color') }}</FieldLabel>
     <div class="flex items-center gap-2">
       <ColorInput v-model="shownColor" data-testid="event-group-color"/>

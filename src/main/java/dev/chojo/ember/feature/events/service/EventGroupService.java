@@ -632,13 +632,28 @@ public class EventGroupService {
         if (limit != null && limit < 1) {
             throw EventRefusal.EVENT_GROUP_LIMIT_NOT_POSITIVE.raise();
         }
+        requireCompleteMinimum(details.minRegistrations(), details.thresholdDays());
         return new EventGroupDetails(
                 name.strip(),
                 details.description(),
                 limit,
                 details.registrationDeadline(),
                 details.requiresConfirmation(),
-                checkedColor(details.color()));
+                checkedColor(details.color()),
+                details.minRegistrations(),
+                details.thresholdDays());
+    }
+
+    /**
+     * A minimum comes with the days before the first part it must be reached by, or neither is set:
+     * one without the other could never be checked. The minimum asks for at least one sign-up, and
+     * the days are none or more.
+     */
+    private static void requireCompleteMinimum(@Nullable Integer minimum, @Nullable Integer days) {
+        if (minimum == null && days == null) return;
+        if (minimum == null || days == null || minimum < 1 || days < 0) {
+            throw EventRefusal.EVENT_GROUP_MINIMUM_INCOMPLETE.raise();
+        }
     }
 
     /** A colour is six hex digits after a hash, the form a colour picker writes; nothing else is stored. */

@@ -26,6 +26,8 @@ Wer eine Wache teilt, kann sich direkt oder in Gruppen Nachrichten schreiben. Ei
 - **Terminreihen mit Partnerwachen.** Eine Terminreihe lässt sich mit allen Terminen mit Partnerwachen teilen, und deren Mitglieder melden sich nach denselben Vorgaben und Plätzen an. Die Partnerwache gibt eine Absage an sie weiter.
 - **Kommentare und Notizen an der Terminreihe.** Die Seite der Terminreihe hat Kommentare, die auch Partnerwachen sehen, denen die Terminreihe geteilt ist, Notizen für alle, die Termine bearbeiten, und für jeden Termin, wer von der Warteliste zur Probe kommt.
 - **Anwesenheit in der ganzen Terminreihe im Blick.** Die Seite der Terminreihe zeigt für alle Teilnehmenden, wie viele Termine jedes Blocks sie laut den Anwesenheitslisten besucht haben und ob alle Blöcke erfüllt sind. Die Übersicht lässt sich als Tabelle exportieren.
+- **Eine Mindestzahl für die Terminreihe.** Eine Terminreihe kann eine Zahl angenommener Anmeldungen verlangen, Partnerwachen eingerechnet, die einige Tage vor ihrem ersten Termin erreicht sein muss. Fehlen dann noch Anmeldungen, wird die ganze Terminreihe abgesagt, und alle Angemeldeten erfahren den Grund.
+- **Anmeldungen einer Terminreihe als Datei.** Wer Anmeldungen verwaltet, nimmt die Anmeldungen einer Terminreihe als Tabelle oder als Liste zum Ausdrucken mit. Jede Anmeldung steht in einer Zeile mit ihren Antworten und einem Kreuz bei jedem gewählten Termin.
 - **Teile des Inventars einzeln abschalten.** Vorgänge, Verleih, Beschaffung, das Selbstprüfen der Ausrüstung und Inventarprüfungen haben unter Wache → Module je einen eigenen Schalter unter dem Inventar. Verbände können jeden Teil ihren Wachen genauso verwehren wie ein ganzes Modul.
 
 ### Verbesserungen

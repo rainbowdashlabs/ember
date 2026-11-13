@@ -34,6 +34,10 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param cancelReason         why it was called off
  * @param color                the colour that marks its parts in lists (#RRGGBB), or null for one
  *                             picked by its id
+ * @param minRegistrations     how many sign-ups must be accepted for the event group to take place, or
+ *                             null for no minimum
+ * @param thresholdDays        how many days before its first part the minimum must be reached, set
+ *                             together with the minimum
  */
 public record EventGroup(
         int id,
@@ -48,11 +52,13 @@ public record EventGroup(
         boolean cancelled,
         @Nullable Instant cancelledAt,
         @Nullable String cancelReason,
-        @Nullable String color) {
+        @Nullable String color,
+        @Nullable Integer minRegistrations,
+        @Nullable Integer thresholdDays) {
 
     /** The columns {@link #map()} reads. */
     public static final String COLUMNS =
-            "id, station_id, name, description, registration_limit, registration_deadline, requires_confirmation, restriction_mode, view_restriction_mode, cancelled, cancelled_at, cancel_reason, color";
+            "id, station_id, name, description, registration_limit, registration_deadline, requires_confirmation, restriction_mode, view_restriction_mode, cancelled, cancelled_at, cancel_reason, color, min_registrations, threshold_days";
 
     /** Reads an event group from a row holding {@link #COLUMNS}. */
     public static RowMapping<EventGroup> map() {
@@ -69,7 +75,9 @@ public record EventGroup(
                 row.getBoolean("cancelled"),
                 row.get("cancelled_at", INSTANT_TIMESTAMP),
                 row.getString("cancel_reason"),
-                row.getString("color"));
+                row.getString("color"),
+                row.getObject("min_registrations", Integer.class),
+                row.getObject("threshold_days", Integer.class));
     }
 
     /**

@@ -20642,6 +20642,52 @@
         } ]
       }
     },
+    "/api/v1/events/groups/{eventGroupId}/sign-ups/export.csv" : {
+      "get" : {
+        "summary" : "The sign-ups of an event group as a spreadsheet, with a column per part",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "separator",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/events/groups/{eventGroupId}/sign-ups/export.pdf" : {
+      "get" : {
+        "summary" : "The sign-ups of an event group as a sheet to print, with a column per part",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/events/groups/{eventGroupId}/sign-ups/{memberId}/status" : {
       "put" : {
         "summary" : "Accept or turn down an event group sign-up and every part chosen with it",
@@ -62807,6 +62853,14 @@
           },
           "color" : {
             "type" : [ "string", "null" ]
+          },
+          "minRegistrations" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "thresholdDays" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         }
       },
@@ -63272,9 +63326,17 @@
           },
           "color" : {
             "type" : [ "string", "null" ]
+          },
+          "minRegistrations" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "thresholdDays" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "name", "description", "registrationLimit", "registrationDeadline", "requiresConfirmation", "cancelled", "cancelReason", "partCount", "holding", "color" ]
+        "required" : [ "id", "name", "description", "registrationLimit", "registrationDeadline", "requiresConfirmation", "cancelled", "cancelReason", "partCount", "holding", "color", "minRegistrations", "thresholdDays" ]
       },
       "EventItem" : {
         "type" : "object",

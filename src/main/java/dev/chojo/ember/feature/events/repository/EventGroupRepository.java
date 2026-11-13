@@ -47,8 +47,8 @@ public class EventGroupRepository {
     public EventGroup create(int stationId, EventGroupDetails details) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO event_group(station_id, name, description, registration_limit, registration_deadline, requires_confirmation, color)
-                VALUES (:station_id, :name, :description, :registration_limit, :registration_deadline, :requires_confirmation, :color)
+                INSERT INTO event_group(station_id, name, description, registration_limit, registration_deadline, requires_confirmation, color, min_registrations, threshold_days)
+                VALUES (:station_id, :name, :description, :registration_limit, :registration_deadline, :requires_confirmation, :color, :min_registrations, :threshold_days)
                 RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", details.name())
@@ -56,7 +56,9 @@ public class EventGroupRepository {
                         .bind("registration_limit", details.registrationLimit())
                         .bind("registration_deadline", details.registrationDeadline(), INSTANT_TIMESTAMP)
                         .bind("requires_confirmation", details.requiresConfirmation())
-                        .bind("color", details.color()),
+                        .bind("color", details.color())
+                        .bind("min_registrations", details.minRegistrations())
+                        .bind("threshold_days", details.thresholdDays()),
                 EventGroup.map(),
                 EventGroup.COLUMNS);
     }
@@ -78,7 +80,9 @@ public class EventGroupRepository {
                     deadline_notified     = deadline_notified AND registration_deadline IS NOT DISTINCT FROM :registration_deadline,
                     registration_deadline = :registration_deadline,
                     requires_confirmation = :requires_confirmation,
-                    color                 = :color
+                    color                 = :color,
+                    min_registrations     = :min_registrations,
+                    threshold_days        = :threshold_days
                 WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("name", details.name())
@@ -86,9 +90,28 @@ public class EventGroupRepository {
                         .bind("registration_limit", details.registrationLimit())
                         .bind("registration_deadline", details.registrationDeadline(), INSTANT_TIMESTAMP)
                         .bind("requires_confirmation", details.requiresConfirmation())
-                        .bind("color", details.color()))
+                        .bind("color", details.color())
+                        .bind("min_registrations", details.minRegistrations())
+                        .bind("threshold_days", details.thresholdDays()))
                 .update()
                 .changed();
+    }
+
+    /**
+     * The event groups that carry a minimum and are not called off, which the minimum check reads.
+     *
+     * @return those event groups
+     */
+    public List<EventGroup> findWithMinimum() {
+        return query("""
+                SELECT %s
+                FROM event_group
+                WHERE cancelled = FALSE
+                  AND min_registrations IS NOT NULL
+                  AND threshold_days IS NOT NULL;""", EventGroup.COLUMNS)
+                .single(call())
+                .map(EventGroup.map())
+                .all();
     }
 
     /**

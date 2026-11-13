@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.handler;
 import dev.chojo.ember.event.events.EventGroupCancelled;
 import dev.chojo.ember.event.events.EventGroupDeadlineExpired;
 import dev.chojo.ember.event.events.EventGroupRegistrationStatusChanged;
+import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
@@ -60,12 +61,25 @@ class EventGroupNoticeHandlersTest {
     void aCalledOffEventGroupTellsItsPeopleOnceAndNobodyWhenNobodyIsSignedUp() {
         var handler = new EventGroupCancelledHandler(notifier);
 
-        handler.handle(new EventGroupCancelled(3, 70, "Jugendflamme 1", null, List.of()));
+        handler.handle(new EventGroupCancelled(3, 70, "Jugendflamme 1", null, List.of(), CancellationCause.MANUAL));
         verify(notifier, never()).notify(any(), any(), any(), any(Delivery.class));
 
-        handler.handle(new EventGroupCancelled(3, 70, "Jugendflamme 1", "Krank", List.of(11, 12)));
+        handler.handle(
+                new EventGroupCancelled(3, 70, "Jugendflamme 1", "Krank", List.of(11, 12), CancellationCause.MANUAL));
         var data = sent(NotificationType.EVENT_CANCELLED, 1);
         assertEquals("Krank", ((NotificationParams.EventCancelled) data.params()).reason());
+    }
+
+    @Test
+    void anEventGroupCalledOffForTooFewSignUpsSaysSo() {
+        new EventGroupCancelledHandler(notifier)
+                .handle(new EventGroupCancelled(
+                        3, 70, "Jugendflamme 1", null, List.of(11), CancellationCause.THRESHOLD));
+
+        var params = (NotificationParams.EventCancelled)
+                sent(NotificationType.EVENT_CANCELLED, 1).params();
+        assertEquals(CancellationCause.THRESHOLD, params.cause());
+        assertEquals(Boolean.TRUE, params.eventGroup());
     }
 
     @Test

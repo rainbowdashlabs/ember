@@ -29043,6 +29043,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/groups/{eventGroupId}/sign-ups/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The sign-ups of an event group as a spreadsheet, with a column per part */
+        get: {
+            parameters: {
+                query?: {
+                    separator?: string;
+                };
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/sign-ups/export.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The sign-ups of an event group as a sheet to print, with a column per part */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/groups/awaiting": {
         parameters: {
             query?: never;
@@ -71259,11 +71333,15 @@ export interface components {
         EventGroupDetails: {
             color?: string | null;
             description?: string | null;
+            /** Format: int32 */
+            minRegistrations?: number | null;
             name?: string;
             registrationDeadline?: components["schemas"]["Instant"] | null;
             /** Format: int32 */
             registrationLimit?: number | null;
             requiresConfirmation?: boolean;
+            /** Format: int32 */
+            thresholdDays?: number | null;
         };
         EventGroupDetailsRequest: {
             details?: components["schemas"]["EventGroupDetails"];
@@ -71407,6 +71485,8 @@ export interface components {
             holding: number;
             /** Format: int32 */
             id: number;
+            /** Format: int32 */
+            minRegistrations: number | null;
             name: string;
             /** Format: int32 */
             partCount: number;
@@ -71414,6 +71494,8 @@ export interface components {
             /** Format: int32 */
             registrationLimit: number | null;
             requiresConfirmation: boolean;
+            /** Format: int32 */
+            thresholdDays: number | null;
         };
         EventItem: {
             date?: string;

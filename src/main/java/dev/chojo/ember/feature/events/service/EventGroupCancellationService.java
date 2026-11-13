@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventGroupCancelled;
+import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
@@ -63,6 +64,29 @@ public class EventGroupCancellationService {
      * @param cancelledBy the member calling it off, or null
      */
     public void cancel(int stationId, int eventGroupId, @Nullable String reason, @Nullable Integer cancelledBy) {
+        if (!callOff(stationId, eventGroupId, reason, cancelledBy, CancellationCause.MANUAL)) {
+            throw EventRefusal.EVENT_GROUP_CANCELLED.raise();
+        }
+    }
+
+    /**
+     * Calls an event group off because too few sign-ups were accepted in time. The people signed up
+     * are told so, worded in their own language, and no reason is stored.
+     *
+     * @param stationId    the station holding it
+     * @param eventGroupId the event group
+     * @return true where it was called off now, false where it was off already
+     */
+    public boolean cancelForTooFewSignUps(int stationId, int eventGroupId) {
+        return callOff(stationId, eventGroupId, null, null, CancellationCause.THRESHOLD);
+    }
+
+    private boolean callOff(
+            int stationId,
+            int eventGroupId,
+            @Nullable String reason,
+            @Nullable Integer cancelledBy,
+            CancellationCause cause) {
         var eventGroup = eventGroups
                 .findById(eventGroupId)
                 .filter(found -> found.stationId() == stationId)
@@ -71,22 +95,28 @@ public class EventGroupCancellationService {
             eventGroups.lockEventGroup(eventGroupId);
             return eventGroups.cancel(eventGroupId, reason);
         });
-        if (!calledOff) throw EventRefusal.EVENT_GROUP_CANCELLED.raise();
+        if (!calledOff) return false;
         try {
             for (var part : eventGroups.findParts(eventGroupId)) {
-                callOff(stationId, part.eventId(), reason, cancelledBy);
+                callOffPart(stationId, part.eventId(), reason, cancelledBy);
             }
         } finally {
             eventBus.publish(new EventGroupCancelled(
-                    stationId, eventGroupId, eventGroup.name(), reason, signUps.findHoldingMemberIds(eventGroupId)));
+                    stationId,
+                    eventGroupId,
+                    eventGroup.name(),
+                    reason,
+                    signUps.findHoldingMemberIds(eventGroupId),
+                    cause));
         }
+        return true;
     }
 
     /**
      * Calls one part off unless it is off already or past. A part that cannot be called off is left
      * as it is and the others still follow, so one part never keeps the event group or its notice back.
      */
-    private void callOff(int stationId, int eventId, @Nullable String reason, @Nullable Integer cancelledBy) {
+    private void callOffPart(int stationId, int eventId, @Nullable String reason, @Nullable Integer cancelledBy) {
         var stationCalendar = calendar.forStation(stationId);
         try {
             events.findById(eventId)

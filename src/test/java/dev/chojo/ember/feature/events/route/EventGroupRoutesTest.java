@@ -106,6 +106,8 @@ class EventGroupRoutesTest {
                 false,
                 null,
                 null,
+                null,
+                null,
                 null);
         when(eventGroups.requireEventGroup(STATION_ID, EVENT_GROUP_ID)).thenReturn(eventGroup);
         when(eventGroups.findByStation(STATION_ID)).thenReturn(List.of(eventGroup));
@@ -590,6 +592,8 @@ class EventGroupRoutesTest {
                 RestrictionMode.AND,
                 RestrictionMode.AND,
                 false,
+                null,
+                null,
                 null,
                 null,
                 null);

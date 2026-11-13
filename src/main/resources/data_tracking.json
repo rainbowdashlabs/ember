@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:2ae7438d399c925d555414199ac0f60eb4f9025f8422d66ebddbe17bc33ea20f",
-  "generatedAt": "2026-11-13T22:54:34Z",
+  "schemaHash": "sha256:19aec90cef2c625ccbf9d7eedf8ee1752b2088b808dd5f8ab2561239052d858d",
+  "generatedAt": "2026-11-13T23:08:21Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -10922,7 +10922,7 @@
     "event_group": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:4b37258cd42daa4b9b2a1aa8ee9359daf2c3e0e9844e35612bd23b8ec8dfc794",
+      "tableHash": "sha256:45f06c4f8ac1b49e5f2711f998c5376c20d22ed3756111df3139a27f5cbd72f3",
       "columns": [
         {
           "name": "id",
@@ -11042,6 +11042,20 @@
           "nullable": true,
           "verified": true,
           "description": "The category a part without one of its own is filed under. NULL for none."
+        },
+        {
+          "name": "min_registrations",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "How many sign-ups, of this station and of partner stations, must be accepted for the event group to take place. NULL for no minimum."
+        },
+        {
+          "name": "threshold_days",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "How many days before the first part still taking place the minimum must be reached; short of it then, the whole event group is called off. Set exactly when the minimum is."
         }
       ],
       "foreignKeys": [

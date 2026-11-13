@@ -77,6 +77,8 @@ const exampleVisitors = computed((): WaitingListVisitor[] => [{
         <p class="text-sm">{{ t('helpCenter.eventGroupDetail.day4') }}</p>
       </NeutralContainer>
       <p>{{ t('helpCenter.eventGroupDetail.calledOffText') }}</p>
+      <p>{{ t('helpCenter.eventGroupDetail.minimumText') }}</p>
+      <MutedText tag="p" size="sm">{{ t('eventGroups.minimumRule', {minimum: 6, days: 7}) }}</MutedText>
     </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupDetail.signUpTitle')">
       <p>{{ t('helpCenter.eventGroupDetail.signUpText') }}</p>
@@ -131,6 +133,8 @@ const exampleVisitors = computed((): WaitingListVisitor[] => [{
             <ErrorButton compact>{{ t('eventGroups.deny') }}</ErrorButton>
           </ButtonRow>
         </NeutralContainer>
+        <p>{{ t('helpCenter.eventGroupDetail.exportText') }}</p>
+        <SecondaryButton :icon="['fas', 'file-export']">{{ t('eventGroups.exportSignUps') }}</SecondaryButton>
         <p>{{ t('helpCenter.eventGroupDetail.partnerText') }}</p>
         <p>{{ t('helpCenter.eventGroupDetail.attendanceText') }}</p>
       </HelpPermissionGuard>

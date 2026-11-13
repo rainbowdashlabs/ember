@@ -6,6 +6,7 @@
 package dev.chojo.ember.event.events;
 
 import dev.chojo.ember.event.DomainEvent;
+import dev.chojo.ember.feature.events.entity.CancellationCause;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
@@ -18,10 +19,13 @@ import java.util.List;
  * @param eventGroupName its name
  * @param reason     why, as told to the people signed up, or null
  * @param memberIds  the members whose sign-up held or waited for a place
+ * @param cause      who called it off: a manager, or the check that too few sign-ups were accepted
  */
 public record EventGroupCancelled(
         int stationId,
         int eventGroupId,
         String eventGroupName,
         @Nullable String reason,
-        List<Integer> memberIds) implements DomainEvent {}
+        List<Integer> memberIds,
+        CancellationCause cause)
+        implements DomainEvent {}

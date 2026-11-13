@@ -50,6 +50,16 @@ const {stationTimezone} = useSession()
 
 const eventGroup = computed(() => props.detail.eventGroup)
 
+/** The minimum of accepted sign-ups the event group needs and by when, or nothing where it has none. */
+const minimumRule = computed(() => {
+  const minimum = eventGroup.value.minRegistrations
+  const days = eventGroup.value.thresholdDays
+  if (!minimum || days == null) return null
+  return days === 0
+    ? t('eventGroups.minimumRuleSameDay', {minimum})
+    : t('eventGroups.minimumRule', {minimum, days})
+})
+
 /** The parts of a set in date order. */
 function partsOf(setId: number) {
   return props.detail.parts.filter(part => part.setId === setId)
@@ -104,6 +114,7 @@ function whenOf(part: EventGroupPartState): string {
       </MutedText>
       <MutedText v-if="eventGroup.requiresConfirmation" tag="span" size="sm">{{ t('eventGroups.confirmation') }}</MutedText>
     </div>
+    <MutedText v-if="minimumRule" tag="p" size="sm" data-testid="event-group-minimum-rule">{{ minimumRule }}</MutedText>
     <ProseContent v-if="eventGroup.description" v-html="renderMarkdown(eventGroup.description)"/>
     <EventGroupFields
         :fields="detail.fields"

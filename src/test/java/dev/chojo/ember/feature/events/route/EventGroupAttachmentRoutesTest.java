@@ -52,6 +52,8 @@ class EventGroupAttachmentRoutesTest {
             false,
             null,
             null,
+            null,
+            null,
             null);
 
     private EventAttachmentService attachments;

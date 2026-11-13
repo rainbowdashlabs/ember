@@ -207,6 +207,22 @@ export async function exportAttendance(eventGroupId: number, separator: ExportSe
 }
 
 /**
+ * The sign-ups of an event group as a file: a spreadsheet, or a sheet to print with a column per
+ * part. Only a spreadsheet takes a separator.
+ */
+export async function exportSignUps(
+    eventGroupId: number,
+    format: 'csv' | 'pdf',
+    separator: ExportSeparator = 'semicolon',
+): Promise<DocumentFile> {
+    const res = await client.get(`${EVENT_GROUPS}/${eventGroupId}/sign-ups/export.${format}`, {
+        responseType: 'blob',
+        params: format === 'csv' ? {separator} : undefined,
+    })
+    return documentFrom(res, `Anmeldungen.${format}`)
+}
+
+/**
  * The thread under one of the station's own event groups. Whoever may open the event group reads and
  * writes it, and an appointment manager removes anybody's comment there, as under an appointment.
  */

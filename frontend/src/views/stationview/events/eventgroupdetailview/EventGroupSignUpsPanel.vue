@@ -21,6 +21,7 @@ import EventGroupAnswersButton from './EventGroupAnswersButton.vue'
 import RegistrationStatusBadge from '../eventshared/RegistrationStatusBadge.vue'
 import EventGroupShortfall from './EventGroupShortfall.vue'
 import EventGroupSignUpDialog from './EventGroupSignUpDialog.vue'
+import EventGroupSignUpExport from './EventGroupSignUpExport.vue'
 import RegistrationFieldAnswers from '../eventdetailview/RegistrationFieldAnswers.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import {fromCompletion} from '@/components/input/select/memberOption'
@@ -111,7 +112,10 @@ defineExpose({reload})
 
 <template>
   <NeutralContainer class="space-y-3" data-testid="event-group-sign-ups">
-    <SectionHeader>{{ t('eventGroups.signUps') }}</SectionHeader>
+    <div class="flex flex-wrap items-start justify-between gap-2">
+      <SectionHeader>{{ t('eventGroups.signUps') }}</SectionHeader>
+      <EventGroupSignUpExport :event-group-id="detail.eventGroup.id"/>
+    </div>
     <FailureAlert v-if="actionFailure" :failure="actionFailure"/>
     <div v-if="canAdd" class="space-y-1" data-testid="event-group-add-person">
       <SubHeader>{{ t('eventGroups.addPerson') }}</SubHeader>

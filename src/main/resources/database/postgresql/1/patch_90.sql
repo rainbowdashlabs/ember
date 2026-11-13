@@ -685,3 +685,20 @@ COMMENT ON COLUMN ember_schema.event_attachment.event_id IS
     'The appointment that hands the file over. NULL for a file of an event group.';
 COMMENT ON COLUMN ember_schema.event_attachment.event_group_id IS
     'The event group that hands the file over on every part, before the part''s own files. NULL for a file of an appointment; exactly one of event_id and event_group_id is set.';
+
+-- A minimum for an event group: where too few sign-ups are accepted some days before its first part, the
+-- whole event group is called off. Its parts keep no minimum of their own.
+
+ALTER TABLE ember_schema.event_group
+    ADD COLUMN IF NOT EXISTS min_registrations INT,
+    ADD COLUMN IF NOT EXISTS threshold_days    INT;
+
+ALTER TABLE ember_schema.event_group
+    ADD CONSTRAINT event_group_minimum_complete
+        CHECK ((min_registrations IS NULL AND threshold_days IS NULL)
+            OR (min_registrations >= 1 AND threshold_days >= 0));
+
+COMMENT ON COLUMN ember_schema.event_group.min_registrations
+    IS 'How many sign-ups, of this station and of partner stations, must be accepted for the event group to take place. NULL for no minimum.';
+COMMENT ON COLUMN ember_schema.event_group.threshold_days
+    IS 'How many days before the first part still taking place the minimum must be reached; short of it then, the whole event group is called off. Set exactly when the minimum is.';

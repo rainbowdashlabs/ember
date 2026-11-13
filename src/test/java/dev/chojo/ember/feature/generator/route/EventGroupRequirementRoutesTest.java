@@ -48,6 +48,8 @@ class EventGroupRequirementRoutesTest {
             false,
             null,
             null,
+            null,
+            null,
             null);
 
     private EventRequirementService requirements;

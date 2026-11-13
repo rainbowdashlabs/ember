@@ -64,6 +64,8 @@ class EventGroupAttendanceRoutesTest {
                         false,
                         null,
                         null,
+                        null,
+                        null,
                         null));
         when(eventGroups.findSets(70))
                 .thenReturn(

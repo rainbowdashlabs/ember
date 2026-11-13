@@ -106,6 +106,18 @@ public class EventGroupRegistrationRepository {
     }
 
     /**
+     * How many sign-ups of an event group were accepted.
+     *
+     * @param eventGroupId the event group
+     * @return the accepted sign-ups
+     */
+    public int countAccepted(int eventGroupId) {
+        return SqlSupport.count("""
+                SELECT count(*) FROM event_group_registration
+                WHERE group_id = :group_id AND status = 'ACCEPTED';""", call().bind("group_id", eventGroupId));
+    }
+
+    /**
      * The members whose sign-up for an event group holds or waits for a place.
      *
      * @param eventGroupId the event group

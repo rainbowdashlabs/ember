@@ -213,6 +213,18 @@ public class EventGroupPartnerRepository {
     }
 
     /**
+     * How many partner sign-ups of an event group were accepted.
+     *
+     * @param eventGroupId the event group
+     * @return the accepted partner sign-ups
+     */
+    public int countAccepted(int eventGroupId) {
+        return SqlSupport.count("""
+                SELECT count(*) FROM event_group_partner_registration
+                WHERE group_id = :group_id AND status = 'ACCEPTED';""", call().bind("group_id", eventGroupId));
+    }
+
+    /**
      * Ties a partner registration for a part to the event group sign-up it was chosen with.
      *
      * @param registrationId               the partner registration

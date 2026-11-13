@@ -11,6 +11,7 @@ import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import FieldHint from '@/components/typography/FieldHint.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
@@ -45,6 +46,16 @@ const templates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exampleG
           <ColorInput model-value="#8b5cf6"/>
           <SecondaryButton compact>{{ t('eventGroups.colorReset') }}</SecondaryButton>
         </div>
+      </NeutralContainer>
+    </HelpSection>
+    <HelpSection :title="t('helpCenter.eventGroupEdit.minimumTitle')">
+      <p>{{ t('helpCenter.eventGroupEdit.minimumText') }}</p>
+      <NeutralContainer class="space-y-2">
+        <FieldLabel>{{ t('eventGroups.minimumField') }}</FieldLabel>
+        <NumberInput :model-value="6"/>
+        <FieldLabel>{{ t('eventGroups.thresholdField') }}</FieldLabel>
+        <NumberInput :model-value="7"/>
+        <FieldHint>{{ t('eventGroups.minimumHint') }}</FieldHint>
       </NeutralContainer>
     </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupEdit.setsTitle')">

@@ -42,7 +42,8 @@ public class EventGroupCancelledHandler implements DomainEventHandler<EventGroup
                 StationAudience.household(event.memberIds()),
                 NotificationType.EVENT_CANCELLED,
                 NotificationData.of(
-                        new NotificationParams.EventCancelled(event.eventGroupName(), event.reason(), null, null, true),
+                        new NotificationParams.EventCancelled(
+                                event.eventGroupName(), event.reason(), null, event.cause(), true),
                         NotificationLinks.eventGroup(event.eventGroupId())),
                 Delivery.EVERY_TIME);
     }

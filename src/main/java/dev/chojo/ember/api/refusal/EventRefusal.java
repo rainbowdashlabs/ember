@@ -821,6 +821,13 @@ public enum EventRefusal implements Refusal {
     EVENT_GROUP_SET_MINIMUM_ABOVE_PARTS(
             219, HttpStatus.BAD_REQUEST, "A set cannot ask for more parts than it holds, nothing was saved"),
 
+    /** An event group minimum without its days before the first part, or the other way round, or below one. */
+    EVENT_GROUP_MINIMUM_INCOMPLETE(
+            220,
+            HttpStatus.BAD_REQUEST,
+            "A minimum needs at least one sign-up and the days before the first part it must be reached by,"
+                    + " nothing was saved"),
+
     /** An event group filed under a category of another station, or one that is gone. */
     EVENT_GROUP_CATEGORY_NOT_HERE(221, HttpStatus.NOT_FOUND, Sentences.EVENT_CATEGORY_NOT_HERE);
 

@@ -75,6 +75,8 @@ const limit = ref<number | undefined>(undefined)
 const deadline = ref('')
 const confirm = ref(false)
 const color = ref('')
+const minRegistrations = ref<number | undefined>(undefined)
+const thresholdDays = ref<number | undefined>(undefined)
 const sets = ref<SetRow[]>([{id: null, name: t('eventGroups.defaultSet'), minimum: 1}])
 const registration = ref<RestrictionSelection>(emptySelection())
 const view = ref<RestrictionSelection>(emptySelection())
@@ -145,6 +147,8 @@ function fill(loadedDetail: EventGroupDetail) {
   deadline.value = instantToLocalInput(loadedDetail.eventGroup.registrationDeadline)
   confirm.value = loadedDetail.eventGroup.requiresConfirmation
   color.value = loadedDetail.eventGroup.color ?? ''
+  minRegistrations.value = loadedDetail.eventGroup.minRegistrations ?? undefined
+  thresholdDays.value = loadedDetail.eventGroup.thresholdDays ?? undefined
   sets.value = loadedDetail.sets.map(set => ({id: set.id, name: set.name, minimum: set.minimum}))
   registration.value = selectionOf(loadedDetail.registration)
   view.value = selectionOf(loadedDetail.view)
@@ -245,6 +249,8 @@ function details() {
     registrationDeadline: deadline.value ? localInputToInstant(deadline.value) : null,
     requiresConfirmation: confirm.value,
     color: color.value || null,
+    minRegistrations: minRegistrations.value || null,
+    thresholdDays: minRegistrations.value ? thresholdDays.value ?? null : null,
   }
 }
 
@@ -314,9 +320,8 @@ async function save() {
         <EventGroupTemplateStart v-if="eventGroupId == null" v-bind="fromTemplate.props.value" @apply="applyTemplate"/>
         <EventGroupDetailsForm
             v-model:name="name" v-model:description="description"
-            v-model:limit="limit"
-            v-model:deadline="deadline"
-            v-model:confirm="confirm"
+            v-model:limit="limit" v-model:deadline="deadline" v-model:confirm="confirm"
+            v-model:min-registrations="minRegistrations" v-model:threshold-days="thresholdDays"
             v-model:color="color" :event-group-id="eventGroupId"
         />
 
