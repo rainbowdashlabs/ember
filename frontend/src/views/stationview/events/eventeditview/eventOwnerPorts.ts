@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {eventCourses, events} from '@/api'
+import {eventGroups, events} from '@/api'
 import type {
     EventAttachment,
     EventFieldDefault,
@@ -97,12 +97,12 @@ export function eventFederationPort(eventId: number): FederationSharePort {
     }
 }
 
-/** How a course, and with it every part, is shared with partner stations. */
-export function courseFederationPort(courseId: number): FederationSharePort {
+/** How an event group, and with it every part, is shared with partner stations. */
+export function eventGroupFederationPort(eventGroupId: number): FederationSharePort {
     return {
-        get: () => eventCourses.getFederationShare(courseId),
-        set: (scope, partnerIds) => eventCourses.setFederationShare(courseId, scope, partnerIds),
-        remove: () => eventCourses.removeFederationShare(courseId),
+        get: () => eventGroups.getFederationShare(eventGroupId),
+        set: (scope, partnerIds) => eventGroups.setFederationShare(eventGroupId, scope, partnerIds),
+        remove: () => eventGroups.removeFederationShare(eventGroupId),
     }
 }
 

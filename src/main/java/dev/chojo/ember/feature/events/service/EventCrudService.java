@@ -296,7 +296,7 @@ public class EventCrudService {
     /**
      * Updates a station event and returns the refreshed entity if the update was successful.
      *
-     * <p>A part of a course keeps the sign-up the course gives it: its sign-up settings, limit and
+     * <p>A part of an event group keeps the sign-up the event group gives it: its sign-up settings, limit and
      * minimum are left as they are whatever is sent, and it stays a one-time appointment.
      *
      * @param id                   the event ID
@@ -338,9 +338,9 @@ public class EventCrudService {
             eventRepository.lockForSignUp(id);
             var before = eventRepository.findById(id).orElse(null);
             stored.set(before);
-            boolean part = before != null && eventRepository.isCoursePart(id);
+            boolean part = before != null && eventRepository.isEventGroupPart(id);
             if (part && eventType != StationEvent.EventType.ONE_TIME) {
-                throw EventRefusal.COURSE_PART_STAYS_ONE_TIME.raise();
+                throw EventRefusal.EVENT_GROUP_PART_STAYS_ONE_TIME.raise();
             }
             return eventRepository.update(
                     id,
@@ -374,14 +374,14 @@ public class EventCrudService {
     }
 
     /**
-     * Whether an appointment is a part of a course, whose sign-up, audiences and sharing the course
+     * Whether an appointment is a part of an event group, whose sign-up, audiences and sharing the event group
      * decides.
      *
      * @param id the appointment
      * @return true for a part
      */
-    public boolean isCoursePart(int id) {
-        return eventRepository.isCoursePart(id);
+    public boolean isEventGroupPart(int id) {
+        return eventRepository.isEventGroupPart(id);
     }
 
     /**

@@ -196,7 +196,7 @@ const SHIRT_SIZE: RegistrationFieldDefinition[] = [{
       <HelpTip>{{ t('helpCenter.eventEdit.saveTip') }}</HelpTip>
     </HelpSection>
 
-    <HelpTip>{{ t('helpCenter.eventEdit.coursePart') }}</HelpTip>
+    <HelpTip>{{ t('helpCenter.eventEdit.eventGroupPart') }}</HelpTip>
     <HelpTip>{{ t('helpCenter.eventEdit.tip') }}</HelpTip>
   </HelpArticle>
 </template>

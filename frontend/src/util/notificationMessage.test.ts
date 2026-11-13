@@ -40,13 +40,13 @@ describe('notificationMessage', () => {
         expect(message).toContain('"module":"Fundbüro"')
     })
 
-    it('words a whole course called off as a course', () => {
+    it('words a whole event group called off as an event group', () => {
         const message = notificationMessage(t, {
             type: NotificationType.EVENT_CANCELLED,
             localeKey: 'notification.eventCancelled',
-            params: {eventName: 'Jugendflamme 1', course: 'true'},
+            params: {eventName: 'Jugendflamme 1', eventGroup: 'true'},
         })
-        expect(message.startsWith('notification.courseCancelled')).toBe(true)
+        expect(message.startsWith('notification.eventGroupCancelled')).toBe(true)
     })
 
     it('leaves the parameters of other types as they arrived', () => {

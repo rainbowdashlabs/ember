@@ -40,8 +40,8 @@ import WithdrawnAgreementsNotice from './WithdrawnAgreementsNotice.vue'
 interface StatusGroup { status: string; entries: RegistrationResponse[] }
 
 const props = defineProps<{
-  /** Whether the appointment is a part of a course, whose sign-ups are decided on the course. */
-  coursePart?: boolean
+  /** Whether the appointment is a part of an event group, whose sign-ups are decided on the event group. */
+  eventGroupPart?: boolean
   event: StationEvent
   registrations: RegistrationResponse[]
   pendingRegistrations: RegistrationResponse[]
@@ -81,7 +81,7 @@ const runsEvent = computed(() => hasPermission(StationPermission.EVENT_EDIT))
  */
 const canRegisterOthers = computed(
     () => !!props.event.requiresRegistration
-        && !props.coursePart
+        && !props.eventGroupPart
         && hasPermission(StationPermission.EVENT_REGISTRATION)
         && props.unregisteredMembers.length > 0,
 )
@@ -94,7 +94,7 @@ const canRegisterOthers = computed(
  * place is decided.
  */
 function decidable(registration: RegistrationResponse): boolean {
-  return !props.coursePart
+  return !props.eventGroupPart
       && hasPermission(StationPermission.EVENT_REGISTRATION)
       && !registration.fromField
       && registration.status !== RegistrationStatus.DECLINED

@@ -594,15 +594,15 @@ class NotificationTextTest {
         return new Notification(id, MEMBER, null, type, data, Instant.now(), null);
     }
 
-    /** A whole course called off is named as a course, not as an appointment. */
+    /** A whole event group called off is named as an event group, not as an appointment. */
     @Test
-    void aCalledOffCourseIsNamedAsACourse() {
+    void aCalledOffEventGroupIsNamedAsAnEventGroup() {
         var cancelled = notificationWith(
                 NotificationType.EVENT_CANCELLED,
                 new NotificationParams.EventCancelled("Jugendflamme 1", null, null, null, true),
                 7);
 
-        assertTrue(text.resolveMessage("de", cancelled).startsWith("Lehrgang abgesagt"));
-        assertTrue(text.resolveMessage("en", cancelled).startsWith("Course cancelled"));
+        assertTrue(text.resolveMessage("de", cancelled).startsWith("Terminreihe abgesagt"));
+        assertTrue(text.resolveMessage("en", cancelled).startsWith("Event group cancelled"));
     }
 }

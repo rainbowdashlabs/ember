@@ -421,77 +421,78 @@ public class EventRegistrationService {
     }
 
     /**
-     * Refuses a sign-up, answer or decision on a part of a course, which goes through the course so
+     * Refuses a sign-up, answer or decision on a part of an event group, which goes through the event group so
      * its rules, limit and confirmation hold for every part at once.
      *
      * @param eventId the appointment
      */
     public void requireOwnSignUp(int eventId) {
-        if (eventRepository.isCoursePart(eventId)) throw EventRefusal.REGISTRATION_THROUGH_COURSE.raise();
+        if (eventRepository.isEventGroupPart(eventId)) throw EventRefusal.REGISTRATION_THROUGH_EVENT_GROUP.raise();
     }
 
     /**
-     * Writes a member's registration for one part of a course with the status of their course
+     * Writes a member's registration for one part of an event group with the status of their event group
      * sign-up, tied to that sign-up. A place an appointment field already holds for the member is
-     * only tied, not rewritten: the field decides it. Nobody is told here; the course tells its
+     * only tied, not rewritten: the field decides it. Nobody is told here; the event group tells its
      * people once for all its parts, and whoever keeps a record of the date learns of it through
      * {@link #recordedAll} once the writes are kept.
      *
      * @param eventId              the part
      * @param memberId             the member
      * @param eventDate            the part's date
-     * @param status               the status of the course sign-up
+     * @param status               the status of the event group sign-up
      * @param createdBy            the member who signed somebody else up, or null
-     * @param courseRegistrationId the course sign-up
+     * @param eventGroupRegistrationId the event group sign-up
      * @return the stored registration
      */
-    public EventRegistration placeForCourse(
+    public EventRegistration placeForEventGroup(
             int eventId,
             int memberId,
             LocalDate eventDate,
             RegistrationStatus status,
             @Nullable Integer createdBy,
-            int courseRegistrationId) {
+            int eventGroupRegistrationId) {
         var heldByField = registrationRepository.findByEventAndDate(eventId, eventDate).stream()
                 .filter(existing -> existing.memberId() == memberId && existing.fromField())
                 .findFirst();
         int id = heldByField.map(EventRegistration::id).orElseGet(() -> registrationRepository
                 .create(eventId, memberId, eventDate, status, createdBy)
                 .id());
-        registrationRepository.linkToCourse(id, courseRegistrationId);
+        registrationRepository.linkToEventGroup(id, eventGroupRegistrationId);
         return registrationRepository.findById(id).orElseThrow();
     }
 
     /**
-     * Moves the registration for one part of a course to a new status, as the course sign-up moved.
+     * Moves the registration for one part of an event group to a new status, as the event group sign-up moved.
      * A place an appointment field holds keeps its status. Nobody is told here either.
      *
      * @param registration the registration
      * @param status       the new status
      * @return the registration as stored
      */
-    public EventRegistration restateForCourse(EventRegistration registration, RegistrationStatus status) {
+    public EventRegistration restateForEventGroup(EventRegistration registration, RegistrationStatus status) {
         if (!registration.fromField()) registrationRepository.updateStatus(registration.id(), status);
         return registrationRepository.findById(registration.id()).orElse(registration);
     }
 
     /**
-     * Lets a part go from a course sign-up: the registration is untied and, unless an appointment
+     * Lets a part go from an event group sign-up: the registration is untied and, unless an appointment
      * field holds it or the part already took place, given the status it ends with.
      *
      * @param registration the registration
      * @param status       the status it ends with, or null to leave it as it is
      * @return the registration as stored
      */
-    public EventRegistration releaseFromCourse(EventRegistration registration, @Nullable RegistrationStatus status) {
-        registrationRepository.linkToCourse(registration.id(), null);
+    public EventRegistration releaseFromEventGroup(
+            EventRegistration registration, @Nullable RegistrationStatus status) {
+        registrationRepository.linkToEventGroup(registration.id(), null);
         if (status == null)
             return registrationRepository.findById(registration.id()).orElse(registration);
-        return restateForCourse(registration, status);
+        return restateForEventGroup(registration, status);
     }
 
     /**
-     * Tells whoever keeps a record of the dates what registrations written for a course say now.
+     * Tells whoever keeps a record of the dates what registrations written for an event group say now.
      * Called once the writes are kept, so nobody hears of a write that was undone.
      *
      * @param written the registrations as stored

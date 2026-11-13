@@ -531,35 +531,36 @@ public class EventRepository {
     }
 
     /**
-     * Whether an appointment is a part of a course, which takes sign-ups only through the course.
+     * Whether an appointment is a part of an event group, which takes sign-ups only through the event group.
      *
      * @param id the appointment
      * @return true for a part
      */
-    public boolean isCoursePart(int id) {
+    public boolean isEventGroupPart(int id) {
         return SqlSupport.exists(
-                "SELECT 1 FROM station_event WHERE id = :id AND course_set_id IS NOT NULL;", call().bind("id", id));
+                "SELECT 1 FROM station_event WHERE id = :id AND event_group_set_id IS NOT NULL;",
+                call().bind("id", id));
     }
 
     /**
-     * Whether an appointment is a part of a course called off as a whole, whose parts stay off.
+     * Whether an appointment is a part of an event group called off as a whole, whose parts stay off.
      *
      * @param id the appointment
-     * @return true for a part of a called-off course
+     * @return true for a part of a called-off event group
      */
-    public boolean isPartOfCancelledCourse(int id) {
+    public boolean isPartOfCancelledEventGroup(int id) {
         return SqlSupport.exists("""
                 SELECT 1
                 FROM station_event e
-                         JOIN event_course_set s ON s.id = e.course_set_id
-                         JOIN event_course c ON c.id = s.course_id
+                         JOIN event_group_set s ON s.id = e.event_group_set_id
+                         JOIN event_group c ON c.id = s.group_id
                 WHERE e.id = :id
                   AND c.cancelled;""", call().bind("id", id));
     }
 
     /**
      * Locks an appointment for the rest of the running transaction, so a sign-up for it and its
-     * becoming a part of a course happen one after the other.
+     * becoming a part of an event group happen one after the other.
      *
      * @param id the appointment
      */
@@ -636,7 +637,7 @@ public class EventRepository {
                   AND e.registration_deadline < now()
                   AND e.deadline_notified = FALSE
                   AND e.cancelled = FALSE
-                  AND e.course_set_id IS NULL
+                  AND e.event_group_set_id IS NULL
                   AND %s
                 GROUP BY e.id, e.station_id, e.name;""", CancellationSql.NO_DATE_CANCELLED)
                 .single(call())
@@ -670,7 +671,7 @@ public class EventRepository {
                 WHERE e.requires_registration
                   AND e.event_type = 'ONE_TIME'
                   AND e.cancelled = FALSE
-                  AND e.course_set_id IS NULL
+                  AND e.event_group_set_id IS NULL
                   AND %s
                   AND e.registration_deadline IS NOT NULL
                   AND e.registration_deadline > now()

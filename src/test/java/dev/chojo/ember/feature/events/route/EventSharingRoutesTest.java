@@ -92,13 +92,13 @@ class EventSharingRoutesTest {
     }
 
     @Test
-    void aPartOfACourseIsSharedWithItsCourseAndNotOnItsOwn() {
+    void aPartOfAnEventGroupIsSharedWithItsEventGroupAndNotOnItsOwn() {
         var crud = mock(EventCrudService.class);
         var events = mock(EventFederationService.class);
         var event = mock(StationEvent.class);
         when(event.stationId()).thenReturn(STATION);
         when(crud.findById(4)).thenReturn(Optional.of(event));
-        when(crud.isCoursePart(4)).thenReturn(true);
+        when(crud.isEventGroupPart(4)).thenReturn(true);
         var harness = RouteHarness.serving(new EventSharingRoutes(
                 crud, events, mock(FederatedRegistrantService.class), mock(EventRequirementService.class)));
 
@@ -109,11 +109,11 @@ class EventSharingRoutesTest {
                     StationPermission.EVENT_MANAGER,
                     StationPermission.EVENT_EDIT));
             assertEquals(
-                    EventRefusal.COURSE_PART_SHARED_WITH_COURSE,
+                    EventRefusal.EVENT_GROUP_PART_SHARED_WITH_EVENT_GROUP,
                     refusalOf(client.put(
                             PREFIX + "/events/4/federation", body("{\"scope\": \"ALL_PARTNERS\"}"), sharer)));
             assertEquals(
-                    EventRefusal.COURSE_PART_SHARED_WITH_COURSE,
+                    EventRefusal.EVENT_GROUP_PART_SHARED_WITH_EVENT_GROUP,
                     refusalOf(client.put(
                             PREFIX + "/events/4/partner-places/7", body("{\"partnerConfirms\": true}"), sharer)));
         });

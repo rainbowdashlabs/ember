@@ -28,8 +28,8 @@ import dev.chojo.ember.feature.events.entity.EventPartnerPlaces;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.repository.EventCourseRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -93,7 +93,7 @@ public class EventFederationService implements FederationServer {
     private final MediaLibraryService media;
     private final Api apiConfig;
 
-    private final EventCourseRepository courseRepository;
+    private final EventGroupRepository eventGroupRepository;
 
     @Inject
     public EventFederationService(
@@ -112,7 +112,7 @@ public class EventFederationService implements FederationServer {
             OccurrenceCalendar occurrenceCalendar,
             MediaLibraryService media,
             Api apiConfig,
-            EventCourseRepository courseRepository) {
+            EventGroupRepository eventGroupRepository) {
         this.federationRepository = federationRepository;
         this.federationService = federationService;
         this.transport = transport;
@@ -128,7 +128,7 @@ public class EventFederationService implements FederationServer {
         this.occurrenceCalendar = occurrenceCalendar;
         this.media = media;
         this.apiConfig = apiConfig;
-        this.courseRepository = courseRepository;
+        this.eventGroupRepository = eventGroupRepository;
     }
 
     /**
@@ -215,7 +215,7 @@ public class EventFederationService implements FederationServer {
             int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
         var event =
                 crudService.findById(eventId).orElseThrow(EventRefusal.EVENT_NOT_HERE_FOR_PARTNER_REGISTRATION::raise);
-        if (crudService.isCoursePart(eventId)) throw EventRefusal.REGISTRATION_THROUGH_COURSE.raise();
+        if (crudService.isEventGroupPart(eventId)) throw EventRefusal.REGISTRATION_THROUGH_EVENT_GROUP.raise();
         requireOpenForRegistration(event, eventDate);
         boolean somebodyChooses = event.requiresConfirmation()
                 || federationRepository.findPartnerPlaces(eventId, partnerId).partnerConfirms();
@@ -572,11 +572,11 @@ public class EventFederationService implements FederationServer {
      * @return each shared appointment as a partner may see it
      */
     public List<SharedEvent> serveEvents(ServingPartner partner) {
-        var courses = courseRepository.findPartSummaries(partner.servingStationId());
+        var eventGroups = eventGroupRepository.findPartSummaries(partner.servingStationId());
         return sharedWith(partner).stream()
                 .map(crudService::findById)
                 .flatMap(Optional::stream)
-                .map(event -> SharedEvent.of(event).withCourse(courses.get(event.id())))
+                .map(event -> SharedEvent.of(event).withEventGroup(eventGroups.get(event.id())))
                 .toList();
     }
 
@@ -600,7 +600,7 @@ public class EventFederationService implements FederationServer {
         var places = partnerPlaces(eventId, partner.partnerId());
         return new RemoteEventRoutes.RemoteEventDetail(
                 SharedEvent.of(event)
-                        .withCourse(courseRepository
+                        .withEventGroup(eventGroupRepository
                                 .findPartSummaries(partner.servingStationId())
                                 .get(eventId)),
                 fields,
@@ -799,11 +799,11 @@ public class EventFederationService implements FederationServer {
     }
 
     /**
-     * Refuses a partner acting on one part of a course on its own: places on a part are taken,
-     * changed and given up through the course.
+     * Refuses a partner acting on one part of an event group on its own: places on a part are taken,
+     * changed and given up through the event group.
      */
     private void requireOwnPart(int eventId) {
-        if (crudService.isCoursePart(eventId)) throw EventRefusal.REGISTRATION_THROUGH_COURSE.raise();
+        if (crudService.isEventGroupPart(eventId)) throw EventRefusal.REGISTRATION_THROUGH_EVENT_GROUP.raise();
     }
 
     private List<Integer> sharedWith(ServingPartner partner) {

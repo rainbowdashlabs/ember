@@ -32,7 +32,7 @@ public record EventSummary(
         boolean restricted,
         boolean seriesCancelled,
         @Nullable Integer registrationLimit,
-        @Nullable CoursePartSummary course) {
+        @Nullable EventGroupPartSummary eventGroup) {
 
     public static EventSummary of(StationEvent event) {
         return new EventSummary(
@@ -55,12 +55,12 @@ public record EventSummary(
     }
 
     /**
-     * The same appointment, saying which course it is a part of.
+     * The same appointment, saying which event group it is a part of.
      *
-     * @param part the course it is a part of, or null for an appointment of its own
-     * @return the summary with the course
+     * @param part the event group it is a part of, or null for an appointment of its own
+     * @return the summary with the event group
      */
-    public EventSummary withCourse(@Nullable CoursePartSummary part) {
+    public EventSummary withEventGroup(@Nullable EventGroupPartSummary part) {
         return new EventSummary(
                 id,
                 stationId,

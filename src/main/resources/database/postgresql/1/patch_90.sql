@@ -197,11 +197,11 @@ COMMENT ON COLUMN ember_schema.account_block.blocked_account_id
 COMMENT ON COLUMN ember_schema.account_block.created_at
     IS 'When the block was set.';
 
--- Courses: one-time appointments that belong together, such as the practice days and the test of a
--- training course. The course holds the sign-up, its rules and who may see and join it; every part
+-- Event groups: one-time appointments that belong together, such as the practice days and the test of the
+-- Jugendflamme. The event group holds the sign-up, its rules and who may see and join it; every part
 -- stays an ordinary appointment and a sign-up still writes one registration per chosen part.
 
-CREATE TABLE IF NOT EXISTS ember_schema.event_course
+CREATE TABLE IF NOT EXISTS ember_schema.event_group
 (
     id                    SERIAL PRIMARY KEY,
     station_id            INT         NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
@@ -219,151 +219,151 @@ CREATE TABLE IF NOT EXISTS ember_schema.event_course
     created_at            TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_event_course_station
-    ON ember_schema.event_course (station_id);
+CREATE INDEX IF NOT EXISTS idx_event_group_station
+    ON ember_schema.event_group (station_id);
 
-COMMENT ON TABLE ember_schema.event_course
-    IS 'A course: one-time appointments of a station that belong together and are signed up for once.';
-COMMENT ON COLUMN ember_schema.event_course.id
+COMMENT ON TABLE ember_schema.event_group
+    IS 'An event group: one-time appointments of a station that belong together and are signed up for once.';
+COMMENT ON COLUMN ember_schema.event_group.id
     IS 'Auto-generated primary key.';
-COMMENT ON COLUMN ember_schema.event_course.station_id
-    IS 'The station the course and all its parts belong to.';
-COMMENT ON COLUMN ember_schema.event_course.name
-    IS 'The course name, shown on every part.';
-COMMENT ON COLUMN ember_schema.event_course.description
-    IS 'What the course is about, as Markdown.';
-COMMENT ON COLUMN ember_schema.event_course.registration_limit
-    IS 'How many people the course takes; NULL for no limit.';
-COMMENT ON COLUMN ember_schema.event_course.registration_deadline
+COMMENT ON COLUMN ember_schema.event_group.station_id
+    IS 'The station the event group and all its parts belong to.';
+COMMENT ON COLUMN ember_schema.event_group.name
+    IS 'The event group name, shown on every part.';
+COMMENT ON COLUMN ember_schema.event_group.description
+    IS 'What the event group is about, as Markdown.';
+COMMENT ON COLUMN ember_schema.event_group.registration_limit
+    IS 'How many people the event group takes; NULL for no limit.';
+COMMENT ON COLUMN ember_schema.event_group.registration_deadline
     IS 'The instant members can no longer sign up or change their parts; NULL for no deadline. Unlike the appointment deadline it carries its time zone.';
-COMMENT ON COLUMN ember_schema.event_course.requires_confirmation
+COMMENT ON COLUMN ember_schema.event_group.requires_confirmation
     IS 'Whether a manager confirms each sign-up before it holds a place.';
-COMMENT ON COLUMN ember_schema.event_course.restriction_mode
-    IS 'How the entries of event_course_restriction combine: AND or OR.';
-COMMENT ON COLUMN ember_schema.event_course.view_restriction_mode
-    IS 'How the entries of event_course_view_restriction combine: AND or OR.';
-COMMENT ON COLUMN ember_schema.event_course.deadline_notified
+COMMENT ON COLUMN ember_schema.event_group.restriction_mode
+    IS 'How the entries of event_group_restriction combine: AND or OR.';
+COMMENT ON COLUMN ember_schema.event_group.view_restriction_mode
+    IS 'How the entries of event_group_view_restriction combine: AND or OR.';
+COMMENT ON COLUMN ember_schema.event_group.deadline_notified
     IS 'Whether managers were told that the deadline passed with sign-ups still waiting for a decision.';
-COMMENT ON COLUMN ember_schema.event_course.cancelled
-    IS 'Whether the whole course was called off; its parts are called off with it.';
-COMMENT ON COLUMN ember_schema.event_course.cancelled_at
-    IS 'When the course was called off; NULL while it takes place.';
-COMMENT ON COLUMN ember_schema.event_course.cancel_reason
-    IS 'Why the course was called off, as told to the people signed up; NULL for no reason given.';
-COMMENT ON COLUMN ember_schema.event_course.created_at
-    IS 'When the course was created.';
+COMMENT ON COLUMN ember_schema.event_group.cancelled
+    IS 'Whether the whole event group was called off; its parts are called off with it.';
+COMMENT ON COLUMN ember_schema.event_group.cancelled_at
+    IS 'When the event group was called off; NULL while it takes place.';
+COMMENT ON COLUMN ember_schema.event_group.cancel_reason
+    IS 'Why the event group was called off, as told to the people signed up; NULL for no reason given.';
+COMMENT ON COLUMN ember_schema.event_group.created_at
+    IS 'When the event group was created.';
 
-CREATE TABLE IF NOT EXISTS ember_schema.event_course_set
+CREATE TABLE IF NOT EXISTS ember_schema.event_group_set
 (
     id        SERIAL PRIMARY KEY,
-    course_id INT  NOT NULL REFERENCES ember_schema.event_course (id) ON DELETE CASCADE,
+    group_id INT  NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
     name      TEXT NOT NULL,
     minimum   INT  NOT NULL DEFAULT 1 CHECK (minimum >= 0),
     position  INT  NOT NULL DEFAULT 0
 );
 
-CREATE INDEX IF NOT EXISTS idx_event_course_set_course
-    ON ember_schema.event_course_set (course_id);
+CREATE INDEX IF NOT EXISTS idx_event_group_set_group
+    ON ember_schema.event_group_set (group_id);
 
-COMMENT ON TABLE ember_schema.event_course_set
-    IS 'A named group of parts of a course with the number of them a participant has to attend, such as "Practice: at least 2".';
-COMMENT ON COLUMN ember_schema.event_course_set.id
+COMMENT ON TABLE ember_schema.event_group_set
+    IS 'A named group of parts of an event group with the number of them a participant has to attend, such as "Practice: at least 2".';
+COMMENT ON COLUMN ember_schema.event_group_set.id
     IS 'Auto-generated primary key.';
-COMMENT ON COLUMN ember_schema.event_course_set.course_id
-    IS 'The course the set belongs to.';
-COMMENT ON COLUMN ember_schema.event_course_set.name
+COMMENT ON COLUMN ember_schema.event_group_set.group_id
+    IS 'The event group the set belongs to.';
+COMMENT ON COLUMN ember_schema.event_group_set.name
     IS 'The set name shown to members.';
-COMMENT ON COLUMN ember_schema.event_course_set.minimum
+COMMENT ON COLUMN ember_schema.event_group_set.minimum
     IS 'How many parts of the set a sign-up has to choose; all of them makes every part mandatory.';
-COMMENT ON COLUMN ember_schema.event_course_set.position
-    IS 'Sort order of the set within the course.';
+COMMENT ON COLUMN ember_schema.event_group_set.position
+    IS 'Sort order of the set within the event group.';
 
 ALTER TABLE ember_schema.station_event
-    ADD COLUMN course_set_id INT REFERENCES ember_schema.event_course_set (id),
-    ADD CONSTRAINT station_event_course_part_one_time CHECK (course_set_id IS NULL OR event_type = 'ONE_TIME');
+    ADD COLUMN event_group_set_id INT REFERENCES ember_schema.event_group_set (id),
+    ADD CONSTRAINT station_event_event_group_part_one_time CHECK (event_group_set_id IS NULL OR event_type = 'ONE_TIME');
 
-CREATE INDEX IF NOT EXISTS idx_station_event_course_set_id
-    ON ember_schema.station_event (course_set_id) WHERE course_set_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_station_event_event_group_set_id
+    ON ember_schema.station_event (event_group_set_id) WHERE event_group_set_id IS NOT NULL;
 
-COMMENT ON COLUMN ember_schema.station_event.course_set_id
-    IS 'The course set this one-time appointment is a part of, and through it the course; NULL for an appointment of its own. A set or course cannot be removed while parts still point at it, so a part never loses its course unnoticed.';
+COMMENT ON COLUMN ember_schema.station_event.event_group_set_id
+    IS 'The event group set this one-time appointment is a part of, and through it the event group; NULL for an appointment of its own. A set or event group cannot be removed while parts still point at it, so a part never loses its event group unnoticed.';
 
-CREATE TABLE IF NOT EXISTS ember_schema.event_course_registration
+CREATE TABLE IF NOT EXISTS ember_schema.event_group_registration
 (
     id            SERIAL PRIMARY KEY,
-    course_id     INT         NOT NULL REFERENCES ember_schema.event_course (id) ON DELETE CASCADE,
+    group_id     INT         NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
     member_id     INT         NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
     status        TEXT        NOT NULL DEFAULT 'PENDING'
         CHECK (status IN ('PENDING', 'ACCEPTED', 'DENIED', 'DECLINED', 'WITHDRAWN')),
     registered_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_by    INT REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
-    UNIQUE (course_id, member_id)
+    UNIQUE (group_id, member_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_event_course_registration_member
-    ON ember_schema.event_course_registration (member_id);
+CREATE INDEX IF NOT EXISTS idx_event_group_registration_member
+    ON ember_schema.event_group_registration (member_id);
 
-COMMENT ON TABLE ember_schema.event_course_registration
-    IS 'One member''s sign-up for a course. The chosen parts carry an event_registration each with the same status.';
-COMMENT ON COLUMN ember_schema.event_course_registration.id
+COMMENT ON TABLE ember_schema.event_group_registration
+    IS 'One member''s sign-up for an event group. The chosen parts carry an event_registration each with the same status.';
+COMMENT ON COLUMN ember_schema.event_group_registration.id
     IS 'Auto-generated primary key.';
-COMMENT ON COLUMN ember_schema.event_course_registration.course_id
-    IS 'The course signed up for.';
-COMMENT ON COLUMN ember_schema.event_course_registration.member_id
+COMMENT ON COLUMN ember_schema.event_group_registration.group_id
+    IS 'The event group signed up for.';
+COMMENT ON COLUMN ember_schema.event_group_registration.member_id
     IS 'The member signed up.';
-COMMENT ON COLUMN ember_schema.event_course_registration.status
+COMMENT ON COLUMN ember_schema.event_group_registration.status
     IS 'PENDING, ACCEPTED, DENIED, DECLINED or WITHDRAWN, as for an appointment sign-up.';
-COMMENT ON COLUMN ember_schema.event_course_registration.registered_at
+COMMENT ON COLUMN ember_schema.event_group_registration.registered_at
     IS 'When the member signed up, or last signed up again after withdrawing.';
-COMMENT ON COLUMN ember_schema.event_course_registration.created_by
+COMMENT ON COLUMN ember_schema.event_group_registration.created_by
     IS 'The member who signed somebody else up; NULL when members signed up themselves.';
 
 ALTER TABLE ember_schema.event_registration
-    ADD COLUMN course_registration_id INT REFERENCES ember_schema.event_course_registration (id) ON DELETE SET NULL;
+    ADD COLUMN group_registration_id INT REFERENCES ember_schema.event_group_registration (id) ON DELETE SET NULL;
 
-CREATE INDEX IF NOT EXISTS idx_event_registration_course_registration_id
-    ON ember_schema.event_registration (course_registration_id) WHERE course_registration_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_event_registration_group_registration_id
+    ON ember_schema.event_registration (group_registration_id) WHERE group_registration_id IS NOT NULL;
 
-COMMENT ON COLUMN ember_schema.event_registration.course_registration_id
-    IS 'The course sign-up this registration for a part was chosen with; NULL for a registration of its own, and once the part was given up.';
+COMMENT ON COLUMN ember_schema.event_registration.group_registration_id
+    IS 'The event group sign-up this registration for a part was chosen with; NULL for a registration of its own, and once the part was given up.';
 
 ALTER TABLE ember_schema.event_registration_field
     ALTER COLUMN event_id DROP NOT NULL,
-    ADD COLUMN course_id INT REFERENCES ember_schema.event_course (id) ON DELETE CASCADE,
-    ADD CONSTRAINT event_registration_field_one_owner CHECK (num_nonnulls(event_id, course_id) = 1);
+    ADD COLUMN group_id INT REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
+    ADD CONSTRAINT event_registration_field_one_owner CHECK (num_nonnulls(event_id, group_id) = 1);
 
-CREATE UNIQUE INDEX IF NOT EXISTS event_registration_field_course_name
-    ON ember_schema.event_registration_field (course_id, name) WHERE course_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS event_registration_field_group_name
+    ON ember_schema.event_registration_field (group_id, name) WHERE group_id IS NOT NULL;
 
 COMMENT ON COLUMN ember_schema.event_registration_field.event_id
-    IS 'The event asking the question; NULL for a question of a course.';
-COMMENT ON COLUMN ember_schema.event_registration_field.course_id
-    IS 'The course asking the question of everyone signing up for it; NULL for a question of an appointment. Exactly one of event_id and course_id is set.';
+    IS 'The event asking the question; NULL for a question of an event group.';
+COMMENT ON COLUMN ember_schema.event_registration_field.group_id
+    IS 'The event group asking the question of everyone signing up for it; NULL for a question of an appointment. Exactly one of event_id and group_id is set.';
 
-CREATE TABLE IF NOT EXISTS ember_schema.event_course_answer
+CREATE TABLE IF NOT EXISTS ember_schema.event_group_answer
 (
-    course_registration_id INT  NOT NULL REFERENCES ember_schema.event_course_registration (id) ON DELETE CASCADE,
+    group_registration_id INT  NOT NULL REFERENCES ember_schema.event_group_registration (id) ON DELETE CASCADE,
     field_id               INT  NOT NULL REFERENCES ember_schema.event_registration_field (id) ON DELETE CASCADE,
     value                  TEXT NOT NULL DEFAULT '',
-    PRIMARY KEY (course_registration_id, field_id)
+    PRIMARY KEY (group_registration_id, field_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_event_course_answer_field
-    ON ember_schema.event_course_answer (field_id);
+CREATE INDEX IF NOT EXISTS idx_event_group_answer_field
+    ON ember_schema.event_group_answer (field_id);
 
-COMMENT ON TABLE ember_schema.event_course_answer
-    IS 'One member''s answer to one question of a course, given once with the course sign-up rather than per part.';
-COMMENT ON COLUMN ember_schema.event_course_answer.course_registration_id
-    IS 'The course sign-up the answer belongs to; the answer is removed with it.';
-COMMENT ON COLUMN ember_schema.event_course_answer.field_id
+COMMENT ON TABLE ember_schema.event_group_answer
+    IS 'One member''s answer to one question of an event group, given once with the event group sign-up rather than per part.';
+COMMENT ON COLUMN ember_schema.event_group_answer.group_registration_id
+    IS 'The event group sign-up the answer belongs to; the answer is removed with it.';
+COMMENT ON COLUMN ember_schema.event_group_answer.field_id
     IS 'The question answered.';
-COMMENT ON COLUMN ember_schema.event_course_answer.value
+COMMENT ON COLUMN ember_schema.event_group_answer.value
     IS 'The answer, stored as text in the same shape appointment answers use.';
 
-CREATE TABLE IF NOT EXISTS ember_schema.event_course_restriction
+CREATE TABLE IF NOT EXISTS ember_schema.event_group_restriction
 (
     id        SERIAL PRIMARY KEY,
-    course_id INT NOT NULL REFERENCES ember_schema.event_course (id) ON DELETE CASCADE,
+    event_group_id INT NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
     user_type TEXT,
     group_id  INT REFERENCES ember_schema.member_group (id) ON DELETE CASCADE,
     tag_id    INT REFERENCES ember_schema.user_tag (id) ON DELETE CASCADE,
@@ -371,28 +371,28 @@ CREATE TABLE IF NOT EXISTS ember_schema.event_course_restriction
     CHECK (num_nonnulls(user_type, group_id, tag_id, member_id) = 1)
 );
 
-CREATE INDEX IF NOT EXISTS idx_event_course_restriction_course
-    ON ember_schema.event_course_restriction (course_id);
+CREATE INDEX IF NOT EXISTS idx_event_group_restriction_group
+    ON ember_schema.event_group_restriction (event_group_id);
 
-COMMENT ON TABLE ember_schema.event_course_restriction
-    IS 'Who may sign up for the course. Empty means everybody who may see it. Applies to every part.';
-COMMENT ON COLUMN ember_schema.event_course_restriction.id
+COMMENT ON TABLE ember_schema.event_group_restriction
+    IS 'Who may sign up for the event group. Empty means everybody who may see it. Applies to every part.';
+COMMENT ON COLUMN ember_schema.event_group_restriction.id
     IS 'Auto-generated primary key.';
-COMMENT ON COLUMN ember_schema.event_course_restriction.course_id
-    IS 'The course restricted.';
-COMMENT ON COLUMN ember_schema.event_course_restriction.user_type
+COMMENT ON COLUMN ember_schema.event_group_restriction.event_group_id
+    IS 'The event group restricted.';
+COMMENT ON COLUMN ember_schema.event_group_restriction.user_type
     IS 'Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set.';
-COMMENT ON COLUMN ember_schema.event_course_restriction.group_id
+COMMENT ON COLUMN ember_schema.event_group_restriction.group_id
     IS 'Required group membership.';
-COMMENT ON COLUMN ember_schema.event_course_restriction.tag_id
+COMMENT ON COLUMN ember_schema.event_group_restriction.tag_id
     IS 'Required tag.';
-COMMENT ON COLUMN ember_schema.event_course_restriction.member_id
+COMMENT ON COLUMN ember_schema.event_group_restriction.member_id
     IS 'Specific member (always OR-connected, bypasses AND/OR mode).';
 
-CREATE TABLE IF NOT EXISTS ember_schema.event_course_view_restriction
+CREATE TABLE IF NOT EXISTS ember_schema.event_group_view_restriction
 (
     id        SERIAL PRIMARY KEY,
-    course_id INT NOT NULL REFERENCES ember_schema.event_course (id) ON DELETE CASCADE,
+    event_group_id INT NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
     user_type TEXT,
     group_id  INT REFERENCES ember_schema.member_group (id) ON DELETE CASCADE,
     tag_id    INT REFERENCES ember_schema.user_tag (id) ON DELETE CASCADE,
@@ -400,128 +400,128 @@ CREATE TABLE IF NOT EXISTS ember_schema.event_course_view_restriction
     CHECK (num_nonnulls(user_type, group_id, tag_id, member_id) = 1)
 );
 
-CREATE INDEX IF NOT EXISTS idx_event_course_view_restriction_course
-    ON ember_schema.event_course_view_restriction (course_id);
+CREATE INDEX IF NOT EXISTS idx_event_group_view_restriction_group
+    ON ember_schema.event_group_view_restriction (event_group_id);
 
-COMMENT ON TABLE ember_schema.event_course_view_restriction
-    IS 'Who may know the course exists. Empty means everybody. Applies to every part.';
-COMMENT ON COLUMN ember_schema.event_course_view_restriction.id
+COMMENT ON TABLE ember_schema.event_group_view_restriction
+    IS 'Who may know the event group exists. Empty means everybody. Applies to every part.';
+COMMENT ON COLUMN ember_schema.event_group_view_restriction.id
     IS 'Auto-generated primary key.';
-COMMENT ON COLUMN ember_schema.event_course_view_restriction.course_id
-    IS 'The course restricted.';
-COMMENT ON COLUMN ember_schema.event_course_view_restriction.user_type
+COMMENT ON COLUMN ember_schema.event_group_view_restriction.event_group_id
+    IS 'The event group restricted.';
+COMMENT ON COLUMN ember_schema.event_group_view_restriction.user_type
     IS 'Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set.';
-COMMENT ON COLUMN ember_schema.event_course_view_restriction.group_id
+COMMENT ON COLUMN ember_schema.event_group_view_restriction.group_id
     IS 'Required group membership.';
-COMMENT ON COLUMN ember_schema.event_course_view_restriction.tag_id
+COMMENT ON COLUMN ember_schema.event_group_view_restriction.tag_id
     IS 'Required tag.';
-COMMENT ON COLUMN ember_schema.event_course_view_restriction.member_id
+COMMENT ON COLUMN ember_schema.event_group_view_restriction.member_id
     IS 'Specific member (always OR-connected, bypasses AND/OR mode).';
 
-CREATE TABLE IF NOT EXISTS ember_schema.event_course_deadline_reminder_sent
+CREATE TABLE IF NOT EXISTS ember_schema.event_group_deadline_reminder_sent
 (
-    course_id   INT         NOT NULL REFERENCES ember_schema.event_course (id) ON DELETE CASCADE,
+    group_id   INT         NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
     days_before INT         NOT NULL,
     sent_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (course_id, days_before)
+    PRIMARY KEY (group_id, days_before)
 );
 
-COMMENT ON TABLE ember_schema.event_course_deadline_reminder_sent
-    IS 'Which warnings that sign-ups for a course close soon have gone out, so a sweep every few minutes warns once.';
-COMMENT ON COLUMN ember_schema.event_course_deadline_reminder_sent.course_id
-    IS 'The course warned about.';
-COMMENT ON COLUMN ember_schema.event_course_deadline_reminder_sent.days_before
-    IS 'How many days before the course deadline this warning was the one for.';
-COMMENT ON COLUMN ember_schema.event_course_deadline_reminder_sent.sent_at
+COMMENT ON TABLE ember_schema.event_group_deadline_reminder_sent
+    IS 'Which warnings that sign-ups for an event group close soon have gone out, so a sweep every few minutes warns once.';
+COMMENT ON COLUMN ember_schema.event_group_deadline_reminder_sent.group_id
+    IS 'The event group warned about.';
+COMMENT ON COLUMN ember_schema.event_group_deadline_reminder_sent.days_before
+    IS 'How many days before the event group deadline this warning was the one for.';
+COMMENT ON COLUMN ember_schema.event_group_deadline_reminder_sent.sent_at
     IS 'When the warning went out.';
 
-CREATE TABLE IF NOT EXISTS ember_schema.event_course_share
+CREATE TABLE IF NOT EXISTS ember_schema.event_group_share
 (
-    course_id INT  NOT NULL PRIMARY KEY REFERENCES ember_schema.event_course (id) ON DELETE CASCADE,
+    group_id INT  NOT NULL PRIMARY KEY REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
     scope     TEXT NOT NULL DEFAULT 'ALL_PARTNERS'
 );
 
-COMMENT ON TABLE ember_schema.event_course_share
-    IS 'A course shared with partner stations. Its parts carry the same appointment share, parts added later included.';
-COMMENT ON COLUMN ember_schema.event_course_share.course_id
-    IS 'The course shared.';
-COMMENT ON COLUMN ember_schema.event_course_share.scope
-    IS 'ALL_PARTNERS, or SPECIFIC for the partners listed in event_course_share_target.';
+COMMENT ON TABLE ember_schema.event_group_share
+    IS 'An event group shared with partner stations. Its parts carry the same appointment share, parts added later included.';
+COMMENT ON COLUMN ember_schema.event_group_share.group_id
+    IS 'The event group shared.';
+COMMENT ON COLUMN ember_schema.event_group_share.scope
+    IS 'ALL_PARTNERS, or SPECIFIC for the partners listed in event_group_share_target.';
 
-CREATE TABLE IF NOT EXISTS ember_schema.event_course_share_target
+CREATE TABLE IF NOT EXISTS ember_schema.event_group_share_target
 (
-    course_id  INT NOT NULL REFERENCES ember_schema.event_course_share (course_id) ON DELETE CASCADE,
+    group_id  INT NOT NULL REFERENCES ember_schema.event_group_share (group_id) ON DELETE CASCADE,
     partner_id INT NOT NULL REFERENCES ember_schema.federation_partner (id) ON DELETE CASCADE,
-    PRIMARY KEY (course_id, partner_id)
+    PRIMARY KEY (group_id, partner_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_event_course_share_target_partner
-    ON ember_schema.event_course_share_target (partner_id);
+CREATE INDEX IF NOT EXISTS idx_event_group_share_target_partner
+    ON ember_schema.event_group_share_target (partner_id);
 
-COMMENT ON TABLE ember_schema.event_course_share_target
-    IS 'The partners a course is shared with where its share names them one by one.';
-COMMENT ON COLUMN ember_schema.event_course_share_target.course_id
-    IS 'The shared course.';
-COMMENT ON COLUMN ember_schema.event_course_share_target.partner_id
-    IS 'A partner the course is shared with.';
+COMMENT ON TABLE ember_schema.event_group_share_target
+    IS 'The partners an event group is shared with where its share names them one by one.';
+COMMENT ON COLUMN ember_schema.event_group_share_target.group_id
+    IS 'The shared event group.';
+COMMENT ON COLUMN ember_schema.event_group_share_target.partner_id
+    IS 'A partner the event group is shared with.';
 
-CREATE TABLE IF NOT EXISTS ember_schema.event_course_partner_registration
+CREATE TABLE IF NOT EXISTS ember_schema.event_group_partner_registration
 (
     id                SERIAL PRIMARY KEY,
-    course_id         INT         NOT NULL REFERENCES ember_schema.event_course (id) ON DELETE CASCADE,
+    group_id         INT         NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
     partner_id        INT         NOT NULL REFERENCES ember_schema.federation_partner (id) ON DELETE CASCADE,
     remote_member_id  UUID        NOT NULL,
     status            TEXT        NOT NULL DEFAULT 'PENDING'
         CHECK (status IN ('PENDING', 'ACCEPTED', 'DENIED', 'DECLINED', 'WITHDRAWN')),
     registered_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (course_id, partner_id, remote_member_id)
+    UNIQUE (group_id, partner_id, remote_member_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_event_course_partner_registration_partner
-    ON ember_schema.event_course_partner_registration (partner_id, remote_member_id);
+CREATE INDEX IF NOT EXISTS idx_event_group_partner_registration_partner
+    ON ember_schema.event_group_partner_registration (partner_id, remote_member_id);
 
-COMMENT ON TABLE ember_schema.event_course_partner_registration
-    IS 'A partner station''s member signed up for a shared course. The chosen parts carry an event_federation_registration each.';
-COMMENT ON COLUMN ember_schema.event_course_partner_registration.id
+COMMENT ON TABLE ember_schema.event_group_partner_registration
+    IS 'A partner station''s member signed up for a shared event group. The chosen parts carry an event_federation_registration each.';
+COMMENT ON COLUMN ember_schema.event_group_partner_registration.id
     IS 'Auto-generated primary key.';
-COMMENT ON COLUMN ember_schema.event_course_partner_registration.course_id
-    IS 'The course signed up for.';
-COMMENT ON COLUMN ember_schema.event_course_partner_registration.partner_id
+COMMENT ON COLUMN ember_schema.event_group_partner_registration.group_id
+    IS 'The event group signed up for.';
+COMMENT ON COLUMN ember_schema.event_group_partner_registration.partner_id
     IS 'The partner station the member belongs to.';
-COMMENT ON COLUMN ember_schema.event_course_partner_registration.remote_member_id
+COMMENT ON COLUMN ember_schema.event_group_partner_registration.remote_member_id
     IS 'The member at the partner station, by the id that station gave them.';
-COMMENT ON COLUMN ember_schema.event_course_partner_registration.status
+COMMENT ON COLUMN ember_schema.event_group_partner_registration.status
     IS 'PENDING, ACCEPTED, DENIED, DECLINED or WITHDRAWN, as for a member of this station.';
-COMMENT ON COLUMN ember_schema.event_course_partner_registration.registered_at
+COMMENT ON COLUMN ember_schema.event_group_partner_registration.registered_at
     IS 'When the member signed up, or last signed up again after withdrawing.';
 
 ALTER TABLE ember_schema.event_federation_registration
-    ADD COLUMN course_partner_registration_id INT
-        REFERENCES ember_schema.event_course_partner_registration (id) ON DELETE SET NULL;
+    ADD COLUMN group_partner_registration_id INT
+        REFERENCES ember_schema.event_group_partner_registration (id) ON DELETE SET NULL;
 
-CREATE INDEX IF NOT EXISTS idx_event_federation_registration_course
-    ON ember_schema.event_federation_registration (course_partner_registration_id)
-    WHERE course_partner_registration_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_event_federation_registration_group
+    ON ember_schema.event_federation_registration (group_partner_registration_id)
+    WHERE group_partner_registration_id IS NOT NULL;
 
-COMMENT ON COLUMN ember_schema.event_federation_registration.course_partner_registration_id
-    IS 'The partner''s course sign-up this registration for a part was chosen with; NULL for a registration of its own, and once the part was given up.';
+COMMENT ON COLUMN ember_schema.event_federation_registration.group_partner_registration_id
+    IS 'The partner''s event group sign-up this registration for a part was chosen with; NULL for a registration of its own, and once the part was given up.';
 
-CREATE TABLE IF NOT EXISTS ember_schema.partner_course_signup
+CREATE TABLE IF NOT EXISTS ember_schema.partner_event_group_signup
 (
     member_id           INT         NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
     partner_station_uid UUID        NOT NULL,
-    remote_course_id    INT         NOT NULL,
+    remote_group_id    INT         NOT NULL,
     signed_up_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (member_id, partner_station_uid, remote_course_id)
+    PRIMARY KEY (member_id, partner_station_uid, remote_group_id)
 );
 
-COMMENT ON TABLE ember_schema.partner_course_signup
-    IS 'Members this station signed up for a course a partner station holds, so news from that partner about the course is believed for them only.';
-COMMENT ON COLUMN ember_schema.partner_course_signup.member_id
+COMMENT ON TABLE ember_schema.partner_event_group_signup
+    IS 'Members this station signed up for an event group a partner station holds, so news from that partner about the event group is believed for them only.';
+COMMENT ON COLUMN ember_schema.partner_event_group_signup.member_id
     IS 'The member of this station signed up.';
-COMMENT ON COLUMN ember_schema.partner_course_signup.partner_station_uid
-    IS 'The partner station holding the course.';
-COMMENT ON COLUMN ember_schema.partner_course_signup.remote_course_id
-    IS 'The course, by its id at the partner station.';
-COMMENT ON COLUMN ember_schema.partner_course_signup.signed_up_at
+COMMENT ON COLUMN ember_schema.partner_event_group_signup.partner_station_uid
+    IS 'The partner station holding the event group.';
+COMMENT ON COLUMN ember_schema.partner_event_group_signup.remote_group_id
+    IS 'The event group, by its id at the partner station.';
+COMMENT ON COLUMN ember_schema.partner_event_group_signup.signed_up_at
     IS 'When this station signed the member up.';

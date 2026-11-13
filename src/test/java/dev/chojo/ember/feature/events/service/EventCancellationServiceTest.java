@@ -15,7 +15,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.handler.EventCancelledHandler;
 import dev.chojo.ember.feature.events.handler.EventDateRestoredHandler;
-import dev.chojo.ember.feature.events.repository.EventCourseRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
@@ -80,7 +80,7 @@ class EventCancellationServiceTest extends RepositoryTestBase {
         notifications = mock(Notifier.class);
         var bus = new DomainEventBus(Set.of(
                 new EventCancelledHandler(
-                        notifications, eventRegistrationRepo, occurrenceCalendar, new EventCourseRepository()),
+                        notifications, eventRegistrationRepo, occurrenceCalendar, new EventGroupRepository()),
                 new EventDateRestoredHandler(notifications, eventRegistrationRepo)));
         var services = newEventServices(bus);
         service = services.cancellation();

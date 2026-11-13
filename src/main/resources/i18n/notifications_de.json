@@ -333,7 +333,7 @@
     "notification.registrationDeadlineExpired.one": "Anmeldefrist für {eventName} abgelaufen ({pendingCount} offen)",
     "notification.registrationDeadlineExpired.other": "Anmeldefrist für {eventName} abgelaufen ({pendingCount} offen)",
     "notification.eventCancelled": "Termin abgesagt: {eventName}",
-    "notification.eventCancelled.COURSE": "Lehrgang abgesagt: {eventName}",
+    "notification.eventCancelled.EVENT_GROUP": "Terminreihe abgesagt: {eventName}",
     "notification.eventCancelled.DATE": "{eventName} am {eventDate} wurde abgesagt",
     "notification.eventCancelled.THRESHOLD": "{eventName} am {eventDate} wurde abgesagt: zu wenige Anmeldungen",
     "notification.eventDateRestored": "{eventName} am {eventDate} findet doch statt",

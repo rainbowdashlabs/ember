@@ -11,17 +11,17 @@ import dev.chojo.ember.feature.question.Question;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A question an event, or a course for all its parts, asks of everyone registering for it. Unlike
+ * A question an event, or an event group for all its parts, asks of everyone registering for it. Unlike
  * {@link AppointmentField}, which describes the event and holds one value, this holds one answer per
  * registration.
  *
- * @param eventId  the appointment that asks it, or null where a course does
- * @param courseId the course that asks it, or null where an appointment does
+ * @param eventId  the appointment that asks it, or null where an event group does
+ * @param eventGroupId the event group that asks it, or null where an appointment does
  */
 public record EventRegistrationField(
         int id,
         @Nullable Integer eventId,
-        @Nullable Integer courseId,
+        @Nullable Integer eventGroupId,
         String name,
         FieldType fieldType,
         EventQuestionSettings config,
@@ -42,7 +42,7 @@ public record EventRegistrationField(
         return row -> new EventRegistrationField(
                 row.getInt("id"),
                 (Integer) row.getObject("event_id"),
-                (Integer) row.getObject("course_id"),
+                (Integer) row.getObject("group_id"),
                 row.getString("name"),
                 row.getEnum("field_type", FieldType.class),
                 EventQuestionSettings.parse(row.getString("config")),

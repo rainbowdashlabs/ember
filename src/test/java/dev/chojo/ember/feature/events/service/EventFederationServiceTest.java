@@ -22,14 +22,14 @@ import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
-import dev.chojo.ember.feature.events.entity.EventCourseDetails;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
+import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
-import dev.chojo.ember.feature.events.repository.EventCourseRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
 import dev.chojo.ember.feature.federation.FederationTestTransport;
@@ -147,7 +147,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 occurrenceCalendar,
                 media,
                 new Api(),
-                new EventCourseRepository());
+                new EventGroupRepository());
         transport.serve(service);
 
         stationA = stationRepo.create("EventFedSvcStationA");
@@ -1594,10 +1594,10 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         .status());
     }
 
-    /** A part of a course takes places through the course; a partner cannot take or give one up on its own. */
+    /** A part of an event group takes places through the event group; a partner cannot take or give one up on its own. */
     @Test
     @Order(96)
-    void aPartnerActsOnAPartOfACourseOnlyThroughTheCourse() {
+    void aPartnerActsOnAPartOfAnEventGroupOnlyThroughTheEventGroup() {
         var start = Instant.now().plus(3, ChronoUnit.DAYS);
         var part = eventRepo.create(
                 stationA.id(),
@@ -1616,22 +1616,23 @@ class EventFederationServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 null);
-        var courseRepo = new EventCourseRepository();
-        var course = courseRepo.create(stationA.id(), new EventCourseDetails("Lehrgang", null, null, null, false));
-        var set = courseRepo.createSet(course.id(), "Block", 1, 0);
-        courseRepo.claimPart(part.id(), set.id());
+        var eventGroupRepo = new EventGroupRepository();
+        var eventGroup =
+                eventGroupRepo.create(stationA.id(), new EventGroupDetails("Lehrgang", null, null, null, false));
+        var set = eventGroupRepo.createSet(eventGroup.id(), "Block", 1, 0);
+        eventGroupRepo.claimPart(part.id(), set.id());
         service.setShare(part.id(), ShareScope.ALL_PARTNERS, List.of());
         var day = start.atZone(occurrenceCalendar.zoneOf(stationA.id())).toLocalDate();
 
         assertRefused(
-                EventRefusal.REGISTRATION_THROUGH_COURSE,
+                EventRefusal.REGISTRATION_THROUGH_EVENT_GROUP,
                 () -> service.registerFederated(part.id(), partnerId, REMOTE_MEMBER_3, day));
         assertRefused(
-                EventRefusal.REGISTRATION_THROUGH_COURSE,
+                EventRefusal.REGISTRATION_THROUGH_EVENT_GROUP,
                 () -> service.withdrawFederatedRegistration(
                         stationB.id(), stationA.uid(), part.id(), REMOTE_MEMBER_3, day));
         assertRefused(
-                EventRefusal.REGISTRATION_THROUGH_COURSE,
+                EventRefusal.REGISTRATION_THROUGH_EVENT_GROUP,
                 () -> service.undoFederatedWithdrawal(stationB.id(), stationA.uid(), part.id(), REMOTE_MEMBER_3, day));
     }
 

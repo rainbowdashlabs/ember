@@ -544,7 +544,7 @@ public class EventRoutes implements Routes {
         validate(req);
         changeNotifier.requireValid(req.changeNotice());
         var saved = scopeService.save(current, draftOf(req), Objects.requireNonNullElse(req.scope(), EditScope.ALL));
-        if (!crudService.isCoursePart(saved.id())) applyAudiences(saved.id(), req);
+        if (!crudService.isEventGroupPart(saved.id())) applyAudiences(saved.id(), req);
         fieldRegistrationService.reconcile(saved.id());
         var answer = crudService.findById(saved.id()).orElse(saved);
         if (answer.id() == current.id()) changeNotifier.tellChanged(current, answer, req.changeNotice());
@@ -753,7 +753,7 @@ public class EventRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         requireOwnedEvent(crudService, id, session);
-        if (crudService.isCoursePart(id)) throw EventRefusal.COURSE_PART_AUDIENCE_FROM_COURSE.raise();
+        if (crudService.isEventGroupPart(id)) throw EventRefusal.EVENT_GROUP_PART_AUDIENCE_FROM_EVENT_GROUP.raise();
         var req = ctx.bodyAsClass(EventRestrictions.class);
 
         var register = req.register() != null ? req.register().toSelection() : RestrictionSelection.empty();

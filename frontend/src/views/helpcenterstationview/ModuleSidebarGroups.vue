@@ -56,9 +56,9 @@ const {t} = useI18n()
                  to="/helpcenter/station/events/upcoming" @navigate="close">
       {{ t('sidebar.upcomingEvents') }}
     </SidebarLink>
-    <SidebarLink :icon="['fas', 'graduation-cap']" name="help-event-courses"
-                 to="/helpcenter/station/events/courses" @navigate="close">
-      {{ t('sidebar.eventCourses') }}
+    <SidebarLink :icon="['fas', 'graduation-cap']" name="help-event-groups"
+                 to="/helpcenter/station/events/groups" @navigate="close">
+      {{ t('sidebar.eventGroups') }}
     </SidebarLink>
     <SidebarLink :icon="['fas', 'clipboard-list']" name="help-events-registrations"
                  to="/helpcenter/station/events/registrations" @navigate="close">
@@ -80,9 +80,9 @@ const {t} = useI18n()
                  to="/helpcenter/station/federation/events/0/1" @navigate="close">
       {{ t('helpCenter.federatedEventDetail.title') }}
     </SidebarLink>
-    <SidebarLink :icon="['fas', 'share-nodes']" name="help-federated-event-course"
-                 to="/helpcenter/station/federation/events/0/courses/1" @navigate="close">
-      {{ t('helpCenter.federatedCourse.title') }}
+    <SidebarLink :icon="['fas', 'share-nodes']" name="help-federated-event-group"
+                 to="/helpcenter/station/federation/events/0/groups/1" @navigate="close">
+      {{ t('helpCenter.federatedEventGroup.title') }}
     </SidebarLink>
     <SidebarExpandableLink :icon="['fas', 'clone']" name="help-event-templates"
                            to="/helpcenter/station/events/templates"

@@ -203,14 +203,14 @@ public sealed interface NotificationParams {
      * @param reason    the reason a manager gave, or null
      * @param eventDate the date called off, null where the whole series was
      * @param cause     who called it off, null on notifications written before dates could be
-     * @param course    whether a whole course was called off, null for an appointment
+     * @param eventGroup   whether a whole event group was called off, null for an appointment
      */
     record EventCancelled(
             String eventName,
             @Nullable String reason,
             @Nullable LocalDate eventDate,
             @Nullable CancellationCause cause,
-            @Nullable Boolean course)
+            @Nullable Boolean eventGroup)
             implements NotificationParams {
         /** An appointment, or one date of it, called off. */
         public EventCancelled(
@@ -222,11 +222,11 @@ public sealed interface NotificationParams {
         }
 
         /**
-         * The sentence for a whole course, for one date, and for a date too few had registered for.
+         * The sentence for a whole event group, for one date, and for a date too few had registered for.
          */
         @Override
         public @Nullable String variant() {
-            if (Boolean.TRUE.equals(course)) return "COURSE";
+            if (Boolean.TRUE.equals(eventGroup)) return "EVENT_GROUP";
             if (cause == CancellationCause.THRESHOLD) return "THRESHOLD";
             return eventDate != null ? "DATE" : null;
         }

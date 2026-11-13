@@ -12,8 +12,8 @@ import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
-import {eventCourses, events} from '@/api'
-import type {AwaitingAnswer, CourseAwaiting, EventCategory} from '@/api/generated/schema'
+import {eventGroups, events} from '@/api'
+import type {AwaitingAnswer, EventGroupAwaiting, EventCategory} from '@/api/generated/schema'
 
 /**
  * The events whose registration is running out and which nobody in the household has answered.
@@ -25,13 +25,13 @@ import type {AwaitingAnswer, CourseAwaiting, EventCategory} from '@/api/generate
  * stops the reminders as well.
  *
  * <p>Only events open to the person and still open for answers appear, which is the same question the
- * warning notification asks, so a reader who acts on the notification finds the row gone. Courses
- * appear the same way, once each and not once per part, and lead to the course.
+ * warning notification asks, so a reader who acts on the notification finds the row gone. Event groups
+ * appear the same way, once each and not once per part, and lead to the event group.
  */
 const {t} = useI18n()
 
 const awaiting = ref<AwaitingAnswer[]>([])
-const courses = ref<CourseAwaiting[]>([])
+const awaitingGroups = ref<EventGroupAwaiting[]>([])
 const categories = ref<EventCategory[]>([])
 
 /** The event the row is about. */
@@ -52,20 +52,20 @@ function daysLeft(entry: {registrationDeadline?: string | null}): number {
 }
 
 const soonest = computed(() => Math.min(
-    ...[...awaiting.value, ...courses.value].map(entry => daysLeft(entry)),
+    ...[...awaiting.value, ...awaitingGroups.value].map(entry => daysLeft(entry)),
     Number.MAX_SAFE_INTEGER))
-const anything = computed(() => awaiting.value.length + courses.value.length > 0)
+const anything = computed(() => awaiting.value.length + awaitingGroups.value.length > 0)
 
 /** Loads the panel, which says nothing when it cannot load rather than breaking the page. */
 async function loadData() {
   const [entries, cats, open] = await Promise.all([
     events.listAwaitingAnswer().catch(() => []),
     events.listCategories().catch(() => []),
-    eventCourses.listAwaiting().catch(() => []),
+    eventGroups.listAwaiting().catch(() => []),
   ])
   awaiting.value = entries
   categories.value = cats
-  courses.value = [...open].sort((a, b) => daysLeft(a) - daysLeft(b))
+  awaitingGroups.value = [...open].sort((a, b) => daysLeft(a) - daysLeft(b))
 }
 
 onMounted(loadData)
@@ -104,10 +104,10 @@ defineExpose({reload: loadData})
           </span>
         </NeutralContainer>
       </RowLink>
-      <RowLink v-for="entry in courses" :key="`course-${entry.courseId}`"
-               :to="{name: 'event-course', params: {courseId: entry.courseId}}">
+      <RowLink v-for="entry in awaitingGroups" :key="`event-group-${entry.eventGroupId}`"
+               :to="{name: 'event-group', params: {eventGroupId: entry.eventGroupId}}">
         <NeutralContainer
-            data-testid="awaiting-course"
+            data-testid="awaiting-group"
             class="flex items-center justify-between gap-2 py-2 px-3 cursor-pointer hover:bg-(--bg-accent)"
         >
           <div class="min-w-0">

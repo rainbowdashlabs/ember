@@ -22,8 +22,8 @@ import java.util.Objects;
  * @param dayOfWeek   the ISO day of week, or 0 where the appointment does not repeat on one
  * @param repeatUntil the last day the repetition reaches, or null where it has no end
  * @param repeatCount how many times it takes place in total, or null where it has no end
- * @param course      the course it is a part of, or null for an appointment of its own; a partner
- *                    that has never heard of courses ignores it
+ * @param eventGroup     the event group it is a part of, or null for an appointment of its own; a partner
+ *                    that has never heard of event groups ignores it
  */
 public record SharedEvent(
         int id,
@@ -37,9 +37,9 @@ public record SharedEvent(
         boolean requiresConfirmation,
         @Nullable LocalDate repeatUntil,
         @Nullable Integer repeatCount,
-        @Nullable CoursePartSummary course) {
+        @Nullable EventGroupPartSummary eventGroup) {
 
-    /** A shared appointment that is a part of no course. */
+    /** A shared appointment that is a part of no event group. */
     public SharedEvent(
             int id,
             String name,
@@ -68,12 +68,12 @@ public record SharedEvent(
     }
 
     /**
-     * This appointment as a part of the given course.
+     * This appointment as a part of the given event group.
      *
-     * @param part the course and set it belongs to, or null for an appointment of its own
-     * @return the appointment naming its course
+     * @param part the event group and set it belongs to, or null for an appointment of its own
+     * @return the appointment naming its event group
      */
-    public SharedEvent withCourse(@Nullable CoursePartSummary part) {
+    public SharedEvent withEventGroup(@Nullable EventGroupPartSummary part) {
         return new SharedEvent(
                 id,
                 name,

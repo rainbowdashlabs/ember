@@ -75,7 +75,8 @@ public class RegistrationAnswerReminder {
         var owedBefore = owing(eventId).stream().map(EventRegistration::id).collect(Collectors.toSet());
         Transactions.run(() -> {
             eventRepository.lockForSignUp(eventId);
-            if (eventRepository.isCoursePart(eventId)) throw EventRefusal.COURSE_PART_QUESTIONS_FROM_COURSE.raise();
+            if (eventRepository.isEventGroupPart(eventId))
+                throw EventRefusal.EVENT_GROUP_PART_QUESTIONS_FROM_EVENT_GROUP.raise();
             fieldService.replaceFields(eventId, fields);
         });
         var newlyOwing = owing(eventId).stream()

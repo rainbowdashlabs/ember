@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import CoursePartBadge from '../../eventshared/CoursePartBadge.vue'
+import EventGroupPartBadge from '../../eventshared/EventGroupPartBadge.vue'
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -86,7 +86,7 @@ const detailRoute = computed(() => ({
               :start-time="fed.event.startTime" :end-time="fed.event.endTime" :format-time="formatTime">
             <SecondaryBadge>{{ fed.partnerStationName }}</SecondaryBadge>
             <InfoBadge v-if="fed.event.requiresRegistration">{{ t('eventsUpcoming.registrationRequired') }}</InfoBadge>
-            <CoursePartBadge v-if="fed.event.course" :course="fed.event.course"/>
+            <EventGroupPartBadge v-if="fed.event.eventGroup" :event-group="fed.event.eventGroup"/>
           </EventHeadline>
         </div>
         <ProseExcerpt :html="renderMarkdown(fed.event.description)" max-height="max-h-32"/>
@@ -94,7 +94,7 @@ const detailRoute = computed(() => ({
     </RowLink>
 
     <EventRegistrationActions
-        v-if="fed.event.requiresRegistration && !fed.event.course"
+        v-if="fed.event.requiresRegistration && !fed.event.eventGroup"
         :people="eligibleMembers"
         :answers="answers"
         :requires-registration="true"

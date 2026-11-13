@@ -40,8 +40,8 @@ import {useHouseholdSignOff} from './useHouseholdSignOff'
 import {holdsOrAwaitsPlace, isMembersAnswer, maySignUp, membersToRegister, notOpenLabelKey, type AnswerablePerson, type PersonAnswer} from '@/util/eventAnswers'
 
 const props = defineProps<{
-  /** Whether the appointment is a part of a course, whose sign-up goes through the course. */
-  coursePart?: boolean
+  /** Whether the appointment is a part of an event group, whose sign-up goes through the event group. */
+  eventGroupPart?: boolean
   event: StationEvent
   eventId: number
   currentMemberId: number
@@ -381,7 +381,7 @@ onMounted(loadRegistrations)
   <div class="space-y-6">
     <FailureAlert :failure="failure ?? registrationFailure"/>
 
-    <NeutralContainer v-if="event.requiresRegistration && !canManageEvents() && !coursePart" class="space-y-3">
+    <NeutralContainer v-if="event.requiresRegistration && !canManageEvents() && !eventGroupPart" class="space-y-3">
       <SubHeader>{{ t('eventDetail.myRegistration') }}</SubHeader>
       <MutedText v-if="registrableMembers.length === 0" class="text-sm" data-testid="registration-not-open">
         {{ t(notOpenLabelKey(hasManagedMembers)) }}
@@ -424,7 +424,7 @@ onMounted(loadRegistrations)
 
     <RegistrationsPanel
         v-model:manual-register-member-id="manualRegisterMemberId"
-        :course-part="coursePart"
+        :event-group-part="eventGroupPart"
         :event="event"
         :registrations="registrations"
         :pending-registrations="pendingRegistrations"
@@ -473,7 +473,7 @@ onMounted(loadRegistrations)
 
     <FederatedRegistrationsPanel
         v-if="canManageEvents()"
-        :course-part="coursePart"
+        :event-group-part="eventGroupPart"
         :registrations="federatedRegs"
         :partner-places="partnerPlaces"
         @accept="id => decideFederated(id, RegistrationStatus.ACCEPTED)"

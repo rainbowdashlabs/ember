@@ -42,17 +42,17 @@ public enum RestrictionType {
             "id",
             "view_restriction_mode",
             StationPermission.EVENT_MANAGER),
-    EVENT_COURSE(
-            "event_course_restriction",
-            "course_id",
-            "event_course",
+    EVENT_GROUP(
+            "event_group_restriction",
+            "event_group_id",
+            "event_group",
             "id",
             "restriction_mode",
             StationPermission.EVENT_MANAGER),
-    EVENT_COURSE_VIEW(
-            "event_course_view_restriction",
-            "course_id",
-            "event_course",
+    EVENT_GROUP_VIEW(
+            "event_group_view_restriction",
+            "event_group_id",
+            "event_group",
             "id",
             "view_restriction_mode",
             StationPermission.EVENT_MANAGER),

@@ -208,8 +208,8 @@ public class MemberGroupRepository {
     }
 
     /**
-     * How many appointments, courses, templates, news entries, forms, quizzes, wiki entries and
-     * procedures are limited to one group, so a refused delete can say what is in the way. A course
+     * How many appointments, event groups, templates, news entries, forms, quizzes, wiki entries and
+     * procedures are limited to one member group, so a refused delete can say what is in the way. An event group
      * counts beside its parts, which carry its audience too.
      *
      * <p>Each counts once, however many of its lists name the group: an appointment limited to it both

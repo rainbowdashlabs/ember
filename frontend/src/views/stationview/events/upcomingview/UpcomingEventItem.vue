@@ -15,7 +15,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import ProseExcerpt from '@/components/display/ProseExcerpt.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
-import CoursePartBadge from '../eventshared/CoursePartBadge.vue'
+import EventGroupPartBadge from '../eventshared/EventGroupPartBadge.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EventHeadline from '../eventshared/EventHeadline.vue'
@@ -87,7 +87,7 @@ const containerClass = computed(() => [
           <ColorBadge v-if="category" :color="category.color" data-testid="upcoming-event-category">
             {{ category.name }}
           </ColorBadge>
-          <CoursePartBadge v-if="event.course" :course="event.course" link/>
+          <EventGroupPartBadge v-if="event.eventGroup" :event-group="event.eventGroup" link/>
           <MutedIcon v-if="event.restricted" :icon="['fas', 'lock']"/>
           <InfoBadge v-if="event.requiresRegistration" data-testid="upcoming-event-registration">
             {{ t('eventsUpcoming.registrationRequired') }}
@@ -108,10 +108,10 @@ const containerClass = computed(() => [
         <ErrorBadge v-if="registrationSummary.declined">{{ registrationSummary.declined }} {{ t('eventsUpcoming.declinedCount') }}</ErrorBadge>
       </div>
     </div>
-    <ButtonRow v-if="event.course && answerable && !cancellation" align="end">
-      <SecondaryButton :icon="['fas', 'graduation-cap']" :to="{name: 'event-course', params: {courseId: event.course.courseId}}"
-                       data-testid="upcoming-event-course-sign-up">
-        {{ t('courses.openCourse') }}
+    <ButtonRow v-if="event.eventGroup && answerable && !cancellation" align="end">
+      <SecondaryButton :icon="['fas', 'graduation-cap']" :to="{name: 'event-group', params: {eventGroupId: event.eventGroup.eventGroupId}}"
+                       data-testid="upcoming-event-group-sign-up">
+        {{ t('eventGroups.openEventGroup') }}
       </SecondaryButton>
     </ButtonRow>
     <EventRegistrationActions

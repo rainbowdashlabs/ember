@@ -11,7 +11,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.repository.EventCourseRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.HiddenNotifications;
 import dev.chojo.ember.feature.notifications.entity.Notification;
@@ -100,7 +100,7 @@ class EventCancelledHandlerTest extends RepositoryTestBase {
     void wire() {
         var notifier = newNotifier();
         cancelled = new EventCancelledHandler(
-                notifier, eventRegistrationRepo, occurrenceCalendar, new EventCourseRepository());
+                notifier, eventRegistrationRepo, occurrenceCalendar, new EventGroupRepository());
         restored = new EventDateRestoredHandler(notifier, eventRegistrationRepo);
         List.of(onTheDate, guardian, onAnotherDate, inThePast)
                 .forEach(member -> notificationRepo.acknowledgeAll(

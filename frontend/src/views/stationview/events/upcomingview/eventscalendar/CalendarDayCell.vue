@@ -49,14 +49,14 @@ void props
       <EventChipLink
           v-for="evRef in cell.events.slice(0, 3)"
           :key="`${evRef.event.id}-${evRef.date}`"
-          :title="`${evRef.event.name}${evRef.event.startTime ? ' · ' + formatTime(evRef.event.startTime) : ''}${evRef.event.course ? ' · ' + evRef.event.course.courseName : ''}`"
+          :title="`${evRef.event.name}${evRef.event.startTime ? ' · ' + formatTime(evRef.event.startTime) : ''}${evRef.event.eventGroup ? ' · ' + evRef.event.eventGroup.eventGroupName : ''}`"
           :custom-style="chipStyle(evRef.event)"
           :to="detailRoute(evRef.event, evRef.date)"
           :class="{'line-through opacity-60': isCancelled(evRef.event, evRef.date)}"
           :data-cancelled="isCancelled(evRef.event, evRef.date)"
       >
         <MutedIcon v-if="evRef.event.restricted" :icon="['fas', 'lock']" class="mr-0.5 inline"/>
-        <MutedIcon v-if="evRef.event.course" :icon="['fas', 'graduation-cap']" class="mr-0.5 inline" data-testid="calendar-course-part"/>
+        <MutedIcon v-if="evRef.event.eventGroup" :icon="['fas', 'graduation-cap']" class="mr-0.5 inline" data-testid="calendar-event-group-part"/>
         <span class="hidden sm:inline">{{ formatTime(evRef.event.startTime) }}&nbsp;</span>
         <span>{{ evRef.event.name }}</span>
       </EventChipLink>

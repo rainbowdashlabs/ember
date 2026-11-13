@@ -13,7 +13,7 @@ const SETTINGS = {required: false, managersOnly: false, selfRegistration: false,
 const MEALS: EventRegistrationField = {
   id: 1,
   eventId: 7,
-  courseId: null,
+  eventGroupId: null,
   position: 0,
   name: 'Ernährung',
   fieldType: FieldType.CHOICE,
@@ -24,7 +24,7 @@ const MEALS: EventRegistrationField = {
 const GUESTS: EventRegistrationField = {
   id: 2,
   eventId: 7,
-  courseId: null,
+  eventGroupId: null,
   position: 1,
   name: 'Begleitung',
   fieldType: FieldType.NUMBER,

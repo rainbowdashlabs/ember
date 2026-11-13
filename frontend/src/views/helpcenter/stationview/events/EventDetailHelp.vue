@@ -247,7 +247,7 @@ const sampleCancellation: CancellationNotice = {
       <p>{{ t('helpCenter.eventDetail.attendanceDayText') }}</p>
     </HelpSection>
 
-    <HelpTip>{{ t('helpCenter.eventDetail.coursePart') }}</HelpTip>
+    <HelpTip>{{ t('helpCenter.eventDetail.eventGroupPart') }}</HelpTip>
     <HelpTip>{{ t('helpCenter.eventDetail.tip') }}</HelpTip>
   </HelpArticle>
 </template>

@@ -44,7 +44,7 @@ public enum DocumentWord {
     MEMBER_TYPE("Mitgliedsart", "Member type"),
     GROUPS("Gruppen", "Groups"),
     AGE("Alter", "Age"),
-    COURSE_ATTENDANCE("Lehrgang Teilnahme", "Course Attendance"),
+    EVENT_GROUP_ATTENDANCE("Teilnahme an der Terminreihe", "Event Group Attendance"),
     COMPLETE("Erfüllt", "Complete"),
     YES("Ja", "Yes"),
     NO("Nein", "No");

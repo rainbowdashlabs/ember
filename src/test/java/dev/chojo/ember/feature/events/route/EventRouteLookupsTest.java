@@ -200,15 +200,15 @@ class EventRouteLookupsTest {
     }
 
     @Test
-    void aPartOfACourseTakesNoQuestionsOfItsOwn() {
-        when(crudService.isCoursePart(9)).thenReturn(true);
+    void aPartOfAnEventGroupTakesNoQuestionsOfItsOwn() {
+        when(crudService.isEventGroupPart(9)).thenReturn(true);
         var reminder = mock(RegistrationAnswerReminder.class);
         var harness = RouteHarness.serving(registrationRoutes(reminder));
         var request = body("""
                 {"fields": [{"name": "Shirt", "fieldType": "TEXT", "config": null, "overview": true}]}""");
 
         harness.run((server, client) -> assertEquals(
-                EventRefusal.COURSE_PART_QUESTIONS_FROM_COURSE,
+                EventRefusal.EVENT_GROUP_PART_QUESTIONS_FROM_EVENT_GROUP,
                 refusalOf(client.put(
                         PREFIX + "/events/9/registration-fields",
                         request,

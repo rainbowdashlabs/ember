@@ -34,19 +34,19 @@ import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
 import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
-import dev.chojo.ember.feature.events.repository.EventCoursePartnerRepository;
-import dev.chojo.ember.feature.events.repository.EventCourseRegistrationRepository;
-import dev.chojo.ember.feature.events.repository.EventCourseRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
-import dev.chojo.ember.feature.events.service.CourseQuestionService;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
-import dev.chojo.ember.feature.events.service.EventCoursePartFactory;
-import dev.chojo.ember.feature.events.service.EventCourseRegistrationService;
-import dev.chojo.ember.feature.events.service.EventCourseService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
+import dev.chojo.ember.feature.events.service.EventGroupPartFactory;
+import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
+import dev.chojo.ember.feature.events.service.EventGroupRegistrationService;
+import dev.chojo.ember.feature.events.service.EventGroupService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -335,7 +335,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 occurrenceCalendar,
                 mock(MediaLibraryService.class),
                 new Api(),
-                new EventCourseRepository());
+                new EventGroupRepository());
         var newsFederationService = new NewsFederationService(
                 newsFederationRepo,
                 federationService,
@@ -423,25 +423,26 @@ class DemoServiceTest extends RepositoryTestBase {
                 new EventRegistrationFieldService(new EventRegistrationFieldRepository(), memberEligibility),
                 demoClock);
         var attendanceSeeder = new DemoAttendanceSeeder(attendanceRepo, stationMemberRepo, demoClock);
-        var courseQuestions = new CourseQuestionService(new EventRegistrationFieldRepository(), memberEligibility);
-        var courseRepository = new EventCourseRepository();
-        var courseService = new EventCourseService(
-                courseRepository, eventRepo, restrictionService, occurrenceCalendar, courseQuestions);
-        var courseSeeder = new DemoCourseSeeder(
-                courseService,
-                new EventCourseRegistrationService(
-                        courseRepository,
-                        new EventCourseRegistrationRepository(),
+        var eventGroupQuestions =
+                new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility);
+        var eventGroupRepository = new EventGroupRepository();
+        var eventGroupService = new EventGroupService(
+                eventGroupRepository, eventRepo, restrictionService, occurrenceCalendar, eventGroupQuestions);
+        var eventGroupSeeder = new DemoEventGroupSeeder(
+                eventGroupService,
+                new EventGroupRegistrationService(
+                        eventGroupRepository,
+                        new EventGroupRegistrationRepository(),
                         eventRepo,
                         eventRegistrationRepo,
                         eventServices.registration(),
                         occurrenceCalendar,
                         noOpBus,
                         memberNameResolver,
-                        courseQuestions,
-                        new EventCoursePartnerRepository()),
-                courseQuestions,
-                new EventCoursePartFactory(eventServices.crud(), courseService),
+                        eventGroupQuestions,
+                        new EventGroupPartnerRepository()),
+                eventGroupQuestions,
+                new EventGroupPartFactory(eventServices.crud(), eventGroupService),
                 demoClock);
         var containerSvc =
                 new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo, itemCustodyService);
@@ -612,7 +613,7 @@ class DemoServiceTest extends RepositoryTestBase {
                         memberSeeder,
                         mirrorStationSeeder,
                         eventSeeder,
-                        courseSeeder,
+                        eventGroupSeeder,
                         newsSeeder,
                         lostAndFoundSeederLocal,
                         attendanceSeeder,
@@ -690,22 +691,22 @@ class DemoServiceTest extends RepositoryTestBase {
                 "Station 'Jugendfeuerwehr Musterstadt' should exist");
     }
 
-    /** The demo station runs a Jugendflamme course with people signed up, one of them short of the rules. */
+    /** The demo station runs a Jugendflamme event group with people signed up, one of them short of the rules. */
     @Test
     @Order(4)
-    void verifyTheJugendflammeCourse() {
+    void verifyTheJugendflammeEventGroup() {
         var station = stationRepo.findAll().stream()
                 .filter(s -> "Jugendfeuerwehr Musterstadt".equals(s.name()))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("The demo station should exist"));
-        var courseRepository = new EventCourseRepository();
-        var course = courseRepository.findByStation(station.id()).stream()
+        var eventGroupRepository = new EventGroupRepository();
+        var eventGroup = eventGroupRepository.findByStation(station.id()).stream()
                 .filter(c -> c.name().startsWith("Jugendflamme"))
                 .findFirst()
-                .orElseThrow(() -> new AssertionError("The demo should have a Jugendflamme course"));
+                .orElseThrow(() -> new AssertionError("The demo should have a Jugendflamme event group"));
 
-        assertEquals(4, courseRepository.findParts(course.id()).size());
-        var signUps = new EventCourseRegistrationRepository().findByCourse(course.id());
+        assertEquals(4, eventGroupRepository.findParts(eventGroup.id()).size());
+        var signUps = new EventGroupRegistrationRepository().findByEventGroup(eventGroup.id());
         assertEquals(7, signUps.size());
         assertEquals(
                 1,
@@ -717,10 +718,12 @@ class DemoServiceTest extends RepositoryTestBase {
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("The team should have signed somebody up past the rules"));
         assertEquals(
-                2, eventRegistrationRepo.findLinkedToCourse(teamSignUp.id()).size());
+                2, eventRegistrationRepo.findLinkedToEventGroup(teamSignUp.id()).size());
         assertTrue(signUps.stream()
-                .anyMatch(signUp ->
-                        eventRegistrationRepo.findLinkedToCourse(signUp.id()).size() == 4));
+                .anyMatch(signUp -> eventRegistrationRepo
+                                .findLinkedToEventGroup(signUp.id())
+                                .size()
+                        == 4));
     }
 
     /**

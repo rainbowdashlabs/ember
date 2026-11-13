@@ -230,20 +230,20 @@ class EventUpdateScopeRouteTest {
     }
 
     @Test
-    void aPartOfACourseTakesItsAudienceFromTheCourse() {
-        when(crudServiceOf().isCoursePart(SERIES_ID)).thenReturn(true);
+    void aPartOfAnEventGroupTakesItsAudienceFromTheEventGroup() {
+        when(crudServiceOf().isEventGroupPart(SERIES_ID)).thenReturn(true);
 
         var response = harness.request(client -> client.put(
                 PREFIX + "/events/" + SERIES_ID + "/restrictions",
                 body("{}"),
                 harness.as(TestSessions.member(STATION_ID, StationPermission.EVENT_EDIT))));
 
-        assertEquals(EventRefusal.COURSE_PART_AUDIENCE_FROM_COURSE, refusalOf(response));
+        assertEquals(EventRefusal.EVENT_GROUP_PART_AUDIENCE_FROM_EVENT_GROUP, refusalOf(response));
     }
 
     @Test
-    void savingAPartOfACourseLeavesTheAudienceTheCourseGaveIt() {
-        when(crudServiceOf().isCoursePart(NEW_ID)).thenReturn(true);
+    void savingAPartOfAnEventGroupLeavesTheAudienceTheEventGroupGaveIt() {
+        when(crudServiceOf().isEventGroupPart(NEW_ID)).thenReturn(true);
 
         assertEquals(200, update("").code());
 

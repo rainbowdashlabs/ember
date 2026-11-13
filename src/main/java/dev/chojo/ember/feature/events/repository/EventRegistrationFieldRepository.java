@@ -29,24 +29,24 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class EventRegistrationFieldRepository {
 
-    private static final String FIELD_COLUMNS = "id, event_id, course_id, name, field_type, config, position, overview";
+    private static final String FIELD_COLUMNS = "id, event_id, group_id, name, field_type, config, position, overview";
     private static final String VALUE_COLUMNS = "registration_id, field_id, value";
-    private static final String COURSE_VALUE_COLUMNS = "course_registration_id AS registration_id, field_id, value";
+    private static final String EVENT_GROUP_VALUE_COLUMNS = "group_registration_id AS registration_id, field_id, value";
     private static final String EVENT_OWNER = "event_id";
-    private static final String COURSE_OWNER = "course_id";
+    private static final String EVENT_GROUP_OWNER = "group_id";
 
     public List<EventRegistrationField> findByEvent(int eventId) {
         return findByOwner(EVENT_OWNER, eventId);
     }
 
     /**
-     * The questions a course asks of everyone signing up for it, in their order.
+     * The questions an event group asks of everyone signing up for it, in their order.
      *
-     * @param courseId the course
+     * @param eventGroupId the event group
      * @return its questions
      */
-    public List<EventRegistrationField> findByCourse(int courseId) {
-        return findByOwner(COURSE_OWNER, courseId);
+    public List<EventRegistrationField> findByEventGroup(int eventGroupId) {
+        return findByOwner(EVENT_GROUP_OWNER, eventGroupId);
     }
 
     private List<EventRegistrationField> findByOwner(String ownerColumn, int ownerId) {
@@ -112,14 +112,14 @@ public class EventRegistrationFieldRepository {
     }
 
     /**
-     * Replaces the questions of a course, keeping each question that keeps its name so its answers
+     * Replaces the questions of an event group, keeping each question that keeps its name so its answers
      * stay with it.
      *
-     * @param courseId the course
+     * @param eventGroupId the event group
      * @param fields   the questions in their new order
      */
-    public void replaceCourseFields(int courseId, List<RegistrationFieldDraft> fields) {
-        replaceFieldsOf(COURSE_OWNER, courseId, fields);
+    public void replaceEventGroupFields(int eventGroupId, List<RegistrationFieldDraft> fields) {
+        replaceFieldsOf(EVENT_GROUP_OWNER, eventGroupId, fields);
     }
 
     private void replaceFieldsOf(String ownerColumn, int ownerId, List<RegistrationFieldDraft> fields) {
@@ -244,35 +244,35 @@ public class EventRegistrationFieldRepository {
     }
 
     /**
-     * The answers given with course sign-ups, keyed in the result by the course sign-up.
+     * The answers given with event group sign-ups, keyed in the result by the event group sign-up.
      *
-     * @param courseRegistrationIds the course sign-ups
+     * @param eventGroupRegistrationIds the event group sign-ups
      * @return their answers
      */
-    public List<RegistrationFieldValue> findCourseAnswers(List<Integer> courseRegistrationIds) {
-        if (courseRegistrationIds.isEmpty()) return List.of();
+    public List<RegistrationFieldValue> findEventGroupAnswers(List<Integer> eventGroupRegistrationIds) {
+        if (eventGroupRegistrationIds.isEmpty()) return List.of();
         return query("""
                 SELECT %s
-                FROM event_course_answer
-                WHERE course_registration_id = ANY(:ids);""", COURSE_VALUE_COLUMNS)
-                .single(call().bind("ids", courseRegistrationIds, PostgreSqlTypes.INTEGER))
+                FROM event_group_answer
+                WHERE group_registration_id = ANY(:ids);""", EVENT_GROUP_VALUE_COLUMNS)
+                .single(call().bind("ids", eventGroupRegistrationIds, PostgreSqlTypes.INTEGER))
                 .map(RegistrationFieldValue.map())
                 .all();
     }
 
     /**
-     * Stores one answer of a course sign-up.
+     * Stores one answer of an event group sign-up.
      *
-     * @param courseRegistrationId the course sign-up
+     * @param eventGroupRegistrationId the event group sign-up
      * @param fieldId              the question
      * @param value                the answer
      */
-    public void setCourseAnswer(int courseRegistrationId, int fieldId, String value) {
+    public void setEventGroupAnswer(int eventGroupRegistrationId, int fieldId, String value) {
         query("""
-                INSERT INTO event_course_answer(course_registration_id, field_id, value)
-                VALUES (:course_registration_id, :field_id, :value)
-                ON CONFLICT (course_registration_id, field_id) DO UPDATE SET value = :value;""")
-                .single(call().bind("course_registration_id", courseRegistrationId)
+                INSERT INTO event_group_answer(group_registration_id, field_id, value)
+                VALUES (:group_registration_id, :field_id, :value)
+                ON CONFLICT (group_registration_id, field_id) DO UPDATE SET value = :value;""")
+                .single(call().bind("group_registration_id", eventGroupRegistrationId)
                         .bind("field_id", fieldId)
                         .bind("value", value))
                 .insert();
@@ -290,25 +290,25 @@ public class EventRegistrationFieldRepository {
     }
 
     /**
-     * Removes every answer of a course sign-up.
+     * Removes every answer of an event group sign-up.
      *
-     * @param courseRegistrationId the course sign-up
+     * @param eventGroupRegistrationId the event group sign-up
      */
-    public void deleteCourseAnswers(int courseRegistrationId) {
-        query("DELETE FROM event_course_answer WHERE course_registration_id = :id;")
-                .single(call().bind("id", courseRegistrationId))
+    public void deleteEventGroupAnswers(int eventGroupRegistrationId) {
+        query("DELETE FROM event_group_answer WHERE group_registration_id = :id;")
+                .single(call().bind("id", eventGroupRegistrationId))
                 .delete();
     }
 
     /**
-     * Removes one answer of a course sign-up.
+     * Removes one answer of an event group sign-up.
      *
-     * @param courseRegistrationId the course sign-up
+     * @param eventGroupRegistrationId the event group sign-up
      * @param fieldId              the question
      */
-    public void deleteCourseAnswer(int courseRegistrationId, int fieldId) {
-        query("DELETE FROM event_course_answer WHERE course_registration_id = :id AND field_id = :field_id;")
-                .single(call().bind("id", courseRegistrationId).bind("field_id", fieldId))
+    public void deleteEventGroupAnswer(int eventGroupRegistrationId, int fieldId) {
+        query("DELETE FROM event_group_answer WHERE group_registration_id = :id AND field_id = :field_id;")
+                .single(call().bind("id", eventGroupRegistrationId).bind("field_id", fieldId))
                 .delete();
     }
 }

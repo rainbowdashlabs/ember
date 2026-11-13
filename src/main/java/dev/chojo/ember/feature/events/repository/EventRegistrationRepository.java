@@ -49,47 +49,47 @@ public class EventRegistrationRepository {
                     + "agreement_withdrawn_at";
 
     /**
-     * Ties a registration to the course sign-up it was chosen with, or lets it go.
+     * Ties a registration to the event group sign-up it was chosen with, or lets it go.
      *
      * @param id                   the registration
-     * @param courseRegistrationId the course sign-up, or null to let it go
+     * @param eventGroupRegistrationId the event group sign-up, or null to let it go
      */
-    public void linkToCourse(int id, @Nullable Integer courseRegistrationId) {
-        query("UPDATE event_registration SET course_registration_id = :course_registration_id WHERE id = :id;")
-                .single(call().bind("id", id).bind("course_registration_id", courseRegistrationId))
+    public void linkToEventGroup(int id, @Nullable Integer eventGroupRegistrationId) {
+        query("UPDATE event_registration SET group_registration_id = :group_registration_id WHERE id = :id;")
+                .single(call().bind("id", id).bind("group_registration_id", eventGroupRegistrationId))
                 .update();
     }
 
     /**
-     * The registrations chosen with a course sign-up, one per chosen part.
+     * The registrations chosen with an event group sign-up, one per chosen part.
      *
-     * @param courseRegistrationId the course sign-up
+     * @param eventGroupRegistrationId the event group sign-up
      * @return its registrations, by appointment
      */
-    public List<EventRegistration> findLinkedToCourse(int courseRegistrationId) {
+    public List<EventRegistration> findLinkedToEventGroup(int eventGroupRegistrationId) {
         return query("""
                 SELECT %s
                 FROM event_registration
-                WHERE course_registration_id = :course_registration_id
+                WHERE group_registration_id = :group_registration_id
                 ORDER BY event_id;""", COLUMNS)
-                .single(call().bind("course_registration_id", courseRegistrationId))
+                .single(call().bind("group_registration_id", eventGroupRegistrationId))
                 .map(EventRegistration.map())
                 .all();
     }
 
     /**
-     * Every registration tied to a sign-up for a course, for the whole course at once.
+     * Every registration tied to a sign-up for an event group, for the whole event group at once.
      *
-     * @param courseId the course
+     * @param eventGroupId the event group
      * @return the tied registrations, by member and appointment
      */
-    public List<EventRegistration> findLinkedToCourseOf(int courseId) {
+    public List<EventRegistration> findLinkedToEventGroupOf(int eventGroupId) {
         return query("""
                 SELECT %s
                 FROM event_registration
-                WHERE course_registration_id IN (SELECT id FROM event_course_registration WHERE course_id = :course_id)
+                WHERE group_registration_id IN (SELECT id FROM event_group_registration WHERE group_id = :group_id)
                 ORDER BY member_id, event_id;""", COLUMNS)
-                .single(call().bind("course_id", courseId))
+                .single(call().bind("group_id", eventGroupId))
                 .map(EventRegistration.map())
                 .all();
     }
@@ -800,7 +800,7 @@ public class EventRegistrationRepository {
                 WHERE sm.id = ANY (:member_ids)
                   AND sm.former = FALSE
                   AND e.requires_registration
-                  AND e.course_set_id IS NULL
+                  AND e.event_group_set_id IS NULL
                   AND e.event_type = 'ONE_TIME'
                   AND e.cancelled = FALSE
                   AND %s

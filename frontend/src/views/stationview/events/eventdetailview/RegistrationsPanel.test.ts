@@ -13,10 +13,10 @@ vi.mock('@/composables/useSession', () => ({useSession: () => ({hasPermission: (
 
 const event = {id: 4, name: 'Samstag', requiresRegistration: true} as StationEvent
 
-function panel(coursePart: boolean) {
+function panel(eventGroupPart: boolean) {
   return mount(RegistrationsPanel, {
     props: {
-      coursePart,
+      eventGroupPart,
       event,
       registrations: [],
       pendingRegistrations: [],
@@ -28,7 +28,7 @@ function panel(coursePart: boolean) {
 }
 
 describe('RegistrationsPanel', () => {
-  it('offers signing somebody up on an appointment of its own and not on a part of a course', () => {
+  it('offers signing somebody up on an appointment of its own and not on a part of an event group', () => {
     expect(panel(false).find('[data-testid="manual-register"]').exists()).toBe(true)
     expect(panel(true).find('[data-testid="manual-register"]').exists()).toBe(false)
   })

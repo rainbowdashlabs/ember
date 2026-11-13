@@ -46,26 +46,26 @@ public final class NotificationLinks {
     }
 
     /**
-     * The link to one course.
+     * The link to one event group.
      *
-     * @param courseId the course
+     * @param eventGroupId the event group
      * @return the link its notifications carry
      */
-    public static NotificationLink course(int courseId) {
-        return new NotificationLink("event-course", Map.of("courseId", courseId));
+    public static NotificationLink eventGroup(int eventGroupId) {
+        return new NotificationLink("event-group", Map.of("eventGroupId", eventGroupId));
     }
 
     /**
-     * The link to a course a partner station shares.
+     * The link to an event group a partner station shares.
      *
-     * @param stationUid the partner station holding the course
-     * @param courseId   the course there
+     * @param stationUid the partner station holding the event group
+     * @param eventGroupId   the event group there
      * @return the link
      */
-    public static NotificationLink federatedCourse(UUID stationUid, int courseId) {
+    public static NotificationLink federatedEventGroup(UUID stationUid, int eventGroupId) {
         return new NotificationLink(
-                "federated-event-course",
-                Map.of("stationUid", stationUid.toString(), "courseId", String.valueOf(courseId)));
+                "federated-event-group",
+                Map.of("stationUid", stationUid.toString(), "eventGroupId", String.valueOf(eventGroupId)));
     }
 
     /**

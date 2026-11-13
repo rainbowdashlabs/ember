@@ -57,7 +57,7 @@ const appointment: EventSummary = {
     restricted: false,
     seriesCancelled: false,
     registrationLimit: null,
-    course: null,
+    eventGroup: null,
 }
 
 const child = {key: 11, name: 'Mira'}

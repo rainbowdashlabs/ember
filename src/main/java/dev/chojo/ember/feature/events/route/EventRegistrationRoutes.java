@@ -511,7 +511,8 @@ public class EventRegistrationRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         requireOwnedEvent(crudService, eventId, session);
-        if (crudService.isCoursePart(eventId)) throw EventRefusal.COURSE_PART_QUESTIONS_FROM_COURSE.raise();
+        if (crudService.isEventGroupPart(eventId))
+            throw EventRefusal.EVENT_GROUP_PART_QUESTIONS_FROM_EVENT_GROUP.raise();
         var req = ctx.bodyAsClass(RegistrationFieldDefinitionsRequest.class);
         var fields = req.fields() == null ? List.<RegistrationFieldDefinition>of() : req.fields();
         answerReminder.replaceQuestions(
