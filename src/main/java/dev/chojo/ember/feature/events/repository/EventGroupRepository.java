@@ -223,7 +223,9 @@ public class EventGroupRepository {
                        s.id AS set_id,
                        s.name AS set_name,
                        row_number() OVER (PARTITION BY c.id ORDER BY e.start_time, e.id) AS number,
-                       count(*) OVER (PARTITION BY c.id) AS part_count
+                       count(*) OVER (PARTITION BY c.id) AS part_count,
+                       min(e.start_time) OVER (PARTITION BY c.id) AS first_start,
+                       max(e.end_time) OVER (PARTITION BY c.id) AS last_end
                 FROM station_event e
                          JOIN event_group_set s ON s.id = e.event_group_set_id
                          JOIN event_group c ON c.id = s.group_id
@@ -238,7 +240,9 @@ public class EventGroupRepository {
                                 row.getString("set_name"),
                                 row.getInt("number"),
                                 row.getInt("part_count"),
-                                row.getString("group_color"))))
+                                row.getString("group_color"),
+                                row.get("first_start", INSTANT_TIMESTAMP),
+                                row.get("last_end", INSTANT_TIMESTAMP))))
                 .all()
                 .stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));

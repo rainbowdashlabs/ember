@@ -3,6 +3,16 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import type {EventGroupPartSummary} from '@/api/generated/schema'
+
+/**
+ * What marks an event group on an appointment or on its own page: its id, name and colour always, the
+ * part's place among the parts where an appointment is shown, and the days the event group runs over
+ * where it has parts.
+ */
+export type EventGroupMark = Pick<EventGroupPartSummary, 'eventGroupId' | 'eventGroupName' | 'color'>
+    & Partial<Pick<EventGroupPartSummary, 'number' | 'count' | 'firstStart' | 'lastEnd'>>
+
 /**
  * The colours an event group without one of its own is marked with, mostly taken from the station's
  * colour scheme. Neighbouring ids get different colours, so two event groups side by side rarely look

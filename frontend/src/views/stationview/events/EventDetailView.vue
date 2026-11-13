@@ -29,7 +29,7 @@ import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import EventLinksNote from './eventdetailview/EventLinksNote.vue'
 import EventDetailBody from './eventdetailview/EventDetailBody.vue'
-import EventGroupPartNotice from './eventshared/EventGroupPartNotice.vue'
+import EventGroupFrame from './eventshared/EventGroupFrame.vue'
 import EventAnswerDialog from './eventshared/EventAnswerDialog.vue'
 import RegistrationSigningStep from './eventshared/RegistrationSigningStep.vue'
 import {useEventAnswer} from '@/composables/useEventAnswer'
@@ -275,7 +275,10 @@ function onFieldUpdated(field: AppointmentField) {
     <Spinner v-if="loading" size="lg"/>
     <FailureAlert :failure="failure"/>
     <EventLinksNote v-if="!loading && event" :event-id="eventId"/>
-    <EventGroupPartNotice v-if="!loading && eventGroupPart" :event-group="eventGroupPart" :message="t('eventGroups.signUpThroughEventGroup')" class="mb-4"/>
+    <EventGroupFrame
+        :event-group="loading ? null : eventGroupPart"
+        :message="t('eventGroups.signUpThroughEventGroup')"
+        :to="eventGroupPart ? {name: 'event-group', params: {eventGroupId: eventGroupPart.eventGroupId}} : undefined">
     <EventDetailBody
         v-if="!loading && event"
         :event="event"
@@ -308,6 +311,7 @@ function onFieldUpdated(field: AppointmentField) {
         @decline="onDecline"
         @withdraw="answer.withdrawRegistration"
     />
+    </EventGroupFrame>
 
     <EventAnswerDialog
         :model-value="answer.answerPrompt.value !== null"

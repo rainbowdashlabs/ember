@@ -3305,7 +3305,7 @@ volumes:
             },
         },
         eventDetail: {
-            eventGroupPart: 'Gehört ein Termin zu einer Terminreihe, steht oben ein Hinweis mit einem Knopf zur Terminreihe. Angemeldet wird dann bei der Terminreihe, nicht am Termin.',
+            eventGroupPart: 'Gehört ein Termin zu einer Terminreihe, steht seine Seite in einem Rahmen in der Farbe der Terminreihe. Der Balken oben nennt die Terminreihe, den Teil und ihre Tage und führt zur Terminreihe. Angemeldet wird dann bei der Terminreihe, nicht am Termin.',
             linksTitle: 'Fortgeführte und herausgelöste Termine',
             linksText: 'Wurde eine Serie ab einem Termin als neue Serie weitergeführt oder ein einzelner Termin aus ihr gelöst, steht das oben auf der Seite: welcher Termin fortgeführt wird, als was die Serie weitergeht und welcher Tag ein eigener Termin geworden ist. Ein Klick auf den Namen öffnet den anderen Termin.',
             answeringTitle: 'An- und abmelden, auch für mehrere',
@@ -3381,7 +3381,7 @@ volumes:
             whatIsText: 'Eine Terminreihe fasst mehrere Termine zusammen, die nur gemeinsam Sinn ergeben. Du meldest dich einmal für die ganze Terminreihe an und wählst dabei die Termine, an denen du teilnimmst.',
             whatIsExample: 'Ein Beispiel ist die Jugendflamme Stufe 1: Zwei Übungstage von dreien und der Prüfungstag gehören dazu.',
             howTo: 'Wie komme ich zu einer Terminreihe?',
-            howToText: 'Termine einer Terminreihe tragen in Listen und auf der Übersicht einen farbigen Streifen am linken Rand, im Kalender eine farbige Marke vor dem Namen. Beide nennen die Terminreihe, wenn man darauf zeigt. Ein Termin, der zu einer Terminreihe gehört, zeigt oben einen Hinweis mit dem Namen der Terminreihe. Von dort geht es zur Terminreihe. Auch „Kommende Termine“, die Benachrichtigungen und die Übersicht offener Anmeldungen führen dorthin. Wer Termine verwaltet, legt neue Terminreihen unter Termine → Verwalten über „Neue Terminreihe“ an.',
+            howToText: 'Termine einer Terminreihe tragen in Listen und auf der Übersicht einen Rahmen in ihrer Farbe: einen Streifen am linken Rand und oben einen Balken mit dem Namen der Terminreihe, dem Teil und ihren Tagen. Im Kalender steht eine farbige Marke vor dem Namen. Auch die Seite eines solchen Termins steht in diesem Rahmen, und der Balken führt zur Terminreihe. Auch „Kommende Termine“, die Benachrichtigungen und die Übersicht offener Anmeldungen führen dorthin. Wer Termine verwaltet, legt neue Terminreihen unter Termine → Verwalten über „Neue Terminreihe“ an.',
             exampleName: 'Jugendflamme Stufe 1',
         },
         eventGroupDetail: {
@@ -4346,7 +4346,7 @@ volumes:
             whatIsText: 'Partnerwachen können ganze Terminreihen mit euch teilen, etwa die Jugendflamme. Hier stehen die Termine nach Blöcken, und neben jedem Block steht, wie viele Termine mindestens gewählt werden müssen.',
             signUpTitle: 'Anmelden',
             signUpText: 'Die Anmeldung gilt für die ganze Terminreihe und geht an die Partnerwache. Es gelten ihre Vorgaben, Plätze und Fristen. Verwaltest du weitere Personen, etwa deine Kinder, meldest du sie hier genauso an.',
-            partsText: 'Einzelne Termine einer Terminreihe nehmen keine eigene Anmeldung an. Auf der Seite eines Termins führt ein Hinweis hierher.',
+            partsText: 'Einzelne Termine einer Terminreihe nehmen keine eigene Anmeldung an. Auf der Seite eines Termins führt der Balken oben hierher.',
         },
         federatedEventDetail: {
             title: 'Termin einer Partnerwache',

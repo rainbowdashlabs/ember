@@ -12183,6 +12183,8 @@ export default {
         saveFirst: 'Speichere die Terminreihe, um Termine hinzuzufügen.',
         saved: 'Terminreihe gespeichert',
         badge: '{eventGroup}, Teil {number} von {count}',
+        partNumber: 'Teil {number} von {count}',
+        dateRange: '{first} bis {last}',
         partOf: 'Dieser Termin gehört zur Terminreihe {eventGroup}.',
         signUpThroughEventGroup: 'Die Anmeldung läuft über die Terminreihe.',
         openEventGroup: 'Zur Terminreihe',

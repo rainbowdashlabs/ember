@@ -23,6 +23,7 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import RegistrationStatusBadge from '@/views/stationview/events/eventshared/RegistrationStatusBadge.vue'
 import EventGroupBand from '@/views/stationview/events/eventshared/EventGroupBand.vue'
+import EventGroupHeading from '@/views/stationview/events/eventshared/EventGroupHeading.vue'
 import {RegistrationStatus, StationPermission} from '@/api/generated/schema'
 
 const {t} = useI18n()
@@ -35,6 +36,8 @@ const examplePart = computed(() => ({
   number: 2,
   count: 4,
   color: '#8b5cf6',
+  firstStart: '2026-12-12T08:00:00Z',
+  lastEnd: '2026-12-20T15:00:00Z',
 }))
 </script>
 
@@ -46,8 +49,9 @@ const examplePart = computed(() => ({
     </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroups.howTo')">
       <p>{{ t('helpCenter.eventGroups.howToText') }}</p>
-      <NeutralContainer class="relative pl-5">
+      <NeutralContainer class="relative pl-5 pt-9">
         <EventGroupBand :event-group="examplePart"/>
+        <EventGroupHeading :event-group="examplePart"/>
         <span class="font-medium">{{ t('helpCenter.eventGroupDetail.day2') }}</span>
       </NeutralContainer>
     </HelpSection>

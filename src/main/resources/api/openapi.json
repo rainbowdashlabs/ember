@@ -62186,9 +62186,15 @@
           },
           "color" : {
             "type" : [ "string", "null" ]
+          },
+          "firstStart" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "lastEnd" : {
+            "$ref" : "#/components/schemas/Instant"
           }
         },
-        "required" : [ "eventGroupId", "eventGroupName", "setId", "setName", "number", "count", "color" ]
+        "required" : [ "eventGroupId", "eventGroupName", "setId", "setName", "number", "count", "color", "firstStart", "lastEnd" ]
       },
       "EventGroupPartnerSignUp" : {
         "type" : "object",

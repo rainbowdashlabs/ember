@@ -9,12 +9,18 @@ import {mount} from '@vue/test-utils'
 import EventGroupBand from './EventGroupBand.vue'
 import {EVENT_GROUP_PALETTE, eventGroupColor} from './eventGroupColor'
 
-const part = {eventGroupId: 70, eventGroupName: 'Jugendflamme 1', setId: 1, setName: 'Übung', number: 2, count: 4, color: '#3694ff'}
+const part = {eventGroupId: 70, eventGroupName: 'Jugendflamme 1', setId: 1, setName: 'Übung', number: 2, count: 4, color: '#3694ff', firstStart: '2026-12-12T08:00:00Z', lastEnd: '2026-12-20T15:00:00Z'}
 
 /** The band says in words what its colour says, and only ever paints a colour of the expected shape. */
 describe('EventGroupBand', () => {
-  it('names the event group and the part as its label and tooltip', () => {
+  it('marks the left edge and leaves the words to the heading', () => {
     const band = mount(EventGroupBand, {props: {eventGroup: part}}).get('[data-testid="event-group-band"]')
+
+    expect(band.attributes('aria-hidden')).toBe('true')
+  })
+
+  it('names the event group and the part as the label and tooltip of a mark', () => {
+    const band = mount(EventGroupBand, {props: {eventGroup: part, variant: 'mark'}}).get('[data-testid="event-group-band"]')
 
     expect(band.attributes('role')).toBe('img')
     expect(band.attributes('aria-label')).toBe('Jugendflamme 1, Teil 2 von 4')

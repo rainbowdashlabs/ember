@@ -5,6 +5,7 @@
  */
 <script setup lang="ts">
 import EventGroupBand from '../../eventshared/EventGroupBand.vue'
+import EventGroupHeading from '../../eventshared/EventGroupHeading.vue'
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -77,8 +78,9 @@ const detailRoute = computed(() => ({
 </script>
 
 <template>
-  <NeutralContainer class="space-y-2" :class="{'relative pl-5': fed.event.eventGroup}" data-testid="federated-event">
+  <NeutralContainer class="space-y-2" :class="{'relative pl-5 pt-9': fed.event.eventGroup}" data-testid="federated-event">
     <EventGroupBand v-if="fed.event.eventGroup" :event-group="fed.event.eventGroup"/>
+    <EventGroupHeading v-if="fed.event.eventGroup" :event-group="fed.event.eventGroup"/>
     <RowLink :to="detailRoute">
       <div class="cursor-pointer">
         <div class="flex items-center justify-between flex-wrap gap-2">

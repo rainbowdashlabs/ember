@@ -70550,6 +70550,8 @@ export interface components {
             /** Format: int32 */
             eventGroupId: number;
             eventGroupName: string;
+            firstStart: components["schemas"]["Instant"];
+            lastEnd: components["schemas"]["Instant"];
             /** Format: int32 */
             number: number;
             /** Format: int32 */

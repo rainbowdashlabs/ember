@@ -28,7 +28,7 @@ import {stationDayOf, stationToday} from '@/util/format'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import AttachmentsCard from './federatedeventdetailview/AttachmentsCard.vue'
-import EventGroupPartNotice from './eventshared/EventGroupPartNotice.vue'
+import EventGroupFrame from './eventshared/EventGroupFrame.vue'
 import HeaderCard from './federatedeventdetailview/HeaderCard.vue'
 import RegistrationCard from './federatedeventdetailview/RegistrationCard.vue'
 import AgreementOfferCard from './federatedeventdetailview/AgreementOfferCard.vue'
@@ -233,20 +233,17 @@ watch(() => [route.params.stationUid, route.params.eventId], () => {
       <Spinner v-if="loading" size="lg"/>
       <FailureAlert :failure="failure ?? registrationFailure ?? takeOnFailure"/>
 
-      <template v-if="eventData && !loading">
+      <EventGroupFrame
+          v-if="eventData && !loading"
+          :event-group="eventData.eventGroup"
+          :message="t('eventGroups.partnerPartNotice')"
+          :to="eventData.eventGroup ? {name: 'federated-event-group', params: {stationUid, eventGroupId: eventData.eventGroup.eventGroupId}} : undefined">
         <HeaderCard :event="eventData" :public-fields="publicFields"/>
 
         <AttachmentsCard :station-uid="stationUid" :event-id="eventId"/>
 
-        <EventGroupPartNotice
-            v-if="eventData.eventGroup"
-            :event-group="eventData.eventGroup"
-            :message="t('eventGroups.partnerPartNotice')"
-            :to="{name: 'federated-event-group', params: {stationUid, eventGroupId: eventData.eventGroup.eventGroupId}}"
-        />
-
         <RegistrationCard
-            v-else-if="eventData.requiresRegistration"
+            v-if="!eventData.eventGroup && eventData.requiresRegistration"
             v-model:selected-member-uid="selectedMemberUid"
             :eligible-members="eligibleMembers"
             :registrations="myRegistrations"
@@ -271,7 +268,7 @@ watch(() => [route.params.stationUid, route.params.eventId], () => {
         <NeutralContainer>
           <CommentSection :source="commentSource"/>
         </NeutralContainer>
-      </template>
+      </EventGroupFrame>
     </div>
     <PartnerSigningStep v-if="signingStepOpen" v-model="signingStepOpen" :documents="toSign"/>
   </ViewContent>

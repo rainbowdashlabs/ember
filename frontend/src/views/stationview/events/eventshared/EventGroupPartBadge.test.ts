@@ -8,7 +8,7 @@ import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import EventGroupPartBadge from './EventGroupPartBadge.vue'
 
-const eventGroup = {eventGroupId: 70, eventGroupName: 'Jugendflamme 1', setId: 1, setName: 'Übung', number: 2, count: 4, color: null}
+const eventGroup = {eventGroupId: 70, eventGroupName: 'Jugendflamme 1', setId: 1, setName: 'Übung', number: 2, count: 4, color: null, firstStart: '2026-12-12T08:00:00Z', lastEnd: '2026-12-20T15:00:00Z'}
 
 describe('EventGroupPartBadge', () => {
   it('names the event group and where the part stands in it', () => {

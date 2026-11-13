@@ -16,10 +16,13 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import EventGroupFields from './EventGroupFields.vue'
-import type {EventGroupDetail} from '@/api/generated/schema'
+import type {EventGroupDetail, EventGroupPartState} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {asksForAll} from '@/util/eventGroupChoice'
-import {formatDateTime} from '@/util/format'
+import {formatDate, formatDateTime, formatTime} from '@/util/format'
+import EventGroupBand from '../eventshared/EventGroupBand.vue'
+import EventGroupHeading from '../eventshared/EventGroupHeading.vue'
+import type {EventGroupMark} from '../eventshared/eventGroupColor'
 import {renderMarkdown} from '@/util/markdown'
 
 /**
@@ -52,10 +55,35 @@ function ruleOf(setId: number): string {
   if (asksForAll(set, props.detail.parts)) return t('eventGroups.setAll')
   return t('eventGroups.setRule', {minimum: set.minimum, count: partsOf(setId).length})
 }
+
+/** The event group as its bar names it, running from the start of its first part to the end of its last. */
+const mark = computed<EventGroupMark>(() => {
+  const parts = props.detail.parts
+  const first = parts.reduce<string | undefined>((earliest, part) => !earliest || part.startTime < earliest ? part.startTime : earliest, undefined)
+  const last = parts.reduce<string | undefined>((latest, part) => !latest || part.endTime > latest ? part.endTime : latest, undefined)
+  return {
+    eventGroupId: eventGroup.value.id,
+    eventGroupName: eventGroup.value.name,
+    color: eventGroup.value.color,
+    firstStart: first,
+    lastEnd: last,
+  }
+})
+
+/** When a part runs, from its start to its end; the end of a part that ends on the day it starts is only its clock. */
+function whenOf(part: EventGroupPartState): string {
+  const sameDay = formatDate(part.startTime, stationTimezone.value) === formatDate(part.endTime, stationTimezone.value)
+  return t('eventGroups.dateRange', {
+    first: formatDateTime(part.startTime, stationTimezone.value),
+    last: sameDay ? formatTime(part.endTime, stationTimezone.value) : formatDateTime(part.endTime, stationTimezone.value),
+  })
+}
 </script>
 
 <template>
-  <NeutralContainer class="space-y-4" data-testid="event-group-overview">
+  <NeutralContainer class="relative space-y-4 pl-5 pt-9" data-testid="event-group-overview">
+    <EventGroupBand :event-group="mark"/>
+    <EventGroupHeading :event-group="mark"/>
     <div class="flex flex-wrap items-center gap-2">
       <ErrorBadge v-if="eventGroup.cancelled">
         {{ eventGroup.cancelReason ? t('eventGroups.cancelledReason', {reason: eventGroup.cancelReason}) : t('eventGroups.cancelled') }}
@@ -80,7 +108,7 @@ function ruleOf(setId: number): string {
         <li v-for="part in partsOf(set.id)" :key="part.eventId">
           <RowLink :to="linkOf(part.eventId)" class="flex flex-wrap items-center gap-2 text-sm">
             <span :class="{'line-through text-(--text-muted)': part.calledOff}">{{ part.name }}</span>
-            <MutedText tag="span" size="sm">{{ formatDateTime(part.startTime, stationTimezone) }}</MutedText>
+            <MutedText tag="span" size="sm">{{ whenOf(part) }}</MutedText>
             <ErrorBadge v-if="part.calledOff">{{ t('eventGroups.partCalledOff') }}</ErrorBadge>
             <MutedText v-else-if="part.tookPlace" tag="span" size="sm">{{ t('eventGroups.partPast') }}</MutedText>
           </RowLink>

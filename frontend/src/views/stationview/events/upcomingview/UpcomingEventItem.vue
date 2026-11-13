@@ -16,6 +16,7 @@ import MutedIcon from '@/components/display/MutedIcon.vue'
 import ProseExcerpt from '@/components/display/ProseExcerpt.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
 import EventGroupBand from '../eventshared/EventGroupBand.vue'
+import EventGroupHeading from '../eventshared/EventGroupHeading.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EventHeadline from '../eventshared/EventHeadline.vue'
@@ -69,7 +70,7 @@ const {t} = useI18n()
 
 const containerClass = computed(() => [
   'space-y-2',
-  props.event.eventGroup ? 'relative pl-5' : '',
+  props.event.eventGroup ? 'relative pl-5 pt-9' : '',
   props.endDate && !props.event.eventGroup ? 'border-l-4 border-(--color-primary)' : '',
 ])
 </script>
@@ -79,6 +80,7 @@ const containerClass = computed(() => [
       data-testid="upcoming-event" :data-event="event.id" :data-date="date" :data-cancelled="!!cancellation"
       :class="containerClass">
     <EventGroupBand v-if="event.eventGroup" :event-group="event.eventGroup"/>
+    <EventGroupHeading v-if="event.eventGroup" :event-group="event.eventGroup"/>
     <div class="flex items-center justify-between flex-wrap gap-2">
       <div>
         <EventHeadline

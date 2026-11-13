@@ -439,7 +439,16 @@ class EventGroupRoutesTest {
         when(visibility.requireVisibleEvent(any(), eq(101))).thenReturn(event);
         when(visibility.requireVisibleEvent(any(), eq(102))).thenReturn(event);
         when(eventGroups.partSummary(STATION_ID, 101))
-                .thenReturn(new EventGroupPartSummary(EVENT_GROUP_ID, "Jugendflamme 1", 5, "Übung", 2, 4, null));
+                .thenReturn(new EventGroupPartSummary(
+                        EVENT_GROUP_ID,
+                        "Jugendflamme 1",
+                        5,
+                        "Übung",
+                        2,
+                        4,
+                        null,
+                        Instant.parse("2026-12-12T08:00:00Z"),
+                        Instant.parse("2026-12-20T15:00:00Z")));
 
         var part = call("GET", PREFIX + "/events/101/group", null, StationPermission.USER);
         assertEquals(2, json(part).get("number").asInt());
