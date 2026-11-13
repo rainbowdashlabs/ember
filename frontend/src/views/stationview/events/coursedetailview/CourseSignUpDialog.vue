@@ -19,7 +19,7 @@ import CourseQuestionInputs from './CourseQuestionInputs.vue'
 import {answersToSend, missingAnswers, seedAnswers} from './courseAnswers'
 import type {CourseDetail, CourseSignUp} from '@/api/generated/schema'
 import {RegistrationStatus} from '@/api/generated/schema'
-import {eventCourses} from '@/api'
+import {ownCoursePort, type CourseSignUpPort} from './courseSignUpPort'
 import {useSession} from '@/composables/useSession'
 import {asksForAll, choiceMeetsRules, evaluateChoice, isMet, missingOf} from '@/util/courseChoice'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -40,8 +40,11 @@ const props = withDefaults(defineProps<{
   entry: CourseSignUp
   /** Whether whoever runs events signs somebody up, which passes the rules and parts already past. */
   override?: boolean
+  /** Where the sign-up goes; a course of this station unless a partner's course page says otherwise. */
+  port?: CourseSignUpPort
 }>(), {
   override: false,
+  port: undefined,
 })
 
 const emit = defineEmits<{
@@ -106,9 +109,9 @@ async function save() {
   failure.value = null
   try {
     const parts = [...chosen.value]
-    if (changing.value) await eventCourses.changeParts(props.detail.course.id, parts, props.entry.memberId)
-    else await eventCourses.signUp(
-        props.detail.course.id, parts, answersToSend(props.detail.questions, answers.value), props.entry.memberId)
+    const port = props.port ?? ownCoursePort(props.detail.course.id)
+    if (changing.value) await port.changeParts(parts, props.entry.memberId)
+    else await port.signUp(parts, answersToSend(props.detail.questions, answers.value), props.entry.memberId)
     open.value = false
     emit('saved')
   } catch (e) {

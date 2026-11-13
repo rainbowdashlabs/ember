@@ -22,11 +22,13 @@ import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
+import dev.chojo.ember.feature.events.entity.EventCourseDetails;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
+import dev.chojo.ember.feature.events.repository.EventCourseRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
@@ -144,7 +146,8 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         eventFieldRegistrationService),
                 occurrenceCalendar,
                 media,
-                new Api());
+                new Api(),
+                new EventCourseRepository());
         transport.serve(service);
 
         stationA = stationRepo.create("EventFedSvcStationA");
@@ -1589,6 +1592,47 @@ class EventFederationServiceTest extends RepositoryTestBase {
                                 null,
                                 FederatedEventRoutes.StatusResponse.class)
                         .status());
+    }
+
+    /** A part of a course takes places through the course; a partner cannot take or give one up on its own. */
+    @Test
+    @Order(96)
+    void aPartnerActsOnAPartOfACourseOnlyThroughTheCourse() {
+        var start = Instant.now().plus(3, ChronoUnit.DAYS);
+        var part = eventRepo.create(
+                stationA.id(),
+                "Kurstag",
+                null,
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                true,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        var courseRepo = new EventCourseRepository();
+        var course = courseRepo.create(stationA.id(), new EventCourseDetails("Lehrgang", null, null, null, false));
+        var set = courseRepo.createSet(course.id(), "Block", 1, 0);
+        courseRepo.claimPart(part.id(), set.id());
+        service.setShare(part.id(), ShareScope.ALL_PARTNERS, List.of());
+        var day = start.atZone(occurrenceCalendar.zoneOf(stationA.id())).toLocalDate();
+
+        assertRefused(
+                EventRefusal.REGISTRATION_THROUGH_COURSE,
+                () -> service.registerFederated(part.id(), partnerId, REMOTE_MEMBER_3, day));
+        assertRefused(
+                EventRefusal.REGISTRATION_THROUGH_COURSE,
+                () -> service.withdrawFederatedRegistration(
+                        stationB.id(), stationA.uid(), part.id(), REMOTE_MEMBER_3, day));
+        assertRefused(
+                EventRefusal.REGISTRATION_THROUGH_COURSE,
+                () -> service.undoFederatedWithdrawal(stationB.id(), stationA.uid(), part.id(), REMOTE_MEMBER_3, day));
     }
 
     private static void assertRefused(Refusal expected, Executable call) {

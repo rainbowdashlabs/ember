@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import {computed} from 'vue'
+import type {RouteLocationRaw} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -26,7 +27,13 @@ import {renderMarkdown} from '@/util/markdown'
  */
 const props = defineProps<{
   detail: CourseDetail
+  /** Where a part leads; to the station's own appointment unless a partner's course page says otherwise. */
+  partLink?: (eventId: number) => RouteLocationRaw
 }>()
+
+function linkOf(eventId: number): RouteLocationRaw {
+  return props.partLink ? props.partLink(eventId) : {name: 'event-detail', params: {id: eventId}}
+}
 
 const {t} = useI18n()
 const {stationTimezone} = useSession()
@@ -69,7 +76,7 @@ function ruleOf(setId: number): string {
       <SubHeader>{{ set.name }} <MutedText tag="span" size="sm">({{ ruleOf(set.id) }})</MutedText></SubHeader>
       <ul class="space-y-1">
         <li v-for="part in partsOf(set.id)" :key="part.eventId">
-          <RowLink :to="{name: 'event-detail', params: {id: part.eventId}}" class="flex flex-wrap items-center gap-2 text-sm">
+          <RowLink :to="linkOf(part.eventId)" class="flex flex-wrap items-center gap-2 text-sm">
             <span :class="{'line-through text-(--text-muted)': part.calledOff}">{{ part.name }}</span>
             <MutedText tag="span" size="sm">{{ formatDateTime(part.startTime, stationTimezone) }}</MutedText>
             <ErrorBadge v-if="part.calledOff">{{ t('courses.partCalledOff') }}</ErrorBadge>

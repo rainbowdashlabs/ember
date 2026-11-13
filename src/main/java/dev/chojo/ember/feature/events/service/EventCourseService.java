@@ -198,7 +198,8 @@ public class EventCourseService {
 
     /**
      * Makes an appointment a part of a course, in one of its sets. The part takes the course's
-     * sign-up, questions and audiences from then on, and the questions it asked of its own go.
+     * sign-up, questions, audiences and partner share from then on, and the questions it asked of its
+     * own go.
      *
      * @param stationId the station asking
      * @param courseId  the course
@@ -227,6 +228,7 @@ public class EventCourseService {
             questions.dropQuestionsOfPart(eventId);
             courses.alignParts(courseId, course.requiresConfirmation(), course.registrationDeadline());
             handDownAudiences(courseId, List.of(eventId));
+            courses.handDownShare(courseId, eventId);
             return courses.findPart(eventId).orElseThrow();
         });
     }
@@ -252,7 +254,8 @@ public class EventCourseService {
 
     /**
      * Makes a part an appointment of its own again. Who was signed up for it stays signed up, and
-     * it keeps the sign-up settings and audiences it had as a part until somebody changes them.
+     * it keeps the sign-up settings, audiences and partner share it had as a part until somebody
+     * changes them, so partners' members signed up for it can still be seen and decided.
      *
      * @param stationId the station asking
      * @param courseId  the course
@@ -311,7 +314,8 @@ public class EventCourseService {
 
     /**
      * Deletes a course with its sets and sign-ups. Its parts become appointments of their own again,
-     * and who was signed up for one of them stays signed up for it.
+     * and who was signed up for one of them stays signed up for it. A part keeps the partner share
+     * it had through the course.
      *
      * @param stationId the station asking
      * @param courseId  the course

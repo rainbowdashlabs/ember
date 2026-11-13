@@ -1726,6 +1726,10 @@ export default {
             title: 'Termin einer Partnerwache',
             subtitle: 'Details ansehen',
         },
+        'federated-event-course': {
+            title: 'Lehrgang einer Partnerwache',
+            subtitle: 'Termine ansehen und anmelden',
+        },
         'federated-boards': {
             title: 'Föderierte Boards',
             subtitle: 'Boards von Partnerwachen',
@@ -12100,6 +12104,10 @@ export default {
         changeAnswers: 'Antworten ändern',
         answersTitle: 'Antworten von {name}',
         questions: 'Fragen zur Anmeldung',
+        partnerSignUps: 'Anmeldungen von Partnerwachen',
+        decidedOnCourse: 'Wird beim Lehrgang entschieden',
+        partnerPartNotice: 'Die Anmeldung läuft über den Lehrgang der Partnerwache.',
+        federationHint: 'Teilt den Lehrgang mit Partnerwachen. Alle Termine gehen mit, auch die, die später dazukommen. Mitglieder der Partner melden sich nach denselben Vorgaben an.',
         questionsHint: 'Diese Fragen beantwortet jede Anmeldung einmal für den ganzen Lehrgang. Die Termine stellen keine eigenen Fragen.',
         withdraw: 'Abmelden',
         withdrawTitle: 'Vom Lehrgang abmelden',

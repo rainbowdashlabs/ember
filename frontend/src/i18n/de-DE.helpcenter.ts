@@ -4340,6 +4340,15 @@ volumes:
             detailText: 'Wie eine Ticket-Seite im Einzelnen aufgebaut ist, steht in der Hilfe zu euren eigenen Tickets. Auf einem geteilten Board gilt genau dasselbe.',
             tip: 'Schreib bei geteilten Tickets dazu, für welche Wache du sprichst - auf der anderen Seite lesen Leute mit, die dich nicht kennen.',
         },
+        federatedCourse: {
+            title: 'Lehrgang einer Partnerwache',
+            subtitle: 'Einen geteilten Lehrgang ansehen und sich anmelden.',
+            whatIs: 'Was zeigt die Seite?',
+            whatIsText: 'Partnerwachen können ganze Lehrgänge mit euch teilen, etwa die Jugendflamme. Hier stehen die Termine nach Blöcken, und neben jedem Block steht, wie viele Termine mindestens gewählt werden müssen.',
+            signUpTitle: 'Anmelden',
+            signUpText: 'Die Anmeldung gilt für den ganzen Lehrgang und geht an die Partnerwache. Es gelten ihre Vorgaben, Plätze und Fristen. Verwaltest du weitere Personen, etwa deine Kinder, meldest du sie hier genauso an.',
+            partsText: 'Einzelne Termine eines Lehrgangs nehmen keine eigene Anmeldung an. Auf der Seite eines Termins führt ein Hinweis hierher.',
+        },
         federatedEventDetail: {
             title: 'Termin einer Partnerwache',
             subtitle: 'Einen geteilten Termin ansehen und sich anmelden.',

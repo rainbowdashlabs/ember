@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventCoursePartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventCourseRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventCourseRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
@@ -127,7 +128,8 @@ class EventCourseRegistrationServiceTest extends RepositoryTestBase {
                 occurrenceCalendar,
                 bus,
                 memberNameResolver,
-                questions);
+                questions,
+                new EventCoursePartnerRepository());
         zone = occurrenceCalendar.zoneOf(station.id());
         course = jugendflamme(null, false, Instant.now().plus(Duration.ofDays(5)));
     }

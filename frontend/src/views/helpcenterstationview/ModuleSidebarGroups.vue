@@ -80,6 +80,10 @@ const {t} = useI18n()
                  to="/helpcenter/station/federation/events/0/1" @navigate="close">
       {{ t('helpCenter.federatedEventDetail.title') }}
     </SidebarLink>
+    <SidebarLink :icon="['fas', 'share-nodes']" name="help-federated-event-course"
+                 to="/helpcenter/station/federation/events/0/courses/1" @navigate="close">
+      {{ t('helpCenter.federatedCourse.title') }}
+    </SidebarLink>
     <SidebarExpandableLink :icon="['fas', 'clone']" name="help-event-templates"
                            to="/helpcenter/station/events/templates"
                            prefix="/helpcenter/station/events/templates" @navigate="close">

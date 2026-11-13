@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.EventCourseDetails;
 import dev.chojo.ember.feature.events.entity.EventCourseSetDraft;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.handler.EventCancelledHandler;
+import dev.chojo.ember.feature.events.repository.EventCoursePartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventCourseRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventCourseRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
@@ -115,7 +116,8 @@ class CourseNoticesTest extends RepositoryTestBase {
                 occurrenceCalendar,
                 mock(DomainEventBus.class),
                 memberNameResolver,
-                new CourseQuestionService(new EventRegistrationFieldRepository(), memberEligibility));
+                new CourseQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
+                new EventCoursePartnerRepository());
         zone = occurrenceCalendar.zoneOf(station.id());
     }
 

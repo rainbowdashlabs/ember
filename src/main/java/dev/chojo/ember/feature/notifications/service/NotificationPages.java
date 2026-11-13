@@ -38,6 +38,7 @@ final class NotificationPages {
             Map.entry("event-course", "/station/events/courses/{courseId}"),
             Map.entry("event-detail-date", "/station/events/{id}/{date}"),
             Map.entry("federated-event-detail", "/station/federation/events/{stationUid}/{eventId}"),
+            Map.entry("federated-event-course", "/station/federation/events/{stationUid}/courses/{courseId}"),
             Map.entry("forms-list", "/station/forms"),
             Map.entry("forms-fill", "/station/forms/{id}/fill"),
             Map.entry("inventory-movements", "/station/inventory/movements"),

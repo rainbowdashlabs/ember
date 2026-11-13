@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.documents.service.DocumentAccessService;
 import dev.chojo.ember.feature.events.entity.PartnerDocumentToSign;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
+import dev.chojo.ember.feature.events.repository.EventCourseRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -263,7 +264,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                         eventFieldRegistrationService),
                 occurrenceCalendar,
                 media,
-                new Api());
+                new Api(),
+                new EventCourseRepository());
 
         var guardianPolicy = new GuardianPolicy(stationMemberRepo);
         var requirementRepo = new EventRequirementRepository();

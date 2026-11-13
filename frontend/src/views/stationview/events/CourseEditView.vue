@@ -23,9 +23,13 @@ import CourseSetsEditor from './courseeditview/CourseSetsEditor.vue'
 import CourseDetailsForm from './courseeditview/CourseDetailsForm.vue'
 import type {SetRow} from './courseeditview/courseSetRow'
 import CoursePartsEditor from './courseeditview/CoursePartsEditor.vue'
-import RegistrationFieldsEditor from './eventshared/RegistrationFieldsEditor.vue'
+import CourseShareCard from './courseeditview/CourseShareCard.vue'
+import {useEventFederationShare} from './eventeditview/useEventFederationShare'
+import {courseFederationPort} from './eventeditview/eventOwnerPorts'
+import CourseQuestionsCard from './courseeditview/CourseQuestionsCard.vue'
 import {asSaved} from './eventshared/eventQuestions'
 import type {CourseDetail, MemberGroup, RegistrationFieldDefinition, RestrictionAudience, UserTag} from '@/api/generated/schema'
+import {StationPermission} from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/api/types'
 import {eventCourses, memberGroups as memberGroupsApi, userTags as userTagsApi} from '@/api'
 import {useSession} from '@/composables/useSession'
@@ -44,7 +48,9 @@ import {showToast} from '@/util/toast'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {loaded} = useSession()
+const {loaded, hasPermission} = useSession()
+const canFederate = computed(() => hasPermission(StationPermission.EVENTS_FEDERATE))
+const federationShare = useEventFederationShare(canFederate)
 
 const courseId = computed(() => (route.params.courseId ? Number(route.params.courseId) : null))
 const detail = ref<CourseDetail | null>(null)
@@ -103,7 +109,10 @@ const {loading, failure} = useAsyncLoader(async () => {
   ])
   groups.value = memberGroups
   tags.value = userTags
-  if (courseId.value != null) fill(await eventCourses.getCourse(courseId.value))
+  if (courseId.value != null) {
+    fill(await eventCourses.getCourse(courseId.value))
+    await federationShare.load(courseFederationPort(courseId.value))
+  }
 })
 
 /** Reads the course again after a part changed, touching nothing the form holds unsaved. */
@@ -144,6 +153,7 @@ async function save() {
       registration: registration.value,
       view: view.value,
     }, savedQuestions()))
+    await federationShare.save(courseFederationPort(courseId.value))
   } catch (e) {
     saveFailure.value = describeFailure(e, t)
     throw e
@@ -183,11 +193,9 @@ async function save() {
           <RestrictionsField v-model="view" :groups="groups" :tags="tags"/>
         </NeutralContainer>
 
-        <NeutralContainer class="space-y-3">
-          <SectionHeader>{{ t('courses.questions') }}</SectionHeader>
-          <MutedText tag="p" size="sm">{{ t('courses.questionsHint') }}</MutedText>
-          <RegistrationFieldsEditor v-model="questions"/>
-        </NeutralContainer>
+        <CourseQuestionsCard v-model="questions"/>
+
+        <CourseShareCard v-if="detail" :federation-share="federationShare" :can-federate="canFederate"/>
 
         <FailureAlert v-if="saveFailure" :failure="saveFailure"/>
         <ButtonRow pair align="end">

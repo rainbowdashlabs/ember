@@ -164,6 +164,7 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-federated-board-view', path: '/helpcenter/station/federation/boards/0/0', i18nPrefix: ['helpCenter.federatedBoardView', 'helpCenter.federatedBoards']},
     {route: 'help-federated-ticket-detail', path: '/helpcenter/station/federation/boards/0/0/tickets/0', i18nPrefix: 'helpCenter.federatedTicketDetail'},
     {route: 'help-federated-event-detail', path: '/helpcenter/station/federation/events/0/0', i18nPrefix: 'helpCenter.federatedEventDetail'},
+    {route: 'help-federated-event-course', path: '/helpcenter/station/federation/events/0/courses/0', i18nPrefix: 'helpCenter.federatedCourse'},
     {route: 'help-federated-kb-file', path: '/helpcenter/station/federation/knowledge/0/0', i18nPrefix: 'helpCenter.federatedKbFile'},
     {route: 'help-federated-news-detail', path: '/helpcenter/station/federation/news/0/0', i18nPrefix: ['helpCenter.federatedNewsDetail', 'helpCenter.newsList']},
     {route: 'help-federated-protocol', path: '/helpcenter/station/federation/protocols/0/0', i18nPrefix: 'helpCenter.federatedProtocol'},

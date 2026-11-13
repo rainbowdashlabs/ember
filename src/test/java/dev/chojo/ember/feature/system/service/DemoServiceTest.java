@@ -33,6 +33,7 @@ import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityReposit
 import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
 import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
+import dev.chojo.ember.feature.events.repository.EventCourseRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
@@ -326,7 +327,8 @@ class DemoServiceTest extends RepositoryTestBase {
                         eventFieldRegistrationService),
                 occurrenceCalendar,
                 mock(MediaLibraryService.class),
-                new Api());
+                new Api(),
+                new EventCourseRepository());
         var newsFederationService = new NewsFederationService(
                 newsFederationRepo,
                 federationService,

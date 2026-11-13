@@ -332,6 +332,34 @@ public class EventCourseRepository {
         query("UPDATE event_registration SET course_registration_id = NULL WHERE event_id = :event_id;")
                 .single(call().bind("event_id", eventId))
                 .update();
+        query("""
+                UPDATE event_federation_registration
+                SET course_partner_registration_id = NULL
+                WHERE event_id = :event_id;""").single(call().bind("event_id", eventId)).update();
+    }
+
+    /**
+     * Gives a part the partner share of its course, where the course is shared.
+     *
+     * @param courseId the course
+     * @param eventId  the part
+     */
+    public void handDownShare(int courseId, int eventId) {
+        query("""
+                INSERT INTO event_federation_share(event_id, scope)
+                SELECT :event_id, scope FROM event_course_share WHERE course_id = :course_id
+                ON CONFLICT (event_id) DO UPDATE SET scope = EXCLUDED.scope;""")
+                .single(call().bind("event_id", eventId).bind("course_id", courseId))
+                .insert();
+        query("""
+                INSERT INTO event_federation_share_target(share_id, partner_id)
+                SELECT efs.id, t.partner_id
+                FROM event_federation_share efs
+                    JOIN event_course_share_target t ON t.course_id = :course_id
+                WHERE efs.event_id = :event_id
+                ON CONFLICT DO NOTHING;""")
+                .single(call().bind("event_id", eventId).bind("course_id", courseId))
+                .insert();
     }
 
     /**

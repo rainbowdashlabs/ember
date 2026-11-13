@@ -191,6 +191,7 @@ public class EventSharingRoutes implements Routes {
                 .findRegistrationById(id)
                 .orElseThrow(EventRefusal.PARTNER_REGISTRATION_NOT_HERE_ON_DECISION::raise);
         requireOwnedOrNotFound(ctx, reg.eventId(), crudService::findById, StationEvent::stationId);
+        if (crudService.isCoursePart(reg.eventId())) throw EventRefusal.REGISTRATION_THROUGH_COURSE.raise();
 
         var places = eventFederationService.partnerPlaces(reg.eventId(), reg.partnerId());
         if (places.partnerConfirms()) {

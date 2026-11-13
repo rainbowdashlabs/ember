@@ -28,6 +28,7 @@ import {stationDayOf, stationToday} from '@/util/format'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import AttachmentsCard from './federatedeventdetailview/AttachmentsCard.vue'
+import CoursePartNotice from './eventshared/CoursePartNotice.vue'
 import HeaderCard from './federatedeventdetailview/HeaderCard.vue'
 import RegistrationCard from './federatedeventdetailview/RegistrationCard.vue'
 import AgreementOfferCard from './federatedeventdetailview/AgreementOfferCard.vue'
@@ -237,8 +238,15 @@ watch(() => [route.params.stationUid, route.params.eventId], () => {
 
         <AttachmentsCard :station-uid="stationUid" :event-id="eventId"/>
 
+        <CoursePartNotice
+            v-if="eventData.course"
+            :course="eventData.course"
+            :message="t('courses.partnerPartNotice')"
+            :to="{name: 'federated-event-course', params: {stationUid, courseId: eventData.course.courseId}}"
+        />
+
         <RegistrationCard
-            v-if="eventData.requiresRegistration"
+            v-else-if="eventData.requiresRegistration"
             v-model:selected-member-uid="selectedMemberUid"
             :eligible-members="eligibleMembers"
             :registrations="myRegistrations"

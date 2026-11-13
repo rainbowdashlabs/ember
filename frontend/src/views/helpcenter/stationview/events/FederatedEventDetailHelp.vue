@@ -26,6 +26,7 @@ const EVENT: SharedEvent = {
   description: 'Treffpunkt ist der Hof der Wache. Bringt eure Einsatzkleidung mit.',
   repeatUntil: null,
   repeatCount: null,
+  course: null,
 }
 
 const PUBLIC_FIELDS: AppointmentField[] = [

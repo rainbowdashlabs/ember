@@ -56,6 +56,19 @@ public final class NotificationLinks {
     }
 
     /**
+     * The link to a course a partner station shares.
+     *
+     * @param stationUid the partner station holding the course
+     * @param courseId   the course there
+     * @return the link
+     */
+    public static NotificationLink federatedCourse(UUID stationUid, int courseId) {
+        return new NotificationLink(
+                "federated-event-course",
+                Map.of("stationUid", stationUid.toString(), "courseId", String.valueOf(courseId)));
+    }
+
+    /**
      * The link to one appointment.
      *
      * @param eventId the appointment

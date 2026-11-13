@@ -28,6 +28,7 @@ import dev.chojo.ember.feature.events.entity.EventPartnerPlaces;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventCourseRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
@@ -92,6 +93,8 @@ public class EventFederationService implements FederationServer {
     private final MediaLibraryService media;
     private final Api apiConfig;
 
+    private final EventCourseRepository courseRepository;
+
     @Inject
     public EventFederationService(
             EventFederationRepository federationRepository,
@@ -108,7 +111,8 @@ public class EventFederationService implements FederationServer {
             EventFieldService fieldService,
             OccurrenceCalendar occurrenceCalendar,
             MediaLibraryService media,
-            Api apiConfig) {
+            Api apiConfig,
+            EventCourseRepository courseRepository) {
         this.federationRepository = federationRepository;
         this.federationService = federationService;
         this.transport = transport;
@@ -124,6 +128,7 @@ public class EventFederationService implements FederationServer {
         this.occurrenceCalendar = occurrenceCalendar;
         this.media = media;
         this.apiConfig = apiConfig;
+        this.courseRepository = courseRepository;
     }
 
     /**
@@ -210,6 +215,7 @@ public class EventFederationService implements FederationServer {
             int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
         var event =
                 crudService.findById(eventId).orElseThrow(EventRefusal.EVENT_NOT_HERE_FOR_PARTNER_REGISTRATION::raise);
+        if (crudService.isCoursePart(eventId)) throw EventRefusal.REGISTRATION_THROUGH_COURSE.raise();
         requireOpenForRegistration(event, eventDate);
         boolean somebodyChooses = event.requiresConfirmation()
                 || federationRepository.findPartnerPlaces(eventId, partnerId).partnerConfirms();
@@ -566,10 +572,11 @@ public class EventFederationService implements FederationServer {
      * @return each shared appointment as a partner may see it
      */
     public List<SharedEvent> serveEvents(ServingPartner partner) {
+        var courses = courseRepository.findPartSummaries(partner.servingStationId());
         return sharedWith(partner).stream()
                 .map(crudService::findById)
                 .flatMap(Optional::stream)
-                .map(SharedEvent::of)
+                .map(event -> SharedEvent.of(event).withCourse(courses.get(event.id())))
                 .toList();
     }
 
@@ -592,7 +599,10 @@ public class EventFederationService implements FederationServer {
                 .toList();
         var places = partnerPlaces(eventId, partner.partnerId());
         return new RemoteEventRoutes.RemoteEventDetail(
-                SharedEvent.of(event),
+                SharedEvent.of(event)
+                        .withCourse(courseRepository
+                                .findPartSummaries(partner.servingStationId())
+                                .get(eventId)),
                 fields,
                 places.partnerConfirms() ? new RemoteEventRoutes.RemotePlaces(places.slotBudget(), true) : null);
     }
@@ -656,6 +666,7 @@ public class EventFederationService implements FederationServer {
     private void serveWithdrawal(
             ServingPartner partner, int eventId, RemoteEventRoutes.RemoteRegistrationRequest request) {
         requireShared(partner, eventId);
+        requireOwnPart(eventId);
         withdrawRegistration(eventId, partner.partnerId(), request.remoteMemberId(), request.eventDate());
     }
 
@@ -669,6 +680,7 @@ public class EventFederationService implements FederationServer {
     private void serveUndoWithdrawal(
             ServingPartner partner, int eventId, RemoteEventRoutes.RemoteRegistrationRequest request) {
         requireShared(partner, eventId);
+        requireOwnPart(eventId);
         if (!undoWithdrawal(eventId, partner.partnerId(), request.remoteMemberId(), request.eventDate())) {
             throw EventRefusal.PARTNER_WITHDRAWAL_NO_LONGER_UNDONE.raise();
         }
@@ -684,6 +696,7 @@ public class EventFederationService implements FederationServer {
     private void serveConfirmOwn(
             ServingPartner partner, int eventId, RemoteEventRoutes.RemoteRegistrationRequest request) {
         requireShared(partner, eventId);
+        requireOwnPart(eventId);
         if (!partnerPlaces(eventId, partner.partnerId()).partnerConfirms()) {
             throw EventRefusal.PARTNER_DOES_NOT_CONFIRM_ITS_OWN.raise();
         }
@@ -783,6 +796,14 @@ public class EventFederationService implements FederationServer {
         if (!sharedWith(partner).contains(eventId)) {
             throw EventRefusal.EVENT_NOT_SHARED_WITH_PARTNER.raise();
         }
+    }
+
+    /**
+     * Refuses a partner acting on one part of a course on its own: places on a part are taken,
+     * changed and given up through the course.
+     */
+    private void requireOwnPart(int eventId) {
+        if (crudService.isCoursePart(eventId)) throw EventRefusal.REGISTRATION_THROUGH_COURSE.raise();
     }
 
     private List<Integer> sharedWith(ServingPartner partner) {

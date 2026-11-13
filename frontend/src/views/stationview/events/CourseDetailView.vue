@@ -17,6 +17,7 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import CourseOverview from './coursedetailview/CourseOverview.vue'
 import CourseHouseholdPanel from './coursedetailview/CourseHouseholdPanel.vue'
 import CourseSignUpsPanel from './coursedetailview/CourseSignUpsPanel.vue'
+import CoursePartnerSignUpsPanel from './coursedetailview/CoursePartnerSignUpsPanel.vue'
 import CourseCancelDialog from './coursedetailview/CourseCancelDialog.vue'
 import type {CourseDetail} from '@/api/generated/schema'
 import {StationPermission} from '@/api/generated/schema'
@@ -104,6 +105,7 @@ async function deleteCourse() {
         <CourseOverview :detail="detail"/>
         <CourseHouseholdPanel :detail="detail" :on-changed="refresh"/>
         <CourseSignUpsPanel v-if="canDecide" ref="signUpsPanel" :detail="detail" :on-changed="refresh"/>
+        <CoursePartnerSignUpsPanel v-if="canDecide" :detail="detail" :on-changed="reload"/>
       </div>
     </AsyncSection>
     <CourseCancelDialog v-model="cancelOpen" :busy="busy" @confirm="cancelCourse"/>

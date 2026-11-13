@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:c517b5cb6ead18477f343c78284ccec4eadc1322a91e07f6bf3d488b89126403",
-  "generatedAt": "2026-11-13T12:07:07Z",
+  "schemaHash": "sha256:f9c21d1418e49dfbb0099d7cadd2368f4b05c9515314bc4ec44049a6bf2bc40f",
+  "generatedAt": "2026-11-13T13:06:48Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -10055,6 +10055,86 @@
       },
       "description": "Which warnings that sign-ups for a course close soon have gone out, so a sweep every few minutes warns once."
     },
+    "event_course_partner_registration": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:ad254f95ee1b5e94bb4a4e5fbdeddcb16c8c85317bb4c0349b9d9abc92a19809",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "course_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The course signed up for."
+        },
+        {
+          "name": "partner_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The partner station the member belongs to."
+        },
+        {
+          "name": "remote_member_id",
+          "type": "uuid",
+          "nullable": false,
+          "verified": true,
+          "description": "The member at the partner station, by the id that station gave them."
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "PENDING, ACCEPTED, DENIED, DECLINED or WITHDRAWN, as for a member of this station."
+        },
+        {
+          "name": "registered_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the member signed up, or last signed up again after withdrawing."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "course_id",
+          "refTable": "event_course",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "partner_id",
+          "refTable": "federation_partner",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_UID",
+            "column": "remote_member_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "The member belongs to the partner station; their own station holds the account, as for appointment registrations from partners"
+      },
+      "description": "A partner station's member signed up for a shared course. The chosen parts carry an event_federation_registration each."
+    },
     "event_course_registration": {
       "feature": "events",
       "scope": "STATION",
@@ -10300,6 +10380,96 @@
         "reason": "Course structure data, not per-member"
       },
       "description": "A named group of parts of a course with the number of them a participant has to attend, such as \"Practice: at least 2\"."
+    },
+    "event_course_share": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:c4b24f9f43b595d53501bb1b8e1ef05d73dfa12f8f984347a5748140a6196927",
+      "columns": [
+        {
+          "name": "course_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The course shared."
+        },
+        {
+          "name": "scope",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "ALL_PARTNERS, or SPECIFIC for the partners listed in event_course_share_target."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "course_id",
+          "refTable": "event_course",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "A course's share with partners; without it partners stop seeing the course and its parts."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Course structure, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Course structure, not per-member"
+      },
+      "description": "A course shared with partner stations. Its parts carry the same appointment share, parts added later included."
+    },
+    "event_course_share_target": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:5aa32609334f6df58ca7888737eebb25e6b006b7d5f3e464dede3284b2b0c9b9",
+      "columns": [
+        {
+          "name": "course_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The shared course."
+        },
+        {
+          "name": "partner_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "A partner the course is shared with."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "course_id",
+          "refTable": "event_course_share",
+          "refColumn": "course_id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "partner_id",
+          "refTable": "federation_partner",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "A course's share with partners; without it partners stop seeing the course and its parts."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Course structure, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Course structure, not per-member"
+      },
+      "description": "The partners a course is shared with where its share names them one by one."
     },
     "event_course_view_restriction": {
       "feature": "events",
@@ -11021,7 +11191,7 @@
     "event_federation_registration": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:dc5f484935eb06cf29de79d73296af12673b26312caf24ab1d67963dfedb21bf",
+      "tableHash": "sha256:166499ebf7df921c44f6a60aad41a458320b0f48fcee766f977b478b795ff712",
       "columns": [
         {
           "name": "id",
@@ -11092,9 +11262,22 @@
           "nullable": true,
           "verified": true,
           "description": "When the partner reported a signed agreement for this date, which one of the appointment's documents asked its member to sign, withdrawn there while the registration stood. Flags the registration for whoever runs the appointment. NULL where none was, and again once a complete signed copy comes back."
+        },
+        {
+          "name": "course_partner_registration_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The partner's course sign-up this registration for a part was chosen with; NULL for a registration of its own, and once the part was given up."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "course_partner_registration_id",
+          "refTable": "event_course_partner_registration",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
         {
           "column": "event_id",
           "refTable": "station_event",
@@ -23752,6 +23935,67 @@
         ]
       },
       "description": "A sealed copy of a document an appointment asks partners to sign, as it came back from the member's home installation: sealed there and checked here against the partner's pinned signing authorities before it was taken. Each state the partner sealed is kept beside the earlier ones; the newest is the current one. Locked: a copy is never changed, and deleted only with its row in partner_agreement."
+    },
+    "partner_course_signup": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:0cf4c11947aa37ff6fcc2f3f2eaca084b2a3fd7e75ce7c520a423aef8a120e9a",
+      "columns": [
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The member of this station signed up."
+        },
+        {
+          "name": "partner_station_uid",
+          "type": "uuid",
+          "nullable": false,
+          "verified": true,
+          "description": "The partner station holding the course."
+        },
+        {
+          "name": "remote_course_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The course, by its id at the partner station."
+        },
+        {
+          "name": "signed_up_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When this station signed the member up."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Only vouches for course sign-ups this station gave to its partners; a moved station pairs with its partners anew, and its members' next sign-ups are noted again."
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Goes with the member, who is deleted with it, and with a withdrawal of the sign-up."
+      },
+      "description": "Members this station signed up for a course a partner station holds, so news from that partner about the course is believed for them only."
     },
     "partner_requirement_change": {
       "feature": "signing",

@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.events.entity.EventCourseRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventCoursePartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventCourseRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventCourseRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
@@ -69,6 +70,7 @@ public class EventCourseRegistrationService {
     private final OccurrenceCalendar calendar;
     private final DomainEventBus eventBus;
     private final MemberNameResolver names;
+    private final EventCoursePartnerRepository partnerSignUps;
     private final CourseQuestionService questions;
 
     @Inject
@@ -81,7 +83,8 @@ public class EventCourseRegistrationService {
             OccurrenceCalendar calendar,
             DomainEventBus eventBus,
             MemberNameResolver names,
-            CourseQuestionService questions) {
+            CourseQuestionService questions,
+            EventCoursePartnerRepository partnerSignUps) {
         this.courses = courses;
         this.signUps = signUps;
         this.events = events;
@@ -91,6 +94,7 @@ public class EventCourseRegistrationService {
         this.eventBus = eventBus;
         this.names = names;
         this.questions = questions;
+        this.partnerSignUps = partnerSignUps;
     }
 
     /**
@@ -121,9 +125,7 @@ public class EventCourseRegistrationService {
             if (existing.filter(EventCourseRegistration::active).isPresent()) {
                 throw EventRefusal.COURSE_ALREADY_SIGNED_UP.raise();
             }
-            if (!override
-                    && course.registrationLimit() != null
-                    && signUps.countHolding(courseId) >= course.registrationLimit()) {
+            if (!override && course.registrationLimit() != null && holding(courseId) >= course.registrationLimit()) {
                 throw EventRefusal.COURSE_FULL.raise();
             }
             var parts = lockParts(courseId);
@@ -396,13 +398,13 @@ public class EventCourseRegistrationService {
             int memberId, @Nullable EventCourseRegistration signUp, Set<Integer> counted, List<SetResult> sets) {}
 
     /**
-     * How many sign-ups hold or wait for a place in a course.
+     * How many sign-ups hold or wait for a place in a course, those of partners' members included.
      *
      * @param courseId the course
      * @return the pending and accepted sign-ups
      */
     public int holding(int courseId) {
-        return signUps.countHolding(courseId);
+        return signUps.countHolding(courseId) + partnerSignUps.countHolding(courseId);
     }
 
     /**
@@ -452,14 +454,14 @@ public class EventCourseRegistrationService {
         return CourseRules.evaluate(rulesOf(courseId), chosen, standing.calledOff());
     }
 
-    private EventCourse lockCourse(int stationId, int courseId) {
+    EventCourse lockCourse(int stationId, int courseId) {
         courses.lockCourse(courseId);
         return courses.findById(courseId)
                 .filter(course -> course.stationId() == stationId)
                 .orElseThrow(EventRefusal.COURSE_NOT_HERE::raise);
     }
 
-    private EventCourse lockOpenCourse(int stationId, int courseId, boolean override) {
+    EventCourse lockOpenCourse(int stationId, int courseId, boolean override) {
         var course = lockCourse(stationId, courseId);
         if (course.cancelled()) throw EventRefusal.COURSE_CANCELLED.raise();
         if (!override && course.deadlinePassed(Instant.now())) throw EventRefusal.COURSE_REGISTRATION_CLOSED.raise();
@@ -473,7 +475,7 @@ public class EventCourseRegistrationService {
     }
 
     /** Locks the parts of a course in ascending order and reads them by id. */
-    private Map<Integer, StationEvent> lockParts(int courseId) {
+    Map<Integer, StationEvent> lockParts(int courseId) {
         var ids = courses.findParts(courseId).stream()
                 .map(EventCoursePart::eventId)
                 .sorted()
@@ -485,7 +487,7 @@ public class EventCourseRegistrationService {
                 .collect(Collectors.toMap(StationEvent::id, Function.identity()));
     }
 
-    private List<SetRule> rulesOf(int courseId) {
+    List<SetRule> rulesOf(int courseId) {
         var partsBySet = courses.findParts(courseId).stream()
                 .collect(Collectors.groupingBy(
                         EventCoursePart::setId, Collectors.mapping(EventCoursePart::eventId, Collectors.toSet())));
@@ -501,13 +503,13 @@ public class EventCourseRegistrationService {
                 .collect(Collectors.toMap(EventRegistration::eventId, Function.identity(), (first, second) -> first));
     }
 
-    private void requireRulesMet(int courseId, Set<Integer> chosen, Standing standing, boolean override) {
+    void requireRulesMet(int courseId, Set<Integer> chosen, Standing standing, boolean override) {
         if (!override && !CourseRules.met(rulesOf(courseId), chosen, standing.calledOff())) {
             throw EventRefusal.COURSE_CHOICE_SHORT.raise();
         }
     }
 
-    private static void requireChoosable(
+    static void requireChoosable(
             Set<Integer> chosen, Set<Integer> parts, Standing standing, Set<Integer> alreadyHeld, boolean override) {
         if (chosen.isEmpty()) throw EventRefusal.COURSE_CHOICE_EMPTY.raise();
         if (!parts.containsAll(chosen)) throw EventRefusal.COURSE_CHOICE_NOT_A_PART.raise();
@@ -520,24 +522,34 @@ public class EventCourseRegistrationService {
         }
     }
 
+    /**
+     * The one day a part falls on.
+     *
+     * @param part the part
+     * @return its day
+     */
+    LocalDate dayOf(StationEvent part) {
+        return calendar.forStation(part.stationId())
+                .ruleOf(part)
+                .orElseThrow(EventRefusal.EVENT_HAS_NO_START_TIME::raise)
+                .first();
+    }
+
     private EventRegistration place(
             StationEvent part,
             int memberId,
             RegistrationStatus status,
             @Nullable Integer createdBy,
             int courseRegistrationId) {
-        var date = calendar.forStation(part.stationId())
-                .ruleOf(part)
-                .orElseThrow(EventRefusal.EVENT_HAS_NO_START_TIME::raise)
-                .first();
-        return registrationService.placeForCourse(part.id(), memberId, date, status, createdBy, courseRegistrationId);
+        return registrationService.placeForCourse(
+                part.id(), memberId, dayOf(part), status, createdBy, courseRegistrationId);
     }
 
-    private static RegistrationStatus givenUp(RegistrationStatus status) {
+    static RegistrationStatus givenUp(RegistrationStatus status) {
         return status == RegistrationStatus.ACCEPTED ? RegistrationStatus.WITHDRAWN : RegistrationStatus.DECLINED;
     }
 
-    private static List<Integer> ascending(Set<Integer> ids) {
+    static List<Integer> ascending(Set<Integer> ids) {
         return ids.stream().sorted().toList();
     }
 
@@ -548,7 +560,7 @@ public class EventCourseRegistrationService {
      * @param calledOff the parts called off
      * @param past      the parts whose day lies before today
      */
-    private record Standing(Set<Integer> calledOff, Set<Integer> past) {
+    record Standing(Set<Integer> calledOff, Set<Integer> past) {
         static Standing of(int stationId, Map<Integer, StationEvent> parts, OccurrenceCalendar calendar) {
             var stationCalendar = calendar.forStation(stationId);
             var today = LocalDate.now(calendar.zoneOf(stationId));

@@ -473,6 +473,7 @@ onMounted(loadRegistrations)
 
     <FederatedRegistrationsPanel
         v-if="canManageEvents()"
+        :course-part="coursePart"
         :registrations="federatedRegs"
         :partner-places="partnerPlaces"
         @accept="id => decideFederated(id, RegistrationStatus.ACCEPTED)"

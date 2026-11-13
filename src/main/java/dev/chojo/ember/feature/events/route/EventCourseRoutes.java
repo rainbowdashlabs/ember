@@ -762,7 +762,7 @@ public class EventCourseRoutes implements Routes {
             @Nullable String cancelReason,
             int partCount,
             int holding) {
-        static CourseSummary of(EventCourse course, int partCount, int holding) {
+        public static CourseSummary of(EventCourse course, int partCount, int holding) {
             return new CourseSummary(
                     course.id(),
                     course.name(),

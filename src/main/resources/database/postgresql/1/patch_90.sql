@@ -434,3 +434,94 @@ COMMENT ON COLUMN ember_schema.event_course_deadline_reminder_sent.days_before
     IS 'How many days before the course deadline this warning was the one for.';
 COMMENT ON COLUMN ember_schema.event_course_deadline_reminder_sent.sent_at
     IS 'When the warning went out.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.event_course_share
+(
+    course_id INT  NOT NULL PRIMARY KEY REFERENCES ember_schema.event_course (id) ON DELETE CASCADE,
+    scope     TEXT NOT NULL DEFAULT 'ALL_PARTNERS'
+);
+
+COMMENT ON TABLE ember_schema.event_course_share
+    IS 'A course shared with partner stations. Its parts carry the same appointment share, parts added later included.';
+COMMENT ON COLUMN ember_schema.event_course_share.course_id
+    IS 'The course shared.';
+COMMENT ON COLUMN ember_schema.event_course_share.scope
+    IS 'ALL_PARTNERS, or SPECIFIC for the partners listed in event_course_share_target.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.event_course_share_target
+(
+    course_id  INT NOT NULL REFERENCES ember_schema.event_course_share (course_id) ON DELETE CASCADE,
+    partner_id INT NOT NULL REFERENCES ember_schema.federation_partner (id) ON DELETE CASCADE,
+    PRIMARY KEY (course_id, partner_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_course_share_target_partner
+    ON ember_schema.event_course_share_target (partner_id);
+
+COMMENT ON TABLE ember_schema.event_course_share_target
+    IS 'The partners a course is shared with where its share names them one by one.';
+COMMENT ON COLUMN ember_schema.event_course_share_target.course_id
+    IS 'The shared course.';
+COMMENT ON COLUMN ember_schema.event_course_share_target.partner_id
+    IS 'A partner the course is shared with.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.event_course_partner_registration
+(
+    id                SERIAL PRIMARY KEY,
+    course_id         INT         NOT NULL REFERENCES ember_schema.event_course (id) ON DELETE CASCADE,
+    partner_id        INT         NOT NULL REFERENCES ember_schema.federation_partner (id) ON DELETE CASCADE,
+    remote_member_id  UUID        NOT NULL,
+    status            TEXT        NOT NULL DEFAULT 'PENDING'
+        CHECK (status IN ('PENDING', 'ACCEPTED', 'DENIED', 'DECLINED', 'WITHDRAWN')),
+    registered_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (course_id, partner_id, remote_member_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_course_partner_registration_partner
+    ON ember_schema.event_course_partner_registration (partner_id, remote_member_id);
+
+COMMENT ON TABLE ember_schema.event_course_partner_registration
+    IS 'A partner station''s member signed up for a shared course. The chosen parts carry an event_federation_registration each.';
+COMMENT ON COLUMN ember_schema.event_course_partner_registration.id
+    IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.event_course_partner_registration.course_id
+    IS 'The course signed up for.';
+COMMENT ON COLUMN ember_schema.event_course_partner_registration.partner_id
+    IS 'The partner station the member belongs to.';
+COMMENT ON COLUMN ember_schema.event_course_partner_registration.remote_member_id
+    IS 'The member at the partner station, by the id that station gave them.';
+COMMENT ON COLUMN ember_schema.event_course_partner_registration.status
+    IS 'PENDING, ACCEPTED, DENIED, DECLINED or WITHDRAWN, as for a member of this station.';
+COMMENT ON COLUMN ember_schema.event_course_partner_registration.registered_at
+    IS 'When the member signed up, or last signed up again after withdrawing.';
+
+ALTER TABLE ember_schema.event_federation_registration
+    ADD COLUMN course_partner_registration_id INT
+        REFERENCES ember_schema.event_course_partner_registration (id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_event_federation_registration_course
+    ON ember_schema.event_federation_registration (course_partner_registration_id)
+    WHERE course_partner_registration_id IS NOT NULL;
+
+COMMENT ON COLUMN ember_schema.event_federation_registration.course_partner_registration_id
+    IS 'The partner''s course sign-up this registration for a part was chosen with; NULL for a registration of its own, and once the part was given up.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.partner_course_signup
+(
+    member_id           INT         NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    partner_station_uid UUID        NOT NULL,
+    remote_course_id    INT         NOT NULL,
+    signed_up_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (member_id, partner_station_uid, remote_course_id)
+);
+
+COMMENT ON TABLE ember_schema.partner_course_signup
+    IS 'Members this station signed up for a course a partner station holds, so news from that partner about the course is believed for them only.';
+COMMENT ON COLUMN ember_schema.partner_course_signup.member_id
+    IS 'The member of this station signed up.';
+COMMENT ON COLUMN ember_schema.partner_course_signup.partner_station_uid
+    IS 'The partner station holding the course.';
+COMMENT ON COLUMN ember_schema.partner_course_signup.remote_course_id
+    IS 'The course, by its id at the partner station.';
+COMMENT ON COLUMN ember_schema.partner_course_signup.signed_up_at
+    IS 'When this station signed the member up.';

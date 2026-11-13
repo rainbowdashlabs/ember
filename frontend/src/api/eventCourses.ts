@@ -8,6 +8,7 @@ import type {
     CourseAwaiting,
     CourseCreateRequest,
     CourseDetail,
+    CoursePartnerSignUp,
     CoursePartCreateRequest,
     CoursePartSummary,
     CourseSignUp,
@@ -17,8 +18,10 @@ import type {
     EventCourseSetDraft,
     RegistrationFieldDefinition,
     EventRegistrationFieldValue,
+    FederationShareResponse,
     RegistrationStatus,
     RestrictionAudience,
+    ShareScope,
 } from './generated/schema'
 
 const COURSES = '/events/courses'
@@ -144,4 +147,29 @@ export async function courseOfEvent(eventId: number): Promise<CoursePartSummary 
 /** The courses still waiting on an answer from the reader or anybody they look after. */
 export async function listAwaiting(): Promise<CourseAwaiting[]> {
     return (await client.get<CourseAwaiting[]>(`${COURSES}/awaiting`)).data
+}
+
+/** How a course is shared with partner stations. */
+export async function getFederationShare(courseId: number): Promise<FederationShareResponse> {
+    return (await client.get<FederationShareResponse>(`${COURSES}/${courseId}/federation`)).data
+}
+
+/** Shares a course and every part with partner stations. */
+export async function setFederationShare(courseId: number, scope: ShareScope, partnerIds?: number[]): Promise<void> {
+    await client.put(`${COURSES}/${courseId}/federation`, {scope, partnerIds: partnerIds ?? []})
+}
+
+/** Stops sharing a course and its parts. */
+export async function removeFederationShare(courseId: number): Promise<void> {
+    await client.delete(`${COURSES}/${courseId}/federation`)
+}
+
+/** The sign-ups partner stations' members sent for a course. */
+export async function listPartnerSignUps(courseId: number): Promise<CoursePartnerSignUp[]> {
+    return (await client.get<CoursePartnerSignUp[]>(`${COURSES}/${courseId}/partner-sign-ups`)).data
+}
+
+/** Accepts or turns down a partner member's sign-up and every part chosen with it. */
+export async function decidePartner(courseId: number, signUpId: number, status: RegistrationStatus): Promise<void> {
+    await client.put(`${COURSES}/${courseId}/partner-sign-ups/${signUpId}/status`, {status})
 }

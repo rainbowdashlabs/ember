@@ -22,6 +22,8 @@ import java.util.Objects;
  * @param dayOfWeek   the ISO day of week, or 0 where the appointment does not repeat on one
  * @param repeatUntil the last day the repetition reaches, or null where it has no end
  * @param repeatCount how many times it takes place in total, or null where it has no end
+ * @param course      the course it is a part of, or null for an appointment of its own; a partner
+ *                    that has never heard of courses ignores it
  */
 public record SharedEvent(
         int id,
@@ -34,7 +36,58 @@ public record SharedEvent(
         boolean requiresRegistration,
         boolean requiresConfirmation,
         @Nullable LocalDate repeatUntil,
-        @Nullable Integer repeatCount) {
+        @Nullable Integer repeatCount,
+        @Nullable CoursePartSummary course) {
+
+    /** A shared appointment that is a part of no course. */
+    public SharedEvent(
+            int id,
+            String name,
+            String description,
+            StationEvent.EventType eventType,
+            int dayOfWeek,
+            String startTime,
+            String endTime,
+            boolean requiresRegistration,
+            boolean requiresConfirmation,
+            @Nullable LocalDate repeatUntil,
+            @Nullable Integer repeatCount) {
+        this(
+                id,
+                name,
+                description,
+                eventType,
+                dayOfWeek,
+                startTime,
+                endTime,
+                requiresRegistration,
+                requiresConfirmation,
+                repeatUntil,
+                repeatCount,
+                null);
+    }
+
+    /**
+     * This appointment as a part of the given course.
+     *
+     * @param part the course and set it belongs to, or null for an appointment of its own
+     * @return the appointment naming its course
+     */
+    public SharedEvent withCourse(@Nullable CoursePartSummary part) {
+        return new SharedEvent(
+                id,
+                name,
+                description,
+                eventType,
+                dayOfWeek,
+                startTime,
+                endTime,
+                requiresRegistration,
+                requiresConfirmation,
+                repeatUntil,
+                repeatCount,
+                part);
+    }
 
     /** What of an appointment a partner is shown. */
     public static SharedEvent of(StationEvent event) {

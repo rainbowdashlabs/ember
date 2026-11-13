@@ -23,7 +23,7 @@ import CourseAnswersButton from './CourseAnswersButton.vue'
 import RegistrationFieldAnswers from '../eventdetailview/RegistrationFieldAnswers.vue'
 import type {CourseDetail, CourseSignUp} from '@/api/generated/schema'
 import {RegistrationStatus} from '@/api/generated/schema'
-import {eventCourses} from '@/api'
+import {ownCoursePort, type CourseSignUpPort} from './courseSignUpPort'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**
@@ -34,6 +34,8 @@ const props = defineProps<{
   detail: CourseDetail
   /** Called after a sign-up changed, so the page reloads what it shows. */
   onChanged?: () => void | Promise<void>
+  /** Where sign-ups go; a course of this station unless a partner's course page says otherwise. */
+  port?: CourseSignUpPort
 }>()
 
 const {t} = useI18n()
@@ -85,7 +87,7 @@ async function confirmWithdraw() {
   if (!entry) return
   busy.value = true
   try {
-    await eventCourses.withdraw(props.detail.course.id, entry.memberId)
+    await (props.port ?? ownCoursePort(props.detail.course.id)).withdraw(entry.memberId)
     withdrawOpen.value = false
     await props.onChanged?.()
   } catch (e) {
@@ -143,6 +145,7 @@ async function confirmWithdraw() {
         v-if="dialogFor"
         :detail="detail"
         :entry="dialogFor"
+        :port="port"
         @close="dialogFor = null"
         @saved="dialogFor = null; onChanged?.()"
     />
