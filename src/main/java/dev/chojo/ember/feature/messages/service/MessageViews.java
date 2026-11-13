@@ -43,7 +43,7 @@ public class MessageViews {
     /**
      * The messages as the reader sees them, in the order given.
      *
-     * @param page     the messages
+     * @param shown    the messages
      * @param readerId the reader
      * @return each with its answered message and its reactions
      */
