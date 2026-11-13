@@ -95,6 +95,30 @@ public class EventRequirementService {
     }
 
     /**
+     * Refuses to share an event group one of whose own documents to bring partners could not sign
+     * alike. Its parts are checked on their own, each with what it asks for itself.
+     *
+     * @param eventGroupId the event group, already checked to be the station's
+     */
+    public void requireEventGroupShareable(int eventGroupId) {
+        requirements.forEventGroup(eventGroupId).stream()
+                .filter(required -> !required.archived())
+                .flatMap(required -> templates.find(required.templateId()).stream())
+                .forEach(neutral::requireSignableByPartners);
+    }
+
+    /**
+     * Refuses to take an appointment into an event group shared with partners where one of its own
+     * documents to bring is one partners could not sign alike, since joining shares it as well.
+     *
+     * @param eventGroupId the event group it joins
+     * @param eventId      the appointment, already checked to be the station's
+     */
+    public void requireJoinable(int eventGroupId, int eventId) {
+        if (groupShares.findShare(eventGroupId).isPresent()) requireShareable(eventId);
+    }
+
+    /**
      * What appointments and appointment templates of the station may ask for.
      *
      * @param owner the station

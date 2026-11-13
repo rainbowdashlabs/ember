@@ -218,7 +218,7 @@ const {loading, failure} = useAsyncLoader(async () => {
     if (isEdit.value) {
       await Promise.all([
         form.loadEvent(eventId.value!),
-        eventGroups.eventGroupOfEvent(eventId.value!).then(groupPart.load).catch(() => {}),
+        eventGroups.eventGroupOfEvent(eventId.value!).then(groupPart.load),
         fieldDefaults.load(eventFieldDefaultsPort(eventId.value!)),
         federationShare.load(eventFederationPort(eventId.value!)),
         loadRegistrationFields(eventId.value!),

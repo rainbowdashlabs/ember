@@ -15,6 +15,7 @@ const YOUTH: RestrictionAudience = {groupIds: [4], memberIds: [], mode: Restrict
 const api = vi.hoisted(() => ({
   eventGroups: {
     createEventGroup: vi.fn(),
+    updateEventGroup: vi.fn(),
     getEventGroup: vi.fn(),
     getFederationShare: vi.fn(async () => null),
     setSettings: vi.fn(),
@@ -100,6 +101,23 @@ describe('EventGroupEditView started from an appointment', () => {
     await flushPromises()
 
     expect(api.eventGroups.createEventGroup).toHaveBeenCalledWith(expect.objectContaining({appointmentId: null}))
+  })
+
+  it('changes the group it already created when saving again after a later part of the save was refused', async () => {
+    api.eventGroups.setSettings.mockRejectedValueOnce(new Error('refused'))
+    api.eventGroups.updateEventGroup.mockResolvedValue({eventGroup: {id: 7}, sets: [], parts: [], questions: [], fields: [],
+      registration: YOUTH, view: YOUTH})
+    const wrapper = mountEditor()
+    await flushPromises()
+
+    await wrapper.find('[data-testid="event-group-save"]').trigger('click')
+    await flushPromises()
+    await wrapper.find('[data-testid="event-group-save"]').trigger('click')
+    await flushPromises()
+
+    expect(api.eventGroups.createEventGroup).toHaveBeenCalledOnce()
+    expect(api.eventGroups.updateEventGroup).toHaveBeenCalledWith(7, expect.anything(), expect.anything(), expect.anything(),
+      expect.anything(), expect.anything())
   })
 
   it('ignores an appointment that is not a one-time one', async () => {

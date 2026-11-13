@@ -102,7 +102,7 @@ public class EventGroupPartnerService {
      *
      * <p>An event group whose audiences name anybody is not shared: they name groups, tags and members of
      * this station, which mean nothing at a partner, so the event group would stand open to everybody
-     * there. Nor is one with a part whose documents partners could not sign alike.
+     * there. Nor is one whose own documents, or a part's, partners could not sign alike.
      *
      * @param stationId  the station asking
      * @param eventGroupId   the event group
@@ -118,6 +118,7 @@ public class EventGroupPartnerService {
                     || !eventGroups.registrationAudience(eventGroupId).namesNobody()) {
                 throw EventRefusal.RESTRICTED_EVENT_NOT_SHARED.raise();
             }
+            requirements.requireEventGroupShareable(eventGroupId);
             for (var part : eventGroups.findParts(eventGroupId)) {
                 requirements.requireShareable(part.eventId());
                 shareAppointment(part.eventId(), scope, targets);

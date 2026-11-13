@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.generator.service;
 
+import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventRequirementsChanged;
 import dev.chojo.ember.feature.events.entity.EventGroup;
@@ -18,6 +20,7 @@ import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
 import dev.chojo.ember.feature.events.service.EventGroupService;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.generator.entity.RequiredTemplate;
 import dev.chojo.ember.feature.generator.repository.EventRequirementRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -31,8 +34,12 @@ import java.time.Instant;
 import java.util.List;
 
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.letter;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -143,6 +150,43 @@ class EventGroupRequirementsTest extends GeneratorTestBase {
         assertTrue(effective.get(0).fromEventGroup());
         assertTrue(!effective.get(1).fromEventGroup());
         assertEquals(List.of(consent), ids(requirements.forEventGroup(group.id())));
+    }
+
+    /** A service whose partner check refuses every document, so whether a check runs at all shows. */
+    private EventRequirementService refusingPartners() {
+        var neutral = mock(MemberNeutralTemplates.class);
+        doThrow(DocumentRefusal.PARTNER_AGREEMENT_NAMES_A_PERSON.raise())
+                .when(neutral)
+                .requireSignableByPartners(any());
+        return new EventRequirementService(
+                new EventRequirementRepository(),
+                wiring.templates(),
+                neutral,
+                new EventFederationRepository(),
+                bus,
+                new EventGroupRepository(),
+                new EventGroupPartnerRepository());
+    }
+
+    @Test
+    void aGroupWithoutPartsIsCheckedForItsOwnDocumentsBeforeItIsShared() {
+        var group = group("Jugendflamme ohne Termine");
+        requirements.setForEventGroup(wiring.owner(), group.id(), List.of(forAppointments("Einverständnis geteilt")));
+
+        assertThrows(RefusalResponse.class, () -> refusingPartners().requireEventGroupShareable(group.id()));
+        var bare = group("Jugendflamme ohne Dokumente");
+        assertDoesNotThrow(() -> refusingPartners().requireEventGroupShareable(bare.id()));
+    }
+
+    @Test
+    void anAppointmentJoiningASharedGroupIsCheckedForItsOwnDocuments() {
+        var group = group("Jugendflamme geteilt");
+        var event = appointment("Zusatztag");
+        requirements.setForEvent(wiring.owner(), event.id(), List.of(forAppointments("Fotoerlaubnis geteilt")));
+
+        assertDoesNotThrow(() -> refusingPartners().requireJoinable(group.id(), event.id()));
+        new EventGroupPartnerRepository().setShare(group.id(), ShareScope.ALL_PARTNERS, List.of());
+        assertThrows(RefusalResponse.class, () -> refusingPartners().requireJoinable(group.id(), event.id()));
     }
 
     @Test

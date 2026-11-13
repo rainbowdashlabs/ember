@@ -214,12 +214,20 @@ function details() {
   }
 }
 
+/**
+ * The event group this form created, once it did. The settings, documents and files are saved after
+ * the group itself; where one of those is refused, the group already exists, and saving again has to
+ * change it rather than create a second one.
+ */
+const createdGroupId = ref<number | null>(null)
+
 async function save() {
   saving.value = true
   saveFailure.value = null
   try {
     const drafts = sets.value.map(set => ({id: set.id, name: set.name, minimum: set.minimum}))
-    if (eventGroupId.value == null) {
+    const savedId = eventGroupId.value ?? createdGroupId.value
+    if (savedId == null) {
       const created = await eventGroups.createEventGroup({
         details: details(),
         sets: drafts,
@@ -229,6 +237,8 @@ async function save() {
         fields: namedEntries(fields.value),
         appointmentId: startingAppointment.value?.id ?? null,
       })
+      createdGroupId.value = created.eventGroup.id
+      startingAppointment.value = null
       await dateSettings.save(created.eventGroup.id)
       await requirements.save(requirementOwner(created.eventGroup.id))
       showToast(t('eventGroups.saved'), 'success')
@@ -236,13 +246,18 @@ async function save() {
       fill(created)
       return
     }
-    fill(await eventGroups.updateEventGroup(eventGroupId.value, details(), drafts, {
+    fill(await eventGroups.updateEventGroup(savedId, details(), drafts, {
       registration: registration.value,
       view: view.value,
     }, savedQuestions(), namedEntries(fields.value)))
-    await dateSettings.save(eventGroupId.value)
-    await requirements.save(requirementOwner(eventGroupId.value))
-    await federationShare.save(eventGroupFederationPort(eventGroupId.value))
+    await dateSettings.save(savedId)
+    await requirements.save(requirementOwner(savedId))
+    if (eventGroupId.value == null) {
+      showToast(t('eventGroups.saved'), 'success')
+      await router.replace({name: 'event-group-edit', params: {eventGroupId: savedId}})
+      return
+    }
+    await federationShare.save(eventGroupFederationPort(savedId))
   } catch (e) {
     saveFailure.value = describeFailure(e, t)
     throw e

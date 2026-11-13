@@ -9,6 +9,7 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventGroup;
@@ -28,6 +29,7 @@ import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
 import dev.chojo.ember.feature.events.service.EventGroupRegistrationService;
 import dev.chojo.ember.feature.events.service.EventGroupRegistrationService.EventGroupStanding;
 import dev.chojo.ember.feature.events.service.EventGroupService;
+import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.question.FieldType;
@@ -56,6 +58,7 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -75,6 +78,7 @@ class EventGroupRoutesTest {
     private EventGroupRegistrationService signUps;
     private EventGroupQuestionService questions;
     private EventFieldService fields;
+    private EventRequirementService requirements;
     private GuardianPolicy guardians;
     private EventVisibility visibility;
     private EventGroupCancellationService cancellation;
@@ -130,6 +134,7 @@ class EventGroupRoutesTest {
         partFactory = mock(EventGroupPartFactory.class);
         questions = mock(EventGroupQuestionService.class);
         fields = mock(EventFieldService.class);
+        requirements = mock(EventRequirementService.class);
         when(fields.asSeenOnGroup(anyInt(), any(), anyInt(), anyBoolean())).thenAnswer(call -> call.getArgument(1));
         harness = RouteHarness.serving(new EventGroupRoutes(
                 eventGroups,
@@ -141,7 +146,8 @@ class EventGroupRoutesTest {
                 partFactory,
                 questions,
                 new EventGroupGuards(eventGroups, guardians),
-                fields));
+                fields,
+                requirements));
     }
 
     private Response call(String method, String path, String json, StationPermission... permissions) {
@@ -194,6 +200,23 @@ class EventGroupRoutesTest {
         assertEquals(
                 EventRefusal.EVENT_GROUP_NOT_HERE,
                 refusalOf(call("POST", EVENT_GROUP + "/fields/7/self-register", "{}", StationPermission.USER)));
+    }
+
+    @Test
+    void anAppointmentWhoseDocumentsPartnersCannotSignStaysOutOfASharedGroup() {
+        doThrow(DocumentRefusal.PARTNER_AGREEMENT_NAMES_A_PERSON.raise())
+                .when(requirements)
+                .requireJoinable(EVENT_GROUP_ID, 101);
+
+        assertEquals(
+                DocumentRefusal.PARTNER_AGREEMENT_NAMES_A_PERSON,
+                refusalOf(call(
+                        "POST",
+                        EVENT_GROUP + "/parts",
+                        "{\"eventId\":101,\"setId\":5}",
+                        StationPermission.USER,
+                        StationPermission.EVENT_EDIT)));
+        verify(eventGroups, never()).addPart(anyInt(), anyInt(), anyInt(), anyInt());
     }
 
     @Test

@@ -39,6 +39,7 @@ import dev.chojo.ember.feature.events.service.EventGroupRegistrationService.Even
 import dev.chojo.ember.feature.events.service.EventGroupRules.SetResult;
 import dev.chojo.ember.feature.events.service.EventGroupService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
+import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
@@ -94,6 +95,7 @@ public class EventGroupRoutes implements Routes {
     private final EventGroupQuestionService questions;
     private final EventGroupGuards guards;
     private final EventFieldService fields;
+    private final EventRequirementService requirements;
 
     @Inject
     public EventGroupRoutes(
@@ -106,7 +108,8 @@ public class EventGroupRoutes implements Routes {
             EventGroupPartFactory partFactory,
             EventGroupQuestionService questions,
             EventGroupGuards guards,
-            EventFieldService fields) {
+            EventFieldService fields,
+            EventRequirementService requirements) {
         this.eventGroups = eventGroups;
         this.signUps = signUps;
         this.guardianPolicy = guardianPolicy;
@@ -117,6 +120,7 @@ public class EventGroupRoutes implements Routes {
         this.questions = questions;
         this.guards = guards;
         this.fields = fields;
+        this.requirements = requirements;
     }
 
     @Override
@@ -406,8 +410,10 @@ public class EventGroupRoutes implements Routes {
     private void addPart(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(EventGroupPartRequest.class);
-        var part = eventGroups.addPart(
-                session.stationId(), pathInt(ctx, "eventGroupId"), request.eventId(), request.setId());
+        int eventGroupId = pathInt(ctx, "eventGroupId");
+        eventGroups.requireEventGroup(session.stationId(), eventGroupId);
+        requirements.requireJoinable(eventGroupId, request.eventId());
+        var part = eventGroups.addPart(session.stationId(), eventGroupId, request.eventId(), request.setId());
         fields.reconcilePart(part.eventId());
         ctx.status(HttpStatus.CREATED).json(part);
     }
