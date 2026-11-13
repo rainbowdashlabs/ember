@@ -27809,6 +27809,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/groups/{eventGroupId}/fields/{fieldId}/self-register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Toggle the reader in or out of a member field of an event group for the whole group */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    fieldId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AppointmentField"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/groups/{eventGroupId}/partner-sign-ups": {
         parameters: {
             query?: never;
@@ -67480,6 +67528,7 @@ export interface components {
             overview: boolean;
             /** Format: int32 */
             position: number;
+            readerInWholeGroup: boolean;
             selfRegistrationState: components["schemas"]["SelfRegistration"] | null;
             value: string;
         };

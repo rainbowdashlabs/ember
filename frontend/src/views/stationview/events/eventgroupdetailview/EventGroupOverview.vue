@@ -33,6 +33,12 @@ const props = defineProps<{
   detail: EventGroupDetail
   /** Where a part leads; to the station's own appointment unless a partner's event group page says otherwise. */
   partLink?: (eventId: number) => RouteLocationRaw
+  /** The reader, where they may put themselves into the event group's member fields. */
+  currentMemberId?: number
+  /** The station's members by id, for the member fields. */
+  memberNames?: Map<number, string>
+  /** Called once the reader stepped into or out of a member field. */
+  onChanged?: () => void
 }>()
 
 function linkOf(eventId: number): RouteLocationRaw {
@@ -99,7 +105,13 @@ function whenOf(part: EventGroupPartState): string {
       <MutedText v-if="eventGroup.requiresConfirmation" tag="span" size="sm">{{ t('eventGroups.confirmation') }}</MutedText>
     </div>
     <ProseContent v-if="eventGroup.description" v-html="renderMarkdown(eventGroup.description)"/>
-    <EventGroupFields :fields="detail.fields"/>
+    <EventGroupFields
+        :fields="detail.fields"
+        :event-group-id="currentMemberId == null ? undefined : eventGroup.id"
+        :current-member-id="currentMemberId"
+        :member-names="memberNames"
+        :on-changed="onChanged"
+    />
     <SectionHeader>{{ t('eventGroups.parts') }}</SectionHeader>
     <MutedText v-if="detail.parts.length === 0" tag="p" size="sm">{{ t('eventGroups.noParts') }}</MutedText>
     <section v-for="set in detail.sets" :key="set.id" class="space-y-2" :data-testid="`event-group-set-${set.id}`">

@@ -19528,6 +19528,51 @@
         } ]
       }
     },
+    "/api/v1/events/groups/{eventGroupId}/fields/{fieldId}/self-register" : {
+      "post" : {
+        "summary" : "Toggle the reader in or out of a member field of an event group for the whole group",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AppointmentField"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "fieldId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/events/groups/{eventGroupId}/partner-sign-ups" : {
       "get" : {
         "summary" : "The sign-ups partner stations' members sent for an event group",
@@ -53144,9 +53189,12 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "readerInWholeGroup" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "id", "eventId", "name", "fieldType", "config", "value", "position", "overview", "attendanceFieldId", "isPublic", "selfRegistrationState" ]
+        "required" : [ "id", "eventId", "name", "fieldType", "config", "value", "position", "overview", "attendanceFieldId", "isPublic", "selfRegistrationState", "readerInWholeGroup" ]
       },
       "AppointmentTemplateField" : {
         "type" : "object",

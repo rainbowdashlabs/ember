@@ -554,14 +554,39 @@ COMMENT ON COLUMN ember_schema.event_group_field.group_id
 COMMENT ON COLUMN ember_schema.event_group_field.name
     IS 'What the field is called; an appointment field with the same name, ignoring case, replaces it on that appointment.';
 COMMENT ON COLUMN ember_schema.event_group_field.field_type
-    IS 'The kind of value, one of the plain value kinds an appointment field takes (no member kinds).';
+    IS 'The kind of value, one an appointment field takes; member kinds included, but never answered per date or tied to an attendance sheet.';
 COMMENT ON COLUMN ember_schema.event_group_field.config
     IS 'The settings of the field, such as the options of a choice, as for an appointment field.';
 COMMENT ON COLUMN ember_schema.event_group_field.value
-    IS 'The value every appointment of the group shows unless it replaces the field.';
+    IS 'The value every appointment of the group shows unless it replaces the field. For a member field: the members entered for the whole group, which each appointment adjusts by its entries in event_group_field_entry.';
 COMMENT ON COLUMN ember_schema.event_group_field.position
     IS 'Order among the group''s fields.';
 COMMENT ON COLUMN ember_schema.event_group_field.overview
     IS 'Whether the value shows in lists of appointments.';
 COMMENT ON COLUMN ember_schema.event_group_field."public"
     IS 'Whether readers outside the station, such as partner stations and the public calendar, see it.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.event_group_field_entry
+(
+    group_field_id INT  NOT NULL REFERENCES ember_schema.event_group_field (id) ON DELETE CASCADE,
+    event_id       INT  NOT NULL REFERENCES ember_schema.station_event (id) ON DELETE CASCADE,
+    member_id      INT  NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    kind           TEXT NOT NULL CHECK (kind IN ('ENTERED', 'SKIPPED')),
+    PRIMARY KEY (group_field_id, event_id, member_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_group_field_entry_event
+    ON ember_schema.event_group_field_entry (event_id);
+CREATE INDEX IF NOT EXISTS idx_event_group_field_entry_member
+    ON ember_schema.event_group_field_entry (member_id);
+
+COMMENT ON TABLE ember_schema.event_group_field_entry
+    IS 'How one appointment of an event group differs from a member field of the group: a member entered for this appointment only, or a member entered for the whole group who skips this appointment.';
+COMMENT ON COLUMN ember_schema.event_group_field_entry.group_field_id
+    IS 'The member field of the event group.';
+COMMENT ON COLUMN ember_schema.event_group_field_entry.event_id
+    IS 'The appointment of the group the entry is about.';
+COMMENT ON COLUMN ember_schema.event_group_field_entry.member_id
+    IS 'The member entered or skipping.';
+COMMENT ON COLUMN ember_schema.event_group_field_entry.kind
+    IS 'ENTERED: in the field on this appointment only. SKIPPED: entered for the whole group but not on this appointment.';

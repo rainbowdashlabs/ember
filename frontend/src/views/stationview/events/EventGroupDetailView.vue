@@ -20,9 +20,9 @@ import EventGroupSignUpsPanel from './eventgroupdetailview/EventGroupSignUpsPane
 import EventGroupPartnerSignUpsPanel from './eventgroupdetailview/EventGroupPartnerSignUpsPanel.vue'
 import EventGroupAttendancePanel from './eventgroupdetailview/EventGroupAttendancePanel.vue'
 import EventGroupCancelDialog from './eventgroupdetailview/EventGroupCancelDialog.vue'
-import type {EventGroupDetail} from '@/api/generated/schema'
+import type {EventGroupDetail, MemberCompletion} from '@/api/generated/schema'
 import {StationPermission} from '@/api/generated/schema'
-import {eventGroups} from '@/api'
+import {eventGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -35,7 +35,7 @@ import {describeFailure, type Failure} from '@/util/failure'
 const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
-const {loaded, hasPermission} = useSession()
+const {loaded, hasPermission, sessionInfo} = useSession()
 
 const eventGroupId = computed(() => Number(route.params.eventGroupId))
 const detail = ref<EventGroupDetail | null>(null)
@@ -49,8 +49,20 @@ const attendancePanel = ref<InstanceType<typeof EventGroupAttendancePanel> | nul
 const canEdit = computed(() => hasPermission(StationPermission.EVENT_EDIT))
 const canDecide = computed(() => hasPermission(StationPermission.EVENT_REGISTRATION))
 
+const members = ref<MemberCompletion[]>([])
+const currentMemberId = computed(() => sessionInfo.value?.member?.id)
+
+/** The station's members by id, under the name a reader knows them by, for the member fields. */
+const memberNames = computed(() =>
+    new Map(members.value.map(member => [member.id, member.name] as const)))
+
 const {loading, failure, reload} = useAsyncLoader(async () => {
-  detail.value = await eventGroups.getEventGroup(eventGroupId.value)
+  const [loadedDetail, completions] = await Promise.all([
+    eventGroups.getEventGroup(eventGroupId.value),
+    members.value.length > 0 ? Promise.resolve(members.value) : stationMembers.listCompletions().catch(() => []),
+  ])
+  detail.value = loadedDetail
+  members.value = completions
 }, {autoLoad: loaded.value})
 
 watch(loaded, ready => { if (ready) reload() })
@@ -105,7 +117,7 @@ async function deleteEventGroup() {
             {{ t('eventGroups.delete') }}
           </ErrorButton>
         </ButtonRow>
-        <EventGroupOverview :detail="detail"/>
+        <EventGroupOverview :detail="detail" :current-member-id="currentMemberId" :member-names="memberNames" :on-changed="refresh"/>
         <EventGroupHouseholdPanel :detail="detail" :on-changed="refresh"/>
         <EventGroupSignUpsPanel v-if="canDecide" ref="signUpsPanel" :detail="detail" :on-changed="refresh"/>
         <EventGroupPartnerSignUpsPanel v-if="canDecide" :detail="detail" :on-changed="refresh"/>

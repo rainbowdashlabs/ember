@@ -85,6 +85,9 @@ const examplePart = computed(() => ({
       </NeutralContainer>
       <p>{{ t('helpCenter.eventGroupDetail.dialogText') }}</p>
     </HelpSection>
+    <HelpSection :title="t('helpCenter.eventGroupDetail.memberFieldsTitle')">
+      <p>{{ t('helpCenter.eventGroupDetail.memberFieldsText') }}</p>
+    </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupDetail.changeTitle')">
       <p>{{ t('helpCenter.eventGroupDetail.changeText') }}</p>
       <NeutralContainer class="flex flex-wrap items-center justify-between gap-2">

@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.route.EventRegistrationRoutes.AwaitingMember;
 import dev.chojo.ember.feature.events.route.EventRegistrationRoutes.EventRegistrationFieldValue;
 import dev.chojo.ember.feature.events.route.EventStructureRoutes.EventFieldEntry;
+import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventGroupCancellationService;
 import dev.chojo.ember.feature.events.service.EventGroupPartFactory;
 import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
@@ -90,6 +91,7 @@ public class EventGroupRoutes implements Routes {
     private final EventGroupCancellationService cancellation;
     private final EventGroupPartFactory partFactory;
     private final EventGroupQuestionService questions;
+    private final EventFieldService fields;
 
     @Inject
     public EventGroupRoutes(
@@ -100,7 +102,8 @@ public class EventGroupRoutes implements Routes {
             EventVisibility visibility,
             EventGroupCancellationService cancellation,
             EventGroupPartFactory partFactory,
-            EventGroupQuestionService questions) {
+            EventGroupQuestionService questions,
+            EventFieldService fields) {
         this.eventGroups = eventGroups;
         this.signUps = signUps;
         this.guardianPolicy = guardianPolicy;
@@ -109,6 +112,7 @@ public class EventGroupRoutes implements Routes {
         this.cancellation = cancellation;
         this.partFactory = partFactory;
         this.questions = questions;
+        this.fields = fields;
     }
 
     @Override
@@ -155,6 +159,11 @@ public class EventGroupRoutes implements Routes {
                 StationPermission.USER,
                 StationModule.EVENTS);
         routes.post(prefix + EVENT_GROUP + "/sign-up", this::signUp, StationPermission.USER, StationModule.EVENTS);
+        routes.post(
+                prefix + EVENT_GROUP + "/fields/{fieldId}/self-register",
+                this::selfRegisterField,
+                StationPermission.USER,
+                StationModule.EVENTS);
         routes.put(prefix + EVENT_GROUP + "/sign-up", this::changeParts, StationPermission.USER, StationModule.EVENTS);
         routes.delete(prefix + EVENT_GROUP + "/sign-up", this::withdraw, StationPermission.USER, StationModule.EVENTS);
         routes.get(
@@ -227,6 +236,7 @@ public class EventGroupRoutes implements Routes {
                 audienceOr(request.view()),
                 new EventGroupContent(draftsOf(request.questions()), fieldDraftsOf(request.fields())),
                 request.appointmentId());
+        fields.reconcileGroup(eventGroup.id());
         ctx.status(HttpStatus.CREATED).json(detailOf(session, eventGroup));
     }
 
@@ -267,7 +277,32 @@ public class EventGroupRoutes implements Routes {
                 request.registration(),
                 request.view(),
                 new EventGroupContent(draftsOf(request.questions()), fieldDraftsOf(request.fields())));
+        fields.reconcileGroup(eventGroup.id());
         ctx.json(detailOf(session, eventGroup));
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/groups/{eventGroupId}/fields/{fieldId}/self-register",
+            methods = HttpMethod.POST,
+            summary = "Toggle the reader in or out of a member field of an event group for the whole group",
+            tags = {"Events"},
+            pathParams = {
+                @OpenApiParam(name = "eventGroupId", type = Integer.class, required = true),
+                @OpenApiParam(name = "fieldId", type = Integer.class, required = true)
+            },
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = AppointmentField.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void selfRegisterField(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var eventGroup = visibleEventGroup(ctx, session);
+        ctx.json(fields.toggleGroupSelfRegistration(
+                eventGroup.id(), pathInt(ctx, "fieldId"), session.member().id(), runsEventGroups(session)));
+    }
+
+    private static boolean runsEventGroups(StationSession session) {
+        return session.hasPermission(StationPermission.EVENT_MANAGER);
     }
 
     @OpenApi(
@@ -282,7 +317,11 @@ public class EventGroupRoutes implements Routes {
             })
     private void delete(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        eventGroups.delete(session.stationId(), pathInt(ctx, "eventGroupId"));
+        int eventGroupId = pathInt(ctx, "eventGroupId");
+        eventGroups.requireEventGroup(session.stationId(), eventGroupId);
+        var parts = eventGroups.findParts(eventGroupId);
+        eventGroups.delete(session.stationId(), eventGroupId);
+        parts.forEach(part -> fields.reconcilePart(part.eventId()));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -363,9 +402,10 @@ public class EventGroupRoutes implements Routes {
     private void addPart(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(EventGroupPartRequest.class);
-        ctx.status(HttpStatus.CREATED)
-                .json(eventGroups.addPart(
-                        session.stationId(), pathInt(ctx, "eventGroupId"), request.eventId(), request.setId()));
+        var part = eventGroups.addPart(
+                session.stationId(), pathInt(ctx, "eventGroupId"), request.eventId(), request.setId());
+        fields.reconcilePart(part.eventId());
+        ctx.status(HttpStatus.CREATED).json(part);
     }
 
     @OpenApi(
@@ -387,16 +427,17 @@ public class EventGroupRoutes implements Routes {
         Instant end = request.endTime();
         if (name == null || name.isBlank()) throw EventRefusal.EVENT_GROUP_NAME_MISSING.raise();
         if (start == null || end == null) throw EventRefusal.EVENT_GROUP_PART_NEEDS_TIMES.raise();
-        ctx.status(HttpStatus.CREATED)
-                .json(partFactory.create(
-                        session.stationId(),
-                        pathInt(ctx, "eventGroupId"),
-                        request.setId(),
-                        name.strip(),
-                        request.description(),
-                        start,
-                        end,
-                        null));
+        var part = partFactory.create(
+                session.stationId(),
+                pathInt(ctx, "eventGroupId"),
+                request.setId(),
+                name.strip(),
+                request.description(),
+                start,
+                end,
+                null);
+        fields.reconcilePart(part.eventId());
+        ctx.status(HttpStatus.CREATED).json(part);
     }
 
     @OpenApi(
@@ -469,7 +510,9 @@ public class EventGroupRoutes implements Routes {
             })
     private void removePart(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        eventGroups.removePart(session.stationId(), pathInt(ctx, "eventGroupId"), pathInt(ctx, "eventId"));
+        int eventId = pathInt(ctx, "eventId");
+        eventGroups.removePart(session.stationId(), pathInt(ctx, "eventGroupId"), eventId);
+        fields.reconcilePart(eventId);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -705,7 +748,10 @@ public class EventGroupRoutes implements Routes {
                 eventGroups.registrationAudience(eventGroup.id()),
                 eventGroups.viewAudience(eventGroup.id()),
                 asked,
-                eventGroups.findFields(eventGroup.id()),
+                eventGroups.findFields(eventGroup.id()).stream()
+                        .map(field -> fields.asSeenOnGroup(
+                                eventGroup.id(), field, session.member().id(), runsEventGroups(session)))
+                        .toList(),
                 signUpsOf(
                         session,
                         asked,

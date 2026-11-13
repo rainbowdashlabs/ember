@@ -81,7 +81,8 @@ public class EventFieldRegistrationService {
     }
 
     /**
-     * Brings one appointment's registrations back in step with its questions.
+     * Brings one appointment's registrations back in step with its questions, the member fields its
+     * event group hands down included, as this appointment shows them.
      *
      * <p>Safe to call as often as anything likes: it compares what is named against what is written
      * and touches only the difference.
@@ -92,7 +93,12 @@ public class EventFieldRegistrationService {
         var event = eventRepository.findById(eventId).orElse(null);
         if (event == null) return;
 
-        var memberFields = fieldRepository.findByEvent(eventId).stream()
+        var own = fieldRepository.findByEvent(eventId);
+        var memberFields = AppointmentField.shown(
+                        own,
+                        fieldRepository.findInherited(List.of(eventId), false),
+                        own.stream().map(AppointmentField::name).toList())
+                .stream()
                 .filter(field -> field.fieldType().namesMembers())
                 .toList();
         var dateValues = fieldRepository.findDateValues(eventId);

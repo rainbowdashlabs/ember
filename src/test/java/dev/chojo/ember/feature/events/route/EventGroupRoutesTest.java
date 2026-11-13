@@ -10,6 +10,7 @@ import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.entity.EventGroupPart;
 import dev.chojo.ember.feature.events.entity.EventGroupPartSummary;
@@ -19,6 +20,7 @@ import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventGroupCancellationService;
 import dev.chojo.ember.feature.events.service.EventGroupPartFactory;
 import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
@@ -46,6 +48,7 @@ import static dev.chojo.ember.api.RouteHarness.json;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -70,6 +73,7 @@ class EventGroupRoutesTest {
     private EventGroupService eventGroups;
     private EventGroupRegistrationService signUps;
     private EventGroupQuestionService questions;
+    private EventFieldService fields;
     private GuardianPolicy guardians;
     private EventVisibility visibility;
     private EventGroupCancellationService cancellation;
@@ -124,8 +128,10 @@ class EventGroupRoutesTest {
         cancellation = mock(EventGroupCancellationService.class);
         partFactory = mock(EventGroupPartFactory.class);
         questions = mock(EventGroupQuestionService.class);
+        fields = mock(EventFieldService.class);
+        when(fields.asSeenOnGroup(anyInt(), any(), anyInt(), anyBoolean())).thenAnswer(call -> call.getArgument(1));
         harness = RouteHarness.serving(new EventGroupRoutes(
-                eventGroups, signUps, guardians, identities, visibility, cancellation, partFactory, questions));
+                eventGroups, signUps, guardians, identities, visibility, cancellation, partFactory, questions, fields));
     }
 
     private Response call(String method, String path, String json, StationPermission... permissions) {
@@ -159,6 +165,53 @@ class EventGroupRoutesTest {
                         .size());
         assertEquals(
                 EventRefusal.EVENT_GROUP_NOT_HERE, refusalOf(call("GET", EVENT_GROUP, null, StationPermission.USER)));
+    }
+
+    @Test
+    void aMemberPutsThemselvesIntoAGroupMemberFieldOnlyOfAGroupMeantForThem() {
+        var field = new AppointmentField(
+                7, 0, "Betreuer", FieldType.MEMBER_LIST, EventQuestionSettings.empty(), "[1]", 0, false, null, false);
+        when(fields.toggleGroupSelfRegistration(EVENT_GROUP_ID, 7, TestSessions.MEMBER_ID, false))
+                .thenReturn(field);
+
+        assertEquals(
+                200,
+                call("POST", EVENT_GROUP + "/fields/7/self-register", "{}", StationPermission.USER)
+                        .code());
+        verify(fields).toggleGroupSelfRegistration(EVENT_GROUP_ID, 7, TestSessions.MEMBER_ID, false);
+
+        when(eventGroups.canSeeAny(eq(EVENT_GROUP_ID), anyList(), anySet())).thenReturn(false);
+        assertEquals(
+                EventRefusal.EVENT_GROUP_NOT_HERE,
+                refusalOf(call("POST", EVENT_GROUP + "/fields/7/self-register", "{}", StationPermission.USER)));
+    }
+
+    @Test
+    void deletingAnEventGroupGivesBackThePlacesItsFieldsHandedOutOnEveryFormerPart() {
+        when(eventGroups.findParts(EVENT_GROUP_ID))
+                .thenReturn(List.of(
+                        new EventGroupPart(101, 5, EVENT_GROUP_ID), new EventGroupPart(102, 5, EVENT_GROUP_ID)));
+
+        assertEquals(
+                204,
+                call("DELETE", EVENT_GROUP, null, StationPermission.USER, StationPermission.EVENT_EDIT)
+                        .code());
+
+        verify(eventGroups).delete(STATION_ID, EVENT_GROUP_ID);
+        verify(fields).reconcilePart(101);
+        verify(fields).reconcilePart(102);
+    }
+
+    @Test
+    void whoeverRunsEventsPutsThemselvesIntoAGroupMemberFieldPastItsClosingDate() {
+        call(
+                "POST",
+                EVENT_GROUP + "/fields/7/self-register",
+                "{}",
+                StationPermission.USER,
+                StationPermission.EVENT_MANAGER);
+
+        verify(fields).toggleGroupSelfRegistration(EVENT_GROUP_ID, 7, TestSessions.MEMBER_ID, true);
     }
 
     @Test

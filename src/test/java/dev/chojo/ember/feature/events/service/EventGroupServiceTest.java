@@ -935,9 +935,9 @@ class EventGroupServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void anEventGroupTakesOnlyPlainValueFields() {
+    void anEventGroupTakesNoFieldTiedToAnAttendanceSheet() {
         var member = new EventFieldDraft(
-                null, "Leitung", FieldType.MEMBER, EventQuestionSettings.empty(), "", false, null, false);
+                null, "Leitung", FieldType.MEMBER, EventQuestionSettings.empty(), "", false, 4, false);
 
         assertRefused(
                 EventRefusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED,

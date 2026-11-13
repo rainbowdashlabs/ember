@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:f689a47770b4f791d9a56e49f388d897329644857ee0d66ce87629e943792ff4",
-  "generatedAt": "2026-11-13T17:23:19Z",
+  "schemaHash": "sha256:a27af0a83c340aa6670aa4be83c43225c4bd9cf2b171fece8eb2c43135787211",
+  "generatedAt": "2026-11-13T21:45:24Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -11155,7 +11155,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "The kind of value, one of the plain value kinds an appointment field takes (no member kinds)."
+          "description": "The kind of value, one an appointment field takes; member kinds included, but never answered per date or tied to an attendance sheet."
         },
         {
           "name": "config",
@@ -11169,7 +11169,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "The value every appointment of the group shows unless it replaces the field."
+          "description": "The value every appointment of the group shows unless it replaces the field. For a member field: the members entered for the whole group, which each appointment adjusts by its entries in event_group_field_entry."
         },
         {
           "name": "position",
@@ -11213,6 +11213,84 @@
         "reason": "Event group structure data, not per-member"
       },
       "description": "Fields of an event group, such as its place or meeting point. Every appointment of the group shows them; an appointment field of the same name replaces one."
+    },
+    "event_group_field_entry": {
+      "tableHash": "sha256:934a38e577d8e52a3cd9eb970f2e3986478445569fb518376205607ea6d3535f",
+      "columns": [
+        {
+          "name": "group_field_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The member field of the event group."
+        },
+        {
+          "name": "event_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The appointment of the group the entry is about."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The member entered or skipping."
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "ENTERED: in the field on this appointment only. SKIPPED: entered for the whole group but not on this appointment."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "event_id",
+          "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "group_field_id",
+          "refTable": "event_group_field",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on member delete"
+          }
+        ]
+      },
+      "feature": "events",
+      "scope": "STATION",
+      "description": "How one appointment of an event group differs from a member field of the group: a member entered for this appointment only, or a member entered for the whole group who skips this appointment."
     },
     "event_group_partner_registration": {
       "feature": "events",

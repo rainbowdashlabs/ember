@@ -29,6 +29,9 @@ import java.util.stream.Collectors;
  * @param selfRegistrationState whether the reader asking may put themselves into this member
  *                              question, or null where the question takes no self-registration or
  *                              nobody asked on a reader's behalf
+ * @param readerInWholeGroup    whether the reader asking stands in this member field of an event
+ *                              group for the whole group, on an appointment of it: stepping out there
+ *                              then means missing this appointment only
  */
 public record AppointmentField(
         int id,
@@ -41,7 +44,8 @@ public record AppointmentField(
         boolean overview,
         @Nullable Integer attendanceFieldId,
         boolean isPublic,
-        @Nullable SelfRegistration selfRegistrationState) {
+        @Nullable SelfRegistration selfRegistrationState,
+        boolean readerInWholeGroup) {
 
     /**
      * A question as stored, not yet measured against any reader.
@@ -57,7 +61,7 @@ public record AppointmentField(
             boolean overview,
             @Nullable Integer attendanceFieldId,
             boolean isPublic) {
-        this(id, eventId, name, fieldType, config, value, position, overview, attendanceFieldId, isPublic, null);
+        this(id, eventId, name, fieldType, config, value, position, overview, attendanceFieldId, isPublic, null, false);
     }
 
     /**
@@ -68,7 +72,64 @@ public record AppointmentField(
      */
     public AppointmentField withSelfRegistration(@Nullable SelfRegistration state) {
         return new AppointmentField(
-                id, eventId, name, fieldType, config, value, position, overview, attendanceFieldId, isPublic, state);
+                id,
+                eventId,
+                name,
+                fieldType,
+                config,
+                value,
+                position,
+                overview,
+                attendanceFieldId,
+                isPublic,
+                state,
+                readerInWholeGroup);
+    }
+
+    /**
+     * The same member field of an event group on one of its appointments, telling the reader asking
+     * whether they stand in it for the whole group.
+     *
+     * @param inWholeGroup whether they do
+     * @return the field with that said
+     */
+    public AppointmentField withReaderInWholeGroup(boolean inWholeGroup) {
+        return new AppointmentField(
+                id,
+                eventId,
+                name,
+                fieldType,
+                config,
+                value,
+                position,
+                overview,
+                attendanceFieldId,
+                isPublic,
+                selfRegistrationState,
+                inWholeGroup);
+    }
+
+    /**
+     * The same question with another answer, such as the one an appointment of an event group shows
+     * once its own entries are taken into account.
+     *
+     * @param shownValue the answer
+     * @return the question with that answer
+     */
+    public AppointmentField withValue(String shownValue) {
+        return new AppointmentField(
+                id,
+                eventId,
+                name,
+                fieldType,
+                config,
+                shownValue,
+                position,
+                overview,
+                attendanceFieldId,
+                isPublic,
+                selfRegistrationState,
+                readerInWholeGroup);
     }
 
     /**

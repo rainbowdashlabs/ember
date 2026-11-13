@@ -10,13 +10,22 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import EventFieldList from '../eventshared/EventFieldList.vue'
 import {OfferedFieldTypes} from '@/api/fieldTypes'
-import type {EventFieldEntry} from '@/api/generated/schema'
+import type {EventFieldEntry, MemberGroup, UserTag} from '@/api/generated/schema'
+import type {MemberLike} from '@/components/input/select/memberOption'
 
 /**
- * The fields an event group hands down to every appointment of it, such as its place. Only plain
- * values: what names members or is answered per date stays on the appointment.
+ * The fields an event group hands down to every appointment of it, such as its place or the team
+ * looking after it. A member field can let members put themselves in, for the whole group or for one
+ * of its appointments; nothing is answered per date, since every appointment of a group is one date.
  */
 const fields = defineModel<EventFieldEntry[]>({required: true})
+
+defineProps<{
+  allMembers?: MemberLike[]
+  groups?: MemberGroup[]
+  groupMembers?: Map<number, MemberLike[]>
+  tags?: UserTag[]
+}>()
 
 const {t} = useI18n()
 </script>
@@ -25,6 +34,14 @@ const {t} = useI18n()
   <NeutralContainer class="space-y-3" data-testid="event-group-fields">
     <SectionHeader>{{ t('eventGroups.fields') }}</SectionHeader>
     <MutedText tag="p" size="sm">{{ t('eventGroups.fieldsHint') }}</MutedText>
-    <EventFieldList v-model:fields="fields" show-value :offered-types="OfferedFieldTypes.EVENT_GROUP"/>
+    <EventFieldList
+        v-model:fields="fields"
+        show-value
+        :offered-types="OfferedFieldTypes.EVENT_GROUP"
+        :all-members="allMembers"
+        :groups="groups"
+        :group-members="groupMembers"
+        :tags="tags"
+    />
   </NeutralContainer>
 </template>

@@ -19,7 +19,8 @@ const api = vi.hoisted(() => ({
     getFederationShare: vi.fn(async () => null),
   },
   events: {getEvent: vi.fn(), getRestrictions: vi.fn()},
-  memberGroups: {listGroups: vi.fn(async () => [])},
+  memberGroups: {listGroups: vi.fn(async () => []), getGroupMembers: vi.fn(async () => [])},
+  stationMembers: {listMembers: vi.fn(async () => [])},
   userTags: {listChoosableTags: vi.fn(async () => [])},
   federation: {listPartners: vi.fn(async () => [])},
 }))

@@ -7,6 +7,7 @@ import client from './client'
 import {documentFrom, type DocumentFile} from '@/util/documentFile'
 import type {ExportSeparator} from '@/util/exportFormat'
 import type {
+    AppointmentField,
     EventGroupAttendance,
     EventGroupAwaiting,
     EventGroupCreateRequest,
@@ -38,6 +39,14 @@ export async function listEventGroups(): Promise<EventGroupSummary[]> {
 /** An event group with its sets, parts and the sign-ups of the reader's household. */
 export async function getEventGroup(eventGroupId: number): Promise<EventGroupDetail> {
     return (await client.get<EventGroupDetail>(`${EVENT_GROUPS}/${eventGroupId}`)).data
+}
+
+/**
+ * Puts the reader into a member field of an event group for the whole group, or takes them out of it
+ * on every appointment of it.
+ */
+export async function toggleFieldSelfRegistration(eventGroupId: number, fieldId: number): Promise<AppointmentField> {
+    return (await client.post<AppointmentField>(`${EVENT_GROUPS}/${eventGroupId}/fields/${fieldId}/self-register`)).data
 }
 
 /** Creates an event group with its sets and audiences. */

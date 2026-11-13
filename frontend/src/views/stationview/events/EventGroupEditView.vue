@@ -30,10 +30,10 @@ import {eventGroupFederationPort} from './eventeditview/eventOwnerPorts'
 import EventGroupQuestionsCard from './eventgroupeditview/EventGroupQuestionsCard.vue'
 import EventGroupFieldsCard from './eventgroupeditview/EventGroupFieldsCard.vue'
 import {entryOf, namedEntries} from './eventshared/eventQuestions'
-import type {EventGroupDetail, MemberGroup, EventFieldEntry, RegistrationFieldDefinition, RestrictionAudience, StationEvent, UserTag} from '@/api/generated/schema'
+import type {EventGroupDetail, MemberGroup, MemberWithName, EventFieldEntry, RegistrationFieldDefinition, RestrictionAudience, StationEvent, UserTag} from '@/api/generated/schema'
 import {EventType, StationPermission} from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/api/types'
-import {eventGroups, events, memberGroups as memberGroupsApi, userTags as userTagsApi} from '@/api'
+import {eventGroups, events, memberGroups as memberGroupsApi, stationMembers, userTags as userTagsApi} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -58,6 +58,8 @@ const eventGroupId = computed(() => (route.params.eventGroupId ? Number(route.pa
 const detail = ref<EventGroupDetail | null>(null)
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
+const members = ref<MemberWithName[]>([])
+const groupMembers = ref(new Map<number, MemberWithName[]>())
 
 const name = ref('')
 const description = ref('')
@@ -101,7 +103,7 @@ function fill(loadedDetail: EventGroupDetail) {
   registration.value = selectionOf(loadedDetail.registration)
   view.value = selectionOf(loadedDetail.view)
   questions.value = loadedDetail.questions.map(({name, fieldType, config, overview}) => ({name, fieldType, config, overview}))
-  fields.value = loadedDetail.fields.map(entryOf)
+  fields.value = loadedDetail.fields.map(field => ({...entryOf(field), id: field.id}))
 }
 
 function savedQuestions(): RegistrationFieldDefinition[] {
@@ -110,12 +112,16 @@ function savedQuestions(): RegistrationFieldDefinition[] {
 
 const {loading, failure} = useAsyncLoader(async () => {
   await until(loaded).toBe(true)
-  const [memberGroups, userTags] = await Promise.all([
+  const [memberGroups, userTags, stationMemberList] = await Promise.all([
     memberGroupsApi.listGroups(),
     userTagsApi.listChoosableTags(),
+    stationMembers.listMembers(),
   ])
   groups.value = memberGroups
   tags.value = userTags
+  members.value = stationMemberList
+  const ofGroups = await Promise.all(memberGroups.map(async group => [group.id, await memberGroupsApi.getGroupMembers(group.id)] as const))
+  groupMembers.value = new Map(ofGroups)
   if (eventGroupId.value != null) {
     fill(await eventGroups.getEventGroup(eventGroupId.value))
     await federationShare.load(eventGroupFederationPort(eventGroupId.value))
@@ -258,7 +264,7 @@ async function save() {
           <RestrictionsField v-model="view" :groups="groups" :tags="tags"/>
         </NeutralContainer>
 
-        <EventGroupFieldsCard v-model="fields"/>
+        <EventGroupFieldsCard v-model="fields" :all-members="members" :groups="groups" :group-members="groupMembers" :tags="tags"/>
         <EventGroupQuestionsCard v-model="questions"/>
 
         <EventGroupShareCard v-if="detail" :federation-share="federationShare" :can-federate="canFederate"/>
