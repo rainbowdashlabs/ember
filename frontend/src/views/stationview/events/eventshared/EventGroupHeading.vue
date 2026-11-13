@@ -32,6 +32,17 @@ const {stationTimezone} = useSession()
 
 const color = computed(() => eventGroupColor(props.eventGroup.eventGroupId, props.eventGroup.color))
 const textColor = computed(() => contrastTextColor(color.value))
+
+/**
+ * Rounds the inner corner where the bar meets the band, the way the tile's outer corner is rounded:
+ * the group's colour fills the corner outside a quarter circle of the theme's radius, and the tile shows
+ * through inside it, whatever its own background.
+ */
+const innerCorner = computed(() => ({
+  width: 'var(--radius-theme)',
+  height: 'var(--radius-theme)',
+  background: `radial-gradient(circle at 100% 100%, transparent calc(var(--radius-theme) - 0.5px), ${color.value} var(--radius-theme))`,
+}))
 const span = computed(() => {
   if (!props.eventGroup.firstStart || !props.eventGroup.lastEnd) return ''
   const first = formatDate(props.eventGroup.firstStart, stationTimezone.value)
@@ -43,9 +54,10 @@ const span = computed(() => {
 
 <template>
   <p
-      class="absolute -inset-x-px -top-px flex h-6 items-center gap-2 rounded-t-theme pl-5 pr-3 text-xs whitespace-nowrap"
+      class="absolute -inset-x-px -top-px m-0 flex h-6 items-center gap-2 rounded-t-theme pl-5 pr-3 text-xs whitespace-nowrap"
       :style="{backgroundColor: color, color: textColor}"
       data-testid="event-group-heading">
+    <span aria-hidden="true" class="pointer-events-none absolute top-full left-1.5" :style="innerCorner" data-testid="event-group-inner-corner"/>
     <AppIcon :icon="['fas', 'graduation-cap']" class="shrink-0"/>
     <span class="min-w-0 truncate font-semibold">{{ eventGroup.eventGroupName }}</span>
     <span v-if="eventGroup.number != null" class="shrink-0">{{ t('eventGroups.partNumber', {number: eventGroup.number, count: eventGroup.count}) }}</span>

@@ -37,7 +37,7 @@ const color = computed(() => eventGroupColor(props.eventGroup.eventGroupId, prop
 
 <template>
   <template v-if="variant === 'edge'">
-    <span aria-hidden="true" class="pointer-events-none absolute -inset-px overflow-hidden rounded-theme" data-testid="event-group-band">
+    <span aria-hidden="true" class="pointer-events-none absolute -inset-px m-0 overflow-hidden rounded-theme" data-testid="event-group-band">
       <span class="absolute inset-y-0 left-0 w-1.5" :style="{backgroundColor: color}"/>
     </span>
   </template>
