@@ -18,6 +18,7 @@ import CourseOverview from './coursedetailview/CourseOverview.vue'
 import CourseHouseholdPanel from './coursedetailview/CourseHouseholdPanel.vue'
 import CourseSignUpsPanel from './coursedetailview/CourseSignUpsPanel.vue'
 import CoursePartnerSignUpsPanel from './coursedetailview/CoursePartnerSignUpsPanel.vue'
+import CourseAttendancePanel from './coursedetailview/CourseAttendancePanel.vue'
 import CourseCancelDialog from './coursedetailview/CourseCancelDialog.vue'
 import type {CourseDetail} from '@/api/generated/schema'
 import {StationPermission} from '@/api/generated/schema'
@@ -43,6 +44,7 @@ const cancelOpen = ref(false)
 const deleteOpen = ref(false)
 const busy = ref(false)
 const signUpsPanel = ref<InstanceType<typeof CourseSignUpsPanel> | null>(null)
+const attendancePanel = ref<InstanceType<typeof CourseAttendancePanel> | null>(null)
 
 const canEdit = computed(() => hasPermission(StationPermission.EVENT_EDIT))
 const canDecide = computed(() => hasPermission(StationPermission.EVENT_REGISTRATION))
@@ -57,6 +59,7 @@ watch(loaded, ready => { if (ready) reload() })
 async function refresh() {
   await reload()
   await signUpsPanel.value?.reload()
+  await attendancePanel.value?.reload()
 }
 
 async function cancelCourse(reason: string | null) {
@@ -105,7 +108,8 @@ async function deleteCourse() {
         <CourseOverview :detail="detail"/>
         <CourseHouseholdPanel :detail="detail" :on-changed="refresh"/>
         <CourseSignUpsPanel v-if="canDecide" ref="signUpsPanel" :detail="detail" :on-changed="refresh"/>
-        <CoursePartnerSignUpsPanel v-if="canDecide" :detail="detail" :on-changed="reload"/>
+        <CoursePartnerSignUpsPanel v-if="canDecide" :detail="detail" :on-changed="refresh"/>
+        <CourseAttendancePanel v-if="canDecide" ref="attendancePanel" :detail="detail"/>
       </div>
     </AsyncSection>
     <CourseCancelDialog v-model="cancelOpen" :busy="busy" @confirm="cancelCourse"/>

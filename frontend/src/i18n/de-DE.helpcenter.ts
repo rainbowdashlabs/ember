@@ -3410,6 +3410,8 @@ volumes:
             changeText: 'Mit „Termine ändern“ wählst du andere Termine, solange die Vorgaben erfüllt bleiben. Mit „Antworten ändern“ korrigierst du deine Antworten bis zum Anmeldeschluss. Mit „Abmelden“ meldest du dich vom ganzen Lehrgang ab, Termine, die schon vorbei sind, bleiben dabei, wie sie waren.',
             manageTitle: 'Für die Leitung',
             manageText: 'Wer Anmeldungen verwaltet, sieht unten alle Anmeldungen. Annehmen und Ablehnen gilt für alle gewählten Termine auf einmal. Wer Termine leitet, kann dort auch jemanden anmelden, selbst wenn die Vorgaben nicht erfüllt sind. „Vorgaben nicht erfüllt“ zeigt das dann an.',
+            partnerText: 'Ist der Lehrgang mit Partnerwachen geteilt, stehen deren Anmeldungen in einer eigenen Liste darunter und werden genauso angenommen oder abgelehnt.',
+            attendanceText: 'Unter „Teilnahme“ steht für jede angenommene Person, wie viele Termine je Block sie laut den Anwesenheitslisten besucht hat und ob alle Blöcke erfüllt sind. Die Übersicht lässt sich als Tabelle exportieren.',
             editText: 'Wer Termine bearbeiten darf, kann den Lehrgang bearbeiten, absagen oder löschen. Eine Absage sagt alle kommenden Termine ab und lässt sich nicht zurücknehmen. Beim Löschen bleiben die Termine als einzelne Termine bestehen.',
             tip: 'Du bekommst eine Nachricht, wenn deine Anmeldung angenommen oder abgelehnt wird. Hast du noch nicht geantwortet, erinnert dich Ember kurz vor dem Anmeldeschluss.',
         },

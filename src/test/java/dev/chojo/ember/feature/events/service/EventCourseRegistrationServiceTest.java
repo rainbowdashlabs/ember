@@ -11,6 +11,8 @@ import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CourseRegistrationStatusChanged;
+import dev.chojo.ember.feature.attendance.entity.AttendanceEntry.AttendanceStatus;
+import dev.chojo.ember.feature.attendance.entity.AttendanceEntry.EntrySource;
 import dev.chojo.ember.feature.events.entity.EventCourse;
 import dev.chojo.ember.feature.events.entity.EventCourseDetails;
 import dev.chojo.ember.feature.events.entity.EventCourseSet;
@@ -369,6 +371,66 @@ class EventCourseRegistrationServiceTest extends RepositoryTestBase {
         courses.addPart(station.id(), course.id(), appointment.id(), set.id());
 
         assertEquals(List.of(), eventRegistrationFieldRepo().findByEvent(appointment.id()));
+    }
+
+    private void markPresent(int templateId, int partId, StationMember member) {
+        var part = eventRepo.findById(partId).orElseThrow();
+        var sheet = attendanceRepo.createSession(templateId, part.startTime(), part.endTime(), partId, null, null);
+        attendanceRepo.createEntry(sheet.id(), member.id(), AttendanceStatus.PRESENT, EntrySource.EXPECTED);
+    }
+
+    @Test
+    void attendanceCountsThePartsEachParticipantWasPresentAt() {
+        signUp(anna, sat1, sun1, test);
+        signUp(ben, sat1, sun1, test);
+        var sheet = attendanceRepo.createTemplate(station.id(), "Lehrgang " + course.id());
+        markPresent(sheet.id(), sat1, anna);
+        markPresent(sheet.id(), sun1, anna);
+        markPresent(sheet.id(), test, anna);
+        markPresent(sheet.id(), sat1, ben);
+        markPresent(sheet.id(), test, ben);
+
+        var rows = new CourseAttendanceService(courses, service, courseRepo)
+                .summary(station.id(), course.id()).stream()
+                        .collect(Collectors.toMap(CourseAttendanceService.AttendanceRow::memberId, row -> row));
+
+        assertTrue(rows.get(anna.id()).complete());
+        assertEquals(List.of(sat1, test), rows.get(ben.id()).attended());
+        assertEquals(false, rows.get(ben.id()).complete());
+        var practice = rows.get(ben.id()).sets().getFirst();
+        assertEquals(1, practice.chosen());
+        assertEquals(2, practice.required());
+    }
+
+    @Test
+    void attendanceCountsEachPresentPartOnceAndOnlyForAcceptedParticipants() {
+        signUp(anna, sat1, sun1, test);
+        signUp(ben, sat1, sun1, test);
+        service.withdraw(station.id(), course.id(), ben.id());
+        var sheet = attendanceRepo.createTemplate(station.id(), "Lehrgang " + course.id());
+        markPresent(sheet.id(), sat1, anna);
+        markPresent(sheet.id(), sat1, anna);
+        markPresent(sheet.id(), sat1, ben);
+        markPresent(sheet.id(), sat1, carla);
+        var part = eventRepo.findById(test).orElseThrow();
+        var absentSheet = attendanceRepo.createSession(sheet.id(), part.startTime(), part.endTime(), test, null, null);
+        attendanceRepo.createEntry(absentSheet.id(), anna.id(), AttendanceStatus.ABSENT, EntrySource.EXPECTED);
+        callOff(sun1);
+        callOff(sat2);
+
+        var rows = new CourseAttendanceService(courses, service, courseRepo).summary(station.id(), course.id());
+
+        assertEquals(
+                List.of(anna.id()),
+                rows.stream()
+                        .map(CourseAttendanceService.AttendanceRow::memberId)
+                        .toList());
+        var row = rows.getFirst();
+        assertEquals(List.of(sat1), row.attended());
+        var practice = row.sets().getFirst();
+        assertEquals(1, practice.chosen());
+        assertEquals(1, practice.required());
+        assertEquals(false, row.complete());
     }
 
     private List<Integer> registrationIdsOf(StationMember member) {

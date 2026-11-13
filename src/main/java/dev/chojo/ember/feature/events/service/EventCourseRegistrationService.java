@@ -445,13 +445,24 @@ public class EventCourseRegistrationService {
      * @return one result per set
      */
     public List<SetResult> evaluate(int courseId, Set<Integer> chosen) {
+        return evaluator(courseId).apply(chosen);
+    }
+
+    /**
+     * Measures many choices against one course, reading its rules and cancellations once.
+     *
+     * @param courseId the course
+     * @return what gives every set's result for a choice
+     */
+    public Function<Set<Integer>, List<SetResult>> evaluator(int courseId) {
         var course = courses.findById(courseId).orElseThrow(EventRefusal.COURSE_NOT_HERE::raise);
         var parts = courses.findParts(courseId).stream()
                 .map(part -> events.findById(part.eventId()))
                 .flatMap(Optional::stream)
                 .collect(Collectors.toMap(StationEvent::id, Function.identity()));
-        var standing = Standing.of(course.stationId(), parts, calendar);
-        return CourseRules.evaluate(rulesOf(courseId), chosen, standing.calledOff());
+        var calledOff = Standing.of(course.stationId(), parts, calendar).calledOff();
+        var rules = rulesOf(courseId);
+        return chosen -> CourseRules.evaluate(rules, chosen, calledOff);
     }
 
     EventCourse lockCourse(int stationId, int courseId) {

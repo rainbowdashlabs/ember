@@ -87,6 +87,8 @@ const {t} = useI18n()
             <ErrorButton compact>{{ t('courses.deny') }}</ErrorButton>
           </ButtonRow>
         </NeutralContainer>
+        <p>{{ t('helpCenter.courseDetail.partnerText') }}</p>
+        <p>{{ t('helpCenter.courseDetail.attendanceText') }}</p>
       </HelpPermissionGuard>
       <HelpPermissionGuard :permissions="[StationPermission.EVENT_EDIT]" :label="t('helpCenter.permissionLabel.eventEdit')">
         <p>{{ t('helpCenter.courseDetail.editText') }}</p>

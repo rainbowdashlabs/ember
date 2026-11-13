@@ -19145,6 +19145,72 @@
         } ]
       }
     },
+    "/api/v1/events/courses/{courseId}/attendance" : {
+      "get" : {
+        "summary" : "How the accepted participants of a course attended its parts",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CourseAttendance"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/events/courses/{courseId}/attendance/export.csv" : {
+      "get" : {
+        "summary" : "The attendance of a course's participants as a spreadsheet",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "separator",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
     "/api/v1/events/courses/{courseId}/audiences" : {
       "put" : {
         "summary" : "Set who may see and who may sign up for a course and every part",
@@ -58261,6 +58327,28 @@
             }
           }
         }
+      },
+      "CourseAttendance" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "member" : {
+            "$ref" : "#/components/schemas/MemberIdentity"
+          },
+          "sets" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SetResult"
+            }
+          },
+          "complete" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "memberId", "member", "sets", "complete" ]
       },
       "CourseAudiences" : {
         "type" : "object",

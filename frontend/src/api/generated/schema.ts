@@ -27322,6 +27322,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/courses/{courseId}/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How the accepted participants of a course attended its parts */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    courseId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CourseAttendance"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/courses/{courseId}/attendance/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The attendance of a course's participants as a spreadsheet */
+        get: {
+            parameters: {
+                query?: {
+                    separator?: string;
+                };
+                header?: never;
+                path: {
+                    courseId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/courses/{courseId}/audiences": {
         parameters: {
             query?: never;
@@ -69156,6 +69241,13 @@ export interface components {
             /** Format: int32 */
             memberId?: number | null;
         };
+        CourseAttendance: {
+            complete: boolean;
+            member: components["schemas"]["MemberIdentity"];
+            /** Format: int32 */
+            memberId: number;
+            sets: components["schemas"]["SetResult"][];
+        };
         CourseAudiences: {
             registration?: components["schemas"]["RestrictionAudience"] | null;
             view?: components["schemas"]["RestrictionAudience"] | null;
@@ -80089,6 +80181,7 @@ export type CountdownConfig = components['schemas']['CountdownConfig'];
 export type CountResponse = components['schemas']['CountResponse'];
 export type CountUnit = components['schemas']['CountUnit'];
 export type CourseAnswersRequest = components['schemas']['CourseAnswersRequest'];
+export type CourseAttendance = components['schemas']['CourseAttendance'];
 export type CourseAudiences = components['schemas']['CourseAudiences'];
 export type CourseAwaiting = components['schemas']['CourseAwaiting'];
 export type CourseCancelRequest = components['schemas']['CourseCancelRequest'];

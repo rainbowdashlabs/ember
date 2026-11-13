@@ -15,9 +15,12 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -336,6 +339,30 @@ public class EventCourseRepository {
                 UPDATE event_federation_registration
                 SET course_partner_registration_id = NULL
                 WHERE event_id = :event_id;""").single(call().bind("event_id", eventId)).update();
+    }
+
+    /**
+     * Who was marked present on the attendance sheets of a course's parts, by member.
+     *
+     * @param courseId the course
+     * @return the parts each member was present at
+     */
+    public Map<Integer, Set<Integer>> findPresent(int courseId) {
+        var present = new HashMap<Integer, Set<Integer>>();
+        query("""
+                SELECT DISTINCT s.event_id, e.member_id
+                FROM attendance_session s
+                    JOIN attendance_entry e ON e.session_id = s.id
+                    JOIN station_event se ON se.id = s.event_id
+                    JOIN event_course_set cs ON cs.id = se.course_set_id
+                WHERE cs.course_id = :course_id
+                  AND e.status = 'PRESENT';""")
+                .single(call().bind("course_id", courseId))
+                .map(row -> new int[] {row.getInt("member_id"), row.getInt("event_id")})
+                .all()
+                .forEach(pair -> present.computeIfAbsent(pair[0], member -> new HashSet<>())
+                        .add(pair[1]));
+        return present;
     }
 
     /**

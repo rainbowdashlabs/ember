@@ -4,7 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {documentFrom, type DocumentFile} from '@/util/documentFile'
+import type {ExportSeparator} from '@/util/exportFormat'
 import type {
+    CourseAttendance,
     CourseAwaiting,
     CourseCreateRequest,
     CourseDetail,
@@ -172,4 +175,15 @@ export async function listPartnerSignUps(courseId: number): Promise<CoursePartne
 /** Accepts or turns down a partner member's sign-up and every part chosen with it. */
 export async function decidePartner(courseId: number, signUpId: number, status: RegistrationStatus): Promise<void> {
     await client.put(`${COURSES}/${courseId}/partner-sign-ups/${signUpId}/status`, {status})
+}
+
+/** How the accepted participants of a course attended its parts. */
+export async function listAttendance(courseId: number): Promise<CourseAttendance[]> {
+    return (await client.get<CourseAttendance[]>(`${COURSES}/${courseId}/attendance`)).data
+}
+
+/** The attendance of a course's participants as a spreadsheet. */
+export async function exportAttendance(courseId: number, separator: ExportSeparator = 'semicolon'): Promise<DocumentFile> {
+    const res = await client.get(`${COURSES}/${courseId}/attendance/export.csv`, {responseType: 'blob', params: {separator}})
+    return documentFrom(res, 'Lehrgang.csv')
 }
