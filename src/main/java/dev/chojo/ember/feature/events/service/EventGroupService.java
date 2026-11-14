@@ -65,6 +65,7 @@ public class EventGroupService {
 
     private final EventGroupQuestionService questions;
     private final EventFieldRepository fields;
+    private EventGroupPartDeparture departure = EventGroupPartDeparture.NONE;
 
     @Inject
     public EventGroupService(
@@ -361,14 +362,28 @@ public class EventGroupService {
      * @param eventId   the part
      */
     public void removePart(int stationId, int eventGroupId, int eventId) {
-        Transactions.run(() -> {
+        var afterLeaving = Transactions.call(() -> {
             lockEventGroup(stationId, eventGroupId);
             requirePartOf(eventGroupId, eventId);
+            var leaving = departure.leaving(eventGroupId, eventId);
             int left = eventGroups.findPart(eventId).orElseThrow().setId();
             eventGroups.setPartSet(eventId, null);
             eventGroups.untieRegistrations(eventId);
             eventGroups.capMinimum(left);
+            return leaving;
         });
+        afterLeaving.run();
+    }
+
+    /**
+     * Who is told when a part leaves its event group, for the documents the event group asks for.
+     * Without it, nothing else happens.
+     *
+     * @param departure what runs as a part leaves
+     */
+    @Inject
+    public void tellOnDeparture(EventGroupPartDeparture departure) {
+        this.departure = departure;
     }
 
     /**

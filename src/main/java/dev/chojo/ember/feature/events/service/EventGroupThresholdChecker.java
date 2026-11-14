@@ -20,7 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.time.LocalDate;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -29,7 +29,8 @@ import java.util.Optional;
  * Calls off the event groups that too few sign-ups were accepted for in time.
  *
  * <p>An event group with a minimum says how many days before its first part the minimum must be
- * reached. The first part is the earliest one still taking place, read on the station's calendar.
+ * reached. The first part is the earliest one still taking place, and the days are counted back from its
+ * start on the station's calendar.
  * Every half hour each such event group inside that stretch is counted: the accepted sign-ups of this
  * station and of partner stations alike. One that falls short is called off as a whole, with every
  * part still to come and the notice a cancellation sends. Once its first part has begun the event
@@ -80,13 +81,16 @@ public class EventGroupThresholdChecker implements TaskSource {
         Integer minimum = eventGroup.minRegistrations();
         Integer days = eventGroup.thresholdDays();
         if (minimum == null || days == null) return;
-        var firstDay = firstDay(eventGroup);
-        if (firstDay.isEmpty()) return;
-        LocalDate today = calendar.forStation(eventGroup.stationId()).today();
-        if (today.isAfter(firstDay.get()) || today.isBefore(firstDay.get().minusDays(days))) return;
-        int accepted = signUps.countAccepted(eventGroup.id()) + partnerSignUps.countAccepted(eventGroup.id());
+        var firstStart = firstStart(eventGroup);
+        if (firstStart.isEmpty()) return;
+        var zone = calendar.zoneOf(eventGroup.stationId());
+        Instant now = Instant.now();
+        Instant from = firstStart.get().atZone(zone).minusDays(days).toInstant();
+        if (!now.isBefore(firstStart.get()) || now.isBefore(from)) return;
+        int accepted = accepted(eventGroup.id());
         if (accepted >= minimum) return;
-        if (cancellation.cancelForTooFewSignUps(eventGroup.stationId(), eventGroup.id())) {
+        if (cancellation.cancelForTooFewSignUps(
+                eventGroup.stationId(), eventGroup.id(), () -> stillShort(eventGroup.id()))) {
             log.info(
                     "Cancelled event group {} (id={}): {} of {} sign-ups accepted",
                     eventGroup.name(),
@@ -96,14 +100,27 @@ public class EventGroupThresholdChecker implements TaskSource {
         }
     }
 
-    /** The day of the earliest part still taking place, where the event group has one. */
-    private Optional<LocalDate> firstDay(EventGroup eventGroup) {
-        var zone = calendar.zoneOf(eventGroup.stationId());
+    /** The start of the earliest part still taking place, where the event group has one. */
+    private Optional<Instant> firstStart(EventGroup eventGroup) {
         return registrations.partStates(eventGroup.id()).stream()
                 .filter(part -> !part.calledOff())
                 .map(EventGroupPartState::startTime)
-                .min(Comparator.naturalOrder())
-                .map(start -> start.atZone(zone).toLocalDate());
+                .min(Comparator.naturalOrder());
+    }
+
+    private int accepted(int eventGroupId) {
+        return signUps.countAccepted(eventGroupId) + partnerSignUps.countAccepted(eventGroupId);
+    }
+
+    /**
+     * Whether the event group, read again under its lock, still carries a minimum, is not called off and
+     * falls short of it.
+     */
+    private boolean stillShort(int eventGroupId) {
+        var current = eventGroups.findById(eventGroupId).orElse(null);
+        if (current == null || current.cancelled()) return false;
+        Integer minimum = current.minRegistrations();
+        return minimum != null && current.thresholdDays() != null && accepted(eventGroupId) < minimum;
     }
 
     @Override

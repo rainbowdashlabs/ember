@@ -75,6 +75,7 @@ public class PartnerEventGroupSignatures {
         try {
             var detail = partnerEventGroups.eventGroup(
                     stationId, partnerStationUid, eventGroupId, Map.of(member.uid(), member.id()));
+            // TODO the partner sends no date for a part, so its day is read on this station's calendar
             var zone = calendar.zoneOf(stationId);
             var dates = detail.parts().stream()
                     .collect(Collectors.toMap(
@@ -88,6 +89,7 @@ public class PartnerEventGroupSignatures {
             return new Holding(held, dates);
         } catch (RuntimeException e) {
             log.warn("Could not read the parts member {} holds at partner {}", member.id(), partnerStationUid, e);
+            // TODO a failed read releases nothing on the parts given up meanwhile
             return Holding.unknown();
         }
     }

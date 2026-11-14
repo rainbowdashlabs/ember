@@ -55,6 +55,9 @@ public class EventCrudService {
     private final RestrictionService restrictionService;
     private final AttendanceTemplateGuards attendanceTemplateGuards;
     private final EventGroupRepository eventGroups;
+    private EventGroupPartDeparture departure = EventGroupPartDeparture.NONE;
+
+    private static final Runnable NOTHING_MORE = () -> {};
 
     @Inject
     public EventCrudService(
@@ -462,7 +465,9 @@ public class EventCrudService {
             return false;
         }
         equipmentRelease.release(id, event.stationId());
-        if (deleteKeepingSetMinimum(id)) {
+        var afterLeaving = deleteKeepingSetMinimum(id);
+        if (afterLeaving != null) {
+            afterLeaving.run();
             log.info("Deleted event {} for station {}", id, event.stationId());
             eventBus.publish(new EventDeleted(event.stationId(), id, event.name()));
             return true;
@@ -474,18 +479,34 @@ public class EventCrudService {
     /**
      * Deletes an appointment in one transaction with the minimum of the event group set it was a part
      * of, under the event group's lock (taken before the appointment's row, the order adding a part
-     * takes), so a minimum changed at the same moment cannot end up asking for a part that is gone.
+     * takes), so a minimum changed at the same moment cannot end up asking for a part that is gone. A part
+     * leaving its event group this way lets go of the event group's documents on it, as one taken out does.
+     *
+     * @return what to run once the appointment is gone, or null where it was not deleted
      */
-    private boolean deleteKeepingSetMinimum(int id) {
+    private @Nullable Runnable deleteKeepingSetMinimum(int id) {
         return Transactions.call(() -> {
             var part = eventGroups.findPart(id);
-            if (part.isEmpty()) return eventRepository.delete(id);
+            if (part.isEmpty()) return eventRepository.delete(id) ? NOTHING_MORE : null;
             eventGroups.lockEventGroup(part.get().eventGroupId());
             var locked = eventGroups.findPart(id);
-            boolean deleted = eventRepository.delete(id);
-            if (deleted) locked.ifPresent(left -> eventGroups.capMinimum(left.setId()));
-            return deleted;
+            Runnable leaving = locked.map(left -> departure.leaving(left.eventGroupId(), id))
+                    .orElse(NOTHING_MORE);
+            if (!eventRepository.delete(id)) return null;
+            locked.ifPresent(left -> eventGroups.capMinimum(left.setId()));
+            return leaving;
         });
+    }
+
+    /**
+     * Who is told when a part leaves its event group by being deleted, for the documents the event group
+     * asks for. Without it, nothing else happens.
+     *
+     * @param departure what runs as a part leaves
+     */
+    @Inject
+    public void tellOnDeparture(EventGroupPartDeparture departure) {
+        this.departure = departure;
     }
 
     /**

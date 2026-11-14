@@ -19,6 +19,8 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.function.BooleanSupplier;
+
 /**
  * Calls a whole event group off.
  *
@@ -64,7 +66,7 @@ public class EventGroupCancellationService {
      * @param cancelledBy the member calling it off, or null
      */
     public void cancel(int stationId, int eventGroupId, @Nullable String reason, @Nullable Integer cancelledBy) {
-        if (!callOff(stationId, eventGroupId, reason, cancelledBy, CancellationCause.MANUAL)) {
+        if (!callOff(stationId, eventGroupId, reason, cancelledBy, CancellationCause.MANUAL, () -> true)) {
             throw EventRefusal.EVENT_GROUP_CANCELLED.raise();
         }
     }
@@ -73,12 +75,16 @@ public class EventGroupCancellationService {
      * Calls an event group off because too few sign-ups were accepted in time. The people signed up
      * are told so, worded in their own language, and no reason is stored.
      *
+     * <p>Whether it is still short is asked again under the event group's lock, so a minimum taken off or a
+     * sign-up accepted since the check read it keeps the event group.
+     *
      * @param stationId    the station holding it
      * @param eventGroupId the event group
-     * @return true where it was called off now, false where it was off already
+     * @param stillShort   whether it still falls short, read under the lock
+     * @return true where it was called off now, false where it was off already or no longer short
      */
-    public boolean cancelForTooFewSignUps(int stationId, int eventGroupId) {
-        return callOff(stationId, eventGroupId, null, null, CancellationCause.THRESHOLD);
+    public boolean cancelForTooFewSignUps(int stationId, int eventGroupId, BooleanSupplier stillShort) {
+        return callOff(stationId, eventGroupId, null, null, CancellationCause.THRESHOLD, stillShort);
     }
 
     private boolean callOff(
@@ -86,13 +92,15 @@ public class EventGroupCancellationService {
             int eventGroupId,
             @Nullable String reason,
             @Nullable Integer cancelledBy,
-            CancellationCause cause) {
+            CancellationCause cause,
+            BooleanSupplier stillWanted) {
         var eventGroup = eventGroups
                 .findById(eventGroupId)
                 .filter(found -> found.stationId() == stationId)
                 .orElseThrow(EventRefusal.EVENT_GROUP_NOT_HERE::raise);
         boolean calledOff = Transactions.call(() -> {
             eventGroups.lockEventGroup(eventGroupId);
+            if (!stillWanted.getAsBoolean()) return false;
             return eventGroups.cancel(eventGroupId, reason);
         });
         if (!calledOff) return false;

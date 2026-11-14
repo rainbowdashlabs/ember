@@ -65,6 +65,7 @@ class EventGroupThresholdCheckerTest extends RepositoryTestBase {
     private DomainEventBus bus;
     private StationReadOnlyGuard readOnly;
     private EventGroupThresholdChecker checker;
+    private EventGroupCancellationService cancellation;
 
     @BeforeAll
     static void setup() {
@@ -99,7 +100,7 @@ class EventGroupThresholdCheckerTest extends RepositoryTestBase {
                 memberNameResolver,
                 questions,
                 partnerRepo);
-        var cancellation = new EventGroupCancellationService(
+        cancellation = new EventGroupCancellationService(
                 eventGroupRepo,
                 signUpRepo,
                 eventRepo,
@@ -276,5 +277,16 @@ class EventGroupThresholdCheckerTest extends RepositoryTestBase {
         assertEquals("event-group-threshold-check", task.name());
         assertEquals(Schedule.fixedDelay(Duration.ofMinutes(7), Duration.ofMinutes(30)), task.schedule());
         task.work().run();
+    }
+
+    /** What is read again under the lock decides: an event group no longer short stays. */
+    @Test
+    void anEventGroupNoLongerShortUnderTheLockStays() {
+        var eventGroup = withMinimum("Inzwischen genug", 2, 5, 3);
+
+        assertFalse(cancellation.cancelForTooFewSignUps(station.id(), eventGroup.id(), () -> false));
+        assertFalse(cancelled(eventGroup));
+        assertTrue(cancellation.cancelForTooFewSignUps(station.id(), eventGroup.id(), () -> true));
+        assertTrue(cancelled(eventGroup));
     }
 }

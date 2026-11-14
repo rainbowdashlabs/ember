@@ -158,6 +158,7 @@ import dev.chojo.ember.feature.events.service.EventFeedDetails;
 import dev.chojo.ember.feature.events.service.EventGroupCommentFederation;
 import dev.chojo.ember.feature.events.service.EventGroupCommentTarget;
 import dev.chojo.ember.feature.events.service.EventGroupDeadlineChecker;
+import dev.chojo.ember.feature.events.service.EventGroupPartDeparture;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerServer;
 import dev.chojo.ember.feature.events.service.EventGroupThresholdChecker;
 import dev.chojo.ember.feature.events.service.EventReminderChecker;
@@ -364,6 +365,7 @@ import dev.chojo.ember.feature.signing.service.AgreementAttendance;
 import dev.chojo.ember.feature.signing.service.AgreementOutcomes;
 import dev.chojo.ember.feature.signing.service.CredentialKeyStamps;
 import dev.chojo.ember.feature.signing.service.DocumentStatements;
+import dev.chojo.ember.feature.signing.service.EventGroupDocumentHandover;
 import dev.chojo.ember.feature.signing.service.InEmberSignatureProvider;
 import dev.chojo.ember.feature.signing.service.IssuedLetterSigner;
 import dev.chojo.ember.feature.signing.service.PartnerAgreements;
@@ -878,6 +880,7 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(StorageWarningHandler.class);
 
         bind(FederationTransport.class).to(RoutingFederationTransport.class);
+        bind(EventGroupPartDeparture.class).to(EventGroupDocumentHandover.class);
         Multibinder<FederationServer> federationServers = Multibinder.newSetBinder(binder(), FederationServer.class);
         federationServers.addBinding().to(FederatedItemTagService.class);
         federationServers.addBinding().to(FederatedEventChangeService.class);

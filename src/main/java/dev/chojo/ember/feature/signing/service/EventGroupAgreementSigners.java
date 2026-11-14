@@ -21,7 +21,8 @@ import java.util.List;
  *
  * <p>Such a document is signed once for the event group, on whichever part it was asked on, so the signers
  * are gathered from every part ({@link AgreementSigners}) and each participant is listed once per document:
- * with the copy of the earliest part that holds one. Members of partner stations sign at home per part and
+ * with the copy that got furthest (signed or confirmed on paper before still asked, before withdrawn or let
+ * go), the earliest part's where two got as far. Members of partner stations sign at home per part and
  * are listed the same way. A document a part asks for on its own is left to that part's page.
  */
 @Singleton
@@ -51,13 +52,22 @@ public class EventGroupAgreementSigners {
         for (var part : partDates.parts(eventGroupId)) {
             for (var signer : signers.of(part.eventId(), part.date())) {
                 if (!order.contains(signer.templateId())) continue;
-                once.putIfAbsent(keyOf(signer), signer);
+                once.merge(keyOf(signer), signer, (kept, found) -> rank(found) > rank(kept) ? found : kept);
             }
         }
         return once.values().stream()
                 .sorted(Comparator.comparing(AgreementSigner::name)
                         .thenComparing(signer -> order.indexOf(signer.templateId())))
                 .toList();
+    }
+
+    /** How far a copy got: signed or confirmed on paper, still asked, or withdrawn or let go. */
+    private static int rank(AgreementSigner signer) {
+        return switch (signer.state()) {
+            case SIGNED, PAPER_CONFIRMED -> 2;
+            case OPEN, BY_STATION -> 1;
+            case REVOKED, WAIVED -> 0;
+        };
     }
 
     private static String keyOf(AgreementSigner signer) {

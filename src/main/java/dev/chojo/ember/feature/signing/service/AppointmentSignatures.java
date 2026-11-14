@@ -234,6 +234,42 @@ public class AppointmentSignatures {
                         part.eventId(), part.date(), memberId, template -> groupDocuments.contains(template.id())));
     }
 
+    /**
+     * A part leaves its event group: lets go of what is still open there for the event group's documents,
+     * and answers the hand-over to run once it has left. Everybody who answered for the part is then asked
+     * for the event group's documents on the first other part they hold, where nothing there covers them;
+     * what was signed on the leaving part no longer counts for the event group.
+     *
+     * @param eventGroupId the event group
+     * @param eventId      the leaving part, still a part of the event group
+     * @return the hand-over
+     */
+    public Runnable partLeaving(int eventGroupId, int eventId) {
+        var groupDocuments = groupDocuments(eventGroupId);
+        if (groupDocuments.isEmpty()) return () -> {};
+        var leaving = partDates.parts(eventGroupId).stream()
+                .filter(part -> part.eventId() == eventId)
+                .findFirst()
+                .orElse(null);
+        if (leaving == null) return () -> {};
+        var others = partDates.siblings(eventId);
+        var members = registrations.findByEventAndDate(eventId, leaving.date()).stream()
+                .map(EventRegistration::memberId)
+                .distinct()
+                .toList();
+        for (int memberId : members) {
+            requests.openForAppointment(eventId, leaving.date(), memberId).stream()
+                    .filter(open -> groupDocuments.contains(open.templateId()))
+                    .forEach(open ->
+                            requestService.withdrawUnasked(open.request().id()));
+        }
+        return () -> members.forEach(memberId -> others.stream()
+                .filter(part -> placeOf(part.eventId(), part.date(), memberId) != null)
+                .findFirst()
+                .ifPresent(part -> askFor(
+                        part.eventId(), part.date(), memberId, template -> groupDocuments.contains(template.id()))));
+    }
+
     private Set<Integer> groupDocuments(int eventGroupId) {
         return copies.forEventGroup(eventGroupId).stream()
                 .map(RequiredTemplate::templateId)

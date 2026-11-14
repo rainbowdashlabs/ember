@@ -118,6 +118,7 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
     private static final SignatureRequestRepository requestRepo = new SignatureRequestRepository();
 
     private static Wiring wiring;
+    private static AppointmentSignatures signatures;
     private static EventRequirementService requirements;
     private static AppointmentDocumentService appointments;
     private static PaperSubmissionService scans;
@@ -221,7 +222,7 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 memberNameResolver,
                 newNotifier(),
                 new ScanSignatures(requestRepo, fields, notices));
-        var signatures = new AppointmentSignatures(
+        signatures = new AppointmentSignatures(
                 eventRepo,
                 eventRegistrationRepo,
                 appointments,
@@ -1224,5 +1225,62 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
 
     private static EventGroupPartDates partDates() {
         return new EventGroupPartDates(new EventGroupRepository(), eventRepo, occurrenceCalendar);
+    }
+
+    /** The part an event group's document was asked on, and the other one. */
+    private record AskedOn(StationEvent asked, int askedDays, StationEvent other, int otherDays) {}
+
+    private static AskedOn askedOn(GroupParts group) {
+        boolean onFirst = !liveOn(group.first(), 1, child).isEmpty();
+        return onFirst
+                ? new AskedOn(group.first(), 1, group.second(), 2)
+                : new AskedOn(group.second(), 2, group.first(), 1);
+    }
+
+    /**
+     * Taking the part the event group's document was asked on out of the event group lets the open request
+     * there go and asks for the document on the other part the member holds.
+     */
+    @Test
+    void takingThePartOutOfTheEventGroupHandsTheDocumentOver() {
+        var group = eventGroupAskingForConsent();
+        signUp(group, group.first(), group.second());
+        var on = askedOn(group);
+        var asked = liveOn(on.asked(), on.askedDays(), child).getFirst();
+        var eventGroups = newEventGroupService();
+        eventGroups.tellOnDeparture(new EventGroupDocumentHandover(() -> signatures));
+
+        eventGroups.removePart(
+                wiring.station().id(), group.eventGroupId(), on.asked().id());
+
+        assertNotEquals(
+                RequestState.OPEN,
+                requestRepo.findById(asked.id()).orElseThrow().state());
+        var handedOver = liveOn(on.other(), on.otherDays(), child);
+        assertEquals(1, handedOver.size());
+        assertEquals(RequestState.OPEN, handedOver.getFirst().state());
+    }
+
+    /**
+     * Deleting the part the event group's document was asked on lets the open request there go and asks for
+     * the document on the other part the member holds.
+     */
+    @Test
+    void deletingThePartHandsTheDocumentOver() {
+        var group = eventGroupAskingForConsent();
+        signUp(group, group.first(), group.second());
+        var on = askedOn(group);
+        var asked = liveOn(on.asked(), on.askedDays(), child).getFirst();
+        var crud = newEventServices(new DomainEventBus(Set.of())).crud();
+        crud.tellOnDeparture(new EventGroupDocumentHandover(() -> signatures));
+
+        assertTrue(crud.delete(on.asked().id()));
+
+        assertNotEquals(
+                RequestState.OPEN,
+                requestRepo.findById(asked.id()).orElseThrow().state());
+        var handedOver = liveOn(on.other(), on.otherDays(), child);
+        assertEquals(1, handedOver.size());
+        assertEquals(RequestState.OPEN, handedOver.getFirst().state());
     }
 }

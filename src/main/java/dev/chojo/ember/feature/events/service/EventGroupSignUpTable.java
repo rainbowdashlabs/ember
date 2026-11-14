@@ -111,7 +111,9 @@ public class EventGroupSignUpTable {
             rows.add(new MemberTable.MemberTableRow(
                     row.memberId(), marked(row.values(), parts, chosen.getOrDefault(row.memberId(), Set.of()))));
         }
-        for (var partner : partners.signUps(station.id(), eventGroupId)) {
+        for (var partner : partners.signUps(station.id(), eventGroupId).stream()
+                .filter(signUp -> standing(signUp.standing().status()))
+                .toList()) {
             rows.add(partnerRow(partner, local.columns(), parts));
         }
         return new MemberTable(headers, rows);
@@ -134,7 +136,7 @@ public class EventGroupSignUpTable {
         var statuses = new HashMap<Integer, String>();
         for (var signUp : signUps) {
             memberIds.add(signUp.memberId());
-            statuses.put(signUp.memberId(), signUp.status().name());
+            statuses.put(signUp.memberId(), statusCell(signUp.status()));
             given.put(
                     signUp.memberId(),
                     answers.getOrDefault(signUp.id(), List.of()).stream()
@@ -173,11 +175,23 @@ public class EventGroupSignUpTable {
         for (var column : localColumns) {
             String key = column.key();
             if ("name".equals(key)) values.add(nameOf(signUp.member()));
-            else if ("registrationStatus".equals(key)) values.add(status == null ? "" : status.name());
+            else if ("registrationStatus".equals(key)) values.add(status == null ? "" : statusCell(status));
             else values.add("");
         }
         return new MemberTable.MemberTableRow(
                 0, marked(values, parts, Set.copyOf(signUp.standing().parts())));
+    }
+
+    /** A sign-up the table lists: waiting, accepted or turned down; withdrawn and declined ones are left out. */
+    private static boolean standing(@Nullable RegistrationStatus status) {
+        return status == RegistrationStatus.PENDING
+                || status == RegistrationStatus.ACCEPTED
+                || status == RegistrationStatus.DENIED;
+    }
+
+    /** The status as the table's status column holds it, for the station's own sign-ups and partners' alike. */
+    private static String statusCell(RegistrationStatus status) {
+        return status.name();
     }
 
     private static String nameOf(@Nullable MemberIdentity member) {
