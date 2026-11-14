@@ -59,20 +59,19 @@ const canEdit = computed(() => hasPermission(StationPermission.EVENT_EDIT))
 const canDecide = computed(() => hasPermission(StationPermission.EVENT_REGISTRATION))
 
 /**
- * The page in three tabs, as an appointment's page is: what the event group is, signing up for it, and
- * how the participants attended. Attendance is for whoever handles registrations, and the others never
- * see the tab.
+ * The page in three tabs, as an appointment's page is: what the event group is together with the reader's
+ * own sign-up, everybody's sign-ups, and how the participants attended. The sign-ups are for whoever
+ * handles registrations or reads the waiting lists, attendance for whoever handles registrations, and the
+ * others never see those tabs.
  */
 const activeTab = ref<'info' | 'sign-up' | 'attendance'>('info')
+const readsWaitingLists = computed(() => hasPermission(StationPermission.WAITLIST_READ))
 const tabs = computed(() => {
-  const entries = [
-    {key: 'info', label: t('eventGroups.tabInfo')},
-    {key: 'sign-up', label: t('eventGroups.tabSignUp')},
-  ]
+  const entries = [{key: 'info', label: t('eventGroups.tabInfo')}]
+  if (canDecide.value || readsWaitingLists.value) entries.push({key: 'sign-up', label: t('eventGroups.tabSignUp')})
   if (canDecide.value) entries.push({key: 'attendance', label: t('eventGroups.tabAttendance')})
   return entries
 })
-const readsWaitingLists = computed(() => hasPermission(StationPermission.WAITLIST_READ))
 const commentSource = computed(() => eventGroupCommentSource(eventGroupId.value))
 
 const members = ref<MemberCompletion[]>([])
@@ -146,6 +145,7 @@ async function deleteEventGroup() {
         <TabBar v-model="activeTab" :tabs="tabs" linked/>
         <div v-show="activeTab === 'info'" class="space-y-6" data-testid="event-group-tab-info">
           <EventGroupOverview :detail="detail" :current-member-id="currentMemberId" :member-names="memberNames" :on-changed="refresh"/>
+          <EventGroupHouseholdPanel :detail="detail" :on-changed="refresh"/>
           <EventGroupMaterialsPanel :event-group-id="detail.eventGroup.id"/>
           <NeutralContainer v-if="canEdit">
             <NoteEditor entity-type="EVENT_GROUP" :entity-id="eventGroupId"/>
@@ -154,8 +154,7 @@ async function deleteEventGroup() {
             <CommentSection :source="commentSource"/>
           </NeutralContainer>
         </div>
-        <div v-show="activeTab === 'sign-up'" class="space-y-6" data-testid="event-group-tab-sign-up">
-          <EventGroupHouseholdPanel :detail="detail" :on-changed="refresh"/>
+        <div v-if="canDecide || readsWaitingLists" v-show="activeTab === 'sign-up'" class="space-y-6" data-testid="event-group-tab-sign-up">
           <EventGroupSignUpsPanel v-if="canDecide" ref="signUpsPanel" :detail="detail" :on-changed="refresh"/>
           <EventGroupPartnerSignUpsPanel v-if="canDecide" :detail="detail" :on-changed="refresh"/>
           <AgreementSignersPanel v-if="canDecide" :event-group-id="detail.eventGroup.id"/>

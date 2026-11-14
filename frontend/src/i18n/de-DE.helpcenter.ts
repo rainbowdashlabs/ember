@@ -3390,7 +3390,7 @@ volumes:
             title: 'Eine Terminreihe',
             subtitle: 'Termine, Vorgaben und deine Anmeldung.',
             whatIs: 'Was steht auf der Seite?',
-            whatIsText: 'Oben stehen die Beschreibung, die freien Plätze und der Anmeldeschluss. Darunter stehen die Termine, sortiert in Blöcke. Neben jedem Block steht, wie viele seiner Termine du mindestens wählen musst. Die Seite hat drei Reiter: „Informationen“ mit Beschreibung, Terminen, Dateien und Kommentaren, „Anmeldung“ mit deiner Anmeldung und für die Leitung allen Anmeldungen, „Teilnahme“ für die Leitung mit der Anwesenheit.',
+            whatIsText: 'Oben stehen die Beschreibung, die freien Plätze und der Anmeldeschluss. Darunter stehen die Termine, sortiert in Blöcke. Neben jedem Block steht, wie viele seiner Termine du mindestens wählen musst. Die Seite hat bis zu drei Reiter: „Informationen“ mit Beschreibung, Terminen, deiner Anmeldung, Dateien und Kommentaren, „Anmeldung“ für die Leitung mit allen Anmeldungen, „Teilnahme“ für die Leitung mit der Anwesenheit.',
             practice: 'Übung',
             test: 'Prüfung',
             day1: 'Samstag, Übung',
