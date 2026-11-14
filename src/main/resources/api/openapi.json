@@ -20337,6 +20337,60 @@
         } ]
       }
     },
+    "/api/v1/events/groups/{eventGroupId}/parts/{eventId}/required" : {
+      "put" : {
+        "summary" : "Mark a part as required by its set, or take the mark off",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventGroupPart"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "eventId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventGroupPartRequiredRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/groups/{eventGroupId}/sets" : {
       "put" : {
         "summary" : "Replace an event group's sets",
@@ -62958,9 +63012,12 @@
           "eventGroupId" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "required" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "eventId", "setId", "eventGroupId" ]
+        "required" : [ "eventId", "setId", "eventGroupId", "required" ]
       },
       "EventGroupPartCreateRequest" : {
         "type" : "object",
@@ -63013,6 +63070,14 @@
           }
         }
       },
+      "EventGroupPartRequiredRequest" : {
+        "type" : "object",
+        "properties" : {
+          "required" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "EventGroupPartSettings" : {
         "type" : "object",
         "properties" : {
@@ -63059,9 +63124,12 @@
           },
           "tookPlace" : {
             "type" : "boolean"
+          },
+          "required" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "eventId", "setId", "name", "startTime", "endTime", "calledOff", "tookPlace" ]
+        "required" : [ "eventId", "setId", "name", "startTime", "endTime", "calledOff", "tookPlace", "required" ]
       },
       "EventGroupPartSummary" : {
         "type" : "object",
@@ -83640,9 +83708,16 @@
           "chosen" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "missingRequired" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
           }
         },
-        "required" : [ "setId", "name", "required", "chosen" ]
+        "required" : [ "setId", "name", "required", "chosen", "missingRequired" ]
       },
       "SetSessionFieldsRequest" : {
         "type" : "object",

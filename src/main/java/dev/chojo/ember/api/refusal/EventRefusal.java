@@ -829,7 +829,11 @@ public enum EventRefusal implements Refusal {
                     + " nothing was saved"),
 
     /** An event group filed under a category of another station, or one that is gone. */
-    EVENT_GROUP_CATEGORY_NOT_HERE(221, HttpStatus.NOT_FOUND, Sentences.EVENT_CATEGORY_NOT_HERE);
+    EVENT_GROUP_CATEGORY_NOT_HERE(221, HttpStatus.NOT_FOUND, Sentences.EVENT_CATEGORY_NOT_HERE),
+
+    /** A set asking for fewer parts than it requires one by one. */
+    EVENT_GROUP_SET_MINIMUM_BELOW_REQUIRED(
+            222, HttpStatus.BAD_REQUEST, "A set cannot ask for fewer parts than it requires, nothing was saved");
 
     private final Definition definition;
 

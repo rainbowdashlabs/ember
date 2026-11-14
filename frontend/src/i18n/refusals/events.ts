@@ -249,4 +249,5 @@ export default {
     'E-219': 'Ein Block kann nicht mehr Termine verlangen, als er hat, nichts wurde gespeichert',
     'E-220': 'Eine Mindestzahl braucht mindestens eine Anmeldung und die Tage vor dem ersten Termin, bis zu denen sie erreicht sein muss, nichts wurde gespeichert',
     'E-221': 'Diese Kategorie gibt es hier nicht mehr',
+    'E-222': 'Ein Block kann nicht weniger Termine verlangen, als Pflicht sind, nichts wurde gespeichert',
 }

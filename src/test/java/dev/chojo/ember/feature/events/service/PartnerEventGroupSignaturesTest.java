@@ -59,7 +59,7 @@ class PartnerEventGroupSignaturesTest {
 
     private static EventGroupPartState part(int eventId, String start) {
         return new EventGroupPartState(
-                eventId, 1, "Tag " + eventId, Instant.parse(start), Instant.parse(start), false, false);
+                eventId, 1, "Tag " + eventId, Instant.parse(start), Instant.parse(start), false, false, false);
     }
 
     @Test

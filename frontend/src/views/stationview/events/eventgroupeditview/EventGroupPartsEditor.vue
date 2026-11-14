@@ -14,6 +14,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import type {EventGroupDetail, EventSummary} from '@/api/generated/schema'
@@ -25,8 +26,10 @@ import {formatDateTime, localInputToInstant} from '@/util/format'
 
 /**
  * The parts of an event group: each with the set it belongs to, which can be changed, and a way to take it
- * out of the event group. New parts are an existing one-time appointment, or a new appointment created
- * straight into the event group, which announces nothing on its own.
+ * out of the event group. A part can be marked as required, which every sign-up then has to hold; the
+ * set's minimum rises to the number of required parts where it asks for fewer. New parts are an
+ * existing one-time appointment, or a new appointment created straight into the event group, which
+ * announces nothing on its own.
  */
 const props = defineProps<{
   detail: EventGroupDetail
@@ -91,6 +94,10 @@ function move(eventId: number, setId: number) {
   return act(() => eventGroups.movePart(props.detail.eventGroup.id, eventId, setId))
 }
 
+function markRequired(eventId: number, required: boolean) {
+  return act(() => eventGroups.setPartRequired(props.detail.eventGroup.id, eventId, required))
+}
+
 function askRemove(eventId: number) {
   removing.value = eventId
   removeOpen.value = true
@@ -138,6 +145,11 @@ function createNew() {
           <MutedText tag="p" size="sm">{{ formatDateTime(part.startTime, stationTimezone) }}</MutedText>
         </div>
         <div class="flex items-center gap-2">
+          <FieldLabel inline>
+            <ToggleInput :model-value="part.required" :disabled="busy" :data-testid="`event-group-part-required-${part.eventId}`"
+                         @update:model-value="value => markRequired(part.eventId, value)"/>
+            {{ t('eventGroups.required') }}
+          </FieldLabel>
           <SelectInput
               :model-value="part.setId"
               :aria-label="t('eventGroups.partSet')"

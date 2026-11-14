@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:19aec90cef2c625ccbf9d7eedf8ee1752b2088b808dd5f8ab2561239052d858d",
-  "generatedAt": "2026-11-13T23:08:21Z",
+  "schemaHash": "sha256:6ba61da0e5ac07d6c2455dfd577b32b2f196dd88037390e734d96b614a277920",
+  "generatedAt": "2026-11-14T16:31:07Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -29528,7 +29528,7 @@
     "station_event": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:5bac02636d9ccd340fe6084b562d1f63090b1d2bdb7a05257be1697fc177b296",
+      "tableHash": "sha256:5474b5040664c431c1e0ebd809fa48307610e0ab7b2fb47cff91d85fc5a03a57",
       "columns": [
         {
           "name": "id",
@@ -29753,6 +29753,13 @@
           "nullable": true,
           "verified": true,
           "description": "The event group set this one-time appointment is a part of, and through it the event group; NULL for an appointment of its own. A set or event group cannot be removed while parts still point at it, so a part never loses its event group unnoticed."
+        },
+        {
+          "name": "event_group_required",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the part has to be chosen by every sign-up of its event group while it takes place. It counts toward its block's minimum. Always FALSE for an appointment that is no part of an event group."
         }
       ],
       "foreignKeys": [

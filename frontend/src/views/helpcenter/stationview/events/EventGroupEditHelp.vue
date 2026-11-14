@@ -100,6 +100,7 @@ const templates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exampleG
     </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupEdit.partsTitle')">
       <p>{{ t('helpCenter.eventGroupEdit.partsText') }}</p>
+      <p>{{ t('helpCenter.eventGroupEdit.requiredText') }}</p>
       <NeutralContainer class="flex flex-wrap items-center justify-between gap-2">
         <span class="font-medium">{{ t('helpCenter.eventGroupDetail.day1') }}</span>
         <div class="flex items-center gap-2">

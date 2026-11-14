@@ -446,4 +446,17 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
         var thrown = assertThrows(RefusalResponse.class, call::run);
         assertEquals(refusal, thrown.refusal());
     }
+
+    @Test
+    void aPartnerMemberHasToChooseTheRequiredParts() {
+        eventGroups.setRequired(holder.id(), eventGroup.id(), sat1, true);
+
+        assertRefused(
+                EventRefusal.EVENT_GROUP_CHOICE_SHORT,
+                () -> partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sun1, sat2, test)));
+
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        var view = partnerSide.eventGroup(partner.id(), holder.uid(), eventGroup.id(), Map.of(mara.uid(), mara.id()));
+        assertTrue(view.parts().stream().anyMatch(part -> part.eventId() == sat1 && part.required()));
+    }
 }

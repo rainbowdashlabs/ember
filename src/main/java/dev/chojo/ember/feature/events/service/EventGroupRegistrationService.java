@@ -436,7 +436,8 @@ public class EventGroupRegistrationService {
                             event.startTime(),
                             event.endTime(),
                             standing.calledOff().contains(event.id()),
-                            standing.tookPlace(event.id()));
+                            standing.tookPlace(event.id()),
+                            part.required());
                 })
                 .toList();
     }
@@ -505,12 +506,21 @@ public class EventGroupRegistrationService {
     }
 
     List<SetRule> rulesOf(int eventGroupId) {
-        var partsBySet = eventGroups.findParts(eventGroupId).stream()
+        var parts = eventGroups.findParts(eventGroupId);
+        var partsBySet = parts.stream()
+                .collect(Collectors.groupingBy(
+                        EventGroupPart::setId, Collectors.mapping(EventGroupPart::eventId, Collectors.toSet())));
+        var requiredBySet = parts.stream()
+                .filter(EventGroupPart::required)
                 .collect(Collectors.groupingBy(
                         EventGroupPart::setId, Collectors.mapping(EventGroupPart::eventId, Collectors.toSet())));
         return eventGroups.findSets(eventGroupId).stream()
-                .map(set ->
-                        new SetRule(set.id(), set.name(), set.minimum(), partsBySet.getOrDefault(set.id(), Set.of())))
+                .map(set -> new SetRule(
+                        set.id(),
+                        set.name(),
+                        set.minimum(),
+                        partsBySet.getOrDefault(set.id(), Set.of()),
+                        requiredBySet.getOrDefault(set.id(), Set.of())))
                 .toList();
     }
 

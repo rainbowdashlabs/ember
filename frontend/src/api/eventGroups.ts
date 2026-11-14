@@ -112,6 +112,11 @@ export async function createPart(eventGroupId: number, request: EventGroupPartCr
 }
 
 /** Moves a part into another set of its event group. */
+/** Marks a part as required by its set, or takes the mark off. */
+export async function setPartRequired(eventGroupId: number, eventId: number, required: boolean): Promise<EventGroupPart> {
+    return (await client.put<EventGroupPart>(`${EVENT_GROUPS}/${eventGroupId}/parts/${eventId}/required`, {required})).data
+}
+
 export async function movePart(eventGroupId: number, eventId: number, setId: number): Promise<EventGroupPart> {
     return (await client.put<EventGroupPart>(`${EVENT_GROUPS}/${eventGroupId}/parts/${eventId}`, {setId})).data
 }

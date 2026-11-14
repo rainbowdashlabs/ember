@@ -27,18 +27,21 @@ export function evaluateChoice(
         const picked = inSet.filter(part => chosen.has(part.eventId)).length
         const available = inSet.filter(part => chosen.has(part.eventId) || !part.calledOff).length
         const required = Math.min(Math.max(set.minimum, 0), available)
-        return {setId: set.id, name: set.name, required, chosen: picked}
+        const missingRequired = inSet
+            .filter(part => part.required && !part.calledOff && !chosen.has(part.eventId))
+            .map(part => part.eventId)
+        return {setId: set.id, name: set.name, required, chosen: picked, missingRequired}
     })
 }
 
 /** Whether a set's result is met. */
 export function isMet(result: SetResult): boolean {
-    return result.chosen >= result.required
+    return result.chosen >= result.required && result.missingRequired.length === 0
 }
 
 /** How many parts a set still lacks, zero where it is met. */
 export function missingOf(result: SetResult): number {
-    return Math.max(0, result.required - result.chosen)
+    return Math.max(0, result.required - result.chosen, result.missingRequired.length)
 }
 
 /** Whether a choice meets every set, and chooses at least one part. */
@@ -54,4 +57,35 @@ export function choiceMeetsRules(
 export function asksForAll(set: EventGroupSet, parts: readonly EventGroupPartState[]): boolean {
     const count = parts.filter(part => part.setId === set.id).length
     return count > 0 && set.minimum >= count
+}
+
+/**
+ * The parts of a set every sign-up has to hold, leaving out the ones called off, which are required no
+ * more.
+ *
+ * @param setId the set
+ * @param parts the event group's parts
+ */
+export function requiredPartsOf(setId: number, parts: readonly EventGroupPartState[]): EventGroupPartState[] {
+    return parts.filter(part => part.setId === setId && part.required && !part.calledOff)
+}
+
+/**
+ * What a set asks for, as the group page and the sign-up dialog say it: all of its parts, or a number
+ * of them, naming the parts it requires.
+ *
+ * @param set   the set
+ * @param parts the event group's parts
+ * @param t     the translator
+ */
+export function setRuleText(
+    set: EventGroupSet,
+    parts: readonly EventGroupPartState[],
+    t: (key: string, values?: Record<string, unknown>) => string,
+): string {
+    if (asksForAll(set, parts)) return t('eventGroups.setAll')
+    const rule = t('eventGroups.setRule', {minimum: set.minimum, count: parts.filter(part => part.setId === set.id).length})
+    const required = requiredPartsOf(set.id, parts)
+    if (required.length === 0) return rule
+    return t('eventGroups.setRuleRequired', {rule, parts: required.map(part => part.name).join(', ')})
 }

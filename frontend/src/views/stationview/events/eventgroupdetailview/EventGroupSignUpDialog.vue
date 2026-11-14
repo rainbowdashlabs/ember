@@ -24,7 +24,7 @@ import type {EventGroupDetail, EventGroupSignUp} from '@/api/generated/schema'
 import {RegistrationStatus} from '@/api/generated/schema'
 import {ownEventGroupPort, type EventGroupSignUpPort} from './eventGroupSignUpPort'
 import {useSession} from '@/composables/useSession'
-import {asksForAll, choiceMeetsRules, evaluateChoice, isMet, missingOf} from '@/util/eventGroupChoice'
+import {choiceMeetsRules, evaluateChoice, isMet, missingOf, setRuleText} from '@/util/eventGroupChoice'
 import {describeFailure, type Failure} from '@/util/failure'
 import {formatDateTime} from '@/util/format'
 
@@ -35,8 +35,11 @@ import {formatDateTime} from '@/util/format'
  * part that already took place stays as it is. A new sign-up also answers the event group's questions;
  * those are changed on their own afterwards.
  *
+ * <p>A part its set requires is ticked from the start of a new sign-up and cannot be unticked while it
+ * takes place.
+ *
  * <p>Whoever runs events signing somebody else up may break the rules: the shortfalls are then only
- * shown, and the event group marks the person as short.
+ * shown, the required parts can be unticked, and the event group marks the person as short.
  *
  * <p>Where the event group asks every part for documents to sign, a sign-up of this station's event group
  * ends on the signing step once, for the whole event group; closing it finishes the sign-up.
@@ -67,7 +70,14 @@ const failure = ref<Failure | null>(null)
 const changing = computed(() =>
     props.entry.status === RegistrationStatus.PENDING || props.entry.status === RegistrationStatus.ACCEPTED)
 const held = new Set(changing.value ? props.entry.parts : [])
-const chosen = ref<Set<number>>(new Set(held))
+const chosen = ref<Set<number>>(new Set(changing.value ? held : startingChoice()))
+
+/** A new sign-up starts with every required part that still takes place. */
+function startingChoice(): number[] {
+  return props.detail.parts
+      .filter(part => part.required && !part.calledOff && !part.tookPlace)
+      .map(part => part.eventId)
+}
 const name = computed(() => props.entry.member.name ?? '')
 const asking = computed(() => !changing.value && props.detail.questions.length > 0)
 const answers = ref<Record<number, string>>(seedAnswers(props.detail.questions))
@@ -87,6 +97,7 @@ const meets = computed(() => answered.value && (props.override
 function selectable(eventId: number): boolean {
   const part = props.detail.parts.find(candidate => candidate.eventId === eventId)!
   if (part.tookPlace && !props.override) return false
+  if (part.required && !part.calledOff && chosen.value.has(eventId) && !props.override) return false
   return held.has(eventId) || !part.calledOff
 }
 
@@ -97,14 +108,17 @@ function toggle(eventId: number, on: boolean) {
   chosen.value = next
 }
 
+function nameOf(eventId: number): string {
+  return props.detail.parts.find(part => part.eventId === eventId)?.name ?? ''
+}
+
 function partsOf(setId: number) {
   return props.detail.parts.filter(part => part.setId === setId)
 }
 
 function ruleOf(setId: number): string {
   const set = props.detail.sets.find(candidate => candidate.id === setId)!
-  if (asksForAll(set, props.detail.parts)) return t('eventGroups.setAll')
-  return t('eventGroups.setRule', {minimum: set.minimum, count: partsOf(setId).length})
+  return setRuleText(set, props.detail.parts, t)
 }
 
 function close() {
@@ -164,6 +178,7 @@ async function save() {
         <li v-if="chosen.size === 0">{{ t('eventGroups.chooseSomething') }}</li>
         <template v-for="result in results" :key="result.setId">
           <li v-if="!isMet(result)">{{ t('eventGroups.setShort', {name: result.name, missing: missingOf(result)}) }}</li>
+          <li v-for="partId in result.missingRequired" :key="partId">{{ t('eventGroups.requiredMissing', {name: nameOf(partId)}) }}</li>
         </template>
       </ul>
       <EventGroupQuestionInputs v-if="asking" v-model="answers" :fields="detail.questions"/>

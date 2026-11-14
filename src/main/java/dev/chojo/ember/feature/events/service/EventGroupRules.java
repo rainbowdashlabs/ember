@@ -19,6 +19,9 @@ import java.util.Set;
  * chosen ones and those still taking place together hold. A choice cannot add a part already called
  * off, so a new choice still needs as many parts that take place as the set asks for, while a changed
  * choice keeps the called-off parts it already held.
+ *
+ * <p>A set may require single parts: every choice has to hold them while they take place, and they count
+ * toward the set's minimum. A required part called off is required no more.
  */
 public final class EventGroupRules {
     private EventGroupRules() {}
@@ -33,15 +36,17 @@ public final class EventGroupRules {
      * @param name    its name, which a result repeats to the reader
      * @param minimum how many of its parts a sign-up has to choose
      * @param partIds the parts in the set
+     * @param requiredPartIds the parts of the set every choice has to hold while they take place
      */
-    public record SetRule(int setId, String name, int minimum, Set<Integer> partIds) {
-        /** A set from parts in any collection, each part counted once. */
+    public record SetRule(int setId, String name, int minimum, Set<Integer> partIds, Set<Integer> requiredPartIds) {
+        /** A set from parts in any collection, each part counted once, requiring none of them. */
         public SetRule(int setId, String name, int minimum, Collection<Integer> partIds) {
-            this(setId, name, minimum, Set.copyOf(partIds));
+            this(setId, name, minimum, Set.copyOf(partIds), Set.of());
         }
 
         public SetRule {
             partIds = Set.copyOf(partIds);
+            requiredPartIds = Set.copyOf(requiredPartIds);
         }
     }
 
@@ -52,15 +57,25 @@ public final class EventGroupRules {
      * @param name     its name
      * @param required how many of its parts the choice has to hold, after cancellations
      * @param chosen   how many of its parts the choice holds
+     * @param missingRequired the parts the set requires that take place and the choice does not hold
      */
-    public record SetResult(int setId, String name, int required, int chosen) {
+    public record SetResult(int setId, String name, int required, int chosen, List<Integer> missingRequired) {
+        /** A result missing none of the parts the set requires. */
+        public SetResult(int setId, String name, int required, int chosen) {
+            this(setId, name, required, chosen, List.of());
+        }
+
+        public SetResult {
+            missingRequired = List.copyOf(missingRequired);
+        }
+
         /**
          * Whether the choice meets the set.
          *
-         * @return true where it holds at least as many parts as required
+         * @return true where it holds at least as many parts as required, every required part among them
          */
         public boolean met() {
-            return chosen >= required;
+            return chosen >= required && missingRequired.isEmpty();
         }
 
         /**
@@ -69,7 +84,7 @@ public final class EventGroupRules {
          * @return zero for a set that is met
          */
         public int missing() {
-            return Math.max(0, required - chosen);
+            return Math.max(Math.max(0, required - chosen), missingRequired.size());
         }
     }
 
@@ -120,6 +135,11 @@ public final class EventGroupRules {
             if (isChosen || !cancelled.contains(part)) available++;
         }
         int required = Math.min(Math.max(set.minimum(), 0), available);
-        return new SetResult(set.setId(), set.name(), required, picked);
+        var missingRequired = set.requiredPartIds().stream()
+                .filter(set.partIds()::contains)
+                .filter(part -> !chosen.contains(part) && !cancelled.contains(part))
+                .sorted()
+                .toList();
+        return new SetResult(set.setId(), set.name(), required, picked, missingRequired);
     }
 }

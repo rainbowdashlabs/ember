@@ -41,9 +41,9 @@ describe('EventGroupAttendancePanel', () => {
   it('shows per participant the parts attended against each set and whether all are met', async () => {
     listAttendance.mockResolvedValue([
       {memberId: 11, member: createIdentity({name: 'Anna'}), complete: true,
-        sets: [{setId: 1, name: 'Übung', required: 2, chosen: 2}, {setId: 2, name: 'Prüfung', required: 1, chosen: 1}]},
+        sets: [{setId: 1, name: 'Übung', required: 2, chosen: 2, missingRequired: []}, {setId: 2, name: 'Prüfung', required: 1, chosen: 1, missingRequired: []}]},
       {memberId: 12, member: createIdentity({name: 'Ben'}), complete: false,
-        sets: [{setId: 1, name: 'Übung', required: 2, chosen: 1}, {setId: 2, name: 'Prüfung', required: 1, chosen: 0}]},
+        sets: [{setId: 1, name: 'Übung', required: 2, chosen: 1, missingRequired: []}, {setId: 2, name: 'Prüfung', required: 1, chosen: 0, missingRequired: []}]},
     ])
     wrapper = mount(EventGroupAttendancePanel, {props: {detail: detail()}, global: {stubs: {MemberName: true}}})
     await flushPromises()

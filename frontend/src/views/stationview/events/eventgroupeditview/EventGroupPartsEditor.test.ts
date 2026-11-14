@@ -11,10 +11,14 @@ import EventGroupPartsEditor from './EventGroupPartsEditor.vue'
 import type {EventGroupDetail} from '@/api/generated/schema'
 
 const createPart = vi.fn(async (..._args: unknown[]) => ({}))
+const setPartRequired = vi.fn(async (..._args: unknown[]) => ({}))
 
 vi.mock('@/api', () => ({
   events: {listEvents: async () => []},
-  eventGroups: {createPart: (...args: unknown[]) => createPart(...args)},
+  eventGroups: {
+    createPart: (...args: unknown[]) => createPart(...args),
+    setPartRequired: (...args: unknown[]) => setPartRequired(...args),
+  },
 }))
 vi.mock('@/composables/useSession', () => ({useSession: () => ({stationTimezone: computed(() => 'Europe/Berlin')})}))
 
@@ -48,6 +52,22 @@ describe('EventGroupPartsEditor', () => {
     expect(createPart).toHaveBeenCalledWith(70, expect.objectContaining({setId: 2, name: 'Samstag'}))
     const payload = createPart.mock.calls[0]![1] as {startTime: string; endTime: string}
     expect(new Date(payload.endTime).getTime()).toBeGreaterThan(new Date(payload.startTime).getTime())
+    expect(onChanged).toHaveBeenCalled()
+  })
+
+  it('marks a part as required and reloads the event group', async () => {
+    const onChanged = vi.fn()
+    const withPart: EventGroupDetail = {...detail, parts: [{
+      eventId: 11, setId: 1, name: 'Samstag', startTime: '2027-03-06T08:00:00Z', endTime: '2027-03-06T16:00:00Z',
+      calledOff: false, tookPlace: false, required: false,
+    }]}
+    const editor = mount(EventGroupPartsEditor, {props: {detail: withPart, onChanged}})
+    await flushPromises()
+
+    await editor.find('[data-testid="event-group-part-required-11"]').trigger('click')
+    await flushPromises()
+
+    expect(setPartRequired).toHaveBeenCalledWith(70, 11, true)
     expect(onChanged).toHaveBeenCalled()
   })
 })

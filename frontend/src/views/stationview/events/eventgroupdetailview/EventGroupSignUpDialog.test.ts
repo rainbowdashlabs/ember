@@ -30,10 +30,10 @@ function detail(): EventGroupDetail {
     ],
     parts: [11, 12, 13].map(eventId => ({
       eventId, setId: 1, name: `Übung ${eventId}`, startTime: '2027-03-06T08:00:00Z', endTime: '2027-03-06T16:00:00Z',
-      calledOff: false, tookPlace: false,
+      calledOff: false, tookPlace: false, required: false,
     })).concat([{
       eventId: 21, setId: 2, name: 'Prüfung', startTime: '2027-03-14T08:00:00Z', endTime: '2027-03-14T12:00:00Z',
-      calledOff: false, tookPlace: false,
+      calledOff: false, tookPlace: false, required: false,
     }]),
     registration: {userTypes: [], groupIds: [], tagIds: [], memberIds: [], mode: 'AND'},
     view: {userTypes: [], groupIds: [], tagIds: [], memberIds: [], mode: 'AND'},
@@ -88,6 +88,28 @@ describe('EventGroupSignUpDialog', () => {
 
     expect(signUp).toHaveBeenCalledWith(70, expect.arrayContaining([11, 13, 21]), [], 12)
     expect(wrapper.emitted('saved')).toHaveLength(1)
+  })
+
+  it('ticks the required parts of a new sign-up and keeps a member from unticking them', async () => {
+    const required = detail()
+    required.parts = required.parts.map(part => (part.eventId === 11 ? {...part, required: true} : part))
+    wrapper = mount(EventGroupSignUpDialog, {props: {detail: required, entry: entry()}, attachTo: document.body})
+    await flushPromises()
+
+    expect(box(11).checked).toBe(true)
+    expect(box(11).disabled).toBe(true)
+    expect(document.body.textContent).toContain('Übung 11')
+  })
+
+  it('lets whoever runs events untick a required part', async () => {
+    const required = detail()
+    required.parts = required.parts.map(part => (part.eventId === 11 ? {...part, required: true} : part))
+    wrapper = mount(EventGroupSignUpDialog, {props: {detail: required, entry: entry(), override: true}, attachTo: document.body})
+    await flushPromises()
+
+    expect(box(11).disabled).toBe(false)
+    await tick(11)
+    expect(box(11).checked).toBe(false)
   })
 
   it('changes the parts of a sign-up that holds a place, starting from the parts it holds', async () => {

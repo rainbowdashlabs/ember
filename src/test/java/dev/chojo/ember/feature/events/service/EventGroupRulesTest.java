@@ -140,4 +140,22 @@ class EventGroupRulesTest {
         assertEquals(0, results.getFirst().missing());
         assertEquals(1, results.get(1).missing());
     }
+
+    @Test
+    void aRequiredPartCountsTowardTheMinimumAndHasToBeChosen() {
+        var practice = List.of(new SetRule(1, "Übung", 2, Set.of(11, 12, 13), Set.of(11)));
+
+        assertTrue(EventGroupRules.met(practice, Set.of(11, 13), Set.of()));
+        var withoutSaturday = EventGroupRules.shortfalls(practice, Set.of(12, 13), Set.of());
+        assertEquals(List.of(11), withoutSaturday.getFirst().missingRequired());
+        assertEquals(1, withoutSaturday.getFirst().missing());
+        assertFalse(EventGroupRules.met(practice, Set.of(11), Set.of()));
+    }
+
+    @Test
+    void aCalledOffRequiredPartIsRequiredNoMore() {
+        var practice = List.of(new SetRule(1, "Übung", 2, Set.of(11, 12, 13), Set.of(11)));
+
+        assertTrue(EventGroupRules.met(practice, Set.of(12, 13), Set.of(11)));
+    }
 }

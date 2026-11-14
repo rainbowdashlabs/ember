@@ -276,6 +276,23 @@ class EventGroupRoutesTest {
     }
 
     @Test
+    void onlyWhoeverEditsAppointmentsMarksAPartRequired() {
+        when(eventGroups.setRequired(STATION_ID, EVENT_GROUP_ID, 101, true))
+                .thenReturn(new EventGroupPart(101, 5, EVENT_GROUP_ID, true));
+        assertEquals(
+                403,
+                call("PUT", EVENT_GROUP + "/parts/101/required", "{\"required\": true}", StationPermission.USER)
+                        .code());
+        verify(eventGroups, never()).setRequired(anyInt(), anyInt(), anyInt(), anyBoolean());
+
+        var response =
+                call("PUT", EVENT_GROUP + "/parts/101/required", "{\"required\": true}", StationPermission.EVENT_EDIT);
+
+        assertEquals(200, response.code());
+        verify(eventGroups).setRequired(STATION_ID, EVENT_GROUP_ID, 101, true);
+    }
+
+    @Test
     void aMemberSignsUpThemselvesWithinTheRules() {
         var response = call("POST", EVENT_GROUP + "/sign-up", "{\"parts\": [101, 102]}", StationPermission.USER);
 

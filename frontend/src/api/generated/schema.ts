@@ -28637,6 +28637,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/groups/{eventGroupId}/parts/{eventId}/required": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Mark a part as required by its set, or take the mark off */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    eventId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupPartRequiredRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventGroupPart"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/groups/{eventGroupId}/parts/new": {
         parameters: {
             query?: never;
@@ -71403,6 +71455,7 @@ export interface components {
             eventGroupId: number;
             /** Format: int32 */
             eventId: number;
+            required: boolean;
             /** Format: int32 */
             setId: number;
         };
@@ -71433,6 +71486,9 @@ export interface components {
             /** Format: int32 */
             setId?: number;
         };
+        EventGroupPartRequiredRequest: {
+            required?: boolean;
+        };
         EventGroupPartSettings: {
             eventGroup: components["schemas"]["EventGroupSettings"];
             /** Format: int32 */
@@ -71448,6 +71504,7 @@ export interface components {
             /** Format: int32 */
             eventId: number;
             name: string;
+            required: boolean;
             /** Format: int32 */
             setId: number;
             startTime: components["schemas"]["Instant"];
@@ -78466,6 +78523,7 @@ export interface components {
         SetResult: {
             /** Format: int32 */
             chosen: number;
+            missingRequired: number[];
             name: string;
             /** Format: int32 */
             required: number;
@@ -81305,6 +81363,7 @@ export type EventGroupPartCreateRequest = components['schemas']['EventGroupPartC
 export type EventGroupPartMoveRequest = components['schemas']['EventGroupPartMoveRequest'];
 export type EventGroupPartnerSignUp = components['schemas']['EventGroupPartnerSignUp'];
 export type EventGroupPartRequest = components['schemas']['EventGroupPartRequest'];
+export type EventGroupPartRequiredRequest = components['schemas']['EventGroupPartRequiredRequest'];
 export type EventGroupPartSettings = components['schemas']['EventGroupPartSettings'];
 export type EventGroupPartState = components['schemas']['EventGroupPartState'];
 export type EventGroupPartSummary = components['schemas']['EventGroupPartSummary'];

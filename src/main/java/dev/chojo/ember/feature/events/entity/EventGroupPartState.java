@@ -17,6 +17,7 @@ import java.time.Instant;
  * @param endTime   when it ends
  * @param calledOff whether it was called off
  * @param tookPlace whether its day lies before today
+ * @param required  whether its set requires every sign-up to hold it
  */
 public record EventGroupPartState(
         int eventId,
@@ -25,4 +26,5 @@ public record EventGroupPartState(
         Instant startTime,
         Instant endTime,
         boolean calledOff,
-        boolean tookPlace) {}
+        boolean tookPlace,
+        boolean required) {}

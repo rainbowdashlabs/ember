@@ -827,4 +827,44 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
         var thrown = assertThrows(RefusalResponse.class, call::run);
         assertEquals(refusal, thrown.refusal());
     }
+
+    @Test
+    void aRequiredPartHasToBeChosenUnlessWhoeverRunsEventsSignsUp() {
+        eventGroups.setRequired(station.id(), eventGroup.id(), sat1, true);
+
+        assertRefused(EventRefusal.EVENT_GROUP_CHOICE_SHORT, () -> signUp(anna, sun1, sat2, test));
+        signUp(anna, sat1, sat2, test);
+        assertRefused(
+                EventRefusal.EVENT_GROUP_CHOICE_SHORT,
+                () -> service.changeParts(
+                        station.id(), eventGroup.id(), anna.id(), Set.of(sun1, sat2, test), null, false));
+
+        service.register(
+                station.id(), eventGroup.id(), ben.id(), Set.of(sun1, sat2, test), Map.of(), leader.id(), true);
+        var standing = service.evaluate(eventGroup.id(), service.chosenParts(eventGroup.id(), ben.id()));
+        assertTrue(standing.stream().anyMatch(result -> result.missingRequired().contains(sat1)));
+    }
+
+    @Test
+    void aSignUpLackingANewlyRequiredPartStaysAndShowsShort() {
+        signUp(anna, sun1, sat2, test);
+
+        eventGroups.setRequired(station.id(), eventGroup.id(), sat1, true);
+
+        assertEquals(Set.of(sun1, sat2, test), service.chosenParts(eventGroup.id(), anna.id()));
+        var standing = service.evaluate(eventGroup.id(), service.chosenParts(eventGroup.id(), anna.id()));
+        assertTrue(standing.stream().anyMatch(result -> !result.met()));
+        assertTrue(service.partStates(eventGroup.id()).stream()
+                .anyMatch(part -> part.eventId() == sat1 && part.required()));
+    }
+
+    @Test
+    void aCalledOffRequiredPartIsNoLongerAskedFor() {
+        eventGroups.setRequired(station.id(), eventGroup.id(), sat1, true);
+        callOff(sat1);
+
+        signUp(anna, sun1, sat2, test);
+
+        assertEquals(Set.of(sun1, sat2, test), service.chosenParts(eventGroup.id(), anna.id()));
+    }
 }

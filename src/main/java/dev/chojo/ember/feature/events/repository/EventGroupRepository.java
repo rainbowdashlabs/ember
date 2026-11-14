@@ -35,7 +35,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 @Singleton
 public class EventGroupRepository {
-    private static final String PART_COLUMNS = "e.id AS event_id, s.id AS set_id, s.group_id";
+    private static final String PART_COLUMNS = "e.id AS event_id, s.id AS set_id, s.group_id, e.event_group_required";
 
     /**
      * Creates an event group.
@@ -352,9 +352,49 @@ public class EventGroupRepository {
      * @param setId   the set, or null to make it an appointment of its own again
      */
     public void setPartSet(int eventId, @Nullable Integer setId) {
+        if (setId == null) {
+            query("""
+                    UPDATE station_event
+                    SET event_group_set_id   = NULL,
+                        event_group_required = FALSE,
+                        updated_at           = now()
+                    WHERE id = :event_id;""").single(call().bind("event_id", eventId)).update();
+            return;
+        }
         query("UPDATE station_event SET event_group_set_id = :set_id, updated_at = now() WHERE id = :event_id;")
                 .single(call().bind("event_id", eventId).bind("set_id", setId))
                 .update();
+    }
+
+    /**
+     * Marks a part as required by its set, or takes the mark off.
+     *
+     * @param eventId  the part
+     * @param required whether every sign-up has to hold it
+     */
+    public void setPartRequired(int eventId, boolean required) {
+        query("""
+                UPDATE station_event
+                SET event_group_required = :required,
+                    updated_at           = now()
+                WHERE id = :event_id
+                  AND event_group_set_id IS NOT NULL;""")
+                .single(call().bind("event_id", eventId).bind("required", required))
+                .update();
+    }
+
+    /**
+     * Raises a set's minimum to a number of parts where it asks for fewer.
+     *
+     * @param setId   the set
+     * @param minimum the least it may ask for
+     * @return whether the minimum was raised
+     */
+    public boolean raiseMinimum(int setId, int minimum) {
+        return query("UPDATE event_group_set SET minimum = :minimum WHERE id = :set_id AND minimum < :minimum;")
+                .single(call().bind("set_id", setId).bind("minimum", minimum))
+                .update()
+                .changed();
     }
 
     /**
@@ -429,8 +469,9 @@ public class EventGroupRepository {
     public void releaseParts(int eventGroupId) {
         query("""
                 UPDATE station_event
-                SET event_group_set_id = NULL,
-                    updated_at    = now()
+                SET event_group_set_id   = NULL,
+                    event_group_required = FALSE,
+                    updated_at           = now()
                 WHERE event_group_set_id IN (SELECT id FROM event_group_set WHERE group_id = :group_id);""").single(call().bind("group_id", eventGroupId)).update();
     }
 

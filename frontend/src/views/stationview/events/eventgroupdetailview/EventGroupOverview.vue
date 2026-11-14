@@ -18,7 +18,7 @@ import RowLink from '@/components/navigation/RowLink.vue'
 import EventGroupFields from './EventGroupFields.vue'
 import type {EventGroupDetail, EventGroupPartState} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
-import {asksForAll} from '@/util/eventGroupChoice'
+import {setRuleText} from '@/util/eventGroupChoice'
 import {formatDate, formatDateTime, formatTime} from '@/util/format'
 import EventGroupBand from '../eventshared/EventGroupBand.vue'
 import EventGroupHeading from '../eventshared/EventGroupHeading.vue'
@@ -68,8 +68,7 @@ function partsOf(setId: number) {
 /** The rule a set states, "all mandatory" or "at least n of m". */
 function ruleOf(setId: number): string {
   const set = props.detail.sets.find(candidate => candidate.id === setId)!
-  if (asksForAll(set, props.detail.parts)) return t('eventGroups.setAll')
-  return t('eventGroups.setRule', {minimum: set.minimum, count: partsOf(setId).length})
+  return setRuleText(set, props.detail.parts, t)
 }
 
 /** The event group as its bar names it, running from the start of its first part to the end of its last. */
@@ -132,6 +131,7 @@ function whenOf(part: EventGroupPartState): string {
           <RowLink :to="linkOf(part.eventId)" class="flex flex-wrap items-center gap-2 text-sm">
             <span :class="{'line-through text-(--text-muted)': part.calledOff}">{{ part.name }}</span>
             <MutedText tag="span" size="sm">{{ whenOf(part) }}</MutedText>
+            <InfoBadge v-if="part.required && !part.calledOff" data-testid="event-group-part-required">{{ t('eventGroups.required') }}</InfoBadge>
             <ErrorBadge v-if="part.calledOff">{{ t('eventGroups.partCalledOff') }}</ErrorBadge>
             <MutedText v-else-if="part.tookPlace" tag="span" size="sm">{{ t('eventGroups.partPast') }}</MutedText>
           </RowLink>

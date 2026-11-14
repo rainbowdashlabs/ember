@@ -1116,4 +1116,69 @@ class EventGroupServiceTest extends RepositoryTestBase {
                         .map(EventGroupPart::eventId)
                         .toList());
     }
+
+    @Test
+    void markingAPartRequiredRaisesItsSetsMinimumAndUnmarkingLeavesIt() {
+        var eventGroup =
+                create(details("Jugendflamme Pflicht", false), List.of(new EventGroupSetDraft(null, "Übung", 0)));
+        var practice = set(eventGroup, "Übung");
+        var saturday = oneTime(30);
+        var sunday = oneTime(31);
+        service.addPart(station.id(), eventGroup.id(), saturday.id(), practice.id());
+        service.addPart(station.id(), eventGroup.id(), sunday.id(), practice.id());
+
+        assertTrue(service.setRequired(station.id(), eventGroup.id(), saturday.id(), true)
+                .required());
+        assertEquals(1, set(eventGroup, "Übung").minimum());
+        service.setRequired(station.id(), eventGroup.id(), sunday.id(), true);
+        assertEquals(2, set(eventGroup, "Übung").minimum());
+
+        service.setRequired(station.id(), eventGroup.id(), sunday.id(), false);
+        assertEquals(2, set(eventGroup, "Übung").minimum(), "taking the mark off leaves the minimum");
+        assertEquals(
+                EventRefusal.EVENT_GROUP_SET_MINIMUM_BELOW_REQUIRED,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.replaceSets(
+                                        station.id(),
+                                        eventGroup.id(),
+                                        List.of(new EventGroupSetDraft(practice.id(), "Übung", 0))))
+                        .refusal());
+        service.replaceSets(station.id(), eventGroup.id(), List.of(new EventGroupSetDraft(practice.id(), "Übung", 1)));
+        assertEquals(1, set(eventGroup, "Übung").minimum());
+    }
+
+    @Test
+    void aRequiredPartKeepsItsMarkWhenMovedAndLosesItWhenRemoved() {
+        var eventGroup = create(
+                details("Jugendflamme Verschieben", false),
+                List.of(new EventGroupSetDraft(null, "Übung", 0), new EventGroupSetDraft(null, "Prüfung", 0)));
+        var practice = set(eventGroup, "Übung");
+        var test = set(eventGroup, "Prüfung");
+        var saturday = oneTime(32);
+        service.addPart(station.id(), eventGroup.id(), saturday.id(), practice.id());
+        service.setRequired(station.id(), eventGroup.id(), saturday.id(), true);
+
+        var moved = service.movePart(station.id(), eventGroup.id(), saturday.id(), test.id());
+        assertTrue(moved.required());
+        assertEquals(1, set(eventGroup, "Prüfung").minimum(), "the set it moves into asks for it");
+
+        service.removePart(station.id(), eventGroup.id(), saturday.id());
+        assertTrue(eventGroupRepo.findPart(saturday.id()).isEmpty());
+        service.addPart(station.id(), eventGroup.id(), saturday.id(), practice.id());
+        assertFalse(eventGroupRepo.findPart(saturday.id()).orElseThrow().required());
+    }
+
+    @Test
+    void onlyAPartOfTheEventGroupCanBeRequired() {
+        var eventGroup = jugendflamme();
+        var loose = oneTime(33);
+
+        assertEquals(
+                EventRefusal.EVENT_GROUP_PART_NOT_IN_EVENT_GROUP,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.setRequired(station.id(), eventGroup.id(), loose.id(), true))
+                        .refusal());
+    }
 }

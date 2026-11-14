@@ -162,6 +162,11 @@ public class EventGroupRoutes implements Routes {
                 StationPermission.EVENT_EDIT,
                 StationModule.EVENTS);
         routes.put(
+                prefix + EVENT_GROUP + "/parts/{eventId}/required",
+                this::setPartRequired,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS);
+        routes.put(
                 prefix + EVENT_GROUP + "/sign-up/answers",
                 this::changeAnswers,
                 StationPermission.USER,
@@ -482,6 +487,27 @@ public class EventGroupRoutes implements Routes {
             }
         }
         ctx.json(awaiting);
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/groups/{eventGroupId}/parts/{eventId}/required",
+            methods = HttpMethod.PUT,
+            summary = "Mark a part as required by its set, or take the mark off",
+            tags = {"Events"},
+            pathParams = {
+                @OpenApiParam(name = "eventGroupId", type = Integer.class, required = true),
+                @OpenApiParam(name = "eventId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = EventGroupPartRequiredRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventGroupPart.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void setPartRequired(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var request = ctx.bodyAsClass(EventGroupPartRequiredRequest.class);
+        ctx.json(eventGroups.setRequired(
+                session.stationId(), pathInt(ctx, "eventGroupId"), pathInt(ctx, "eventId"), request.required()));
     }
 
     @OpenApi(
@@ -972,6 +998,13 @@ public class EventGroupRoutes implements Routes {
 
     /** @param setId the set the part moves into */
     public record EventGroupPartMoveRequest(int setId) {}
+
+    /**
+     * Whether a part is to be required by its set.
+     *
+     * @param required true to require it, false to take the mark off
+     */
+    public record EventGroupPartRequiredRequest(boolean required) {}
 
     /**
      * A sign-up or a change of parts.

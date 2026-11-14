@@ -702,3 +702,14 @@ COMMENT ON COLUMN ember_schema.event_group.min_registrations
     IS 'How many sign-ups, of this station and of partner stations, must be accepted for the event group to take place. NULL for no minimum.';
 COMMENT ON COLUMN ember_schema.event_group.threshold_days
     IS 'How many days before the first part still taking place the minimum must be reached; short of it then, the whole event group is called off. Set exactly when the minimum is.';
+
+-- A part of an event group a block can mark as required: every sign-up has to hold it while it takes
+-- place, and it counts toward the block's minimum.
+
+ALTER TABLE ember_schema.station_event
+    ADD COLUMN event_group_required BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD CONSTRAINT station_event_event_group_required_part
+        CHECK (NOT event_group_required OR event_group_set_id IS NOT NULL);
+
+COMMENT ON COLUMN ember_schema.station_event.event_group_required
+    IS 'Whether the part has to be chosen by every sign-up of its event group while it takes place. It counts toward its block''s minimum. Always FALSE for an appointment that is no part of an event group.';

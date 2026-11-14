@@ -21,6 +21,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
 import RegistrationStatusBadge from '@/views/stationview/events/eventshared/RegistrationStatusBadge.vue'
 import EventGroupBand from '@/views/stationview/events/eventshared/EventGroupBand.vue'
 import EventGroupHeading from '@/views/stationview/events/eventshared/EventGroupHeading.vue'
@@ -69,14 +70,15 @@ const exampleVisitors = computed((): WaitingListVisitor[] => [{
     <HelpSection :title="t('helpCenter.eventGroupDetail.whatIs')">
       <p>{{ t('helpCenter.eventGroupDetail.whatIsText') }}</p>
       <NeutralContainer class="space-y-2">
-        <SubHeader>{{ t('helpCenter.eventGroupDetail.practice') }} <MutedText tag="span" size="sm">({{ t('eventGroups.setRule', {minimum: 2, count: 3}) }})</MutedText></SubHeader>
-        <p class="text-sm">{{ t('helpCenter.eventGroupDetail.day1') }}</p>
+        <SubHeader>{{ t('helpCenter.eventGroupDetail.practice') }} <MutedText tag="span" size="sm">({{ t('eventGroups.setRuleRequired', {rule: t('eventGroups.setRule', {minimum: 2, count: 3}), parts: t('helpCenter.eventGroupDetail.day1')}) }})</MutedText></SubHeader>
+        <p class="text-sm">{{ t('helpCenter.eventGroupDetail.day1') }} <InfoBadge>{{ t('eventGroups.required') }}</InfoBadge></p>
         <p class="text-sm">{{ t('helpCenter.eventGroupDetail.day2') }}</p>
         <p class="text-sm"><span class="line-through text-(--text-muted)">{{ t('helpCenter.eventGroupDetail.day3') }}</span> <ErrorBadge>{{ t('eventGroups.partCalledOff') }}</ErrorBadge></p>
         <SubHeader>{{ t('helpCenter.eventGroupDetail.test') }} <MutedText tag="span" size="sm">({{ t('eventGroups.setAll') }})</MutedText></SubHeader>
         <p class="text-sm">{{ t('helpCenter.eventGroupDetail.day4') }}</p>
       </NeutralContainer>
       <p>{{ t('helpCenter.eventGroupDetail.calledOffText') }}</p>
+      <p>{{ t('helpCenter.eventGroupDetail.requiredText') }}</p>
       <p>{{ t('helpCenter.eventGroupDetail.minimumText') }}</p>
       <MutedText tag="p" size="sm">{{ t('eventGroups.minimumRule', {minimum: 6, days: 7}) }}</MutedText>
     </HelpSection>

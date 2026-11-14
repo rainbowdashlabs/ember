@@ -268,6 +268,12 @@ public class EventGroupService {
             }
             for (var draft : drafts) {
                 Integer setId = draft.id();
+                if (setId != null && draft.minimum() < requiredTakingPlace(stationId, eventGroupId, setId)) {
+                    throw EventRefusal.EVENT_GROUP_SET_MINIMUM_BELOW_REQUIRED.raise();
+                }
+            }
+            for (var draft : drafts) {
+                Integer setId = draft.id();
                 if (setId == null || Objects.equals(stored.get(setId), draft.minimum())) continue;
                 int parts = eventGroups.countPartsInSet(setId);
                 if (parts > 0 && draft.minimum() > parts) {
@@ -331,7 +337,8 @@ public class EventGroupService {
 
     /**
      * Moves a part into another set of its event group. A set that asked for every one of its parts
-     * asks for all it still holds afterwards.
+     * asks for all it still holds afterwards. A required part stays required, and the set it moves into
+     * asks for at least as many parts as it requires.
      *
      * @param stationId the station asking
      * @param eventGroupId  the event group
@@ -347,8 +354,49 @@ public class EventGroupService {
             int left = eventGroups.findPart(eventId).orElseThrow().setId();
             eventGroups.setPartSet(eventId, setId);
             if (left != setId) eventGroups.capMinimum(left);
+            raiseToRequired(stationId, eventGroupId, setId);
             return eventGroups.findPart(eventId).orElseThrow();
         });
+    }
+
+    /**
+     * Marks a part as one every sign-up has to hold while it takes place, or takes the mark off. A
+     * required part counts toward its set's minimum, so marking one raises the minimum to the number of
+     * required parts still taking place where it asks for fewer; taking the mark off leaves the minimum
+     * as it is. Sign-ups already made stay as they are and show as short where they lack the part.
+     *
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
+     * @param eventId      the part
+     * @param required     whether it is required
+     * @return the part
+     */
+    public EventGroupPart setRequired(int stationId, int eventGroupId, int eventId, boolean required) {
+        return Transactions.call(() -> {
+            lockEventGroup(stationId, eventGroupId);
+            requirePartOf(eventGroupId, eventId);
+            eventGroups.setPartRequired(eventId, required);
+            var part = eventGroups.findPart(eventId).orElseThrow();
+            if (required) raiseToRequired(stationId, eventGroupId, part.setId());
+            return part;
+        });
+    }
+
+    /** Raises a set's minimum to the number of parts it requires that still take place, where it asks for fewer. */
+    private void raiseToRequired(int stationId, int eventGroupId, int setId) {
+        int required = requiredTakingPlace(stationId, eventGroupId, setId);
+        if (required > 0) eventGroups.raiseMinimum(setId, required);
+    }
+
+    /** How many parts of a set are required and still take place; a called-off part is required no more. */
+    private int requiredTakingPlace(int stationId, int eventGroupId, int setId) {
+        var stationCalendar = calendar.forStation(stationId);
+        return (int) eventGroups.findParts(eventGroupId).stream()
+                .filter(part -> part.setId() == setId && part.required())
+                .map(part -> events.findById(part.eventId()))
+                .flatMap(Optional::stream)
+                .filter(event -> !stationCalendar.cancelledAltogether(event))
+                .count();
     }
 
     /**

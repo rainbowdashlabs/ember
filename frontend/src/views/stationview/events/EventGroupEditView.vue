@@ -214,7 +214,7 @@ function dropStartingAppointment() {
  * Reads the event group again after a part changed, touching nothing the form holds unsaved, except a
  * set minimum that now asks for more parts than the set holds and is not the one the set keeps while it
  * fills up: the form takes the server's, or the part count where that is lower, and says so, or the next
- * save would be refused.
+ * save would be refused. A minimum the server raised to the parts a set requires is taken the same way.
  */
 async function refreshParts() {
   if (eventGroupId.value == null) return
@@ -223,6 +223,11 @@ async function refreshParts() {
   for (const set of detail.value.sets) {
     const parts = partCounts.value[set.id] ?? 0
     const row = sets.value.find(candidate => candidate.id === set.id)
+    if (row && set.minimum > (before.get(set.id) ?? set.minimum) && row.minimum < set.minimum) {
+      sets.value = sets.value.map(candidate => (candidate.id === set.id ? {...candidate, minimum: set.minimum} : candidate))
+      showToast(t('eventGroups.setMinimumRaised', {set: set.name, from: before.get(set.id), to: set.minimum}))
+      continue
+    }
     if (!row || parts === 0 || row.minimum <= parts || row.minimum === set.minimum) continue
     const to = Math.min(set.minimum, parts)
     sets.value = sets.value.map(candidate => (candidate.id === set.id ? {...candidate, minimum: to} : candidate))
