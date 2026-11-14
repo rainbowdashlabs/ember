@@ -14,14 +14,20 @@ import dev.chojo.ember.feature.messages.entity.Message;
 import dev.chojo.ember.feature.messages.entity.MessageEvent;
 import dev.chojo.ember.feature.messages.entity.Participation;
 import dev.chojo.ember.feature.messages.entity.Person;
+import dev.chojo.ember.feature.messages.entity.StationRef;
+import dev.chojo.ember.feature.messages.entity.StationScope;
 import dev.chojo.ember.feature.messages.repository.ConversationRepository;
 import dev.chojo.ember.feature.messages.repository.MessageRepository;
+import dev.chojo.ember.feature.messages.repository.StationChatRepository;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -36,13 +42,16 @@ public class ConversationService {
     private final MessageRepository messages;
     private final MessageGuards guards;
     private final MessageSignals signals;
+    private final StationChatRepository stationChats;
 
     @Inject
     public ConversationService(
             ConversationRepository conversations,
             MessageRepository messages,
             MessageGuards guards,
-            MessageSignals signals) {
+            MessageSignals signals,
+            StationChatRepository stationChats) {
+        this.stationChats = stationChats;
         this.conversations = conversations;
         this.messages = messages;
         this.guards = guards;
@@ -68,11 +77,17 @@ public class ConversationService {
                                 Collectors.mapping(Membership::person, Collectors.toList())));
         Map<Integer, Message> newest =
                 messages.newestOf(ids).stream().collect(Collectors.toMap(Message::conversationId, Function.identity()));
+        Map<Integer, StationRef> stations = stationChats.stations(overviews.stream()
+                .map(overview -> overview.conversation().station())
+                .filter(Objects::nonNull)
+                .map(StationScope::stationId)
+                .collect(Collectors.toSet()));
         return overviews.stream()
                 .map(overview -> new ConversationSummary(
                         overview,
                         others.getOrDefault(overview.conversation().id(), List.of()),
-                        newest.get(overview.conversation().id())))
+                        newest.get(overview.conversation().id()),
+                        stationOf(overview.conversation(), stations)))
                 .toList();
     }
 
@@ -112,10 +127,20 @@ public class ConversationService {
      */
     public ConversationDetail detail(int accountId, UUID conversationUid) {
         Participation participation = guards.requireParticipant(accountId, conversationUid);
+        Conversation conversation = participation.conversation();
+        StationScope scope = conversation.station();
         return new ConversationDetail(
-                participation.conversation(),
-                conversations.activeMembers(participation.conversation().id()),
-                participation.membership());
+                conversation,
+                conversations.activeMembers(conversation.id()),
+                participation.membership(),
+                scope == null ? null : stationOf(conversation, stationChats.stations(Set.of(scope.stationId()))),
+                scope == null ? Map.of() : stationChats.guardiansFor(conversation.id()),
+                scope != null && stationChats.moderates(accountId, scope.stationId()));
+    }
+
+    private static @Nullable StationRef stationOf(Conversation conversation, Map<Integer, StationRef> stations) {
+        StationScope scope = conversation.station();
+        return scope == null ? null : stations.get(scope.stationId());
     }
 
     /**

@@ -5,8 +5,8 @@
  */
 import {inject, provide, type InjectionKey} from 'vue'
 import {getMemberCard} from '@/api/members'
-import {getPersonCards} from '@/api/messages'
-import type {MemberCard, SharedMemberCard} from '@/api/generated/schema'
+import {findWritableMember, getPersonCards} from '@/api/messages'
+import type {MemberCard, MessagePersonResponse, SharedMemberCard} from '@/api/generated/schema'
 import {browserShallowRef} from '@/util/browserState'
 import {sessionState} from '@/util/sessionState'
 
@@ -16,9 +16,10 @@ interface HeldCards {
     viewer: string
     byMember: Readonly<Record<string, Promise<MemberCard>>>
     byPerson: Readonly<Record<string, Promise<readonly SharedMemberCard[]>>>
+    byWritable: Readonly<Record<string, Promise<MessagePersonResponse | null>>>
 }
 
-const held = browserShallowRef<HeldCards>({viewer: '', byMember: {}, byPerson: {}})
+const held = browserShallowRef<HeldCards>({viewer: '', byMember: {}, byPerson: {}, byWritable: {}})
 
 /**
  * Who is looking, as far as it changes what a card shows: the account, the profile it acts as, the
@@ -32,7 +33,7 @@ function currentViewer(): string {
 
 function cardsOfViewer(): HeldCards {
     const viewer = currentViewer()
-    if (held.value.viewer !== viewer) held.value = {viewer, byMember: {}, byPerson: {}}
+    if (held.value.viewer !== viewer) held.value = {viewer, byMember: {}, byPerson: {}, byWritable: {}}
     return held.value
 }
 
@@ -40,7 +41,7 @@ function cardsOfViewer(): HeldCards {
  * Asks once and keeps the answer for this viewer; a request that failed is forgotten again.
  */
 function keep<T>(
-    field: 'byMember' | 'byPerson',
+    field: 'byMember' | 'byPerson' | 'byWritable',
     key: string,
     ask: () => Promise<T>,
 ): Promise<T> {
@@ -96,4 +97,21 @@ export function loadMemberCard(memberUid: string): Promise<MemberCard> {
  */
 export function loadPersonCards(accountUid: string): Promise<readonly SharedMemberCard[]> {
     return keep('byPerson', accountUid, () => getPersonCards(accountUid))
+}
+
+/**
+ * Whom a member card offers to write to: the person behind a member of the reader's station, or null
+ * where the reader may not write to them. Kept the same way as the card, so a card opened again shows
+ * its button at once.
+ *
+ * @param memberUid the member looked at
+ * @return the person, or null
+ */
+export function loadWritableMember(memberUid: string): Promise<MessagePersonResponse | null> {
+    return keep('byWritable', memberUid, () => findWritableMember(memberUid))
+}
+
+/** Forgets whom member cards offered to write to, after a block or an unblock changed it. */
+export function forgetWritableMembers(): void {
+    held.value = {...cardsOfViewer(), byWritable: {}}
 }

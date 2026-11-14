@@ -13,6 +13,8 @@ import dev.chojo.ember.auth.PasswordPolicy;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountCredential;
 import dev.chojo.ember.feature.account.entity.AccountSession;
@@ -93,6 +95,8 @@ public class AuthService {
      */
     private volatile String dummyPasswordHash;
 
+    private final DomainEventBus eventBus;
+
     @Inject
     public AuthService(
             AccountRepository accountRepository,
@@ -112,7 +116,9 @@ public class AuthService {
             TwoFactorRepository twoFactorRepository,
             TrustedDeviceService trustedDeviceService,
             PasskeyModeService passkeyModeService,
-            UsageRecorder usageRecorder) {
+            UsageRecorder usageRecorder,
+            DomainEventBus eventBus) {
+        this.eventBus = eventBus;
         this.accountRepository = accountRepository;
         this.accountEmailService = accountEmailService;
         this.confirmationPolicy = confirmationPolicy;
@@ -195,6 +201,7 @@ public class AuthService {
             }
 
             registrationCodeRepository.incrementUses(code.id());
+            eventBus.publish(StationAudienceChanged.at(code.stationId()));
         }
 
         if (verifiedAtOnce) {

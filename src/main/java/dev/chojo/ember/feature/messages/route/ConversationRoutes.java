@@ -10,6 +10,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.MessageRefusal;
 import dev.chojo.ember.feature.messages.entity.Conversation;
 import dev.chojo.ember.feature.messages.entity.ConversationKind;
 import dev.chojo.ember.feature.messages.route.MessageWire.ConversationResponse;
@@ -99,6 +100,7 @@ public class ConversationRoutes implements Routes {
     private void start(Context ctx) {
         int accountId = UserSession.from(ctx).accountId();
         var request = ctx.bodyAsClass(StartConversationRequest.class);
+        if (request.kind() == ConversationKind.STATION) throw MessageRefusal.START_NOT_A_STATION_CHAT.raise();
         List<UUID> people = request.peopleOrNone();
         Conversation started = request.kind() == ConversationKind.DIRECT && people.size() == 1
                 ? conversations.openDirect(accountId, people.getFirst())
@@ -195,6 +197,7 @@ public class ConversationRoutes implements Routes {
             pathParams = @OpenApiParam(name = "conversationUid", type = UUID.class, required = true),
             responses = {
                 @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     @StationFree(BELONGS_TO_PEOPLE)

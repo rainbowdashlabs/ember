@@ -104,7 +104,7 @@ export const ENVIRONMENT_GROUPS: readonly EnvironmentGroup[] = [
     {
         title: 'helpCenter.basics.configuration.envGroupOperations',
         defaultOpen: false,
-        prefixes: ['updates', 'changelog', 'attendance', 'knowledgeBase', 'logging'],
+        prefixes: ['updates', 'changelog', 'messages', 'attendance', 'knowledgeBase', 'logging'],
     },
     {title: 'helpCenter.basics.configuration.envGroupMailImport', defaultOpen: false, prefixes: ['mailImport']},
     {

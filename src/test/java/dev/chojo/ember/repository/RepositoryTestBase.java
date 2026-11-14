@@ -818,7 +818,7 @@ public abstract class RepositoryTestBase {
         var fedRepo = new FederationRepository();
         var memberSvc = newStationMemberService(accountRepo, null);
         var groupSvc = newMemberGroupService();
-        var tagSvc = new UserTagService(userTagRepo, memberGroupRepo);
+        var tagSvc = new UserTagService(userTagRepo, memberGroupRepo, new DomainEventBus(Set.of()));
         memberNameResolver =
                 new MemberNameResolver(memberSvc, accountRepo, eventFedRepo, fedRepo, stationRepo, groupSvc, tagSvc);
         memberIdentityFactory = new MemberIdentityFactory(stationRepo, memberLookupService, memberNameResolver);
@@ -1083,7 +1083,7 @@ public abstract class RepositoryTestBase {
                 boardRepo,
                 memberService,
                 newMemberGroupService(),
-                new UserTagService(userTagRepo, memberGroupRepo),
+                new UserTagService(userTagRepo, memberGroupRepo, new DomainEventBus(Set.of())),
                 privateTags);
         var tickets = new BoardTicketService(
                 boardTicketRepo,
@@ -1122,7 +1122,8 @@ public abstract class RepositoryTestBase {
                 memberLookupService,
                 documentService,
                 new AccountReach(accountRepository),
-                new ModuleAvailability(stationRepo, clusterRepo));
+                new ModuleAvailability(stationRepo, clusterRepo),
+                new DomainEventBus(Set.of()));
     }
 
     /**
@@ -1253,7 +1254,8 @@ public abstract class RepositoryTestBase {
      * so removing a group asks nobody for a step-up.
      */
     protected static MemberGroupService newMemberGroupService() {
-        return new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, newGroupMemberships());
+        return new MemberGroupService(
+                memberGroupRepo, stationMemberRepo, userTagRepo, newGroupMemberships(), new DomainEventBus(Set.of()));
     }
 
     /**

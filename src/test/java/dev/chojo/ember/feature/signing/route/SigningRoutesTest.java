@@ -20,6 +20,7 @@ import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.service.AccountEmailService;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -2005,7 +2006,8 @@ class SigningRoutesTest extends RepositoryTestBase {
                 new TrustedDeviceService(
                         twoFactorRepo, TokenHasher.forTesting("signing-pepper"), new TwoFactorSettings()),
                 passkeyModeService,
-                new UsageRecorder(new UsageRepository()));
+                new UsageRecorder(new UsageRepository()),
+                new DomainEventBus(Set.of()));
     }
 
     private static DocumentTemplateDraft draft() {

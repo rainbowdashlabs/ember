@@ -4,19 +4,21 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {managedMembers} from '@/api'
+import {useSession} from '@/composables/useSession'
 import type {ManagedAccess} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * Whether a member in the guardian's care may use messages between people. It stays off until a
  * guardian turns it on; turning it off again hides their conversations and stops new messages.
+ * While messages are turned off for the whole instance there is nothing to allow, so it is not shown.
  */
 const props = defineProps<{
   memberId: number
@@ -28,6 +30,8 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+const {sessionInfo} = useSession()
+const messagesOn = computed(() => sessionInfo.value?.messagesEnabled !== false)
 const failure = ref<Failure | null>(null)
 
 async function toggle(allowed: boolean) {
@@ -41,7 +45,7 @@ async function toggle(allowed: boolean) {
 </script>
 
 <template>
-  <div class="space-y-2 border-t border-(--border) pt-4">
+  <div v-if="messagesOn" class="space-y-2 border-t border-(--border) pt-4">
     <div class="flex items-start justify-between gap-4">
       <div>
         <FieldLabel>{{ t('profileManaged.access.messages') }}</FieldLabel>

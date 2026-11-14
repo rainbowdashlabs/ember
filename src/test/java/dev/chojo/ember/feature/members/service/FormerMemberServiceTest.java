@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -19,6 +20,8 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -42,7 +45,8 @@ class FormerMemberServiceTest extends RepositoryTestBase {
                 attendanceRepo,
                 profileFieldCore,
                 mock(DocumentService.class),
-                selfCheckService);
+                selfCheckService,
+                new DomainEventBus(Set.of()));
         station = stationRepo.create("FormerStation");
         account = accountRepo.create("former@test.com", "Former", "Member");
         member = stationMemberRepo.create(station.id(), account.id());

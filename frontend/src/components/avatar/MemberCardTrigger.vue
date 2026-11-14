@@ -11,14 +11,17 @@ import {useFloatingPanel} from '@/composables/useFloatingPanel'
 import {useDismiss} from '@/composables/useDismiss'
 import {useFinePointer} from '@/composables/useFinePointer'
 import {useExternalMember} from '@/composables/useExternalMember'
-import {loadMemberCard, loadPersonCards} from '@/composables/useMemberCards'
-import type {MemberCard, SharedMemberCard} from '@/api/generated/schema'
+import {loadMemberCard, loadPersonCards, loadWritableMember} from '@/composables/useMemberCards'
+import {useSession} from '@/composables/useSession'
+import type {MemberCard, MessagePersonResponse, SharedMemberCard} from '@/api/generated/schema'
 import type {PersonIdentity} from '@/util/personIdentity'
 
 /**
  * Opens a member's card from whatever names them: a name with its avatar, or a mention in a comment.
  * An identity that names an account rather than a member, as in messages, opens the person's cards
- * at every station the reader shares with them.
+ * at every station the reader shares with them. A member's card is read together with whether the
+ * reader may write to them, so the card is placed once with everything it shows. While messages are
+ * turned off for the instance that question is not asked.
  *
  * <p>With a mouse the card opens after the pointer has rested on the name for a moment, and stays
  * while the pointer moves into it, so its contents can be read and its names hovered. Focus resting
@@ -43,6 +46,7 @@ const HOVER_CLOSE_MS = 200
 
 const {t} = useI18n()
 const {finePointer} = useFinePointer()
+const {sessionInfo} = useSession()
 const external = useExternalMember(() => props.identity)
 const open = ref(false)
 const rootRef = ref<HTMLElement | null>(null)
@@ -50,6 +54,7 @@ const {panel, style, place} = useFloatingPanel(rootRef, open)
 const panelId = useId()
 const card = ref<MemberCard | null>(null)
 const shared = ref<readonly SharedMemberCard[] | null>(null)
+const writable = ref<MessagePersonResponse | null>(null)
 const state = ref<'loading' | 'failed' | 'ready' | 'external'>('loading')
 
 let openTimer: ReturnType<typeof setTimeout> | undefined
@@ -70,8 +75,12 @@ async function load() {
   if (card.value || shared.value || (!memberUid && !accountUid)) return
   state.value = 'loading'
   try {
-    if (memberUid) card.value = await loadMemberCard(memberUid)
-    else if (accountUid) shared.value = await loadPersonCards(accountUid)
+    if (memberUid) {
+      card.value = await loadMemberCard(memberUid)
+      if (!card.value.former && sessionInfo.value?.messagesEnabled !== false) writable.value = await loadWritableMember(memberUid).catch(() => null)
+    } else if (accountUid) {
+      shared.value = await loadPersonCards(accountUid)
+    }
     state.value = 'ready'
   } catch {
     state.value = 'failed'
@@ -182,7 +191,8 @@ onBeforeUnmount(clearTimers)
             role="dialog"
             tabindex="-1"
         >
-          <MemberProfileCard :card="card" :identity="identity" :name="name" :shared="shared" :state="state"/>
+          <MemberProfileCard :card="card" :identity="identity" :name="name" :shared="shared" :state="state"
+                             :writable="writable"/>
         </div>
       </div>
     </Teleport>

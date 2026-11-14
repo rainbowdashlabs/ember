@@ -31,6 +31,7 @@ export function useMessageWords() {
     function systemLine(line: SystemLineParts): string {
         const named = {author: nameOf(line.author), subject: nameOf(line.subject), name: line.text}
         if (line.systemKind === 'RENAMED' && !line.text) return t('messages.system.RENAMED_EMPTY', named)
+        if (line.systemKind === 'CLOSED' && !line.author) return t('messages.system.CLOSED_QUIETLY', named)
         return t(`messages.system.${line.systemKind ?? 'LEFT'}`, named)
     }
 
