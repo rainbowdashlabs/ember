@@ -14,6 +14,7 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
+import TabBar from '@/components/navigation/TabBar.vue'
 import EventGroupOverview from './eventgroupdetailview/EventGroupOverview.vue'
 import EventGroupMaterialsPanel from './eventgroupdetailview/EventGroupMaterialsPanel.vue'
 import AgreementSignersPanel from './eventdetailview/AgreementSignersPanel.vue'
@@ -56,6 +57,21 @@ const attendancePanel = ref<InstanceType<typeof EventGroupAttendancePanel> | nul
 
 const canEdit = computed(() => hasPermission(StationPermission.EVENT_EDIT))
 const canDecide = computed(() => hasPermission(StationPermission.EVENT_REGISTRATION))
+
+/**
+ * The page in three tabs, as an appointment's page is: what the event group is, signing up for it, and
+ * how the participants attended. Attendance is for whoever handles registrations, and the others never
+ * see the tab.
+ */
+const activeTab = ref<'info' | 'sign-up' | 'attendance'>('info')
+const tabs = computed(() => {
+  const entries = [
+    {key: 'info', label: t('eventGroups.tabInfo')},
+    {key: 'sign-up', label: t('eventGroups.tabSignUp')},
+  ]
+  if (canDecide.value) entries.push({key: 'attendance', label: t('eventGroups.tabAttendance')})
+  return entries
+})
 const readsWaitingLists = computed(() => hasPermission(StationPermission.WAITLIST_READ))
 const commentSource = computed(() => eventGroupCommentSource(eventGroupId.value))
 
@@ -127,20 +143,27 @@ async function deleteEventGroup() {
             {{ t('eventGroups.delete') }}
           </ErrorButton>
         </ButtonRow>
-        <EventGroupOverview :detail="detail" :current-member-id="currentMemberId" :member-names="memberNames" :on-changed="refresh"/>
-        <EventGroupMaterialsPanel :event-group-id="detail.eventGroup.id"/>
-        <EventGroupHouseholdPanel :detail="detail" :on-changed="refresh"/>
-        <EventGroupSignUpsPanel v-if="canDecide" ref="signUpsPanel" :detail="detail" :on-changed="refresh"/>
-        <EventGroupPartnerSignUpsPanel v-if="canDecide" :detail="detail" :on-changed="refresh"/>
-        <EventGroupAttendancePanel v-if="canDecide" ref="attendancePanel" :detail="detail"/>
-        <AgreementSignersPanel v-if="canDecide" :event-group-id="detail.eventGroup.id"/>
-        <EventGroupProbeVisitorsPanel v-if="readsWaitingLists" :parts="detail.parts"/>
-        <NeutralContainer v-if="canEdit">
-          <NoteEditor entity-type="EVENT_GROUP" :entity-id="eventGroupId"/>
-        </NeutralContainer>
-        <NeutralContainer>
-          <CommentSection :source="commentSource"/>
-        </NeutralContainer>
+        <TabBar v-model="activeTab" :tabs="tabs" linked/>
+        <div v-show="activeTab === 'info'" class="space-y-6" data-testid="event-group-tab-info">
+          <EventGroupOverview :detail="detail" :current-member-id="currentMemberId" :member-names="memberNames" :on-changed="refresh"/>
+          <EventGroupMaterialsPanel :event-group-id="detail.eventGroup.id"/>
+          <NeutralContainer v-if="canEdit">
+            <NoteEditor entity-type="EVENT_GROUP" :entity-id="eventGroupId"/>
+          </NeutralContainer>
+          <NeutralContainer>
+            <CommentSection :source="commentSource"/>
+          </NeutralContainer>
+        </div>
+        <div v-show="activeTab === 'sign-up'" class="space-y-6" data-testid="event-group-tab-sign-up">
+          <EventGroupHouseholdPanel :detail="detail" :on-changed="refresh"/>
+          <EventGroupSignUpsPanel v-if="canDecide" ref="signUpsPanel" :detail="detail" :on-changed="refresh"/>
+          <EventGroupPartnerSignUpsPanel v-if="canDecide" :detail="detail" :on-changed="refresh"/>
+          <AgreementSignersPanel v-if="canDecide" :event-group-id="detail.eventGroup.id"/>
+          <EventGroupProbeVisitorsPanel v-if="readsWaitingLists" :parts="detail.parts"/>
+        </div>
+        <div v-if="canDecide" v-show="activeTab === 'attendance'" data-testid="event-group-tab-attendance">
+          <EventGroupAttendancePanel ref="attendancePanel" :detail="detail"/>
+        </div>
       </div>
     </AsyncSection>
     <EventGroupCancelDialog v-model="cancelOpen" :busy="busy" @confirm="cancelEventGroup"/>
