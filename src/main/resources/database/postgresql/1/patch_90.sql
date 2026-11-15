@@ -62,23 +62,20 @@ CREATE TABLE IF NOT EXISTS ember_schema.conversation
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     last_activity_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     station_id           INT REFERENCES ember_schema.station (id) ON DELETE CASCADE,
-    audience             TEXT CHECK (audience IN ('STATION', 'GROUP', 'TAG')),
-    audience_group_id    INT REFERENCES ember_schema.member_group (id) ON DELETE SET NULL,
-    audience_tag_id      INT REFERENCES ember_schema.user_tag (id) ON DELETE SET NULL,
+    restriction_mode     TEXT        NOT NULL DEFAULT 'AND' CHECK (restriction_mode IN ('AND', 'OR')),
+    audience_named       BOOLEAN     NOT NULL DEFAULT FALSE,
+    audience_kinds       INT         NOT NULL DEFAULT 0 CHECK (audience_kinds >= 0),
     include_guardians    BOOLEAN     NOT NULL DEFAULT FALSE,
     closed_at            TIMESTAMPTZ,
     closed_by_account_id INT REFERENCES ember_schema.account (id) ON DELETE SET NULL,
     CHECK (kind <> 'DIRECT' OR name IS NULL),
     CONSTRAINT conversation_station_shape CHECK (
         CASE kind
-            WHEN 'STATION' THEN station_id IS NOT NULL AND audience IS NOT NULL AND name IS NOT NULL AND btrim(name) <> ''
+            WHEN 'STATION' THEN station_id IS NOT NULL AND name IS NOT NULL AND btrim(name) <> ''
                 AND owner_account_id IS NULL AND direct_pair IS NULL
-                AND (audience_group_id IS NULL OR audience = 'GROUP')
-                AND (audience_tag_id IS NULL OR audience = 'TAG')
-                AND (NOT include_guardians OR audience IN ('GROUP', 'TAG'))
                 AND (closed_by_account_id IS NULL OR closed_at IS NOT NULL)
-            ELSE station_id IS NULL AND audience IS NULL AND audience_group_id IS NULL AND audience_tag_id IS NULL
-                AND NOT include_guardians AND closed_at IS NULL AND closed_by_account_id IS NULL
+            ELSE station_id IS NULL AND NOT audience_named AND audience_kinds = 0 AND NOT include_guardians
+                AND closed_at IS NULL AND closed_by_account_id IS NULL
         END)
 );
 
@@ -86,20 +83,8 @@ CREATE INDEX IF NOT EXISTS conversation_station_idx
     ON ember_schema.conversation (station_id)
     WHERE station_id IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS conversation_open_station_wide_idx
-    ON ember_schema.conversation (station_id)
-    WHERE audience = 'STATION' AND closed_at IS NULL;
-
-CREATE UNIQUE INDEX IF NOT EXISTS conversation_open_group_idx
-    ON ember_schema.conversation (audience_group_id)
-    WHERE audience_group_id IS NOT NULL AND closed_at IS NULL;
-
-CREATE UNIQUE INDEX IF NOT EXISTS conversation_open_tag_idx
-    ON ember_schema.conversation (audience_tag_id)
-    WHERE audience_tag_id IS NOT NULL AND closed_at IS NULL;
-
 COMMENT ON TABLE ember_schema.conversation
-    IS 'A conversation between accounts: a direct one between two people, a group, or a station chat. Direct conversations and groups belong to the people in them; a station chat belongs to its station, and its members follow the station, a group or a tag.';
+    IS 'A conversation between accounts: a direct one between two people, a group, or a station chat. Direct conversations and groups belong to the people in them; a station chat belongs to its station, and its members follow its audience.';
 COMMENT ON COLUMN ember_schema.conversation.id
     IS 'Primary key.';
 COMMENT ON COLUMN ember_schema.conversation.uid
@@ -118,20 +103,49 @@ COMMENT ON COLUMN ember_schema.conversation.last_activity_at
     IS 'When anything was last written in it, which orders the list of conversations.';
 COMMENT ON COLUMN ember_schema.conversation.station_id
     IS 'The station a station chat belongs to. NULL for direct conversations and groups, which belong to no station.';
-COMMENT ON COLUMN ember_schema.conversation.audience
-    IS 'Whom a station chat is for: STATION for everybody at the station but trial members, GROUP for the members of a group, TAG for the members with a tag. NULL for every other kind.';
-COMMENT ON COLUMN ember_schema.conversation.audience_group_id
-    IS 'The group whose members a GROUP station chat is for. NULL for every other chat, and once the group is deleted; a chat left without its group is closed.';
-COMMENT ON COLUMN ember_schema.conversation.audience_tag_id
-    IS 'The tag whose members a TAG station chat is for. NULL for every other chat, and once the tag is deleted; a chat left without its tag is closed.';
+COMMENT ON COLUMN ember_schema.conversation.restriction_mode
+    IS 'How the entries of conversation_restriction combine for a station chat: AND or OR.';
+COMMENT ON COLUMN ember_schema.conversation.audience_named
+    IS 'Whether the audience of a station chat named anybody when it was set. A chat whose audience lost part of what it named takes nobody in and is closed, instead of taking in more people than it was set for.';
+COMMENT ON COLUMN ember_schema.conversation.audience_kinds
+    IS 'How many user types, groups and tags the audience of a station chat named when it was set. Fewer conversation_restriction rows of those kinds mean one was deleted, which closes the chat.';
 COMMENT ON COLUMN ember_schema.conversation.include_guardians
-    IS 'Whether the guardians of the people in a group or tag station chat are members of it as well. Always false for every other conversation.';
+    IS 'Whether the current guardians of everybody a station chat takes in are members too. FALSE for every other conversation.';
 COMMENT ON COLUMN ember_schema.conversation.closed_at
     IS 'When a station chat was closed: it stays readable for its members and takes nothing new. NULL while open and for every other kind.';
 COMMENT ON COLUMN ember_schema.conversation.closed_by_account_id
-    IS 'The account that closed a station chat. NULL while open, when it closed because its group or tag was deleted, and once that account is deleted.';
+    IS 'The account that closed a station chat. NULL while open, when it closed because everybody its audience named is gone, and once that account is deleted.';
 COMMENT ON CONSTRAINT conversation_station_shape ON ember_schema.conversation
-    IS 'A station chat names its station, audience and name and has no owner or pair; a group or tag id only goes with that audience, and guardians only with a group or tag. Every other kind leaves the station chat columns empty.';
+    IS 'A station chat names its station and name and has no owner or pair; its audience lives in conversation_restriction. Every other kind leaves the station chat columns empty.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.conversation_restriction
+(
+    id              SERIAL PRIMARY KEY,
+    conversation_id INT NOT NULL REFERENCES ember_schema.conversation (id) ON DELETE CASCADE,
+    user_type       TEXT,
+    group_id        INT REFERENCES ember_schema.member_group (id) ON DELETE CASCADE,
+    tag_id          INT REFERENCES ember_schema.user_tag (id) ON DELETE CASCADE,
+    member_id       INT REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    CHECK (num_nonnulls(user_type, group_id, tag_id, member_id) = 1)
+);
+
+CREATE INDEX IF NOT EXISTS idx_conversation_restriction_conversation
+    ON ember_schema.conversation_restriction (conversation_id);
+
+COMMENT ON TABLE ember_schema.conversation_restriction
+    IS 'Whom a station chat is for: one entry per user type, group, tag or member, combined by conversation.restriction_mode. A station chat without entries is for everybody at the station except trial members.';
+COMMENT ON COLUMN ember_schema.conversation_restriction.id
+    IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.conversation_restriction.conversation_id
+    IS 'The station chat.';
+COMMENT ON COLUMN ember_schema.conversation_restriction.user_type
+    IS 'Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set.';
+COMMENT ON COLUMN ember_schema.conversation_restriction.group_id
+    IS 'Required group. Exactly one of user_type/group_id/tag_id/member_id must be set.';
+COMMENT ON COLUMN ember_schema.conversation_restriction.tag_id
+    IS 'Required tag. Exactly one of user_type/group_id/tag_id/member_id must be set.';
+COMMENT ON COLUMN ember_schema.conversation_restriction.member_id
+    IS 'A member taken in by name. Exactly one of user_type/group_id/tag_id/member_id must be set.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.message
 (

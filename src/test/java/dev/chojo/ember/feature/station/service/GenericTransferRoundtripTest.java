@@ -17,13 +17,15 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.federation.service.LendingUidClashes;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
-import dev.chojo.ember.feature.messages.entity.ChatAudience;
 import dev.chojo.ember.feature.messages.repository.ConversationRepository;
 import dev.chojo.ember.feature.messages.repository.MessageReportRepository;
 import dev.chojo.ember.feature.messages.repository.MessageRepository;
 import dev.chojo.ember.feature.messages.repository.ReactionRepository;
 import dev.chojo.ember.feature.messages.repository.StationChatRepository;
 import dev.chojo.ember.feature.messages.service.MessageFixtures;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
@@ -342,6 +344,10 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
         assertEquals(result.stationId(), copy.ownerStationId(), "the partner's copy names its owner here again");
     }
 
+    private static RestrictionAudience groupAudience(int groupId) {
+        return new RestrictionAudience(List.of(), List.of(groupId), List.of(), List.of(), RestrictionMode.AND);
+    }
+
     /**
      * A station chat moves with its station: its group found again by its new id, its messages
      * with their authors found again by address, its members, reactions and reports. A private
@@ -360,7 +366,7 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
         memberGroupRepo.addMember(group.id(), benMember.id());
         var chat = messaging
                 .stationChats()
-                .open(sourceStation.id(), anna.id(), "Jugend", ChatAudience.GROUP, group.id(), null, false);
+                .open(sourceStation.id(), anna.id(), "Jugend", groupAudience(group.id()), false);
         int hello = messaging
                 .messages()
                 .send(anna.id(), chat.uid(), "Hallo", null)
@@ -393,7 +399,11 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
                 .filter(found -> found.name().equals("Jugend"))
                 .findFirst()
                 .orElseThrow();
-        assertEquals(arrivedGroup.id(), arrived.station().groupId());
+        assertEquals(
+                List.of(arrivedGroup.id()),
+                restrictionService
+                        .audienceOf(RestrictionType.STATION_CHAT, arrived.id())
+                        .groupIds());
         var newAnna = accountRepo.findByEmail(anna.email()).orElseThrow();
         var newBen = accountRepo.findByEmail(ben.email()).orElseThrow();
         var lines = new MessageRepository().before(arrived.id(), null, 10);

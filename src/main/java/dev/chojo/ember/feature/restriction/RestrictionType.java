@@ -126,6 +126,20 @@ public enum RestrictionType {
             "restriction_mode",
             StationPermission.PROCEDURE_MANAGER,
             false,
+            true),
+    /**
+     * Whom a station chat is for. It guards nothing itself: the chat's members follow it, and the
+     * members' rows are what lets somebody read the chat. Its audience is kept to those who handle
+     * the station's chats, since it says who talks with whom.
+     */
+    STATION_CHAT(
+            "conversation_restriction",
+            "conversation_id",
+            "conversation",
+            "id",
+            "restriction_mode",
+            StationPermission.MESSAGE_CHAT_MANAGE,
+            false,
             true);
 
     private final String table;

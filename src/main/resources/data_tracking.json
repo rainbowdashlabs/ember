@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:e448db5ba2125fe62e690b78a6fd8420c93259faaf0adf02122260f3078014b8",
-  "generatedAt": "2026-11-15T17:15:19Z",
+  "schemaHash": "sha256:0459a3b614875120d5ed24513cb4491933d07a383139c5716b6d0f4e25387b36",
+  "generatedAt": "2026-11-15T21:18:19Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6714,7 +6714,7 @@
     "conversation": {
       "feature": "messages",
       "scope": "STATION",
-      "tableHash": "sha256:bc06c9eeb1b6db718ce84c1f54e3337eb3515323245ca6476189875916e20f0c",
+      "tableHash": "sha256:2bb2226705fddd788c5ab217c897e8be8add542b9bf33a5772ead3c9e58bcf43",
       "columns": [
         {
           "name": "id",
@@ -6780,32 +6780,32 @@
           "description": "The station a station chat belongs to. NULL for direct conversations and groups, which belong to no station."
         },
         {
-          "name": "audience",
+          "name": "restriction_mode",
           "type": "text",
-          "nullable": true,
+          "nullable": false,
           "verified": true,
-          "description": "Whom a station chat is for: STATION for everybody at the station but trial members, GROUP for the members of a group, TAG for the members with a tag. NULL for every other kind."
+          "description": "How the entries of conversation_restriction combine for a station chat: AND or OR."
         },
         {
-          "name": "audience_group_id",
-          "type": "int4",
-          "nullable": true,
+          "name": "audience_named",
+          "type": "bool",
+          "nullable": false,
           "verified": true,
-          "description": "The group whose members a GROUP station chat is for. NULL for every other chat, and once the group is deleted; a chat left without its group is closed."
+          "description": "Whether the audience of a station chat named anybody when it was set. A chat whose audience lost part of what it named takes nobody in and is closed, instead of taking in more people than it was set for."
         },
         {
-          "name": "audience_tag_id",
+          "name": "audience_kinds",
           "type": "int4",
-          "nullable": true,
+          "nullable": false,
           "verified": true,
-          "description": "The tag whose members a TAG station chat is for. NULL for every other chat, and once the tag is deleted; a chat left without its tag is closed."
+          "description": "How many user types, groups and tags the audience of a station chat named when it was set. Fewer conversation_restriction rows of those kinds mean one was deleted, which closes the chat."
         },
         {
           "name": "include_guardians",
           "type": "bool",
           "nullable": false,
           "verified": true,
-          "description": "Whether the guardians of the people in a group or tag station chat are members of it as well. Always false for every other conversation."
+          "description": "Whether the current guardians of everybody a station chat takes in are members too. FALSE for every other conversation."
         },
         {
           "name": "closed_at",
@@ -6819,22 +6819,10 @@
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "The account that closed a station chat. NULL while open, when it closed because its group or tag was deleted, and once that account is deleted."
+          "description": "The account that closed a station chat. NULL while open, when it closed because everybody its audience named is gone, and once that account is deleted."
         }
       ],
       "foreignKeys": [
-        {
-          "column": "audience_group_id",
-          "refTable": "member_group",
-          "refColumn": "id",
-          "onDelete": "SET NULL"
-        },
-        {
-          "column": "audience_tag_id",
-          "refTable": "user_tag",
-          "refColumn": "id",
-          "onDelete": "SET NULL"
-        },
         {
           "column": "closed_by_account_id",
           "refTable": "account",
@@ -6874,11 +6862,9 @@
           "uid"
         ],
         "optionalReferences": [
-          "audience_group_id",
-          "audience_tag_id",
           "closed_by_account_id"
         ],
-        "rationale": "Only a station chat names a station, so only station chats move, with their station; direct conversations and groups belong to the accounts in them and stay. A chat's group or tag moves with the station; who closed it is found again where that account moved too. Each chat gets a new identity on the target, so a station moving back to an installation that still holds its old copy does not collide with it."
+        "rationale": "Only a station chat names a station, so only station chats move, with their station; direct conversations and groups belong to the accounts in them and stay. Whom a chat is for moves with it as its restriction rows; who closed it is found again where that account moved too. Each chat gets a new identity on the target, so a station moving back to an installation that still holds its old copy does not collide with it."
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -6911,7 +6897,7 @@
           }
         ]
       },
-      "description": "A conversation between accounts: a direct one between two people, a group, or a station chat. Direct conversations and groups belong to the people in them; a station chat belongs to its station, and its members follow the station, a group or a tag."
+      "description": "A conversation between accounts: a direct one between two people, a group, or a station chat. Direct conversations and groups belong to the people in them; a station chat belongs to its station, and its members follow its audience."
     },
     "conversation_member": {
       "feature": "messages",
@@ -7026,6 +7012,93 @@
         ]
       },
       "description": "An account taking part in a conversation, with how far it has read."
+    },
+    "conversation_restriction": {
+      "feature": "messages",
+      "scope": "STATION",
+      "tableHash": "sha256:b6495e1d2ff91632d0048dcc8833fe29707126ec9cb5203b219931934d2e401a",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "conversation_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station chat."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required group. Exactly one of user_type/group_id/tag_id/member_id must be set."
+        },
+        {
+          "name": "tag_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required tag. Exactly one of user_type/group_id/tag_id/member_id must be set."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "A member taken in by name. Exactly one of user_type/group_id/tag_id/member_id must be set."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "conversation_id",
+          "refTable": "conversation",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "tag_id",
+          "refTable": "user_tag",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Whom a station chat is for, structure of the chat rather than data about a member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Whom a station chat is for, structure of the chat rather than data about a member; a deleted member's row cascades away"
+      },
+      "description": "Whom a station chat is for: one entry per user type, group, tag or member, combined by conversation.restriction_mode. A station chat without entries is for everybody at the station except trial members."
     },
     "device_request": {
       "tableHash": "sha256:d33a692bc9fea0c224f56cdcbd5c7a4c3b697ab14b16921b340cd4bd8074ecdc",

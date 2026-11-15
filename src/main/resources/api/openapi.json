@@ -37330,7 +37330,7 @@
     },
     "/api/v1/messages/station-chats" : {
       "post" : {
-        "summary" : "Open a chat for the whole station, a group or a tag",
+        "summary" : "Open a chat for any audience of the station",
         "tags" : [ "Messages" ],
         "responses" : {
           "201" : {
@@ -37372,23 +37372,13 @@
                 }
               }
             }
-          },
-          "409" : {
-            "description" : "Conflict",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
           }
         },
         "requestBody" : {
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/OpenStationChatRequest"
+                "$ref" : "#/components/schemas/StationChatRequest"
               }
             }
           }
@@ -37418,6 +37408,72 @@
                 "schema" : {
                   "$ref" : "#/components/schemas/ErrorResponseWrapper"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/messages/station-chats/{conversationUid}" : {
+      "put" : {
+        "summary" : "Change the name, audience and guardians of one of the station's chats",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationChatResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "conversationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StationChatRequest"
               }
             }
           }
@@ -37462,124 +37518,6 @@
             "format" : "uuid"
           }
         } ]
-      }
-    },
-    "/api/v1/messages/station-chats/{conversationUid}/guardians" : {
-      "put" : {
-        "summary" : "Take the guardians of a group or tag chat's people in, or leave them out",
-        "tags" : [ "Messages" ],
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
-          },
-          "400" : {
-            "description" : "Bad Request",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          },
-          "403" : {
-            "description" : "Forbidden",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Not Found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          }
-        },
-        "parameters" : [ {
-          "name" : "conversationUid",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/StationChatGuardiansRequest"
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/messages/station-chats/{conversationUid}/name" : {
-      "put" : {
-        "summary" : "Rename one of the station's chats",
-        "tags" : [ "Messages" ],
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
-          },
-          "400" : {
-            "description" : "Bad Request",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          },
-          "403" : {
-            "description" : "Forbidden",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Not Found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          }
-        },
-        "parameters" : [ {
-          "name" : "conversationUid",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/StationChatNameRequest"
-              }
-            }
-          }
-        }
       }
     },
     "/api/v1/messages/station-chats/{conversationUid}/reopen" : {
@@ -57859,10 +57797,6 @@
         },
         "required" : [ "version", "body", "releasedAt", "compareUrl" ]
       },
-      "ChatAudience" : {
-        "type" : "string",
-        "enum" : [ "STATION", "GROUP", "TAG" ]
-      },
       "CheckItemResult" : {
         "type" : "object",
         "properties" : {
@@ -75607,32 +75541,6 @@
         },
         "required" : [ "fieldId", "requestUid", "documentId", "documentTitle", "memberName", "purpose", "fieldName", "role", "capacity", "memberId", "signerName", "statement" ]
       },
-      "OpenStationChatRequest" : {
-        "type" : "object",
-        "properties" : {
-          "name" : {
-            "type" : [ "string", "null" ]
-          },
-          "audience" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/ChatAudience"
-            }, {
-              "type" : "null"
-            } ]
-          },
-          "groupId" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "tagId" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "includeGuardians" : {
-            "type" : [ "boolean", "null" ]
-          }
-        }
-      },
       "Option" : {
         "type" : "object",
         "properties" : {
@@ -82386,7 +82294,7 @@
       },
       "RestrictionType" : {
         "type" : "string",
-        "enum" : [ "EVENT", "EVENT_VIEW", "EVENT_TEMPLATE", "EVENT_TEMPLATE_VIEW", "EVENT_GROUP", "EVENT_GROUP_VIEW", "QUIZ_TEST", "FORM", "NEWS", "KB_FOLDER", "KB_FILE", "DOCUMENT_TEMPLATE", "DOCUMENT_TEMPLATE_STATION_USE", "WITNESS_REACH", "ATTENDANCE_TEMPLATE_TIME_RULE", "ATTENDANCE_SESSION_TIME_RULE", "PROCEDURE", "PROCEDURE_TEMPLATE" ]
+        "enum" : [ "EVENT", "EVENT_VIEW", "EVENT_TEMPLATE", "EVENT_TEMPLATE_VIEW", "EVENT_GROUP", "EVENT_GROUP_VIEW", "QUIZ_TEST", "FORM", "NEWS", "KB_FOLDER", "KB_FILE", "DOCUMENT_TEMPLATE", "DOCUMENT_TEMPLATE_STATION_USE", "WITNESS_REACH", "ATTENDANCE_TEMPLATE_TIME_RULE", "ATTENDANCE_SESSION_TIME_RULE", "PROCEDURE", "PROCEDURE_TEMPLATE", "STATION_CHAT" ]
       },
       "ResultFieldCondition" : {
         "type" : "object",
@@ -85806,14 +85714,6 @@
         },
         "required" : [ "serialNumber", "subject", "sha256Fingerprint", "validFrom", "validUntil", "authoritySerialNumber", "revokedAt" ]
       },
-      "StationChatGuardiansRequest" : {
-        "type" : "object",
-        "properties" : {
-          "includeGuardians" : {
-            "type" : [ "boolean", "null" ]
-          }
-        }
-      },
       "StationChatInfo" : {
         "type" : "object",
         "properties" : {
@@ -85824,9 +85724,6 @@
           "stationName" : {
             "type" : "string"
           },
-          "audience" : {
-            "$ref" : "#/components/schemas/ChatAudience"
-          },
           "includeGuardians" : {
             "type" : "boolean"
           },
@@ -85834,13 +85731,23 @@
             "type" : "boolean"
           }
         },
-        "required" : [ "stationUid", "stationName", "audience", "includeGuardians", "closed" ]
+        "required" : [ "stationUid", "stationName", "includeGuardians", "closed" ]
       },
-      "StationChatNameRequest" : {
+      "StationChatRequest" : {
         "type" : "object",
         "properties" : {
           "name" : {
             "type" : [ "string", "null" ]
+          },
+          "audience" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionAudience"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "includeGuardians" : {
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -85855,20 +85762,12 @@
             "type" : "string"
           },
           "audience" : {
-            "$ref" : "#/components/schemas/ChatAudience"
-          },
-          "groupId" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "tagId" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "audienceName" : {
-            "type" : [ "string", "null" ]
+            "$ref" : "#/components/schemas/RestrictionAudience"
           },
           "includeGuardians" : {
+            "type" : "boolean"
+          },
+          "audienceGone" : {
             "type" : "boolean"
           },
           "members" : {
@@ -85889,7 +85788,7 @@
             } ]
           }
         },
-        "required" : [ "uid", "name", "audience", "groupId", "tagId", "audienceName", "includeGuardians", "members", "createdAt", "lastActivityAt", "closedAt" ]
+        "required" : [ "uid", "name", "audience", "includeGuardians", "audienceGone", "members", "createdAt", "lastActivityAt", "closedAt" ]
       },
       "StationClusterResponse" : {
         "type" : "object",

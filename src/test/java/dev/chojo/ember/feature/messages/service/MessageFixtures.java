@@ -6,6 +6,14 @@
 package dev.chojo.ember.feature.messages.service;
 
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
+import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
+import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.members.service.MemberPermissionResolver;
+import dev.chojo.ember.feature.members.service.PrivateTags;
 import dev.chojo.ember.feature.messages.repository.AccountBlockRepository;
 import dev.chojo.ember.feature.messages.repository.ConversationRepository;
 import dev.chojo.ember.feature.messages.repository.MessagePeopleRepository;
@@ -14,6 +22,10 @@ import dev.chojo.ember.feature.messages.repository.MessageRepository;
 import dev.chojo.ember.feature.messages.repository.ReactionRepository;
 import dev.chojo.ember.feature.messages.repository.StationChatRepository;
 import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.restriction.repository.RestrictionRepository;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
+import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.system.service.InstanceSettingsService;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 
@@ -89,7 +101,8 @@ public record MessageFixtures(
                         peopleRepo, conversationRepo, guards, new DomainEventBus(Set.of()), instance),
                 guards,
                 membership,
-                new StationChatService(stationChatRepo, conversationRepo, messageRepo, membership, signals),
+                new StationChatService(
+                        stationChatRepo, conversationRepo, messageRepo, membership, signals, restrictions()),
                 moderation,
                 new MessageReportService(
                         new MessageReportRepository(),
@@ -101,6 +114,23 @@ public record MessageFixtures(
                         stationChatRepo),
                 notifier,
                 instance);
+    }
+
+    /** The restriction service as the application wires it, over the test database. */
+    private static RestrictionService restrictions() {
+        var members = new StationMemberRepository();
+        var groups = new MemberGroupRepository();
+        var tags = new UserTagRepository();
+        var privateTags = new PrivateTags(tags);
+        return new RestrictionService(
+                new RestrictionRepository(),
+                members,
+                groups,
+                tags,
+                new KbAccessService(new KnowledgeBaseRepository(), groups, tags, privateTags),
+                new MemberPermissionResolver(
+                        members, groups, new ModuleAvailability(new StationRepository(), new ClusterRepository())),
+                privateTags);
     }
 
     /**

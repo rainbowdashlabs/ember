@@ -10,7 +10,6 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.MessageRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.messages.entity.ChatAudience;
 import dev.chojo.ember.feature.messages.entity.Conversation;
 import dev.chojo.ember.feature.messages.entity.Message;
 import dev.chojo.ember.feature.messages.entity.MessageView;
@@ -55,8 +54,7 @@ class MessageModerationTest extends MessageTestBase {
                 StationUserType.MANAGER);
         anna = memberOf(station, "Anna");
         ben = memberOf(station, "Ben");
-        chat = services.stationChats()
-                .open(station.id(), moderator.id(), "Alle", ChatAudience.STATION, null, null, false);
+        chat = services.stationChats().open(station.id(), moderator.id(), "Alle", null, false);
     }
 
     @Test

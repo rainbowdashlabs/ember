@@ -46418,7 +46418,7 @@ export interface paths {
             };
         };
         put?: never;
-        /** Open a chat for the whole station, a group or a tag */
+        /** Open a chat for any audience of the station */
         post: {
             parameters: {
                 query?: never;
@@ -46428,7 +46428,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["OpenStationChatRequest"];
+                    "application/json": components["schemas"]["StationChatRequest"];
                 };
             };
             responses: {
@@ -46468,8 +46468,67 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
-                /** @description Conflict */
-                409: {
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/messages/station-chats/{conversationUid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change the name, audience and guardians of one of the station's chats */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    conversationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["StationChatRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationChatResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -46479,6 +46538,7 @@ export interface paths {
                 };
             };
         };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -46533,140 +46593,6 @@ export interface paths {
                 };
             };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/messages/station-chats/{conversationUid}/guardians": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Take the guardians of a group or tag chat's people in, or leave them out */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    conversationUid: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["StationChatGuardiansRequest"];
-                };
-            };
-            responses: {
-                /** @description No Content */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/messages/station-chats/{conversationUid}/name": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Rename one of the station's chats */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    conversationUid: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["StationChatNameRequest"];
-                };
-            };
-            responses: {
-                /** @description No Content */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponseWrapper"];
-                    };
-                };
-            };
-        };
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -70194,8 +70120,6 @@ export interface components {
             noticeAudience: number;
             startMoves: boolean;
         };
-        /** @enum {string} */
-        ChatAudience: "STATION" | "GROUP" | "TAG";
         CheckItemResult: {
             /** Format: int32 */
             inventoryId?: number | null;
@@ -76317,15 +76241,6 @@ export interface components {
             signerName: string | null;
             statement: string;
         };
-        OpenStationChatRequest: {
-            audience?: components["schemas"]["ChatAudience"] | null;
-            /** Format: int32 */
-            groupId?: number | null;
-            includeGuardians?: boolean | null;
-            name?: string | null;
-            /** Format: int32 */
-            tagId?: number | null;
-        };
         Option: {
             key: string;
             label: string;
@@ -78603,7 +78518,7 @@ export interface components {
             userTypes?: components["schemas"]["StationUserType"][] | null;
         };
         /** @enum {string} */
-        RestrictionType: "EVENT" | "EVENT_VIEW" | "EVENT_TEMPLATE" | "EVENT_TEMPLATE_VIEW" | "EVENT_GROUP" | "EVENT_GROUP_VIEW" | "QUIZ_TEST" | "FORM" | "NEWS" | "KB_FOLDER" | "KB_FILE" | "DOCUMENT_TEMPLATE" | "DOCUMENT_TEMPLATE_STATION_USE" | "WITNESS_REACH" | "ATTENDANCE_TEMPLATE_TIME_RULE" | "ATTENDANCE_SESSION_TIME_RULE" | "PROCEDURE" | "PROCEDURE_TEMPLATE";
+        RestrictionType: "EVENT" | "EVENT_VIEW" | "EVENT_TEMPLATE" | "EVENT_TEMPLATE_VIEW" | "EVENT_GROUP" | "EVENT_GROUP_VIEW" | "QUIZ_TEST" | "FORM" | "NEWS" | "KB_FOLDER" | "KB_FILE" | "DOCUMENT_TEMPLATE" | "DOCUMENT_TEMPLATE_STATION_USE" | "WITNESS_REACH" | "ATTENDANCE_TEMPLATE_TIME_RULE" | "ATTENDANCE_SESSION_TIME_RULE" | "PROCEDURE" | "PROCEDURE_TEMPLATE" | "STATION_CHAT";
         ResultFieldCondition: {
             /** Format: int32 */
             fieldId?: number;
@@ -79744,34 +79659,28 @@ export interface components {
             validFrom: components["schemas"]["Instant"];
             validUntil: components["schemas"]["Instant"];
         };
-        StationChatGuardiansRequest: {
-            includeGuardians?: boolean | null;
-        };
         StationChatInfo: {
-            audience: components["schemas"]["ChatAudience"];
             closed: boolean;
             includeGuardians: boolean;
             stationName: string;
             /** Format: uuid */
             stationUid: string;
         };
-        StationChatNameRequest: {
+        StationChatRequest: {
+            audience?: components["schemas"]["RestrictionAudience"] | null;
+            includeGuardians?: boolean | null;
             name?: string | null;
         };
         StationChatResponse: {
-            audience: components["schemas"]["ChatAudience"];
-            audienceName: string | null;
+            audience: components["schemas"]["RestrictionAudience"];
+            audienceGone: boolean;
             closedAt: components["schemas"]["Instant"] | null;
             createdAt: components["schemas"]["Instant"];
-            /** Format: int32 */
-            groupId: number | null;
             includeGuardians: boolean;
             lastActivityAt: components["schemas"]["Instant"];
             /** Format: int32 */
             members: number;
             name: string;
-            /** Format: int32 */
-            tagId: number | null;
             /** Format: uuid */
             uid: string;
         };
@@ -81842,7 +81751,6 @@ export type ChangelogEntry = components['schemas']['ChangelogEntry'];
 export type ChangeNotice = components['schemas']['ChangeNotice'];
 export type ChangePasswordRequest = components['schemas']['ChangePasswordRequest'];
 export type ChangePreview = components['schemas']['ChangePreview'];
-export type ChatAudience = components['schemas']['ChatAudience'];
 export type CheckItemResult = components['schemas']['CheckItemResult'];
 export type ChecklistDetailResponse = components['schemas']['ChecklistDetailResponse'];
 export type ChecklistItemRequest = components['schemas']['ChecklistItemRequest'];
@@ -82686,7 +82594,6 @@ export type OnboardingStatus = components['schemas']['OnboardingStatus'];
 export type OnboardingTaskState = components['schemas']['OnboardingTaskState'];
 export type OnboardingTaskView = components['schemas']['OnboardingTaskView'];
 export type OpenSignatureResponse = components['schemas']['OpenSignatureResponse'];
-export type OpenStationChatRequest = components['schemas']['OpenStationChatRequest'];
 export type Option = components['schemas']['Option'];
 export type Ordering = components['schemas']['Ordering'];
 export type OrderingView = components['schemas']['OrderingView'];
@@ -83160,9 +83067,8 @@ export type StartConversationRequest = components['schemas']['StartConversationR
 export type StationAiProvider = components['schemas']['StationAiProvider'];
 export type StationApplication = components['schemas']['StationApplication'];
 export type StationCertificateInfo = components['schemas']['StationCertificateInfo'];
-export type StationChatGuardiansRequest = components['schemas']['StationChatGuardiansRequest'];
 export type StationChatInfo = components['schemas']['StationChatInfo'];
-export type StationChatNameRequest = components['schemas']['StationChatNameRequest'];
+export type StationChatRequest = components['schemas']['StationChatRequest'];
 export type StationChatResponse = components['schemas']['StationChatResponse'];
 export type StationClusterResponse = components['schemas']['StationClusterResponse'];
 export type StationDetail = components['schemas']['StationDetail'];
@@ -83583,12 +83489,6 @@ export const CellContentType = {
     TABS: "TABS",
     UPCOMING_EVENTS: "UPCOMING_EVENTS",
     VIDEO: "VIDEO",
-} as const;
-
-export const ChatAudience = {
-    GROUP: "GROUP",
-    STATION: "STATION",
-    TAG: "TAG",
 } as const;
 
 export const CheckResult = {
@@ -84609,6 +84509,7 @@ export const RestrictionType = {
     PROCEDURE: "PROCEDURE",
     PROCEDURE_TEMPLATE: "PROCEDURE_TEMPLATE",
     QUIZ_TEST: "QUIZ_TEST",
+    STATION_CHAT: "STATION_CHAT",
     WITNESS_REACH: "WITNESS_REACH",
 } as const;
 
