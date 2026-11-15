@@ -20,6 +20,7 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.manageOverview.pagesTitle')">
       <p>{{ t('helpCenter.manageOverview.pagesText') }}</p>
+      <p>{{ t('helpCenter.manageOverview.chatsText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.manageOverview.pdfTitle')">

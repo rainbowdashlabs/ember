@@ -6322,6 +6322,7 @@ volumes:
             whatIsText: 'Hier findest du alle Einstellungen, die deine Wache betreffen - vom Namen und Logo über den E-Mail-Versand bis hin zur Konfiguration von Anwesenheitsvorlagen und Profilfeldern. Nur Verwalter (Manager) haben Zugriff auf diesen Bereich.',
             pagesTitle: 'Was findest du hier?',
             pagesText: 'Die allgemeinen Wach-Einstellungen (Name, Logo, E-Mail, Module), die Konfiguration von Anwesenheitsvorlagen und die Konfiguration der Mitglieder-Profilfelder.',
+            chatsText: 'Unter „Wachenchats“ legst du Chats für die ganze Wache, eine Gruppe oder einen Tag an. Diesen Punkt siehst du, wenn du Wachenchats verwalten darfst, auch ohne andere Rechte in der Verwaltung.',
             pdfTitle: 'Adresse der Instanz auf PDFs',
             pdfText: 'In der Fußzeile jedes exportierten PDFs steht die Adresse dieser Instanz. Wenn deine Wache Listen an '
                 + 'Leute weitergibt, die hier kein Konto haben, oder die Instanz von außen gar nicht erreichbar ist, kannst du '

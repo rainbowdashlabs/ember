@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import StationChatsView from '~/views/stationview/messages/StationChatsView.vue'
+import StationChatsHelp from '~/views/helpcenter/stationview/manage/StationChatsHelp.vue'
 
 definePageMeta({
-  layout: 'station',
-  name: 'message-station-chats',
+  layout: 'helpcenter',
+  name: 'help-station-chats',
 })
 </script>
 
 <template>
-  <StationChatsView />
+  <StationChatsHelp />
 </template>

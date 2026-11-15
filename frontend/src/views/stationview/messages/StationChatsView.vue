@@ -31,7 +31,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
 </script>
 
 <template>
-  <ViewContent :title="t('pages.message-station-chats.title')" :subtitle="t('pages.message-station-chats.subtitle')">
+  <ViewContent :title="t('pages.station-chats.title')" :subtitle="t('pages.station-chats.subtitle')">
     <div class="space-y-4">
       <PrimaryButton :icon="['fas', 'plus']" data-testid="station-chat-open" @click="opening = true">
         {{ t('stationChats.open.title') }}

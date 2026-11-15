@@ -953,7 +953,7 @@ export default {
             title: 'Änderungen',
             subtitle: 'Offene Profiländerungen prüfen',
         },
-        'message-station-chats': {
+        'station-chats': {
             title: 'Wachenchats',
             subtitle: 'Chats für die ganze Wache, eine Gruppe oder einen Tag',
         },
