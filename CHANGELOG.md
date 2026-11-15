@@ -57,6 +57,7 @@ People who share a station can write to each other directly, in groups, and in c
 - **Two closing warnings at once for one appointment.** In some cases an appointment whose sign-up closed within a day of being set up or changed sent two warnings at once, one for three days and one for one day. It now sends the nearer one only, as event groups do.
 - **Imported appointments landed on the import time.** In some cases a file imported when creating appointments in a batch produced appointments at the time of the import, for example when its date column had an unusual name or a two-digit year. Such files are now read on the dates and times they give, and a line that cannot be read, or that ends before it starts, is named instead of becoming an appointment.
 - **Batch import file picker was unstyled.** Choosing the file for creating appointments in a batch showed the bare browser control. It now uses the same upload button as the other imports.
+- **Batches with a registration deadline failed.** Creating appointments in a batch with a registration deadline failed with a message about the request, although nothing on the page was marked. The deadline is now sent in a form the server reads, and a deadline switched off again is left out.
 
 ## v26.24.2
 

@@ -37,6 +37,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useEventEditDeps} from '@/composables/useEventEditDeps'
 import {describeFailure} from '@/util/failure'
+import {localInputToInstant} from '@/util/format'
 import {asSaved} from './eventshared/eventQuestions'
 
 const {t} = useI18n()
@@ -138,6 +139,15 @@ function onScheduleDone(newRows: BatchRow[]) {
   step.value = 3
 }
 
+/**
+ * The registration deadline as the instant the server reads, or nothing where the batch takes no
+ * registration or the switch is off. The field holds the local date and time picked, without a zone.
+ */
+function deadlineToSend(): string | undefined {
+  if (!requiresRegistration.value || !hasDeadline.value) return undefined
+  return localInputToInstant(registrationDeadline.value) || undefined
+}
+
 const {running: saving, failure: createFailure, run: createBatch} = useAsyncAction(async () => {
   failure.value = null
   const inlineFields: BatchFieldEntryDto[] = fieldDefs.value.map(asSaved).flatMap(f => (f.name?.trim() ? [{
@@ -156,7 +166,7 @@ const {running: saving, failure: createFailure, run: createBatch} = useAsyncActi
     rows: rows.value,
     requiresRegistration: requiresRegistration.value,
     requiresConfirmation: requiresConfirmation.value,
-    registrationDeadline: registrationDeadline.value || undefined,
+    registrationDeadline: deadlineToSend(),
     restriction: restriction.value,
     viewRestriction: viewRestriction.value,
   })
