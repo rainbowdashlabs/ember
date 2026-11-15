@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.QuestionValues;
@@ -53,7 +54,8 @@ class EventFieldRegistrationServiceTest extends RepositoryTestBase {
                 memberEligibility,
                 eventRepo,
                 attendanceRepo,
-                eventFieldRegistrationService);
+                eventFieldRegistrationService,
+                new EventGroupRepository());
         registrationService = new EventRegistrationService(
                 eventRegistrationRepo,
                 new EventRegistrationFieldRepository(),

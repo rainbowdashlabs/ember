@@ -16,6 +16,8 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventRegistrationService;
+import dev.chojo.ember.feature.events.service.EventSharingGuards;
 import dev.chojo.ember.feature.events.service.FederatedRegistrantService;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import org.junit.jupiter.api.Test;
@@ -54,8 +56,7 @@ class EventSharingRoutesTest {
         when(registrants.identify(registration))
                 .thenReturn(new MemberIdentity(UUID.fromString("00000000-0000-0000-0000-000000000099"), member)
                         .withDisplay("Kim", "Wache Nord", null, null));
-        var harness = RouteHarness.serving(
-                new EventSharingRoutes(crud, events, registrants, mock(EventRequirementService.class)));
+        var harness = RouteHarness.serving(routes(crud, events, registrants));
 
         var answer = harness.request(client -> client.get(
                 PREFIX + "/events/4/federation-registrations?date=2026-05-01",
@@ -75,8 +76,7 @@ class EventSharingRoutesTest {
         when(events.partnerPlaces(4)).thenReturn(List.of(new EventPartnerPlaces(4, 7, 5, true)));
         when(events.countPartnerPlaces(4, 7, LocalDate.of(2026, 5, 1)))
                 .thenReturn(new EventFederationService.PartnerPlaceCount(2, 5, true));
-        var harness = RouteHarness.serving(new EventSharingRoutes(
-                crud, events, mock(FederatedRegistrantService.class), mock(EventRequirementService.class)));
+        var harness = RouteHarness.serving(routes(crud, events, mock(FederatedRegistrantService.class)));
 
         harness.run((server, client) -> {
             var registrar = harness.as(TestSessions.member(STATION, StationPermission.EVENT_REGISTRATION));
@@ -99,8 +99,7 @@ class EventSharingRoutesTest {
         when(event.stationId()).thenReturn(STATION);
         when(crud.findById(4)).thenReturn(Optional.of(event));
         when(crud.isEventGroupPart(4)).thenReturn(true);
-        var harness = RouteHarness.serving(new EventSharingRoutes(
-                crud, events, mock(FederatedRegistrantService.class), mock(EventRequirementService.class)));
+        var harness = RouteHarness.serving(routes(crud, events, mock(FederatedRegistrantService.class)));
 
         harness.run((server, client) -> {
             var sharer = harness.as(TestSessions.member(
@@ -120,5 +119,16 @@ class EventSharingRoutesTest {
                     EventRefusal.EVENT_GROUP_PART_SHARED_WITH_EVENT_GROUP,
                     refusalOf(client.delete(PREFIX + "/events/4/federation", null, sharer)));
         });
+    }
+
+    private static EventSharingRoutes routes(
+            EventCrudService crud, EventFederationService events, FederatedRegistrantService registrants) {
+        return new EventSharingRoutes(
+                crud,
+                events,
+                registrants,
+                mock(EventRequirementService.class),
+                mock(EventRegistrationService.class),
+                new EventSharingGuards(crud));
     }
 }

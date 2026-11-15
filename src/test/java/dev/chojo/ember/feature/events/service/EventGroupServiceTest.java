@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventCreated;
@@ -186,9 +187,11 @@ class EventGroupServiceTest extends RepositoryTestBase {
         assertRefused(
                 EventRefusal.EVENT_GROUP_NAME_MISSING,
                 () -> create(details("Kurs", false), List.of(new EventGroupSetDraft(null, "", 1))));
-        assertRefused(
-                EventRefusal.EVENT_GROUP_SET_MINIMUM_NEGATIVE,
+        var negative = assertThrows(
+                RefusalResponse.class,
                 () -> create(details("Kurs", false), List.of(new EventGroupSetDraft(null, "Teile", -1))));
+        assertEquals(EventRefusal.EVENT_GROUP_SET_MINIMUM_OUT_OF_RANGE, negative.refusal());
+        assertEquals(RefusalDetail.range(0, null), negative.detail(), "a new set holds no parts yet");
         assertRefused(
                 EventRefusal.EVENT_GROUP_LIMIT_NOT_POSITIVE,
                 () -> create(new EventGroupDetails("Kurs", null, 0, null, false, null), sets));
@@ -379,14 +382,16 @@ class EventGroupServiceTest extends RepositoryTestBase {
         var test = set(eventGroup, "Prüfung");
         service.addPart(station.id(), eventGroup.id(), oneTime(40).id(), practice.id());
 
-        assertRefused(
-                EventRefusal.EVENT_GROUP_SET_MINIMUM_ABOVE_PARTS,
+        var abovePart = assertThrows(
+                RefusalResponse.class,
                 () -> service.replaceSets(
                         station.id(),
                         eventGroup.id(),
                         List.of(
                                 new EventGroupSetDraft(practice.id(), "Übung", 3),
                                 new EventGroupSetDraft(test.id(), "Prüfung", 1))));
+        assertEquals(EventRefusal.EVENT_GROUP_SET_MINIMUM_OUT_OF_RANGE, abovePart.refusal());
+        assertEquals(RefusalDetail.range(0, 1L), abovePart.detail(), "the set holds one part and requires none");
 
         var filling = service.replaceSets(
                 station.id(),
@@ -986,7 +991,8 @@ class EventGroupServiceTest extends RepositoryTestBase {
                 memberEligibility,
                 eventRepo,
                 attendanceRepo,
-                eventFieldRegistrationService);
+                eventFieldRegistrationService,
+                new EventGroupRepository());
 
         assertEquals(
                 List.of("Ort", "Mitbringen"),
@@ -994,7 +1000,7 @@ class EventGroupServiceTest extends RepositoryTestBase {
                         .map(AppointmentField::name)
                         .toList());
         assertTrue(fields.findOwnByEvent(part.id()).isEmpty());
-        assertTrue(fields.findByEvent(part.id()).stream().allMatch(field -> field.id() < 0));
+        assertTrue(fields.findByEvent(part.id()).stream().allMatch(AppointmentField::inherited));
 
         fields.replaceFields(part.id(), List.of(valueField("ort", FieldType.LOCATION, "Zeltplatz", false)));
 
@@ -1053,7 +1059,8 @@ class EventGroupServiceTest extends RepositoryTestBase {
                 memberEligibility,
                 eventRepo,
                 attendanceRepo,
-                eventFieldRegistrationService);
+                eventFieldRegistrationService,
+                new EventGroupRepository());
     }
 
     @Test
@@ -1211,15 +1218,12 @@ class EventGroupServiceTest extends RepositoryTestBase {
 
         service.setRequired(station.id(), eventGroup.id(), sunday.id(), false);
         assertEquals(2, set(eventGroup, "Übung").minimum(), "taking the mark off leaves the minimum");
-        assertEquals(
-                EventRefusal.EVENT_GROUP_SET_MINIMUM_BELOW_REQUIRED,
-                assertThrows(
-                                RefusalResponse.class,
-                                () -> service.replaceSets(
-                                        station.id(),
-                                        eventGroup.id(),
-                                        List.of(new EventGroupSetDraft(practice.id(), "Übung", 0))))
-                        .refusal());
+        var belowRequired = assertThrows(
+                RefusalResponse.class,
+                () -> service.replaceSets(
+                        station.id(), eventGroup.id(), List.of(new EventGroupSetDraft(practice.id(), "Übung", 0))));
+        assertEquals(EventRefusal.EVENT_GROUP_SET_MINIMUM_OUT_OF_RANGE, belowRequired.refusal());
+        assertEquals(RefusalDetail.range(1, 2L), belowRequired.detail(), "one part is required, two are held");
         service.replaceSets(station.id(), eventGroup.id(), List.of(new EventGroupSetDraft(practice.id(), "Übung", 1)));
         assertEquals(1, set(eventGroup, "Übung").minimum());
     }

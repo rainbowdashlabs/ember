@@ -51,7 +51,7 @@ public class EventRegistrationRepository {
     /**
      * Ties a registration to the event group sign-up it was chosen with, or lets it go.
      *
-     * @param id                   the registration
+     * @param id                       the registration
      * @param eventGroupRegistrationId the event group sign-up, or null to let it go
      */
     public void linkToEventGroup(int id, @Nullable Integer eventGroupRegistrationId) {
@@ -90,27 +90,6 @@ public class EventRegistrationRepository {
                 WHERE group_registration_id IN (SELECT id FROM event_group_registration WHERE event_group_id = :event_group_id)
                 ORDER BY member_id, event_id;""", COLUMNS)
                 .single(call().bind("event_group_id", eventGroupId))
-                .map(EventRegistration.map())
-                .all();
-    }
-
-    /**
-     * A member's registrations for any of the given appointments.
-     *
-     * @param memberId the member
-     * @param eventIds the appointments
-     * @return the registrations, by appointment
-     */
-    public List<EventRegistration> findByMemberInEvents(int memberId, Collection<Integer> eventIds) {
-        if (eventIds.isEmpty()) return List.of();
-        return query("""
-                SELECT %s
-                FROM event_registration
-                WHERE member_id = :member_id
-                  AND event_id = ANY(:event_ids)
-                ORDER BY event_id, event_date;""", COLUMNS)
-                .single(call().bind("member_id", memberId)
-                        .bind("event_ids", List.copyOf(eventIds), PostgreSqlTypes.INTEGER))
                 .map(EventRegistration.map())
                 .all();
     }

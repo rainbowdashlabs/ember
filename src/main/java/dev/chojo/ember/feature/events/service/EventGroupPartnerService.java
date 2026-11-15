@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.events.service.EventGroupRules.SetResult;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.transport.FederationTransport;
+import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
@@ -88,8 +89,8 @@ public class EventGroupPartnerService {
     /**
      * How an event group is shared.
      *
-     * @param stationId the station asking
-     * @param eventGroupId  the event group
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
      * @return the share, empty where the event group is not shared
      */
     public Optional<EventGroupShare> findShare(int stationId, int eventGroupId) {
@@ -104,16 +105,16 @@ public class EventGroupPartnerService {
      * this station, which mean nothing at a partner, so the event group would stand open to everybody
      * there. Nor is one whose own documents, or a part's, partners could not sign alike.
      *
-     * @param stationId  the station asking
-     * @param eventGroupId   the event group
-     * @param scope      every partner, or the ones named
-     * @param partnerIds the partners named
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
+     * @param scope        every partner, or the ones named
+     * @param partnerIds   the partners named
      */
     public void share(int stationId, int eventGroupId, ShareScope scope, List<Integer> partnerIds) {
         eventGroups.requireEventGroup(stationId, eventGroupId);
         var targets = scope == ShareScope.SPECIFIC ? List.copyOf(partnerIds) : List.<Integer>of();
         Transactions.run(() -> {
-            gate.lockEventGroup(stationId, eventGroupId);
+            eventGroups.lockEventGroup(stationId, eventGroupId);
             if (!eventGroups.viewAudience(eventGroupId).namesNobody()
                     || !eventGroups.registrationAudience(eventGroupId).namesNobody()) {
                 throw EventRefusal.RESTRICTED_EVENT_NOT_SHARED.raise();
@@ -131,13 +132,13 @@ public class EventGroupPartnerService {
     /**
      * Stops sharing an event group and its parts. Partner sign-ups already made stay.
      *
-     * @param stationId the station asking
-     * @param eventGroupId  the event group
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
      */
     public void unshare(int stationId, int eventGroupId) {
         eventGroups.requireEventGroup(stationId, eventGroupId);
         Transactions.run(() -> {
-            gate.lockEventGroup(stationId, eventGroupId);
+            eventGroups.lockEventGroup(stationId, eventGroupId);
             for (var part : eventGroups.findParts(eventGroupId)) {
                 federation.removeShare(part.eventId());
             }
@@ -152,14 +153,17 @@ public class EventGroupPartnerService {
     }
 
     /**
-     * The event groups of this station shared with a partner.
+     * Holds a partner's request to the event groups this station shares with it.
      *
-     * @param partnerId this station's record of the partner
-     * @param stationId this station
-     * @return the ids of the shared event groups
+     * @param partner      the partnership the request arrived on
+     * @param eventGroupId the event group asked for
+     * @return the event group's id
      */
-    public List<Integer> sharedEventGroupIds(int partnerId, int stationId) {
-        return partners.findSharedEventGroupIds(partnerId, stationId);
+    public int requireSharedWith(ServingPartner partner, int eventGroupId) {
+        if (!partners.isSharedWith(eventGroupId, partner.partnerId(), partner.servingStationId())) {
+            throw EventRefusal.EVENT_GROUP_NOT_HERE.raise();
+        }
+        return eventGroupId;
     }
 
     /**
@@ -167,7 +171,7 @@ public class EventGroupPartnerService {
      * withdraw after the event group stopped being shared with their station, so no place stays taken that
      * nobody can give back.
      *
-     * @param eventGroupId       the event group
+     * @param eventGroupId   the event group
      * @param partnerId      the partner
      * @param remoteMemberId the member
      * @return true for a pending or accepted sign-up
@@ -182,7 +186,7 @@ public class EventGroupPartnerService {
      * Signs a partner's member up for an event group with a choice of its parts.
      *
      * @param stationId      this station
-     * @param eventGroupId       the event group
+     * @param eventGroupId   the event group
      * @param partnerId      the partner the member belongs to
      * @param remoteMemberId the member
      * @param partIds        the chosen parts
@@ -220,7 +224,7 @@ public class EventGroupPartnerService {
      * Changes the parts a partner's member chose. A part already past cannot be given up.
      *
      * @param stationId      this station
-     * @param eventGroupId       the event group
+     * @param eventGroupId   the event group
      * @param partnerId      the partner
      * @param remoteMemberId the member
      * @param partIds        the parts chosen from now on
@@ -255,13 +259,13 @@ public class EventGroupPartnerService {
      * Takes a partner member's sign-up back with every part. Parts already past keep their record.
      *
      * @param stationId      this station
-     * @param eventGroupId       the event group
+     * @param eventGroupId   the event group
      * @param partnerId      the partner
      * @param remoteMemberId the member
      */
     public void withdraw(int stationId, int eventGroupId, int partnerId, UUID remoteMemberId) {
         Transactions.run(() -> {
-            gate.lockEventGroup(stationId, eventGroupId);
+            eventGroups.lockEventGroup(stationId, eventGroupId);
             var current = requireActive(eventGroupId, partnerId, remoteMemberId);
             var parts = gate.lockParts(eventGroupId);
             var standing = Standing.of(stationId, parts, calendar);
@@ -279,17 +283,17 @@ public class EventGroupPartnerService {
     /**
      * Accepts or turns down a partner member's sign-up, and every part chosen with it.
      *
-     * @param stationId this station
-     * @param eventGroupId  the event group
-     * @param signUpId  the partner sign-up
-     * @param decision  {@link RegistrationStatus#ACCEPTED} or {@link RegistrationStatus#DENIED}
+     * @param stationId    this station
+     * @param eventGroupId the event group
+     * @param signUpId     the partner sign-up
+     * @param decision     {@link RegistrationStatus#ACCEPTED} or {@link RegistrationStatus#DENIED}
      */
     public void decide(int stationId, int eventGroupId, int signUpId, RegistrationStatus decision) {
         if (decision != RegistrationStatus.ACCEPTED && decision != RegistrationStatus.DENIED) {
             throw EventRefusal.EVENT_GROUP_DECISION_UNKNOWN.raise();
         }
         Transactions.run(() -> {
-            var eventGroup = gate.lockEventGroup(stationId, eventGroupId);
+            var eventGroup = eventGroups.lockEventGroup(stationId, eventGroupId);
             if (decision == RegistrationStatus.ACCEPTED && eventGroup.cancelled()) {
                 throw EventRefusal.EVENT_GROUP_CANCELLED.raise();
             }
@@ -313,7 +317,7 @@ public class EventGroupPartnerService {
      *
      * @param eventGroupId   the event group
      * @param eventGroupName its name
-     * @param reason     why, as told to the people signed up, or null
+     * @param reason         why, as told to the people signed up, or null
      */
     public void tellCancelled(int eventGroupId, String eventGroupName, @Nullable String reason) {
         var byPartner = partners.findByEventGroup(eventGroupId).stream()
@@ -334,7 +338,7 @@ public class EventGroupPartnerService {
     /**
      * Where the given members of one partner stand in an event group.
      *
-     * @param eventGroupId        the event group
+     * @param eventGroupId    the event group
      * @param partnerId       the partner
      * @param remoteMemberIds the members asked about
      * @return one standing per member, in the order asked
@@ -368,8 +372,8 @@ public class EventGroupPartnerService {
      * Every partner sign-up of an event group that holds, waits for or was turned down for a place, with the
      * member as this station shows them.
      *
-     * @param stationId the station asking
-     * @param eventGroupId  the event group
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
      * @return the partner sign-ups, oldest first
      */
     public List<PartnerSignUp> signUps(int stationId, int eventGroupId) {

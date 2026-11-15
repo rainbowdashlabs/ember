@@ -35,6 +35,7 @@ public class EventGroupCancellationService {
     private static final Logger log = LoggerFactory.getLogger(EventGroupCancellationService.class);
 
     private final EventGroupRepository eventGroups;
+    private final EventGroupService eventGroupService;
     private final EventGroupRegistrationRepository signUps;
     private final EventRepository events;
     private final EventCancellationService cancellation;
@@ -48,8 +49,10 @@ public class EventGroupCancellationService {
             EventRepository events,
             EventCancellationService cancellation,
             OccurrenceCalendar calendar,
-            DomainEventBus eventBus) {
+            DomainEventBus eventBus,
+            EventGroupService eventGroupService) {
         this.eventGroups = eventGroups;
+        this.eventGroupService = eventGroupService;
         this.signUps = signUps;
         this.events = events;
         this.cancellation = cancellation;
@@ -60,10 +63,10 @@ public class EventGroupCancellationService {
     /**
      * Calls an event group off with every part still to come.
      *
-     * @param stationId   the station asking
-     * @param eventGroupId    the event group
-     * @param reason      why, as told to the people signed up, or null
-     * @param cancelledBy the member calling it off, or null
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
+     * @param reason       why, as told to the people signed up, or null
+     * @param cancelledBy  the member calling it off, or null
      */
     public void cancel(int stationId, int eventGroupId, @Nullable String reason, @Nullable Integer cancelledBy) {
         if (!callOff(stationId, eventGroupId, reason, cancelledBy, CancellationCause.MANUAL, () -> true)) {
@@ -94,16 +97,12 @@ public class EventGroupCancellationService {
             @Nullable Integer cancelledBy,
             CancellationCause cause,
             BooleanSupplier stillWanted) {
-        var eventGroup = eventGroups
-                .findById(eventGroupId)
-                .filter(found -> found.stationId() == stationId)
-                .orElseThrow(EventRefusal.EVENT_GROUP_NOT_HERE::raise);
-        boolean calledOff = Transactions.call(() -> {
-            eventGroups.lockEventGroup(eventGroupId);
-            if (!stillWanted.getAsBoolean()) return false;
-            return eventGroups.cancel(eventGroupId, reason);
+        var eventGroup = Transactions.call(() -> {
+            var locked = eventGroupService.lockEventGroup(stationId, eventGroupId);
+            if (!stillWanted.getAsBoolean()) return null;
+            return eventGroups.cancel(eventGroupId, reason) ? locked : null;
         });
-        if (!calledOff) return false;
+        if (eventGroup == null) return false;
         try {
             for (var part : eventGroups.findParts(eventGroupId)) {
                 callOffPart(stationId, part.eventId(), reason, cancelledBy);

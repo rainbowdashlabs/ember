@@ -23,12 +23,12 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class EventGroupSettingsRepository {
 
     /**
-     * @param groupId the event group
+     * @param eventGroupId the event group
      * @return its attendance template and category, empty for no such event group
      */
-    public Optional<DateSettingIds> findOfGroup(int groupId) {
+    public Optional<DateSettingIds> findOfEventGroup(int eventGroupId) {
         return query("SELECT template_id, category_id FROM event_group WHERE id = :id;")
-                .single(call().bind("id", groupId))
+                .single(call().bind("id", eventGroupId))
                 .map(DateSettingIds.map())
                 .first();
     }
@@ -36,13 +36,13 @@ public class EventGroupSettingsRepository {
     /**
      * Sets the attendance template and category an event group hands to its parts.
      *
-     * @param groupId    the event group
-     * @param templateId the attendance template, or null for none
-     * @param categoryId the category, or null for none
+     * @param eventGroupId the event group
+     * @param templateId   the attendance template, or null for none
+     * @param categoryId   the category, or null for none
      */
-    public void setOfGroup(int groupId, @Nullable Integer templateId, @Nullable Integer categoryId) {
+    public void setOfEventGroup(int eventGroupId, @Nullable Integer templateId, @Nullable Integer categoryId) {
         query("UPDATE event_group SET template_id = :template_id, category_id = :category_id WHERE id = :id;")
-                .single(call().bind("id", groupId)
+                .single(call().bind("id", eventGroupId)
                         .bind("template_id", templateId)
                         .bind("category_id", categoryId))
                 .update();

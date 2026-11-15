@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.feature.events.entity.EventGroupPart;
+import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import jakarta.inject.Inject;
@@ -78,8 +79,19 @@ public class EventGroupPartDates {
     }
 
     private Optional<PartDate> dateOf(int eventId) {
-        return events.findById(eventId).flatMap(event -> calendar.forStation(event.stationId())
-                .ruleOf(event)
-                .map(rule -> new PartDate(eventId, rule.first())));
+        return events.findById(eventId)
+                .flatMap(event -> dayOf(calendar, event))
+                .map(date -> new PartDate(eventId, date));
+    }
+
+    /**
+     * The one day a part of an event group falls on, as the station's calendar reads it.
+     *
+     * @param calendar the occurrence calendar
+     * @param part     the part
+     * @return its day, empty where it has no start
+     */
+    static Optional<LocalDate> dayOf(OccurrenceCalendar calendar, StationEvent part) {
+        return calendar.forStation(part.stationId()).ruleOf(part).map(rule -> rule.first());
     }
 }

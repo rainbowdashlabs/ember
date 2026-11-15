@@ -65,13 +65,13 @@ public class EventReminderRepository {
     /**
      * The reminder lead times an event group hands to its parts, ascending.
      *
-     * @param groupId the event group
+     * @param eventGroupId the event group
      * @return the days-before values
      */
-    public List<Integer> findGroupDays(int groupId) {
+    public List<Integer> findEventGroupDays(int eventGroupId) {
         return query(
                         "SELECT days_before FROM event_group_reminder WHERE event_group_id = :event_group_id ORDER BY days_before;")
-                .single(call().bind("event_group_id", groupId))
+                .single(call().bind("event_group_id", eventGroupId))
                 .map(row -> row.getInt("days_before"))
                 .all();
     }
@@ -79,18 +79,18 @@ public class EventReminderRepository {
     /**
      * Replaces the reminder lead times an event group hands to its parts, dropping duplicates.
      *
-     * @param groupId    the event group
-     * @param daysBefore the new days-before values, each above zero
+     * @param eventGroupId the event group
+     * @param daysBefore   the new days-before values, each above zero
      */
-    public void replaceGroupDays(int groupId, List<Integer> daysBefore) {
+    public void replaceEventGroupDays(int eventGroupId, List<Integer> daysBefore) {
         query("DELETE FROM event_group_reminder WHERE event_group_id = :event_group_id;")
-                .single(call().bind("event_group_id", groupId))
+                .single(call().bind("event_group_id", eventGroupId))
                 .delete();
         query("""
                 INSERT INTO event_group_reminder(event_group_id, days_before)
                 SELECT DISTINCT :event_group_id, days
                 FROM unnest(:days::INT[]) AS chosen(days);""")
-                .single(call().bind("event_group_id", groupId).bind("days", daysBefore, PostgreSqlTypes.INTEGER))
+                .single(call().bind("event_group_id", eventGroupId).bind("days", daysBefore, PostgreSqlTypes.INTEGER))
                 .insert();
     }
 

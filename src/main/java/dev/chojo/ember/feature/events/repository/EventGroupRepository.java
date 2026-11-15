@@ -6,18 +6,21 @@
 package dev.chojo.ember.feature.events.repository;
 
 import de.chojo.sadu.mapper.wrapper.Row;
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupPart;
 import dev.chojo.ember.feature.events.entity.EventGroupPartSummary;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupTally;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.sql.SQLException;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -187,9 +190,9 @@ public class EventGroupRepository {
      * Adds a set to an event group.
      *
      * @param eventGroupId the event group
-     * @param name     its name
-     * @param minimum  how many of its parts a sign-up has to choose
-     * @param position its place among the sets
+     * @param name         its name
+     * @param minimum      how many of its parts a sign-up has to choose
+     * @param position     its place among the sets
      * @return the set
      */
     public EventGroupSet createSet(int eventGroupId, String name, int minimum, int position) {
@@ -263,6 +266,26 @@ public class EventGroupRepository {
                 .all()
                 .stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    /**
+     * How many sign-ups of an event group, of this station and of partner stations together, are in
+     * one of the given statuses.
+     *
+     * @param eventGroupId the event group
+     * @param statuses     the statuses counted
+     * @return the sign-ups in them
+     */
+    public int countSignUps(int eventGroupId, Collection<RegistrationStatus> statuses) {
+        var names = statuses.stream().map(Enum::name).toList();
+        return SqlSupport.count(
+                """
+                SELECT (SELECT count(*)
+                        FROM event_group_registration
+                        WHERE event_group_id = :event_group_id AND status = ANY(:statuses))
+                     + (SELECT count(*)
+                        FROM event_group_partner_registration
+                        WHERE event_group_id = :event_group_id AND status = ANY(:statuses));""", call().bind("event_group_id", eventGroupId).bind("statuses", names, PostgreSqlTypes.TEXT));
     }
 
     /**
@@ -348,16 +371,6 @@ public class EventGroupRepository {
      */
     public void lockEventGroup(int eventGroupId) {
         SqlSupport.exists("SELECT 1 FROM event_group WHERE id = :id FOR UPDATE;", call().bind("id", eventGroupId));
-    }
-
-    /**
-     * Locks an appointment for the rest of the running transaction, so it cannot become a part of
-     * two event groups, or be signed up for on its own, while it is being added.
-     *
-     * @param eventId the appointment
-     */
-    public void lockEvent(int eventId) {
-        SqlSupport.exists("SELECT 1 FROM station_event WHERE id = :id FOR UPDATE;", call().bind("id", eventId));
     }
 
     /**
@@ -493,7 +506,7 @@ public class EventGroupRepository {
      * Gives a part the partner share of its event group, where the event group is shared.
      *
      * @param eventGroupId the event group
-     * @param eventId  the part
+     * @param eventId      the part
      */
     public void handDownShare(int eventGroupId, int eventId) {
         query("""
@@ -561,7 +574,7 @@ public class EventGroupRepository {
      * Gives every part of an event group the sign-up of the event group: parts take sign-ups, confirm them as
      * the event group does and close with it, and carry no limit, closing days or minimum of their own.
      *
-     * @param eventGroupId             the event group
+     * @param eventGroupId         the event group
      * @param requiresConfirmation whether the event group confirms sign-ups
      * @param deadline             when the event group closes, or null
      */
@@ -604,7 +617,7 @@ public class EventGroupRepository {
      * Calls an event group off.
      *
      * @param eventGroupId the event group
-     * @param reason   why, or null
+     * @param reason       why, or null
      * @return false where it was called off already
      */
     public boolean cancel(int eventGroupId, @Nullable String reason) {
@@ -730,8 +743,8 @@ public class EventGroupRepository {
     /**
      * Notes that the warning for a lead time went out for an event group.
      *
-     * @param eventGroupId   the event group
-     * @param daysBefore the lead time
+     * @param eventGroupId the event group
+     * @param daysBefore   the lead time
      */
     public void markClosingWarned(int eventGroupId, int daysBefore) {
         query("""
@@ -746,8 +759,8 @@ public class EventGroupRepository {
      * The current members of a station who never answered an event group: neither signed up nor withdrew.
      * Whether the event group is meant for them is not decided here.
      *
-     * @param eventGroupId  the event group
-     * @param stationId the station
+     * @param eventGroupId the event group
+     * @param stationId    the station
      * @return the members
      */
     public List<Integer> findUnansweredMemberIds(int eventGroupId, int stationId) {
@@ -768,7 +781,7 @@ public class EventGroupRepository {
     /**
      * An event group whose sign-ups closed with some still waiting.
      *
-     * @param eventGroupId     the event group
+     * @param eventGroupId the event group
      * @param stationId    its station
      * @param name         its name
      * @param pendingCount how many wait for a decision
@@ -778,9 +791,9 @@ public class EventGroupRepository {
     /**
      * An event group whose sign-ups close soon.
      *
-     * @param eventGroupId  the event group
-     * @param stationId its station
-     * @param name      its name
+     * @param eventGroupId the event group
+     * @param stationId    its station
+     * @param name         its name
      */
     public record ClosingEventGroup(int eventGroupId, int stationId, String name) {}
 }

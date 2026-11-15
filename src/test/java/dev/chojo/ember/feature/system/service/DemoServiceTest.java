@@ -337,11 +337,13 @@ class DemoServiceTest extends RepositoryTestBase {
                         memberEligibility,
                         eventRepo,
                         attendanceRepo,
-                        eventFieldRegistrationService),
+                        eventFieldRegistrationService,
+                        new EventGroupRepository()),
                 occurrenceCalendar,
                 mock(MediaLibraryService.class),
                 new Api(),
-                new EventGroupRepository());
+                new EventGroupRepository(),
+                eventServices.registration());
         var newsFederationService = new NewsFederationService(
                 newsFederationRepo,
                 federationService,
@@ -451,7 +453,8 @@ class DemoServiceTest extends RepositoryTestBase {
                         noOpBus,
                         memberNameResolver,
                         eventGroupQuestions,
-                        new EventGroupPartnerRepository()),
+                        new EventGroupPartnerRepository(),
+                        newEventGroupService()),
                 eventGroupQuestions,
                 new EventGroupPartFactory(eventServices.crud(), eventGroupService),
                 new EventGroupSettingsService(
@@ -469,7 +472,8 @@ class DemoServiceTest extends RepositoryTestBase {
                         memberEligibility,
                         eventRepo,
                         attendanceRepo,
-                        eventFieldRegistrationService),
+                        eventFieldRegistrationService,
+                        new EventGroupRepository()),
                 demoClock);
         var containerSvc =
                 new InventoryContainerService(containerRepo, containerKindRepo, inventoryRepo, itemCustodyService);

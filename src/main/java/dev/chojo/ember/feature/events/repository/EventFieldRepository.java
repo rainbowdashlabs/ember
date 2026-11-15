@@ -320,16 +320,16 @@ public class EventFieldRepository {
      * The fields of an event group as its own page shows them. They belong to no appointment, so they
      * carry event id 0.
      *
-     * @param groupId the event group
+     * @param eventGroupId the event group
      * @return its fields in order
      */
-    public List<AppointmentField> findByGroup(int groupId) {
+    public List<AppointmentField> findByEventGroup(int eventGroupId) {
         return query("""
                 SELECT f.id, 0 AS event_id, %s
                 FROM event_group_field f
                 WHERE f.event_group_id = :event_group_id
                 ORDER BY f.position, f.id;""", GROUP_FIELD_COLUMNS)
-                .single(call().bind("event_group_id", groupId))
+                .single(call().bind("event_group_id", eventGroupId))
                 .map(AppointmentField.map())
                 .all();
     }
@@ -376,7 +376,7 @@ public class EventFieldRepository {
                         ? field.withValue(EventGroupFieldEntry.shownValue(
                                 field.fieldType(),
                                 field.value(),
-                                entries.getOrDefault(entryKey(-field.id(), field.eventId()), List.of())))
+                                entries.getOrDefault(entryKey(field.groupFieldId(), field.eventId()), List.of())))
                         : field)
                 .toList();
     }
@@ -461,7 +461,7 @@ public class EventFieldRepository {
      * @param groupFieldId the field
      * @return the group's id and the field, or empty where there is no such field
      */
-    public Optional<Map.Entry<Integer, AppointmentField>> findGroupField(int groupFieldId) {
+    public Optional<Map.Entry<Integer, AppointmentField>> findEventGroupField(int groupFieldId) {
         return query("""
                 SELECT f.id, 0 AS event_id, f.event_group_id, %s
                 FROM event_group_field f
@@ -478,60 +478,26 @@ public class EventFieldRepository {
      * @param groupFieldId the field
      * @param value        the members, as stored
      */
-    public void updateGroupValue(int groupFieldId, String value) {
+    public void updateEventGroupValue(int groupFieldId, String value) {
         query("UPDATE event_group_field SET value = :value WHERE id = :id;")
                 .single(call().bind("id", groupFieldId).bind("value", value))
                 .update();
     }
 
     /**
-     * The event group an appointment is a part of.
-     *
-     * @param eventId the appointment
-     * @return the group's id, or empty where it is a part of none
-     */
-    public Optional<Integer> findGroupOfEvent(int eventId) {
-        return query("""
-                SELECT s.event_group_id
-                FROM station_event e
-                    JOIN event_group_set s ON s.id = e.event_group_set_id
-                WHERE e.id = :event_id;""")
-                .single(call().bind("event_id", eventId))
-                .map(row -> row.getInt("event_group_id"))
-                .first();
-    }
-
-    /**
-     * The appointments of an event group.
-     *
-     * @param groupId the event group
-     * @return its parts
-     */
-    public List<Integer> findPartIds(int groupId) {
-        return query("""
-                SELECT e.id
-                FROM station_event e
-                    JOIN event_group_set s ON s.id = e.event_group_set_id
-                WHERE s.event_group_id = :event_group_id;""")
-                .single(call().bind("event_group_id", groupId))
-                .map(row -> row.getInt("id"))
-                .all();
-    }
-
-    /**
      * Whether an event group still takes people: not called off, and its closing date, where it has
      * one, still ahead.
      *
-     * @param groupId the event group
+     * @param eventGroupId the event group
      * @return whether people may still put themselves in
      */
-    public boolean groupTakesPeople(int groupId) {
+    public boolean eventGroupTakesPeople(int eventGroupId) {
         return SqlSupport.exists("""
                 SELECT 1
                 FROM event_group
                 WHERE id = :id
                   AND NOT cancelled
-                  AND (registration_deadline IS NULL OR registration_deadline > now());""", call().bind("id", groupId));
+                  AND (registration_deadline IS NULL OR registration_deadline > now());""", call().bind("id", eventGroupId));
     }
 
     /**
@@ -559,21 +525,21 @@ public class EventFieldRepository {
      * longer names goes with its entries; an id that is not one of the group's fields is written as a
      * new field.
      *
-     * @param groupId the event group
-     * @param fields  the fields in their new order
+     * @param eventGroupId the event group
+     * @param fields       the fields in their new order
      */
-    public void replaceGroupFields(int groupId, List<EventFieldDraft> fields) {
+    public void replaceEventGroupFields(int eventGroupId, List<EventFieldDraft> fields) {
         var kept = fields.stream()
                 .map(EventFieldDraft::id)
                 .filter(id -> id != null && id > 0)
                 .toList();
         query("DELETE FROM event_group_field WHERE event_group_id = :event_group_id AND NOT (id = ANY(:kept));")
-                .single(call().bind("event_group_id", groupId).bind("kept", kept, PostgreSqlTypes.INTEGER))
+                .single(call().bind("event_group_id", eventGroupId).bind("kept", kept, PostgreSqlTypes.INTEGER))
                 .delete();
         for (int i = 0; i < fields.size(); i++) {
             var field = fields.get(i);
             Integer id = field.id();
-            if (id != null && id > 0) dropEntriesOnKindChange(groupId, id, field.fieldType());
+            if (id != null && id > 0) dropEntriesOnKindChange(eventGroupId, id, field.fieldType());
             boolean updated = id != null
                     && id > 0
                     && query("""
@@ -581,13 +547,13 @@ public class EventFieldRepository {
                                     SET name = :name, field_type = :field_type, config = :config::JSONB, value = :value,
                                         position = :position, overview = :overview, "public" = :public
                                     WHERE id = :id AND event_group_id = :event_group_id;""")
-                            .single(groupFieldCall(groupId, field, i).bind("id", id))
+                            .single(groupFieldCall(eventGroupId, field, i).bind("id", id))
                             .update()
                             .changed();
             if (updated) continue;
             query("""
                     INSERT INTO event_group_field(event_group_id, name, field_type, config, value, position, overview, "public")
-                    VALUES (:event_group_id, :name, :field_type, :config::JSONB, :value, :position, :overview, :public);""").single(groupFieldCall(groupId, field, i)).insert();
+                    VALUES (:event_group_id, :name, :field_type, :config::JSONB, :value, :position, :overview, :public);""").single(groupFieldCall(eventGroupId, field, i)).insert();
         }
     }
 
@@ -595,7 +561,7 @@ public class EventFieldRepository {
      * Takes away the entries of a group field whose kind changes, since they speak about members of a
      * field that may no longer name any, or names one where it named many.
      */
-    private void dropEntriesOnKindChange(int groupId, int groupFieldId, FieldType fieldType) {
+    private void dropEntriesOnKindChange(int eventGroupId, int groupFieldId, FieldType fieldType) {
         query("""
                 DELETE FROM event_group_field_entry e
                 USING event_group_field f
@@ -604,23 +570,13 @@ public class EventFieldRepository {
                   AND f.event_group_id = :event_group_id
                   AND f.field_type <> :field_type;""")
                 .single(call().bind("id", groupFieldId)
-                        .bind("event_group_id", groupId)
+                        .bind("event_group_id", eventGroupId)
                         .bind("field_type", fieldType))
                 .delete();
     }
 
-    /**
-     * Locks an event group for the rest of the running transaction, so two people stepping into one
-     * of its member fields at once do not write over each other.
-     *
-     * @param groupId the event group
-     */
-    public void lockGroup(int groupId) {
-        SqlSupport.exists("SELECT 1 FROM event_group WHERE id = :id FOR UPDATE;", call().bind("id", groupId));
-    }
-
-    private static Call groupFieldCall(int groupId, EventFieldDraft field, int position) {
-        return call().bind("event_group_id", groupId)
+    private static Call groupFieldCall(int eventGroupId, EventFieldDraft field, int position) {
+        return call().bind("event_group_id", eventGroupId)
                 .bind("name", field.name())
                 .bind("field_type", field.fieldType())
                 .bind("config", field.config().toJson())

@@ -252,7 +252,7 @@ public class EventGroupRoutes implements Routes {
                 audienceOr(request.view()),
                 new EventGroupContent(draftsOf(request.questions()), fieldDraftsOf(request.fields())),
                 request.appointmentId());
-        fields.reconcileGroup(eventGroup.id());
+        fields.reconcileEventGroup(eventGroup.id());
         ctx.status(HttpStatus.CREATED).json(detailOf(session, eventGroup));
     }
 
@@ -293,7 +293,7 @@ public class EventGroupRoutes implements Routes {
                 request.registration(),
                 request.view(),
                 new EventGroupContent(draftsOf(request.questions()), fieldDraftsOf(request.fields())));
-        fields.reconcileGroup(eventGroup.id());
+        fields.reconcileEventGroup(eventGroup.id());
         ctx.json(detailOf(session, eventGroup));
     }
 
@@ -313,7 +313,7 @@ public class EventGroupRoutes implements Routes {
     private void selfRegisterField(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var eventGroup = visibleEventGroup(ctx, session);
-        ctx.json(fields.toggleGroupSelfRegistration(
+        ctx.json(fields.toggleEventGroupSelfRegistration(
                 eventGroup.id(), pathInt(ctx, "fieldId"), session.member().id(), runsEventGroups(session)));
     }
 
@@ -770,7 +770,7 @@ public class EventGroupRoutes implements Routes {
                 eventGroups.viewAudience(eventGroup.id()),
                 asked,
                 eventGroups.findFields(eventGroup.id()).stream()
-                        .map(field -> fields.asSeenOnGroup(
+                        .map(field -> fields.asSeenOnEventGroup(
                                 eventGroup.id(), field, session.member().id(), runsEventGroups(session)))
                         .toList(),
                 signUpsOf(
@@ -894,7 +894,7 @@ public class EventGroupRoutes implements Routes {
     /**
      * An event group with everything its page shows.
      *
-     * @param eventGroup      the event group
+     * @param eventGroup   the event group
      * @param sets         its sets in order
      * @param parts        its parts in date order
      * @param registration who may sign up
@@ -916,16 +916,16 @@ public class EventGroupRoutes implements Routes {
     /**
      * One member's standing in an event group.
      *
-     * @param memberId     the member's id, which sign-ups and decisions for them name
-     * @param member       the member
-     * @param status       the sign-up's status, or null where the member is not signed up
-     * @param registeredAt when they signed up, or null
-     * @param parts        the parts that count for the rules, in id order
-     * @param sets         how those parts stand against every set
-     * @param answers      the answers given to the event group's questions, those kept for organisers only
-     *                     where the reader may read them
+     * @param memberId       the member's id, which sign-ups and decisions for them name
+     * @param member         the member
+     * @param status         the sign-up's status, or null where the member is not signed up
+     * @param registeredAt   when they signed up, or null
+     * @param parts          the parts that count for the rules, in id order
+     * @param sets           how those parts stand against every set
+     * @param answers        the answers given to the event group's questions, those kept for organisers only
+     *                       where the reader may read them
      * @param answersMissing whether a standing sign-up still owes an answer to a required question
-     * @param mayRegister  whether the member is one of the people the event group takes
+     * @param mayRegister    whether the member is one of the people the event group takes
      */
     public record EventGroupSignUp(
             int memberId,
@@ -941,12 +941,12 @@ public class EventGroupRoutes implements Routes {
     /**
      * A new event group.
      *
-     * @param details      what it holds
-     * @param sets         its sets in order, at least one
-     * @param registration who may sign up, or null for everybody who may see it
-     * @param view         who may see it, or null for everybody
-     * @param questions    what everybody signing up is asked, or null for nothing
-     * @param fields       what every appointment shows, or null for nothing
+     * @param details       what it holds
+     * @param sets          its sets in order, at least one
+     * @param registration  who may sign up, or null for everybody who may see it
+     * @param view          who may see it, or null for everybody
+     * @param questions     what everybody signing up is asked, or null for nothing
+     * @param fields        what every appointment shows, or null for nothing
      * @param appointmentId a one-time appointment that becomes the first part, in the first set, or
      *                      null; where it cannot join, nothing is created
      */
@@ -1048,7 +1048,7 @@ public class EventGroupRoutes implements Routes {
     /**
      * An event group still waiting on an answer, and everybody in the household who owes one.
      *
-     * @param eventGroupId             the event group
+     * @param eventGroupId         the event group
      * @param name                 its name
      * @param registrationDeadline when sign-ups close
      * @param members              who still owes an answer

@@ -40,7 +40,7 @@ import java.util.Optional;
 @Singleton
 public class EventGroupSettingsService {
     private final EventGroupService eventGroups;
-    private final EventGroupRepository groupRepository;
+    private final EventGroupRepository eventGroupRepository;
     private final EventGroupSettingsRepository settings;
     private final EventReminderRepository reminders;
     private final EventFieldDefaultService fieldDefaults;
@@ -51,7 +51,7 @@ public class EventGroupSettingsService {
     @Inject
     public EventGroupSettingsService(
             EventGroupService eventGroups,
-            EventGroupRepository groupRepository,
+            EventGroupRepository eventGroupRepository,
             EventGroupSettingsRepository settings,
             EventReminderRepository reminders,
             EventFieldDefaultService fieldDefaults,
@@ -59,7 +59,7 @@ public class EventGroupSettingsService {
             AttendanceTemplateGuards templateGuards,
             EventCategoryRepository categories) {
         this.eventGroups = eventGroups;
-        this.groupRepository = groupRepository;
+        this.eventGroupRepository = eventGroupRepository;
         this.settings = settings;
         this.reminders = reminders;
         this.fieldDefaults = fieldDefaults;
@@ -110,10 +110,9 @@ public class EventGroupSettingsService {
                                 new EventFieldDefault(eventGroupId, entry.fieldId(), entry.source(), entry.value()))
                         .toList());
         return Transactions.call(() -> {
-            groupRepository.lockEventGroup(eventGroupId);
-            eventGroups.requireEventGroup(stationId, eventGroupId);
-            settings.setOfGroup(eventGroupId, templateId, categoryId);
-            reminders.replaceGroupDays(eventGroupId, days);
+            eventGroups.lockEventGroup(stationId, eventGroupId);
+            settings.setOfEventGroup(eventGroupId, templateId, categoryId);
+            reminders.replaceEventGroupDays(eventGroupId, days);
             fieldDefaults.replaceForGroup(eventGroupId, defaults);
             return read(eventGroupId);
         });
@@ -127,9 +126,9 @@ public class EventGroupSettingsService {
      * @return the settings, empty for an appointment that is not a part of an event group of the station
      */
     public Optional<EventGroupPartSettings> ofPart(int stationId, int eventId) {
-        return groupRepository
+        return eventGroupRepository
                 .findPart(eventId)
-                .filter(part -> groupRepository
+                .filter(part -> eventGroupRepository
                         .findById(part.eventGroupId())
                         .filter(group -> group.stationId() == stationId)
                         .isPresent())
@@ -141,11 +140,11 @@ public class EventGroupSettingsService {
     }
 
     private EventGroupSettings read(int eventGroupId) {
-        var ids = settings.findOfGroup(eventGroupId).orElse(new DateSettingIds(null, null));
+        var ids = settings.findOfEventGroup(eventGroupId).orElse(new DateSettingIds(null, null));
         return new EventGroupSettings(
                 ids.templateId(),
                 ids.categoryId(),
-                reminders.findGroupDays(eventGroupId),
+                reminders.findEventGroupDays(eventGroupId),
                 fieldDefaults.findForGroup(eventGroupId));
     }
 

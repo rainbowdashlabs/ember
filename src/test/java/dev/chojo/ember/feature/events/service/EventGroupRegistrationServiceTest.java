@@ -45,6 +45,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -133,7 +134,8 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
                 bus,
                 memberNameResolver,
                 questions,
-                new EventGroupPartnerRepository());
+                new EventGroupPartnerRepository(),
+                newEventGroupService());
         zone = occurrenceCalendar.zoneOf(station.id());
         eventGroup = jugendflamme(null, false, Instant.now().plus(Duration.ofDays(5)));
     }
@@ -189,8 +191,20 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
     }
 
     private Map<Integer, RegistrationStatus> partsOf(StationMember member) {
-        return eventRegistrationRepo.findByMemberInEvents(member.id(), List.of(sat1, sun1, sat2, test)).stream()
+        return registrationsOf(member, List.of(sat1, sun1, sat2, test)).stream()
                 .collect(Collectors.toMap(EventRegistration::eventId, EventRegistration::status));
+    }
+
+    private EventGroupRegistrationService.EventGroupStanding standingOf(StationMember member) {
+        return service.standings(eventGroup.id(), List.of(member.id())).getFirst();
+    }
+
+    private List<EventRegistration> registrationsOf(StationMember member, List<Integer> eventIds) {
+        return eventIds.stream()
+                .flatMap(eventId -> eventRegistrationRepo.findByEvent(eventId).stream())
+                .filter(registration -> registration.memberId() == member.id())
+                .sorted(Comparator.comparing(EventRegistration::eventId).thenComparing(EventRegistration::eventDate))
+                .toList();
     }
 
     private void signUp(StationMember member, Integer... parts) {
@@ -444,7 +458,7 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
     }
 
     private List<Integer> registrationIdsOf(StationMember member) {
-        return eventRegistrationRepo.findByMemberInEvents(member.id(), List.of(sat1, sun1, sat2, test)).stream()
+        return registrationsOf(member, List.of(sat1, sun1, sat2, test)).stream()
                 .map(EventRegistration::id)
                 .toList();
     }
@@ -469,7 +483,7 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
         assertEquals(
                 RegistrationStatus.ACCEPTED,
                 service.find(eventGroup.id(), anna.id()).status());
-        assertEquals(Set.of(sat1, sun1, test), service.chosenParts(eventGroup.id(), anna.id()));
+        assertEquals(Set.of(sat1, sun1, test), standingOf(anna).counted());
     }
 
     @Test
@@ -480,7 +494,7 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
         service.register(station.id(), eventGroup.id(), anna.id(), Set.of(sat1), Map.of(), leader.id(), true);
 
         assertEquals(Map.of(sat1, RegistrationStatus.ACCEPTED), partsOf(anna));
-        var standing = service.evaluate(eventGroup.id(), service.chosenParts(eventGroup.id(), anna.id()));
+        var standing = standingOf(anna).sets();
         assertTrue(standing.stream().anyMatch(result -> !result.met()));
     }
 
@@ -556,7 +570,7 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
         assertEquals(
                 RegistrationStatus.ACCEPTED,
                 service.find(eventGroup.id(), anna.id()).status());
-        assertEquals(Set.of(sun1, sat2, test), service.chosenParts(eventGroup.id(), anna.id()));
+        assertEquals(Set.of(sun1, sat2, test), standingOf(anna).counted());
         assertEquals(RegistrationStatus.WITHDRAWN, partsOf(anna).get(sat1));
     }
 
@@ -594,7 +608,7 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
 
         service.changeParts(station.id(), eventGroup.id(), anna.id(), Set.of(sun1, sat2, test), null, false);
 
-        assertEquals(Set.of(sun1, sat2, test), service.chosenParts(eventGroup.id(), anna.id()));
+        assertEquals(Set.of(sun1, sat2, test), standingOf(anna).counted());
         assertEquals(RegistrationStatus.WITHDRAWN, partsOf(anna).get(sat1));
         assertRefused(
                 EventRefusal.EVENT_GROUP_CHOICE_SHORT,
@@ -611,7 +625,7 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
         callOff(sun1);
 
         service.changeParts(station.id(), eventGroup.id(), anna.id(), Set.of(sat1, sun1, test), null, false);
-        assertEquals(Set.of(sat1, sun1, test), service.chosenParts(eventGroup.id(), anna.id()));
+        assertEquals(Set.of(sat1, sun1, test), standingOf(anna).counted());
 
         assertRefused(EventRefusal.EVENT_GROUP_CHOICE_CALLED_OFF, () -> signUp(ben, sat1, sun1, test));
         signUp(ben, sat1, sat2, test);
@@ -652,10 +666,7 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
                 EventRefusal.REGISTRATION_THROUGH_EVENT_GROUP, () -> registrations.decline(sat1, ben.id(), date, null));
 
         signUp(anna, sat1, sun1, test);
-        int partRegistration = eventRegistrationRepo
-                .findByMemberInEvents(anna.id(), List.of(sat1))
-                .getFirst()
-                .id();
+        int partRegistration = registrationsOf(anna, List.of(sat1)).getFirst().id();
         assertRefused(
                 EventRefusal.REGISTRATION_THROUGH_EVENT_GROUP,
                 () -> registrations.updateStatus(partRegistration, RegistrationStatus.DENIED));
@@ -671,8 +682,8 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
 
         assertRefused(EventRefusal.EVENT_GROUP_CHOICE_CALLED_OFF, () -> signUp(anna, sat1, sun1, test));
         signUp(anna, sat1, sun1);
-        assertTrue(
-                service.evaluate(eventGroup.id(), Set.of(sat1, sun1)).stream().allMatch(result -> result.met()));
+        assertTrue(service.evaluator(eventGroup.id()).apply(Set.of(sat1, sun1)).stream()
+                .allMatch(result -> result.met()));
     }
 
     @Test
@@ -684,7 +695,7 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
         signUp(anna, sun1, sat2, test);
         service.decide(station.id(), eventGroup.id(), anna.id(), RegistrationStatus.ACCEPTED);
 
-        assertEquals(Set.of(sun1, sat2, test), service.chosenParts(eventGroup.id(), anna.id()));
+        assertEquals(Set.of(sun1, sat2, test), standingOf(anna).counted());
         assertEquals(RegistrationStatus.DENIED, partsOf(anna).get(sat1));
         assertEquals(RegistrationStatus.ACCEPTED, partsOf(anna).get(sat2));
     }
@@ -700,7 +711,7 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
         signUp(anna, sat1, sun1, test);
         service.decide(station.id(), eventGroup.id(), anna.id(), RegistrationStatus.DENIED);
 
-        assertEquals(Set.of(sat1, sun1, test), service.chosenParts(eventGroup.id(), anna.id()));
+        assertEquals(Set.of(sat1, sun1, test), standingOf(anna).counted());
         assertEquals(RegistrationStatus.ACCEPTED, partsOf(anna).get(test));
         assertEquals(RegistrationStatus.DENIED, partsOf(anna).get(sat1));
     }
@@ -721,7 +732,7 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
 
         service.withdraw(station.id(), eventGroup.id(), anna.id());
 
-        var rows = eventRegistrationRepo.findByMemberInEvents(anna.id(), List.of(yesterday, sat1));
+        var rows = registrationsOf(anna, List.of(yesterday, sat1));
         var byPart = rows.stream().collect(Collectors.toMap(EventRegistration::eventId, EventRegistration::status));
         assertEquals(RegistrationStatus.ACCEPTED, byPart.get(yesterday));
         assertEquals(RegistrationStatus.WITHDRAWN, byPart.get(sat1));
@@ -739,7 +750,7 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
                 () -> service.changeParts(
                         station.id(), eventGroup.id(), anna.id(), Set.of(sun1, sat2, test), null, false));
         service.changeParts(station.id(), eventGroup.id(), anna.id(), Set.of(sun1, sat2, test), leader.id(), true);
-        assertEquals(Set.of(sun1, sat2, test), service.chosenParts(eventGroup.id(), anna.id()));
+        assertEquals(Set.of(sun1, sat2, test), standingOf(anna).counted());
     }
 
     @Test
@@ -774,8 +785,8 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
                 .collect(Collectors.toMap(EventGroupSet::name, EventGroupSet::id));
         int later = part(eventGroup, sets.get("Übung"), 29);
 
-        assertEquals(Set.of(sun1, test), service.chosenParts(eventGroup.id(), anna.id()));
-        assertTrue(!service.chosenParts(eventGroup.id(), anna.id()).contains(later));
+        assertEquals(Set.of(sun1, test), standingOf(anna).counted());
+        assertTrue(!standingOf(anna).counted().contains(later));
         service.withdraw(station.id(), eventGroup.id(), anna.id());
         assertEquals(RegistrationStatus.WITHDRAWN, partsOf(anna).get(sun1));
         assertEquals(RegistrationStatus.ACCEPTED, partsOf(anna).get(sat1));
@@ -841,7 +852,7 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
 
         service.register(
                 station.id(), eventGroup.id(), ben.id(), Set.of(sun1, sat2, test), Map.of(), leader.id(), true);
-        var standing = service.evaluate(eventGroup.id(), service.chosenParts(eventGroup.id(), ben.id()));
+        var standing = standingOf(ben).sets();
         assertTrue(standing.stream().anyMatch(result -> result.missingRequired().contains(sat1)));
     }
 
@@ -851,8 +862,8 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
 
         eventGroups.setRequired(station.id(), eventGroup.id(), sat1, true);
 
-        assertEquals(Set.of(sun1, sat2, test), service.chosenParts(eventGroup.id(), anna.id()));
-        var standing = service.evaluate(eventGroup.id(), service.chosenParts(eventGroup.id(), anna.id()));
+        assertEquals(Set.of(sun1, sat2, test), standingOf(anna).counted());
+        var standing = standingOf(anna).sets();
         assertTrue(standing.stream().anyMatch(result -> !result.met()));
         assertTrue(service.partStates(eventGroup.id()).stream()
                 .anyMatch(part -> part.eventId() == sat1 && part.required()));
@@ -865,6 +876,6 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
 
         signUp(anna, sun1, sat2, test);
 
-        assertEquals(Set.of(sun1, sat2, test), service.chosenParts(eventGroup.id(), anna.id()));
+        assertEquals(Set.of(sun1, sat2, test), standingOf(anna).counted());
     }
 }

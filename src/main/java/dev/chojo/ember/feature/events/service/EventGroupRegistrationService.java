@@ -63,7 +63,12 @@ import java.util.stream.Collectors;
  */
 @Singleton
 public class EventGroupRegistrationService {
+    /** The statuses of a sign-up that holds or waits for a place. */
+    private static final Set<RegistrationStatus> HOLDING =
+            Set.of(RegistrationStatus.PENDING, RegistrationStatus.ACCEPTED);
+
     private final EventGroupRepository eventGroups;
+    private final EventGroupService eventGroupService;
     private final EventGroupRegistrationRepository signUps;
     private final EventRepository events;
     private final EventRegistrationRepository registrations;
@@ -85,8 +90,10 @@ public class EventGroupRegistrationService {
             DomainEventBus eventBus,
             MemberNameResolver names,
             EventGroupQuestionService questions,
-            EventGroupPartnerRepository partnerSignUps) {
+            EventGroupPartnerRepository partnerSignUps,
+            EventGroupService eventGroupService) {
         this.eventGroups = eventGroups;
+        this.eventGroupService = eventGroupService;
         this.signUps = signUps;
         this.events = events;
         this.registrations = registrations;
@@ -101,14 +108,14 @@ public class EventGroupRegistrationService {
     /**
      * Signs a member up for an event group with a choice of its parts.
      *
-     * @param stationId the station asking
-     * @param eventGroupId  the event group
-     * @param memberId  the member
-     * @param partIds   the chosen parts
-     * @param answers   the answers to the event group's questions, keyed by question id
-     * @param createdBy the member who signs somebody else up, or null
-     * @param override  whether whoever runs events signs up, which passes the deadline, the limit,
-     *                  parts already past and the rules
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
+     * @param memberId     the member
+     * @param partIds      the chosen parts
+     * @param answers      the answers to the event group's questions, keyed by question id
+     * @param createdBy    the member who signs somebody else up, or null
+     * @param override     whether whoever runs events signs up, which passes the deadline, the limit,
+     *                     parts already past and the rules
      * @return the sign-up
      */
     public EventGroupRegistration register(
@@ -155,13 +162,13 @@ public class EventGroupRegistrationService {
      * Changes the parts a member chose. Parts added take the status of the sign-up, parts dropped
      * are given up. A called-off part the member already held may stay, and still counts.
      *
-     * @param stationId the station asking
-     * @param eventGroupId  the event group
-     * @param memberId  the member
-     * @param partIds   the parts chosen from now on
-     * @param createdBy the member who changes somebody else's choice, or null
-     * @param override  whether whoever runs events changes it, which passes the deadline, parts
-     *                  already past and the rules
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
+     * @param memberId     the member
+     * @param partIds      the parts chosen from now on
+     * @param createdBy    the member who changes somebody else's choice, or null
+     * @param override     whether whoever runs events changes it, which passes the deadline, parts
+     *                     already past and the rules
      * @return the sign-up
      */
     public EventGroupRegistration changeParts(
@@ -208,7 +215,7 @@ public class EventGroupRegistrationService {
      * the member as it does for a change of parts; whoever runs events may correct them later.
      *
      * @param stationId          the station asking
-     * @param eventGroupId           the event group
+     * @param eventGroupId       the event group
      * @param memberId           the member
      * @param answers            the answers keyed by question id, as submitted
      * @param readsHiddenAnswers whether the caller may read the answers kept for organisers
@@ -234,14 +241,14 @@ public class EventGroupRegistrationService {
      * Takes a member's sign-up back, with every part they chose. A confirmed place is withdrawn, a
      * sign-up still waiting is declined. Parts that already took place keep their record.
      *
-     * @param stationId the station asking
-     * @param eventGroupId  the event group
-     * @param memberId  the member
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
+     * @param memberId     the member
      */
     public void withdraw(int stationId, int eventGroupId, int memberId) {
         var written = new ArrayList<EventRegistration>();
         var freed = Transactions.call(() -> {
-            var eventGroup = lockEventGroup(stationId, eventGroupId);
+            var eventGroup = eventGroupService.lockEventGroup(stationId, eventGroupId);
             var signUp = requireActive(eventGroupId, memberId);
             var parts = lockParts(eventGroupId);
             var standing = Standing.of(stationId, parts, calendar);
@@ -261,10 +268,10 @@ public class EventGroupRegistrationService {
      * Accepts or turns down a sign-up, and every part chosen with it. A called-off event group accepts
      * nobody.
      *
-     * @param stationId the station asking
-     * @param eventGroupId  the event group
-     * @param memberId  the member
-     * @param decision  {@link RegistrationStatus#ACCEPTED} or {@link RegistrationStatus#DENIED}
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
+     * @param memberId     the member
+     * @param decision     {@link RegistrationStatus#ACCEPTED} or {@link RegistrationStatus#DENIED}
      * @return the sign-up as it is now
      */
     public EventGroupRegistration decide(int stationId, int eventGroupId, int memberId, RegistrationStatus decision) {
@@ -274,7 +281,7 @@ public class EventGroupRegistrationService {
         var written = new ArrayList<EventRegistration>();
         var decided = new ArrayList<EventGroup>();
         var signUp = Transactions.call(() -> {
-            var eventGroup = lockEventGroup(stationId, eventGroupId);
+            var eventGroup = eventGroupService.lockEventGroup(stationId, eventGroupId);
             decided.add(eventGroup);
             if (decision == RegistrationStatus.ACCEPTED && eventGroup.cancelled()) {
                 throw EventRefusal.EVENT_GROUP_CANCELLED.raise();
@@ -304,7 +311,7 @@ public class EventGroupRegistrationService {
      * A member's sign-up for an event group.
      *
      * @param eventGroupId the event group
-     * @param memberId the member
+     * @param memberId     the member
      * @return the sign-up, or null where the member never signed up
      */
     public @Nullable EventGroupRegistration find(int eventGroupId, int memberId) {
@@ -331,34 +338,6 @@ public class EventGroupRegistrationService {
         return signUps.findByEventGroup(eventGroupId);
     }
 
-    /**
-     * The parts a member chose with their sign-up.
-     *
-     * @param eventGroupId the event group
-     * @param memberId the member
-     * @return the chosen parts, empty where the member is not signed up
-     */
-    public Set<Integer> chosenParts(int eventGroupId, int memberId) {
-        return signUps.find(eventGroupId, memberId)
-                .map(signUp -> chosenRegistrations(signUp).keySet())
-                .orElse(Set.of());
-    }
-
-    /**
-     * The parts a sign-up counts for the event group's rules: the tied places that still hold or wait,
-     * and while the sign-up is turned down, the places turned down with it. A place an appointment
-     * field gave and took back again does not count.
-     *
-     * @param eventGroupId the event group
-     * @param memberId the member
-     * @return the counted parts, empty where the member is not signed up
-     */
-    public Set<Integer> countedParts(int eventGroupId, int memberId) {
-        return signUps.find(eventGroupId, memberId)
-                .map(signUp -> counted(signUp, registrations.findLinkedToEventGroup(signUp.id())))
-                .orElse(Set.of());
-    }
-
     private static Set<Integer> counted(EventGroupRegistration signUp, List<EventRegistration> tied) {
         return tied.stream()
                 .filter(registration -> registration.status() == RegistrationStatus.PENDING
@@ -373,8 +352,8 @@ public class EventGroupRegistrationService {
      * Where each of the given members stands in an event group: their sign-up, the parts that count and how
      * those meet every set. The event group's rules and cancellations are read once for all of them.
      *
-     * @param eventGroupId  the event group
-     * @param memberIds the members asked about
+     * @param eventGroupId the event group
+     * @param memberIds    the members asked about
      * @return one standing per member, in the order asked
      */
     public List<EventGroupStanding> standings(int eventGroupId, List<Integer> memberIds) {
@@ -384,10 +363,7 @@ public class EventGroupRegistrationService {
                 .collect(Collectors.toMap(EventGroupRegistration::memberId, Function.identity()));
         var tiedByMember = registrations.findLinkedToEventGroupOf(eventGroupId).stream()
                 .collect(Collectors.groupingBy(EventRegistration::memberId));
-        var parts = eventGroups.findParts(eventGroupId).stream()
-                .map(part -> events.findById(part.eventId()))
-                .flatMap(Optional::stream)
-                .collect(Collectors.toMap(StationEvent::id, Function.identity()));
+        var parts = partEvents(eventGroupId);
         var calledOff = Standing.of(eventGroup.stationId(), parts, calendar).calledOff();
         var rules = rulesOf(eventGroupId);
         return memberIds.stream()
@@ -419,7 +395,7 @@ public class EventGroupRegistrationService {
      * @return the pending and accepted sign-ups
      */
     public int holding(int eventGroupId) {
-        return signUps.countHolding(eventGroupId) + partnerSignUps.countHolding(eventGroupId);
+        return eventGroups.countSignUps(eventGroupId, HOLDING);
     }
 
     /**
@@ -431,15 +407,12 @@ public class EventGroupRegistrationService {
     public List<EventGroupPartState> partStates(int eventGroupId) {
         var eventGroup = eventGroups.findById(eventGroupId).orElseThrow(EventRefusal.EVENT_GROUP_NOT_HERE::raise);
         var parts = eventGroups.findParts(eventGroupId);
-        var events = parts.stream()
-                .map(part -> this.events.findById(part.eventId()))
-                .flatMap(Optional::stream)
-                .collect(Collectors.toMap(StationEvent::id, Function.identity()));
-        var standing = Standing.of(eventGroup.stationId(), events, calendar);
+        var appointments = partEvents(eventGroupId);
+        var standing = Standing.of(eventGroup.stationId(), appointments, calendar);
         return parts.stream()
-                .filter(part -> events.containsKey(part.eventId()))
+                .filter(part -> appointments.containsKey(part.eventId()))
                 .map(part -> {
-                    var event = events.get(part.eventId());
+                    var event = appointments.get(part.eventId());
                     return new EventGroupPartState(
                             event.id(),
                             part.setId(),
@@ -454,17 +427,6 @@ public class EventGroupRegistrationService {
     }
 
     /**
-     * How a choice stands against every set of an event group, after its cancellations.
-     *
-     * @param eventGroupId the event group
-     * @param chosen   the chosen parts
-     * @return one result per set
-     */
-    public List<SetResult> evaluate(int eventGroupId, Set<Integer> chosen) {
-        return evaluator(eventGroupId).apply(chosen);
-    }
-
-    /**
      * Measures many choices against one event group, reading its rules and cancellations once.
      *
      * @param eventGroupId the event group
@@ -472,25 +434,14 @@ public class EventGroupRegistrationService {
      */
     public Function<Set<Integer>, List<SetResult>> evaluator(int eventGroupId) {
         var eventGroup = eventGroups.findById(eventGroupId).orElseThrow(EventRefusal.EVENT_GROUP_NOT_HERE::raise);
-        var parts = eventGroups.findParts(eventGroupId).stream()
-                .map(part -> events.findById(part.eventId()))
-                .flatMap(Optional::stream)
-                .collect(Collectors.toMap(StationEvent::id, Function.identity()));
+        var parts = partEvents(eventGroupId);
         var calledOff = Standing.of(eventGroup.stationId(), parts, calendar).calledOff();
         var rules = rulesOf(eventGroupId);
         return chosen -> EventGroupRules.evaluate(rules, chosen, calledOff);
     }
 
-    EventGroup lockEventGroup(int stationId, int eventGroupId) {
-        eventGroups.lockEventGroup(eventGroupId);
-        return eventGroups
-                .findById(eventGroupId)
-                .filter(eventGroup -> eventGroup.stationId() == stationId)
-                .orElseThrow(EventRefusal.EVENT_GROUP_NOT_HERE::raise);
-    }
-
     EventGroup lockOpenEventGroup(int stationId, int eventGroupId, boolean override) {
-        var eventGroup = lockEventGroup(stationId, eventGroupId);
+        var eventGroup = eventGroupService.lockEventGroup(stationId, eventGroupId);
         if (eventGroup.cancelled()) throw EventRefusal.EVENT_GROUP_CANCELLED.raise();
         if (!override && eventGroup.deadlinePassed(Instant.now()))
             throw EventRefusal.EVENT_GROUP_REGISTRATION_CLOSED.raise();
@@ -510,7 +461,18 @@ public class EventGroupRegistrationService {
                 .sorted()
                 .toList();
         ids.forEach(events::lockForSignUp);
-        return ids.stream()
+        return appointmentsOf(ids);
+    }
+
+    /** The appointments that are parts of an event group, by id. */
+    Map<Integer, StationEvent> partEvents(int eventGroupId) {
+        return appointmentsOf(eventGroups.findParts(eventGroupId).stream()
+                .map(EventGroupPart::eventId)
+                .toList());
+    }
+
+    private Map<Integer, StationEvent> appointmentsOf(List<Integer> eventIds) {
+        return eventIds.stream()
                 .map(events::findById)
                 .flatMap(Optional::stream)
                 .collect(Collectors.toMap(StationEvent::id, Function.identity()));
@@ -567,10 +529,7 @@ public class EventGroupRegistrationService {
      * @return its day
      */
     LocalDate dayOf(StationEvent part) {
-        return calendar.forStation(part.stationId())
-                .ruleOf(part)
-                .orElseThrow(EventRefusal.EVENT_HAS_NO_START_TIME::raise)
-                .first();
+        return EventGroupPartDates.dayOf(calendar, part).orElseThrow(EventRefusal.EVENT_HAS_NO_START_TIME::raise);
     }
 
     private EventRegistration place(
@@ -601,7 +560,7 @@ public class EventGroupRegistrationService {
     record Standing(Set<Integer> calledOff, Set<Integer> past) {
         static Standing of(int stationId, Map<Integer, StationEvent> parts, OccurrenceCalendar calendar) {
             var stationCalendar = calendar.forStation(stationId);
-            var today = LocalDate.now(calendar.zoneOf(stationId));
+            var today = stationCalendar.today();
             var calledOff = new HashSet<Integer>();
             var past = new HashSet<Integer>();
             for (var part : parts.values()) {

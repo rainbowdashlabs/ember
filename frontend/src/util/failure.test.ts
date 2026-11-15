@@ -179,6 +179,11 @@ describe('formatRefusalDetail', () => {
         expect(formatRefusalDetail({kind: 'ROOM', freeBytes: 512 * 1024 ** 2, totalBytes: 2 * 1024 ** 3}, t))
             .toBe('frei: 512.0 MiB von 2.0 GiB')
     })
+
+    it('shows the numbers a value may take, with or without an upper end', () => {
+        expect(formatRefusalDetail({kind: 'RANGE', min: 1, max: 3}, t)).toBe('1 bis 3')
+        expect(formatRefusalDetail({kind: 'RANGE', min: 2, max: null}, t)).toBe('mindestens 2')
+    })
 })
 
 describe('describeFailure', () => {

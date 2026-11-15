@@ -1065,7 +1065,8 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 new DomainEventBus(Set.of()),
                 memberNameResolver,
                 new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
-                new EventGroupPartnerRepository());
+                new EventGroupPartnerRepository(),
+                newEventGroupService());
     }
 
     private static void signUp(GroupParts group, StationEvent... parts) {

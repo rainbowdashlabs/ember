@@ -91,7 +91,8 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
                 memberEligibility,
                 eventRepo,
                 attendanceRepo,
-                eventFieldRegistrationService);
+                eventFieldRegistrationService,
+                new EventGroupRepository());
     }
 
     private static EventFieldDraft memberField(FieldType type, String value) {
@@ -169,7 +170,7 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
         var saturday = partOf(group, 20);
         var sunday = partOf(group, 21);
 
-        var shown = fields.toggleGroupSelfRegistration(group.id(), groupFieldId(group), anna.id(), false);
+        var shown = fields.toggleEventGroupSelfRegistration(group.id(), groupFieldId(group), anna.id(), false);
 
         assertEquals(List.of(anna.id()), QuestionValues.memberIds(shown.value()));
         assertEquals(List.of(anna.id()), namedOn(saturday));
@@ -184,7 +185,7 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
         var saturday = partOf(group, 22);
         var sunday = partOf(group, 23);
         int fieldId = groupFieldId(group);
-        fields.toggleGroupSelfRegistration(group.id(), fieldId, anna.id(), false);
+        fields.toggleEventGroupSelfRegistration(group.id(), fieldId, anna.id(), false);
 
         var skipped = fields.toggleSelfRegistration(saturday.id(), -fieldId, anna.id(), null, false);
 
@@ -204,7 +205,7 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
         var saturday = partOf(group, 24);
         var sunday = partOf(group, 25);
         int fieldId = groupFieldId(group);
-        fields.toggleGroupSelfRegistration(group.id(), fieldId, anna.id(), false);
+        fields.toggleEventGroupSelfRegistration(group.id(), fieldId, anna.id(), false);
 
         fields.toggleSelfRegistration(saturday.id(), -fieldId, ben.id(), null, false);
 
@@ -222,10 +223,10 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
         var saturday = partOf(group, 26);
         var sunday = partOf(group, 27);
         int fieldId = groupFieldId(group);
-        fields.toggleGroupSelfRegistration(group.id(), fieldId, anna.id(), false);
+        fields.toggleEventGroupSelfRegistration(group.id(), fieldId, anna.id(), false);
         fields.toggleSelfRegistration(saturday.id(), -fieldId, anna.id(), null, false);
 
-        fields.toggleGroupSelfRegistration(group.id(), fieldId, anna.id(), false);
+        fields.toggleEventGroupSelfRegistration(group.id(), fieldId, anna.id(), false);
 
         assertTrue(namedOn(saturday).isEmpty());
         assertTrue(namedOn(sunday).isEmpty());
@@ -240,14 +241,14 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
         var saturday = partOf(group, 28);
         var sunday = partOf(group, 29);
         int fieldId = groupFieldId(group);
-        fields.toggleGroupSelfRegistration(group.id(), fieldId, anna.id(), false);
+        fields.toggleEventGroupSelfRegistration(group.id(), fieldId, anna.id(), false);
 
         assertRefused(
                 EventRefusal.APPOINTMENT_FIELD_SLOT_TAKEN,
                 () -> fields.toggleSelfRegistration(saturday.id(), -fieldId, ben.id(), null, false));
         assertRefused(
                 EventRefusal.APPOINTMENT_FIELD_SLOT_TAKEN,
-                () -> fields.toggleGroupSelfRegistration(group.id(), fieldId, ben.id(), false));
+                () -> fields.toggleEventGroupSelfRegistration(group.id(), fieldId, ben.id(), false));
 
         fields.toggleSelfRegistration(saturday.id(), -fieldId, anna.id(), null, false);
         fields.toggleSelfRegistration(saturday.id(), -fieldId, ben.id(), null, false);
@@ -265,11 +266,11 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
 
         assertRefused(
                 EventRefusal.REGISTRATION_CLOSED_ON_SELF_REGISTRATION,
-                () -> fields.toggleGroupSelfRegistration(group.id(), fieldId, anna.id(), false));
-        fields.toggleGroupSelfRegistration(group.id(), fieldId, anna.id(), true);
+                () -> fields.toggleEventGroupSelfRegistration(group.id(), fieldId, anna.id(), false));
+        fields.toggleEventGroupSelfRegistration(group.id(), fieldId, anna.id(), true);
         assertEquals(List.of(anna.id()), namedOn(saturday));
 
-        fields.toggleGroupSelfRegistration(group.id(), fieldId, anna.id(), false);
+        fields.toggleEventGroupSelfRegistration(group.id(), fieldId, anna.id(), false);
         assertTrue(namedOn(saturday).isEmpty());
     }
 
@@ -282,7 +283,7 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
 
         assertRefused(
                 EventRefusal.APPOINTMENT_FIELD_NOT_HERE_FOR_SELF_REGISTRATION,
-                () -> fields.toggleGroupSelfRegistration(other.id(), fieldId, anna.id(), false));
+                () -> fields.toggleEventGroupSelfRegistration(other.id(), fieldId, anna.id(), false));
         assertRefused(
                 EventRefusal.APPOINTMENT_FIELD_NOT_HERE_FOR_SELF_REGISTRATION,
                 () -> fields.toggleSelfRegistration(foreignPart.id(), -fieldId, anna.id(), null, false));
@@ -296,14 +297,14 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
         fields.toggleSelfRegistration(saturday.id(), -fieldId, ben.id(), null, false);
         var stored = groups.findFields(group.id()).getFirst();
 
-        eventFieldRepo.replaceGroupFields(
+        eventFieldRepo.replaceEventGroupFields(
                 group.id(),
                 List.of(new EventFieldDraft(
                         fieldId, "Betreuer", stored.fieldType(), stored.config(), stored.value(), false, null, false)));
         assertEquals(fieldId, groupFieldId(group));
         assertEquals(List.of(ben.id()), namedOn(saturday));
 
-        eventFieldRepo.replaceGroupFields(group.id(), List.of());
+        eventFieldRepo.replaceEventGroupFields(group.id(), List.of());
         assertTrue(eventFieldRepo.findEntries(List.of(saturday.id())).isEmpty());
     }
 
@@ -338,7 +339,7 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
     void aPartLeavingTheGroupGivesBackThePlacesItsFieldHandedOut() {
         var group = groupWith(memberField(FieldType.MEMBER_LIST, ""));
         var saturday = partOf(group, 35);
-        fields.toggleGroupSelfRegistration(group.id(), groupFieldId(group), anna.id(), false);
+        fields.toggleEventGroupSelfRegistration(group.id(), groupFieldId(group), anna.id(), false);
         assertEquals(1, placesOn(saturday));
 
         groups.removePart(station.id(), group.id(), saturday.id());
@@ -365,14 +366,14 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
 
         assertRefused(
                 EventRefusal.APPOINTMENT_FIELD_NOT_OPEN_TO_YOU,
-                () -> fields.toggleGroupSelfRegistration(group.id(), fieldId, anna.id(), false));
+                () -> fields.toggleEventGroupSelfRegistration(group.id(), fieldId, anna.id(), false));
         var stored = groups.findFields(group.id()).getFirst();
         assertEquals(
                 SelfRegistration.NOT_ELIGIBLE,
-                fields.asSeenOnGroup(group.id(), stored, anna.id(), false).selfRegistrationState());
+                fields.asSeenOnEventGroup(group.id(), stored, anna.id(), false).selfRegistrationState());
         assertEquals(
                 SelfRegistration.OPEN,
-                fields.asSeenOnGroup(group.id(), stored, ben.id(), false).selfRegistrationState());
+                fields.asSeenOnEventGroup(group.id(), stored, ben.id(), false).selfRegistrationState());
     }
 
     @Test
@@ -383,10 +384,10 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
 
         assertEquals(
                 SelfRegistration.CLOSED,
-                fields.asSeenOnGroup(group.id(), stored, anna.id(), false).selfRegistrationState());
+                fields.asSeenOnEventGroup(group.id(), stored, anna.id(), false).selfRegistrationState());
         assertEquals(
                 SelfRegistration.OPEN,
-                fields.asSeenOnGroup(group.id(), stored, anna.id(), true).selfRegistrationState());
+                fields.asSeenOnEventGroup(group.id(), stored, anna.id(), true).selfRegistrationState());
     }
 
     @Test
@@ -394,7 +395,7 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
         var group = groupWith(memberField(FieldType.MEMBER_LIST, ""));
         var saturday = partOf(group, 36);
         int fieldId = groupFieldId(group);
-        fields.toggleGroupSelfRegistration(group.id(), fieldId, anna.id(), false);
+        fields.toggleEventGroupSelfRegistration(group.id(), fieldId, anna.id(), false);
         fields.toggleSelfRegistration(saturday.id(), -fieldId, ben.id(), null, false);
         var inherited = fields.findByEvent(saturday.id()).stream()
                 .filter(field -> field.id() == -fieldId)
@@ -445,7 +446,7 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
         fields.toggleSelfRegistration(saturday.id(), -fieldId, ben.id(), null, false);
         var stored = groups.findFields(group.id()).getFirst();
 
-        eventFieldRepo.replaceGroupFields(
+        eventFieldRepo.replaceEventGroupFields(
                 group.id(),
                 List.of(new EventFieldDraft(
                         fieldId, "Betreuer", FieldType.MEMBER, stored.config(), "", false, null, false)));

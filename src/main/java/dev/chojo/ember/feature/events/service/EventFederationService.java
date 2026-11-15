@@ -93,6 +93,7 @@ public class EventFederationService implements FederationServer {
     private final Api apiConfig;
 
     private final EventGroupRepository eventGroupRepository;
+    private final EventRegistrationService registrationService;
 
     @Inject
     public EventFederationService(
@@ -111,7 +112,8 @@ public class EventFederationService implements FederationServer {
             OccurrenceCalendar occurrenceCalendar,
             MediaLibraryService media,
             Api apiConfig,
-            EventGroupRepository eventGroupRepository) {
+            EventGroupRepository eventGroupRepository,
+            EventRegistrationService registrationService) {
         this.federationRepository = federationRepository;
         this.federationService = federationService;
         this.transport = transport;
@@ -128,6 +130,7 @@ public class EventFederationService implements FederationServer {
         this.media = media;
         this.apiConfig = apiConfig;
         this.eventGroupRepository = eventGroupRepository;
+        this.registrationService = registrationService;
     }
 
     /**
@@ -214,7 +217,7 @@ public class EventFederationService implements FederationServer {
             int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
         var event =
                 crudService.findById(eventId).orElseThrow(EventRefusal.EVENT_NOT_HERE_FOR_PARTNER_REGISTRATION::raise);
-        if (crudService.isEventGroupPart(eventId)) throw EventRefusal.REGISTRATION_THROUGH_EVENT_GROUP.raise();
+        registrationService.requireOwnSignUp(eventId);
         requireOpenForRegistration(event, eventDate);
         boolean somebodyChooses = event.requiresConfirmation()
                 || federationRepository.findPartnerPlaces(eventId, partnerId).partnerConfirms();
@@ -443,8 +446,8 @@ public class EventFederationService implements FederationServer {
     /**
      * What a partner has and may have on one date.
      *
-     * @param taken  how many places are filled
-     * @param budget how many it may fill, or {@code null} for no cap
+     * @param taken            how many places are filled
+     * @param budget           how many it may fill, or {@code null} for no cap
      * @param decidedByPartner whether the partner decides rather than this station
      */
     public record PartnerPlaceCount(int taken, @Nullable Integer budget, boolean decidedByPartner) {}
@@ -664,7 +667,7 @@ public class EventFederationService implements FederationServer {
     private void serveWithdrawal(
             ServingPartner partner, int eventId, RemoteEventRoutes.RemoteRegistrationRequest request) {
         requireShared(partner, eventId);
-        requireOwnPart(eventId);
+        registrationService.requireOwnSignUp(eventId);
         withdrawRegistration(eventId, partner.partnerId(), request.remoteMemberId(), request.eventDate());
     }
 
@@ -678,7 +681,7 @@ public class EventFederationService implements FederationServer {
     private void serveUndoWithdrawal(
             ServingPartner partner, int eventId, RemoteEventRoutes.RemoteRegistrationRequest request) {
         requireShared(partner, eventId);
-        requireOwnPart(eventId);
+        registrationService.requireOwnSignUp(eventId);
         if (!undoWithdrawal(eventId, partner.partnerId(), request.remoteMemberId(), request.eventDate())) {
             throw EventRefusal.PARTNER_WITHDRAWAL_NO_LONGER_UNDONE.raise();
         }
@@ -694,7 +697,7 @@ public class EventFederationService implements FederationServer {
     private void serveConfirmOwn(
             ServingPartner partner, int eventId, RemoteEventRoutes.RemoteRegistrationRequest request) {
         requireShared(partner, eventId);
-        requireOwnPart(eventId);
+        registrationService.requireOwnSignUp(eventId);
         if (!partnerPlaces(eventId, partner.partnerId()).partnerConfirms()) {
             throw EventRefusal.PARTNER_DOES_NOT_CONFIRM_ITS_OWN.raise();
         }
@@ -794,14 +797,6 @@ public class EventFederationService implements FederationServer {
         if (!sharedWith(partner).contains(eventId)) {
             throw EventRefusal.EVENT_NOT_SHARED_WITH_PARTNER.raise();
         }
-    }
-
-    /**
-     * Refuses a partner acting on one part of an event group on its own: places on a part are taken,
-     * changed and given up through the event group.
-     */
-    private void requireOwnPart(int eventId) {
-        if (crudService.isEventGroupPart(eventId)) throw EventRefusal.REGISTRATION_THROUGH_EVENT_GROUP.raise();
     }
 
     private List<Integer> sharedWith(ServingPartner partner) {

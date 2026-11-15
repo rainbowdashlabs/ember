@@ -124,7 +124,8 @@ class EventGroupCommentFederationTest extends RepositoryTestBase {
                 mock(DomainEventBus.class),
                 memberNameResolver,
                 questions,
-                partnerRepo);
+                partnerRepo,
+                newEventGroupService());
         var httpClient = mock(FederationHttpClient.class);
         when(httpClient.canSign(anyInt())).thenReturn(true);
         var transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);

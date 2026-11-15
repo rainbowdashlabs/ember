@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.entity.EventGroupContent;
@@ -164,9 +166,9 @@ public class EventGroupService {
     /**
      * Changes what an event group holds and hands the sign-up down to its parts.
      *
-     * @param stationId the station asking
-     * @param eventGroupId  the event group
-     * @param details   what it holds now
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
+     * @param details      what it holds now
      * @return the event group as it is now
      */
     public EventGroup update(int stationId, int eventGroupId, EventGroupDetails details) {
@@ -188,7 +190,7 @@ public class EventGroupService {
      * all of it is kept or, where any part is refused, none of it.
      *
      * @param stationId    the station asking
-     * @param eventGroupId     the event group
+     * @param eventGroupId the event group
      * @param details      what the event group holds
      * @param sets         its sets in their new order, or null to leave them
      * @param registration who may sign up, or null to leave it
@@ -219,7 +221,7 @@ public class EventGroupService {
         var askedQuestions = content.questions();
         if (askedQuestions != null) questions.replaceQuestions(eventGroupId, askedQuestions);
         var handedDown = content.fields();
-        if (handedDown != null) fields.replaceGroupFields(eventGroupId, questions.checkedFields(handedDown));
+        if (handedDown != null) fields.replaceEventGroupFields(eventGroupId, questions.checkedFields(handedDown));
     }
 
     /**
@@ -244,7 +246,7 @@ public class EventGroupService {
      * @return its fields in order
      */
     public List<AppointmentField> findFields(int eventGroupId) {
-        return fields.findByGroup(eventGroupId);
+        return fields.findByEventGroup(eventGroupId);
     }
 
     /**
@@ -253,9 +255,9 @@ public class EventGroupService {
      * set holding parts cannot ask for more of them than it holds; a set without parts takes any
      * minimum, and one left unchanged stays while the set fills up.
      *
-     * @param stationId the station asking
-     * @param eventGroupId  the event group
-     * @param drafts    the sets in their new order, at least one
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
+     * @param drafts       the sets in their new order, at least one
      * @return the sets as they are now
      */
     public List<EventGroupSet> replaceSets(int stationId, int eventGroupId, List<EventGroupSetDraft> drafts) {
@@ -274,16 +276,12 @@ public class EventGroupService {
             }
             for (var draft : drafts) {
                 Integer setId = draft.id();
-                if (setId != null && draft.minimum() < requiredTakingPlace(stationId, eventGroupId, setId)) {
-                    throw EventRefusal.EVENT_GROUP_SET_MINIMUM_BELOW_REQUIRED.raise();
-                }
-            }
-            for (var draft : drafts) {
-                Integer setId = draft.id();
-                if (setId == null || Objects.equals(stored.get(setId), draft.minimum())) continue;
-                int parts = eventGroups.countPartsInSet(setId);
-                if (parts > 0 && draft.minimum() > parts) {
-                    throw EventRefusal.EVENT_GROUP_SET_MINIMUM_ABOVE_PARTS.raise();
+                if (setId == null) continue;
+                int required = requiredTakingPlace(stationId, eventGroupId, setId);
+                boolean changed = !Objects.equals(stored.get(setId), draft.minimum());
+                int parts = draft.minimum() < required || changed ? eventGroups.countPartsInSet(setId) : 0;
+                if (draft.minimum() < required || (changed && parts > 0 && draft.minimum() > parts)) {
+                    throw minimumOutOfRange(required, parts);
                 }
             }
             var removed = existing.stream().filter(id -> !kept.contains(id)).toList();
@@ -309,17 +307,17 @@ public class EventGroupService {
      * sign-up, questions, audiences and partner share from then on, and the questions it asked of its
      * own go.
      *
-     * @param stationId the station asking
-     * @param eventGroupId  the event group
-     * @param eventId   the appointment
-     * @param setId     the set it goes into
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
+     * @param eventId      the appointment
+     * @param setId        the set it goes into
      * @return the part
      */
     public EventGroupPart addPart(int stationId, int eventGroupId, int eventId, int setId) {
         return Transactions.call(() -> {
             var eventGroup = lockEventGroup(stationId, eventGroupId);
             if (eventGroup.cancelled()) throw EventRefusal.EVENT_GROUP_CANCELLED.raise();
-            eventGroups.lockEvent(eventId);
+            events.lockForSignUp(eventId);
             var event = requireEvent(stationId, eventId);
             requireSetOf(eventGroupId, setId);
             if (event.eventType() != StationEvent.EventType.ONE_TIME) {
@@ -346,10 +344,10 @@ public class EventGroupService {
      * asks for all it still holds afterwards. A required part stays required, and the set it moves into
      * asks for at least as many parts as it requires.
      *
-     * @param stationId the station asking
-     * @param eventGroupId  the event group
-     * @param eventId   the part
-     * @param setId     the set it moves into
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
+     * @param eventId      the part
+     * @param setId        the set it moves into
      * @return the part
      */
     public EventGroupPart movePart(int stationId, int eventGroupId, int eventId, int setId) {
@@ -411,9 +409,9 @@ public class EventGroupService {
      * changes them, so partners' members signed up for it can still be seen and decided. A set that
      * asked for every one of its parts asks for all it still holds afterwards.
      *
-     * @param stationId the station asking
-     * @param eventGroupId  the event group
-     * @param eventId   the part
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
+     * @param eventId      the part
      */
     public void removePart(int stationId, int eventGroupId, int eventId) {
         var afterLeaving = Transactions.call(() -> {
@@ -444,7 +442,7 @@ public class EventGroupService {
      * Sets who may see and who may sign up for an event group, and hands both down to every part.
      *
      * @param stationId    the station asking
-     * @param eventGroupId     the event group
+     * @param eventGroupId the event group
      * @param registration who may sign up
      * @param view         who may see it
      */
@@ -488,8 +486,8 @@ public class EventGroupService {
      * and who was signed up for one of them stays signed up for it. A part keeps the partner share
      * it had through the event group.
      *
-     * @param stationId the station asking
-     * @param eventGroupId  the event group
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
      */
     public void delete(int stationId, int eventGroupId) {
         Transactions.run(() -> {
@@ -502,8 +500,8 @@ public class EventGroupService {
     /**
      * An event group of the station.
      *
-     * @param stationId the station asking
-     * @param eventGroupId  the event group
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
      * @return the event group
      */
     public EventGroup requireEventGroup(int stationId, int eventGroupId) {
@@ -586,9 +584,9 @@ public class EventGroupService {
     /**
      * Whether a member may see an event group. Whoever runs events sees every event group.
      *
-     * @param eventGroupId    the event group
-     * @param memberId    the member
-     * @param permissions what the reader may do at the station
+     * @param eventGroupId the event group
+     * @param memberId     the member
+     * @param permissions  what the reader may do at the station
      * @return true where the event group is meant for the member
      */
     public boolean canSee(int eventGroupId, int memberId, Set<StationPermission> permissions) {
@@ -599,9 +597,9 @@ public class EventGroupService {
      * Whether an event group is meant for any of the given members, such as a parent and the children
      * they look after.
      *
-     * @param eventGroupId    the event group
-     * @param memberIds   the members
-     * @param permissions what the reader may do at the station
+     * @param eventGroupId the event group
+     * @param memberIds    the members
+     * @param permissions  what the reader may do at the station
      * @return true where it is meant for at least one of them
      */
     public boolean canSeeAny(int eventGroupId, List<Integer> memberIds, Set<StationPermission> permissions) {
@@ -633,9 +631,9 @@ public class EventGroupService {
     /**
      * Whether a member may sign up for an event group: see it and be one of the people it takes.
      *
-     * @param eventGroupId    the event group
-     * @param memberId    the member
-     * @param permissions what the reader may do at the station
+     * @param eventGroupId the event group
+     * @param memberId     the member
+     * @param permissions  what the reader may do at the station
      * @return true where the member may sign up
      */
     public boolean canSignUp(int eventGroupId, int memberId, Set<StationPermission> permissions) {
@@ -678,8 +676,16 @@ public class EventGroupService {
         return restrictions.audienceOf(type, eventGroupId)::includes;
     }
 
-    /** Locks an event group of the station for the running transaction and reads it. */
-    private EventGroup lockEventGroup(int stationId, int eventGroupId) {
+    /**
+     * Locks an event group of the station for the running transaction and reads it, so changes to it,
+     * its sets, parts, fields and sign-ups happen one after another.
+     *
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
+     * @return the event group as it is under the lock
+     * @throws RefusalResponse where the station has no such event group
+     */
+    public EventGroup lockEventGroup(int stationId, int eventGroupId) {
         eventGroups.lockEventGroup(eventGroupId);
         return requireEventGroup(stationId, eventGroupId);
     }
@@ -787,11 +793,20 @@ public class EventGroupService {
         return color.toLowerCase(Locale.ROOT);
     }
 
+    /**
+     * The refusal of a set minimum outside what the set can take: from the parts it requires one by one
+     * up to the parts it holds, or without an upper end while it holds none.
+     */
+    private static RefusalResponse minimumOutOfRange(int required, int parts) {
+        return EventRefusal.EVENT_GROUP_SET_MINIMUM_OUT_OF_RANGE.raise(
+                RefusalDetail.range(required, parts > 0 ? Long.valueOf(parts) : null));
+    }
+
     private static void requireValidSets(List<EventGroupSetDraft> sets) {
         if (sets.isEmpty()) throw EventRefusal.EVENT_GROUP_NEEDS_A_SET.raise();
         for (var set : sets) {
             if (set.name() == null || set.name().isBlank()) throw EventRefusal.EVENT_GROUP_NAME_MISSING.raise();
-            if (set.minimum() < 0) throw EventRefusal.EVENT_GROUP_SET_MINIMUM_NEGATIVE.raise();
+            if (set.minimum() < 0) throw minimumOutOfRange(0, 0);
         }
     }
 }

@@ -77913,6 +77913,17 @@ export interface components {
             attributionUrl?: string;
             author?: string;
         };
+        RangeDetail: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "RANGE";
+            /** Format: int64 */
+            max: number | null;
+            /** Format: int64 */
+            min: number;
+        };
         Ranking: {
             options: components["schemas"]["Option"][];
             /**
@@ -78058,7 +78069,7 @@ export interface components {
             /** Format: int32 */
             alreadyPresent: number;
         };
-        RefusalDetail: components["schemas"]["CountDetail"] | components["schemas"]["RoomDetail"] | components["schemas"]["TextDetail"];
+        RefusalDetail: components["schemas"]["CountDetail"] | components["schemas"]["RangeDetail"] | components["schemas"]["RoomDetail"] | components["schemas"]["TextDetail"];
         RefusedEntry: {
             name: string | null;
             reason: components["schemas"]["KbRefusalReason"];
@@ -82867,6 +82878,7 @@ export type QuizTestSummary = components['schemas']['QuizTestSummary'];
 export type QuotaOrigin = components['schemas']['QuotaOrigin'];
 export type QuotaUpdateRequest = components['schemas']['QuotaUpdateRequest'];
 export type QuoteConfig = components['schemas']['QuoteConfig'];
+export type RangeDetail = components['schemas']['RangeDetail'];
 export type Ranking = components['schemas']['Ranking'];
 export type RankingAnswer = components['schemas']['RankingAnswer'];
 export type Rating = components['schemas']['Rating'];

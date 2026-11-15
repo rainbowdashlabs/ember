@@ -143,11 +143,13 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         memberEligibility,
                         eventRepo,
                         attendanceRepo,
-                        eventFieldRegistrationService),
+                        eventFieldRegistrationService,
+                        new EventGroupRepository()),
                 occurrenceCalendar,
                 media,
                 new Api(),
-                new EventGroupRepository());
+                new EventGroupRepository(),
+                newEventServices(mock(DomainEventBus.class)).registration());
         transport.serve(service);
 
         stationA = stationRepo.create("EventFedSvcStationA");

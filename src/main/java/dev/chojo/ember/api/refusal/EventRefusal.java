@@ -680,9 +680,14 @@ public enum EventRefusal implements Refusal {
     /** An event group left without any set to put parts in. */
     EVENT_GROUP_NEEDS_A_SET(184, HttpStatus.BAD_REQUEST, "An event group needs at least one set, nothing was saved"),
 
-    /** A set asking for fewer than no parts. */
-    EVENT_GROUP_SET_MINIMUM_NEGATIVE(
-            185, HttpStatus.BAD_REQUEST, "A set cannot ask for fewer than no parts, nothing was saved"),
+    /**
+     * A set asking for a number of its parts it cannot take: fewer than none, fewer than it requires one
+     * by one, or more than it holds. The detail names the numbers it can take.
+     */
+    EVENT_GROUP_SET_MINIMUM_OUT_OF_RANGE(
+            185,
+            HttpStatus.BAD_REQUEST,
+            "A set can only ask for a number of its parts within the range it allows, nothing was saved"),
 
     /** A set named by the editor that belongs to another event group. */
     EVENT_GROUP_SET_NOT_IN_EVENT_GROUP(186, HttpStatus.BAD_REQUEST, "That set does not belong to this event group"),
@@ -793,7 +798,7 @@ public enum EventRefusal implements Refusal {
             212, HttpStatus.CONFLICT, "A part of an event group is shared with its event group, not on its own"),
 
     /** A sign-up for somebody who is no member of the station. */
-    EVENT_GROUP_MEMBER_NOT_HERE(213, HttpStatus.NOT_FOUND, "That member is not at this station"),
+    EVENT_GROUP_MEMBER_NOT_HERE(213, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
 
     /** A date of a part brought back while its whole event group stays called off. */
     EVENT_GROUP_PART_STAYS_CANCELLED(
@@ -817,10 +822,6 @@ public enum EventRefusal implements Refusal {
     EVENT_GROUP_COLOR_INVALID(
             218, HttpStatus.BAD_REQUEST, "An event group colour is written as #RRGGBB, nothing was saved"),
 
-    /** A set asking for more of its parts than it holds. */
-    EVENT_GROUP_SET_MINIMUM_ABOVE_PARTS(
-            219, HttpStatus.BAD_REQUEST, "A set cannot ask for more parts than it holds, nothing was saved"),
-
     /** An event group minimum without its days before the first part, or the other way round, or below one. */
     EVENT_GROUP_MINIMUM_INCOMPLETE(
             220,
@@ -829,11 +830,7 @@ public enum EventRefusal implements Refusal {
                     + " nothing was saved"),
 
     /** An event group filed under a category of another station, or one that is gone. */
-    EVENT_GROUP_CATEGORY_NOT_HERE(221, HttpStatus.NOT_FOUND, Sentences.EVENT_CATEGORY_NOT_HERE),
-
-    /** A set asking for fewer parts than it requires one by one. */
-    EVENT_GROUP_SET_MINIMUM_BELOW_REQUIRED(
-            222, HttpStatus.BAD_REQUEST, "A set cannot ask for fewer parts than it requires, nothing was saved");
+    EVENT_GROUP_CATEGORY_NOT_HERE(221, HttpStatus.NOT_FOUND, Sentences.EVENT_CATEGORY_NOT_HERE);
 
     private final Definition definition;
 

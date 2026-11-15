@@ -170,7 +170,10 @@ class EventGroupAttachmentsTest extends RepositoryTestBase {
         assertTrue(service.findReadableOn(event.id(), crew, ROOM).isEmpty());
         assertTrue(service.find(AppointmentOwner.EVENT, crew).isEmpty(), "the part's own address does not reach it");
         assertFalse(service.detach(AppointmentOwner.EVENT, crew));
-        assertEquals(1, service.listAllOfGroup(group.id()).size());
+        assertEquals(
+                1,
+                service.listForGroup(group.id(), Set.of(StationPermission.EVENT_INTERNAL))
+                        .size());
 
         assertTrue(service.detachFromGroup(crew));
         assertTrue(service.listFor(event.id(), CREW).isEmpty());

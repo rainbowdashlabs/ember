@@ -33,6 +33,7 @@ import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
+import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -148,7 +149,8 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
                 mock(DomainEventBus.class),
                 memberNameResolver,
                 questions,
-                partnerRepo);
+                partnerRepo,
+                newEventGroupService());
         var httpClient = mock(FederationHttpClient.class);
         when(httpClient.canSign(anyInt())).thenReturn(true);
         var transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
@@ -236,11 +238,61 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
         assertTrue(new EventFederationRepository()
                 .findSharedEventIds(partnerOfHolder, holder.id())
                 .contains(later));
-        assertEquals(
-                List.of(eventGroup.id()),
-                partners.sharedEventGroupIds(partnerOfHolder, holder.id()).stream()
-                        .filter(id -> id == eventGroup.id())
-                        .toList());
+        assertEquals(eventGroup.id(), partners.requireSharedWith(servedByHolder(), eventGroup.id()));
+    }
+
+    @Test
+    void anEventGroupSharedWithAllPartnersReachesThePartner() {
+        assertTrue(partnerRepo.isSharedWith(eventGroup.id(), partnerOfHolder, holder.id()));
+        assertEquals(eventGroup.id(), partners.requireSharedWith(servedByHolder(), eventGroup.id()));
+    }
+
+    @Test
+    void anEventGroupSharedWithTheNamedPartnerReachesIt() {
+        partners.share(holder.id(), eventGroup.id(), ShareScope.SPECIFIC, List.of(partnerOfHolder));
+
+        assertEquals(eventGroup.id(), partners.requireSharedWith(servedByHolder(), eventGroup.id()));
+    }
+
+    @Test
+    void anEventGroupSharedWithOtherPartnersOrNobodyDoesNotReachThePartner() {
+        partners.share(holder.id(), eventGroup.id(), ShareScope.SPECIFIC, List.of());
+        assertFalse(partnerRepo.isSharedWith(eventGroup.id(), partnerOfHolder, holder.id()));
+        assertRefused(
+                EventRefusal.EVENT_GROUP_NOT_HERE, () -> partners.requireSharedWith(servedByHolder(), eventGroup.id()));
+
+        partners.unshare(holder.id(), eventGroup.id());
+        assertRefused(
+                EventRefusal.EVENT_GROUP_NOT_HERE, () -> partners.requireSharedWith(servedByHolder(), eventGroup.id()));
+    }
+
+    @Test
+    void anEventGroupOfAnotherStationDoesNotReachThePartner() {
+        var partnerRow = new FederationRepository()
+                .findPartnerByStationAndRemoteUid(partner.id(), holder.uid())
+                .orElseThrow();
+
+        assertRefused(
+                EventRefusal.EVENT_GROUP_NOT_HERE,
+                () -> partners.requireSharedWith(new ServingPartner(partnerRow, holder.uid()), eventGroup.id()));
+    }
+
+    @Test
+    void aSharedEventGroupWhoseViewIsRestrictedLaterDoesNotReachThePartner() {
+        var restricted = new RestrictionAudience(
+                List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), RestrictionMode.AND);
+        eventGroups.setAudiences(holder.id(), eventGroup.id(), RestrictionAudience.empty(), restricted);
+
+        assertFalse(partnerRepo.isSharedWith(eventGroup.id(), partnerOfHolder, holder.id()));
+        assertRefused(
+                EventRefusal.EVENT_GROUP_NOT_HERE, () -> partners.requireSharedWith(servedByHolder(), eventGroup.id()));
+    }
+
+    private static ServingPartner servedByHolder() {
+        var row = new FederationRepository()
+                .findPartnerByStationAndRemoteUid(holder.id(), partner.uid())
+                .orElseThrow();
+        return new ServingPartner(row, partner.uid());
     }
 
     @Test

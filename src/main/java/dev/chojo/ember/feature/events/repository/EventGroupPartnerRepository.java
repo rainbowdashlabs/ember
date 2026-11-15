@@ -56,9 +56,9 @@ public class EventGroupPartnerRepository {
     /**
      * Shares an event group, replacing how it was shared before.
      *
-     * @param eventGroupId   the event group
-     * @param scope      every partner, or the ones named
-     * @param partnerIds the partners named
+     * @param eventGroupId the event group
+     * @param scope        every partner, or the ones named
+     * @param partnerIds   the partners named
      */
     public void setShare(int eventGroupId, ShareScope scope, List<Integer> partnerIds) {
         query("""
@@ -89,33 +89,39 @@ public class EventGroupPartnerRepository {
     }
 
     /**
-     * The event groups of a station shared with a partner. An event group not every member of the station may
-     * see is never among them, whatever its share says.
+     * Whether a station shares one of its event groups with a partner. An event group not every member of
+     * the station may see is never shared, whatever its share says.
      *
-     * @param partnerId the station's record of the partner
-     * @param stationId the station
-     * @return the ids of the shared event groups
+     * @param eventGroupId the event group
+     * @param partnerId    the station's record of the partner
+     * @param stationId    the station
+     * @return true where the partner may reach the event group
      */
-    public List<Integer> findSharedEventGroupIds(int partnerId, int stationId) {
+    public boolean isSharedWith(int eventGroupId, int partnerId, int stationId) {
         return query("""
-                SELECT g.id
-                FROM event_group_share gs
-                    JOIN event_group g ON g.id = gs.event_group_id
-                WHERE g.station_id = :station_id
-                  AND %s
-                  AND (gs.scope = 'ALL_PARTNERS'
-                       OR (gs.scope = 'SPECIFIC'
-                           AND exists (SELECT 1 FROM event_group_share_target t
-                                       WHERE t.event_group_id = gs.event_group_id AND t.partner_id = :partner_id)));""", RestrictionSql.unrestricted(RestrictionType.EVENT_GROUP_VIEW, "g.id"))
-                .single(call().bind("station_id", stationId).bind("partner_id", partnerId))
-                .map(row -> row.getInt("id"))
-                .all();
+                SELECT EXISTS(SELECT 1
+                              FROM event_group_share gs
+                                  JOIN event_group g ON g.id = gs.event_group_id
+                              WHERE g.id = :event_group_id
+                                AND g.station_id = :station_id
+                                AND %s
+                                AND (gs.scope = 'ALL_PARTNERS'
+                                     OR (gs.scope = 'SPECIFIC'
+                                         AND exists (SELECT 1 FROM event_group_share_target t
+                                                     WHERE t.event_group_id = gs.event_group_id
+                                                       AND t.partner_id = :partner_id)))) AS shared;""", RestrictionSql.unrestricted(RestrictionType.EVENT_GROUP_VIEW, "g.id"))
+                .single(call().bind("event_group_id", eventGroupId)
+                        .bind("station_id", stationId)
+                        .bind("partner_id", partnerId))
+                .map(row -> row.getBoolean("shared"))
+                .first()
+                .orElse(false);
     }
 
     /**
      * A partner member's sign-up for an event group.
      *
-     * @param eventGroupId       the event group
+     * @param eventGroupId   the event group
      * @param partnerId      the partner
      * @param remoteMemberId the member
      * @return the sign-up, empty where the member never signed up
@@ -165,7 +171,7 @@ public class EventGroupPartnerRepository {
     /**
      * Signs a partner's member up, or takes them back after they withdrew.
      *
-     * @param eventGroupId       the event group
+     * @param eventGroupId   the event group
      * @param partnerId      the partner
      * @param remoteMemberId the member
      * @param status         the status the sign-up starts with
@@ -201,38 +207,10 @@ public class EventGroupPartnerRepository {
     }
 
     /**
-     * How many partner sign-ups of an event group hold or wait for a place.
-     *
-     * @param eventGroupId the event group
-     * @return the pending and accepted partner sign-ups
-     */
-    public int countHolding(int eventGroupId) {
-        return query("""
-                SELECT count(*) AS holding FROM event_group_partner_registration
-                WHERE event_group_id = :event_group_id AND status IN ('PENDING', 'ACCEPTED');""")
-                .single(call().bind("event_group_id", eventGroupId))
-                .map(row -> row.getInt("holding"))
-                .first()
-                .orElse(0);
-    }
-
-    /**
-     * How many partner sign-ups of an event group were accepted.
-     *
-     * @param eventGroupId the event group
-     * @return the accepted partner sign-ups
-     */
-    public int countAccepted(int eventGroupId) {
-        return SqlSupport.count("""
-                SELECT count(*) FROM event_group_partner_registration
-                WHERE event_group_id = :event_group_id AND status = 'ACCEPTED';""", call().bind("event_group_id", eventGroupId));
-    }
-
-    /**
      * Ties a partner registration for a part to the event group sign-up it was chosen with.
      *
-     * @param registrationId               the partner registration
-     * @param eventGroupPartnerRegistrationId  the partner's event group sign-up
+     * @param registrationId                  the partner registration
+     * @param eventGroupPartnerRegistrationId the partner's event group sign-up
      */
     public void link(int registrationId, int eventGroupPartnerRegistrationId) {
         query("""

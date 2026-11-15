@@ -99,18 +99,20 @@ class EventGroupThresholdCheckerTest extends RepositoryTestBase {
                 mock(DomainEventBus.class),
                 memberNameResolver,
                 questions,
-                partnerRepo);
+                partnerRepo,
+                newEventGroupService());
         cancellation = new EventGroupCancellationService(
                 eventGroupRepo,
                 signUpRepo,
                 eventRepo,
                 newEventServices(new DomainEventBus(Set.of())).cancellation(),
                 occurrenceCalendar,
-                bus);
+                bus,
+                newEventGroupService());
         readOnly = mock(StationReadOnlyGuard.class);
         when(readOnly.isWritable(anyInt())).thenReturn(true);
         checker = new EventGroupThresholdChecker(
-                eventGroupRepo, signUpRepo, partnerRepo, registrations, cancellation, occurrenceCalendar, readOnly);
+                eventGroupRepo, registrations, cancellation, occurrenceCalendar, readOnly);
     }
 
     private EventGroup withMinimum(String name, int minimum, int days, int... partsInDays) {

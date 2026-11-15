@@ -51,7 +51,7 @@ public class EventGroupQuestionService {
      * @return the fields to store
      */
     List<EventFieldDraft> checkedFields(List<EventFieldDraft> fields) {
-        return EventFieldService.checkedGroupFields(fields, eligibility);
+        return EventFieldService.checkedEventGroupFields(fields, eligibility);
     }
 
     /**
@@ -68,7 +68,7 @@ public class EventGroupQuestionService {
      * Replaces the questions of an event group. A question that keeps its name keeps its answers.
      *
      * @param eventGroupId the event group
-     * @param fields   the questions in their new order
+     * @param fields       the questions in their new order
      * @throws io.javalin.http.HttpResponseException where a new question asks for a kind of answer
      *                                               the sign-up does not offer
      * @throws dev.chojo.ember.api.refusal.RefusalResponse naming a question whose default it would refuse
@@ -128,7 +128,7 @@ public class EventGroupQuestionService {
      * Resolves what a new sign-up carries for the event group's questions, before anything is written.
      *
      * @param eventGroupId the event group
-     * @param answers  the answers keyed by question id, as submitted
+     * @param answers      the answers keyed by question id, as submitted
      * @return the value to store per question id
      * @throws dev.chojo.ember.api.refusal.RefusalResponse when a question is unanswered, unknown, or
      *                                                     answered out of range
@@ -144,7 +144,7 @@ public class EventGroupQuestionService {
      * after a withdrawal starts from the answers given this time.
      *
      * @param eventGroupRegistrationId the event group sign-up
-     * @param resolved             the answers as {@link #resolveAnswers} returned them
+     * @param resolved                 the answers as {@link #resolveAnswers} returned them
      */
     public void writeAnswers(int eventGroupRegistrationId, Map<Integer, String> resolved) {
         for (var stored : repository.findEventGroupAnswers(List.of(eventGroupRegistrationId))) {
@@ -162,8 +162,8 @@ public class EventGroupQuestionService {
      *
      * @param eventGroupId             the event group
      * @param eventGroupRegistrationId the event group sign-up
-     * @param answers              the answers keyed by question id, as submitted
-     * @param readsHiddenAnswers   whether the caller may read the answers kept for organisers
+     * @param answers                  the answers keyed by question id, as submitted
+     * @param readsHiddenAnswers       whether the caller may read the answers kept for organisers
      * @throws dev.chojo.ember.api.refusal.RefusalResponse when a question is unanswered, unknown, or
      *                                                     answered out of range
      */

@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.events.entity.EventGroupFieldEntry;
 import dev.chojo.ember.feature.events.entity.SelfRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.question.FieldTypes;
@@ -51,6 +52,7 @@ public class EventFieldService {
     private final EventRepository eventRepository;
     private final AttendanceRepository attendanceRepository;
     private final EventFieldRegistrationService fieldRegistrationService;
+    private final EventGroupRepository eventGroups;
 
     @Inject
     public EventFieldService(
@@ -59,13 +61,15 @@ public class EventFieldService {
             MemberEligibility eligibility,
             EventRepository eventRepository,
             AttendanceRepository attendanceRepository,
-            EventFieldRegistrationService fieldRegistrationService) {
+            EventFieldRegistrationService fieldRegistrationService,
+            EventGroupRepository eventGroups) {
         this.repository = repository;
         this.memberRepository = memberRepository;
         this.eligibility = eligibility;
         this.eventRepository = eventRepository;
         this.attendanceRepository = attendanceRepository;
         this.fieldRegistrationService = fieldRegistrationService;
+        this.eventGroups = eventGroups;
     }
 
     public List<String> findDistinctFieldNames(int stationId) {
@@ -117,7 +121,7 @@ public class EventFieldService {
      * @param eligibility who passes a member narrowing
      * @return the fields to store
      */
-    static List<EventFieldDraft> checkedGroupFields(List<EventFieldDraft> fields, MemberEligibility eligibility) {
+    static List<EventFieldDraft> checkedEventGroupFields(List<EventFieldDraft> fields, MemberEligibility eligibility) {
         for (var field : fields) {
             if (field.config().perDate()) {
                 throw EventRefusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED.raise();
@@ -129,11 +133,11 @@ public class EventFieldService {
     /**
      * The fields of an event group as its own page shows them.
      *
-     * @param groupId the event group
+     * @param eventGroupId the event group
      * @return its fields
      */
-    public List<AppointmentField> findByGroup(int groupId) {
-        return repository.findByGroup(groupId);
+    public List<AppointmentField> findByEventGroup(int eventGroupId) {
+        return repository.findByEventGroup(eventGroupId);
     }
 
     private List<AppointmentField> withInherited(int eventId, List<AppointmentField> own) {
@@ -344,7 +348,7 @@ public class EventFieldService {
         var fields = findByEvent(eventId, date);
         if (fields.stream().noneMatch(EventFieldService::takesSelfRegistration)) return fields;
         boolean closed = closedFor(eventId, runsTheEvent);
-        var wholeGroup = wholeGroupMembers(fields);
+        var wholeGroup = wholeEventGroupMembers(fields);
         return fields.stream()
                 .map(field -> seenBy(field, memberId, closed, wholeGroup))
                 .toList();
@@ -363,7 +367,8 @@ public class EventFieldService {
      */
     public AppointmentField asSeenBy(AppointmentField field, int memberId, boolean runsTheEvent) {
         if (!takesSelfRegistration(field)) return field;
-        return seenBy(field, memberId, closedFor(field.eventId(), runsTheEvent), wholeGroupMembers(List.of(field)));
+        return seenBy(
+                field, memberId, closedFor(field.eventId(), runsTheEvent), wholeEventGroupMembers(List.of(field)));
     }
 
     /**
@@ -377,20 +382,20 @@ public class EventFieldService {
             AppointmentField field, int memberId, boolean closed, Map<Integer, List<Integer>> wholeGroup) {
         if (!takesSelfRegistration(field)) return field;
         var seen = field.withSelfRegistration(selfRegistrationOf(field, memberId, closed));
-        if (field.id() >= 0) return seen;
+        if (!field.inherited()) return seen;
         return seen.withReaderInWholeGroup(
-                wholeGroup.getOrDefault(-field.id(), List.of()).contains(memberId));
+                wholeGroup.getOrDefault(field.groupFieldId(), List.of()).contains(memberId));
     }
 
     /** Who each inherited member field taking self-registration names for its whole event group. */
-    private Map<Integer, List<Integer>> wholeGroupMembers(List<AppointmentField> fields) {
+    private Map<Integer, List<Integer>> wholeEventGroupMembers(List<AppointmentField> fields) {
         var members = new HashMap<Integer, List<Integer>>();
         for (var field : fields) {
-            if (field.id() >= 0 || !takesSelfRegistration(field)) continue;
+            if (!field.inherited() || !takesSelfRegistration(field)) continue;
             repository
-                    .findGroupField(-field.id())
+                    .findEventGroupField(field.groupFieldId())
                     .ifPresent(stored -> members.put(
-                            -field.id(),
+                            field.groupFieldId(),
                             QuestionValues.memberIds(stored.getValue().value())));
         }
         return members;
@@ -443,7 +448,8 @@ public class EventFieldService {
      */
     public AppointmentField toggleSelfRegistration(
             int eventId, int fieldId, int memberId, @Nullable LocalDate date, boolean runsTheEvent) {
-        if (fieldId < 0) return togglePartEntry(eventId, -fieldId, memberId, runsTheEvent);
+        if (AppointmentField.inherited(fieldId))
+            return togglePartEntry(eventId, AppointmentField.groupFieldId(fieldId), memberId, runsTheEvent);
         var raw = repository
                 .findById(fieldId)
                 .orElseThrow(EventRefusal.APPOINTMENT_FIELD_NOT_HERE_FOR_SELF_REGISTRATION::raise);
@@ -495,15 +501,18 @@ public class EventFieldService {
      */
     private AppointmentField togglePartEntry(int eventId, int groupFieldId, int memberId, boolean runsTheEvent) {
         var stored = repository
-                .findGroupField(groupFieldId)
+                .findEventGroupField(groupFieldId)
                 .orElseThrow(EventRefusal.APPOINTMENT_FIELD_NOT_HERE_FOR_SELF_REGISTRATION::raise);
-        if (!repository.findGroupOfEvent(eventId).map(stored.getKey()::equals).orElse(false)) {
+        if (!eventGroups
+                .findPart(eventId)
+                .map(part -> part.eventGroupId() == stored.getKey())
+                .orElse(false)) {
             throw EventRefusal.APPOINTMENT_FIELD_NOT_HERE_FOR_SELF_REGISTRATION.raise();
         }
         return Transactions.call(() -> {
-            repository.lockGroup(stored.getKey());
+            eventGroups.lockEventGroup(stored.getKey());
             var current = repository
-                    .findGroupField(groupFieldId)
+                    .findEventGroupField(groupFieldId)
                     .map(Map.Entry::getValue)
                     .orElseThrow(EventRefusal.APPOINTMENT_FIELD_NOT_HERE_FOR_SELF_REGISTRATION::raise);
             return togglePartEntryLocked(eventId, groupFieldId, memberId, runsTheEvent, current);
@@ -516,7 +525,7 @@ public class EventFieldService {
                 .map(AppointmentField::nameKey)
                 .anyMatch(AppointmentField.nameKey(stored.name())::equals);
         if (overridden) throw EventRefusal.APPOINTMENT_FIELD_NOT_HERE_FOR_SELF_REGISTRATION.raise();
-        var shown = shownGroupField(eventId, groupFieldId);
+        var shown = shownEventGroupField(eventId, groupFieldId);
         requireSelfRegistration(shown, memberId);
 
         var groupIds = QuestionValues.memberIds(stored.value());
@@ -548,13 +557,13 @@ public class EventFieldService {
         }
         fieldRegistrationService.reconcile(eventId);
         log.info("Member {} toggled self-registration on group field {} for event {}", memberId, groupFieldId, eventId);
-        return shownGroupField(eventId, groupFieldId);
+        return shownEventGroupField(eventId, groupFieldId);
     }
 
     /** A member field of an event group as one of its appointments shows it. */
-    private AppointmentField shownGroupField(int eventId, int groupFieldId) {
+    private AppointmentField shownEventGroupField(int eventId, int groupFieldId) {
         return repository.findInherited(List.of(eventId), false).stream()
-                .filter(field -> field.id() == -groupFieldId)
+                .filter(field -> field.inherited() && field.groupFieldId() == groupFieldId)
                 .findFirst()
                 .orElseThrow(EventRefusal.APPOINTMENT_FIELD_NOT_HERE_FOR_SELF_REGISTRATION::raise);
     }
@@ -565,64 +574,66 @@ public class EventFieldService {
      * appointments before. Entering is checked as on an appointment's own field, against the group's
      * closing date; stepping out never is.
      *
-     * @param groupId      the event group
-     * @param groupFieldId the member field of the group
-     * @param memberId     the member
-     * @param runsTheGroup whoever keeps the group's lists, for whom the closing date is no refusal
+     * @param eventGroupId      the event group
+     * @param groupFieldId      the member field of the group
+     * @param memberId          the member
+     * @param runsTheEventGroup whoever keeps the group's lists, for whom the closing date is no refusal
      * @return the field as the group shows it, with the member's state
      * @throws RefusalResponse where the field is not the group's, names no members, takes no
      *                         self-registration, the member is outside its narrowing, the group stopped
      *                         taking people or a single-member slot is taken
      */
-    public AppointmentField toggleGroupSelfRegistration(
-            int groupId, int groupFieldId, int memberId, boolean runsTheGroup) {
+    public AppointmentField toggleEventGroupSelfRegistration(
+            int eventGroupId, int groupFieldId, int memberId, boolean runsTheEventGroup) {
         return Transactions.call(() -> {
-            repository.lockGroup(groupId);
-            return toggleGroupLocked(groupId, groupFieldId, memberId, runsTheGroup);
+            eventGroups.lockEventGroup(eventGroupId);
+            return toggleEventGroupLocked(eventGroupId, groupFieldId, memberId, runsTheEventGroup);
         });
     }
 
-    private AppointmentField toggleGroupLocked(int groupId, int groupFieldId, int memberId, boolean runsTheGroup) {
+    private AppointmentField toggleEventGroupLocked(
+            int eventGroupId, int groupFieldId, int memberId, boolean runsTheEventGroup) {
         var stored = repository
-                .findGroupField(groupFieldId)
-                .filter(found -> found.getKey() == groupId)
+                .findEventGroupField(groupFieldId)
+                .filter(found -> found.getKey() == eventGroupId)
                 .map(Map.Entry::getValue)
                 .orElseThrow(EventRefusal.APPOINTMENT_FIELD_NOT_HERE_FOR_SELF_REGISTRATION::raise);
         requireSelfRegistration(stored, memberId);
 
         var ids = QuestionValues.memberIds(stored.value());
         if (ids.contains(memberId)) {
-            repository.updateGroupValue(groupFieldId, left(ids, memberId));
+            repository.updateEventGroupValue(groupFieldId, left(ids, memberId));
         } else {
             requireEligible(stored, memberId);
-            if (!runsTheGroup && !repository.groupTakesPeople(groupId)) {
+            if (!runsTheEventGroup && !repository.eventGroupTakesPeople(eventGroupId)) {
                 throw EventRefusal.REGISTRATION_CLOSED_ON_SELF_REGISTRATION.raise();
             }
-            repository.updateGroupValue(groupFieldId, entered(stored, ids, memberId));
+            repository.updateEventGroupValue(groupFieldId, entered(stored, ids, memberId));
         }
         repository.deleteEntriesOf(groupFieldId, memberId);
-        reconcileGroup(groupId);
+        reconcileEventGroup(eventGroupId);
         log.info("Member {} toggled self-registration on group field {} for the whole group", memberId, groupFieldId);
         var updated = repository
-                .findGroupField(groupFieldId)
+                .findEventGroupField(groupFieldId)
                 .map(Map.Entry::getValue)
                 .orElseThrow(EventRefusal.APPOINTMENT_FIELD_NOT_HERE_AFTER_SELF_REGISTRATION::raise);
-        return asSeenOnGroup(groupId, updated, memberId, runsTheGroup);
+        return asSeenOnEventGroup(eventGroupId, updated, memberId, runsTheEventGroup);
     }
 
     /**
      * A field of an event group as its own page shows it to one reader, telling them whether they may
      * put themselves in for the whole group.
      *
-     * @param groupId      the event group
-     * @param field        the group's field
-     * @param memberId     the reader
-     * @param runsTheGroup whether the reader keeps the group's lists
+     * @param eventGroupId      the event group
+     * @param field             the group's field
+     * @param memberId          the reader
+     * @param runsTheEventGroup whether the reader keeps the group's lists
      * @return the field, with the reader's state where it takes self-registration
      */
-    public AppointmentField asSeenOnGroup(int groupId, AppointmentField field, int memberId, boolean runsTheGroup) {
+    public AppointmentField asSeenOnEventGroup(
+            int eventGroupId, AppointmentField field, int memberId, boolean runsTheEventGroup) {
         if (!takesSelfRegistration(field)) return field;
-        boolean closed = !runsTheGroup && !repository.groupTakesPeople(groupId);
+        boolean closed = !runsTheEventGroup && !repository.eventGroupTakesPeople(eventGroupId);
         return field.withSelfRegistration(selfRegistrationOf(field, memberId, closed));
     }
 
@@ -630,10 +641,10 @@ public class EventFieldService {
      * Brings the registrations of every appointment of an event group in step with the member fields
      * the group hands down, after they changed.
      *
-     * @param groupId the event group
+     * @param eventGroupId the event group
      */
-    public void reconcileGroup(int groupId) {
-        repository.findPartIds(groupId).forEach(fieldRegistrationService::reconcile);
+    public void reconcileEventGroup(int eventGroupId) {
+        eventGroups.findParts(eventGroupId).forEach(part -> fieldRegistrationService.reconcile(part.eventId()));
     }
 
     /**

@@ -139,7 +139,8 @@ class EventGroupRoutesTest {
         questions = mock(EventGroupQuestionService.class);
         fields = mock(EventFieldService.class);
         requirements = mock(EventRequirementService.class);
-        when(fields.asSeenOnGroup(anyInt(), any(), anyInt(), anyBoolean())).thenAnswer(call -> call.getArgument(1));
+        when(fields.asSeenOnEventGroup(anyInt(), any(), anyInt(), anyBoolean()))
+                .thenAnswer(call -> call.getArgument(1));
         harness = RouteHarness.serving(new EventGroupRoutes(
                 eventGroups,
                 signUps,
@@ -191,14 +192,14 @@ class EventGroupRoutesTest {
     void aMemberPutsThemselvesIntoAGroupMemberFieldOnlyOfAGroupMeantForThem() {
         var field = new AppointmentField(
                 7, 0, "Betreuer", FieldType.MEMBER_LIST, EventQuestionSettings.empty(), "[1]", 0, false, null, false);
-        when(fields.toggleGroupSelfRegistration(EVENT_GROUP_ID, 7, TestSessions.MEMBER_ID, false))
+        when(fields.toggleEventGroupSelfRegistration(EVENT_GROUP_ID, 7, TestSessions.MEMBER_ID, false))
                 .thenReturn(field);
 
         assertEquals(
                 200,
                 call("POST", EVENT_GROUP + "/fields/7/self-register", "{}", StationPermission.USER)
                         .code());
-        verify(fields).toggleGroupSelfRegistration(EVENT_GROUP_ID, 7, TestSessions.MEMBER_ID, false);
+        verify(fields).toggleEventGroupSelfRegistration(EVENT_GROUP_ID, 7, TestSessions.MEMBER_ID, false);
 
         when(eventGroups.canSeeAny(eq(EVENT_GROUP_ID), anyList(), anySet())).thenReturn(false);
         assertEquals(
@@ -248,7 +249,7 @@ class EventGroupRoutesTest {
                 StationPermission.USER,
                 StationPermission.EVENT_MANAGER);
 
-        verify(fields).toggleGroupSelfRegistration(EVENT_GROUP_ID, 7, TestSessions.MEMBER_ID, true);
+        verify(fields).toggleEventGroupSelfRegistration(EVENT_GROUP_ID, 7, TestSessions.MEMBER_ID, true);
     }
 
     @Test

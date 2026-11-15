@@ -199,10 +199,12 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
                 .orElseThrow();
         int sunday = jugendflamme.sundayPractice();
         int exam = jugendflamme.exam();
-        fields.toggleGroupSelfRegistration(eventGroupId, field, team.get(0).id(), true);
-        fields.toggleGroupSelfRegistration(eventGroupId, field, team.get(2).id(), true);
-        fields.toggleSelfRegistration(exam, -field, team.get(2).id(), null, true);
-        fields.toggleSelfRegistration(sunday, -field, team.get(1).id(), null, true);
+        fields.toggleEventGroupSelfRegistration(eventGroupId, field, team.get(0).id(), true);
+        fields.toggleEventGroupSelfRegistration(eventGroupId, field, team.get(2).id(), true);
+        fields.toggleSelfRegistration(
+                exam, AppointmentField.inheritedId(field), team.get(2).id(), null, true);
+        fields.toggleSelfRegistration(
+                sunday, AppointmentField.inheritedId(field), team.get(1).id(), null, true);
         log.info("Demo: Put the team into the Betreuer field of event group {} (group {})", eventGroupId, teamGroupId);
     }
 

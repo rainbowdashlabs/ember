@@ -263,11 +263,13 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                         memberEligibility,
                         eventRepo,
                         attendanceRepo,
-                        eventFieldRegistrationService),
+                        eventFieldRegistrationService,
+                        new EventGroupRepository()),
                 occurrenceCalendar,
                 media,
                 new Api(),
-                new EventGroupRepository());
+                new EventGroupRepository(),
+                newEventServices(mock(DomainEventBus.class)).registration());
 
         var guardianPolicy = new GuardianPolicy(stationMemberRepo);
         var requirementRepo = new EventRequirementRepository();

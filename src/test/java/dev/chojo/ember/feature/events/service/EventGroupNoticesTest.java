@@ -119,7 +119,8 @@ class EventGroupNoticesTest extends RepositoryTestBase {
                 mock(DomainEventBus.class),
                 memberNameResolver,
                 new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
-                new EventGroupPartnerRepository());
+                new EventGroupPartnerRepository(),
+                newEventGroupService());
         zone = occurrenceCalendar.zoneOf(station.id());
     }
 
@@ -180,7 +181,8 @@ class EventGroupNoticesTest extends RepositoryTestBase {
                 eventRepo,
                 newEventServices(bus).cancellation(),
                 occurrenceCalendar,
-                announcements);
+                announcements,
+                newEventGroupService());
 
         cancellation.cancel(station.id(), eventGroup.id(), "Zu wenige Ausbilder", null);
 
@@ -250,7 +252,8 @@ class EventGroupNoticesTest extends RepositoryTestBase {
                 eventRepo,
                 dates,
                 occurrenceCalendar,
-                announcements);
+                announcements,
+                newEventGroupService());
     }
 
     @Test

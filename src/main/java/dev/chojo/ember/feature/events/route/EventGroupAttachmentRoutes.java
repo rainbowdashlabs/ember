@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.FileResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -18,8 +19,6 @@ import dev.chojo.ember.feature.events.service.EventGroupGuards;
 import dev.chojo.ember.feature.events.service.EventGroupService;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.station.entity.StationModule;
-import dev.chojo.ember.util.SafeContentDisposition;
-import dev.chojo.ember.util.SafeInlineMime;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -116,16 +115,7 @@ public class EventGroupAttachmentRoutes implements Routes {
                 .orElseThrow(EventRefusal.EVENT_FILE_NOT_HERE::raise);
         var file = media.read(session.stationId(), attachment.contentHash())
                 .orElseThrow(EventRefusal.EVENT_FILE_CONTENT_NOT_HERE::raise);
-        String stored = file.contentType();
-        ctx.contentType(SafeInlineMime.safeContentType(stored));
-        ctx.header(
-                "Content-Disposition",
-                SafeContentDisposition.build(
-                        SafeInlineMime.isInlineSafe(stored)
-                                ? SafeContentDisposition.Disposition.INLINE
-                                : SafeContentDisposition.Disposition.ATTACHMENT,
-                        attachment.fileName()));
-        ctx.result(file.data());
+        FileResponse.send(ctx, file.contentType(), attachment.fileName(), file.data());
     }
 
     @OpenApi(

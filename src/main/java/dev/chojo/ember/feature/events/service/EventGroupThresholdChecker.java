@@ -7,8 +7,7 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.entity.EventGroupPartState;
-import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
-import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import dev.chojo.ember.lifecycle.Schedule;
@@ -24,6 +23,7 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Calls off the event groups that too few sign-ups were accepted for in time.
@@ -41,8 +41,6 @@ public class EventGroupThresholdChecker implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(EventGroupThresholdChecker.class);
 
     private final EventGroupRepository eventGroups;
-    private final EventGroupRegistrationRepository signUps;
-    private final EventGroupPartnerRepository partnerSignUps;
     private final EventGroupRegistrationService registrations;
     private final EventGroupCancellationService cancellation;
     private final OccurrenceCalendar calendar;
@@ -51,15 +49,11 @@ public class EventGroupThresholdChecker implements TaskSource {
     @Inject
     public EventGroupThresholdChecker(
             EventGroupRepository eventGroups,
-            EventGroupRegistrationRepository signUps,
-            EventGroupPartnerRepository partnerSignUps,
             EventGroupRegistrationService registrations,
             EventGroupCancellationService cancellation,
             OccurrenceCalendar calendar,
             StationReadOnlyGuard readOnlyGuard) {
         this.eventGroups = eventGroups;
-        this.signUps = signUps;
-        this.partnerSignUps = partnerSignUps;
         this.registrations = registrations;
         this.cancellation = cancellation;
         this.calendar = calendar;
@@ -109,7 +103,7 @@ public class EventGroupThresholdChecker implements TaskSource {
     }
 
     private int accepted(int eventGroupId) {
-        return signUps.countAccepted(eventGroupId) + partnerSignUps.countAccepted(eventGroupId);
+        return eventGroups.countSignUps(eventGroupId, Set.of(RegistrationStatus.ACCEPTED));
     }
 
     /**

@@ -30,7 +30,7 @@ public class EventGroupRegistrationRepository {
      * A member's sign-up for an event group.
      *
      * @param eventGroupId the event group
-     * @param memberId the member
+     * @param memberId     the member
      * @return the sign-up, or empty where the member never signed up
      */
     public Optional<EventGroupRegistration> find(int eventGroupId, int memberId) {
@@ -79,10 +79,10 @@ public class EventGroupRegistrationRepository {
      * Signs a member up for an event group, or signs them up again after they withdrew or were turned
      * down.
      *
-     * @param eventGroupId  the event group
-     * @param memberId  the member
-     * @param status    the status the sign-up starts with
-     * @param createdBy the member who signed somebody else up, or null
+     * @param eventGroupId the event group
+     * @param memberId     the member
+     * @param status       the status the sign-up starts with
+     * @param createdBy    the member who signed somebody else up, or null
      * @return the sign-up
      */
     public EventGroupRegistration signUp(
@@ -114,30 +114,6 @@ public class EventGroupRegistrationRepository {
         query("UPDATE event_group_registration SET status = :status WHERE id = :id;")
                 .single(call().bind("id", id).bind("status", status))
                 .update();
-    }
-
-    /**
-     * How many sign-ups of an event group hold or wait for a place.
-     *
-     * @param eventGroupId the event group
-     * @return the pending and accepted sign-ups
-     */
-    public int countHolding(int eventGroupId) {
-        return SqlSupport.count("""
-                SELECT count(*) FROM event_group_registration
-                WHERE event_group_id = :event_group_id AND status IN ('PENDING', 'ACCEPTED');""", call().bind("event_group_id", eventGroupId));
-    }
-
-    /**
-     * How many sign-ups of an event group were accepted.
-     *
-     * @param eventGroupId the event group
-     * @return the accepted sign-ups
-     */
-    public int countAccepted(int eventGroupId) {
-        return SqlSupport.count("""
-                SELECT count(*) FROM event_group_registration
-                WHERE event_group_id = :event_group_id AND status = 'ACCEPTED';""", call().bind("event_group_id", eventGroupId));
     }
 
     /**

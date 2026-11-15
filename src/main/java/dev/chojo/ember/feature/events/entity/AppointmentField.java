@@ -65,6 +65,58 @@ public record AppointmentField(
     }
 
     /**
+     * Whether this field comes from the appointment's event group rather than from the appointment
+     * itself. Such a field carries the negated id of the event group's field.
+     *
+     * @return true for a field of the event group shown on one of its parts
+     */
+    public boolean inherited() {
+        return inherited(id);
+    }
+
+    /**
+     * The event group's field this one comes from.
+     *
+     * @return the id of the event group's field
+     * @throws IllegalStateException for a field of the appointment itself
+     */
+    public int groupFieldId() {
+        return groupFieldId(id);
+    }
+
+    /**
+     * Whether a field id, as the screens send it, names a field of the event group shown on a part.
+     *
+     * @param fieldId the id
+     * @return true for a negated id of an event group's field
+     */
+    public static boolean inherited(int fieldId) {
+        return fieldId < 0;
+    }
+
+    /**
+     * The id a field of an event group carries where one of its parts shows it.
+     *
+     * @param groupFieldId the id of the event group's field
+     * @return the negated id
+     */
+    public static int inheritedId(int groupFieldId) {
+        return -groupFieldId;
+    }
+
+    /**
+     * The event group's field a field id names.
+     *
+     * @param fieldId the id of a field of the event group as shown on a part
+     * @return the id of the event group's field
+     * @throws IllegalStateException for the id of an appointment's own field
+     */
+    public static int groupFieldId(int fieldId) {
+        if (!inherited(fieldId)) throw new IllegalStateException("Field " + fieldId + " is an appointment's own");
+        return -fieldId;
+    }
+
+    /**
      * The same question, telling the reader asking whether they may put themselves into it.
      *
      * @param state what the reader may do, or null to say nothing

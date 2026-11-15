@@ -95,14 +95,14 @@ public class EventGroupCommentFederation implements FederationServer {
     }
 
     private List<CommentResponse> serveComments(ServingPartner partner, int eventGroupId) {
-        requireShared(partner, eventGroupId);
+        partners.requireSharedWith(partner, eventGroupId);
         return comments.list(CommentEntityType.EVENT_GROUP, eventGroupId, CommentFilter.ALL).stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     private CommentResponse serveNewComment(ServingPartner partner, int eventGroupId, RemoteEventGroupComment request) {
-        requireShared(partner, eventGroupId);
+        partners.requireSharedWith(partner, eventGroupId);
         if (request.content() == null || request.content().isBlank()) {
             throw EventRefusal.PARTNER_COMMENT_NEEDS_TEXT.raise();
         }
@@ -120,7 +120,7 @@ public class EventGroupCommentFederation implements FederationServer {
 
     private CommentResponse serveCommentEdit(
             ServingPartner partner, int eventGroupId, int commentId, RemoteCommentUpdateRequest request) {
-        requireShared(partner, eventGroupId);
+        partners.requireSharedWith(partner, eventGroupId);
         if (request.content() == null || request.content().isBlank()) {
             throw EventRefusal.PARTNER_COMMENT_CHANGE_NEEDS_TEXT.raise();
         }
@@ -140,7 +140,7 @@ public class EventGroupCommentFederation implements FederationServer {
 
     private void serveCommentDeletion(
             ServingPartner partner, int eventGroupId, int commentId, RemoteCommentDeleteRequest request) {
-        requireShared(partner, eventGroupId);
+        partners.requireSharedWith(partner, eventGroupId);
         var comment = requireAuthor(
                 partner,
                 eventGroupId,
@@ -173,13 +173,6 @@ public class EventGroupCommentFederation implements FederationServer {
             throw notYours.raise();
         }
         return comment;
-    }
-
-    private void requireShared(ServingPartner partner, int eventGroupId) {
-        if (!partners.sharedEventGroupIds(partner.partnerId(), partner.servingStationId())
-                .contains(eventGroupId)) {
-            throw EventRefusal.EVENT_GROUP_NOT_HERE.raise();
-        }
     }
 
     private CommentResponse toResponse(Comment comment) {

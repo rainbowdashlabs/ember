@@ -80418,6 +80418,24 @@
           }
         }
       },
+      "RangeDetail" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "RANGE" ]
+          },
+          "min" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "max" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int64"
+          }
+        },
+        "required" : [ "kind", "min", "max" ]
+      },
       "Ranking" : {
         "type" : "object",
         "properties" : {
@@ -80798,6 +80816,8 @@
         "oneOf" : [ {
           "$ref" : "#/components/schemas/CountDetail"
         }, {
+          "$ref" : "#/components/schemas/RangeDetail"
+        }, {
           "$ref" : "#/components/schemas/RoomDetail"
         }, {
           "$ref" : "#/components/schemas/TextDetail"
@@ -80806,6 +80826,7 @@
           "propertyName" : "kind",
           "mapping" : {
             "COUNT" : "#/components/schemas/CountDetail",
+            "RANGE" : "#/components/schemas/RangeDetail",
             "ROOM" : "#/components/schemas/RoomDetail",
             "TEXT" : "#/components/schemas/TextDetail"
           }

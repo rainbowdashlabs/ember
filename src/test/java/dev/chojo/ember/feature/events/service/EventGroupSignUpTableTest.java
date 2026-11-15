@@ -104,7 +104,8 @@ class EventGroupSignUpTableTest extends RepositoryTestBase {
                 mock(DomainEventBus.class),
                 memberNameResolver,
                 questions,
-                new EventGroupPartnerRepository());
+                new EventGroupPartnerRepository(),
+                newEventGroupService());
         partners = mock(EventGroupPartnerService.class);
         table = new EventGroupSignUpTable(
                 eventGroups,

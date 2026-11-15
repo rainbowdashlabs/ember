@@ -12459,6 +12459,8 @@ export default {
             hours: '{count} Stunden',
             years: '{count} Jahre',
             line: 'Zeile {count}',
+            range: '{min} bis {max}',
+            atLeast: 'mindestens {min}',
         },
         OFFLINE: {
             message: 'Keine Verbindung zum Server.',

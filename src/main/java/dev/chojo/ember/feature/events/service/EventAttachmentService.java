@@ -132,11 +132,6 @@ public class EventAttachmentService {
         return visible(repository.findByGroup(groupId), readsInternal(permissions));
     }
 
-    /** Every file of an event group, for whoever is editing it. */
-    public List<EventAttachment> listAllOfGroup(int groupId) {
-        return repository.findByGroup(groupId);
-    }
-
     /**
      * A file of an event group.
      *
