@@ -7,8 +7,6 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.refusal.MemberRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
-import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -21,14 +19,12 @@ import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 
 import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PrivateTagsTest extends RepositoryTestBase {
@@ -63,10 +59,6 @@ class PrivateTagsTest extends RepositoryTestBase {
 
     private static RestrictionSelection byTag(int tagId) {
         return new RestrictionSelection(List.of(), List.of(), List.of(tagId), List.of(), null);
-    }
-
-    private static void assertRefused(Refusal expected, Executable call) {
-        assertEquals(expected, assertThrows(RefusalResponse.class, call).refusal());
     }
 
     @Test

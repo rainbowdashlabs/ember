@@ -11,7 +11,6 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.events.service.EventGroupCommentFederation;
-import io.javalin.testtools.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,7 +19,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
-import static dev.chojo.ember.api.RouteHarness.body;
 import static dev.chojo.ember.api.RouteHarness.json;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -59,19 +57,9 @@ class FederatedEventGroupCommentRoutesTest {
         harness = RouteHarness.serving(new FederatedEventGroupCommentRoutes(comments));
     }
 
-    private Response call(String method, String path, String json, StationPermission... permissions) {
-        var session = harness.as(TestSessions.member(STATION_ID, permissions));
-        return harness.request(client -> switch (method) {
-            case "GET" -> client.get(path, session);
-            case "POST" -> client.post(path, body(json), session);
-            case "PUT" -> client.put(path, body(json), session);
-            default -> client.delete(path, null, session);
-        });
-    }
-
     @Test
     void aMemberReadsTheThreadAtThePartner() {
-        var listed = json(call("GET", COMMENTS, null, StationPermission.USER));
+        var listed = json(harness.call(STATION_ID, "GET", COMMENTS, null, StationPermission.USER));
 
         assertEquals("Hallo", listed.get(0).path("content").asString());
     }
@@ -80,7 +68,7 @@ class FederatedEventGroupCommentRoutesTest {
     void aMemberWritesAsThemselves() {
         assertEquals(
                 201,
-                call("POST", COMMENTS, "{\"content\": \"Hallo\"}", StationPermission.USER)
+                harness.call(STATION_ID, "POST", COMMENTS, "{\"content\": \"Hallo\"}", StationPermission.USER)
                         .code());
 
         var self = TestSessions.member(STATION_ID).member();
@@ -95,11 +83,12 @@ class FederatedEventGroupCommentRoutesTest {
 
         assertEquals(
                 200,
-                call("PUT", COMMENTS + "/5", "{\"content\": \"neu\"}", StationPermission.USER)
+                harness.call(STATION_ID, "PUT", COMMENTS + "/5", "{\"content\": \"neu\"}", StationPermission.USER)
                         .code());
         assertEquals(
                 204,
-                call("DELETE", COMMENTS + "/5", null, StationPermission.USER).code());
+                harness.call(STATION_ID, "DELETE", COMMENTS + "/5", null, StationPermission.USER)
+                        .code());
 
         verify(comments).updateAtPartner(STATION_ID, HOLDER, 70, 5, self.uid(), "neu");
         verify(comments).deleteAtPartner(STATION_ID, HOLDER, 70, 5, self.uid());
@@ -109,16 +98,20 @@ class FederatedEventGroupCommentRoutesTest {
     void anEmptyCommentNeverLeaves() {
         assertEquals(
                 EventRefusal.FEDERATED_COMMENT_NEEDS_TEXT,
-                refusalOf(call("POST", COMMENTS, "{\"content\": \" \"}", StationPermission.USER)));
+                refusalOf(harness.call(STATION_ID, "POST", COMMENTS, "{\"content\": \" \"}", StationPermission.USER)));
         assertEquals(
                 EventRefusal.FEDERATED_COMMENT_CHANGE_NEEDS_TEXT,
-                refusalOf(call("PUT", COMMENTS + "/5", "{\"content\": \"\"}", StationPermission.USER)));
+                refusalOf(harness.call(
+                        STATION_ID, "PUT", COMMENTS + "/5", "{\"content\": \"\"}", StationPermission.USER)));
         verify(comments, never()).createAtPartner(anyInt(), any(), anyInt(), any(), anyString(), any(), anyString());
     }
 
     @Test
     void aSessionWithoutTheUserRightIsTurnedAway() {
-        assertEquals(403, call("GET", COMMENTS, null).code());
-        assertEquals(403, call("POST", COMMENTS, "{\"content\": \"x\"}").code());
+        assertEquals(403, harness.call(STATION_ID, "GET", COMMENTS, null).code());
+        assertEquals(
+                403,
+                harness.call(STATION_ID, "POST", COMMENTS, "{\"content\": \"x\"}")
+                        .code());
     }
 }

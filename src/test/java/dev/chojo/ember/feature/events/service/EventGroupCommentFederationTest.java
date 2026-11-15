@@ -8,8 +8,6 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
-import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEvent;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.CommentCreated;
@@ -49,7 +47,6 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.atLeast;
@@ -170,11 +167,6 @@ class EventGroupCommentFederationTest extends RepositoryTestBase {
         var captor = ArgumentCaptor.forClass(DomainEvent.class);
         verify(BUS, atLeast(0)).publish(captor.capture());
         return captor.getAllValues();
-    }
-
-    private static void assertRefused(Refusal refusal, Runnable call) {
-        var thrown = assertThrows(RefusalResponse.class, call::run);
-        assertEquals(refusal, thrown.refusal());
     }
 
     @Test

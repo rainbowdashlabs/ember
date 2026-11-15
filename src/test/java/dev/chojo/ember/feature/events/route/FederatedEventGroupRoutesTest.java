@@ -11,8 +11,6 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.EventRefusal;
-import dev.chojo.ember.feature.events.entity.EventGroup;
-import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSummary;
 import dev.chojo.ember.feature.events.entity.EventGroupTally;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -27,7 +25,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.StationMemberService;
-import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.repository.EventGroupFixtures;
 import io.javalin.testtools.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,7 +39,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
-import static dev.chojo.ember.api.RouteHarness.body;
 import static dev.chojo.ember.api.RouteHarness.json;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -87,15 +84,7 @@ class FederatedEventGroupRoutesTest {
         var standing =
                 new PartnerStanding(CHILD_UID, RegistrationStatus.ACCEPTED, Instant.now(), List.of(101), List.of());
         when(partnerEventGroups.signUp(anyInt(), any(), anyInt(), any(), any())).thenReturn(standing);
-        var eventGroup = new EventGroup(
-                70,
-                9,
-                new EventGroupDetails("Jugendflamme 1", null, null, null, false, null, null, null),
-                RestrictionMode.AND,
-                RestrictionMode.AND,
-                false,
-                null,
-                null);
+        var eventGroup = EventGroupFixtures.eventGroup(70, 9, "Jugendflamme 1");
         when(partnerEventGroups.eventGroup(anyInt(), eq(HOLDER), eq(70), any()))
                 .thenReturn(new RemoteEventGroupDetail(
                         RemoteEventGroupSummary.of(EventGroupSummary.of(eventGroup, new EventGroupTally(1, 1))),
@@ -113,12 +102,7 @@ class FederatedEventGroupRoutesTest {
     }
 
     private Response call(String method, String path, String json) {
-        var session = harness.as(TestSessions.member(STATION_ID, StationPermission.USER));
-        return harness.request(client -> switch (method) {
-            case "GET" -> client.get(path, session);
-            case "DELETE" -> client.delete(path, null, session);
-            default -> client.post(path, body(json), session);
-        });
+        return harness.call(STATION_ID, method, path, json, StationPermission.USER);
     }
 
     @Test

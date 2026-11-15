@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.beacon.service;
 
 import dev.chojo.ember.api.ApiJsonMapper;
 import dev.chojo.ember.api.refusal.BeaconRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.auth.signing.DatabaseReplayStore;
 import dev.chojo.ember.auth.signing.repository.SignedRequestNonceRepository;
@@ -19,7 +18,6 @@ import dev.chojo.ember.feature.discovery.service.DiscoveryKeyService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -73,10 +71,6 @@ class BeaconIntakeServiceTest extends RepositoryTestBase {
         var envelope = envelope(Instant.now(), OWN_URL);
         service.accept(key, envelope, OWN_URL);
         assertRefused(BeaconRefusal.BEACON_DELIVERY_ALREADY_TAKEN, () -> service.accept(key, envelope, OWN_URL));
-    }
-
-    private static void assertRefused(Refusal expected, Executable call) {
-        assertEquals(expected, assertThrows(RefusalResponse.class, call).refusal());
     }
 
     /** A clock far out of step is refused rather than trusted. */

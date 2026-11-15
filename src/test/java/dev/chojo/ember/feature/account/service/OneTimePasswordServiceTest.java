@@ -9,8 +9,6 @@ import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.refusal.AdminRefusal;
 import dev.chojo.ember.api.refusal.MemberRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
-import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.auth.BreachCheckWorker;
 import dev.chojo.ember.auth.HibpClient;
 import dev.chojo.ember.auth.OneTimePasswords;
@@ -38,7 +36,6 @@ import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -50,7 +47,6 @@ import java.util.regex.Pattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -124,11 +120,6 @@ class OneTimePasswordServiceTest extends RepositoryTestBase {
 
     private IssuedOneTimePassword issueHere() {
         return service.issueForStation(station.id(), administrator.id(), target.id(), "agent", "DE");
-    }
-
-    private static void assertRefused(Refusal expected, Executable call) {
-        var refused = assertThrows(RefusalResponse.class, call);
-        assertEquals(expected, refused.refusal());
     }
 
     @Test

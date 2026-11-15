@@ -19,7 +19,6 @@ import dev.chojo.ember.feature.events.entity.EventGroupSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupSettingsRepository;
-import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
@@ -32,12 +31,11 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.List;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static dev.chojo.ember.repository.EventGroupFixtures.part;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -70,13 +68,7 @@ class EventGroupSettingsServiceTest extends RepositoryTestBase {
 
     @BeforeEach
     void wire() {
-        groups = new EventGroupService(
-                groupRepo,
-                eventRepo,
-                restrictionService,
-                occurrenceCalendar,
-                new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
-                newEventFieldService());
+        groups = newEventGroupService();
         var guards = new AttendanceTemplateGuards(attendanceRepo);
         service = new EventGroupSettingsService(
                 groups,
@@ -98,33 +90,6 @@ class EventGroupSettingsServiceTest extends RepositoryTestBase {
                 RestrictionAudience.empty(),
                 RestrictionAudience.empty(),
                 null);
-    }
-
-    private StationEvent part(EventGroup group, int daysAhead) {
-        var start = LocalDate.now().plusDays(daysAhead).atTime(9, 0).toInstant(ZoneOffset.UTC);
-        var event = eventRepo.create(
-                station.id(),
-                "Tag " + daysAhead,
-                null,
-                StationEvent.EventType.ONE_TIME,
-                null,
-                start,
-                start.plus(Duration.ofHours(4)),
-                null,
-                false,
-                null,
-                false,
-                null,
-                null,
-                null,
-                null,
-                null);
-        groups.addPart(
-                station.id(),
-                group.id(),
-                event.id(),
-                groups.findSets(group.id()).getFirst().id());
-        return event;
     }
 
     private int templateWithField(Station at, String name) {

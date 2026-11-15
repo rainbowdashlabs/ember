@@ -7,8 +7,6 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.EventRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
-import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
@@ -20,7 +18,6 @@ import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
-import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
@@ -51,16 +48,15 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static dev.chojo.ember.repository.EventGroupFixtures.part;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -131,8 +127,7 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
     void wire() {
         var federationRepo = new FederationRepository();
         var questions = new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility);
-        eventGroups = new EventGroupService(
-                eventGroupRepo, eventRepo, restrictionService, occurrenceCalendar, questions, newEventFieldService());
+        eventGroups = newEventGroupService();
         signUps = new EventGroupRegistrationService(
                 eventGroupRepo,
                 new EventGroupRegistrationRepository(),
@@ -176,37 +171,12 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
                 null);
         var sets = eventGroups.findSets(created.id()).stream()
                 .collect(Collectors.toMap(EventGroupSet::name, EventGroupSet::id));
-        sat1 = part(created, sets.get("Übung"), 20);
-        sun1 = part(created, sets.get("Übung"), 21);
-        sat2 = part(created, sets.get("Übung"), 27);
-        test = part(created, sets.get("Prüfung"), 28);
+        sat1 = part(created, sets.get("Übung"), 20).id();
+        sun1 = part(created, sets.get("Übung"), 21).id();
+        sat2 = part(created, sets.get("Übung"), 27).id();
+        test = part(created, sets.get("Prüfung"), 28).id();
         partners.share(holder.id(), created.id(), ShareScope.ALL_PARTNERS, List.of());
         return created;
-    }
-
-    private int part(EventGroup into, int setId, int daysAhead) {
-        var zone = occurrenceCalendar.zoneOf(holder.id());
-        var start =
-                LocalDate.now().plusDays(daysAhead).atTime(9, 0).atZone(zone).toInstant();
-        var event = eventRepo.create(
-                holder.id(),
-                "Tag " + daysAhead,
-                null,
-                StationEvent.EventType.ONE_TIME,
-                null,
-                start,
-                start.plus(Duration.ofHours(8)),
-                null,
-                false,
-                null,
-                false,
-                null,
-                null,
-                null,
-                null,
-                null);
-        eventGroups.addPart(holder.id(), into.id(), event.id(), setId);
-        return event.id();
     }
 
     private Set<Integer> heldParts() {
@@ -223,7 +193,10 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
         assertTrue(shared.containsAll(List.of(sat1, sun1, sat2, test)));
 
         var later = part(
-                eventGroup, eventGroups.findSets(eventGroup.id()).getFirst().id(), 30);
+                        eventGroup,
+                        eventGroups.findSets(eventGroup.id()).getFirst().id(),
+                        30)
+                .id();
 
         assertTrue(new EventFederationRepository()
                 .findSharedEventIds(partnerOfHolder, holder.id())
@@ -488,11 +461,6 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
         assertEquals(
                 List.of("Ort"),
                 view.fields().stream().map(AppointmentField::name).toList());
-    }
-
-    private static void assertRefused(Refusal refusal, Runnable call) {
-        var thrown = assertThrows(RefusalResponse.class, call::run);
-        assertEquals(refusal, thrown.refusal());
     }
 
     @Test

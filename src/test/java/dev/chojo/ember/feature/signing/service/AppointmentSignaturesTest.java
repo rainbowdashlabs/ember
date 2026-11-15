@@ -10,8 +10,6 @@ import dev.chojo.ember.api.TestUploads;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.EventRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
-import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.content.route.BlockRowRequest;
 import dev.chojo.ember.feature.documents.service.DocumentAccessService;
@@ -76,7 +74,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -100,7 +97,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -933,10 +929,6 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
     private static boolean dueForReminder(SignatureRequest request) {
         return requestRepo.dueForReminder(Instant.now().plus(Duration.ofDays(60)), Duration.ofDays(7), 3, 500).stream()
                 .anyMatch(due -> due.pending().requestUid().equals(request.uid()));
-    }
-
-    private static void assertRefused(Refusal refusal, Executable call) {
-        assertEquals(refusal, assertThrows(RefusalResponse.class, call).refusal());
     }
 
     private static StationMember member(String first, String last, boolean login) {

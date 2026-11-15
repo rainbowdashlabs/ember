@@ -36,7 +36,6 @@ import org.mockito.ArgumentCaptor;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,6 +44,7 @@ import java.util.Set;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static dev.chojo.ember.repository.EventGroupFixtures.part;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -99,13 +99,7 @@ class EventGroupNoticesTest extends RepositoryTestBase {
     void wire() {
         notifier = mock(Notifier.class);
         announcements = mock(DomainEventBus.class);
-        eventGroups = new EventGroupService(
-                eventGroupRepo,
-                eventRepo,
-                restrictionService,
-                occurrenceCalendar,
-                new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
-                newEventFieldService());
+        eventGroups = newEventGroupService();
         var registrations = newEventServices(new DomainEventBus(Set.of())).registration();
         signUps = new EventGroupRegistrationService(
                 eventGroupRepo,
@@ -127,37 +121,6 @@ class EventGroupNoticesTest extends RepositoryTestBase {
                 RestrictionAudience.empty(),
                 RestrictionAudience.empty(),
                 null);
-    }
-
-    private StationEvent part(EventGroup eventGroup, int daysAhead) {
-        var start = LocalDate.now(zone)
-                .plusDays(daysAhead)
-                .atTime(9, 0)
-                .atZone(zone)
-                .toInstant();
-        var event = eventRepo.create(
-                station.id(),
-                "Tag " + daysAhead,
-                null,
-                StationEvent.EventType.ONE_TIME,
-                null,
-                start,
-                start.plus(Duration.ofHours(8)),
-                null,
-                false,
-                null,
-                false,
-                null,
-                null,
-                null,
-                null,
-                null);
-        eventGroups.addPart(
-                station.id(),
-                eventGroup.id(),
-                event.id(),
-                eventGroups.findSets(eventGroup.id()).getFirst().id());
-        return event;
     }
 
     @Test

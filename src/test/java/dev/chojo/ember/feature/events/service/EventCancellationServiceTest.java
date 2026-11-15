@@ -6,8 +6,6 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.refusal.EventRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
-import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
@@ -37,7 +35,6 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -342,10 +339,5 @@ class EventCancellationServiceTest extends RepositoryTestBase {
         assertTrue(upcoming.stream()
                 .allMatch(o -> "Aufgelöst".equals(o.cancellation().reason())));
         assertTrue(upcoming.getFirst().event().seriesCancelled());
-    }
-
-    private static void assertRefused(Refusal refusal, Runnable call) {
-        var thrown = assertThrows(RefusalResponse.class, call::run);
-        assertEquals(refusal, thrown.refusal());
     }
 }

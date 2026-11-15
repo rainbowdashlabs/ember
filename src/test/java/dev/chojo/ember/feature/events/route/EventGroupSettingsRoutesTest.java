@@ -6,13 +6,11 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.RouteHarness;
-import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventGroupPartSettings;
 import dev.chojo.ember.feature.events.entity.EventGroupSettings;
 import dev.chojo.ember.feature.events.service.EventGroupSettingsService;
-import io.javalin.testtools.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,7 +18,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
-import static dev.chojo.ember.api.RouteHarness.body;
 import static dev.chojo.ember.api.RouteHarness.json;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -51,24 +48,24 @@ class EventGroupSettingsRoutesTest {
         harness = RouteHarness.serving(new EventGroupSettingsRoutes(settings));
     }
 
-    private Response call(String method, String path, String json, StationPermission... permissions) {
-        var session = harness.as(TestSessions.member(STATION_ID, permissions));
-        return harness.request(client -> switch (method) {
-            case "GET" -> client.get(path, session);
-            default -> client.put(path, body(json), session);
-        });
-    }
-
     @Test
     void onlyWhoeverEditsAppointmentsSetsWhatAGroupHandsDown() {
         String wanted = "{\"templateId\": 5, \"categoryId\": null, \"reminderDays\": [2],"
                 + " \"fieldDefaults\": [{\"fieldId\": 9, \"source\": \"VALUE\", \"value\": \"x\"}]}";
-        assertEquals(403, call("PUT", SETTINGS, wanted, StationPermission.USER).code());
-        assertEquals(403, call("GET", SETTINGS, null, StationPermission.USER).code());
+        assertEquals(
+                403,
+                harness.call(STATION_ID, "PUT", SETTINGS, wanted, StationPermission.USER)
+                        .code());
+        assertEquals(
+                403,
+                harness.call(STATION_ID, "GET", SETTINGS, null, StationPermission.USER)
+                        .code());
         verify(settings, never()).save(anyInt(), anyInt(), any());
 
         assertEquals(
-                200, call("PUT", SETTINGS, wanted, StationPermission.EVENT_EDIT).code());
+                200,
+                harness.call(STATION_ID, "PUT", SETTINGS, wanted, StationPermission.EVENT_EDIT)
+                        .code());
         verify(settings)
                 .save(
                         STATION_ID,
@@ -76,20 +73,26 @@ class EventGroupSettingsRoutesTest {
                         new EventGroupSettings(
                                 5, null, List.of(2), List.of(new EventFieldDefault(EVENT_GROUP_ID, 9, "VALUE", "x"))));
 
-        var read = json(call("GET", SETTINGS, null, StationPermission.EVENT_EDIT));
+        var read = json(harness.call(STATION_ID, "GET", SETTINGS, null, StationPermission.EVENT_EDIT));
         assertEquals(5, read.get("templateId").asInt());
         assertEquals(2, read.get("reminderDays").get(0).asInt());
     }
 
     @Test
     void aPartSaysWhatItSetsItself() {
-        var part = json(call("GET", PREFIX + "/events/11/group-settings", null, StationPermission.EVENT_EDIT));
+        var part = json(harness.call(
+                STATION_ID, "GET", PREFIX + "/events/11/group-settings", null, StationPermission.EVENT_EDIT));
         assertEquals(8, part.get("ownCategoryId").asInt());
         assertEquals(5, part.get("eventGroup").get("templateId").asInt());
 
         assertEquals(
                 204,
-                call("GET", PREFIX + "/events/12/group-settings", null, StationPermission.EVENT_EDIT)
+                harness.call(
+                                STATION_ID,
+                                "GET",
+                                PREFIX + "/events/12/group-settings",
+                                null,
+                                StationPermission.EVENT_EDIT)
                         .code());
     }
 }

@@ -11,8 +11,6 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
-import dev.chojo.ember.feature.events.entity.EventGroup;
-import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.service.EventGroupAttendanceService;
 import dev.chojo.ember.feature.events.service.EventGroupAttendanceService.AttendanceRow;
@@ -22,10 +20,10 @@ import dev.chojo.ember.feature.members.entity.MemberTable;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.MemberTableRenderer;
-import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.station.service.StationService;
+import dev.chojo.ember.repository.EventGroupFixtures;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -71,15 +69,7 @@ class EventGroupAttendanceRoutesTest {
         var eventGroups = mock(EventGroupService.class);
         when(eventGroups.requireEventGroup(STATION_ID, 71)).thenThrow(EventRefusal.EVENT_GROUP_NOT_HERE.raise());
         when(eventGroups.requireEventGroup(STATION_ID, 70))
-                .thenReturn(new EventGroup(
-                        70,
-                        STATION_ID,
-                        new EventGroupDetails("Jugendflamme 1", null, null, null, false, null, null, null),
-                        RestrictionMode.AND,
-                        RestrictionMode.AND,
-                        false,
-                        null,
-                        null));
+                .thenReturn(EventGroupFixtures.eventGroup(70, STATION_ID, "Jugendflamme 1"));
         when(eventGroups.findSets(70))
                 .thenReturn(
                         List.of(new EventGroupSet(1, 70, "Übung", 2, 0), new EventGroupSet(2, 70, "Prüfung", 1, 1)));

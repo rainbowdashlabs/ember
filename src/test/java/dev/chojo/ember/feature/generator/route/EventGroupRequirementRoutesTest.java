@@ -6,15 +6,13 @@
 package dev.chojo.ember.feature.generator.route;
 
 import dev.chojo.ember.api.RouteHarness;
-import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventGroup;
-import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.service.EventGroupGuards;
 import dev.chojo.ember.feature.events.service.EventGroupService;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
-import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.repository.EventGroupFixtures;
 import io.javalin.testtools.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,7 +20,6 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
-import static dev.chojo.ember.api.RouteHarness.body;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -36,15 +33,7 @@ class EventGroupRequirementRoutesTest {
     private static final int STATION_ID = 3;
     private static final int EVENT_GROUP_ID = 70;
     private static final String REQUIREMENTS = PREFIX + "/events/groups/" + EVENT_GROUP_ID + "/document-requirements";
-    private static final EventGroup GROUP = new EventGroup(
-            EVENT_GROUP_ID,
-            STATION_ID,
-            new EventGroupDetails("Jugendflamme", null, null, null, false, null, null, null),
-            RestrictionMode.AND,
-            RestrictionMode.AND,
-            false,
-            null,
-            null);
+    private static final EventGroup GROUP = EventGroupFixtures.eventGroup(EVENT_GROUP_ID, STATION_ID, "Jugendflamme");
 
     private EventRequirementService requirements;
     private EventGroupGuards readGuards;
@@ -63,11 +52,7 @@ class EventGroupRequirementRoutesTest {
     }
 
     private Response call(String method, String json, StationPermission... permissions) {
-        var session = harness.as(TestSessions.member(STATION_ID, permissions));
-        return harness.request(client -> switch (method) {
-            case "GET" -> client.get(REQUIREMENTS, session);
-            default -> client.put(REQUIREMENTS, body(json), session);
-        });
+        return harness.call(STATION_ID, method, REQUIREMENTS, json, permissions);
     }
 
     @Test

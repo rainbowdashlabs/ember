@@ -13,8 +13,6 @@ import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
-import dev.chojo.ember.feature.events.repository.EventGroupRepository;
-import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -62,13 +60,7 @@ class EventGroupAttachmentsTest extends RepositoryTestBase {
         var media = mock(MediaLibraryService.class);
         when(media.findFile(anyInt())).thenAnswer(invocation -> mediaFileRepo.findById(invocation.getArgument(0)));
         service = new EventAttachmentService(repository, media);
-        groups = new EventGroupService(
-                new EventGroupRepository(),
-                eventRepo,
-                restrictionService,
-                occurrenceCalendar,
-                new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
-                newEventFieldService());
+        groups = newEventGroupService();
         routeFile = file("anfahrt.pdf");
         crewFile = file("ausbilderplan.pdf");
         ownFile = file("tagesplan.pdf");

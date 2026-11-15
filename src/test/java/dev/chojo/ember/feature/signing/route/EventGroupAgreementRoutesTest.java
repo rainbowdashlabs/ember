@@ -9,13 +9,11 @@ import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
-import dev.chojo.ember.feature.events.entity.EventGroup;
-import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.service.EventGroupService;
 import dev.chojo.ember.feature.generator.entity.RequirementSignatureState;
-import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.signing.entity.AgreementSigner;
 import dev.chojo.ember.feature.signing.service.EventGroupAgreementSigners;
+import dev.chojo.ember.repository.EventGroupFixtures;
 import io.javalin.testtools.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,15 +46,7 @@ class EventGroupAgreementRoutesTest {
     void serve() {
         var eventGroups = mock(EventGroupService.class);
         when(eventGroups.requireEventGroup(STATION_ID, 70))
-                .thenReturn(new EventGroup(
-                        70,
-                        STATION_ID,
-                        new EventGroupDetails("Jugendflamme 1", null, null, null, false, null, null, null),
-                        RestrictionMode.AND,
-                        RestrictionMode.AND,
-                        false,
-                        null,
-                        null));
+                .thenReturn(EventGroupFixtures.eventGroup(70, STATION_ID, "Jugendflamme 1"));
         when(eventGroups.requireEventGroup(STATION_ID, 71)).thenThrow(EventRefusal.EVENT_GROUP_NOT_HERE.raise());
         signers = mock(EventGroupAgreementSigners.class);
         when(signers.of(70))

@@ -16,8 +16,6 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
-import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
-import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
 import dev.chojo.ember.feature.events.service.EventGroupService;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.generator.entity.RequiredTemplate;
@@ -61,13 +59,7 @@ class EventGroupRequirementsTest extends GeneratorTestBase {
     static void setup() {
         wiring = wire("Terminreihe Dokumente");
         manager = wiring.member("group-docs@test.com", "Nora", "Fülling");
-        groups = new EventGroupService(
-                new EventGroupRepository(),
-                eventRepo,
-                restrictionService,
-                occurrenceCalendar,
-                new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
-                newEventFieldService());
+        groups = newEventGroupService();
     }
 
     @BeforeEach

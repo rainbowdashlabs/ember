@@ -18,6 +18,8 @@ import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpGuard;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
@@ -254,6 +256,7 @@ import dev.chojo.ember.util.sql.Transactions;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -268,6 +271,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.sql.DataSource;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
 @Tag("database")
@@ -1002,6 +1007,19 @@ public abstract class RepositoryTestBase {
                 core,
                 new GenderFields(core, stationRepo),
                 new StationFieldSetRepository());
+    }
+
+    /**
+     * Runs a call that must be refused and checks the refusal it raised.
+     *
+     * @param refusal what the call is to be refused with
+     * @param call    the call
+     * @return the refusal raised, for a test that checks its detail as well
+     */
+    protected static RefusalResponse assertRefused(Refusal refusal, Executable call) {
+        var refused = assertThrows(RefusalResponse.class, call);
+        assertEquals(refusal, refused.refusal());
+        return refused;
     }
 
     /**

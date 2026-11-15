@@ -12,7 +12,6 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
-import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupPart;
 import dev.chojo.ember.feature.events.entity.EventGroupPartSummary;
@@ -38,8 +37,7 @@ import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
-import dev.chojo.ember.feature.restriction.RestrictionMode;
-import io.javalin.testtools.Response;
+import dev.chojo.ember.repository.EventGroupFixtures;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -97,15 +95,10 @@ class EventGroupRoutesTest {
         var identities = mock(MemberIdentityFactory.class);
         when(identities.local(anyInt(), anyInt()))
                 .thenAnswer(call -> new MemberIdentity(UUID.randomUUID(), UUID.randomUUID()));
-        var eventGroup = new EventGroup(
+        var eventGroup = EventGroupFixtures.eventGroup(
                 EVENT_GROUP_ID,
                 STATION_ID,
-                new EventGroupDetails("Jugendflamme 1", null, 12, null, false, null, null, null),
-                RestrictionMode.AND,
-                RestrictionMode.AND,
-                false,
-                null,
-                null);
+                new EventGroupDetails("Jugendflamme 1", null, 12, null, false, null, null, null));
         when(eventGroups.requireEventGroup(STATION_ID, EVENT_GROUP_ID)).thenReturn(eventGroup);
         when(eventGroups.findByStation(STATION_ID)).thenReturn(List.of(eventGroup));
         when(eventGroups.registrationAudience(EVENT_GROUP_ID)).thenReturn(RestrictionAudience.empty());
@@ -151,24 +144,14 @@ class EventGroupRoutesTest {
                 new EventGroupViewService(eventGroups, signUps, guardians, identities, questions, guards, fields)));
     }
 
-    private Response call(String method, String path, String json, StationPermission... permissions) {
-        var session = harness.as(TestSessions.member(STATION_ID, permissions));
-        return harness.request(client -> switch (method) {
-            case "GET" -> client.get(path, session);
-            case "POST" -> client.post(path, body(json), session);
-            case "PUT" -> client.put(path, body(json), session);
-            default -> client.delete(path, json == null ? null : body(json), session);
-        });
-    }
-
     @Test
     void aMemberListsAndOpensTheEventGroupsMeantForThem() {
-        var listed = call("GET", PREFIX + "/events/groups", null, StationPermission.USER);
+        var listed = harness.call(STATION_ID, "GET", PREFIX + "/events/groups", null, StationPermission.USER);
         assertEquals(200, listed.code());
         assertEquals(
                 "Jugendflamme 1", json(listed).get(0).get("details").get("name").asString());
 
-        var opened = call("GET", EVENT_GROUP, null, StationPermission.USER);
+        var opened = harness.call(STATION_ID, "GET", EVENT_GROUP, null, StationPermission.USER);
         assertEquals(200, opened.code());
         assertEquals(2, json(opened).get("household").get(0).get("parts").size());
     }
@@ -179,10 +162,11 @@ class EventGroupRoutesTest {
 
         assertEquals(
                 0,
-                json(call("GET", PREFIX + "/events/groups", null, StationPermission.USER))
+                json(harness.call(STATION_ID, "GET", PREFIX + "/events/groups", null, StationPermission.USER))
                         .size());
         assertEquals(
-                EventRefusal.EVENT_GROUP_NOT_HERE, refusalOf(call("GET", EVENT_GROUP, null, StationPermission.USER)));
+                EventRefusal.EVENT_GROUP_NOT_HERE,
+                refusalOf(harness.call(STATION_ID, "GET", EVENT_GROUP, null, StationPermission.USER)));
     }
 
     @Test
@@ -194,14 +178,15 @@ class EventGroupRoutesTest {
 
         assertEquals(
                 200,
-                call("POST", EVENT_GROUP + "/fields/7/self-register", "{}", StationPermission.USER)
+                harness.call(STATION_ID, "POST", EVENT_GROUP + "/fields/7/self-register", "{}", StationPermission.USER)
                         .code());
         verify(fields).toggleEventGroupSelfRegistration(EVENT_GROUP_ID, 7, TestSessions.MEMBER_ID, false);
 
         when(eventGroups.canSeeAny(eq(EVENT_GROUP_ID), anyList(), anySet())).thenReturn(false);
         assertEquals(
                 EventRefusal.EVENT_GROUP_NOT_HERE,
-                refusalOf(call("POST", EVENT_GROUP + "/fields/7/self-register", "{}", StationPermission.USER)));
+                refusalOf(harness.call(
+                        STATION_ID, "POST", EVENT_GROUP + "/fields/7/self-register", "{}", StationPermission.USER)));
     }
 
     @Test
@@ -212,7 +197,8 @@ class EventGroupRoutesTest {
 
         assertEquals(
                 DocumentRefusal.PARTNER_AGREEMENT_NAMES_A_PERSON,
-                refusalOf(call(
+                refusalOf(harness.call(
+                        STATION_ID,
                         "POST",
                         EVENT_GROUP + "/parts",
                         "{\"eventId\":101,\"setId\":5}",
@@ -225,7 +211,13 @@ class EventGroupRoutesTest {
     void whoeverEditsAppointmentsDeletesAnEventGroup() {
         assertEquals(
                 204,
-                call("DELETE", EVENT_GROUP, null, StationPermission.USER, StationPermission.EVENT_EDIT)
+                harness.call(
+                                STATION_ID,
+                                "DELETE",
+                                EVENT_GROUP,
+                                null,
+                                StationPermission.USER,
+                                StationPermission.EVENT_EDIT)
                         .code());
 
         verify(eventGroups).delete(STATION_ID, EVENT_GROUP_ID);
@@ -233,7 +225,8 @@ class EventGroupRoutesTest {
 
     @Test
     void whoeverRunsEventsPutsThemselvesIntoAGroupMemberFieldPastItsClosingDate() {
-        call(
+        harness.call(
+                STATION_ID,
                 "POST",
                 EVENT_GROUP + "/fields/7/self-register",
                 "{}",
@@ -250,22 +243,32 @@ class EventGroupRoutesTest {
                  "sets": [{"name": "Übung", "minimum": 2}]}""";
         assertEquals(
                 403,
-                call("POST", PREFIX + "/events/groups", create, StationPermission.USER)
+                harness.call(STATION_ID, "POST", PREFIX + "/events/groups", create, StationPermission.USER)
                         .code());
         assertEquals(
                 201,
-                call("POST", PREFIX + "/events/groups", create, StationPermission.EVENT_EDIT)
+                harness.call(STATION_ID, "POST", PREFIX + "/events/groups", create, StationPermission.EVENT_EDIT)
                         .code());
 
         when(eventGroups.addPart(STATION_ID, EVENT_GROUP_ID, 101, 5))
                 .thenReturn(new EventGroupPart(101, 5, EVENT_GROUP_ID));
         assertEquals(
                 403,
-                call("POST", EVENT_GROUP + "/parts", "{\"eventId\": 101, \"setId\": 5}", StationPermission.USER)
+                harness.call(
+                                STATION_ID,
+                                "POST",
+                                EVENT_GROUP + "/parts",
+                                "{\"eventId\": 101, \"setId\": 5}",
+                                StationPermission.USER)
                         .code());
         assertEquals(
                 201,
-                call("POST", EVENT_GROUP + "/parts", "{\"eventId\": 101, \"setId\": 5}", StationPermission.EVENT_EDIT)
+                harness.call(
+                                STATION_ID,
+                                "POST",
+                                EVENT_GROUP + "/parts",
+                                "{\"eventId\": 101, \"setId\": 5}",
+                                StationPermission.EVENT_EDIT)
                         .code());
     }
 
@@ -275,12 +278,21 @@ class EventGroupRoutesTest {
                 .thenReturn(new EventGroupPart(101, 5, EVENT_GROUP_ID, true));
         assertEquals(
                 403,
-                call("PUT", EVENT_GROUP + "/parts/101/required", "{\"required\": true}", StationPermission.USER)
+                harness.call(
+                                STATION_ID,
+                                "PUT",
+                                EVENT_GROUP + "/parts/101/required",
+                                "{\"required\": true}",
+                                StationPermission.USER)
                         .code());
         verify(eventGroups, never()).setRequired(anyInt(), anyInt(), anyInt(), anyBoolean());
 
-        var response =
-                call("PUT", EVENT_GROUP + "/parts/101/required", "{\"required\": true}", StationPermission.EVENT_EDIT);
+        var response = harness.call(
+                STATION_ID,
+                "PUT",
+                EVENT_GROUP + "/parts/101/required",
+                "{\"required\": true}",
+                StationPermission.EVENT_EDIT);
 
         assertEquals(200, response.code());
         verify(eventGroups).setRequired(STATION_ID, EVENT_GROUP_ID, 101, true);
@@ -288,7 +300,8 @@ class EventGroupRoutesTest {
 
     @Test
     void aMemberSignsUpThemselvesWithinTheRules() {
-        var response = call("POST", EVENT_GROUP + "/sign-up", "{\"parts\": [101, 102]}", StationPermission.USER);
+        var response = harness.call(
+                STATION_ID, "POST", EVENT_GROUP + "/sign-up", "{\"parts\": [101, 102]}", StationPermission.USER);
 
         assertEquals(201, response.code());
         verify(signUps)
@@ -299,7 +312,8 @@ class EventGroupRoutesTest {
     void aMemberNotTakenByTheEventGroupIsRefused() {
         when(eventGroups.canSignUp(eq(EVENT_GROUP_ID), anyInt(), anySet())).thenReturn(false);
 
-        var response = call("POST", EVENT_GROUP + "/sign-up", "{\"parts\": [101]}", StationPermission.USER);
+        var response = harness.call(
+                STATION_ID, "POST", EVENT_GROUP + "/sign-up", "{\"parts\": [101]}", StationPermission.USER);
 
         assertEquals(EventRefusal.MEMBER_NOT_INVITED_TO_EVENT, refusalOf(response));
         verify(signUps, never()).register(anyInt(), anyInt(), anyInt(), anySet(), anyMap(), any(), eq(false));
@@ -312,7 +326,7 @@ class EventGroupRoutesTest {
 
         assertEquals(
                 201,
-                call("POST", EVENT_GROUP + "/sign-up", forChild, StationPermission.USER)
+                harness.call(STATION_ID, "POST", EVENT_GROUP + "/sign-up", forChild, StationPermission.USER)
                         .code());
         verify(signUps)
                 .register(STATION_ID, EVENT_GROUP_ID, CHILD_ID, Set.of(101), Map.of(), TestSessions.MEMBER_ID, false);
@@ -320,7 +334,8 @@ class EventGroupRoutesTest {
         String forStranger = "{\"memberId\": 99, \"parts\": [101]}";
         assertEquals(
                 EventRefusal.MEMBER_NOT_YOURS_TO_REGISTER,
-                refusalOf(call("POST", EVENT_GROUP + "/sign-up", forStranger, StationPermission.USER)));
+                refusalOf(harness.call(
+                        STATION_ID, "POST", EVENT_GROUP + "/sign-up", forStranger, StationPermission.USER)));
     }
 
     @Test
@@ -328,8 +343,13 @@ class EventGroupRoutesTest {
         when(eventGroups.canSignUp(eq(EVENT_GROUP_ID), anyInt(), anySet())).thenReturn(false);
         String forOther = "{\"memberId\": 99, \"parts\": [101]}";
 
-        var response = call(
-                "POST", EVENT_GROUP + "/sign-up", forOther, StationPermission.USER, StationPermission.EVENT_MANAGER);
+        var response = harness.call(
+                STATION_ID,
+                "POST",
+                EVENT_GROUP + "/sign-up",
+                forOther,
+                StationPermission.USER,
+                StationPermission.EVENT_MANAGER);
 
         assertEquals(201, response.code());
         verify(signUps).register(STATION_ID, EVENT_GROUP_ID, 99, Set.of(101), Map.of(), TestSessions.MEMBER_ID, true);
@@ -339,13 +359,13 @@ class EventGroupRoutesTest {
     void partsAreChangedAndASignUpWithdrawn() {
         assertEquals(
                 200,
-                call("PUT", EVENT_GROUP + "/sign-up", "{\"parts\": [102]}", StationPermission.USER)
+                harness.call(STATION_ID, "PUT", EVENT_GROUP + "/sign-up", "{\"parts\": [102]}", StationPermission.USER)
                         .code());
         verify(signUps).changeParts(STATION_ID, EVENT_GROUP_ID, TestSessions.MEMBER_ID, Set.of(102), null, false);
 
         assertEquals(
                 200,
-                call("DELETE", EVENT_GROUP + "/sign-up", null, StationPermission.USER)
+                harness.call(STATION_ID, "DELETE", EVENT_GROUP + "/sign-up", null, StationPermission.USER)
                         .code());
         verify(signUps).withdraw(STATION_ID, EVENT_GROUP_ID, TestSessions.MEMBER_ID);
     }
@@ -358,21 +378,32 @@ class EventGroupRoutesTest {
 
         assertEquals(
                 403,
-                call("GET", EVENT_GROUP + "/sign-ups", null, StationPermission.USER)
+                harness.call(STATION_ID, "GET", EVENT_GROUP + "/sign-ups", null, StationPermission.USER)
                         .code());
         assertEquals(
                 1,
-                json(call("GET", EVENT_GROUP + "/sign-ups", null, StationPermission.EVENT_REGISTRATION))
+                json(harness.call(
+                                STATION_ID,
+                                "GET",
+                                EVENT_GROUP + "/sign-ups",
+                                null,
+                                StationPermission.EVENT_REGISTRATION))
                         .size());
 
         String accept = "{\"status\": \"ACCEPTED\"}";
         assertEquals(
                 403,
-                call("PUT", EVENT_GROUP + "/sign-ups/" + CHILD_ID + "/status", accept, StationPermission.USER)
+                harness.call(
+                                STATION_ID,
+                                "PUT",
+                                EVENT_GROUP + "/sign-ups/" + CHILD_ID + "/status",
+                                accept,
+                                StationPermission.USER)
                         .code());
         assertEquals(
                 200,
-                call(
+                harness.call(
+                                STATION_ID,
                                 "PUT",
                                 EVENT_GROUP + "/sign-ups/" + CHILD_ID + "/status",
                                 accept,
@@ -391,13 +422,13 @@ class EventGroupRoutesTest {
         when(eventGroups.canSignUp(eq(EVENT_GROUP_ID), anyInt(), anySet())).thenReturn(false);
         when(eventGroups.canSignUp(eq(EVENT_GROUP_ID), eq(CHILD_ID), anySet())).thenReturn(true);
 
-        var opened = json(call("GET", EVENT_GROUP, null, StationPermission.USER));
+        var opened = json(harness.call(STATION_ID, "GET", EVENT_GROUP, null, StationPermission.USER));
 
         assertEquals(1, opened.get("household").size());
         assertEquals(true, opened.get("household").get(0).get("mayRegister").asBoolean());
         assertEquals(
                 1,
-                json(call("GET", PREFIX + "/events/groups", null, StationPermission.USER))
+                json(harness.call(STATION_ID, "GET", PREFIX + "/events/groups", null, StationPermission.USER))
                         .size());
     }
 
@@ -423,18 +454,21 @@ class EventGroupRoutesTest {
     void anAnswerKeptForOrganisersReachesWhoeverEditsAppointmentsButNotWhoeverOnlyHandlesRegistrations() {
         askAllergiesForOrganisersAndARequiredShirt();
 
-        var handled = json(call("GET", EVENT_GROUP + "/sign-ups", null, StationPermission.EVENT_REGISTRATION));
+        var handled = json(
+                harness.call(STATION_ID, "GET", EVENT_GROUP + "/sign-ups", null, StationPermission.EVENT_REGISTRATION));
         assertEquals(0, handled.get(0).get("answers").size());
         assertEquals(true, handled.get(0).get("answersMissing").asBoolean());
 
-        var decided = json(call(
+        var decided = json(harness.call(
+                STATION_ID,
                 "PUT",
                 EVENT_GROUP + "/sign-ups/" + CHILD_ID + "/status",
                 "{\"status\": \"ACCEPTED\"}",
                 StationPermission.EVENT_REGISTRATION));
         assertEquals(0, decided.get("answers").size());
 
-        var edited = json(call(
+        var edited = json(harness.call(
+                STATION_ID,
                 "GET",
                 EVENT_GROUP + "/sign-ups",
                 null,
@@ -449,7 +483,7 @@ class EventGroupRoutesTest {
         when(guardians.household(any())).thenReturn(List.of(CHILD_ID));
         when(guardians.mayActFor(any(), eq(CHILD_ID))).thenReturn(true);
 
-        var opened = json(call("GET", EVENT_GROUP, null, StationPermission.USER));
+        var opened = json(harness.call(STATION_ID, "GET", EVENT_GROUP, null, StationPermission.USER));
 
         assertEquals(
                 "Nüsse",
@@ -467,14 +501,15 @@ class EventGroupRoutesTest {
         String own = "{\"answers\": [{\"fieldId\": 6, \"value\": \"M\"}]}";
         assertEquals(
                 200,
-                call("PUT", EVENT_GROUP + "/sign-up/answers", own, StationPermission.USER)
+                harness.call(STATION_ID, "PUT", EVENT_GROUP + "/sign-up/answers", own, StationPermission.USER)
                         .code());
         verify(signUps).changeAnswers(STATION_ID, EVENT_GROUP_ID, TestSessions.MEMBER_ID, Map.of(6, "M"), true, false);
 
         String forOther = "{\"memberId\": 99, \"answers\": [{\"fieldId\": 6, \"value\": \"L\"}]}";
         assertEquals(
                 200,
-                call(
+                harness.call(
+                                STATION_ID,
                                 "PUT",
                                 EVENT_GROUP + "/sign-up/answers",
                                 forOther,
@@ -489,14 +524,21 @@ class EventGroupRoutesTest {
         when(eventGroups.canSeeAny(eq(EVENT_GROUP_ID), anyList(), anySet())).thenReturn(false);
 
         assertEquals(
-                EventRefusal.EVENT_GROUP_NOT_HERE, refusalOf(call("GET", EVENT_GROUP, null, StationPermission.USER)));
+                EventRefusal.EVENT_GROUP_NOT_HERE,
+                refusalOf(harness.call(STATION_ID, "GET", EVENT_GROUP, null, StationPermission.USER)));
         assertEquals(
                 200,
-                call("GET", EVENT_GROUP, null, StationPermission.USER, StationPermission.EVENT_EDIT)
+                harness.call(STATION_ID, "GET", EVENT_GROUP, null, StationPermission.USER, StationPermission.EVENT_EDIT)
                         .code());
         assertEquals(
                 200,
-                call("GET", EVENT_GROUP, null, StationPermission.USER, StationPermission.EVENT_REGISTRATION)
+                harness.call(
+                                STATION_ID,
+                                "GET",
+                                EVENT_GROUP,
+                                null,
+                                StationPermission.USER,
+                                StationPermission.EVENT_REGISTRATION)
                         .code());
     }
 
@@ -505,8 +547,13 @@ class EventGroupRoutesTest {
         when(eventGroups.isMemberHere(STATION_ID, 99)).thenReturn(false);
         String forOther = "{\"memberId\": 99, \"parts\": [101]}";
 
-        var response = call(
-                "POST", EVENT_GROUP + "/sign-up", forOther, StationPermission.USER, StationPermission.EVENT_MANAGER);
+        var response = harness.call(
+                STATION_ID,
+                "POST",
+                EVENT_GROUP + "/sign-up",
+                forOther,
+                StationPermission.USER,
+                StationPermission.EVENT_MANAGER);
 
         assertEquals(EventRefusal.EVENT_GROUP_MEMBER_NOT_HERE, refusalOf(response));
     }
@@ -517,7 +564,7 @@ class EventGroupRoutesTest {
 
         assertEquals(
                 200,
-                call("DELETE", EVENT_GROUP + "/sign-up", null, StationPermission.USER)
+                harness.call(STATION_ID, "DELETE", EVENT_GROUP + "/sign-up", null, StationPermission.USER)
                         .code());
         verify(signUps).withdraw(STATION_ID, EVENT_GROUP_ID, TestSessions.MEMBER_ID);
     }
@@ -526,7 +573,8 @@ class EventGroupRoutesTest {
     void aMemberTakenOutOfTheAudienceCannotChangeTheirParts() {
         when(eventGroups.canSignUp(eq(EVENT_GROUP_ID), anyInt(), anySet())).thenReturn(false);
 
-        var response = call("PUT", EVENT_GROUP + "/sign-up", "{\"parts\": [102]}", StationPermission.USER);
+        var response =
+                harness.call(STATION_ID, "PUT", EVENT_GROUP + "/sign-up", "{\"parts\": [102]}", StationPermission.USER);
 
         assertEquals(EventRefusal.MEMBER_NOT_INVITED_TO_EVENT, refusalOf(response));
     }
@@ -549,12 +597,12 @@ class EventGroupRoutesTest {
                         Instant.parse("2026-12-12T08:00:00Z"),
                         Instant.parse("2026-12-20T15:00:00Z")));
 
-        var part = call("GET", PREFIX + "/events/101/group", null, StationPermission.USER);
+        var part = harness.call(STATION_ID, "GET", PREFIX + "/events/101/group", null, StationPermission.USER);
         assertEquals(2, json(part).get("number").asInt());
         when(eventGroups.partSummary(STATION_ID, 101)).thenReturn(null);
         assertEquals(
                 204,
-                call("GET", PREFIX + "/events/101/group", null, StationPermission.USER)
+                harness.call(STATION_ID, "GET", PREFIX + "/events/101/group", null, StationPermission.USER)
                         .code());
     }
 
@@ -562,11 +610,21 @@ class EventGroupRoutesTest {
     void onlyWhoeverEditsAppointmentsCallsAnEventGroupOff() {
         assertEquals(
                 403,
-                call("POST", EVENT_GROUP + "/cancel", "{\"reason\": \"Krank\"}", StationPermission.USER)
+                harness.call(
+                                STATION_ID,
+                                "POST",
+                                EVENT_GROUP + "/cancel",
+                                "{\"reason\": \"Krank\"}",
+                                StationPermission.USER)
                         .code());
         assertEquals(
                 200,
-                call("POST", EVENT_GROUP + "/cancel", "{\"reason\": \"Krank\"}", StationPermission.EVENT_EDIT)
+                harness.call(
+                                STATION_ID,
+                                "POST",
+                                EVENT_GROUP + "/cancel",
+                                "{\"reason\": \"Krank\"}",
+                                StationPermission.EVENT_EDIT)
                         .code());
         verify(cancellation).cancel(STATION_ID, EVENT_GROUP_ID, "Krank", TestSessions.MEMBER_ID);
     }
@@ -582,33 +640,29 @@ class EventGroupRoutesTest {
 
         assertEquals(
                 403,
-                call("POST", EVENT_GROUP + "/parts/new", part, StationPermission.USER)
+                harness.call(STATION_ID, "POST", EVENT_GROUP + "/parts/new", part, StationPermission.USER)
                         .code());
         assertEquals(
                 201,
-                call("POST", EVENT_GROUP + "/parts/new", part, StationPermission.EVENT_EDIT)
+                harness.call(STATION_ID, "POST", EVENT_GROUP + "/parts/new", part, StationPermission.EVENT_EDIT)
                         .code());
     }
 
     @Test
     void anEventGroupStillOwedAnAnswerNamesWhoOwesIt() {
-        var open = new EventGroup(
+        var open = EventGroupFixtures.eventGroup(
                 EVENT_GROUP_ID,
                 STATION_ID,
                 new EventGroupDetails(
-                        "Jugendflamme 1", null, null, Instant.now().plusSeconds(3600), false, null, null, null),
-                RestrictionMode.AND,
-                RestrictionMode.AND,
-                false,
-                null,
-                null);
+                        "Jugendflamme 1", null, null, Instant.now().plusSeconds(3600), false, null, null, null));
         when(eventGroups.findOpenWithDeadline(STATION_ID)).thenReturn(List.of(open));
         when(guardians.household(any())).thenReturn(List.of(TestSessions.MEMBER_ID, CHILD_ID));
         when(eventGroups.whoMaySignUp(any(), any(), anySet()))
                 .thenReturn(Map.of(EVENT_GROUP_ID, List.of(TestSessions.MEMBER_ID, CHILD_ID)));
         when(signUps.answeredBy(any())).thenReturn(Map.of(EVENT_GROUP_ID, Set.of(TestSessions.MEMBER_ID)));
 
-        var awaiting = json(call("GET", PREFIX + "/events/groups/awaiting", null, StationPermission.USER));
+        var awaiting =
+                json(harness.call(STATION_ID, "GET", PREFIX + "/events/groups/awaiting", null, StationPermission.USER));
 
         assertEquals(1, awaiting.size());
         assertEquals(1, awaiting.get(0).get("members").size());
@@ -627,7 +681,8 @@ class EventGroupRoutesTest {
 
         assertEquals(
                 200,
-                call("PUT", EVENT_GROUP, body, StationPermission.EVENT_EDIT).code());
+                harness.call(STATION_ID, "PUT", EVENT_GROUP, body, StationPermission.EVENT_EDIT)
+                        .code());
         verify(eventGroups).save(eq(STATION_ID), eq(EVENT_GROUP_ID), any(), any(), any(), any(), any());
     }
 
@@ -640,7 +695,7 @@ class EventGroupRoutesTest {
 
         assertEquals(
                 201,
-                call("POST", PREFIX + "/events/groups", body, StationPermission.EVENT_EDIT)
+                harness.call(STATION_ID, "POST", PREFIX + "/events/groups", body, StationPermission.EVENT_EDIT)
                         .code());
         verify(eventGroups).createWith(eq(STATION_ID), any(), any(), any(), any(), any(), eq(12));
     }

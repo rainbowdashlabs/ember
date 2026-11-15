@@ -6,8 +6,6 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.refusal.EventRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
-import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
@@ -19,7 +17,6 @@ import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.SelfRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
-import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.QuestionValues;
@@ -39,9 +36,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
+import static dev.chojo.ember.repository.EventGroupFixtures.part;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -78,13 +75,7 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
 
     @BeforeEach
     void wire() {
-        groups = new EventGroupService(
-                eventGroupRepo,
-                eventRepo,
-                restrictionService,
-                occurrenceCalendar,
-                new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
-                newEventFieldService());
+        groups = newEventGroupService();
         fields = new EventFieldService(
                 eventFieldRepo,
                 stationMemberRepo,
@@ -114,33 +105,6 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
         return groupWith(field, Instant.now().plus(Duration.ofDays(5)));
     }
 
-    private StationEvent partOf(EventGroup group, int daysAhead) {
-        var start = LocalDate.now().plusDays(daysAhead).atTime(9, 0).toInstant(ZoneOffset.UTC);
-        var part = eventRepo.create(
-                station.id(),
-                "Tag " + daysAhead,
-                null,
-                StationEvent.EventType.ONE_TIME,
-                null,
-                start,
-                start.plus(Duration.ofHours(6)),
-                null,
-                false,
-                null,
-                false,
-                null,
-                null,
-                null,
-                null,
-                null);
-        groups.addPart(
-                station.id(),
-                group.id(),
-                part.id(),
-                groups.findSets(group.id()).getFirst().id());
-        return part;
-    }
-
     private int groupFieldId(EventGroup group) {
         return groups.findFields(group.id()).getFirst().id();
     }
@@ -158,16 +122,11 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
         return eventRegistrationRepo.countAccepted(part.id(), LocalDate.ofInstant(part.startTime(), ZoneOffset.UTC));
     }
 
-    private static void assertRefused(Refusal refusal, Runnable call) {
-        var thrown = assertThrows(RefusalResponse.class, call::run);
-        assertEquals(refusal.code(), thrown.refusal().code());
-    }
-
     @Test
     void somebodyEnteredForTheWholeGroupStandsOnEveryAppointmentWithAPlace() {
         var group = groupWith(memberField(FieldType.MEMBER_LIST, ""));
-        var saturday = partOf(group, 20);
-        var sunday = partOf(group, 21);
+        var saturday = part(group, 20);
+        var sunday = part(group, 21);
 
         var shown = fields.toggleEventGroupSelfRegistration(group.id(), groupFieldId(group), anna.id(), false);
 
@@ -181,8 +140,8 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
     @Test
     void somebodyEnteredForTheWholeGroupSkipsOneAppointmentAndComesBack() {
         var group = groupWith(memberField(FieldType.MEMBER_LIST, ""));
-        var saturday = partOf(group, 22);
-        var sunday = partOf(group, 23);
+        var saturday = part(group, 22);
+        var sunday = part(group, 23);
         int fieldId = groupFieldId(group);
         fields.toggleEventGroupSelfRegistration(group.id(), fieldId, anna.id(), false);
 
@@ -201,8 +160,8 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
     @Test
     void somebodyEnteredForOneAppointmentStandsOnThatOneOnly() {
         var group = groupWith(memberField(FieldType.MEMBER_LIST, ""));
-        var saturday = partOf(group, 24);
-        var sunday = partOf(group, 25);
+        var saturday = part(group, 24);
+        var sunday = part(group, 25);
         int fieldId = groupFieldId(group);
         fields.toggleEventGroupSelfRegistration(group.id(), fieldId, anna.id(), false);
 
@@ -219,8 +178,8 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
     @Test
     void leavingTheWholeGroupLeavesEveryAppointmentWhateverWasSkipped() {
         var group = groupWith(memberField(FieldType.MEMBER_LIST, ""));
-        var saturday = partOf(group, 26);
-        var sunday = partOf(group, 27);
+        var saturday = part(group, 26);
+        var sunday = part(group, 27);
         int fieldId = groupFieldId(group);
         fields.toggleEventGroupSelfRegistration(group.id(), fieldId, anna.id(), false);
         fields.toggleSelfRegistration(saturday.id(), -fieldId, anna.id(), null, false);
@@ -237,8 +196,8 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
     @Test
     void aSingleSlotHeldForTheWholeGroupIsTakenOnAnAppointmentOnlyOnceItIsSkipped() {
         var group = groupWith(memberField(FieldType.MEMBER, ""));
-        var saturday = partOf(group, 28);
-        var sunday = partOf(group, 29);
+        var saturday = part(group, 28);
+        var sunday = part(group, 29);
         int fieldId = groupFieldId(group);
         fields.toggleEventGroupSelfRegistration(group.id(), fieldId, anna.id(), false);
 
@@ -260,7 +219,7 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
     void aClosedGroupTakesNobodyNewButLetsEverybodyLeave() {
         var group =
                 groupWith(memberField(FieldType.MEMBER_LIST, ""), Instant.now().minus(1, ChronoUnit.HOURS));
-        var saturday = partOf(group, 30);
+        var saturday = part(group, 30);
         int fieldId = groupFieldId(group);
 
         assertRefused(
@@ -277,7 +236,7 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
     void aFieldOfAnotherGroupOrAnAppointmentOutsideTheGroupIsNotHere() {
         var group = groupWith(memberField(FieldType.MEMBER_LIST, ""));
         var other = groupWith(memberField(FieldType.MEMBER_LIST, ""));
-        var foreignPart = partOf(other, 31);
+        var foreignPart = part(other, 31);
         int fieldId = groupFieldId(group);
 
         assertRefused(
@@ -291,7 +250,7 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
     @Test
     void savingTheGroupKeepsTheEntriesOfAFieldItStillNamesAndDropsTheRest() {
         var group = groupWith(memberField(FieldType.MEMBER_LIST, ""));
-        var saturday = partOf(group, 32);
+        var saturday = part(group, 32);
         int fieldId = groupFieldId(group);
         fields.toggleSelfRegistration(saturday.id(), -fieldId, ben.id(), null, false);
         var stored = groups.findFields(group.id()).getFirst();
@@ -321,7 +280,7 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
 
         assertRefused(EventRefusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED, () -> groupWith(perDate));
         var named = groupWith(memberField(FieldType.MEMBER_LIST, QuestionValues.formatMembers(List.of(anna.id()))));
-        var part = partOf(named, 33);
+        var part = part(named, 33);
         assertEquals(List.of(anna.id()), namedOn(part));
         assertEquals(1, placesOn(part));
     }
@@ -329,7 +288,7 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
     @Test
     void theDailyPassReachesTheAppointmentsOfAGroupWithAMemberField() {
         var group = groupWith(memberField(FieldType.MEMBER_LIST, ""));
-        var part = partOf(group, 34);
+        var part = part(group, 34);
 
         assertTrue(eventFieldRepo.findEventIdsWithMemberFields().contains(part.id()));
     }
@@ -337,7 +296,7 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
     @Test
     void aPartLeavingTheGroupGivesBackThePlacesItsFieldHandedOut() {
         var group = groupWith(memberField(FieldType.MEMBER_LIST, ""));
-        var saturday = partOf(group, 35);
+        var saturday = part(group, 35);
         fields.toggleEventGroupSelfRegistration(group.id(), groupFieldId(group), anna.id(), false);
         assertEquals(1, placesOn(saturday));
 
@@ -349,8 +308,8 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
     @Test
     void deletingTheGroupGivesBackThePlacesItsFieldHandedOutOnEveryFormerPart() {
         var group = groupWith(memberField(FieldType.MEMBER_LIST, ""));
-        var saturday = partOf(group, 36);
-        var sunday = partOf(group, 37);
+        var saturday = part(group, 36);
+        var sunday = part(group, 37);
         fields.toggleEventGroupSelfRegistration(group.id(), groupFieldId(group), anna.id(), false);
         assertEquals(1, placesOn(saturday));
 
@@ -405,7 +364,7 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
     @Test
     void anAppointmentTellsItsReaderWhetherTheyStandInTheFieldForTheWholeGroup() {
         var group = groupWith(memberField(FieldType.MEMBER_LIST, ""));
-        var saturday = partOf(group, 36);
+        var saturday = part(group, 36);
         int fieldId = groupFieldId(group);
         fields.toggleEventGroupSelfRegistration(group.id(), fieldId, anna.id(), false);
         fields.toggleSelfRegistration(saturday.id(), -fieldId, ben.id(), null, false);
@@ -433,7 +392,7 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
     @Test
     void anAppointmentReplacingTheFieldTakesNoEntriesInIt() {
         var group = groupWith(memberField(FieldType.MEMBER_LIST, ""));
-        var saturday = partOf(group, 37);
+        var saturday = part(group, 37);
         eventFieldRepo.create(
                 saturday.id(),
                 "betreuer",
@@ -453,7 +412,7 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
     @Test
     void aFieldChangingItsKindLosesItsEntries() {
         var group = groupWith(memberField(FieldType.MEMBER_LIST, ""));
-        var saturday = partOf(group, 38);
+        var saturday = part(group, 38);
         int fieldId = groupFieldId(group);
         fields.toggleSelfRegistration(saturday.id(), -fieldId, ben.id(), null, false);
         var stored = groups.findFields(group.id()).getFirst();

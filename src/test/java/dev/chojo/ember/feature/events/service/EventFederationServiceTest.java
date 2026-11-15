@@ -9,7 +9,6 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.api.refusal.FederationRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
@@ -58,7 +57,6 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.function.Executable;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -1636,10 +1634,6 @@ class EventFederationServiceTest extends RepositoryTestBase {
         assertRefused(
                 EventRefusal.REGISTRATION_THROUGH_EVENT_GROUP,
                 () -> service.undoFederatedWithdrawal(stationB.id(), stationA.uid(), part.id(), REMOTE_MEMBER_3, day));
-    }
-
-    private static void assertRefused(Refusal expected, Executable call) {
-        assertEquals(expected, assertThrows(RefusalResponse.class, call).refusal());
     }
 
     /** The given station's own partner row for the other one. */

@@ -9,15 +9,13 @@ import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
-import dev.chojo.ember.feature.events.entity.EventGroup;
-import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.service.EventGroupService;
 import dev.chojo.ember.feature.events.service.EventGroupSignUpTable;
 import dev.chojo.ember.feature.members.entity.MemberTable;
 import dev.chojo.ember.feature.members.service.MemberTableRenderer;
-import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationService;
+import dev.chojo.ember.repository.EventGroupFixtures;
 import dev.chojo.ember.util.CsvWriter;
 import io.javalin.testtools.Response;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,15 +56,7 @@ class EventGroupSignUpExportRoutesTest {
     void serve() throws Exception {
         var eventGroups = mock(EventGroupService.class);
         when(eventGroups.requireEventGroup(STATION_ID, 70))
-                .thenReturn(new EventGroup(
-                        70,
-                        STATION_ID,
-                        new EventGroupDetails("Jugendflamme 1", null, null, null, false, null, null, null),
-                        RestrictionMode.AND,
-                        RestrictionMode.AND,
-                        false,
-                        null,
-                        null));
+                .thenReturn(EventGroupFixtures.eventGroup(70, STATION_ID, "Jugendflamme 1"));
         when(eventGroups.requireEventGroup(STATION_ID, 71)).thenThrow(EventRefusal.EVENT_GROUP_NOT_HERE.raise());
         var stations = mock(StationService.class);
         var station = mock(Station.class);
