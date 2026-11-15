@@ -17,6 +17,7 @@ import {mentions} from '@/util/messageText'
 import SystemLine from './SystemLine.vue'
 import MessageBody from './MessageBody.vue'
 import ReplyQuote from './ReplyQuote.vue'
+import ChatPersonName from './ChatPersonName.vue'
 import ReactionChips from './ReactionChips.vue'
 import MessageActionBar from './MessageActionBar.vue'
 import type {MessageActions} from './messageActions'
@@ -33,6 +34,7 @@ const props = defineProps<{
 }>()
 
 const {nameOf} = useMessageWords()
+const memberOf = (uid: string | undefined) => uid ? props.actions.stationPeople?.[uid] ?? null : null
 const {finePointer} = useFinePointer()
 const press = useLongPress(() => {
   if (!props.message.deleted) props.actions.menu(props.message)
@@ -61,11 +63,12 @@ const highlight = computed(() => mentionsReader.value
     <div class="min-w-0 flex-1">
       <p v-if="opensRun" class="flex items-baseline gap-2">
         <PersonCardButton :account-uid="message.author?.uid" :name="nameOf(message.author)">
-          <span class="text-sm font-semibold">{{ nameOf(message.author) }}</span>
+          <ChatPersonName class="text-sm font-semibold" :name="nameOf(message.author)" :member="memberOf(message.author?.uid)"/>
         </PersonCardButton>
         <MutedText>{{ formatTime(message.createdAt) }}</MutedText>
       </p>
-      <ReplyQuote v-if="message.replyTo" :reply="message.replyTo" @jump="actions.jumpTo"/>
+      <ReplyQuote v-if="message.replyTo" :reply="message.replyTo" :member="memberOf(message.replyTo.author?.uid)"
+                  @jump="actions.jumpTo"/>
       <MessageBody :message="message" :reader-uid="actions.readerUid"
                    :blocked="!!message.author && actions.blocked.includes(message.author.uid)"/>
       <ReactionChips v-if="message.reactions.length > 0" :reactions="message.reactions" :disabled="actions.closed"

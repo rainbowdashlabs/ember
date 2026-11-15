@@ -59353,9 +59353,16 @@
             "items" : {
               "type" : "string"
             }
+          },
+          "member" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "uid", "firstName", "lastName", "joinedAt", "guardianFor" ]
+        "required" : [ "uid", "firstName", "lastName", "joinedAt", "guardianFor", "member" ]
       },
       "ConversationMessagePage" : {
         "type" : "object",

@@ -12,11 +12,13 @@ import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import PersonCardButton from '@/components/avatar/PersonCardButton.vue'
 import type {ConversationResponse} from '@/api/generated/schema'
 import {personName} from '@/util/conversationTitle'
+import ChatPersonName from './ChatPersonName.vue'
 
 /**
  * The people of a station chat, at the right, to look at only: who is in it follows the audience the
  * station gave it, so nobody adds or removes anybody here. A guardian who is in it for somebody they
- * look after is marked with that person's name.
+ * look after is marked with that person's name. Names carry their group color and tag, as the
+ * station shows them.
  */
 const open = defineModel<boolean>({required: true})
 
@@ -39,7 +41,7 @@ const {t} = useI18n()
           <PersonCardButton :account-uid="member.uid" :name="personName(member)" class="min-w-0">
             <span class="flex min-w-0 items-center gap-3">
               <UserAvatar :identity="{accountUid: member.uid}" :name="personName(member)" size="sm"/>
-              <span class="min-w-0 truncate text-sm">{{ personName(member) }}</span>
+              <ChatPersonName class="text-sm" :name="personName(member)" :member="member.member"/>
             </span>
           </PersonCardButton>
           <MutedText v-if="member.guardianFor.length > 0" tag="p" class="pl-10">

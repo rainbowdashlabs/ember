@@ -7,12 +7,15 @@
 import {useI18n} from 'vue-i18n'
 import BareButton from '@/components/button/BareButton.vue'
 import AppIcon from '@/components/display/AppIcon.vue'
-import type {ReplyPreviewResponse} from '@/api/generated/schema'
+import type {MemberIdentity, ReplyPreviewResponse} from '@/api/generated/schema'
+import ChatPersonName from './ChatPersonName.vue'
 import {useMessageWords} from '@/composables/useMessageWords'
 
 /** The small quote of the message another one answers. Clicking it scrolls to that message. */
 defineProps<{
   reply: ReplyPreviewResponse
+  /** How the station shows the quoted author in a station chat, for their group color and tag. */
+  member?: MemberIdentity | null
 }>()
 
 defineEmits<{
@@ -27,7 +30,7 @@ const {nameOf} = useMessageWords()
   <BareButton class="mb-0.5 flex max-w-full items-center gap-1 truncate text-left text-xs text-(--text-muted) hover:text-(--text)"
               :title="t('messages.jumpToReply')" @click="$emit('jump', reply.id)">
     <AppIcon :icon="['fas', 'reply']" class="h-3 w-3 shrink-0 -scale-x-100"/>
-    <span class="font-semibold">{{ nameOf(reply.author) }}</span>
+    <ChatPersonName class="shrink-0 font-semibold" :name="nameOf(reply.author)" :member="member"/>
     <span class="truncate">{{ reply.removedByStation ? t('messages.removedByStation') : reply.deleted ? t('messages.deleted') : reply.text }}</span>
   </BareButton>
 </template>

@@ -70671,6 +70671,7 @@ export interface components {
             guardianFor: string[];
             joinedAt: components["schemas"]["Instant"];
             lastName: string;
+            member: components["schemas"]["MemberIdentity"] | null;
             /** Format: uuid */
             uid: string;
         };

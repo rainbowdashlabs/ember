@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -412,6 +413,26 @@ public class StationChatRepository {
                 .map(row -> row.getBoolean("moderates"))
                 .first()
                 .orElse(false);
+    }
+
+    /**
+     * The members the given accounts are at a station right now.
+     *
+     * @param stationId  the station
+     * @param accountIds the accounts
+     * @return each account that is a current member there, with its member's identity
+     */
+    public Map<Integer, UUID> memberUids(int stationId, Collection<Integer> accountIds) {
+        if (accountIds.isEmpty()) return Map.of();
+        return query("""
+                SELECT account_id, uid FROM station_member
+                WHERE station_id = :station_id AND former = FALSE AND account_id = ANY(:ids);""")
+                .single(call().bind("station_id", stationId)
+                        .bind("ids", List.copyOf(accountIds), PostgreSqlTypes.INTEGER))
+                .map(row -> Map.entry(row.getInt("account_id"), row.get("uid", UUID_STRING)))
+                .all()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     /**

@@ -92,7 +92,8 @@ public record MessageFixtures(
                 new StationChatMembership(stationChatRepo, conversationRepo, messageRepo, new TaskScheduler(), signals);
         return new MessageFixtures(
                 signals,
-                new ConversationService(conversationRepo, messageRepo, guards, signals, stationChatRepo),
+                new ConversationService(
+                        conversationRepo, messageRepo, guards, signals, stationChatRepo, MessageTestBase.identities()),
                 new GroupService(conversationRepo, messageRepo, guards, signals),
                 new MessageService(conversationRepo, messageRepo, guards, views, signals, moderation),
                 new ReactionService(new ReactionRepository(), guards, views, signals),

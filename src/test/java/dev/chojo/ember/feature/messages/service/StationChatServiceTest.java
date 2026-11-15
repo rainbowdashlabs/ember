@@ -412,6 +412,27 @@ class StationChatServiceTest extends MessageTestBase {
     }
 
     @Test
+    void aStationChatShowsItsPeopleWithTheirGroupColorAndTag() {
+        memberGroupRepo.update(group.id(), group.name(), "#ff0000", 0);
+        userTagRepo.addMember(
+                userTagRepo
+                        .create(station.id(), "Atemschutz", "#00ff00", TagVisibility.BADGE)
+                        .id(),
+                member(anna).id());
+        Conversation chat = chats.open(station.id(), manager.id(), "Alle", null, false);
+
+        var people = services.conversations().detail(manager.id(), chat.uid()).stationPeople();
+
+        var annaShown = people.get(anna.id());
+        assertNotNull(annaShown);
+        assertEquals(member(anna).uid(), annaShown.memberUid());
+        assertEquals("#ff0000", annaShown.nameColor());
+        assertNotNull(annaShown.displayTag());
+        assertEquals("Atemschutz", annaShown.displayTag().name());
+        assertNotNull(people.get(manager.id()));
+    }
+
+    @Test
     void membersCannotLeaveRenameOrAddPeopleButCanMute() {
         Conversation chat = chats.open(station.id(), manager.id(), "Alle", null, false);
         var stranger = memberOf(station, "Sven");

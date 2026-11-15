@@ -12,6 +12,7 @@ import type {ConversationMessageResponse, ConversationResponse} from '@/api/gene
 import MessageActionBar from './MessageActionBar.vue'
 import MessageBody from './MessageBody.vue'
 import StationChatMembersPanel from './StationChatMembersPanel.vue'
+import MessageItem from './MessageItem.vue'
 import ConversationHeader from './ConversationHeader.vue'
 import ReportMessageModal from './ReportMessageModal.vue'
 import {useMessageWords} from '@/composables/useMessageWords'
@@ -26,6 +27,10 @@ const i18n = () => createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE
 
 const ANNA = {uid: 'anna', firstName: 'Anna', lastName: 'Muster'}
 const READER = {uid: 'reader', firstName: 'Mia', lastName: 'Muster'}
+const ANNA_AT_STATION = {
+  stationUid: 'station', memberUid: 'anna-member', name: 'Anna Muster', stationName: 'Wache Nord',
+  nameColor: '#ff0000', displayTag: {name: 'Atemschutz', color: '#00ff00'},
+}
 
 function message(overrides: Partial<ConversationMessageResponse> = {}): ConversationMessageResponse {
   return {
@@ -94,8 +99,8 @@ describe('the members of a station chat', () => {
       moderator: false,
       station: {stationUid: 'station', stationName: 'Wache Nord', includeGuardians: true, closed: false},
       members: [
-        {...ANNA, joinedAt: '2026-11-13T10:00:00Z', guardianFor: []},
-        {...READER, joinedAt: '2026-11-13T10:00:00Z', guardianFor: ['Kim Klein']},
+        {...ANNA, joinedAt: '2026-11-13T10:00:00Z', guardianFor: [], member: ANNA_AT_STATION},
+        {...READER, joinedAt: '2026-11-13T10:00:00Z', guardianFor: ['Kim Klein'], member: null},
       ],
     } satisfies ConversationResponse
     const wrapper = mount(StationChatMembersPanel, {
@@ -106,6 +111,36 @@ describe('the members of a station chat', () => {
     expect(wrapper.get('[data-testid="station-chat-follows"]').text()).toBe(deDE.messages.station.follows)
     expect(wrapper.get('[data-testid="station-chat-member-reader"]').text()).toContain('Erziehungsberechtigt für Kim Klein')
     expect(wrapper.get('[data-testid="station-chat-member-anna"]').text()).not.toContain('Erziehungsberechtigt')
+    const annasName = wrapper.get('[data-testid="station-chat-member-anna"] [data-testid="chat-person-name"]')
+    expect(annasName.attributes('style')).toContain('color: #ff0000')
+    expect(wrapper.get('[data-testid="station-chat-member-anna"]').text()).toContain('Atemschutz')
+    expect(wrapper.get('[data-testid="station-chat-member-reader"] [data-testid="chat-person-name"]').attributes('style')).toBeUndefined()
+  })
+})
+
+describe('the names in a station chat', () => {
+  function item(given: MessageActions, shown = message()) {
+    return mount(MessageItem, {
+      props: {message: shown, opensRun: true, actions: given},
+      global: {plugins: [i18n()], stubs: {PersonCardButton: {template: '<span><slot/></span>'}, UserAvatar: true, MessageActionBar: true}},
+    })
+  }
+
+  it('take the group color and tag of the author, also in the quote of an answered message', () => {
+    const answered = {id: 3, author: ANNA, text: 'Vorher', deleted: false, removedByStation: false}
+    const wrapper = item(actions({stationPeople: {anna: ANNA_AT_STATION}}), message({replyTo: answered}))
+
+    const names = wrapper.findAll('[data-testid="chat-person-name"]')
+    expect(names).toHaveLength(2)
+    names.forEach(name => expect(name.attributes('style')).toContain('color: #ff0000'))
+    expect(wrapper.text()).toContain('Atemschutz')
+  })
+
+  it('stay plain where the station does not know the author', () => {
+    const wrapper = item(actions())
+
+    expect(wrapper.get('[data-testid="chat-person-name"]').attributes('style')).toBeUndefined()
+    expect(wrapper.text()).not.toContain('Atemschutz')
   })
 })
 

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.messages.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.messages.entity.MessageEvent;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -20,6 +21,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  * database, each with a name of its own so classes never meet, and the message services on top.
  */
 public abstract class MessageTestBase extends RepositoryTestBase {
+
+    /** The member identity factory the test database is set up with, for fixtures outside a test. */
+    static MemberIdentityFactory identities() {
+        return memberIdentityFactory;
+    }
+
     private static final AtomicInteger SEQUENCE = new AtomicInteger();
 
     /** A station of its own. */

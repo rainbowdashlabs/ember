@@ -115,8 +115,9 @@ class StationChatRoutesTest extends MessageTestBase {
                     MessageRefusal.STATION_CHAT_AUDIENCE_NOT_HERE,
                     refusalOf(client.put(
                             base + "/" + uid,
-                            body("{\"name\":\"Wache\",\"includeGuardians\":false,\"audience\":{\"userTypes\":[],\"groupIds\":[],"
-                                    + "\"tagIds\":[],\"memberIds\":[999999],\"mode\":\"AND\"}}"),
+                            body(
+                                    "{\"name\":\"Wache\",\"includeGuardians\":false,\"audience\":{\"userTypes\":[],\"groupIds\":[],"
+                                            + "\"tagIds\":[],\"memberIds\":[999999],\"mode\":\"AND\"}}"),
                             as(manager, StationPermission.MESSAGE_CHAT_MANAGE))));
             assertEquals(
                     MessageRefusal.STATION_CHAT_CHANGE_UNSAID,
