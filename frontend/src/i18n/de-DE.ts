@@ -955,7 +955,7 @@ export default {
         },
         'station-chats': {
             title: 'Wachenchats',
-            subtitle: 'Chats für die ganze Wache, eine Gruppe oder einen Tag',
+            subtitle: 'Chats für die ganze Wache oder für die, die du auswählst',
         },
         'message-reports': {
             title: 'Gemeldete Nachrichten',
@@ -7966,28 +7966,24 @@ export default {
     },
     stationChats: {
         empty: 'Die Wache hat noch keinen Chat.',
-        audience: {
-            STATION: 'Ganze Wache',
-            GROUP: 'Gruppe',
-            TAG: 'Tag',
-        },
-        audienceGone: 'gelöscht',
-        choose: 'Bitte wählen',
+        forAudience: 'Für: {audience}',
+        wholeStation: 'die ganze Wache ohne Mitglieder auf Probe',
+        audienceGoneHint: 'Ein Teil der Zielgruppe ist weg, etwa eine gelöschte Gruppe, oder niemand der einzeln Ausgewählten ist noch da. Gib dem Chat eine neue Zielgruppe, um ihn wieder zu öffnen.',
         closedSince: 'Geschlossen seit {date}',
-        rename: 'Name',
+        edit: 'Bearbeiten',
         guardians: 'Erziehungsberechtigte aufnehmen',
         guardiansHint: 'Die Erziehungsberechtigten der Mitglieder sind dann ebenfalls im Chat, auch wenn Nachrichten für ihr Kind ausgeschaltet sind.',
         close: 'Schließen',
         reopen: 'Wieder öffnen',
         open: {
             title: 'Chat eröffnen',
+            editTitle: 'Chat bearbeiten',
             name: 'Name',
             audience: 'Für wen',
-            which: {
-                GROUP: 'Gruppe',
-                TAG: 'Tag',
-            },
+            audienceHint: 'Ohne Auswahl ist der Chat für die ganze Wache ohne Mitglieder auf Probe. Mit „oder“ kommen etwa eine Gruppe und ihre Leitung zusammen in einen Chat.',
             submit: 'Eröffnen',
+            save: 'Speichern',
+            audienceGoneCheck: 'Ein Teil der Zielgruppe ist weg, hier steht nur noch der Rest. Prüfe, für wen der Chat jetzt sein soll, bevor du speicherst.',
         },
     },
     messageReports: {
@@ -8134,11 +8130,7 @@ export default {
             closed: 'Geschlossen',
             closedNotice: 'Dieser Chat ist geschlossen. Du kannst ihn weiter lesen, aber nichts mehr schreiben.',
             guardianFor: 'Erziehungsberechtigt für {names}',
-            follows: {
-                STATION: 'In diesem Chat sind alle Mitglieder der Wache außer denen auf Probe. Wer dazukommt oder geht, ist von selbst dabei oder draußen. Verlassen lässt er sich nicht, aber stummschalten.',
-                GROUP: 'In diesem Chat sind alle aus der Gruppe. Wer in die Gruppe kommt oder sie verlässt, ist von selbst dabei oder draußen. Verlassen lässt er sich nicht, aber stummschalten.',
-                TAG: 'In diesem Chat sind alle mit dem Tag. Wer den Tag bekommt oder verliert, ist von selbst dabei oder draußen. Verlassen lässt er sich nicht, aber stummschalten.',
-            },
+            follows: 'Wer in diesem Chat ist, legt die Wache fest. Wer zur Zielgruppe dazukommt oder sie verlässt, ist von selbst dabei oder draußen. Verlassen lässt er sich nicht, aber stummschalten.',
         },
     },
     toast: {

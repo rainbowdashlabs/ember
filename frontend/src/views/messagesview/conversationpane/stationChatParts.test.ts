@@ -88,11 +88,11 @@ describe('a message the station removed', () => {
 })
 
 describe('the members of a station chat', () => {
-  it('says whom the chat follows and marks guardians with the people they are there for', () => {
+  it('says the chat follows its audience and marks guardians with the people they are there for', () => {
     const conversation = {
       uid: 'chat', kind: 'STATION', name: 'Jugend', ownerUid: null, muted: false, lastReadMessageId: null,
       moderator: false,
-      station: {stationUid: 'station', stationName: 'Wache Nord', audience: 'GROUP', includeGuardians: true, closed: false},
+      station: {stationUid: 'station', stationName: 'Wache Nord', includeGuardians: true, closed: false},
       members: [
         {...ANNA, joinedAt: '2026-11-13T10:00:00Z', guardianFor: []},
         {...READER, joinedAt: '2026-11-13T10:00:00Z', guardianFor: ['Kim Klein']},
@@ -103,7 +103,7 @@ describe('the members of a station chat', () => {
       global: {plugins: [i18n()], stubs: {SidePanel: {template: '<div><slot/></div>'}, PersonCardButton: {template: '<span><slot/></span>'}, UserAvatar: true}},
     })
 
-    expect(wrapper.get('[data-testid="station-chat-follows"]').text()).toBe(deDE.messages.station.follows.GROUP)
+    expect(wrapper.get('[data-testid="station-chat-follows"]').text()).toBe(deDE.messages.station.follows)
     expect(wrapper.get('[data-testid="station-chat-member-reader"]').text()).toContain('Erziehungsberechtigt für Kim Klein')
     expect(wrapper.get('[data-testid="station-chat-member-anna"]').text()).not.toContain('Erziehungsberechtigt')
   })
@@ -123,7 +123,7 @@ describe('the header of a station chat', () => {
   it('names the station and offers no way to leave', () => {
     const conversation = {
       uid: 'chat', kind: 'STATION', name: 'Alle', ownerUid: null, muted: false, lastReadMessageId: null, moderator: false,
-      station: {stationUid: 'station', stationName: 'Wache Nord', audience: 'STATION', includeGuardians: false, closed: false},
+      station: {stationUid: 'station', stationName: 'Wache Nord', includeGuardians: false, closed: false},
       members: [],
     } satisfies ConversationResponse
     const wrapper = mount(ConversationHeader, {

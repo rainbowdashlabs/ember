@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SidePanel from '@/components/feedback/SidePanel.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -15,26 +14,25 @@ import type {ConversationResponse} from '@/api/generated/schema'
 import {personName} from '@/util/conversationTitle'
 
 /**
- * The people of a station chat, at the right, to look at only: who is in it follows the station, a
- * group or a tag, so nobody adds or removes anybody here. A guardian who is in it for somebody they
+ * The people of a station chat, at the right, to look at only: who is in it follows the audience the
+ * station gave it, so nobody adds or removes anybody here. A guardian who is in it for somebody they
  * look after is marked with that person's name.
  */
 const open = defineModel<boolean>({required: true})
 
-const props = defineProps<{
+defineProps<{
   conversation: ConversationResponse
 }>()
 
 const {t} = useI18n()
 
-const follows = computed(() => t(`messages.station.follows.${props.conversation.station?.audience ?? 'STATION'}`))
 </script>
 
 <template>
   <SidePanel v-model="open">
     <div class="space-y-4 p-4">
       <SubHeader>{{ t('messages.members.title') }}</SubHeader>
-      <MutedText tag="p" data-testid="station-chat-follows">{{ follows }}</MutedText>
+      <MutedText tag="p" data-testid="station-chat-follows">{{ t('messages.station.follows') }}</MutedText>
       <ul class="divide-y divide-(--border)">
         <li v-for="member in conversation.members" :key="member.uid" class="py-2"
             :data-testid="`station-chat-member-${member.uid}`">

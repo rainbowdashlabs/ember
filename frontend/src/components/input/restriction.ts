@@ -141,3 +141,41 @@ export function sameRestriction(a: RestrictionSelection, b: RestrictionSelection
     return a.mode === b.mode
         && JSON.stringify(normalizedRestriction(a)) === JSON.stringify(normalizedRestriction(b))
 }
+
+/** The slice of vue-i18n's translate the audience words need: plain, interpolated and pluralised. */
+type Translate = (key: string, arg?: number | Record<string, unknown>) => string
+
+/**
+ * An audience as words, the way an appointment names whom it is kept for. Within one kind a member
+ * matches any of the named values, so those are joined with "oder"; the kinds themselves combine by
+ * the audience's own mode. Individually picked members always grant on their own, whatever the mode,
+ * so they join with "oder" and are counted rather than named: whoever resolves names needs a
+ * permission the reader of this sentence rarely has. An audience naming nobody gives an empty text.
+ *
+ * @param restriction the audience
+ * @param groups      the station's groups, to name the ones it names
+ * @param tags        the station's tags, to name the ones it names
+ * @param t           the translator
+ */
+export function audienceWords(
+    restriction: Partial<NamedParts> & {mode?: RestrictionSelection['mode'] | null},
+    groups: readonly NamedChoice[],
+    tags: readonly NamedChoice[],
+    t: Translate,
+): string {
+    const normalized = normalizedRestriction(restriction)
+    const or = t('eventsUpcoming.audienceOr')
+    const labels = restrictionLabels(normalized, groups, tags)
+    const parts = [labels.userTypes, labels.groups, labels.tags]
+        .filter(names => names.length > 0)
+        .map(names => names.join(or))
+
+    let audience = parts.join(restriction.mode === 'OR' ? or : t('eventsUpcoming.audienceAnd'))
+    if (normalized.memberIds.length > 0) {
+        const members = normalized.memberIds.length === 1
+            ? t('eventsUpcoming.audienceMemberOne')
+            : t('eventsUpcoming.audienceMemberMany', {n: normalized.memberIds.length})
+        audience = audience ? audience + or + members : members
+    }
+    return audience
+}

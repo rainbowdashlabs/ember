@@ -5,7 +5,7 @@
  */
 import type {AllEventRestrictions} from '@/api/events'
 import type {MemberGroup, UserTag} from '@/api/generated/schema'
-import {namesSomebody, normalizedRestriction, restrictionLabels} from '@/components/input/restriction'
+import {audienceWords, namesSomebody, normalizedRestriction} from '@/components/input/restriction'
 
 /** The slice of vue-i18n's translate this module needs: plain, interpolated and pluralised. */
 type Translate = (key: string, arg?: number | Record<string, unknown>) => string
@@ -32,7 +32,7 @@ export function registrationAudienceNote(
     if (!namesSomebody(register)) return null
     const view = normalizedRestriction(entry.view)
     if (JSON.stringify(register) === JSON.stringify(view)) return null
-    return t('eventsUpcoming.registrationAudience', {audience: audienceText(entry.register, groups, tags, t)})
+    return t('eventsUpcoming.registrationAudience', {audience: audienceWords(entry.register, groups, tags, t)})
 }
 
 /**
@@ -49,35 +49,5 @@ export function viewAudienceNote(
 ): string | null {
     const entry = restrictions[eventId]
     if (!entry || !namesSomebody(normalizedRestriction(entry.view))) return null
-    return t('eventsUpcoming.viewAudience', {audience: audienceText(entry.view, groups, tags, t)})
-}
-
-/**
- * The audience as words. Within one kind a member matches any of the named values, so those are
- * joined with "oder"; the kinds themselves combine by the audience's own mode. Individually picked
- * members always grant on their own, whatever the mode, so they join with "oder" and are counted
- * rather than named: whoever resolves names needs a permission the reader of this sentence rarely
- * has.
- */
-function audienceText(
-    restriction: AllEventRestrictions[number]['register'],
-    groups: MemberGroup[],
-    tags: UserTag[],
-    t: Translate,
-): string {
-    const normalized = normalizedRestriction(restriction)
-    const or = t('eventsUpcoming.audienceOr')
-    const labels = restrictionLabels(normalized, groups, tags)
-    const parts = [labels.userTypes, labels.groups, labels.tags]
-        .filter(names => names.length > 0)
-        .map(names => names.join(or))
-
-    let audience = parts.join(restriction.mode === 'OR' ? or : t('eventsUpcoming.audienceAnd'))
-    if (normalized.memberIds.length > 0) {
-        const members = normalized.memberIds.length === 1
-            ? t('eventsUpcoming.audienceMemberOne')
-            : t('eventsUpcoming.audienceMemberMany', {n: normalized.memberIds.length})
-        audience = audience ? audience + or + members : members
-    }
-    return audience
+    return t('eventsUpcoming.viewAudience', {audience: audienceWords(entry.view, groups, tags, t)})
 }
