@@ -44,6 +44,7 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 - **Abgeschaltete Module vergeben keine Berechtigungen.** Die Auswahl der Berechtigungen lässt die eines abgeschalteten Moduls weg, und bereits vergebene gelten erst wieder, wenn das Modul läuft. Pflichten eines abgeschalteten Moduls, etwa eine Pflichtumfrage, halten niemanden mehr auf der Startseite fest.
 - **Partner und Öffentlichkeit sehen nichts von abgeschalteten Modulen.** Eine Wache gibt Partnerwachen nichts aus einem Modul heraus, das sie abgeschaltet hat, und ihre Mitglieder sehen von Partnern nichts aus diesem Modul. Öffentlicher Kalender, Blog, Wiki, Quiz und Wartelisten verschwinden mit ihrem Modul, auch wenn der Verband es verwehrt.
 - **Mehrere Termine einzeln eintragen.** Neben Zeitplan und Datei-Import bietet das Erstellen mehrerer Termine eine Liste einzeln eingetragener Termine, jeder mit Datum, Start- und Endzeit und auf Wunsch einem eigenen Titel. Zeilen lassen sich hinzufügen und entfernen, und eine Zeile ohne Datum oder mit einem Ende, das nicht nach dem Beginn liegt, wird markiert, bevor etwas entsteht.
+- **Unlesbare Anfragen nennen ihr Feld.** Kann der Server einen Wert nicht lesen, den eine Seite geschickt hat, nennt die Meldung jetzt das Feld, an dem er hängen blieb.
 
 ### Änderungen
 

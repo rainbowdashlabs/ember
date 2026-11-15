@@ -104,6 +104,16 @@ describe('the value a refusal was about', () => {
             'Das ist mehr Speicherplatz, als der Verbund noch vergeben kann, es wurde nichts geändert (frei: 0 B von 1.0 GiB)')
     })
 
+    it('names the field a request body could not be read at', () => {
+        const failure = describeFailure(rejected(400, {
+            code: 'B-003',
+            message: 'The request body does not match what this endpoint expects: registrationDeadline',
+            detail: {kind: 'TEXT', text: 'registrationDeadline'},
+        }), german())
+
+        expect(failure.message).toBe('Die Anfrage hat nicht die Form, die diese Schnittstelle erwartet (registrationDeadline)')
+    })
+
     it('names a count as a number', () => {
         const failure = describeFailure(rejected(409, {
             code: 'M-194',
