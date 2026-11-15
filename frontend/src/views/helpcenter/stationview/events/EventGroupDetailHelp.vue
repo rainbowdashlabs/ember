@@ -18,7 +18,6 @@ import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
-import SuccessButton from '@/components/button/SuccessButton.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
@@ -26,6 +25,8 @@ import RegistrationStatusBadge from '@/views/stationview/events/eventshared/Regi
 import EventGroupBand from '@/views/stationview/events/eventshared/EventGroupBand.vue'
 import EventGroupHeading from '@/views/stationview/events/eventshared/EventGroupHeading.vue'
 import ProbeVisitorList from '@/views/stationview/events/eventshared/ProbeVisitorList.vue'
+import SignUpTableExample from './eventgroupdetailhelp/SignUpTableExample.vue'
+import AttendanceTableExample from './eventgroupdetailhelp/AttendanceTableExample.vue'
 import {RegistrationStatus, StationPermission, type WaitingListVisitor} from '@/api/generated/schema'
 
 const {t} = useI18n()
@@ -126,21 +127,13 @@ const exampleVisitors = computed((): WaitingListVisitor[] => [{
     <HelpSection :title="t('helpCenter.eventGroupDetail.manageTitle')">
       <HelpPermissionGuard :permissions="[StationPermission.EVENT_REGISTRATION]" :label="t('helpCenter.permissionLabel.eventRegistration')">
         <p>{{ t('helpCenter.eventGroupDetail.manageText') }}</p>
-        <NeutralContainer class="flex flex-wrap items-center justify-between gap-2">
-          <div class="flex items-center gap-2">
-            <span>{{ t('helpCenter.eventGroupDetail.exampleOther') }}</span>
-            <RegistrationStatusBadge :status="RegistrationStatus.PENDING"/>
-            <ErrorBadge>{{ t('eventGroups.short') }}</ErrorBadge>
-          </div>
-          <ButtonRow pair align="end">
-            <SuccessButton compact>{{ t('eventGroups.accept') }}</SuccessButton>
-            <ErrorButton compact>{{ t('eventGroups.deny') }}</ErrorButton>
-          </ButtonRow>
-        </NeutralContainer>
+        <p>{{ t('helpCenter.eventGroupDetail.tableText') }}</p>
+        <p>{{ t('helpCenter.eventGroupDetail.incompleteText') }}</p>
+        <SignUpTableExample/>
         <p>{{ t('helpCenter.eventGroupDetail.exportText') }}</p>
-        <SecondaryButton :icon="['fas', 'file-export']">{{ t('eventGroups.exportSignUps') }}</SecondaryButton>
         <p>{{ t('helpCenter.eventGroupDetail.partnerText') }}</p>
         <p>{{ t('helpCenter.eventGroupDetail.attendanceText') }}</p>
+        <AttendanceTableExample/>
         <p>{{ t('helpCenter.eventGroupDetail.signersText') }}</p>
       </HelpPermissionGuard>
       <HelpPermissionGuard :permissions="[StationPermission.EVENT_EDIT]" :label="t('helpCenter.permissionLabel.eventEdit')">

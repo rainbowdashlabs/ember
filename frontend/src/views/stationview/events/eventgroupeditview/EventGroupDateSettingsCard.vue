@@ -7,11 +7,10 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import FieldDefaultRow from '../eventshared/FieldDefaultRow.vue'
+import FieldDefaultsCard from '../eventeditview/FieldDefaultsCard.vue'
 import EventReminderEditor from '../eventshared/EventReminderEditor.vue'
 import type {AttendanceTemplate, AttendanceTemplateField, EventCategory} from '@/api/generated/schema'
 import type {FieldDefaultValue} from '../eventeditview/useEventFieldDefaults'
@@ -39,10 +38,6 @@ const templateId = defineModel<string>('templateId', {required: true})
 const reminders = defineModel<number[]>('reminders', {required: true})
 
 const {t} = useI18n()
-
-function entryFor(fieldId: number): FieldDefaultValue {
-  return props.fieldDefaults.get(fieldId) ?? {source: '', value: ''}
-}
 </script>
 
 <template>
@@ -67,19 +62,14 @@ function entryFor(fieldId: number): FieldDefaultValue {
       </div>
     </div>
 
-    <div v-if="templateId && props.templateFields.length > 0" class="space-y-2" data-testid="event-group-field-defaults">
-      <SubHeader class="text-sm">{{ t('events.fieldDefaults') }}</SubHeader>
-      <MutedText tag="p" size="sm">{{ t('events.fieldDefaultsHint') }}</MutedText>
-      <FieldDefaultRow
-          v-for="field in props.templateFields"
-          :key="field.id"
-          :field="field"
-          :source="entryFor(field.id).source"
-          :value="entryFor(field.id).value"
-          @update-source="emit('update:fieldDefaultSource', field.id, $event)"
-          @update-value="emit('update:fieldDefaultValue', field.id, $event)"
-      />
-    </div>
+    <FieldDefaultsCard
+        v-if="templateId && props.templateFields.length > 0"
+        :fields="props.templateFields"
+        :defaults="props.fieldDefaults"
+        data-testid="event-group-field-defaults"
+        @update:source="(fieldId, source) => emit('update:fieldDefaultSource', fieldId, source)"
+        @update:value="(fieldId, value) => emit('update:fieldDefaultValue', fieldId, value)"
+    />
 
     <EventReminderEditor v-model="reminders"/>
   </NeutralContainer>

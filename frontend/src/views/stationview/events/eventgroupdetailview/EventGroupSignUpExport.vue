@@ -8,7 +8,7 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import RegistrationTableExport from '../eventdetailview/RegistrationTableExport.vue'
+import ExportFormatModal from '@/components/documents/ExportFormatModal.vue'
 import {eventGroups} from '@/api'
 import {presentFile} from '@/util/documentFile'
 import type {ExportSeparator} from '@/util/exportFormat'
@@ -16,8 +16,8 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 
 /**
  * Takes the sign-ups of an event group away as a file: a spreadsheet in the separator asked for, or a
- * sheet to print with a column per part to tick. Asks the same way the registration table of an
- * appointment does.
+ * sheet to print with a column per part to tick. Asks through the export dialog every list of the
+ * product uses.
  */
 const props = defineProps<{
   eventGroupId: number
@@ -26,7 +26,7 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const open = ref(false)
-const {failure, run: runDownload} = useAsyncAction(async (format: 'csv' | 'pdf', separator: ExportSeparator) => {
+const {running: exporting, failure, run: runDownload} = useAsyncAction(async (format: 'csv' | 'pdf', separator: ExportSeparator) => {
   await presentFile(await eventGroups.exportSignUps(props.eventGroupId, format, separator))
 })
 
@@ -43,6 +43,6 @@ async function download(format: 'csv' | 'pdf', separator: ExportSeparator) {
       {{ t('eventGroups.exportSignUps') }}
     </SecondaryButton>
     <FailureAlert v-if="failure" :failure="failure"/>
-    <RegistrationTableExport v-model="open" @download="download"/>
+    <ExportFormatModal v-model="open" :formats="['csv', 'pdf']" :exporting="exporting" @export="download"/>
   </div>
 </template>

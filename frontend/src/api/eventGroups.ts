@@ -192,10 +192,20 @@ export async function listAttendance(eventGroupId: number): Promise<EventGroupAt
     return (await client.get<EventGroupAttendance[]>(`${EVENT_GROUPS}/${eventGroupId}/attendance`)).data
 }
 
-/** The attendance of an event group's participants as a spreadsheet. */
-export async function exportAttendance(eventGroupId: number, separator: ExportSeparator = 'semicolon'): Promise<DocumentFile> {
-    const res = await client.get(`${EVENT_GROUPS}/${eventGroupId}/attendance/export.csv`, {responseType: 'blob', params: {separator}})
-    return documentFrom(res, 'Terminreihe.csv')
+/**
+ * The attendance of an event group's participants as a file: a spreadsheet, or a sheet to print with
+ * the same columns. Only a spreadsheet takes a separator.
+ */
+export async function exportAttendance(
+    eventGroupId: number,
+    format: 'csv' | 'pdf',
+    separator: ExportSeparator = 'semicolon',
+): Promise<DocumentFile> {
+    const res = await client.get(`${EVENT_GROUPS}/${eventGroupId}/attendance/export.${format}`, {
+        responseType: 'blob',
+        params: format === 'csv' ? {separator} : undefined,
+    })
+    return documentFrom(res, `Terminreihe.${format}`)
 }
 
 /**

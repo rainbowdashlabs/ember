@@ -15,11 +15,11 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import EventGroupQuestionInputs from './EventGroupQuestionInputs.vue'
+import RegistrationFieldInputs from '../eventshared/RegistrationFieldInputs.vue'
 import RegistrationSigningStep from '../eventshared/RegistrationSigningStep.vue'
 import {eventGroupSigningStep} from './eventGroupSigning'
 import type {SigningStep} from '@/composables/useRegistrationSigningStep'
-import {answersToSend, missingAnswers, seedAnswers} from './eventGroupAnswers'
+import {answersToSend, missingAnswers, seedAnswers, type RegistrationAnswers} from '../eventshared/registrationAnswers'
 import type {EventGroupDetail, EventGroupSignUp} from '@/api/generated/schema'
 import {ownEventGroupPort, type EventGroupSignUpPort} from './eventGroupSignUpPort'
 import {useSession} from '@/composables/useSession'
@@ -78,7 +78,7 @@ function startingChoice(): number[] {
 }
 const name = computed(() => props.entry.member.name ?? '')
 const asking = computed(() => !changing.value && props.detail.questions.length > 0)
-const answers = ref<Record<number, string>>(seedAnswers(props.detail.questions))
+const answers = ref<RegistrationAnswers>(seedAnswers(props.detail.questions))
 const signingStep = ref<SigningStep | null>(null)
 const signingOpen = ref(false)
 
@@ -170,7 +170,10 @@ async function save() {
           <li v-for="partId in result.missingRequired" :key="partId">{{ t('eventGroups.requiredMissing', {name: nameOf(partId)}) }}</li>
         </template>
       </ul>
-      <EventGroupQuestionInputs v-if="asking" v-model="answers" :fields="detail.questions"/>
+      <div v-if="asking" class="space-y-3" data-testid="event-group-questions">
+        <SubHeader>{{ t('eventGroups.questions') }}</SubHeader>
+        <RegistrationFieldInputs v-model="answers" :fields="detail.questions" test-id-prefix="event-group-question"/>
+      </div>
       <ButtonRow pair align="end">
         <SecondaryButton data-cancel :disabled="busy" @click="close">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :disabled="busy || !meets" data-testid="event-group-sign-up-save" @click="save">

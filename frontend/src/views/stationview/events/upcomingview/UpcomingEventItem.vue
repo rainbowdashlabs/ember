@@ -4,10 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import EventGroupTile from '@/views/stationview/events/eventshared/EventGroupTile.vue'
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {RouteLocationRaw} from 'vue-router'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -15,8 +15,6 @@ import MutedText from '@/components/typography/MutedText.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import ProseExcerpt from '@/components/display/ProseExcerpt.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
-import EventGroupBand from '../eventshared/EventGroupBand.vue'
-import EventGroupHeading from '../eventshared/EventGroupHeading.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EventHeadline from '../eventshared/EventHeadline.vue'
@@ -70,17 +68,14 @@ const {t} = useI18n()
 
 const containerClass = computed(() => [
   'space-y-2',
-  props.event.eventGroup ? 'relative pl-5 pt-9' : '',
   props.endDate && !props.event.eventGroup ? 'border-l-4 border-(--color-primary)' : '',
 ])
 </script>
 
 <template>
-  <NeutralContainer
+  <EventGroupTile
       data-testid="upcoming-event" :data-event="event.id" :data-date="date" :data-cancelled="!!cancellation"
-      :class="containerClass">
-    <EventGroupBand v-if="event.eventGroup" :event-group="event.eventGroup"/>
-    <EventGroupHeading v-if="event.eventGroup" :event-group="event.eventGroup"/>
+      :event-group="event.eventGroup" :class="containerClass">
     <div class="flex items-center justify-between flex-wrap gap-2">
       <div>
         <EventHeadline
@@ -129,5 +124,5 @@ const containerClass = computed(() => [
         @decline="emit('decline', $event)"
         @withdraw="emit('withdraw', $event)"
     />
-  </NeutralContainer>
+  </EventGroupTile>
 </template>

@@ -7,21 +7,24 @@
 import {computed, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import EventFieldValueInput from '../eventshared/EventFieldValueInput.vue'
-import {useAnswerMembers} from '../eventshared/useAnswerMembers'
+import EventFieldValueInput from './EventFieldValueInput.vue'
+import {useAnswerMembers} from './useAnswerMembers'
+import {missingAnswers, numberRange, type RegistrationAnswers} from './registrationAnswers'
 import type {EventRegistrationField} from '@/api/generated/schema'
-import {missingAnswers} from './eventGroupAnswers'
 
 /**
- * The questions of an event group as the sign-up asks them, once for every part chosen. Required questions
- * carry a marker, and the ones still unanswered are named below.
+ * The registration questions as a form asks them, for an appointment and for an event group alike: each
+ * question under its label, a required one marked, a number question with its bounds below the input,
+ * and the required ones still unanswered named at the end. The members a member question picks from are
+ * fetched when the form appears.
  */
 const props = defineProps<{
   fields: EventRegistrationField[]
+  /** Where given, each input carries this prefix and the question id as its test id. */
+  testIdPrefix?: string
 }>()
 
-const answers = defineModel<Record<number, string>>({required: true})
+const answers = defineModel<RegistrationAnswers>({required: true})
 
 const {t} = useI18n()
 const {allMembers, groupMembers, tagMembers, loadMembers} = useAnswerMembers(computed(() => props.fields))
@@ -31,12 +34,15 @@ function set(fieldId: number, value: string) {
   answers.value = {...answers.value, [fieldId]: value}
 }
 
+function testIdOf(fieldId: number): string | undefined {
+  return props.testIdPrefix ? `${props.testIdPrefix}-${fieldId}` : undefined
+}
+
 onMounted(loadMembers)
 </script>
 
 <template>
-  <div class="space-y-3" data-testid="event-group-questions">
-    <SubHeader>{{ t('eventGroups.questions') }}</SubHeader>
+  <div class="space-y-3">
     <div v-for="field in fields" :key="field.id">
       <FieldLabel class="mb-1">
         {{ field.name }}
@@ -49,9 +55,12 @@ onMounted(loadMembers)
           :all-members="allMembers"
           :group-members="groupMembers"
           :tag-members="tagMembers"
-          :data-testid="`event-group-question-${field.id}`"
+          :data-testid="testIdOf(field.id)"
           @update:model-value="value => set(field.id, value)"
       />
+      <p v-if="numberRange(field)" class="text-xs text-(--text-muted) mt-1">
+        {{ t('events.registrationFields.range', numberRange(field)!) }}
+      </p>
     </div>
     <p v-if="missing.length > 0" class="text-xs text-error">
       {{ t('events.registrationFields.missing', {fields: missing.map(field => field.name).join(', ')}) }}

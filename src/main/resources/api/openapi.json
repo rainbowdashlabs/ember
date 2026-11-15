@@ -19581,6 +19581,26 @@
         } ]
       }
     },
+    "/api/v1/events/groups/{eventGroupId}/attendance/export.pdf" : {
+      "get" : {
+        "summary" : "The attendance of an event group's participants as a sheet to print",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/events/groups/{eventGroupId}/audiences" : {
       "put" : {
         "summary" : "Set who may see and who may sign up for an event group and every part",

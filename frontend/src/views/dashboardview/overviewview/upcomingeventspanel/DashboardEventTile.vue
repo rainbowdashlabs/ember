@@ -7,15 +7,12 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {RouteLocationRaw} from 'vue-router'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
 import RegistrationStatusBadge from '@/views/stationview/events/eventshared/RegistrationStatusBadge.vue'
-import EventGroupBand from '@/views/stationview/events/eventshared/EventGroupBand.vue'
-import EventGroupHeading from '@/views/stationview/events/eventshared/EventGroupHeading.vue'
 import type {EventCategory, EventSummary, RegistrationResponse} from '@/api/generated/schema'
 import {formatDate, formatTime} from '@/util/format'
 
@@ -58,9 +55,7 @@ const canDecline = computed(() => props.openCount > 0
 
 <template>
   <RowLink :to="to">
-    <NeutralContainer class="py-2 px-3 cursor-pointer hover:bg-(--bg-accent)" :class="{'relative pl-5 pt-8': event.eventGroup}">
-      <EventGroupBand v-if="event.eventGroup" :event-group="event.eventGroup"/>
-      <EventGroupHeading v-if="event.eventGroup" :event-group="event.eventGroup"/>
+    <EventGroupTile class="py-2 px-3 cursor-pointer hover:bg-(--bg-accent)" :event-group="event.eventGroup">
       <div class="flex items-start justify-between gap-2">
         <div class="min-w-0">
           <div class="flex items-center gap-2 min-w-0">
@@ -102,6 +97,6 @@ const canDecline = computed(() => props.openCount > 0
           <RegistrationStatusBadge :status="answer.registration.status"/>
         </span>
       </div>
-    </NeutralContainer>
+    </EventGroupTile>
   </RowLink>
 </template>

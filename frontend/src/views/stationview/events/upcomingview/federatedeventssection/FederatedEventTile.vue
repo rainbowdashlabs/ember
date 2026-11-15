@@ -4,11 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import EventGroupBand from '../../eventshared/EventGroupBand.vue'
-import EventGroupHeading from '../../eventshared/EventGroupHeading.vue'
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
@@ -78,9 +75,7 @@ const detailRoute = computed(() => ({
 </script>
 
 <template>
-  <NeutralContainer class="space-y-2" :class="{'relative pl-5 pt-9': fed.event.eventGroup}" data-testid="federated-event">
-    <EventGroupBand v-if="fed.event.eventGroup" :event-group="fed.event.eventGroup"/>
-    <EventGroupHeading v-if="fed.event.eventGroup" :event-group="fed.event.eventGroup"/>
+  <EventGroupTile class="space-y-2" :event-group="fed.event.eventGroup" data-testid="federated-event">
     <RowLink :to="detailRoute">
       <div class="cursor-pointer">
         <div class="flex items-center justify-between flex-wrap gap-2">
@@ -106,5 +101,5 @@ const detailRoute = computed(() => ({
         @register="people => emit('register', fed, people)"
         @withdraw="uid => emit('withdraw', fed, uid)"
     />
-  </NeutralContainer>
+  </EventGroupTile>
 </template>

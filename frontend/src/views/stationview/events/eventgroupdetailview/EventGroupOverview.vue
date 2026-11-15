@@ -4,10 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import EventGroupTile from '@/views/stationview/events/eventshared/EventGroupTile.vue'
 import {computed} from 'vue'
 import type {RouteLocationRaw} from 'vue-router'
 import {useI18n} from 'vue-i18n'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -20,8 +20,6 @@ import type {EventGroupDetail, EventGroupPartState} from '@/api/generated/schema
 import {useSession} from '@/composables/useSession'
 import {partsOfSet, ruleOf} from '@/util/eventGroupChoice'
 import {formatDate, formatDateTime, formatTime} from '@/util/format'
-import EventGroupBand from '../eventshared/EventGroupBand.vue'
-import EventGroupHeading from '../eventshared/EventGroupHeading.vue'
 import type {EventGroupMark} from '../eventshared/eventGroupColor'
 import {renderMarkdown} from '@/util/markdown'
 
@@ -85,9 +83,7 @@ function whenOf(part: EventGroupPartState): string {
 </script>
 
 <template>
-  <NeutralContainer class="relative space-y-4 pl-5 pt-9" data-testid="event-group-overview">
-    <EventGroupBand :event-group="mark"/>
-    <EventGroupHeading :event-group="mark"/>
+  <EventGroupTile class="space-y-4" :event-group="mark" data-testid="event-group-overview">
     <div class="flex flex-wrap items-center gap-2">
       <ErrorBadge v-if="eventGroup.cancelled">
         {{ eventGroup.cancelReason ? t('eventGroups.cancelledReason', {reason: eventGroup.cancelReason}) : t('eventGroups.cancelled') }}
@@ -127,5 +123,5 @@ function whenOf(part: EventGroupPartState): string {
         </li>
       </ul>
     </section>
-  </NeutralContainer>
+  </EventGroupTile>
 </template>

@@ -23,8 +23,7 @@ export function useEventGroupSettings() {
     templateId.value = settings.templateId == null ? '' : String(settings.templateId)
     categoryId.value = settings.categoryId == null ? '' : String(settings.categoryId)
     reminders.value = [...settings.reminderDays]
-    fieldDefaults.defaults.value = new Map(settings.fieldDefaults.map(entry =>
-        [entry.fieldId, {source: entry.source, value: entry.value ?? ''}]))
+    fieldDefaults.fromEntries(settings.fieldDefaults)
   }
 
   function request(): EventGroupSettingsRequest {
@@ -32,11 +31,7 @@ export function useEventGroupSettings() {
       templateId: templateId.value ? Number(templateId.value) : null,
       categoryId: categoryId.value ? Number(categoryId.value) : null,
       reminderDays: reminders.value,
-      fieldDefaults: templateId.value
-          ? [...fieldDefaults.defaults.value.entries()]
-              .filter(([, entry]) => entry.source)
-              .map(([fieldId, entry]) => ({fieldId, source: entry.source, value: entry.value || null}))
-          : [],
+      fieldDefaults: templateId.value ? fieldDefaults.toEntries() : [],
     }
   }
 

@@ -7,7 +7,7 @@
 import {flushPromises, mount} from '@vue/test-utils'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import EventGroupSignUpExport from './EventGroupSignUpExport.vue'
-import RegistrationTableExport from '../eventdetailview/RegistrationTableExport.vue'
+import ExportFormatModal from '@/components/documents/ExportFormatModal.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 
 const exportSignUps = vi.hoisted(() => vi.fn())
@@ -36,7 +36,7 @@ describe('EventGroupSignUpExport', () => {
         const wrapper = mountExport()
 
         await wrapper.get('[data-testid="event-group-sign-ups-export"]').trigger('click')
-        wrapper.getComponent(RegistrationTableExport).vm.$emit('download', 'pdf', 'comma')
+        wrapper.getComponent(ExportFormatModal).vm.$emit('export', 'pdf', 'comma')
         await flushPromises()
 
         expect(exportSignUps).toHaveBeenCalledWith(70, 'pdf', 'comma')
@@ -47,7 +47,7 @@ describe('EventGroupSignUpExport', () => {
         exportSignUps.mockRejectedValue(new Error('kaputt'))
         const wrapper = mountExport()
 
-        wrapper.getComponent(RegistrationTableExport).vm.$emit('download', 'csv', 'semicolon')
+        wrapper.getComponent(ExportFormatModal).vm.$emit('export', 'csv', 'semicolon')
         await flushPromises()
 
         expect(presentFile).not.toHaveBeenCalled()
