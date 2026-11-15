@@ -261,12 +261,12 @@ class EventGroupThresholdCheckerTest extends RepositoryTestBase {
             assertEquals(EventRefusal.EVENT_GROUP_MINIMUM_INCOMPLETE, thrown.refusal());
         }
         var stored = withMinimum("Ganz", 4, 0);
-        assertEquals(4, stored.minRegistrations());
-        assertEquals(0, stored.thresholdDays());
+        assertEquals(4, stored.details().minRegistrations());
+        assertEquals(0, stored.details().thresholdDays());
         eventGroups.update(station.id(), stored.id(), new EventGroupDetails("Ganz", null, null, null, false, null));
         var cleared = eventGroupRepo.findById(stored.id()).orElseThrow();
-        assertNull(cleared.minRegistrations());
-        assertNull(cleared.thresholdDays());
+        assertNull(cleared.details().minRegistrations());
+        assertNull(cleared.details().thresholdDays());
     }
 
     @Test

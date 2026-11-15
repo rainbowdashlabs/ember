@@ -12,10 +12,12 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventGroup;
+import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSummary;
 import dev.chojo.ember.feature.events.entity.EventGroupTally;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupDetail;
+import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupSummary;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService.PartnerStanding;
 import dev.chojo.ember.feature.events.service.EventSignUpGuards;
 import dev.chojo.ember.feature.events.service.PartnerEventGroupService;
@@ -88,22 +90,15 @@ class FederatedEventGroupRoutesTest {
         var eventGroup = new EventGroup(
                 70,
                 9,
-                "Jugendflamme 1",
-                null,
-                null,
-                null,
-                false,
+                new EventGroupDetails("Jugendflamme 1", null, null, null, false, null, null, null),
                 RestrictionMode.AND,
                 RestrictionMode.AND,
                 false,
-                null,
-                null,
-                null,
                 null,
                 null);
         when(partnerEventGroups.eventGroup(anyInt(), eq(HOLDER), eq(70), any()))
                 .thenReturn(new RemoteEventGroupDetail(
-                        EventGroupSummary.of(eventGroup, new EventGroupTally(1, 1)),
+                        RemoteEventGroupSummary.of(EventGroupSummary.of(eventGroup, new EventGroupTally(1, 1))),
                         List.of(),
                         List.of(),
                         List.of(standing, new PartnerStanding(UUID.randomUUID(), null, null, List.of(), List.of())),

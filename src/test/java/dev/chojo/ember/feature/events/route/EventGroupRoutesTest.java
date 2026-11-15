@@ -13,6 +13,7 @@ import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventGroup;
+import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupPart;
 import dev.chojo.ember.feature.events.entity.EventGroupPartSummary;
 import dev.chojo.ember.feature.events.entity.EventGroupRegistration;
@@ -99,17 +100,10 @@ class EventGroupRoutesTest {
         var eventGroup = new EventGroup(
                 EVENT_GROUP_ID,
                 STATION_ID,
-                "Jugendflamme 1",
-                null,
-                12,
-                null,
-                false,
+                new EventGroupDetails("Jugendflamme 1", null, 12, null, false, null, null, null),
                 RestrictionMode.AND,
                 RestrictionMode.AND,
                 false,
-                null,
-                null,
-                null,
                 null,
                 null);
         when(eventGroups.requireEventGroup(STATION_ID, EVENT_GROUP_ID)).thenReturn(eventGroup);
@@ -171,7 +165,8 @@ class EventGroupRoutesTest {
     void aMemberListsAndOpensTheEventGroupsMeantForThem() {
         var listed = call("GET", PREFIX + "/events/groups", null, StationPermission.USER);
         assertEquals(200, listed.code());
-        assertEquals("Jugendflamme 1", json(listed).get(0).get("name").asString());
+        assertEquals(
+                "Jugendflamme 1", json(listed).get(0).get("details").get("name").asString());
 
         var opened = call("GET", EVENT_GROUP, null, StationPermission.USER);
         assertEquals(200, opened.code());
@@ -600,17 +595,11 @@ class EventGroupRoutesTest {
         var open = new EventGroup(
                 EVENT_GROUP_ID,
                 STATION_ID,
-                "Jugendflamme 1",
-                null,
-                null,
-                Instant.now().plusSeconds(3600),
-                false,
+                new EventGroupDetails(
+                        "Jugendflamme 1", null, null, Instant.now().plusSeconds(3600), false, null, null, null),
                 RestrictionMode.AND,
                 RestrictionMode.AND,
                 false,
-                null,
-                null,
-                null,
                 null,
                 null);
         when(eventGroups.findOpenWithDeadline(STATION_ID)).thenReturn(List.of(open));

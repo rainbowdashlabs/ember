@@ -17,9 +17,9 @@ vi.mock('@/api', () => api)
 describe('EmptyEventGroups', () => {
   it('lists the event groups that hold no appointment yet, marking a cancelled one', async () => {
     api.eventGroups.listEventGroups.mockResolvedValue([
-      {id: 1, name: 'Leer', partCount: 0, cancelled: false},
-      {id: 2, name: 'Voll', partCount: 3, cancelled: false},
-      {id: 3, name: 'Abgesagt', partCount: 0, cancelled: true},
+      {id: 1, details: {name: 'Leer'}, partCount: 0, cancelled: false},
+      {id: 2, details: {name: 'Voll'}, partCount: 3, cancelled: false},
+      {id: 3, details: {name: 'Abgesagt'}, partCount: 0, cancelled: true},
     ])
     const wrapper = mount(EmptyEventGroups)
     await flushPromises()
@@ -29,7 +29,7 @@ describe('EmptyEventGroups', () => {
   })
 
   it('shows nothing while every event group has appointments', async () => {
-    api.eventGroups.listEventGroups.mockResolvedValue([{id: 2, name: 'Voll', partCount: 3, cancelled: false}])
+    api.eventGroups.listEventGroups.mockResolvedValue([{id: 2, details: {name: 'Voll'}, partCount: 3, cancelled: false}])
     const wrapper = mount(EmptyEventGroups)
     await flushPromises()
 

@@ -46,7 +46,7 @@ function partLink(eventId: number) {
 </script>
 
 <template>
-  <ViewContent :title="detail?.eventGroup.name ?? t('pages.federated-event-group.title')"
+  <ViewContent :title="detail?.eventGroup.details.name ?? t('pages.federated-event-group.title')"
                :subtitle="t('pages.federated-event-group.subtitle')">
     <AsyncSection :loading="loading && !detail" :failure="failure">
       <div v-if="detail" class="space-y-6">

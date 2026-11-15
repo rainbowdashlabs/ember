@@ -10,6 +10,7 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventGroup;
+import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.service.EventGroupService;
 import dev.chojo.ember.feature.generator.entity.RequirementSignatureState;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -50,17 +51,10 @@ class EventGroupAgreementRoutesTest {
                 .thenReturn(new EventGroup(
                         70,
                         STATION_ID,
-                        "Jugendflamme 1",
-                        null,
-                        null,
-                        null,
-                        false,
+                        new EventGroupDetails("Jugendflamme 1", null, null, null, false, null, null, null),
                         RestrictionMode.AND,
                         RestrictionMode.AND,
                         false,
-                        null,
-                        null,
-                        null,
                         null,
                         null));
         when(eventGroups.requireEventGroup(STATION_ID, 71)).thenThrow(EventRefusal.EVENT_GROUP_NOT_HERE.raise());

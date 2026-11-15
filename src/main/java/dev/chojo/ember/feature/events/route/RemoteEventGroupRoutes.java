@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.route;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
+import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupPartState;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSummary;
@@ -83,7 +84,7 @@ public class RemoteEventGroupRoutes implements Routes {
     public static final FederationEndpoint CREATE_COMMENT = FederationEndpoint.post(
             FederationSurface.EVENT_SHARE,
             "/remote/events/groups/{id}/comments",
-            RemoteEventGroupComment.class,
+            RemoteEventRoutes.RemoteCommentRequest.class,
             CommentResponse.class);
 
     /** One of the partner's members changing their comment on a shared event group. */
@@ -145,11 +146,54 @@ public class RemoteEventGroupRoutes implements Routes {
      *                  heard of them ignores them
      */
     public record RemoteEventGroupDetail(
-            EventGroupSummary eventGroup,
+            RemoteEventGroupSummary eventGroup,
             List<EventGroupSet> sets,
             List<EventGroupPartState> parts,
             List<PartnerStanding> standings,
             @Nullable List<AppointmentField> fields) {}
+
+    /**
+     * A shared event group as its partner is told about it.
+     *
+     * @param id           the event group at the station holding it
+     * @param details      what a manager set on it: name, description, the sign-up, its colour and minimum
+     * @param cancelled    whether it was called off
+     * @param cancelReason why, where it was
+     * @param partCount    how many parts it has
+     * @param holding      how many sign-ups hold or wait for a place, of every station
+     */
+    public record RemoteEventGroupSummary(
+            int id,
+            EventGroupDetails details,
+            boolean cancelled,
+            @Nullable String cancelReason,
+            int partCount,
+            int holding) {
+        /**
+         * The event group as the station holding it tells a partner about it.
+         *
+         * @param summary the event group as its own lists show it
+         * @return what the partner is told
+         */
+        public static RemoteEventGroupSummary of(EventGroupSummary summary) {
+            return new RemoteEventGroupSummary(
+                    summary.id(),
+                    summary.details(),
+                    summary.cancelled(),
+                    summary.cancelReason(),
+                    summary.partCount(),
+                    summary.holding());
+        }
+
+        /**
+         * The event group as the partner's own pages show it.
+         *
+         * @return the summary
+         */
+        public EventGroupSummary toSummary() {
+            return new EventGroupSummary(id, details, cancelled, cancelReason, partCount, holding);
+        }
+    }
 
     /**
      * A partner's member signing up, or changing the parts they chose.
@@ -161,17 +205,6 @@ public class RemoteEventGroupRoutes implements Routes {
 
     /** @param memberUid the member, by the id their own station gave them */
     public record RemoteEventGroupMember(UUID memberUid) {}
-
-    /**
-     * A comment one of the partner's members writes on a shared event group.
-     *
-     * @param memberUid   the member, by the id their own station gave them
-     * @param displayName the name to show for them
-     * @param parentId    the comment answered, or null for a new thread
-     * @param content     the comment
-     */
-    public record RemoteEventGroupComment(
-            UUID memberUid, String displayName, @Nullable Integer parentId, String content) {}
 
     /**
      * A shared event group that was called off.

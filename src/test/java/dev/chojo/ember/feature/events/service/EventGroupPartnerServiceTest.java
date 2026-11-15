@@ -356,7 +356,7 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
     void callingTheEventGroupOffTellsThePartnerMembersItSignedUp() {
         partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
 
-        partners.tellCancelled(eventGroup.id(), eventGroup.name(), "Unwetter");
+        partners.tellCancelled(eventGroup.id(), eventGroup.details().name(), "Unwetter");
 
         verify(notifier).notify(any(), eq(NotificationType.EVENT_CANCELLED), any(), any());
     }
@@ -414,7 +414,7 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
         partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
         partnerRepo.signUp(eventGroup.id(), partnerOfHolder, ben.uid(), RegistrationStatus.ACCEPTED);
 
-        partners.tellCancelled(eventGroup.id(), eventGroup.name(), null);
+        partners.tellCancelled(eventGroup.id(), eventGroup.details().name(), null);
 
         verify(notifier)
                 .notify(
@@ -451,7 +451,13 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
         eventGroups.save(
                 holder.id(),
                 eventGroup.id(),
-                new EventGroupDetails(eventGroup.name(), null, null, eventGroup.registrationDeadline(), false, null),
+                new EventGroupDetails(
+                        eventGroup.details().name(),
+                        null,
+                        null,
+                        eventGroup.details().registrationDeadline(),
+                        false,
+                        null),
                 null,
                 null,
                 null,

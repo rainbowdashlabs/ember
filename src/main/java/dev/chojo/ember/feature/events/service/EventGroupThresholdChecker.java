@@ -72,8 +72,8 @@ public class EventGroupThresholdChecker implements TaskSource {
     }
 
     private void checkEventGroup(EventGroup eventGroup) {
-        Integer minimum = eventGroup.minRegistrations();
-        Integer days = eventGroup.thresholdDays();
+        Integer minimum = eventGroup.details().minRegistrations();
+        Integer days = eventGroup.details().thresholdDays();
         if (minimum == null || days == null) return;
         var firstStart = firstStart(eventGroup);
         if (firstStart.isEmpty()) return;
@@ -87,7 +87,7 @@ public class EventGroupThresholdChecker implements TaskSource {
                 eventGroup.stationId(), eventGroup.id(), () -> stillShort(eventGroup.id()))) {
             log.info(
                     "Cancelled event group {} (id={}): {} of {} sign-ups accepted",
-                    eventGroup.name(),
+                    eventGroup.details().name(),
                     eventGroup.id(),
                     accepted,
                     minimum);
@@ -113,8 +113,8 @@ public class EventGroupThresholdChecker implements TaskSource {
     private boolean stillShort(int eventGroupId) {
         var current = eventGroups.findById(eventGroupId).orElse(null);
         if (current == null || current.cancelled()) return false;
-        Integer minimum = current.minRegistrations();
-        return minimum != null && current.thresholdDays() != null && accepted(eventGroupId) < minimum;
+        Integer minimum = current.details().minRegistrations();
+        return minimum != null && current.details().thresholdDays() != null && accepted(eventGroupId) < minimum;
     }
 
     @Override

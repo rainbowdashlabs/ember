@@ -25,8 +25,9 @@ function entry(memberId: number, name: string, overrides: Partial<EventGroupSign
 function detail(household: EventGroupSignUp[], deadline: string | null = null): EventGroupDetail {
   return {
     eventGroup: {
-      id: 70, name: 'Jugendflamme 1', description: null, registrationLimit: null, registrationDeadline: deadline,
-      requiresConfirmation: false, cancelled: false, cancelReason: null, partCount: 1, holding: 0, color: null, minRegistrations: null, thresholdDays: null,
+      id: 70,
+      details: {name: 'Jugendflamme 1', description: null, registrationLimit: null, registrationDeadline: deadline, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null},
+      cancelled: false, cancelReason: null, partCount: 1, holding: 0,
     },
     sets: [{id: 1, eventGroupId: 70, name: 'Teile', minimum: 1, position: 0}],
     parts: [{eventId: 11, setId: 1, name: 'Samstag', startTime: '2099-03-06T08:00:00Z', endTime: '2099-03-06T16:00:00Z', calledOff: false, tookPlace: false, required: false}],

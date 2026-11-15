@@ -66,7 +66,7 @@ describe('EventGroupEditView started from an appointment', () => {
     route.query = {appointment: '12'}
     api.events.getEvent.mockResolvedValue({id: 12, name: 'Grundlehrgang 1', eventType: EventType.ONE_TIME})
     api.events.getRestrictions.mockResolvedValue({register: YOUTH, view: YOUTH})
-    api.eventGroups.createEventGroup.mockResolvedValue({eventGroup: {id: 7}, sets: [], parts: [], questions: [], fields: [],
+    api.eventGroups.createEventGroup.mockResolvedValue({eventGroup: {id: 7, details: {name: 'Jugendflamme', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null}}, sets: [], parts: [], questions: [], fields: [],
       registration: YOUTH, view: YOUTH})
     api.eventGroups.setSettings.mockResolvedValue({templateId: null, categoryId: null, reminderDays: [], fieldDefaults: []})
   })
@@ -109,10 +109,10 @@ describe('EventGroupEditView started from an appointment', () => {
   })
 
   it('changes the group it already created when saving again after a later part of the save was refused', async () => {
-    api.eventGroups.createEventGroup.mockResolvedValue({eventGroup: {id: 7}, sets: [{id: 41, name: 'Termine', minimum: 1}],
+    api.eventGroups.createEventGroup.mockResolvedValue({eventGroup: {id: 7, details: {name: 'Jugendflamme', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null}}, sets: [{id: 41, name: 'Termine', minimum: 1}],
       parts: [{eventId: 12, setId: 41}], questions: [], fields: [], registration: YOUTH, view: YOUTH})
     api.eventGroups.setSettings.mockRejectedValueOnce(new Error('refused'))
-    api.eventGroups.updateEventGroup.mockResolvedValue({eventGroup: {id: 7}, sets: [], parts: [], questions: [], fields: [],
+    api.eventGroups.updateEventGroup.mockResolvedValue({eventGroup: {id: 7, details: {name: 'Jugendflamme', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null}}, sets: [], parts: [], questions: [], fields: [],
       registration: YOUTH, view: YOUTH})
     const wrapper = mountEditor()
     await flushPromises()
@@ -138,8 +138,8 @@ describe('EventGroupEditView started from an appointment', () => {
 
 /** A minimum the server lowered after a part left its set reaches the form, which says so. */
 describe('EventGroupEditView after a part changed', () => {
-  const group = {id: 7, name: 'Jugendflamme', description: null, registrationLimit: null, registrationDeadline: null,
-    requiresConfirmation: false, color: null}
+  const group = {id: 7, details: {name: 'Jugendflamme', description: null, registrationLimit: null, registrationDeadline: null,
+    requiresConfirmation: false, color: null}}
 
   function detailWith(minimum: number, parts: number) {
     return {eventGroup: group, sets: [{id: 1, name: 'Übung', minimum}], questions: [], fields: [],
@@ -217,7 +217,7 @@ describe('EventGroupEditView from an appointment template', () => {
       restriction: {register: YOUTH, view: YOUTH},
     })
     api.events.listTemplateAttachments.mockResolvedValue([{id: 9, fileId: 40, label: 'Anfahrt', internal: false, fileName: 'a.pdf'}])
-    api.eventGroups.createEventGroup.mockResolvedValue({eventGroup: {id: 7}, sets: [], parts: [], questions: [], fields: [],
+    api.eventGroups.createEventGroup.mockResolvedValue({eventGroup: {id: 7, details: {name: 'Jugendflamme', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null}}, sets: [], parts: [], questions: [], fields: [],
       registration: YOUTH, view: YOUTH})
     api.eventGroups.setSettings.mockResolvedValue({templateId: 4, categoryId: 2, reminderDays: [3], fieldDefaults: []})
   })

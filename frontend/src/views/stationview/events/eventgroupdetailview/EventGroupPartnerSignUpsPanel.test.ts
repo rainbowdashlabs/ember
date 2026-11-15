@@ -21,8 +21,9 @@ vi.mock('@/api', () => ({eventGroups: {
 function detail(): EventGroupDetail {
   return {
     eventGroup: {
-      id: 70, name: 'Jugendflamme 1', description: null, registrationLimit: null, registrationDeadline: null,
-      requiresConfirmation: true, cancelled: false, cancelReason: null, partCount: 0, holding: 1, color: null, minRegistrations: null, thresholdDays: null,
+      id: 70,
+      details: {name: 'Jugendflamme 1', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: true, color: null, minRegistrations: null, thresholdDays: null},
+      cancelled: false, cancelReason: null, partCount: 0, holding: 1,
     },
     sets: [],
     parts: [],

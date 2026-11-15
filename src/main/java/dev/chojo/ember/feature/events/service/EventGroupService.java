@@ -174,7 +174,7 @@ public class EventGroupService {
         return Transactions.call(() -> {
             var before = lockEventGroup(stationId, eventGroupId);
             eventGroups.update(eventGroupId, checked);
-            if (!Objects.equals(before.registrationDeadline(), checked.registrationDeadline())) {
+            if (!Objects.equals(before.details().registrationDeadline(), checked.registrationDeadline())) {
                 eventGroups.clearClosingWarnings(eventGroupId);
             }
             eventGroups.alignParts(eventGroupId, checked.requiresConfirmation(), checked.registrationDeadline());
@@ -315,7 +315,10 @@ public class EventGroupService {
             requireCompatibleAudiences(eventGroupId, eventId);
             if (!eventGroups.claimPart(eventId, setId)) throw EventRefusal.EVENT_GROUP_PART_TAKEN.raise();
             questions.dropQuestionsOfPart(eventId);
-            eventGroups.alignParts(eventGroupId, eventGroup.requiresConfirmation(), eventGroup.registrationDeadline());
+            eventGroups.alignParts(
+                    eventGroupId,
+                    eventGroup.details().requiresConfirmation(),
+                    eventGroup.details().registrationDeadline());
             handDownAudiences(eventGroupId, List.of(eventId));
             eventGroups.handDownShare(eventGroupId, eventId);
             Transactions.afterCommit(() -> fields.reconcilePart(eventId));

@@ -60,7 +60,7 @@ public class DemoEventGroupMaterialsSeeder implements DemoPerStationSeeder {
     public void seedStation(DemoRunContext run, DemoStationContext station) {
         int stationId = station.stationId();
         var jugendflamme = eventGroups.findByStation(stationId).stream()
-                .filter(group -> group.name().startsWith("Jugendflamme"))
+                .filter(group -> group.details().name().startsWith("Jugendflamme"))
                 .map(EventGroup::id)
                 .findFirst();
         if (jugendflamme.isEmpty()) return;

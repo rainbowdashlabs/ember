@@ -18,8 +18,8 @@ import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes;
-import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupComment;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes.RemoteCommentDeleteRequest;
+import dev.chojo.ember.feature.events.route.RemoteEventRoutes.RemoteCommentRequest;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes.RemoteCommentUpdateRequest;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
 import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
@@ -80,7 +80,7 @@ public class EventGroupCommentFederation implements FederationServer {
         endpoints.serve(
                 RemoteEventGroupRoutes.LIST_COMMENTS,
                 (partner, params, body) -> serveComments(partner, params.integer("id")));
-        endpoints.<RemoteEventGroupComment, CommentResponse>serve(
+        endpoints.<RemoteCommentRequest, CommentResponse>serve(
                 RemoteEventGroupRoutes.CREATE_COMMENT,
                 (partner, params, body) -> serveNewComment(partner, params.integer("id"), body));
         endpoints.<RemoteCommentUpdateRequest, CommentResponse>serve(
@@ -101,19 +101,19 @@ public class EventGroupCommentFederation implements FederationServer {
                 .toList();
     }
 
-    private CommentResponse serveNewComment(ServingPartner partner, int eventGroupId, RemoteEventGroupComment request) {
+    private CommentResponse serveNewComment(ServingPartner partner, int eventGroupId, RemoteCommentRequest request) {
         partners.requireSharedWith(partner, eventGroupId);
         if (request.content() == null || request.content().isBlank()) {
             throw EventRefusal.PARTNER_COMMENT_NEEDS_TEXT.raise();
         }
         var target = comments.target(CommentEntityType.EVENT_GROUP, eventGroupId)
                 .orElseThrow(EventRefusal.EVENT_GROUP_NOT_HERE::raise);
-        var author = new MemberIdentity(partner.askingStationUid(), request.memberUid());
+        var author = new MemberIdentity(partner.askingStationUid(), request.remoteMemberUid());
         var comment = comments.createOn(
                 target,
                 CommentWriter.partner(author, request.displayName()),
                 new NewComment(request.parentId(), null, request.content()));
-        nameCache.cacheName(partner.partnerId(), request.memberUid(), request.displayName());
+        nameCache.cacheName(partner.partnerId(), request.remoteMemberUid(), request.displayName());
         log.info("Comment {} created on event group {} (partner {})", comment.id(), eventGroupId, partner.partnerId());
         return toResponse(comment);
     }
@@ -216,7 +216,7 @@ public class EventGroupCommentFederation implements FederationServer {
         var created = transport.send(
                 partner,
                 RemoteEventGroupRoutes.CREATE_COMMENT.at(eventGroupId),
-                new RemoteEventGroupComment(memberUid, displayName, parentId, content),
+                new RemoteCommentRequest(memberUid, displayName, parentId, content, null),
                 CommentResponse.class);
         log.info("Station {} commented on event group {} at partner {}", stationId, eventGroupId, partner.id());
         return created;

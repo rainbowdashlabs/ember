@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGr
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupMember;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupQuery;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupSignUpRequest;
+import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupSummary;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService.PartnerStanding;
 import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
 import dev.chojo.ember.feature.federation.transport.FederationServer;
@@ -84,7 +85,7 @@ public class EventGroupPartnerServer implements FederationServer {
         var eventGroup = eventGroups.requireEventGroup(partner.servingStationId(), eventGroupId);
         var asked = Objects.requireNonNullElse(query.memberUids(), List.<UUID>of());
         return new RemoteEventGroupDetail(
-                EventGroupSummary.of(eventGroup, eventGroups.tally(eventGroupId)),
+                RemoteEventGroupSummary.of(EventGroupSummary.of(eventGroup, eventGroups.tally(eventGroupId))),
                 eventGroups.findSets(eventGroupId),
                 signUps.partStates(eventGroupId),
                 partners.standings(eventGroupId, partner.partnerId(), asked),

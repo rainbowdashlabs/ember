@@ -764,7 +764,7 @@ public class EventFederationService implements FederationServer {
      * Reads the optional occurrence date a comment is scoped to. Older peers omit the field
      * entirely, which keeps the comment attached to the whole event rather than one date.
      */
-    private static @Nullable LocalDate commentDay(String eventDate) {
+    private static @Nullable LocalDate commentDay(@Nullable String eventDate) {
         if (eventDate == null || eventDate.isBlank()) return null;
         try {
             return LocalDate.parse(eventDate);

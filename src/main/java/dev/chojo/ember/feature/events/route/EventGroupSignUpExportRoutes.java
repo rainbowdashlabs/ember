@@ -107,7 +107,7 @@ public class EventGroupSignUpExportRoutes implements Routes {
             var pdf = renderer.toPdf(
                     table,
                     station,
-                    eventGroup.name(),
+                    eventGroup.details().name(),
                     DocumentWord.REGISTRATIONS.in(StationFormat.languageOf(station)),
                     NameParts.of(session.user().account()).official());
             ctx.contentType("application/pdf");
@@ -134,6 +134,6 @@ public class EventGroupSignUpExportRoutes implements Routes {
                 DocumentName.of(
                         extension,
                         DocumentWord.REGISTRATIONS.in(StationFormat.languageOf(station)),
-                        DocumentName.part(eventGroup.name())));
+                        DocumentName.part(eventGroup.details().name())));
     }
 }

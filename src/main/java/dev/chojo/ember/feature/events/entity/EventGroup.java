@@ -20,41 +20,25 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * deadline and confirmation, and who may see and join it. Each part stays an ordinary appointment
  * with its own time, place and attendance sheet.
  *
- * @param id                   the event group
- * @param stationId            the station it and all its parts belong to
- * @param name                 the name shown on every part
- * @param description          what the event group is about, as Markdown
- * @param registrationLimit    how many people the event group takes, or null for no limit
- * @param registrationDeadline the instant sign-ups close, or null for no deadline
- * @param requiresConfirmation whether a manager confirms each sign-up
- * @param restrictionMode      how the entries of who may sign up combine
- * @param viewRestrictionMode  how the entries of who may see the event group combine
- * @param cancelled            whether the whole event group was called off
- * @param cancelledAt          when it was called off
- * @param cancelReason         why it was called off
- * @param color                the colour that marks its parts in lists (#RRGGBB), or null for one
- *                             picked by its id
- * @param minRegistrations     how many sign-ups must be accepted for the event group to take place, or
- *                             null for no minimum
- * @param thresholdDays        how many days before its first part the minimum must be reached, set
- *                             together with the minimum
+ * @param id                  the event group
+ * @param stationId           the station it and all its parts belong to
+ * @param details             what a manager sets on it: name, description, the sign-up with its limit,
+ *                            deadline and confirmation, its colour and its minimum
+ * @param restrictionMode     how the entries of who may sign up combine
+ * @param viewRestrictionMode how the entries of who may see the event group combine
+ * @param cancelled           whether the whole event group was called off
+ * @param cancelledAt         when it was called off
+ * @param cancelReason        why it was called off
  */
 public record EventGroup(
         int id,
         int stationId,
-        String name,
-        @Nullable String description,
-        @Nullable Integer registrationLimit,
-        @Nullable Instant registrationDeadline,
-        boolean requiresConfirmation,
+        EventGroupDetails details,
         RestrictionMode restrictionMode,
         RestrictionMode viewRestrictionMode,
         boolean cancelled,
         @Nullable Instant cancelledAt,
-        @Nullable String cancelReason,
-        @Nullable String color,
-        @Nullable Integer minRegistrations,
-        @Nullable Integer thresholdDays) {
+        @Nullable String cancelReason) {
 
     /** The columns {@link #map()} reads. */
     public static final String COLUMNS =
@@ -65,19 +49,20 @@ public record EventGroup(
         return row -> new EventGroup(
                 row.getInt("id"),
                 row.getInt("station_id"),
-                row.getString("name"),
-                row.getString("description"),
-                row.getObject("registration_limit", Integer.class),
-                row.get("registration_deadline", INSTANT_TIMESTAMP),
-                row.getBoolean("requires_confirmation"),
+                new EventGroupDetails(
+                        row.getString("name"),
+                        row.getString("description"),
+                        row.getObject("registration_limit", Integer.class),
+                        row.get("registration_deadline", INSTANT_TIMESTAMP),
+                        row.getBoolean("requires_confirmation"),
+                        row.getString("color"),
+                        row.getObject("min_registrations", Integer.class),
+                        row.getObject("threshold_days", Integer.class)),
                 row.getEnum("restriction_mode", RestrictionMode.class),
                 row.getEnum("view_restriction_mode", RestrictionMode.class),
                 row.getBoolean("cancelled"),
                 row.get("cancelled_at", INSTANT_TIMESTAMP),
-                row.getString("cancel_reason"),
-                row.getString("color"),
-                row.getObject("min_registrations", Integer.class),
-                row.getObject("threshold_days", Integer.class));
+                row.getString("cancel_reason"));
     }
 
     /**
@@ -87,6 +72,7 @@ public record EventGroup(
      * @return true once a deadline has passed
      */
     public boolean deadlinePassed(Instant now) {
-        return registrationDeadline != null && now.isAfter(registrationDeadline);
+        var deadline = details.registrationDeadline();
+        return deadline != null && now.isAfter(deadline);
     }
 }

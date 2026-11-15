@@ -112,7 +112,7 @@ public class FederatedEventGroupRoutes implements Routes {
                 .map(standing -> signUpOf(session, household.get(standing.memberUid()), standing))
                 .toList();
         ctx.json(new EventGroupDetail(
-                remote.eventGroup(),
+                remote.eventGroup().toSummary(),
                 remote.sets(),
                 remote.parts(),
                 RestrictionAudience.empty(),

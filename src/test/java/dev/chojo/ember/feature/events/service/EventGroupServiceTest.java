@@ -173,9 +173,9 @@ class EventGroupServiceTest extends RepositoryTestBase {
                 List.of("Übung", "Prüfung"),
                 sets.stream().map(EventGroupSet::name).toList());
         assertEquals(List.of(2, 1), sets.stream().map(EventGroupSet::minimum).toList());
-        assertEquals(12, eventGroup.registrationLimit());
-        assertEquals(deadline, eventGroup.registrationDeadline());
-        assertTrue(eventGroup.requiresConfirmation());
+        assertEquals(12, eventGroup.details().registrationLimit());
+        assertEquals(deadline, eventGroup.details().registrationDeadline());
+        assertTrue(eventGroup.details().requiresConfirmation());
     }
 
     @Test
@@ -208,6 +208,7 @@ class EventGroupServiceTest extends RepositoryTestBase {
                     () -> create(new EventGroupDetails("Kurs", null, null, null, false, invalid), sets));
         }
         assertNull(create(new EventGroupDetails("Kurs", null, null, null, false, " "), sets)
+                .details()
                 .color());
 
         var eventGroup = create(new EventGroupDetails("Kurs", null, null, null, false, "#3694FF"), sets);
@@ -218,7 +219,7 @@ class EventGroupServiceTest extends RepositoryTestBase {
                 saturday.id(),
                 set(eventGroup, "Teile").id());
 
-        assertEquals("#3694ff", eventGroup.color());
+        assertEquals("#3694ff", eventGroup.details().color());
         assertEquals("#3694ff", service.partSummary(station.id(), saturday.id()).color());
 
         assertRefused(
@@ -559,7 +560,7 @@ class EventGroupServiceTest extends RepositoryTestBase {
                 youth(),
                 null);
 
-        assertEquals("Jugendflamme 2", eventGroup.name());
+        assertEquals("Jugendflamme 2", eventGroup.details().name());
         assertEquals(
                 List.of(StationUserType.MEMBER),
                 service.registrationAudience(eventGroup.id()).userTypes());
@@ -935,7 +936,7 @@ class EventGroupServiceTest extends RepositoryTestBase {
                         null));
         assertEquals(
                 "Jugendflamme 1",
-                eventGroupRepo.findById(eventGroup.id()).orElseThrow().name());
+                eventGroupRepo.findById(eventGroup.id()).orElseThrow().details().name());
         assertTrue(service.viewAudience(eventGroup.id()).namesNobody());
 
         service.save(
@@ -950,7 +951,7 @@ class EventGroupServiceTest extends RepositoryTestBase {
                 null);
         assertEquals(
                 "Umbenannt",
-                eventGroupRepo.findById(eventGroup.id()).orElseThrow().name());
+                eventGroupRepo.findById(eventGroup.id()).orElseThrow().details().name());
         assertEquals(
                 List.of(StationUserType.MEMBER),
                 service.viewAudience(eventGroup.id()).userTypes());
@@ -1031,7 +1032,7 @@ class EventGroupServiceTest extends RepositoryTestBase {
                         new EventGroupContent(null, List.of(member))));
         assertTrue(
                 eventGroupRepo.findByStation(station.id()).stream()
-                        .noneMatch(eventGroup -> eventGroup.name().equals("Wettbewerb")),
+                        .noneMatch(eventGroup -> eventGroup.details().name().equals("Wettbewerb")),
                 "nothing of the refused event group is kept");
     }
 

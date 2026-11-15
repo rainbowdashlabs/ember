@@ -52,8 +52,11 @@ public class EventGroupCommentTarget implements CommentTarget {
     public Optional<TargetInfo> find(int targetId) {
         return eventGroups
                 .findById(targetId)
-                .map(group ->
-                        TargetInfo.of(CommentEntityType.EVENT_GROUP, group.id(), group.stationId(), group.name()));
+                .map(group -> TargetInfo.of(
+                        CommentEntityType.EVENT_GROUP,
+                        group.id(),
+                        group.stationId(),
+                        group.details().name()));
     }
 
     @Override

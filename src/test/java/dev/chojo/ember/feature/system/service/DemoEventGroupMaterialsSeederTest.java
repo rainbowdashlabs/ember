@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.EventGroup;
+import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
 import dev.chojo.ember.feature.events.service.EventGroupService;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
@@ -59,7 +60,8 @@ class DemoEventGroupMaterialsSeederTest {
         seeder = new DemoEventGroupMaterialsSeeder(eventGroups, templates, requirements, media, attachments);
         var group = mock(EventGroup.class);
         when(group.id()).thenReturn(GROUP);
-        when(group.name()).thenReturn("Jugendflamme Stufe 1");
+        when(group.details())
+                .thenReturn(new EventGroupDetails("Jugendflamme Stufe 1", null, null, null, false, null, null, null));
         when(eventGroups.findByStation(STATION)).thenReturn(List.of(group));
         var held = mock(Station.class);
         when(held.id()).thenReturn(STATION);

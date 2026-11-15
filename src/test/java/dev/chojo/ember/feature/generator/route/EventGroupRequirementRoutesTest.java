@@ -10,6 +10,7 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventGroup;
+import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.service.EventGroupGuards;
 import dev.chojo.ember.feature.events.service.EventGroupService;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
@@ -38,17 +39,10 @@ class EventGroupRequirementRoutesTest {
     private static final EventGroup GROUP = new EventGroup(
             EVENT_GROUP_ID,
             STATION_ID,
-            "Jugendflamme",
-            null,
-            null,
-            null,
-            false,
+            new EventGroupDetails("Jugendflamme", null, null, null, false, null, null, null),
             RestrictionMode.AND,
             RestrictionMode.AND,
             false,
-            null,
-            null,
-            null,
             null,
             null);
 

@@ -130,7 +130,7 @@ public class EventGroupAttendanceRoutes implements Routes {
                         DocumentName.of(
                                 "csv",
                                 DocumentWord.EVENT_GROUP_ATTENDANCE.in(language),
-                                DocumentName.part(eventGroup.name()))));
+                                DocumentName.part(eventGroup.details().name()))));
         ctx.result(CsvWriter.write(headers, lines, CsvWriter.Separator.of(ctx.queryParam("separator"))));
     }
 

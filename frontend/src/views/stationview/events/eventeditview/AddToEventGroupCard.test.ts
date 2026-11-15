@@ -11,8 +11,8 @@ import AddToEventGroupCard from './AddToEventGroupCard.vue'
 const api = vi.hoisted(() => ({
   eventGroups: {
     listEventGroups: vi.fn(async () => [
-      {id: 3, name: 'Grundlehrgang', cancelled: false},
-      {id: 4, name: 'Abgesagt', cancelled: true},
+      {id: 3, details: {name: 'Grundlehrgang'}, cancelled: false},
+      {id: 4, details: {name: 'Abgesagt'}, cancelled: true},
     ]),
     getEventGroup: vi.fn(async () => ({sets: [{id: 31, name: 'Ausbildungsabende'}]})),
     addPart: vi.fn(async () => ({})),

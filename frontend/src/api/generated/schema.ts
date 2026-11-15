@@ -72089,17 +72089,17 @@ export interface components {
             view: components["schemas"]["RestrictionAudience"];
         };
         EventGroupDetails: {
-            color?: string | null;
-            description?: string | null;
+            color: string | null;
+            description: string | null;
             /** Format: int32 */
-            minRegistrations?: number | null;
-            name?: string;
-            registrationDeadline?: components["schemas"]["Instant"] | null;
+            minRegistrations: number | null;
+            name: string;
+            registrationDeadline: components["schemas"]["Instant"] | null;
             /** Format: int32 */
-            registrationLimit?: number | null;
-            requiresConfirmation?: boolean;
+            registrationLimit: number | null;
+            requiresConfirmation: boolean;
             /** Format: int32 */
-            thresholdDays?: number | null;
+            thresholdDays: number | null;
         };
         EventGroupDetailsRequest: {
             details?: components["schemas"]["EventGroupDetails"];
@@ -72242,23 +72242,13 @@ export interface components {
         EventGroupSummary: {
             cancelled: boolean;
             cancelReason: string | null;
-            color: string | null;
-            description: string | null;
+            details: components["schemas"]["EventGroupDetails"];
             /** Format: int32 */
             holding: number;
             /** Format: int32 */
             id: number;
             /** Format: int32 */
-            minRegistrations: number | null;
-            name: string;
-            /** Format: int32 */
             partCount: number;
-            registrationDeadline: components["schemas"]["Instant"] | null;
-            /** Format: int32 */
-            registrationLimit: number | null;
-            requiresConfirmation: boolean;
-            /** Format: int32 */
-            thresholdDays: number | null;
         };
         EventItem: {
             date?: string;

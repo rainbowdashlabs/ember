@@ -63541,7 +63541,8 @@
             "type" : [ "integer", "null" ],
             "format" : "int32"
           }
-        }
+        },
+        "required" : [ "name", "description", "registrationLimit", "registrationDeadline", "requiresConfirmation", "color", "minRegistrations", "thresholdDays" ]
       },
       "EventGroupDetailsRequest" : {
         "type" : "object",
@@ -63983,25 +63984,8 @@
             "type" : "integer",
             "format" : "int32"
           },
-          "name" : {
-            "type" : "string"
-          },
-          "description" : {
-            "type" : [ "string", "null" ]
-          },
-          "registrationLimit" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "registrationDeadline" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/Instant"
-            }, {
-              "type" : "null"
-            } ]
-          },
-          "requiresConfirmation" : {
-            "type" : "boolean"
+          "details" : {
+            "$ref" : "#/components/schemas/EventGroupDetails"
           },
           "cancelled" : {
             "type" : "boolean"
@@ -64016,20 +64000,9 @@
           "holding" : {
             "type" : "integer",
             "format" : "int32"
-          },
-          "color" : {
-            "type" : [ "string", "null" ]
-          },
-          "minRegistrations" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "thresholdDays" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
           }
         },
-        "required" : [ "id", "name", "description", "registrationLimit", "registrationDeadline", "requiresConfirmation", "cancelled", "cancelReason", "partCount", "holding", "color", "minRegistrations", "thresholdDays" ]
+        "required" : [ "id", "details", "cancelled", "cancelReason", "partCount", "holding" ]
       },
       "EventItem" : {
         "type" : "object",

@@ -127,7 +127,7 @@ async function deleteEventGroup() {
 </script>
 
 <template>
-  <ViewContent :title="detail?.eventGroup.name ?? t('pages.event-group.title')" :subtitle="t('pages.event-group.subtitle')">
+  <ViewContent :title="detail?.eventGroup.details.name ?? t('pages.event-group.title')" :subtitle="t('pages.event-group.subtitle')">
     <AsyncSection :loading="loading && !detail" :failure="failure">
       <div v-if="detail" class="space-y-6">
         <FailureAlert v-if="actionFailure" :failure="actionFailure"/>

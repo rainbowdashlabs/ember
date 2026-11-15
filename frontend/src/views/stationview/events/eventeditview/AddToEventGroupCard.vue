@@ -89,7 +89,7 @@ async function add() {
         <FieldLabel>{{ t('eventGroups.chooseGroup') }}</FieldLabel>
         <SelectInput v-model="groupId" data-testid="add-to-event-group-group">
           <option value="">{{ t('eventGroups.chooseGroupNone') }}</option>
-          <option v-for="group in open" :key="group.id" :value="String(group.id)">{{ group.name }}</option>
+          <option v-for="group in open" :key="group.id" :value="String(group.id)">{{ group.details.name }}</option>
         </SelectInput>
       </div>
       <div v-if="sets.length > 0">

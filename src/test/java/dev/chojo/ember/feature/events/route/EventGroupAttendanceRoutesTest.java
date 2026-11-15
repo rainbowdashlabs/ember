@@ -10,6 +10,7 @@ import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.entity.EventGroup;
+import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.service.EventGroupAttendanceService;
 import dev.chojo.ember.feature.events.service.EventGroupAttendanceService.AttendanceRow;
@@ -54,17 +55,10 @@ class EventGroupAttendanceRoutesTest {
                 .thenReturn(new EventGroup(
                         70,
                         STATION_ID,
-                        "Jugendflamme 1",
-                        null,
-                        null,
-                        null,
-                        false,
+                        new EventGroupDetails("Jugendflamme 1", null, null, null, false, null, null, null),
                         RestrictionMode.AND,
                         RestrictionMode.AND,
                         false,
-                        null,
-                        null,
-                        null,
                         null,
                         null));
         when(eventGroups.findSets(70))

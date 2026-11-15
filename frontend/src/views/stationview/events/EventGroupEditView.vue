@@ -141,14 +141,14 @@ function selectionOf(audience: RestrictionAudience): RestrictionSelection {
 /** Fills the form from the stored event group. */
 function fill(loadedDetail: EventGroupDetail) {
   detail.value = loadedDetail
-  name.value = loadedDetail.eventGroup.name
-  description.value = loadedDetail.eventGroup.description ?? ''
-  limit.value = loadedDetail.eventGroup.registrationLimit ?? undefined
-  deadline.value = instantToLocalInput(loadedDetail.eventGroup.registrationDeadline)
-  confirm.value = loadedDetail.eventGroup.requiresConfirmation
-  color.value = loadedDetail.eventGroup.color ?? ''
-  minRegistrations.value = loadedDetail.eventGroup.minRegistrations ?? undefined
-  thresholdDays.value = loadedDetail.eventGroup.thresholdDays ?? undefined
+  name.value = loadedDetail.eventGroup.details.name
+  description.value = loadedDetail.eventGroup.details.description ?? ''
+  limit.value = loadedDetail.eventGroup.details.registrationLimit ?? undefined
+  deadline.value = instantToLocalInput(loadedDetail.eventGroup.details.registrationDeadline)
+  confirm.value = loadedDetail.eventGroup.details.requiresConfirmation
+  color.value = loadedDetail.eventGroup.details.color ?? ''
+  minRegistrations.value = loadedDetail.eventGroup.details.minRegistrations ?? undefined
+  thresholdDays.value = loadedDetail.eventGroup.details.thresholdDays ?? undefined
   sets.value = loadedDetail.sets.map(set => ({id: set.id, name: set.name, minimum: set.minimum}))
   registration.value = selectionOf(loadedDetail.registration)
   view.value = selectionOf(loadedDetail.view)

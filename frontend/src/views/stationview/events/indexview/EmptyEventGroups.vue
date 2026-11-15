@@ -39,7 +39,7 @@ onMounted(async () => {
       <li v-for="group in empty" :key="group.id">
         <RowLink :to="{name: 'event-group-edit', params: {eventGroupId: group.id}}">
           <NeutralContainer class="flex items-center justify-between gap-2 hover:bg-(--bg-accent)" data-testid="empty-event-group-row">
-            <p class="font-medium truncate">{{ group.name }}</p>
+            <p class="font-medium truncate">{{ group.details.name }}</p>
             <ErrorBadge v-if="group.cancelled">{{ t('eventGroups.cancelled') }}</ErrorBadge>
           </NeutralContainer>
         </RowLink>

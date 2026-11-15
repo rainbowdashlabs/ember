@@ -52,8 +52,8 @@ const eventGroup = computed(() => props.detail.eventGroup)
 
 /** The minimum of accepted sign-ups the event group needs and by when, or nothing where it has none. */
 const minimumRule = computed(() => {
-  const minimum = eventGroup.value.minRegistrations
-  const days = eventGroup.value.thresholdDays
+  const minimum = eventGroup.value.details.minRegistrations
+  const days = eventGroup.value.details.thresholdDays
   if (!minimum || days == null) return null
   return days === 0
     ? t('eventGroups.minimumRuleSameDay', {minimum})
@@ -78,8 +78,8 @@ const mark = computed<EventGroupMark>(() => {
   const last = parts.reduce<string | undefined>((latest, part) => !latest || part.endTime > latest ? part.endTime : latest, undefined)
   return {
     eventGroupId: eventGroup.value.id,
-    eventGroupName: eventGroup.value.name,
-    color: eventGroup.value.color,
+    eventGroupName: eventGroup.value.details.name,
+    color: eventGroup.value.details.color,
     firstStart: first,
     lastEnd: last,
   }
@@ -103,18 +103,18 @@ function whenOf(part: EventGroupPartState): string {
       <ErrorBadge v-if="eventGroup.cancelled">
         {{ eventGroup.cancelReason ? t('eventGroups.cancelledReason', {reason: eventGroup.cancelReason}) : t('eventGroups.cancelled') }}
       </ErrorBadge>
-      <InfoBadge v-if="eventGroup.registrationDeadline">
-        {{ t('eventGroups.deadline', {date: formatDateTime(eventGroup.registrationDeadline, stationTimezone)}) }}
+      <InfoBadge v-if="eventGroup.details.registrationDeadline">
+        {{ t('eventGroups.deadline', {date: formatDateTime(eventGroup.details.registrationDeadline, stationTimezone)}) }}
       </InfoBadge>
       <MutedText tag="span" size="sm">
-        {{ eventGroup.registrationLimit != null
-          ? t('eventGroups.places', {holding: eventGroup.holding, limit: eventGroup.registrationLimit})
+        {{ eventGroup.details.registrationLimit != null
+          ? t('eventGroups.places', {holding: eventGroup.holding, limit: eventGroup.details.registrationLimit})
           : t('eventGroups.placesOpen', {holding: eventGroup.holding}) }}
       </MutedText>
-      <MutedText v-if="eventGroup.requiresConfirmation" tag="span" size="sm">{{ t('eventGroups.confirmation') }}</MutedText>
+      <MutedText v-if="eventGroup.details.requiresConfirmation" tag="span" size="sm">{{ t('eventGroups.confirmation') }}</MutedText>
     </div>
     <MutedText v-if="minimumRule" tag="p" size="sm" data-testid="event-group-minimum-rule">{{ minimumRule }}</MutedText>
-    <ProseContent v-if="eventGroup.description" v-html="renderMarkdown(eventGroup.description)"/>
+    <ProseContent v-if="eventGroup.details.description" v-html="renderMarkdown(eventGroup.details.description)"/>
     <EventGroupFields
         :fields="detail.fields"
         :event-group-id="currentMemberId == null ? undefined : eventGroup.id"

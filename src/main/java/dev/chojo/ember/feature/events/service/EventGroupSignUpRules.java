@@ -107,7 +107,7 @@ public class EventGroupSignUpRules {
 
     /** Refuses a sign-up for an event group whose limit is reached, unless whoever runs events overrides it. */
     void requireRoom(EventGroup eventGroup, boolean override) {
-        Integer limit = eventGroup.registrationLimit();
+        Integer limit = eventGroup.details().registrationLimit();
         if (!override && limit != null && holding(eventGroup.id()) >= limit) {
             throw EventRefusal.EVENT_GROUP_FULL.raise();
         }
@@ -125,7 +125,7 @@ public class EventGroupSignUpRules {
 
     /** The status a new sign-up starts with: waiting where a manager confirms each one. */
     static RegistrationStatus initialStatus(EventGroup eventGroup) {
-        return eventGroup.requiresConfirmation() ? RegistrationStatus.PENDING : RegistrationStatus.ACCEPTED;
+        return eventGroup.details().requiresConfirmation() ? RegistrationStatus.PENDING : RegistrationStatus.ACCEPTED;
     }
 
     /** The status a part or sign-up given up ends with: a held place is withdrawn, a waiting one declined. */

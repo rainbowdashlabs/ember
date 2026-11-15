@@ -111,7 +111,7 @@ public class EventGroupCancellationService {
             eventBus.publish(new EventGroupCancelled(
                     stationId,
                     eventGroupId,
-                    eventGroup.name(),
+                    eventGroup.details().name(),
                     reason,
                     signUps.findHoldingMemberIds(eventGroupId),
                     cause));

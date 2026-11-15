@@ -728,13 +728,13 @@ class DemoServiceTest extends RepositoryTestBase {
                 .orElseThrow(() -> new AssertionError("The demo station should exist"));
         var eventGroupRepository = new EventGroupRepository();
         var eventGroup = eventGroupRepository.findByStation(station.id()).stream()
-                .filter(c -> c.name().startsWith("Jugendflamme"))
+                .filter(c -> c.details().name().startsWith("Jugendflamme"))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("The demo should have a Jugendflamme event group"));
 
         assertEquals(4, eventGroupRepository.findParts(eventGroup.id()).size());
         var grundlehrgang = eventGroupRepository.findByStation(station.id()).stream()
-                .filter(c -> c.name().equals("Grundlehrgang"))
+                .filter(c -> c.details().name().equals("Grundlehrgang"))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("The demo should have the Grundlehrgang as an event group"));
         assertEquals(8, eventGroupRepository.findParts(grundlehrgang.id()).size());
@@ -773,7 +773,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 .orElseThrow(() -> new AssertionError("The demo station should exist"));
         var eventGroupRepository = new EventGroupRepository();
         var eventGroup = eventGroupRepository.findByStation(station.id()).stream()
-                .filter(c -> c.name().startsWith("Jugendflamme"))
+                .filter(c -> c.details().name().startsWith("Jugendflamme"))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("The demo should have a Jugendflamme event group"));
         var team = eventGroupRepository.findParts(eventGroup.id()).stream()

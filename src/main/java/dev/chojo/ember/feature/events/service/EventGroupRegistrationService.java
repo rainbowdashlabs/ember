@@ -269,7 +269,12 @@ public class EventGroupRegistrationService {
     /** Tells the member and whoever runs events what became of the sign-up, once for the event group. */
     private void announce(EventGroup eventGroup, int memberId, RegistrationStatus status) {
         eventBus.publish(new EventGroupRegistrationStatusChanged(
-                eventGroup.stationId(), eventGroup.id(), eventGroup.name(), memberId, names.called(memberId), status));
+                eventGroup.stationId(),
+                eventGroup.id(),
+                eventGroup.details().name(),
+                memberId,
+                names.called(memberId),
+                status));
     }
 
     /**

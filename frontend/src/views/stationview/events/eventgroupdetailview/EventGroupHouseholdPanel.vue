@@ -48,7 +48,7 @@ const failure = ref<Failure | null>(null)
 
 /** Whether sign-ups closed with the deadline. */
 const deadlinePassed = computed(() => {
-  const deadline = props.detail.eventGroup.registrationDeadline
+  const deadline = props.detail.eventGroup.details.registrationDeadline
   return deadline != null && new Date(deadline).getTime() < Date.now()
 })
 
@@ -68,7 +68,7 @@ const changeClosed = computed(() => {
 const signUpClosed = computed(() => {
   if (changeClosed.value) return changeClosed.value
   const eventGroup = props.detail.eventGroup
-  if (eventGroup.registrationLimit != null && eventGroup.holding >= eventGroup.registrationLimit) return t('eventGroups.closedFull')
+  if (eventGroup.details.registrationLimit != null && eventGroup.holding >= eventGroup.details.registrationLimit) return t('eventGroups.closedFull')
   return null
 })
 
