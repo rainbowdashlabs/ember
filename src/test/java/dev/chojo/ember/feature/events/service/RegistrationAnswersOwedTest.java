@@ -116,7 +116,7 @@ class RegistrationAnswersOwedTest extends RepositoryTestBase {
                 name,
                 FieldType.TEXT,
                 new EventQuestionSettings(
-                        null, null, null, null, null, false, false, true, null, null, null, managersOnly),
+                        null, null, null, null, null, false, false, true, null, null, null, managersOnly, null),
                 true);
     }
 

@@ -155,6 +155,7 @@ const groupTemplates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exa
       <p>{{ t('helpCenter.eventEdit.registrationFieldsText') }}</p>
       <p>{{ t('helpCenter.eventEdit.registrationFieldsDefaults') }}</p>
       <p>{{ t('helpCenter.eventEdit.registrationFieldsOverview') }}</p>
+      <p>{{ t('helpCenter.eventEdit.registrationFieldsDescription') }}</p>
 
       <RegistrationFieldsEditor :model-value="SHIRT_SIZE" class="mt-3"/>
     </HelpSection>

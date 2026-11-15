@@ -865,13 +865,14 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                                         "M",
                                         null,
                                         null,
-                                        false),
+                                        false,
+                                        null),
                                 true),
                         new RegistrationFieldDraft(
                                 "Begleitpersonen",
                                 FieldType.NUMBER,
                                 new EventQuestionSettings(
-                                        null, null, null, null, null, false, false, false, "0", 0, 5, false),
+                                        null, null, null, null, null, false, false, false, "0", 0, 5, false, null),
                                 true),
                         new RegistrationFieldDraft(
                                 "Anmerkungen", FieldType.LONG_TEXT, EventQuestionSettings.empty(), false),
@@ -879,7 +880,8 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                                 "Startnummer",
                                 FieldType.TEXT,
                                 new EventQuestionSettings(
-                                        null, null, null, null, null, false, false, false, null, null, null, true),
+                                        null, null, null, null, null, false, false, false, null, null, null, true,
+                                        null),
                                 true)));
 
         var fields = registrationFieldService.findByEvent(marathon.id());

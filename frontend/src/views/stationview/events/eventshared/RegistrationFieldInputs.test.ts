@@ -46,6 +46,12 @@ describe('RegistrationFieldInputs', () => {
     expect(wrapper.text()).toContain('Von 10 bis 18')
   })
 
+  it('shows the description of a question under its label', () => {
+    const wrapper = mountInputs([question(8, 'Größe', 'TEXT', {description: 'Für das T-Shirt der Freizeit.'})], {8: ''})
+
+    expect(wrapper.get('[data-testid="question-8-description"]').text()).toBe('Für das T-Shirt der Freizeit.')
+  })
+
   it('hands a typed answer back with the others kept', async () => {
     const wrapper = mountInputs([question(5, 'T-Shirt', 'TEXT'), question(6, 'Allergien', 'TEXT')], {5: '', 6: 'keine'})
 

@@ -45,6 +45,7 @@ People who share a station can write to each other directly, in groups, and in c
 - **Switched-off modules stay hidden from partners and public.** A station serves partner stations nothing of a module it switched off, and its own members see nothing of that module from partners either. The public calendar, blog, wiki, quiz and waiting lists go away with their module, also when the association denies it.
 - **Batch appointments entered one by one.** Besides a schedule and an imported file, creating appointments in a batch offers a list of appointments entered one by one, each with its date, start and end time and an optional title. Rows can be added and removed, and a row without a date or not ending after it starts is marked before anything is created.
 - **Unreadable requests name their field.** Where the server cannot read a value a page sent, the message now names the field it stopped at.
+- **Registration questions can carry a description.** Like a profile field, a question asked when signing up for an appointment or an event group can carry a short explanation, shown under the question while answering.
 
 ### Changes
 

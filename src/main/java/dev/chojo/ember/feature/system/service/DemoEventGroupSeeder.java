@@ -350,13 +350,25 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
     /** Members of the team group, who put themselves in. */
     private static EventQuestionSettings supervisorField(int teamGroupId) {
         return new EventQuestionSettings(
-                null, teamGroupId, null, null, null, true, false, false, null, null, null, false);
+                null, teamGroupId, null, null, null, true, false, false, null, null, null, false, null);
     }
 
     /** A size chosen from the usual ones, starting from M, that has to be answered. */
     private static EventQuestionSettings sizeQuestion() {
         return new EventQuestionSettings(
-                List.of("XS", "S", "M", "L", "XL"), null, null, null, null, false, false, true, "M", null, null, false);
+                List.of("XS", "S", "M", "L", "XL"),
+                null,
+                null,
+                null,
+                null,
+                false,
+                false,
+                true,
+                "M",
+                null,
+                null,
+                false,
+                null);
     }
 
     private static int setId(List<EventGroupSet> sets, String name) {

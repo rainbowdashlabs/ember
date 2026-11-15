@@ -319,8 +319,8 @@ class EventServicesTest extends RepositoryTestBase {
     @Order(22)
     void aQuestionAddedAfterSigningUpLeavesTheRegistrationShortOfAnAnswer() {
         var fieldRepo = new EventRegistrationFieldRepository();
-        var required =
-                new EventQuestionSettings(null, null, null, null, null, false, false, true, null, null, null, false);
+        var required = new EventQuestionSettings(
+                null, null, null, null, null, false, false, true, null, null, null, false, null);
         fieldRepo.replaceFields(
                 eventId, List.of(new RegistrationFieldDraft("Allergies", FieldType.TEXT, required, false)));
 

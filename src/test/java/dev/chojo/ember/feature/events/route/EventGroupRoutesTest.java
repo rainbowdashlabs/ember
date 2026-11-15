@@ -433,10 +433,10 @@ class EventGroupRoutesTest {
     }
 
     private void askAllergiesForOrganisersAndARequiredShirt() {
-        var forOrganisers =
-                new EventQuestionSettings(null, null, null, null, null, false, false, false, null, null, null, true);
-        var required =
-                new EventQuestionSettings(null, null, null, null, null, false, false, true, null, null, null, false);
+        var forOrganisers = new EventQuestionSettings(
+                null, null, null, null, null, false, false, false, null, null, null, true, null);
+        var required = new EventQuestionSettings(
+                null, null, null, null, null, false, false, true, null, null, null, false, null);
         when(questions.findByEventGroup(EVENT_GROUP_ID))
                 .thenReturn(List.of(
                         new EventRegistrationField(

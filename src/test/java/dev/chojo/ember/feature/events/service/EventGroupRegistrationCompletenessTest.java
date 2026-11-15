@@ -184,8 +184,8 @@ class EventGroupRegistrationCompletenessTest extends EventGroupRegistrationTestB
                 null,
                 null,
                 null);
-        var required =
-                new EventQuestionSettings(null, null, null, null, null, false, false, true, null, null, null, false);
+        var required = new EventQuestionSettings(
+                null, null, null, null, null, false, false, true, null, null, null, false, null);
         eventRegistrationFieldRepo()
                 .replaceFields(
                         appointment.id(),

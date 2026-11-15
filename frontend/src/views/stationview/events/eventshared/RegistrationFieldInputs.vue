@@ -7,6 +7,7 @@
 import {computed, onMounted} from 'vue'
 import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import EventFieldValueInput from './EventFieldValueInput.vue'
 import {useAnswerMembers} from './useAnswerMembers'
 import {missingAnswers, numberRange, type RegistrationAnswers} from './registrationAnswers'
@@ -14,7 +15,7 @@ import type {EventRegistrationField} from '@/api/generated/schema'
 
 /**
  * The registration questions as a form asks them, for an appointment and for an event group alike: each
- * question under its label, a required one marked, a number question with its bounds below the input,
+ * question under its label with its description below, a required one marked, a number question with its bounds below the input,
  * and the required ones still unanswered named at the end. The members a member question picks from are
  * fetched when the form appears.
  */
@@ -48,6 +49,9 @@ onMounted(loadMembers)
         {{ field.name }}
         <span v-if="field.config?.required" class="text-error">*</span>
       </FieldLabel>
+      <MutedText v-if="field.config?.description" tag="p" class="mb-1 text-xs" :data-testid="testIdOf(field.id) ? `${testIdOf(field.id)}-description` : undefined">
+        {{ field.config.description }}
+      </MutedText>
       <EventFieldValueInput
           :model-value="answers[field.id] ?? ''"
           :field-type="field.fieldType"

@@ -150,10 +150,10 @@ class EventGroupSignUpTableTest extends RepositoryTestBase {
     }
 
     private Map<String, Integer> askShirtAndAllergies() {
-        var plain =
-                new EventQuestionSettings(null, null, null, null, null, false, false, false, null, null, null, false);
-        var forOrganisers =
-                new EventQuestionSettings(null, null, null, null, null, false, false, false, null, null, null, true);
+        var plain = new EventQuestionSettings(
+                null, null, null, null, null, false, false, false, null, null, null, false, null);
+        var forOrganisers = new EventQuestionSettings(
+                null, null, null, null, null, false, false, false, null, null, null, true, null);
         questions.replaceQuestions(
                 eventGroup.id(),
                 List.of(

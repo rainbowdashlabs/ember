@@ -72305,6 +72305,7 @@ export interface components {
         };
         EventQuestionSettings: {
             defaultValue?: string;
+            description?: string;
             /** Format: int32 */
             groupId?: number;
             managersOnly: boolean;

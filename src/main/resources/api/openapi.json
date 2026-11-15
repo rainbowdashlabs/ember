@@ -64124,6 +64124,9 @@
           },
           "managersOnly" : {
             "type" : "boolean"
+          },
+          "description" : {
+            "type" : "string"
           }
         },
         "required" : [ "selfRegistration", "perDate", "required", "managersOnly" ]
