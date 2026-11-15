@@ -5,14 +5,19 @@
  */
 package dev.chojo.ember.feature.events.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.events.entity.EventGroupRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -50,6 +55,23 @@ public class EventGroupRegistrationRepository {
                 .single(call().bind("group_id", eventGroupId))
                 .map(EventGroupRegistration.map())
                 .all();
+    }
+
+    /**
+     * Which of the given members gave any answer to which event group, a sign-up in any status.
+     *
+     * @param memberIds the members
+     * @return the members who answered, by event group
+     */
+    public Map<Integer, Set<Integer>> findAnsweredBy(Collection<Integer> memberIds) {
+        if (memberIds.isEmpty()) return Map.of();
+        return query("SELECT group_id, member_id FROM event_group_registration WHERE member_id = ANY(:member_ids);")
+                .single(call().bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
+                .map(row -> Map.entry(row.getInt("group_id"), row.getInt("member_id")))
+                .all()
+                .stream()
+                .collect(Collectors.groupingBy(
+                        Map.Entry::getKey, Collectors.mapping(Map.Entry::getValue, Collectors.toSet())));
     }
 
     /**

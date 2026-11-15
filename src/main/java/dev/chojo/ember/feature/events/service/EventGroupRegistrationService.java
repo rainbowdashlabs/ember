@@ -31,6 +31,7 @@ import org.jspecify.annotations.Nullable;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -308,6 +309,16 @@ public class EventGroupRegistrationService {
      */
     public @Nullable EventGroupRegistration find(int eventGroupId, int memberId) {
         return signUps.find(eventGroupId, memberId).orElse(null);
+    }
+
+    /**
+     * Which of the given members gave any answer to which event group, a sign-up in any status.
+     *
+     * @param memberIds the members
+     * @return the members who answered, by event group
+     */
+    public Map<Integer, Set<Integer>> answeredBy(Collection<Integer> memberIds) {
+        return signUps.findAnsweredBy(memberIds);
     }
 
     /**

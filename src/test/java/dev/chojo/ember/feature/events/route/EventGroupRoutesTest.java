@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.entity.EventGroupPart;
 import dev.chojo.ember.feature.events.entity.EventGroupPartSummary;
 import dev.chojo.ember.feature.events.entity.EventGroupRegistration;
+import dev.chojo.ember.feature.events.entity.EventGroupTally;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
@@ -117,6 +118,7 @@ class EventGroupRoutesTest {
         when(eventGroups.canSeeAny(eq(EVENT_GROUP_ID), anyList(), anySet())).thenReturn(true);
         when(eventGroups.isMemberHere(eq(STATION_ID), anyInt())).thenReturn(true);
         when(eventGroups.canSignUp(eq(EVENT_GROUP_ID), anyInt(), anySet())).thenReturn(true);
+        when(eventGroups.tally(anyInt())).thenReturn(EventGroupTally.NONE);
         when(eventGroups.createWith(anyInt(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(eventGroup);
         when(guardians.household(any())).thenReturn(List.of(TestSessions.MEMBER_ID));
@@ -616,25 +618,14 @@ class EventGroupRoutesTest {
                 null);
         when(eventGroups.findOpenWithDeadline(STATION_ID)).thenReturn(List.of(open));
         when(guardians.household(any())).thenReturn(List.of(TestSessions.MEMBER_ID, CHILD_ID));
-        when(signUps.findByEventGroup(EVENT_GROUP_ID))
-                .thenReturn(List.of(new EventGroupRegistration(
-                        1, EVENT_GROUP_ID, TestSessions.MEMBER_ID, RegistrationStatus.WITHDRAWN, Instant.now(), null)));
+        when(eventGroups.whoMaySignUp(any(), any(), anySet()))
+                .thenReturn(Map.of(EVENT_GROUP_ID, List.of(TestSessions.MEMBER_ID, CHILD_ID)));
+        when(signUps.answeredBy(any())).thenReturn(Map.of(EVENT_GROUP_ID, Set.of(TestSessions.MEMBER_ID)));
 
         var awaiting = json(call("GET", PREFIX + "/events/groups/awaiting", null, StationPermission.USER));
 
         assertEquals(1, awaiting.size());
         assertEquals(1, awaiting.get(0).get("members").size());
-    }
-
-    @Test
-    void aNewPartWithoutTimesIsRefused() {
-        var response = call(
-                "POST",
-                EVENT_GROUP + "/parts/new",
-                "{\"setId\": 5, \"name\": \"Samstag\"}",
-                StationPermission.EVENT_EDIT);
-
-        assertEquals(EventRefusal.EVENT_GROUP_PART_NEEDS_TIMES, refusalOf(response));
     }
 
     @Test

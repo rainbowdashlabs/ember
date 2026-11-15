@@ -142,9 +142,9 @@ async function save() {
     if (changing.value) await port.changeParts(parts, props.entry.memberId)
     else await port.signUp(parts, answersToSend(props.detail.questions, answers.value), props.entry.memberId)
     open.value = false
-    signingStep.value = props.port
-      ? null
-      : await eventGroupSigningStep(props.detail.parts, parts, props.entry.memberId, stationTimezone.value)
+    signingStep.value = port.signsHere
+      ? await eventGroupSigningStep(props.detail.parts, parts, props.entry.memberId, stationTimezone.value)
+      : null
     if (signingStep.value) signingOpen.value = true
     else emit('saved')
   } catch (e) {

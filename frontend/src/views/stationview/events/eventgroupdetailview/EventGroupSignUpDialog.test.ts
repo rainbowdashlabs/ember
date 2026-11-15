@@ -15,6 +15,8 @@ const signUp = vi.fn(async (..._args: unknown[]) => ({}))
 const changeParts = vi.fn(async (..._args: unknown[]) => ({}))
 
 vi.mock('@/api', () => ({eventGroups: {signUp: (...args: unknown[]) => signUp(...args), changeParts: (...args: unknown[]) => changeParts(...args)}}))
+const signingStep = vi.hoisted(() => vi.fn(async (..._args: unknown[]) => null))
+vi.mock('./eventGroupSigning', () => ({eventGroupSigningStep: signingStep}))
 vi.mock('@/composables/useSession', () => ({useSession: () => ({stationTimezone: computed(() => 'Europe/Berlin')})}))
 
 /** A Jugendflamme event group: three practice days of which two count, and a mandatory test day. */
@@ -55,6 +57,7 @@ afterEach(() => {
   document.body.innerHTML = ''
   signUp.mockClear()
   changeParts.mockClear()
+  signingStep.mockClear()
 })
 
 function box(eventId: number): HTMLInputElement {
@@ -88,6 +91,22 @@ describe('EventGroupSignUpDialog', () => {
 
     expect(signUp).toHaveBeenCalledWith(70, expect.arrayContaining([11, 13, 21]), [], 12)
     expect(wrapper.emitted('saved')).toHaveLength(1)
+  })
+
+  it('offers the signing step for an own event group and leaves a partner\'s documents to the partner', async () => {
+    const own = {signsHere: true, signUp: vi.fn(async () => ({})), changeParts: vi.fn(), withdraw: vi.fn()}
+    const partner = {...own, signsHere: false}
+    for (const port of [own, partner]) {
+      wrapper?.unmount()
+      wrapper = mount(EventGroupSignUpDialog, {props: {detail: detail(), entry: entry(), override: true, port}, attachTo: document.body})
+      await flushPromises()
+      await tick(11)
+      save().click()
+      await flushPromises()
+    }
+
+    expect(own.signUp).toHaveBeenCalledTimes(2)
+    expect(signingStep).toHaveBeenCalledTimes(1)
   })
 
   it('ticks the required parts of a new sign-up and keeps a member from unticking them', async () => {

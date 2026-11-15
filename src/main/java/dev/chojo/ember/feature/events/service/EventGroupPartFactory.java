@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventGroupPart;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.util.sql.Transactions;
@@ -33,15 +34,16 @@ public class EventGroupPartFactory {
     }
 
     /**
-     * Creates a one-time appointment and makes it a part of an event group in one go.
+     * Creates a one-time appointment and makes it a part of an event group in one go. It needs a name, a
+     * start and an end, refused the way an appointment of its own is.
      *
      * @param stationId   the station
      * @param eventGroupId    the event group
      * @param setId       the set it goes into
-     * @param name        the appointment's name
+     * @param name        the appointment's name, refused when missing or blank
      * @param description what it is about, as Markdown, or null
-     * @param startTime   when it begins
-     * @param endTime     when it ends
+     * @param startTime   when it begins, refused when missing
+     * @param endTime     when it ends, refused when missing
      * @param categoryId  the category it is filed under, or null
      * @return the part
      */
@@ -49,16 +51,18 @@ public class EventGroupPartFactory {
             int stationId,
             int eventGroupId,
             int setId,
-            String name,
+            @Nullable String name,
             @Nullable String description,
-            Instant startTime,
-            Instant endTime,
+            @Nullable Instant startTime,
+            @Nullable Instant endTime,
             @Nullable Integer categoryId) {
+        if (name == null || name.isBlank()) throw EventRefusal.EVENT_NEEDS_A_NAME.raise();
+        if (startTime == null || endTime == null) throw EventRefusal.EVENT_GROUP_PART_NEEDS_TIMES.raise();
         eventGroups.requireEventGroup(stationId, eventGroupId);
         return Transactions.call(() -> {
             var event = crud.createWithoutEvent(
                     stationId,
-                    name,
+                    name.strip(),
                     description,
                     StationEvent.EventType.ONE_TIME,
                     null,

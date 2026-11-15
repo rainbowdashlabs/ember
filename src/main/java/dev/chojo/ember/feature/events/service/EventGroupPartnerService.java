@@ -213,7 +213,7 @@ public class EventGroupPartnerService {
             }
         });
         log.info("A member of partner {} signed up for event group {}", partnerId, eventGroupId);
-        return standing(eventGroupId, partnerId, remoteMemberId);
+        return standingOf(eventGroupId, partnerId, remoteMemberId);
     }
 
     /**
@@ -248,7 +248,7 @@ public class EventGroupPartnerService {
                 partners.unlink(registration.id());
             }
         });
-        return standing(eventGroupId, partnerId, remoteMemberId);
+        return standingOf(eventGroupId, partnerId, remoteMemberId);
     }
 
     /**
@@ -340,9 +340,28 @@ public class EventGroupPartnerService {
      * @return one standing per member, in the order asked
      */
     public List<PartnerStanding> standings(int eventGroupId, int partnerId, List<UUID> remoteMemberIds) {
+        var evaluate = gate.evaluator(eventGroupId);
+        var linked = partners.findLinkedByEventGroup(eventGroupId);
+        var byMember = partners.findByEventGroup(eventGroupId).stream()
+                .filter(signUp -> signUp.partnerId() == partnerId)
+                .collect(Collectors.toMap(
+                        EventGroupPartnerRegistration::remoteMemberId, Function.identity(), (first, second) -> first));
         return remoteMemberIds.stream()
-                .map(member -> standing(eventGroupId, partnerId, member))
+                .map(member -> Optional.ofNullable(byMember.get(member))
+                        .map(signUp -> standing(signUp, linked, evaluate))
+                        .orElseGet(() -> notSignedUp(member)))
                 .toList();
+    }
+
+    private PartnerStanding standingOf(int eventGroupId, int partnerId, UUID remoteMemberId) {
+        return partners.find(eventGroupId, partnerId, remoteMemberId)
+                .map(signUp -> standing(
+                        signUp, Map.of(signUp.id(), partners.findLinked(signUp.id())), gate.evaluator(eventGroupId)))
+                .orElseGet(() -> notSignedUp(remoteMemberId));
+    }
+
+    private static PartnerStanding notSignedUp(UUID remoteMemberId) {
+        return new PartnerStanding(remoteMemberId, null, null, List.of(), List.of());
     }
 
     /**
@@ -355,23 +374,22 @@ public class EventGroupPartnerService {
      */
     public List<PartnerSignUp> signUps(int stationId, int eventGroupId) {
         eventGroups.requireEventGroup(stationId, eventGroupId);
+        var evaluate = gate.evaluator(eventGroupId);
+        var linked = partners.findLinkedByEventGroup(eventGroupId);
         return partners.findByEventGroup(eventGroupId).stream()
                 .filter(signUp -> signUp.active() || signUp.status() == RegistrationStatus.DENIED)
                 .map(signUp -> new PartnerSignUp(
                         signUp.id(),
                         registrants.identify(signUp.partnerId(), signUp.remoteMemberId()),
-                        standing(eventGroupId, signUp)))
+                        standing(signUp, linked, evaluate)))
                 .toList();
     }
 
-    private PartnerStanding standing(int eventGroupId, int partnerId, UUID remoteMemberId) {
-        return partners.find(eventGroupId, partnerId, remoteMemberId)
-                .map(signUp -> standing(eventGroupId, signUp))
-                .orElseGet(() -> new PartnerStanding(remoteMemberId, null, null, List.of(), List.of()));
-    }
-
-    private PartnerStanding standing(int eventGroupId, EventGroupPartnerRegistration signUp) {
-        var counted = partners.findLinked(signUp.id()).stream()
+    private static PartnerStanding standing(
+            EventGroupPartnerRegistration signUp,
+            Map<Integer, List<EventFederationRegistration>> linked,
+            Function<Set<Integer>, List<SetResult>> evaluate) {
+        var counted = linked.getOrDefault(signUp.id(), List.of()).stream()
                 .filter(registration -> registration.status() == RegistrationStatus.PENDING
                         || registration.status() == RegistrationStatus.ACCEPTED
                         || (registration.status() == RegistrationStatus.DENIED
@@ -383,7 +401,7 @@ public class EventGroupPartnerService {
                 signUp.status(),
                 signUp.registeredAt(),
                 counted.stream().sorted().toList(),
-                gate.evaluate(eventGroupId, counted));
+                evaluate.apply(counted));
     }
 
     private EventGroupPartnerRegistration requireActive(int eventGroupId, int partnerId, UUID remoteMemberId) {

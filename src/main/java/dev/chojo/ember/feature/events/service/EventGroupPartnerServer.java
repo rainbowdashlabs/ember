@@ -85,8 +85,7 @@ public class EventGroupPartnerServer implements FederationServer {
         var eventGroup = eventGroups.requireEventGroup(partner.servingStationId(), eventGroupId);
         var asked = Objects.requireNonNullElse(query.memberUids(), List.<UUID>of());
         return new RemoteEventGroupDetail(
-                EventGroupSummary.of(
-                        eventGroup, eventGroups.findParts(eventGroupId).size(), signUps.holding(eventGroupId)),
+                EventGroupSummary.of(eventGroup, eventGroups.tally(eventGroupId)),
                 eventGroups.findSets(eventGroupId),
                 signUps.partStates(eventGroupId),
                 partners.standings(eventGroupId, partner.partnerId(), asked),

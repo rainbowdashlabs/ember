@@ -51,10 +51,8 @@ const members = ref<MemberCompletion[]>([])
 const picked = ref('')
 const adding = ref<EventGroupSignUp | null>(null)
 const {hasPermission, sessionInfo} = useSession()
+/** Whoever runs events signs others up and corrects their answers, every question included, as the server allows. */
 const canAdd = computed(() => hasPermission(StationPermission.EVENT_MANAGER) && !props.detail.eventGroup.cancelled)
-const answerable = computed(() => hasPermission(StationPermission.EVENT_EDIT)
-    ? props.detail.questions
-    : props.detail.questions.filter(question => !question.config.managersOnly))
 
 function standing(entry: EventGroupSignUp): boolean {
   return entry.status === RegistrationStatus.PENDING || entry.status === RegistrationStatus.ACCEPTED
@@ -143,8 +141,8 @@ defineExpose({reload})
             <RegistrationFieldAnswers :fields="detail.questions" :values="entry.answers" class="basis-full"/>
           </div>
           <ButtonRow align="end">
-            <EventGroupAnswersButton v-if="canAdd && standing(entry) && answerable.length > 0" :event-group-id="detail.eventGroup.id"
-                                 :entry="entry" :questions="answerable" @saved="onChanged?.()"/>
+            <EventGroupAnswersButton v-if="canAdd && standing(entry) && detail.questions.length > 0" :event-group-id="detail.eventGroup.id"
+                                 :entry="entry" :questions="detail.questions" @saved="onChanged?.()"/>
             <SuccessButton v-if="entry.status !== RegistrationStatus.ACCEPTED" compact :disabled="deciding === entry.memberId"
                            data-testid="event-group-accept" @click="decide(entry, RegistrationStatus.ACCEPTED)">
               {{ t('eventGroups.accept') }}

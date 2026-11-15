@@ -12,6 +12,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventGroup;
+import dev.chojo.ember.feature.events.entity.EventGroupTally;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.route.EventGroupRoutes.EventGroupSummary;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupDetail;
@@ -101,7 +102,7 @@ class FederatedEventGroupRoutesTest {
                 null);
         when(partnerEventGroups.eventGroup(anyInt(), eq(HOLDER), eq(70), any()))
                 .thenReturn(new RemoteEventGroupDetail(
-                        EventGroupSummary.of(eventGroup, 1, 1),
+                        EventGroupSummary.of(eventGroup, new EventGroupTally(1, 1)),
                         List.of(),
                         List.of(),
                         List.of(standing, new PartnerStanding(UUID.randomUUID(), null, null, List.of(), List.of())),

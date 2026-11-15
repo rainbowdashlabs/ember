@@ -40,6 +40,32 @@ describe('EventGroupProbeVisitorsPanel', () => {
         expect(wrapper.find('[data-testid="event-group-probe-part-10"]').exists()).toBe(false)
     })
 
+    it('reads the visitors again only when the parts change, not when the same parts come anew', async () => {
+        visitors.mockResolvedValue([])
+        const parts = [part(10, 'Samstag, Übung', '2026-12-12T08:00:00Z')]
+        const wrapper = mount(EventGroupProbeVisitorsPanel, {props: {parts}})
+        await flushPromises()
+
+        await wrapper.setProps({parts: parts.map(entry => ({...entry}))})
+        await flushPromises()
+        expect(visitors).toHaveBeenCalledTimes(1)
+
+        await wrapper.setProps({parts: [...parts, part(11, 'Sonntag, Übung', '2026-12-13T08:00:00Z')]})
+        await flushPromises()
+        expect(visitors).toHaveBeenCalledTimes(3)
+    })
+
+    it('shows a part under its current name after a refresh that renames it', async () => {
+        visitors.mockResolvedValue([{entryId: 9, listId: 5, listName: 'Jugend', firstname: 'Mia', lastname: 'Muster', date: '2026-12-12', arrivalTime: null}])
+        const wrapper = mount(EventGroupProbeVisitorsPanel, {props: {parts: [part(10, 'Samstag', '2026-12-12T08:00:00Z')]}})
+        await flushPromises()
+
+        await wrapper.setProps({parts: [part(10, 'Samstag, Übung', '2026-12-12T08:00:00Z')]})
+        await flushPromises()
+
+        expect(wrapper.find('[data-testid="event-group-probe-part-10"]').text()).toContain('Samstag, Übung')
+    })
+
     it('shows nothing where nobody comes, also when a part cannot be read', async () => {
         visitors.mockRejectedValueOnce(new Error('gone')).mockResolvedValue([])
 

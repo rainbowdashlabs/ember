@@ -20,6 +20,11 @@ describe('eventGroupSignUpPort', () => {
     expect(eventGroups.signUp).toHaveBeenCalledWith(70, [11], [{fieldId: 5, value: 'M'}], 12)
   })
 
+  it('signs the documents of an own event group here and leaves a partner\'s to the partner', () => {
+    expect(ownEventGroupPort(70).signsHere).toBe(true)
+    expect(partnerEventGroupPort('station-b', 70).signsHere).toBe(false)
+  })
+
   it('sends a sign-up for a partner event group to that partner, without answers', async () => {
     const port = partnerEventGroupPort('station-b', 70)
     await port.signUp([11, 12], [{fieldId: 5, value: 'M'}], 12)

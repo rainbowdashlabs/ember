@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.events.entity.EventGroupPartSummary;
 import dev.chojo.ember.feature.events.entity.EventGroupRegistration;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
+import dev.chojo.ember.feature.events.entity.EventGroupTally;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
@@ -59,6 +60,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -199,10 +201,11 @@ public class EventGroupRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventGroupSummary[].class)))
     private void list(Context ctx) {
         StationSession session = StationSession.from(ctx);
+        var tallies = eventGroups.tallies(session.stationId());
         ctx.json(eventGroups.findByStation(session.stationId()).stream()
                 .filter(eventGroup -> guards.mayOpen(session, eventGroup.id()))
-                .map(eventGroup -> EventGroupSummary.of(
-                        eventGroup, eventGroups.findParts(eventGroup.id()).size(), signUps.holding(eventGroup.id())))
+                .map(eventGroup ->
+                        EventGroupSummary.of(eventGroup, tallies.getOrDefault(eventGroup.id(), EventGroupTally.NONE)))
                 .toList());
     }
 
@@ -437,19 +440,14 @@ public class EventGroupRoutes implements Routes {
     private void createPart(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(EventGroupPartCreateRequest.class);
-        String name = request.name();
-        Instant start = request.startTime();
-        Instant end = request.endTime();
-        if (name == null || name.isBlank()) throw EventRefusal.EVENT_GROUP_NAME_MISSING.raise();
-        if (start == null || end == null) throw EventRefusal.EVENT_GROUP_PART_NEEDS_TIMES.raise();
         var part = partFactory.create(
                 session.stationId(),
                 pathInt(ctx, "eventGroupId"),
                 request.setId(),
-                name.strip(),
+                request.name(),
                 request.description(),
-                start,
-                end,
+                request.startTime(),
+                request.endTime(),
                 null);
         fields.reconcilePart(part.eventId());
         ctx.status(HttpStatus.CREATED).json(part);
@@ -464,22 +462,27 @@ public class EventGroupRoutes implements Routes {
     private void listAwaiting(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var household = guardianPolicy.household(session.user());
-        var permissions = session.user().permissions();
+        var open = eventGroups.findOpenWithDeadline(session.stationId());
+        var answered = signUps.answeredBy(household);
+        var mayJoin = eventGroups.whoMaySignUp(
+                open.stream().map(EventGroup::id).toList(),
+                household,
+                session.user().permissions());
+        var names = new HashMap<Integer, String>();
         var awaiting = new ArrayList<EventGroupAwaiting>();
-        for (var eventGroup : eventGroups.findOpenWithDeadline(session.stationId())) {
-            var answered = signUps.findByEventGroup(eventGroup.id()).stream()
-                    .map(EventGroupRegistration::memberId)
-                    .collect(Collectors.toSet());
-            var owing = household.stream()
-                    .filter(memberId -> !answered.contains(memberId))
-                    .filter(memberId -> eventGroups.canSignUp(eventGroup.id(), memberId, permissions))
+        for (var eventGroup : open) {
+            var gave = answered.getOrDefault(eventGroup.id(), Set.of());
+            var owing = mayJoin.getOrDefault(eventGroup.id(), List.of()).stream()
+                    .filter(memberId -> !gave.contains(memberId))
                     .map(memberId -> new AwaitingMember(
                             memberId,
-                            Objects.requireNonNullElse(
-                                    identities
-                                            .local(session.stationId(), memberId)
-                                            .name(),
-                                    "")))
+                            names.computeIfAbsent(
+                                    memberId,
+                                    id -> Objects.requireNonNullElse(
+                                            identities
+                                                    .local(session.stationId(), id)
+                                                    .name(),
+                                            ""))))
                     .toList();
             if (!owing.isEmpty()) {
                 awaiting.add(new EventGroupAwaiting(
@@ -760,8 +763,7 @@ public class EventGroupRoutes implements Routes {
                 .filter(memberId -> eventGroups.canSee(eventGroup.id(), memberId, permissions))
                 .toList();
         return new EventGroupDetail(
-                EventGroupSummary.of(
-                        eventGroup, eventGroups.findParts(eventGroup.id()).size(), signUps.holding(eventGroup.id())),
+                EventGroupSummary.of(eventGroup, eventGroups.tally(eventGroup.id())),
                 eventGroups.findSets(eventGroup.id()),
                 signUps.partStates(eventGroup.id()),
                 eventGroups.registrationAudience(eventGroup.id()),
@@ -871,7 +873,7 @@ public class EventGroupRoutes implements Routes {
             @Nullable String color,
             @Nullable Integer minRegistrations,
             @Nullable Integer thresholdDays) {
-        public static EventGroupSummary of(EventGroup eventGroup, int partCount, int holding) {
+        public static EventGroupSummary of(EventGroup eventGroup, EventGroupTally tally) {
             return new EventGroupSummary(
                     eventGroup.id(),
                     eventGroup.name(),
@@ -881,8 +883,8 @@ public class EventGroupRoutes implements Routes {
                     eventGroup.requiresConfirmation(),
                     eventGroup.cancelled(),
                     eventGroup.cancelReason(),
-                    partCount,
-                    holding,
+                    tally.partCount(),
+                    tally.holding(),
                     eventGroup.color(),
                     eventGroup.minRegistrations(),
                     eventGroup.thresholdDays());

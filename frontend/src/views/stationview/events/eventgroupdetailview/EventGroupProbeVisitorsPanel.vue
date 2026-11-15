@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {waitingList} from '@/api'
 import type {EventGroupPartState, WaitingListVisitor} from '@/api/generated/schema'
@@ -46,19 +46,28 @@ async function visitorsOf(part: EventGroupPartState): Promise<PartVisitors> {
   }
 }
 
-watch(() => props.parts, async parts => {
+/** Which parts on which days the panel shows; a refresh that hands over the same parts anew loads nothing. */
+const partKey = computed(() => props.parts.map(part => `${part.eventId}@${part.startTime}`).join(','))
+
+watch(partKey, async () => {
   const load = ++latestLoad
-  const loaded = await Promise.all(parts.map(visitorsOf))
+  const loaded = await Promise.all(props.parts.map(visitorsOf))
   if (load !== latestLoad) return
   coming.value = loaded.filter(entry => entry.visitors.length > 0)
 }, {immediate: true})
+
+/** The loaded visitors under each part as the page holds it now, so a renamed part shows its new name. */
+const shown = computed(() => coming.value.map(entry => ({
+  ...entry,
+  part: props.parts.find(part => part.eventId === entry.part.eventId) ?? entry.part,
+})))
 </script>
 
 <template>
-  <NeutralContainer v-if="coming.length > 0" class="space-y-3" data-testid="event-group-probe-visitors">
+  <NeutralContainer v-if="shown.length > 0" class="space-y-3" data-testid="event-group-probe-visitors">
     <SubHeader>{{ t('eventDetail.probeVisitors') }}</SubHeader>
     <MutedText tag="p" size="sm">{{ t('eventGroups.probeVisitorsHint') }}</MutedText>
-    <div v-for="entry in coming" :key="entry.part.eventId" class="space-y-1" :data-testid="`event-group-probe-part-${entry.part.eventId}`">
+    <div v-for="entry in shown" :key="entry.part.eventId" class="space-y-1" :data-testid="`event-group-probe-part-${entry.part.eventId}`">
       <p class="text-sm font-medium">
         {{ t('eventGroups.probeVisitorsPart', {name: entry.part.name, date: formatDate(entry.part.startTime, stationTimezone)}) }}
       </p>

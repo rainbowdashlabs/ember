@@ -17,8 +17,10 @@ import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -249,6 +251,29 @@ public class EventGroupPartnerRepository {
         query("UPDATE event_federation_registration SET group_partner_registration_id = NULL WHERE id = :id;")
                 .single(call().bind("id", registrationId))
                 .update();
+    }
+
+    /**
+     * The partner registrations still tied to any partner sign-up of an event group, in one read.
+     *
+     * @param eventGroupId the event group
+     * @return the registrations for parts, by the partner's event group sign-up
+     */
+    public Map<Integer, List<EventFederationRegistration>> findLinkedByEventGroup(int eventGroupId) {
+        return query("""
+                SELECT f.id, f.event_id, f.partner_id, f.remote_member_id, f.event_date, f.status, f.created_at,
+                       f.agreement_withdrawn_at, f.group_partner_registration_id
+                FROM event_federation_registration f
+                         JOIN event_group_partner_registration r ON r.id = f.group_partner_registration_id
+                WHERE r.group_id = :group_id;""")
+                .single(call().bind("group_id", eventGroupId))
+                .map(row -> Map.entry(
+                        row.getInt("group_partner_registration_id"),
+                        EventFederationRegistration.map().map(row)))
+                .all()
+                .stream()
+                .collect(Collectors.groupingBy(
+                        Map.Entry::getKey, Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
     }
 
     /**

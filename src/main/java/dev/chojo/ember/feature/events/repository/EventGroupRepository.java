@@ -5,15 +5,18 @@
  */
 package dev.chojo.ember.feature.events.repository;
 
+import de.chojo.sadu.mapper.wrapper.Row;
 import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupPart;
 import dev.chojo.ember.feature.events.entity.EventGroupPartSummary;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
+import dev.chojo.ember.feature.events.entity.EventGroupTally;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,6 +38,21 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 @Singleton
 public class EventGroupRepository {
+    private static final String TALLY_SQL = """
+            SELECT g.id,
+                   (SELECT count(*)
+                    FROM station_event e
+                             JOIN event_group_set s ON s.id = e.event_group_set_id
+                    WHERE s.group_id = g.id) AS part_count,
+                   (SELECT count(*)
+                    FROM event_group_registration r
+                    WHERE r.group_id = g.id AND r.status IN ('PENDING', 'ACCEPTED'))
+                       + (SELECT count(*)
+                          FROM event_group_partner_registration p
+                          WHERE p.group_id = g.id AND p.status IN ('PENDING', 'ACCEPTED')) AS holding
+            FROM event_group g
+            WHERE %s;""";
+
     private static final String PART_COLUMNS = "e.id AS event_id, s.id AS set_id, s.group_id, e.event_group_required";
 
     /**
@@ -229,6 +247,39 @@ public class EventGroupRepository {
                 .single(call().bind("group_id", eventGroupId))
                 .map(EventGroupPart.map())
                 .all();
+    }
+
+    /**
+     * How many parts and holding sign-ups every event group of a station has, in one read.
+     *
+     * @param stationId the station
+     * @return the tally of each event group, by event group
+     */
+    public Map<Integer, EventGroupTally> findTallies(int stationId) {
+        return query(TALLY_SQL, "g.station_id = :station_id")
+                .single(call().bind("station_id", stationId))
+                .map(row -> Map.entry(row.getInt("id"), tallyOf(row)))
+                .all()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    /**
+     * How many parts and holding sign-ups one event group has.
+     *
+     * @param eventGroupId the event group
+     * @return its tally, none where there is no such event group
+     */
+    public EventGroupTally findTally(int eventGroupId) {
+        return query(TALLY_SQL, "g.id = :group_id")
+                .single(call().bind("group_id", eventGroupId))
+                .map(EventGroupRepository::tallyOf)
+                .first()
+                .orElse(EventGroupTally.NONE);
+    }
+
+    private static EventGroupTally tallyOf(Row row) throws SQLException {
+        return new EventGroupTally(row.getInt("part_count"), row.getInt("holding"));
     }
 
     /**

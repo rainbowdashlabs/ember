@@ -15,12 +15,14 @@ import dev.chojo.ember.feature.events.entity.EventGroupPart;
 import dev.chojo.ember.feature.events.entity.EventGroupPartSummary;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
+import dev.chojo.ember.feature.events.entity.EventGroupTally;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.question.FieldTypes;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.RestrictionMember;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.util.sql.Transactions;
@@ -28,12 +30,16 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -548,6 +554,26 @@ public class EventGroupService {
     }
 
     /**
+     * How many parts and holding sign-ups every event group of a station has, read at once for a list.
+     *
+     * @param stationId the station
+     * @return the tally of every event group of the station, by event group
+     */
+    public Map<Integer, EventGroupTally> tallies(int stationId) {
+        return eventGroups.findTallies(stationId);
+    }
+
+    /**
+     * How many parts and holding sign-ups one event group has, those of partners' members included.
+     *
+     * @param eventGroupId the event group
+     * @return its tally
+     */
+    public EventGroupTally tally(int eventGroupId) {
+        return eventGroups.findTally(eventGroupId);
+    }
+
+    /**
      * The parts of an event group in date order.
      *
      * @param eventGroupId the event group
@@ -615,6 +641,41 @@ public class EventGroupService {
     public boolean canSignUp(int eventGroupId, int memberId, Set<StationPermission> permissions) {
         return canSee(eventGroupId, memberId, permissions)
                 && restrictions.checkRestriction(RestrictionType.EVENT_GROUP, eventGroupId, memberId, permissions);
+    }
+
+    /**
+     * Which of the given members may sign up for each of the given event groups, as {@link #canSignUp}
+     * answers it for one, reading the members once and each event group's audiences once.
+     *
+     * @param eventGroupIds the event groups
+     * @param memberIds     the members
+     * @param permissions   what the reader may do at the station
+     * @return the members who may sign up, by event group, in the order the members were given
+     */
+    public Map<Integer, List<Integer>> whoMaySignUp(
+            Collection<Integer> eventGroupIds, List<Integer> memberIds, Set<StationPermission> permissions) {
+        var members = restrictions.membersOf(memberIds);
+        var known =
+                memberIds.stream().map(members::get).filter(Objects::nonNull).toList();
+        var result = new HashMap<Integer, List<Integer>>();
+        for (int eventGroupId : eventGroupIds) {
+            var sees = passes(RestrictionType.EVENT_GROUP_VIEW, eventGroupId, permissions);
+            var joins = passes(RestrictionType.EVENT_GROUP, eventGroupId, permissions);
+            result.put(
+                    eventGroupId,
+                    known.stream()
+                            .filter(sees)
+                            .filter(joins)
+                            .map(RestrictionMember::memberId)
+                            .toList());
+        }
+        return result;
+    }
+
+    private Predicate<RestrictionMember> passes(
+            RestrictionType type, int eventGroupId, Set<StationPermission> permissions) {
+        if (permissions.contains(type.managerPermission())) return member -> true;
+        return restrictions.audienceOf(type, eventGroupId)::includes;
     }
 
     /** Locks an event group of the station for the running transaction and reads it. */

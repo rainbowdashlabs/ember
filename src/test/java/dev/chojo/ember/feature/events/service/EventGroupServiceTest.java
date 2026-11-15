@@ -19,10 +19,12 @@ import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupPart;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
+import dev.chojo.ember.feature.events.entity.EventGroupTally;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -806,6 +808,26 @@ class EventGroupServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void aNewPartNeedsANameAStartAndAnEnd() {
+        var eventGroup = jugendflamme();
+        var factory = new EventGroupPartFactory(
+                newEventServices(mock(DomainEventBus.class)).crud(), service);
+        int setId = set(eventGroup, "Übung").id();
+        var start = LocalDate.now().plusDays(37).atTime(9, 0).toInstant(ZoneOffset.UTC);
+
+        assertRefused(
+                EventRefusal.EVENT_NEEDS_A_NAME,
+                () -> factory.create(
+                        station.id(), eventGroup.id(), setId, " ", null, start, start.plusSeconds(3600), null));
+        assertRefused(
+                EventRefusal.EVENT_GROUP_PART_NEEDS_TIMES,
+                () -> factory.create(station.id(), eventGroup.id(), setId, "Samstag", null, start, null, null));
+        var part = factory.create(
+                station.id(), eventGroup.id(), setId, "  Samstag ", null, start, start.plusSeconds(3600), null);
+        assertEquals("Samstag", eventRepo.findById(part.eventId()).orElseThrow().name());
+    }
+
+    @Test
     void onlyEventGroupsStillOpenWithAPartToComeAwaitAnswers() {
         var open = service.create(
                 otherStation.id(),
@@ -834,6 +856,60 @@ class EventGroupServiceTest extends RepositoryTestBase {
 
         assertTrue(ids.contains(open.id()));
         assertFalse(ids.contains(empty.id()));
+    }
+
+    @Test
+    void whoMaySignUpFollowsBothAudiencesAndLetsAManagerThrough() {
+        var joinOnlyAnna = jugendflamme();
+        var seenOnlyByAnna = jugendflamme();
+        var both = jugendflamme();
+        var onlyAnna =
+                new RestrictionAudience(List.of(), List.of(), List.of(), List.of(anna.id()), RestrictionMode.AND);
+        service.setAudiences(station.id(), joinOnlyAnna.id(), onlyAnna, RestrictionAudience.empty());
+        service.setAudiences(station.id(), seenOnlyByAnna.id(), RestrictionAudience.empty(), onlyAnna);
+        service.setAudiences(station.id(), both.id(), onlyAnna, onlyAnna);
+        var bertAccount = accountRepo.create("bert@eventGroup.test", "Bert", "EventGroup");
+        accounts.add(bertAccount.id());
+        var bert = stationMemberRepo.create(station.id(), bertAccount.id());
+        var groups = List.of(joinOnlyAnna.id(), seenOnlyByAnna.id(), both.id());
+
+        var asMember = service.whoMaySignUp(groups, List.of(anna.id(), bert.id(), -1), Set.of());
+        var asManager = service.whoMaySignUp(
+                groups, List.of(anna.id(), bert.id()), Set.of(RestrictionType.EVENT_GROUP.managerPermission()));
+
+        for (int eventGroupId : groups) {
+            assertEquals(List.of(anna.id()), asMember.get(eventGroupId));
+            assertEquals(List.of(anna.id(), bert.id()), asManager.get(eventGroupId));
+        }
+    }
+
+    @Test
+    void theTallyCountsPartsAndTheSignUpsHoldingAPlace() {
+        var eventGroup = jugendflamme();
+        var empty = create(details("Leer", false), List.of(new EventGroupSetDraft(null, "Teile", 1)));
+        service.addPart(
+                station.id(),
+                eventGroup.id(),
+                oneTime(61).id(),
+                set(eventGroup, "Übung").id());
+        service.addPart(
+                station.id(),
+                eventGroup.id(),
+                oneTime(62).id(),
+                set(eventGroup, "Prüfung").id());
+        var registrations = new EventGroupRegistrationRepository();
+        registrations.signUp(eventGroup.id(), anna.id(), RegistrationStatus.PENDING, null);
+
+        var tallies = service.tallies(station.id());
+
+        assertEquals(new EventGroupTally(2, 1), tallies.get(eventGroup.id()));
+        assertEquals(EventGroupTally.NONE, tallies.get(empty.id()));
+        assertEquals(new EventGroupTally(2, 1), service.tally(eventGroup.id()));
+        assertEquals(EventGroupTally.NONE, service.tally(-1));
+        assertEquals(
+                Set.of(anna.id()),
+                registrations.findAnsweredBy(List.of(anna.id())).get(eventGroup.id()));
+        assertEquals(Map.of(), registrations.findAnsweredBy(List.of()));
     }
 
     @Test
