@@ -52,7 +52,7 @@ public class EventReminderRepository {
                 UNION ALL
                 SELECT gr.days_before
                 FROM event_group_reminder gr
-                         JOIN event_group_set gs ON gs.group_id = gr.group_id
+                         JOIN event_group_set gs ON gs.event_group_id = gr.event_group_id
                          JOIN station_event e ON e.event_group_set_id = gs.id
                 WHERE e.id = :event_id
                   AND NOT EXISTS (SELECT 1 FROM event_reminder own WHERE own.event_id = :event_id)
@@ -69,8 +69,9 @@ public class EventReminderRepository {
      * @return the days-before values
      */
     public List<Integer> findGroupDays(int groupId) {
-        return query("SELECT days_before FROM event_group_reminder WHERE group_id = :group_id ORDER BY days_before;")
-                .single(call().bind("group_id", groupId))
+        return query(
+                        "SELECT days_before FROM event_group_reminder WHERE event_group_id = :event_group_id ORDER BY days_before;")
+                .single(call().bind("event_group_id", groupId))
                 .map(row -> row.getInt("days_before"))
                 .all();
     }
@@ -82,14 +83,14 @@ public class EventReminderRepository {
      * @param daysBefore the new days-before values, each above zero
      */
     public void replaceGroupDays(int groupId, List<Integer> daysBefore) {
-        query("DELETE FROM event_group_reminder WHERE group_id = :group_id;")
-                .single(call().bind("group_id", groupId))
+        query("DELETE FROM event_group_reminder WHERE event_group_id = :event_group_id;")
+                .single(call().bind("event_group_id", groupId))
                 .delete();
         query("""
-                INSERT INTO event_group_reminder(group_id, days_before)
-                SELECT DISTINCT :group_id, days
+                INSERT INTO event_group_reminder(event_group_id, days_before)
+                SELECT DISTINCT :event_group_id, days
                 FROM unnest(:days::INT[]) AS chosen(days);""")
-                .single(call().bind("group_id", groupId).bind("days", daysBefore, PostgreSqlTypes.INTEGER))
+                .single(call().bind("event_group_id", groupId).bind("days", daysBefore, PostgreSqlTypes.INTEGER))
                 .insert();
     }
 

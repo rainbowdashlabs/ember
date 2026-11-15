@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:41826c4fad01f762eb64944c08fbfd2439d986c30443f0d51e1006fc6ebbb58c",
-  "generatedAt": "2026-11-14T22:33:02Z",
+  "schemaHash": "sha256:e448db5ba2125fe62e690b78a6fd8420c93259faaf0adf02122260f3078014b8",
+  "generatedAt": "2026-11-15T17:15:19Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -11159,13 +11159,6 @@
           "description": "The colour that marks the parts of the event group in lists, as #rrggbb; NULL takes one picked by its id."
         },
         {
-          "name": "created_at",
-          "type": "timestamptz",
-          "nullable": false,
-          "verified": true,
-          "description": "When the event group was created."
-        },
-        {
           "name": "template_id",
           "type": "int4",
           "nullable": true,
@@ -11184,14 +11177,21 @@
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "How many sign-ups, of this station and of partner stations, must be accepted for the event group to take place. NULL for no minimum."
+          "description": "How many sign-ups, of this station and of partner stations, must be accepted for the event group to take place; short of it some days before its first part, the whole event group is called off. Its parts keep no minimum of their own. NULL for no minimum."
         },
         {
           "name": "threshold_days",
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "How many days before the first part still taking place the minimum must be reached; short of it then, the whole event group is called off. Set exactly when the minimum is."
+          "description": "How many days before the first part still taking place the minimum must be reached. Set exactly when the minimum is."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the event group was created."
         }
       ],
       "foreignKeys": [
@@ -11294,10 +11294,10 @@
     "event_group_deadline_reminder_sent": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:ff9a542efc534a221bcd77d7e7e2f08449f0f81024dcf1c857c332551664aaaa",
+      "tableHash": "sha256:89e4b11d0479d53c75995c5b864d3d92006c385fac688962e08e1943b15c1b82",
       "columns": [
         {
-          "name": "group_id",
+          "name": "event_group_id",
           "type": "int4",
           "nullable": false,
           "verified": true,
@@ -11320,7 +11320,7 @@
       ],
       "foreignKeys": [
         {
-          "column": "group_id",
+          "column": "event_group_id",
           "refTable": "event_group",
           "refColumn": "id",
           "onDelete": "CASCADE"
@@ -11343,7 +11343,7 @@
     "event_group_field": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:fbd5b9642bb149f625063ee892545f66dfdac8634563e0457cd09a5d5ac0f3e4",
+      "tableHash": "sha256:778e2de140f10784886a370f360508b2e51c0a231958195765a1dcecd949b0db",
       "columns": [
         {
           "name": "id",
@@ -11353,7 +11353,7 @@
           "description": "Auto-generated primary key."
         },
         {
-          "name": "group_id",
+          "name": "event_group_id",
           "type": "int4",
           "nullable": false,
           "verified": true,
@@ -11411,7 +11411,7 @@
       ],
       "foreignKeys": [
         {
-          "column": "group_id",
+          "column": "event_group_id",
           "refTable": "event_group",
           "refColumn": "id",
           "onDelete": "CASCADE"
@@ -11433,10 +11433,10 @@
     "event_group_field_default": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:a7d382765bd62dae237f50293739060889cd940f870884c331f4af0809031f6a",
+      "tableHash": "sha256:8951c95e9ab2abfc2a50646c1b86ede63b08c19df5b933706b374b5b02bfb22f",
       "columns": [
         {
-          "name": "group_id",
+          "name": "event_group_id",
           "type": "int4",
           "nullable": false,
           "verified": true,
@@ -11466,14 +11466,14 @@
       ],
       "foreignKeys": [
         {
-          "column": "field_id",
-          "refTable": "attendance_template_field",
+          "column": "event_group_id",
+          "refTable": "event_group",
           "refColumn": "id",
           "onDelete": "CASCADE"
         },
         {
-          "column": "group_id",
-          "refTable": "event_group",
+          "column": "field_id",
+          "refTable": "attendance_template_field",
           "refColumn": "id",
           "onDelete": "CASCADE"
         }
@@ -11572,7 +11572,7 @@
     "event_group_partner_registration": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:c11379fba7d94dcfb8ec284628f2c27ebdf15a700a59d52ec2fddeca7804eeca",
+      "tableHash": "sha256:bd32699bb074149473437ef97a2d05e93d81b7fa09061da8fd820aa84dc07874",
       "columns": [
         {
           "name": "id",
@@ -11582,7 +11582,7 @@
           "description": "Auto-generated primary key."
         },
         {
-          "name": "group_id",
+          "name": "event_group_id",
           "type": "int4",
           "nullable": false,
           "verified": true,
@@ -11619,7 +11619,7 @@
       ],
       "foreignKeys": [
         {
-          "column": "group_id",
+          "column": "event_group_id",
           "refTable": "event_group",
           "refColumn": "id",
           "onDelete": "CASCADE"
@@ -11652,7 +11652,7 @@
     "event_group_registration": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:87d332e856e68e6e3e3d3c15873aae843ee80ca652bb1993a41db489f20458a6",
+      "tableHash": "sha256:7290907e2491f3744312db9c24a9831d1dbd7afafe1da0b04ce66c3106ef98e0",
       "columns": [
         {
           "name": "id",
@@ -11662,7 +11662,7 @@
           "description": "Auto-generated primary key."
         },
         {
-          "name": "group_id",
+          "name": "event_group_id",
           "type": "int4",
           "nullable": false,
           "verified": true,
@@ -11705,7 +11705,7 @@
           "onDelete": "SET NULL"
         },
         {
-          "column": "group_id",
+          "column": "event_group_id",
           "refTable": "event_group",
           "refColumn": "id",
           "onDelete": "CASCADE"
@@ -11749,10 +11749,10 @@
     "event_group_reminder": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:0c0f542d444d186496f1563b5ab2f9f14e0662c8416dc80dafb2aa510c3de34f",
+      "tableHash": "sha256:e0a6e492c584d9fbd3db471692d259be19d1a76d22be9885dd58139e390ea631",
       "columns": [
         {
-          "name": "group_id",
+          "name": "event_group_id",
           "type": "int4",
           "nullable": false,
           "verified": true,
@@ -11768,7 +11768,7 @@
       ],
       "foreignKeys": [
         {
-          "column": "group_id",
+          "column": "event_group_id",
           "refTable": "event_group",
           "refColumn": "id",
           "onDelete": "CASCADE"
@@ -11877,7 +11877,7 @@
     "event_group_set": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:21d66150b962cb85e859004469ea18abc7e8e3c0e059eabdfde76a6130c5907b",
+      "tableHash": "sha256:d0f88ac20a6b9f0d693a3f7481d67c11c0c30d9560c2af9d0f6af02846eeb63f",
       "columns": [
         {
           "name": "id",
@@ -11887,7 +11887,7 @@
           "description": "Auto-generated primary key."
         },
         {
-          "name": "group_id",
+          "name": "event_group_id",
           "type": "int4",
           "nullable": false,
           "verified": true,
@@ -11917,7 +11917,7 @@
       ],
       "foreignKeys": [
         {
-          "column": "group_id",
+          "column": "event_group_id",
           "refTable": "event_group",
           "refColumn": "id",
           "onDelete": "CASCADE"
@@ -11939,10 +11939,10 @@
     "event_group_share": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:43ac493d6372549e5634adf6343eb9324c3874eb7c1291a08a83683ff58708e5",
+      "tableHash": "sha256:a048c3d98ea93bd2535857f31f564aaa6b3324fb1101995ddab5aa03165066f3",
       "columns": [
         {
-          "name": "group_id",
+          "name": "event_group_id",
           "type": "int4",
           "nullable": false,
           "verified": true,
@@ -11958,7 +11958,7 @@
       ],
       "foreignKeys": [
         {
-          "column": "group_id",
+          "column": "event_group_id",
           "refTable": "event_group",
           "refColumn": "id",
           "onDelete": "CASCADE"
@@ -11981,10 +11981,10 @@
     "event_group_share_target": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:9f681f72e7688ad77dcceb15b4f4efd8c2739771c5c09fb90ca35786232e8ee7",
+      "tableHash": "sha256:2a0988a039e9b86edd1013f9f994201e15256aa7264a5749eb2b8bcba7ce3d09",
       "columns": [
         {
-          "name": "group_id",
+          "name": "event_group_id",
           "type": "int4",
           "nullable": false,
           "verified": true,
@@ -12000,9 +12000,9 @@
       ],
       "foreignKeys": [
         {
-          "column": "group_id",
+          "column": "event_group_id",
           "refTable": "event_group_share",
-          "refColumn": "group_id",
+          "refColumn": "event_group_id",
           "onDelete": "CASCADE"
         },
         {
@@ -12432,7 +12432,7 @@
     "event_registration_field": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:aaea5ed32f89627c4b0439ca54463d09ab1e2876cd7573846a0b83df2203e295",
+      "tableHash": "sha256:bb082dc7d080381f7513d79518c02662ebe57a1b1c9075e699a3a41a656a38f2",
       "columns": [
         {
           "name": "id",
@@ -12484,23 +12484,23 @@
           "description": "Whether the answer is shown next to the member in the registration list, rather than only on the registration itself."
         },
         {
-          "name": "group_id",
+          "name": "event_group_id",
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "The event group asking the question of everyone signing up for it; NULL for a question of an appointment. Exactly one of event_id and group_id is set."
+          "description": "The event group asking the question of everyone signing up for it; NULL for a question of an appointment. Exactly one of event_id and event_group_id is set."
         }
       ],
       "foreignKeys": [
         {
-          "column": "event_id",
-          "refTable": "station_event",
+          "column": "event_group_id",
+          "refTable": "event_group",
           "refColumn": "id",
           "onDelete": "CASCADE"
         },
         {
-          "column": "group_id",
-          "refTable": "event_group",
+          "column": "event_id",
+          "refTable": "station_event",
           "refColumn": "id",
           "onDelete": "CASCADE"
         }
@@ -24686,7 +24686,7 @@
     "partner_event_group_signup": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:729289b4ea49e8d9a74fc77602367a47e9eea7eac7fdba12cb99d6539dc146be",
+      "tableHash": "sha256:e5f21a31817c27f52183a505abbf9b9a658c1af70772d810bb595d97f0fc2927",
       "columns": [
         {
           "name": "member_id",
@@ -24703,7 +24703,7 @@
           "description": "The partner station holding the event group."
         },
         {
-          "name": "remote_group_id",
+          "name": "remote_event_group_id",
           "type": "int4",
           "nullable": false,
           "verified": true,

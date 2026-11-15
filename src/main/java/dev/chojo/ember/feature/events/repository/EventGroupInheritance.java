@@ -29,7 +29,7 @@ public final class EventGroupInheritance {
         return """
                 COALESCE(%1$s.%2$s, (SELECT g.%2$s
                                      FROM event_group_set gs
-                                              JOIN event_group g ON g.id = gs.group_id
+                                              JOIN event_group g ON g.id = gs.event_group_id
                                      WHERE gs.id = %1$s.event_group_set_id))""".formatted(table, column);
     }
 

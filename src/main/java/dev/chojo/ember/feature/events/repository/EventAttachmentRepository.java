@@ -51,7 +51,7 @@ public class EventAttachmentRepository {
             SELECT a.id, e.id AS event_id, TRUE AS from_event_group, 0 AS rank, %1$s
             FROM event_attachment a
                      JOIN station_file f ON f.id = a.file_id
-                     JOIN event_group_set gs ON gs.group_id = a.event_group_id
+                     JOIN event_group_set gs ON gs.event_group_id = a.event_group_id
                      JOIN station_event e ON e.event_group_set_id = gs.id
             WHERE e.id = ANY(:event_ids)
             UNION ALL

@@ -29,11 +29,12 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class EventRegistrationFieldRepository {
 
-    private static final String FIELD_COLUMNS = "id, event_id, group_id, name, field_type, config, position, overview";
+    private static final String FIELD_COLUMNS =
+            "id, event_id, event_group_id, name, field_type, config, position, overview";
     private static final String VALUE_COLUMNS = "registration_id, field_id, value";
     private static final String EVENT_GROUP_VALUE_COLUMNS = "group_registration_id AS registration_id, field_id, value";
     private static final String EVENT_OWNER = "event_id";
-    private static final String EVENT_GROUP_OWNER = "group_id";
+    private static final String EVENT_GROUP_OWNER = "event_group_id";
 
     public List<EventRegistrationField> findByEvent(int eventId) {
         return findByOwner(EVENT_OWNER, eventId);

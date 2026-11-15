@@ -19,13 +19,13 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
 public record EventGroupSet(int id, int eventGroupId, String name, int minimum, int position) {
 
     /** The columns {@link #map()} reads. */
-    public static final String COLUMNS = "id, group_id, name, minimum, position";
+    public static final String COLUMNS = "id, event_group_id, name, minimum, position";
 
     /** Reads a set from a row holding {@link #COLUMNS}. */
     public static RowMapping<EventGroupSet> map() {
         return row -> new EventGroupSet(
                 row.getInt("id"),
-                row.getInt("group_id"),
+                row.getInt("event_group_id"),
                 row.getString("name"),
                 row.getInt("minimum"),
                 row.getInt("position"));

@@ -30,7 +30,7 @@ public class EventRequirementRepository {
     /** The templates the event group of the appointment {@code :id} asks for, as {@code gr}. */
     private static final String GROUP_OF_EVENT = """
             event_document_requirement gr
-                     JOIN event_group_set gs ON gs.group_id = gr.event_group_id
+                     JOIN event_group_set gs ON gs.event_group_id = gr.event_group_id
                      JOIN station_event ge ON ge.event_group_set_id = gs.id
             WHERE ge.id = :id""";
 

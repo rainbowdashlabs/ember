@@ -38,16 +38,17 @@ public class EventGroupPartnerRepository {
      * @return the share, empty where the event group is not shared
      */
     public Optional<EventGroupShare> findShare(int eventGroupId) {
-        return query("SELECT scope FROM event_group_share WHERE group_id = :group_id;")
-                .single(call().bind("group_id", eventGroupId))
+        return query("SELECT scope FROM event_group_share WHERE event_group_id = :event_group_id;")
+                .single(call().bind("event_group_id", eventGroupId))
                 .map(row -> new EventGroupShare(
                         eventGroupId, row.getEnum("scope", ShareScope.class), targets(eventGroupId)))
                 .first();
     }
 
     private List<Integer> targets(int eventGroupId) {
-        return query("SELECT partner_id FROM event_group_share_target WHERE group_id = :group_id ORDER BY partner_id;")
-                .single(call().bind("group_id", eventGroupId))
+        return query(
+                        "SELECT partner_id FROM event_group_share_target WHERE event_group_id = :event_group_id ORDER BY partner_id;")
+                .single(call().bind("event_group_id", eventGroupId))
                 .map(row -> row.getInt("partner_id"))
                 .all();
     }
@@ -61,16 +62,17 @@ public class EventGroupPartnerRepository {
      */
     public void setShare(int eventGroupId, ShareScope scope, List<Integer> partnerIds) {
         query("""
-                INSERT INTO event_group_share(group_id, scope) VALUES (:group_id, :scope)
-                ON CONFLICT (group_id) DO UPDATE SET scope = :scope;""")
-                .single(call().bind("group_id", eventGroupId).bind("scope", scope))
+                INSERT INTO event_group_share(event_group_id, scope) VALUES (:event_group_id, :scope)
+                ON CONFLICT (event_group_id) DO UPDATE SET scope = :scope;""")
+                .single(call().bind("event_group_id", eventGroupId).bind("scope", scope))
                 .insert();
-        query("DELETE FROM event_group_share_target WHERE group_id = :group_id;")
-                .single(call().bind("group_id", eventGroupId))
+        query("DELETE FROM event_group_share_target WHERE event_group_id = :event_group_id;")
+                .single(call().bind("event_group_id", eventGroupId))
                 .delete();
         for (int partnerId : partnerIds) {
-            query("INSERT INTO event_group_share_target(group_id, partner_id) VALUES (:group_id, :partner_id);")
-                    .single(call().bind("group_id", eventGroupId).bind("partner_id", partnerId))
+            query(
+                            "INSERT INTO event_group_share_target(event_group_id, partner_id) VALUES (:event_group_id, :partner_id);")
+                    .single(call().bind("event_group_id", eventGroupId).bind("partner_id", partnerId))
                     .insert();
         }
     }
@@ -81,8 +83,8 @@ public class EventGroupPartnerRepository {
      * @param eventGroupId the event group
      */
     public void removeShare(int eventGroupId) {
-        query("DELETE FROM event_group_share WHERE group_id = :group_id;")
-                .single(call().bind("group_id", eventGroupId))
+        query("DELETE FROM event_group_share WHERE event_group_id = :event_group_id;")
+                .single(call().bind("event_group_id", eventGroupId))
                 .delete();
     }
 
@@ -96,15 +98,15 @@ public class EventGroupPartnerRepository {
      */
     public List<Integer> findSharedEventGroupIds(int partnerId, int stationId) {
         return query("""
-                SELECT ec.id
-                FROM event_group_share ecs
-                    JOIN event_group ec ON ec.id = ecs.group_id
-                WHERE ec.station_id = :station_id
+                SELECT g.id
+                FROM event_group_share gs
+                    JOIN event_group g ON g.id = gs.event_group_id
+                WHERE g.station_id = :station_id
                   AND %s
-                  AND (ecs.scope = 'ALL_PARTNERS'
-                       OR (ecs.scope = 'SPECIFIC'
+                  AND (gs.scope = 'ALL_PARTNERS'
+                       OR (gs.scope = 'SPECIFIC'
                            AND exists (SELECT 1 FROM event_group_share_target t
-                                       WHERE t.group_id = ecs.group_id AND t.partner_id = :partner_id)));""", RestrictionSql.unrestricted(RestrictionType.EVENT_GROUP_VIEW, "ec.id"))
+                                       WHERE t.event_group_id = gs.event_group_id AND t.partner_id = :partner_id)));""", RestrictionSql.unrestricted(RestrictionType.EVENT_GROUP_VIEW, "g.id"))
                 .single(call().bind("station_id", stationId).bind("partner_id", partnerId))
                 .map(row -> row.getInt("id"))
                 .all();
@@ -121,8 +123,8 @@ public class EventGroupPartnerRepository {
     public Optional<EventGroupPartnerRegistration> find(int eventGroupId, int partnerId, UUID remoteMemberId) {
         return query("""
                 SELECT %s FROM event_group_partner_registration
-                WHERE group_id = :group_id AND partner_id = :partner_id AND remote_member_id = :member::UUID;""", EventGroupPartnerRegistration.COLUMNS)
-                .single(call().bind("group_id", eventGroupId)
+                WHERE event_group_id = :event_group_id AND partner_id = :partner_id AND remote_member_id = :member::UUID;""", EventGroupPartnerRegistration.COLUMNS)
+                .single(call().bind("event_group_id", eventGroupId)
                         .bind("partner_id", partnerId)
                         .bind("member", remoteMemberId, StandardValueConverter.UUID_STRING))
                 .map(EventGroupPartnerRegistration.map())
@@ -153,9 +155,9 @@ public class EventGroupPartnerRepository {
     public List<EventGroupPartnerRegistration> findByEventGroup(int eventGroupId) {
         return query("""
                 SELECT %s FROM event_group_partner_registration
-                WHERE group_id = :group_id
+                WHERE event_group_id = :event_group_id
                 ORDER BY registered_at, id;""", EventGroupPartnerRegistration.COLUMNS)
-                .single(call().bind("group_id", eventGroupId))
+                .single(call().bind("event_group_id", eventGroupId))
                 .map(EventGroupPartnerRegistration.map())
                 .all();
     }
@@ -173,12 +175,12 @@ public class EventGroupPartnerRepository {
             int eventGroupId, int partnerId, UUID remoteMemberId, RegistrationStatus status) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO event_group_partner_registration(group_id, partner_id, remote_member_id, status)
-                VALUES (:group_id, :partner_id, :member::UUID, :status)
-                ON CONFLICT (group_id, partner_id, remote_member_id) DO UPDATE
+                INSERT INTO event_group_partner_registration(event_group_id, partner_id, remote_member_id, status)
+                VALUES (:event_group_id, :partner_id, :member::UUID, :status)
+                ON CONFLICT (event_group_id, partner_id, remote_member_id) DO UPDATE
                     SET status = :status, registered_at = now()
                 RETURNING %s;""",
-                call().bind("group_id", eventGroupId)
+                call().bind("event_group_id", eventGroupId)
                         .bind("partner_id", partnerId)
                         .bind("member", remoteMemberId, StandardValueConverter.UUID_STRING)
                         .bind("status", status),
@@ -207,8 +209,8 @@ public class EventGroupPartnerRepository {
     public int countHolding(int eventGroupId) {
         return query("""
                 SELECT count(*) AS holding FROM event_group_partner_registration
-                WHERE group_id = :group_id AND status IN ('PENDING', 'ACCEPTED');""")
-                .single(call().bind("group_id", eventGroupId))
+                WHERE event_group_id = :event_group_id AND status IN ('PENDING', 'ACCEPTED');""")
+                .single(call().bind("event_group_id", eventGroupId))
                 .map(row -> row.getInt("holding"))
                 .first()
                 .orElse(0);
@@ -223,7 +225,7 @@ public class EventGroupPartnerRepository {
     public int countAccepted(int eventGroupId) {
         return SqlSupport.count("""
                 SELECT count(*) FROM event_group_partner_registration
-                WHERE group_id = :group_id AND status = 'ACCEPTED';""", call().bind("group_id", eventGroupId));
+                WHERE event_group_id = :event_group_id AND status = 'ACCEPTED';""", call().bind("event_group_id", eventGroupId));
     }
 
     /**
@@ -265,8 +267,8 @@ public class EventGroupPartnerRepository {
                        f.agreement_withdrawn_at, f.group_partner_registration_id
                 FROM event_federation_registration f
                          JOIN event_group_partner_registration r ON r.id = f.group_partner_registration_id
-                WHERE r.group_id = :group_id;""")
-                .single(call().bind("group_id", eventGroupId))
+                WHERE r.event_group_id = :event_group_id;""")
+                .single(call().bind("event_group_id", eventGroupId))
                 .map(row -> Map.entry(
                         row.getInt("group_partner_registration_id"),
                         EventFederationRegistration.map().map(row)))

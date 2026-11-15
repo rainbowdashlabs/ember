@@ -28,13 +28,13 @@ public record EventGroupPartnerRegistration(
         int id, int eventGroupId, int partnerId, UUID remoteMemberId, RegistrationStatus status, Instant registeredAt) {
 
     /** The columns {@link #map()} reads. */
-    public static final String COLUMNS = "id, group_id, partner_id, remote_member_id, status, registered_at";
+    public static final String COLUMNS = "id, event_group_id, partner_id, remote_member_id, status, registered_at";
 
     /** Reads a sign-up from a row holding {@link #COLUMNS}. */
     public static RowMapping<EventGroupPartnerRegistration> map() {
         return row -> new EventGroupPartnerRegistration(
                 row.getInt("id"),
-                row.getInt("group_id"),
+                row.getInt("event_group_id"),
                 row.getInt("partner_id"),
                 row.get("remote_member_id", StandardValueConverter.UUID_STRING),
                 row.getEnum("status", RegistrationStatus.class),

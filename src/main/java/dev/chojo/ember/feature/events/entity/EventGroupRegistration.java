@@ -32,13 +32,13 @@ public record EventGroupRegistration(
         @Nullable Integer createdBy) {
 
     /** The columns {@link #map()} reads. */
-    public static final String COLUMNS = "id, group_id, member_id, status, registered_at, created_by";
+    public static final String COLUMNS = "id, event_group_id, member_id, status, registered_at, created_by";
 
     /** Reads a sign-up from a row holding {@link #COLUMNS}. */
     public static RowMapping<EventGroupRegistration> map() {
         return row -> new EventGroupRegistration(
                 row.getInt("id"),
-                row.getInt("group_id"),
+                row.getInt("event_group_id"),
                 row.getInt("member_id"),
                 row.getEnum("status", RegistrationStatus.class),
                 row.get("registered_at", INSTANT_TIMESTAMP),

@@ -87,9 +87,9 @@ public class EventRegistrationRepository {
         return query("""
                 SELECT %s
                 FROM event_registration
-                WHERE group_registration_id IN (SELECT id FROM event_group_registration WHERE group_id = :group_id)
+                WHERE group_registration_id IN (SELECT id FROM event_group_registration WHERE event_group_id = :event_group_id)
                 ORDER BY member_id, event_id;""", COLUMNS)
-                .single(call().bind("group_id", eventGroupId))
+                .single(call().bind("event_group_id", eventGroupId))
                 .map(EventRegistration.map())
                 .all();
     }

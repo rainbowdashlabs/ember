@@ -43,17 +43,18 @@ public class EventGroupRepository {
                    (SELECT count(*)
                     FROM station_event e
                              JOIN event_group_set s ON s.id = e.event_group_set_id
-                    WHERE s.group_id = g.id) AS part_count,
+                    WHERE s.event_group_id = g.id) AS part_count,
                    (SELECT count(*)
                     FROM event_group_registration r
-                    WHERE r.group_id = g.id AND r.status IN ('PENDING', 'ACCEPTED'))
+                    WHERE r.event_group_id = g.id AND r.status IN ('PENDING', 'ACCEPTED'))
                        + (SELECT count(*)
                           FROM event_group_partner_registration p
-                          WHERE p.group_id = g.id AND p.status IN ('PENDING', 'ACCEPTED')) AS holding
+                          WHERE p.event_group_id = g.id AND p.status IN ('PENDING', 'ACCEPTED')) AS holding
             FROM event_group g
             WHERE %s;""";
 
-    private static final String PART_COLUMNS = "e.id AS event_id, s.id AS set_id, s.group_id, e.event_group_required";
+    private static final String PART_COLUMNS =
+            "e.id AS event_id, s.id AS set_id, s.event_group_id, e.event_group_required";
 
     /**
      * Creates an event group.
@@ -175,9 +176,9 @@ public class EventGroupRepository {
      */
     public List<EventGroupSet> findSets(int eventGroupId) {
         return query(
-                        "SELECT %s FROM event_group_set WHERE group_id = :group_id ORDER BY position, id;",
+                        "SELECT %s FROM event_group_set WHERE event_group_id = :event_group_id ORDER BY position, id;",
                         EventGroupSet.COLUMNS)
-                .single(call().bind("group_id", eventGroupId))
+                .single(call().bind("event_group_id", eventGroupId))
                 .map(EventGroupSet.map())
                 .all();
     }
@@ -194,10 +195,10 @@ public class EventGroupRepository {
     public EventGroupSet createSet(int eventGroupId, String name, int minimum, int position) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO event_group_set(group_id, name, minimum, position)
-                VALUES (:group_id, :name, :minimum, :position)
+                INSERT INTO event_group_set(event_group_id, name, minimum, position)
+                VALUES (:event_group_id, :name, :minimum, :position)
                 RETURNING %s;""",
-                call().bind("group_id", eventGroupId)
+                call().bind("event_group_id", eventGroupId)
                         .bind("name", name)
                         .bind("minimum", minimum)
                         .bind("position", position),
@@ -242,9 +243,9 @@ public class EventGroupRepository {
                 SELECT %s
                 FROM station_event e
                          JOIN event_group_set s ON s.id = e.event_group_set_id
-                WHERE s.group_id = :group_id
+                WHERE s.event_group_id = :event_group_id
                 ORDER BY e.start_time, e.id;""", PART_COLUMNS)
-                .single(call().bind("group_id", eventGroupId))
+                .single(call().bind("event_group_id", eventGroupId))
                 .map(EventGroupPart.map())
                 .all();
     }
@@ -271,8 +272,8 @@ public class EventGroupRepository {
      * @return its tally, none where there is no such event group
      */
     public EventGroupTally findTally(int eventGroupId) {
-        return query(TALLY_SQL, "g.id = :group_id")
-                .single(call().bind("group_id", eventGroupId))
+        return query(TALLY_SQL, "g.id = :event_group_id")
+                .single(call().bind("event_group_id", eventGroupId))
                 .map(EventGroupRepository::tallyOf)
                 .first()
                 .orElse(EventGroupTally.NONE);
@@ -291,7 +292,7 @@ public class EventGroupRepository {
     public Map<Integer, EventGroupPartSummary> findPartSummaries(int stationId) {
         return query("""
                 SELECT e.id AS event_id,
-                       c.id AS group_id,
+                       c.id AS event_group_id,
                        c.name AS group_name,
                        c.color AS group_color,
                        s.id AS set_id,
@@ -302,13 +303,13 @@ public class EventGroupRepository {
                        max(e.end_time) OVER (PARTITION BY c.id) AS last_end
                 FROM station_event e
                          JOIN event_group_set s ON s.id = e.event_group_set_id
-                         JOIN event_group c ON c.id = s.group_id
+                         JOIN event_group c ON c.id = s.event_group_id
                 WHERE c.station_id = :station_id;""")
                 .single(call().bind("station_id", stationId))
                 .map(row -> Map.entry(
                         row.getInt("event_id"),
                         new EventGroupPartSummary(
-                                row.getInt("group_id"),
+                                row.getInt("event_group_id"),
                                 row.getString("group_name"),
                                 row.getInt("set_id"),
                                 row.getString("set_name"),
@@ -478,9 +479,9 @@ public class EventGroupRepository {
                     JOIN attendance_entry e ON e.session_id = s.id
                     JOIN station_event se ON se.id = s.event_id
                     JOIN event_group_set cs ON cs.id = se.event_group_set_id
-                WHERE cs.group_id = :group_id
+                WHERE cs.event_group_id = :event_group_id
                   AND e.status = 'PRESENT';""")
-                .single(call().bind("group_id", eventGroupId))
+                .single(call().bind("event_group_id", eventGroupId))
                 .map(row -> new int[] {row.getInt("member_id"), row.getInt("event_id")})
                 .all()
                 .forEach(pair -> present.computeIfAbsent(pair[0], member -> new HashSet<>())
@@ -497,18 +498,18 @@ public class EventGroupRepository {
     public void handDownShare(int eventGroupId, int eventId) {
         query("""
                 INSERT INTO event_federation_share(event_id, scope)
-                SELECT :event_id, scope FROM event_group_share WHERE group_id = :group_id
+                SELECT :event_id, scope FROM event_group_share WHERE event_group_id = :event_group_id
                 ON CONFLICT (event_id) DO UPDATE SET scope = EXCLUDED.scope;""")
-                .single(call().bind("event_id", eventId).bind("group_id", eventGroupId))
+                .single(call().bind("event_id", eventId).bind("event_group_id", eventGroupId))
                 .insert();
         query("""
                 INSERT INTO event_federation_share_target(share_id, partner_id)
                 SELECT efs.id, t.partner_id
                 FROM event_federation_share efs
-                    JOIN event_group_share_target t ON t.group_id = :group_id
+                    JOIN event_group_share_target t ON t.event_group_id = :event_group_id
                 WHERE efs.event_id = :event_id
                 ON CONFLICT DO NOTHING;""")
-                .single(call().bind("event_id", eventId).bind("group_id", eventGroupId))
+                .single(call().bind("event_id", eventId).bind("event_group_id", eventGroupId))
                 .insert();
     }
 
@@ -523,7 +524,7 @@ public class EventGroupRepository {
                 SET event_group_set_id   = NULL,
                     event_group_required = FALSE,
                     updated_at           = now()
-                WHERE event_group_set_id IN (SELECT id FROM event_group_set WHERE group_id = :group_id);""").single(call().bind("group_id", eventGroupId)).update();
+                WHERE event_group_set_id IN (SELECT id FROM event_group_set WHERE event_group_id = :event_group_id);""").single(call().bind("event_group_id", eventGroupId)).update();
     }
 
     /**
@@ -575,8 +576,8 @@ public class EventGroupRepository {
                     min_registrations       = NULL,
                     threshold_days          = NULL,
                     updated_at              = now()
-                WHERE event_group_set_id IN (SELECT id FROM event_group_set WHERE group_id = :group_id);""")
-                .single(call().bind("group_id", eventGroupId)
+                WHERE event_group_set_id IN (SELECT id FROM event_group_set WHERE event_group_id = :event_group_id);""")
+                .single(call().bind("event_group_id", eventGroupId)
                         .bind("requires_confirmation", requiresConfirmation)
                         .bind("registration_deadline", deadline, INSTANT_TIMESTAMP))
                 .update();
@@ -627,9 +628,9 @@ public class EventGroupRepository {
      */
     public List<ExpiredEventGroupDeadline> findExpiredDeadlines() {
         return query("""
-                SELECT c.id AS group_id, c.station_id, c.name, count(r.id) AS pending_count
+                SELECT c.id AS event_group_id, c.station_id, c.name, count(r.id) AS pending_count
                 FROM event_group c
-                         JOIN event_group_registration r ON r.group_id = c.id AND r.status = 'PENDING'
+                         JOIN event_group_registration r ON r.event_group_id = c.id AND r.status = 'PENDING'
                 WHERE c.registration_deadline IS NOT NULL
                   AND c.registration_deadline < now()
                   AND NOT c.deadline_notified
@@ -637,7 +638,7 @@ public class EventGroupRepository {
                 GROUP BY c.id, c.station_id, c.name;""")
                 .single(call())
                 .map(row -> new ExpiredEventGroupDeadline(
-                        row.getInt("group_id"),
+                        row.getInt("event_group_id"),
                         row.getInt("station_id"),
                         row.getString("name"),
                         row.getInt("pending_count")))
@@ -662,7 +663,7 @@ public class EventGroupRepository {
                   AND EXISTS (SELECT 1
                               FROM station_event e
                                        JOIN event_group_set cs ON cs.id = e.event_group_set_id
-                              WHERE cs.group_id = c.id
+                              WHERE cs.event_group_id = c.id
                                 AND e.start_time > now()
                                 AND NOT e.cancelled
                                 AND %s)
@@ -692,7 +693,7 @@ public class EventGroupRepository {
      */
     public List<ClosingEventGroup> findClosingIn(int daysBefore) {
         return query("""
-                SELECT c.id AS group_id, c.station_id, c.name
+                SELECT c.id AS event_group_id, c.station_id, c.name
                 FROM event_group c
                 WHERE NOT c.cancelled
                   AND c.registration_deadline IS NOT NULL
@@ -701,17 +702,17 @@ public class EventGroupRepository {
                   AND EXISTS (SELECT 1
                               FROM station_event e
                                        JOIN event_group_set cs ON cs.id = e.event_group_set_id
-                              WHERE cs.group_id = c.id
+                              WHERE cs.event_group_id = c.id
                                 AND e.start_time > now()
                                 AND NOT e.cancelled
                                 AND %s)
                   AND NOT EXISTS (SELECT 1
                                   FROM event_group_deadline_reminder_sent s
-                                  WHERE s.group_id = c.id
+                                  WHERE s.event_group_id = c.id
                                     AND s.days_before = :days_before);""", CancellationSql.NO_DATE_CANCELLED)
                 .single(call().bind("days_before", daysBefore))
-                .map(row ->
-                        new ClosingEventGroup(row.getInt("group_id"), row.getInt("station_id"), row.getString("name")))
+                .map(row -> new ClosingEventGroup(
+                        row.getInt("event_group_id"), row.getInt("station_id"), row.getString("name")))
                 .all();
     }
 
@@ -721,8 +722,8 @@ public class EventGroupRepository {
      * @param eventGroupId the event group
      */
     public void clearClosingWarnings(int eventGroupId) {
-        query("DELETE FROM event_group_deadline_reminder_sent WHERE group_id = :group_id;")
-                .single(call().bind("group_id", eventGroupId))
+        query("DELETE FROM event_group_deadline_reminder_sent WHERE event_group_id = :event_group_id;")
+                .single(call().bind("event_group_id", eventGroupId))
                 .update();
     }
 
@@ -734,10 +735,10 @@ public class EventGroupRepository {
      */
     public void markClosingWarned(int eventGroupId, int daysBefore) {
         query("""
-                INSERT INTO event_group_deadline_reminder_sent(group_id, days_before)
-                VALUES (:group_id, :days_before)
+                INSERT INTO event_group_deadline_reminder_sent(event_group_id, days_before)
+                VALUES (:event_group_id, :days_before)
                 ON CONFLICT DO NOTHING;""")
-                .single(call().bind("group_id", eventGroupId).bind("days_before", daysBefore))
+                .single(call().bind("event_group_id", eventGroupId).bind("days_before", daysBefore))
                 .insert();
     }
 
@@ -757,9 +758,9 @@ public class EventGroupRepository {
                   AND sm.former = FALSE
                   AND NOT EXISTS (SELECT 1
                                   FROM event_group_registration r
-                                  WHERE r.group_id = :group_id
+                                  WHERE r.event_group_id = :event_group_id
                                     AND r.member_id = sm.id);""")
-                .single(call().bind("group_id", eventGroupId).bind("station_id", stationId))
+                .single(call().bind("event_group_id", eventGroupId).bind("station_id", stationId))
                 .map(row -> row.getInt("member_id"))
                 .all();
     }

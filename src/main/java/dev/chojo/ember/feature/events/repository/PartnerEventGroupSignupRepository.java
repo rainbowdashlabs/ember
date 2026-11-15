@@ -29,12 +29,12 @@ public class PartnerEventGroupSignupRepository {
      */
     public void record(int memberId, UUID partnerStationUid, int remoteEventGroupId) {
         query("""
-                INSERT INTO partner_event_group_signup(member_id, partner_station_uid, remote_group_id)
-                VALUES (:member_id, :partner_uid::UUID, :group_id)
+                INSERT INTO partner_event_group_signup(member_id, partner_station_uid, remote_event_group_id)
+                VALUES (:member_id, :partner_uid::UUID, :remote_event_group_id)
                 ON CONFLICT DO NOTHING;""")
                 .single(call().bind("member_id", memberId)
                         .bind("partner_uid", partnerStationUid, UUID_STRING)
-                        .bind("group_id", remoteEventGroupId))
+                        .bind("remote_event_group_id", remoteEventGroupId))
                 .insert();
     }
 
@@ -49,10 +49,10 @@ public class PartnerEventGroupSignupRepository {
         query("""
                 DELETE FROM partner_event_group_signup
                 WHERE member_id = :member_id AND partner_station_uid = :partner_uid::UUID
-                  AND remote_group_id = :group_id;""")
+                  AND remote_event_group_id = :remote_event_group_id;""")
                 .single(call().bind("member_id", memberId)
                         .bind("partner_uid", partnerStationUid, UUID_STRING)
-                        .bind("group_id", remoteEventGroupId))
+                        .bind("remote_event_group_id", remoteEventGroupId))
                 .delete();
     }
 
@@ -68,11 +68,11 @@ public class PartnerEventGroupSignupRepository {
         return query("""
                 SELECT 1 FROM partner_event_group_signup
                 WHERE member_id = :member_id AND partner_station_uid = :partner_uid::UUID
-                  AND remote_group_id = :group_id
+                  AND remote_event_group_id = :remote_event_group_id
                 LIMIT 1;""")
                 .single(call().bind("member_id", memberId)
                         .bind("partner_uid", partnerStationUid, UUID_STRING)
-                        .bind("group_id", remoteEventGroupId))
+                        .bind("remote_event_group_id", remoteEventGroupId))
                 .map(row -> true)
                 .first()
                 .orElse(false);

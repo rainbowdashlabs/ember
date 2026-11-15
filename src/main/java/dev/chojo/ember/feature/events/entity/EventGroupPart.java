@@ -23,14 +23,14 @@ public record EventGroupPart(int eventId, int setId, int eventGroupId, boolean r
     }
 
     /**
-     * Reads a part from a row holding {@code event_id}, {@code set_id}, {@code group_id} and
+     * Reads a part from a row holding {@code event_id}, {@code set_id}, {@code event_group_id} and
      * {@code event_group_required}.
      */
     public static RowMapping<EventGroupPart> map() {
         return row -> new EventGroupPart(
                 row.getInt("event_id"),
                 row.getInt("set_id"),
-                row.getInt("group_id"),
+                row.getInt("event_group_id"),
                 row.getBoolean("event_group_required"));
     }
 }

@@ -35,9 +35,9 @@ public class EventGroupRegistrationRepository {
      */
     public Optional<EventGroupRegistration> find(int eventGroupId, int memberId) {
         return query(
-                        "SELECT %s FROM event_group_registration WHERE group_id = :group_id AND member_id = :member_id;",
+                        "SELECT %s FROM event_group_registration WHERE event_group_id = :event_group_id AND member_id = :member_id;",
                         EventGroupRegistration.COLUMNS)
-                .single(call().bind("group_id", eventGroupId).bind("member_id", memberId))
+                .single(call().bind("event_group_id", eventGroupId).bind("member_id", memberId))
                 .map(EventGroupRegistration.map())
                 .first();
     }
@@ -50,9 +50,9 @@ public class EventGroupRegistrationRepository {
      */
     public List<EventGroupRegistration> findByEventGroup(int eventGroupId) {
         return query(
-                        "SELECT %s FROM event_group_registration WHERE group_id = :group_id ORDER BY registered_at, id;",
+                        "SELECT %s FROM event_group_registration WHERE event_group_id = :event_group_id ORDER BY registered_at, id;",
                         EventGroupRegistration.COLUMNS)
-                .single(call().bind("group_id", eventGroupId))
+                .single(call().bind("event_group_id", eventGroupId))
                 .map(EventGroupRegistration.map())
                 .all();
     }
@@ -65,9 +65,10 @@ public class EventGroupRegistrationRepository {
      */
     public Map<Integer, Set<Integer>> findAnsweredBy(Collection<Integer> memberIds) {
         if (memberIds.isEmpty()) return Map.of();
-        return query("SELECT group_id, member_id FROM event_group_registration WHERE member_id = ANY(:member_ids);")
+        return query(
+                        "SELECT event_group_id, member_id FROM event_group_registration WHERE member_id = ANY(:member_ids);")
                 .single(call().bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
-                .map(row -> Map.entry(row.getInt("group_id"), row.getInt("member_id")))
+                .map(row -> Map.entry(row.getInt("event_group_id"), row.getInt("member_id")))
                 .all()
                 .stream()
                 .collect(Collectors.groupingBy(
@@ -88,14 +89,14 @@ public class EventGroupRegistrationRepository {
             int eventGroupId, int memberId, RegistrationStatus status, @Nullable Integer createdBy) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO event_group_registration(group_id, member_id, status, created_by)
-                VALUES (:group_id, :member_id, :status, :created_by)
-                ON CONFLICT (group_id, member_id) DO UPDATE
+                INSERT INTO event_group_registration(event_group_id, member_id, status, created_by)
+                VALUES (:event_group_id, :member_id, :status, :created_by)
+                ON CONFLICT (event_group_id, member_id) DO UPDATE
                     SET status        = :status,
                         registered_at = now(),
                         created_by    = :created_by
                 RETURNING %s;""",
-                call().bind("group_id", eventGroupId)
+                call().bind("event_group_id", eventGroupId)
                         .bind("member_id", memberId)
                         .bind("status", status)
                         .bind("created_by", createdBy),
@@ -124,7 +125,7 @@ public class EventGroupRegistrationRepository {
     public int countHolding(int eventGroupId) {
         return SqlSupport.count("""
                 SELECT count(*) FROM event_group_registration
-                WHERE group_id = :group_id AND status IN ('PENDING', 'ACCEPTED');""", call().bind("group_id", eventGroupId));
+                WHERE event_group_id = :event_group_id AND status IN ('PENDING', 'ACCEPTED');""", call().bind("event_group_id", eventGroupId));
     }
 
     /**
@@ -136,7 +137,7 @@ public class EventGroupRegistrationRepository {
     public int countAccepted(int eventGroupId) {
         return SqlSupport.count("""
                 SELECT count(*) FROM event_group_registration
-                WHERE group_id = :group_id AND status = 'ACCEPTED';""", call().bind("group_id", eventGroupId));
+                WHERE event_group_id = :event_group_id AND status = 'ACCEPTED';""", call().bind("event_group_id", eventGroupId));
     }
 
     /**
@@ -148,9 +149,9 @@ public class EventGroupRegistrationRepository {
     public List<Integer> findHoldingMemberIds(int eventGroupId) {
         return query("""
                 SELECT member_id FROM event_group_registration
-                WHERE group_id = :group_id AND status IN ('PENDING', 'ACCEPTED')
+                WHERE event_group_id = :event_group_id AND status IN ('PENDING', 'ACCEPTED')
                 ORDER BY member_id;""")
-                .single(call().bind("group_id", eventGroupId))
+                .single(call().bind("event_group_id", eventGroupId))
                 .map(row -> row.getInt("member_id"))
                 .all();
     }

@@ -573,7 +573,7 @@ public class EventRepository {
                 SELECT 1
                 FROM station_event e
                          JOIN event_group_set s ON s.id = e.event_group_set_id
-                         JOIN event_group c ON c.id = s.group_id
+                         JOIN event_group c ON c.id = s.event_group_id
                 WHERE e.id = :id
                   AND c.cancelled;""", call().bind("id", id));
     }
@@ -823,7 +823,7 @@ public class EventRepository {
                     OR exists (
                     SELECT 1
                     FROM event_group_reminder gr
-                             JOIN event_group_set gs ON gs.group_id = gr.group_id
+                             JOIN event_group_set gs ON gs.event_group_id = gr.event_group_id
                     WHERE gs.id = e.event_group_set_id));""", E_COLUMNS, EVENT_RESTRICTED_COLUMN)
                 .single(call())
                 .map(StationEvent.map())

@@ -41,8 +41,8 @@ public record EventRegistrationField(
     public static RowMapping<EventRegistrationField> map() {
         return row -> new EventRegistrationField(
                 row.getInt("id"),
-                (Integer) row.getObject("event_id"),
-                (Integer) row.getObject("group_id"),
+                row.getObject("event_id", Integer.class),
+                row.getObject("event_group_id", Integer.class),
                 row.getString("name"),
                 row.getEnum("field_type", FieldType.class),
                 EventQuestionSettings.parse(row.getString("config")),

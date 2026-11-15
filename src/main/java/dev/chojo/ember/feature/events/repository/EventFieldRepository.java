@@ -242,7 +242,7 @@ public class EventFieldRepository {
                 SELECT e.id
                 FROM station_event e
                     JOIN event_group_set s ON s.id = e.event_group_set_id
-                    JOIN event_group_field f ON f.group_id = s.group_id
+                    JOIN event_group_field f ON f.event_group_id = s.event_group_id
                 WHERE f.field_type = ANY(:types);""")
                 .single(call().bind("types", memberTypes, PostgreSqlTypes.TEXT))
                 .map(row -> row.getInt("event_id"))
@@ -261,7 +261,7 @@ public class EventFieldRepository {
                       UNION
                       SELECT f.name
                       FROM event_group_field f
-                          JOIN event_group g ON g.id = f.group_id
+                          JOIN event_group g ON g.id = f.event_group_id
                       WHERE g.station_id = :station_id) names
                 ORDER BY name;""")
                 .single(call().bind("station_id", stationId))
@@ -327,9 +327,9 @@ public class EventFieldRepository {
         return query("""
                 SELECT f.id, 0 AS event_id, %s
                 FROM event_group_field f
-                WHERE f.group_id = :group_id
+                WHERE f.event_group_id = :event_group_id
                 ORDER BY f.position, f.id;""", GROUP_FIELD_COLUMNS)
-                .single(call().bind("group_id", groupId))
+                .single(call().bind("event_group_id", groupId))
                 .map(AppointmentField.map())
                 .all();
     }
@@ -350,7 +350,7 @@ public class EventFieldRepository {
                 SELECT -f.id AS id, se.id AS event_id, %s
                 FROM station_event se
                     JOIN event_group_set s ON s.id = se.event_group_set_id
-                    JOIN event_group_field f ON f.group_id = s.group_id
+                    JOIN event_group_field f ON f.event_group_id = s.event_group_id
                 WHERE se.id = ANY(:event_ids)
                   AND (NOT :overview_only OR f.overview)
                 ORDER BY se.id, f.position, f.id;""", GROUP_FIELD_COLUMNS)
@@ -463,12 +463,12 @@ public class EventFieldRepository {
      */
     public Optional<Map.Entry<Integer, AppointmentField>> findGroupField(int groupFieldId) {
         return query("""
-                SELECT f.id, 0 AS event_id, f.group_id, %s
+                SELECT f.id, 0 AS event_id, f.event_group_id, %s
                 FROM event_group_field f
                 WHERE f.id = :id;""", GROUP_FIELD_COLUMNS)
                 .single(call().bind("id", groupFieldId))
-                .map(row ->
-                        Map.entry(row.getInt("group_id"), AppointmentField.map().map(row)))
+                .map(row -> Map.entry(
+                        row.getInt("event_group_id"), AppointmentField.map().map(row)))
                 .first();
     }
 
@@ -492,12 +492,12 @@ public class EventFieldRepository {
      */
     public Optional<Integer> findGroupOfEvent(int eventId) {
         return query("""
-                SELECT s.group_id
+                SELECT s.event_group_id
                 FROM station_event e
                     JOIN event_group_set s ON s.id = e.event_group_set_id
                 WHERE e.id = :event_id;""")
                 .single(call().bind("event_id", eventId))
-                .map(row -> row.getInt("group_id"))
+                .map(row -> row.getInt("event_group_id"))
                 .first();
     }
 
@@ -512,8 +512,8 @@ public class EventFieldRepository {
                 SELECT e.id
                 FROM station_event e
                     JOIN event_group_set s ON s.id = e.event_group_set_id
-                WHERE s.group_id = :group_id;""")
-                .single(call().bind("group_id", groupId))
+                WHERE s.event_group_id = :event_group_id;""")
+                .single(call().bind("event_group_id", groupId))
                 .map(row -> row.getInt("id"))
                 .all();
     }
@@ -567,8 +567,8 @@ public class EventFieldRepository {
                 .map(EventFieldDraft::id)
                 .filter(id -> id != null && id > 0)
                 .toList();
-        query("DELETE FROM event_group_field WHERE group_id = :group_id AND NOT (id = ANY(:kept));")
-                .single(call().bind("group_id", groupId).bind("kept", kept, PostgreSqlTypes.INTEGER))
+        query("DELETE FROM event_group_field WHERE event_group_id = :event_group_id AND NOT (id = ANY(:kept));")
+                .single(call().bind("event_group_id", groupId).bind("kept", kept, PostgreSqlTypes.INTEGER))
                 .delete();
         for (int i = 0; i < fields.size(); i++) {
             var field = fields.get(i);
@@ -580,14 +580,14 @@ public class EventFieldRepository {
                                     UPDATE event_group_field
                                     SET name = :name, field_type = :field_type, config = :config::JSONB, value = :value,
                                         position = :position, overview = :overview, "public" = :public
-                                    WHERE id = :id AND group_id = :group_id;""")
+                                    WHERE id = :id AND event_group_id = :event_group_id;""")
                             .single(groupFieldCall(groupId, field, i).bind("id", id))
                             .update()
                             .changed();
             if (updated) continue;
             query("""
-                    INSERT INTO event_group_field(group_id, name, field_type, config, value, position, overview, "public")
-                    VALUES (:group_id, :name, :field_type, :config::JSONB, :value, :position, :overview, :public);""").single(groupFieldCall(groupId, field, i)).insert();
+                    INSERT INTO event_group_field(event_group_id, name, field_type, config, value, position, overview, "public")
+                    VALUES (:event_group_id, :name, :field_type, :config::JSONB, :value, :position, :overview, :public);""").single(groupFieldCall(groupId, field, i)).insert();
         }
     }
 
@@ -601,10 +601,10 @@ public class EventFieldRepository {
                 USING event_group_field f
                 WHERE e.group_field_id = f.id
                   AND f.id = :id
-                  AND f.group_id = :group_id
+                  AND f.event_group_id = :event_group_id
                   AND f.field_type <> :field_type;""")
                 .single(call().bind("id", groupFieldId)
-                        .bind("group_id", groupId)
+                        .bind("event_group_id", groupId)
                         .bind("field_type", fieldType))
                 .delete();
     }
@@ -620,7 +620,7 @@ public class EventFieldRepository {
     }
 
     private static Call groupFieldCall(int groupId, EventFieldDraft field, int position) {
-        return call().bind("group_id", groupId)
+        return call().bind("event_group_id", groupId)
                 .bind("name", field.name())
                 .bind("field_type", field.fieldType())
                 .bind("config", field.config().toJson())

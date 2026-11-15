@@ -271,7 +271,14 @@ CREATE TABLE IF NOT EXISTS ember_schema.event_group
     cancelled_at          TIMESTAMPTZ,
     cancel_reason         TEXT,
     color                 TEXT CHECK (color IS NULL OR color ~ '^#[0-9a-f]{6}$'),
-    created_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+    template_id           INT REFERENCES ember_schema.attendance_template (id) ON DELETE SET NULL,
+    category_id           INT REFERENCES ember_schema.event_category (id) ON DELETE SET NULL,
+    min_registrations     INT,
+    threshold_days        INT,
+    created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT event_group_minimum_complete
+        CHECK ((min_registrations IS NULL AND threshold_days IS NULL)
+            OR (min_registrations >= 1 AND threshold_days >= 0))
 );
 
 CREATE INDEX IF NOT EXISTS idx_event_group_station
@@ -307,26 +314,34 @@ COMMENT ON COLUMN ember_schema.event_group.cancel_reason
     IS 'Why the event group was called off, as told to the people signed up; NULL for no reason given.';
 COMMENT ON COLUMN ember_schema.event_group.color
     IS 'The colour that marks the parts of the event group in lists, as #rrggbb; NULL takes one picked by its id.';
+COMMENT ON COLUMN ember_schema.event_group.template_id
+    IS 'The attendance template a part without one of its own takes its attendance sheet from. NULL for none.';
+COMMENT ON COLUMN ember_schema.event_group.category_id
+    IS 'The category a part without one of its own is filed under. NULL for none.';
+COMMENT ON COLUMN ember_schema.event_group.min_registrations
+    IS 'How many sign-ups, of this station and of partner stations, must be accepted for the event group to take place; short of it some days before its first part, the whole event group is called off. Its parts keep no minimum of their own. NULL for no minimum.';
+COMMENT ON COLUMN ember_schema.event_group.threshold_days
+    IS 'How many days before the first part still taking place the minimum must be reached. Set exactly when the minimum is.';
 COMMENT ON COLUMN ember_schema.event_group.created_at
     IS 'When the event group was created.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.event_group_set
 (
-    id        SERIAL PRIMARY KEY,
-    group_id INT  NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
-    name      TEXT NOT NULL,
-    minimum   INT  NOT NULL DEFAULT 1 CHECK (minimum >= 0),
-    position  INT  NOT NULL DEFAULT 0
+    id             SERIAL PRIMARY KEY,
+    event_group_id INT  NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
+    name           TEXT NOT NULL,
+    minimum        INT  NOT NULL DEFAULT 1 CHECK (minimum >= 0),
+    position       INT  NOT NULL DEFAULT 0
 );
 
-CREATE INDEX IF NOT EXISTS idx_event_group_set_group
-    ON ember_schema.event_group_set (group_id);
+CREATE INDEX IF NOT EXISTS idx_event_group_set_event_group
+    ON ember_schema.event_group_set (event_group_id);
 
 COMMENT ON TABLE ember_schema.event_group_set
     IS 'A named group of parts of an event group with the number of them a participant has to attend, such as "Practice: at least 2".';
 COMMENT ON COLUMN ember_schema.event_group_set.id
     IS 'Auto-generated primary key.';
-COMMENT ON COLUMN ember_schema.event_group_set.group_id
+COMMENT ON COLUMN ember_schema.event_group_set.event_group_id
     IS 'The event group the set belongs to.';
 COMMENT ON COLUMN ember_schema.event_group_set.name
     IS 'The set name shown to members.';
@@ -337,24 +352,29 @@ COMMENT ON COLUMN ember_schema.event_group_set.position
 
 ALTER TABLE ember_schema.station_event
     ADD COLUMN event_group_set_id INT REFERENCES ember_schema.event_group_set (id),
-    ADD CONSTRAINT station_event_event_group_part_one_time CHECK (event_group_set_id IS NULL OR event_type = 'ONE_TIME');
+    ADD COLUMN event_group_required BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD CONSTRAINT station_event_event_group_part_one_time CHECK (event_group_set_id IS NULL OR event_type = 'ONE_TIME'),
+    ADD CONSTRAINT station_event_event_group_required_part
+        CHECK (NOT event_group_required OR event_group_set_id IS NOT NULL);
 
 CREATE INDEX IF NOT EXISTS idx_station_event_event_group_set_id
     ON ember_schema.station_event (event_group_set_id) WHERE event_group_set_id IS NOT NULL;
 
 COMMENT ON COLUMN ember_schema.station_event.event_group_set_id
     IS 'The event group set this one-time appointment is a part of, and through it the event group; NULL for an appointment of its own. A set or event group cannot be removed while parts still point at it, so a part never loses its event group unnoticed.';
+COMMENT ON COLUMN ember_schema.station_event.event_group_required
+    IS 'Whether the part has to be chosen by every sign-up of its event group while it takes place. It counts toward its block''s minimum. Always FALSE for an appointment that is no part of an event group.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.event_group_registration
 (
-    id            SERIAL PRIMARY KEY,
-    group_id     INT         NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
-    member_id     INT         NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
-    status        TEXT        NOT NULL DEFAULT 'PENDING'
+    id             SERIAL PRIMARY KEY,
+    event_group_id INT         NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
+    member_id      INT         NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    status         TEXT        NOT NULL DEFAULT 'PENDING'
         CHECK (status IN ('PENDING', 'ACCEPTED', 'DENIED', 'DECLINED', 'WITHDRAWN')),
-    registered_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    created_by    INT REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
-    UNIQUE (group_id, member_id)
+    registered_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by     INT REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    UNIQUE (event_group_id, member_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_event_group_registration_member
@@ -364,7 +384,7 @@ COMMENT ON TABLE ember_schema.event_group_registration
     IS 'One member''s sign-up for an event group. The chosen parts carry an event_registration each with the same status.';
 COMMENT ON COLUMN ember_schema.event_group_registration.id
     IS 'Auto-generated primary key.';
-COMMENT ON COLUMN ember_schema.event_group_registration.group_id
+COMMENT ON COLUMN ember_schema.event_group_registration.event_group_id
     IS 'The event group signed up for.';
 COMMENT ON COLUMN ember_schema.event_group_registration.member_id
     IS 'The member signed up.';
@@ -386,22 +406,22 @@ COMMENT ON COLUMN ember_schema.event_registration.group_registration_id
 
 ALTER TABLE ember_schema.event_registration_field
     ALTER COLUMN event_id DROP NOT NULL,
-    ADD COLUMN group_id INT REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
-    ADD CONSTRAINT event_registration_field_one_owner CHECK (num_nonnulls(event_id, group_id) = 1);
+    ADD COLUMN event_group_id INT REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
+    ADD CONSTRAINT event_registration_field_one_owner CHECK (num_nonnulls(event_id, event_group_id) = 1);
 
-CREATE UNIQUE INDEX IF NOT EXISTS event_registration_field_group_name
-    ON ember_schema.event_registration_field (group_id, name) WHERE group_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_event_registration_field_event_group_name
+    ON ember_schema.event_registration_field (event_group_id, name) WHERE event_group_id IS NOT NULL;
 
 COMMENT ON COLUMN ember_schema.event_registration_field.event_id
     IS 'The event asking the question; NULL for a question of an event group.';
-COMMENT ON COLUMN ember_schema.event_registration_field.group_id
-    IS 'The event group asking the question of everyone signing up for it; NULL for a question of an appointment. Exactly one of event_id and group_id is set.';
+COMMENT ON COLUMN ember_schema.event_registration_field.event_group_id
+    IS 'The event group asking the question of everyone signing up for it; NULL for a question of an appointment. Exactly one of event_id and event_group_id is set.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.event_group_answer
 (
     group_registration_id INT  NOT NULL REFERENCES ember_schema.event_group_registration (id) ON DELETE CASCADE,
-    field_id               INT  NOT NULL REFERENCES ember_schema.event_registration_field (id) ON DELETE CASCADE,
-    value                  TEXT NOT NULL DEFAULT '',
+    field_id              INT  NOT NULL REFERENCES ember_schema.event_registration_field (id) ON DELETE CASCADE,
+    value                 TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (group_registration_id, field_id)
 );
 
@@ -419,16 +439,16 @@ COMMENT ON COLUMN ember_schema.event_group_answer.value
 
 CREATE TABLE IF NOT EXISTS ember_schema.event_group_restriction
 (
-    id        SERIAL PRIMARY KEY,
+    id             SERIAL PRIMARY KEY,
     event_group_id INT NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
-    user_type TEXT,
-    group_id  INT REFERENCES ember_schema.member_group (id) ON DELETE CASCADE,
-    tag_id    INT REFERENCES ember_schema.user_tag (id) ON DELETE CASCADE,
-    member_id INT REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    user_type      TEXT,
+    group_id       INT REFERENCES ember_schema.member_group (id) ON DELETE CASCADE,
+    tag_id         INT REFERENCES ember_schema.user_tag (id) ON DELETE CASCADE,
+    member_id      INT REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
     CHECK (num_nonnulls(user_type, group_id, tag_id, member_id) = 1)
 );
 
-CREATE INDEX IF NOT EXISTS idx_event_group_restriction_group
+CREATE INDEX IF NOT EXISTS idx_event_group_restriction_event_group
     ON ember_schema.event_group_restriction (event_group_id);
 
 COMMENT ON TABLE ember_schema.event_group_restriction
@@ -448,16 +468,16 @@ COMMENT ON COLUMN ember_schema.event_group_restriction.member_id
 
 CREATE TABLE IF NOT EXISTS ember_schema.event_group_view_restriction
 (
-    id        SERIAL PRIMARY KEY,
+    id             SERIAL PRIMARY KEY,
     event_group_id INT NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
-    user_type TEXT,
-    group_id  INT REFERENCES ember_schema.member_group (id) ON DELETE CASCADE,
-    tag_id    INT REFERENCES ember_schema.user_tag (id) ON DELETE CASCADE,
-    member_id INT REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    user_type      TEXT,
+    group_id       INT REFERENCES ember_schema.member_group (id) ON DELETE CASCADE,
+    tag_id         INT REFERENCES ember_schema.user_tag (id) ON DELETE CASCADE,
+    member_id      INT REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
     CHECK (num_nonnulls(user_type, group_id, tag_id, member_id) = 1)
 );
 
-CREATE INDEX IF NOT EXISTS idx_event_group_view_restriction_group
+CREATE INDEX IF NOT EXISTS idx_event_group_view_restriction_event_group
     ON ember_schema.event_group_view_restriction (event_group_id);
 
 COMMENT ON TABLE ember_schema.event_group_view_restriction
@@ -477,15 +497,15 @@ COMMENT ON COLUMN ember_schema.event_group_view_restriction.member_id
 
 CREATE TABLE IF NOT EXISTS ember_schema.event_group_deadline_reminder_sent
 (
-    group_id   INT         NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
-    days_before INT         NOT NULL,
-    sent_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (group_id, days_before)
+    event_group_id INT         NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
+    days_before    INT         NOT NULL,
+    sent_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (event_group_id, days_before)
 );
 
 COMMENT ON TABLE ember_schema.event_group_deadline_reminder_sent
     IS 'Which warnings that sign-ups for an event group close soon have gone out, so a sweep every few minutes warns once.';
-COMMENT ON COLUMN ember_schema.event_group_deadline_reminder_sent.group_id
+COMMENT ON COLUMN ember_schema.event_group_deadline_reminder_sent.event_group_id
     IS 'The event group warned about.';
 COMMENT ON COLUMN ember_schema.event_group_deadline_reminder_sent.days_before
     IS 'How many days before the event group deadline this warning was the one for.';
@@ -494,22 +514,22 @@ COMMENT ON COLUMN ember_schema.event_group_deadline_reminder_sent.sent_at
 
 CREATE TABLE IF NOT EXISTS ember_schema.event_group_share
 (
-    group_id INT  NOT NULL PRIMARY KEY REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
-    scope     TEXT NOT NULL DEFAULT 'ALL_PARTNERS'
+    event_group_id INT  NOT NULL PRIMARY KEY REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
+    scope          TEXT NOT NULL DEFAULT 'ALL_PARTNERS'
 );
 
 COMMENT ON TABLE ember_schema.event_group_share
     IS 'An event group shared with partner stations. Its parts carry the same appointment share, parts added later included.';
-COMMENT ON COLUMN ember_schema.event_group_share.group_id
+COMMENT ON COLUMN ember_schema.event_group_share.event_group_id
     IS 'The event group shared.';
 COMMENT ON COLUMN ember_schema.event_group_share.scope
     IS 'ALL_PARTNERS, or SPECIFIC for the partners listed in event_group_share_target.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.event_group_share_target
 (
-    group_id  INT NOT NULL REFERENCES ember_schema.event_group_share (group_id) ON DELETE CASCADE,
-    partner_id INT NOT NULL REFERENCES ember_schema.federation_partner (id) ON DELETE CASCADE,
-    PRIMARY KEY (group_id, partner_id)
+    event_group_id INT NOT NULL REFERENCES ember_schema.event_group_share (event_group_id) ON DELETE CASCADE,
+    partner_id     INT NOT NULL REFERENCES ember_schema.federation_partner (id) ON DELETE CASCADE,
+    PRIMARY KEY (event_group_id, partner_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_event_group_share_target_partner
@@ -517,21 +537,21 @@ CREATE INDEX IF NOT EXISTS idx_event_group_share_target_partner
 
 COMMENT ON TABLE ember_schema.event_group_share_target
     IS 'The partners an event group is shared with where its share names them one by one.';
-COMMENT ON COLUMN ember_schema.event_group_share_target.group_id
+COMMENT ON COLUMN ember_schema.event_group_share_target.event_group_id
     IS 'The shared event group.';
 COMMENT ON COLUMN ember_schema.event_group_share_target.partner_id
     IS 'A partner the event group is shared with.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.event_group_partner_registration
 (
-    id                SERIAL PRIMARY KEY,
-    group_id         INT         NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
-    partner_id        INT         NOT NULL REFERENCES ember_schema.federation_partner (id) ON DELETE CASCADE,
-    remote_member_id  UUID        NOT NULL,
-    status            TEXT        NOT NULL DEFAULT 'PENDING'
+    id               SERIAL PRIMARY KEY,
+    event_group_id   INT         NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
+    partner_id       INT         NOT NULL REFERENCES ember_schema.federation_partner (id) ON DELETE CASCADE,
+    remote_member_id UUID        NOT NULL,
+    status           TEXT        NOT NULL DEFAULT 'PENDING'
         CHECK (status IN ('PENDING', 'ACCEPTED', 'DENIED', 'DECLINED', 'WITHDRAWN')),
-    registered_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (group_id, partner_id, remote_member_id)
+    registered_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (event_group_id, partner_id, remote_member_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_event_group_partner_registration_partner
@@ -541,7 +561,7 @@ COMMENT ON TABLE ember_schema.event_group_partner_registration
     IS 'A partner station''s member signed up for a shared event group. The chosen parts carry an event_federation_registration each.';
 COMMENT ON COLUMN ember_schema.event_group_partner_registration.id
     IS 'Auto-generated primary key.';
-COMMENT ON COLUMN ember_schema.event_group_partner_registration.group_id
+COMMENT ON COLUMN ember_schema.event_group_partner_registration.event_group_id
     IS 'The event group signed up for.';
 COMMENT ON COLUMN ember_schema.event_group_partner_registration.partner_id
     IS 'The partner station the member belongs to.';
@@ -565,11 +585,11 @@ COMMENT ON COLUMN ember_schema.event_federation_registration.group_partner_regis
 
 CREATE TABLE IF NOT EXISTS ember_schema.partner_event_group_signup
 (
-    member_id           INT         NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
-    partner_station_uid UUID        NOT NULL,
-    remote_group_id    INT         NOT NULL,
-    signed_up_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (member_id, partner_station_uid, remote_group_id)
+    member_id             INT         NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    partner_station_uid   UUID        NOT NULL,
+    remote_event_group_id INT         NOT NULL,
+    signed_up_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (member_id, partner_station_uid, remote_event_group_id)
 );
 
 COMMENT ON TABLE ember_schema.partner_event_group_signup
@@ -578,32 +598,32 @@ COMMENT ON COLUMN ember_schema.partner_event_group_signup.member_id
     IS 'The member of this station signed up.';
 COMMENT ON COLUMN ember_schema.partner_event_group_signup.partner_station_uid
     IS 'The partner station holding the event group.';
-COMMENT ON COLUMN ember_schema.partner_event_group_signup.remote_group_id
+COMMENT ON COLUMN ember_schema.partner_event_group_signup.remote_event_group_id
     IS 'The event group, by its id at the partner station.';
 COMMENT ON COLUMN ember_schema.partner_event_group_signup.signed_up_at
     IS 'When this station signed the member up.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.event_group_field
 (
-    id         SERIAL PRIMARY KEY,
-    group_id   INT     NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
-    name       TEXT    NOT NULL,
-    field_type TEXT    NOT NULL DEFAULT 'TEXT',
-    config     JSONB   NOT NULL DEFAULT '{}'::JSONB,
-    value      TEXT    NOT NULL DEFAULT '',
-    position   INT     NOT NULL DEFAULT 0,
-    overview   BOOLEAN NOT NULL DEFAULT FALSE,
-    "public"   BOOLEAN NOT NULL DEFAULT FALSE
+    id             SERIAL PRIMARY KEY,
+    event_group_id INT     NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
+    name           TEXT    NOT NULL,
+    field_type     TEXT    NOT NULL DEFAULT 'TEXT',
+    config         JSONB   NOT NULL DEFAULT '{}'::JSONB,
+    value          TEXT    NOT NULL DEFAULT '',
+    position       INT     NOT NULL DEFAULT 0,
+    overview       BOOLEAN NOT NULL DEFAULT FALSE,
+    "public"       BOOLEAN NOT NULL DEFAULT FALSE
 );
 
-CREATE INDEX IF NOT EXISTS idx_event_group_field_group
-    ON ember_schema.event_group_field (group_id);
+CREATE INDEX IF NOT EXISTS idx_event_group_field_event_group
+    ON ember_schema.event_group_field (event_group_id);
 
 COMMENT ON TABLE ember_schema.event_group_field
     IS 'Fields of an event group, such as its place or meeting point. Every appointment of the group shows them; an appointment field of the same name replaces one.';
 COMMENT ON COLUMN ember_schema.event_group_field.id
     IS 'Auto-generated primary key.';
-COMMENT ON COLUMN ember_schema.event_group_field.group_id
+COMMENT ON COLUMN ember_schema.event_group_field.event_group_id
     IS 'The event group the field belongs to.';
 COMMENT ON COLUMN ember_schema.event_group_field.name
     IS 'What the field is called; an appointment field with the same name, ignoring case, replaces it on that appointment.';
@@ -648,7 +668,7 @@ COMMENT ON COLUMN ember_schema.event_group_field_entry.kind
 -- Comments on an event group: its page carries a thread of its own, beside those of its parts.
 
 ALTER TABLE ember_schema.comment
-    ADD COLUMN IF NOT EXISTS event_group_id INT REFERENCES ember_schema.event_group (id) ON DELETE CASCADE;
+    ADD COLUMN event_group_id INT REFERENCES ember_schema.event_group (id) ON DELETE CASCADE;
 
 ALTER TABLE ember_schema.comment
     DROP CONSTRAINT IF EXISTS comment_one_target;
@@ -665,31 +685,22 @@ COMMENT ON TABLE ember_schema.comment
 COMMENT ON COLUMN ember_schema.comment.event_group_id
     IS 'The event group the comment was written on, NULL for every other target.';
 
--- Date settings of an event group: the attendance template with its field pre-fills, the category and
--- the reminders. Every part without a setting of its own follows the event group's, read live, so a
--- change to the event group reaches every part that has none of its own.
-
-ALTER TABLE ember_schema.event_group
-    ADD COLUMN template_id INT REFERENCES ember_schema.attendance_template (id) ON DELETE SET NULL,
-    ADD COLUMN category_id INT REFERENCES ember_schema.event_category (id) ON DELETE SET NULL;
-
-COMMENT ON COLUMN ember_schema.event_group.template_id
-    IS 'The attendance template a part without one of its own takes its attendance sheet from. NULL for none.';
-COMMENT ON COLUMN ember_schema.event_group.category_id
-    IS 'The category a part without one of its own is filed under. NULL for none.';
+-- Date settings of an event group: the field pre-fills of its attendance template and the reminders.
+-- Every part without a setting of its own follows the event group's, read live, so a change to the
+-- event group reaches every part that has none of its own.
 
 CREATE TABLE IF NOT EXISTS ember_schema.event_group_field_default
 (
-    group_id INT  NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
-    field_id INT  NOT NULL REFERENCES ember_schema.attendance_template_field (id) ON DELETE CASCADE,
-    source   TEXT NOT NULL,
-    value    TEXT,
-    PRIMARY KEY (group_id, field_id)
+    event_group_id INT  NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
+    field_id       INT  NOT NULL REFERENCES ember_schema.attendance_template_field (id) ON DELETE CASCADE,
+    source         TEXT NOT NULL,
+    value          TEXT,
+    PRIMARY KEY (event_group_id, field_id)
 );
 
 COMMENT ON TABLE ember_schema.event_group_field_default
     IS 'The values an event group fills into the attendance sheet of a part that takes the event group''s attendance template.';
-COMMENT ON COLUMN ember_schema.event_group_field_default.group_id
+COMMENT ON COLUMN ember_schema.event_group_field_default.event_group_id
     IS 'The event group.';
 COMMENT ON COLUMN ember_schema.event_group_field_default.field_id
     IS 'The field of the event group''s attendance template that is filled in.';
@@ -700,14 +711,14 @@ COMMENT ON COLUMN ember_schema.event_group_field_default.value
 
 CREATE TABLE IF NOT EXISTS ember_schema.event_group_reminder
 (
-    group_id    INT NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
-    days_before INT NOT NULL CHECK (days_before > 0),
-    PRIMARY KEY (group_id, days_before)
+    event_group_id INT NOT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
+    days_before    INT NOT NULL CHECK (days_before > 0),
+    PRIMARY KEY (event_group_id, days_before)
 );
 
 COMMENT ON TABLE ember_schema.event_group_reminder
     IS 'How many days before a part of an event group the people taking part are reminded, for every part without reminders of its own.';
-COMMENT ON COLUMN ember_schema.event_group_reminder.group_id
+COMMENT ON COLUMN ember_schema.event_group_reminder.event_group_id
     IS 'The event group.';
 COMMENT ON COLUMN ember_schema.event_group_reminder.days_before
     IS 'How many days before the part the reminder goes out.';
@@ -732,41 +743,13 @@ ALTER TABLE ember_schema.event_attachment
     ADD COLUMN event_group_id INT NULL REFERENCES ember_schema.event_group (id) ON DELETE CASCADE,
     ADD CONSTRAINT event_attachment_one_owner CHECK (num_nonnulls(event_id, event_group_id) = 1);
 
-CREATE INDEX IF NOT EXISTS event_attachment_event_group_idx
+CREATE INDEX IF NOT EXISTS idx_event_attachment_event_group
     ON ember_schema.event_attachment (event_group_id, sort_order) WHERE event_group_id IS NOT NULL;
 
 COMMENT ON COLUMN ember_schema.event_attachment.event_id IS
     'The appointment that hands the file over. NULL for a file of an event group.';
 COMMENT ON COLUMN ember_schema.event_attachment.event_group_id IS
     'The event group that hands the file over on every part, before the part''s own files. NULL for a file of an appointment; exactly one of event_id and event_group_id is set.';
-
--- A minimum for an event group: where too few sign-ups are accepted some days before its first part, the
--- whole event group is called off. Its parts keep no minimum of their own.
-
-ALTER TABLE ember_schema.event_group
-    ADD COLUMN IF NOT EXISTS min_registrations INT,
-    ADD COLUMN IF NOT EXISTS threshold_days    INT;
-
-ALTER TABLE ember_schema.event_group
-    ADD CONSTRAINT event_group_minimum_complete
-        CHECK ((min_registrations IS NULL AND threshold_days IS NULL)
-            OR (min_registrations >= 1 AND threshold_days >= 0));
-
-COMMENT ON COLUMN ember_schema.event_group.min_registrations
-    IS 'How many sign-ups, of this station and of partner stations, must be accepted for the event group to take place. NULL for no minimum.';
-COMMENT ON COLUMN ember_schema.event_group.threshold_days
-    IS 'How many days before the first part still taking place the minimum must be reached; short of it then, the whole event group is called off. Set exactly when the minimum is.';
-
--- A part of an event group a block can mark as required: every sign-up has to hold it while it takes
--- place, and it counts toward the block's minimum.
-
-ALTER TABLE ember_schema.station_event
-    ADD COLUMN event_group_required BOOLEAN NOT NULL DEFAULT FALSE,
-    ADD CONSTRAINT station_event_event_group_required_part
-        CHECK (NOT event_group_required OR event_group_set_id IS NOT NULL);
-
-COMMENT ON COLUMN ember_schema.station_event.event_group_required
-    IS 'Whether the part has to be chosen by every sign-up of its event group while it takes place. It counts toward its block''s minimum. Always FALSE for an appointment that is no part of an event group.';
 
 -- Station chats: who handles a station's chats, the messages members report there, and what the
 -- daily mail about messages covers.
