@@ -25,7 +25,6 @@ import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
-import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
@@ -127,15 +126,12 @@ class EventGroupRegistrationServiceTest extends RepositoryTestBase {
         service = new EventGroupRegistrationService(
                 eventGroupRepo,
                 new EventGroupRegistrationRepository(),
-                eventRepo,
                 eventRegistrationRepo,
                 registrations,
-                occurrenceCalendar,
                 bus,
                 memberNameResolver,
                 questions,
-                new EventGroupPartnerRepository(),
-                newEventGroupService());
+                newEventGroupSignUpRules());
         zone = occurrenceCalendar.zoneOf(station.id());
         eventGroup = jugendflamme(null, false, Instant.now().plus(Duration.ofDays(5)));
     }

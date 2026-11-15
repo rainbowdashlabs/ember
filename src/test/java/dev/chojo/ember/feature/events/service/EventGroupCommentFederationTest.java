@@ -117,24 +117,20 @@ class EventGroupCommentFederationTest extends RepositoryTestBase {
         var signUps = new EventGroupRegistrationService(
                 eventGroupRepo,
                 new EventGroupRegistrationRepository(),
-                eventRepo,
                 eventRegistrationRepo,
                 newEventServices(new DomainEventBus(Set.of())).registration(),
-                occurrenceCalendar,
                 mock(DomainEventBus.class),
                 memberNameResolver,
                 questions,
-                partnerRepo,
-                newEventGroupService());
+                newEventGroupSignUpRules());
         var httpClient = mock(FederationHttpClient.class);
         when(httpClient.canSign(anyInt())).thenReturn(true);
         var transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
         partners = new EventGroupPartnerService(
                 eventGroups,
-                signUps,
+                newEventGroupSignUpRules(),
                 partnerRepo,
                 new EventFederationRepository(),
-                occurrenceCalendar,
                 mock(EventRequirementService.class),
                 mock(FederatedRegistrantService.class),
                 federationRepo,

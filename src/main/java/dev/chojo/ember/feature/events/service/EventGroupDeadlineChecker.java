@@ -9,12 +9,8 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventGroupDeadlineExpired;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
-import dev.chojo.ember.feature.notifications.entity.Delivery;
-import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
-import dev.chojo.ember.feature.notifications.entity.NotificationParams;
-import dev.chojo.ember.feature.notifications.entity.NotificationType;
-import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
@@ -41,15 +37,11 @@ import java.util.List;
 @Singleton
 public class EventGroupDeadlineChecker implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(EventGroupDeadlineChecker.class);
-    /** The lead times warned about, nearest first: a deadline inside several gets the nearest one only. */
-    private static final int[] CLOSING_WARNINGS = {1, 3};
-
     private final EventGroupRepository eventGroups;
     private final DomainEventBus eventBus;
-    private final Notifier notifier;
-    private final MemberNameResolver names;
     private final RestrictionService restrictions;
     private final StationReadOnlyGuard readOnlyGuard;
+    private final ClosingWarnings closingWarnings;
 
     @Inject
     public EventGroupDeadlineChecker(
@@ -61,10 +53,9 @@ public class EventGroupDeadlineChecker implements TaskSource {
             StationReadOnlyGuard readOnlyGuard) {
         this.eventGroups = eventGroups;
         this.eventBus = eventBus;
-        this.notifier = notifier;
-        this.names = names;
         this.restrictions = restrictions;
         this.readOnlyGuard = readOnlyGuard;
+        this.closingWarnings = new ClosingWarnings(notifier, names, readOnlyGuard);
     }
 
     @Override
@@ -86,26 +77,35 @@ public class EventGroupDeadlineChecker implements TaskSource {
     }
 
     private void warnAboutClosingEventGroups() {
-        for (int daysBefore : CLOSING_WARNINGS) {
-            for (var eventGroup : eventGroups.findClosingIn(daysBefore)) {
-                if (!readOnlyGuard.isWritable(eventGroup.stationId())) continue;
-                for (int memberId :
-                        eventGroups.findUnansweredMemberIds(eventGroup.eventGroupId(), eventGroup.stationId())) {
-                    if (!meantFor(eventGroup.eventGroupId(), memberId)) continue;
-                    notifier.notify(
-                            StationAudience.household(List.of(memberId)),
-                            NotificationType.REGISTRATION_CLOSING,
-                            NotificationData.of(
-                                    new NotificationParams.RegistrationClosing(
-                                            eventGroup.name(), daysBefore, names.called(memberId)),
-                                    NotificationLinks.eventGroup(eventGroup.eventGroupId())),
-                            Delivery.EVERY_TIME);
-                }
-                for (int wider : CLOSING_WARNINGS) {
-                    if (wider >= daysBefore) eventGroups.markClosingWarned(eventGroup.eventGroupId(), wider);
-                }
+        closingWarnings.warn(new ClosingWarnings.Closable() {
+            @Override
+            public List<ClosingWarnings.Closing> closingIn(int daysBefore) {
+                return eventGroups.findClosingIn(daysBefore).stream()
+                        .map(eventGroup -> new ClosingWarnings.Closing(
+                                eventGroup.eventGroupId(), eventGroup.stationId(), eventGroup.name()))
+                        .toList();
             }
-        }
+
+            @Override
+            public List<Integer> unansweredMemberIds(ClosingWarnings.Closing closing) {
+                return eventGroups.findUnansweredMemberIds(closing.id(), closing.stationId());
+            }
+
+            @Override
+            public boolean meantFor(ClosingWarnings.Closing closing, int memberId) {
+                return EventGroupDeadlineChecker.this.meantFor(closing.id(), memberId);
+            }
+
+            @Override
+            public void markWarned(int id, int daysBefore) {
+                eventGroups.markClosingWarned(id, daysBefore);
+            }
+
+            @Override
+            public NotificationLink linkTo(int id) {
+                return NotificationLinks.eventGroup(id);
+            }
+        });
     }
 
     private void tellAboutExpiredEventGroups() {

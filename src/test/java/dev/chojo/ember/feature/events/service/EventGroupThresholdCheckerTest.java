@@ -92,15 +92,12 @@ class EventGroupThresholdCheckerTest extends RepositoryTestBase {
         var registrations = new EventGroupRegistrationService(
                 eventGroupRepo,
                 signUpRepo,
-                eventRepo,
                 eventRegistrationRepo,
                 newEventServices(new DomainEventBus(Set.of())).registration(),
-                occurrenceCalendar,
                 mock(DomainEventBus.class),
                 memberNameResolver,
                 questions,
-                partnerRepo,
-                newEventGroupService());
+                newEventGroupSignUpRules());
         cancellation = new EventGroupCancellationService(
                 eventGroupRepo,
                 signUpRepo,

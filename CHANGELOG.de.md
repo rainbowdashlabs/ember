@@ -55,6 +55,7 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 - **Wörter statt technischer Werte.** An einigen Stellen erschienen technische Werte statt Wörtern, etwa die Antwort auf eine Einladung von der Warteliste, ein vom Verband abgeschaltetes Modul, die Mitgliedsarten in der Einrichtung der Wache und zugeordnete Werte beim Mitgliederimport, und dem letzten Einrichtungsschritt fehlte sein Hinweis. Alles erscheint jetzt in der Sprache der Oberfläche.
 
 - **Abgeschaltete Module blieben erreichbar.** Seiten eines abgeschalteten Moduls öffneten sich weiter über einen gespeicherten Link, und Dokumente und das öffentliche Wiki blieben offen, wenn nur der Verband sie abgeschaltet hatte. Jede Seite eines abgeschalteten Moduls sagt jetzt, dass dieser Bereich an der Wache ausgeschaltet ist.
+- **Zwei Hinweise auf einmal zum Anmeldeschluss.** In manchen Fällen schickte ein Termin, dessen Anmeldeschluss beim Anlegen oder Ändern weniger als einen Tag entfernt lag, zwei Hinweise auf einmal, einen für drei Tage und einen für einen Tag. Jetzt kommt nur noch der nähere, wie bei Terminreihen.
 
 ## v26.24.2
 

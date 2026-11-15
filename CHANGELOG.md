@@ -53,6 +53,7 @@ People who share a station can write to each other directly, in groups, and in c
 - **Short profiles show only what the reader may see.** After signing in as somebody else, switching profile or losing a right without reloading the page, a short profile already opened could still show private tags. It is now loaded again for whoever is looking.
 - **Words instead of raw values.** In some places technical values showed instead of words, such as the answer to a waiting-list invitation, a module the cluster switched off, member types in the station setup and mapped values in the member import, and the last setup step missed its hint. They now read in the interface language.
 - **Switched-off modules stayed reachable.** Pages of a switched-off module still opened from a saved link, and the documents and the public wiki stayed open when only the association had switched them off. Every page of a switched-off module now says that this part of the station is switched off.
+- **Two closing warnings at once for one appointment.** In some cases an appointment whose sign-up closed within a day of being set up or changed sent two warnings at once, one for three days and one for one day. It now sends the nearer one only, as event groups do.
 
 ## v26.24.2
 

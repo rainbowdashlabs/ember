@@ -104,6 +104,7 @@ import dev.chojo.ember.feature.events.service.EventGroupCommentTarget;
 import dev.chojo.ember.feature.events.service.EventGroupGuards;
 import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
 import dev.chojo.ember.feature.events.service.EventGroupService;
+import dev.chojo.ember.feature.events.service.EventGroupSignUpRules;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
@@ -1015,6 +1016,16 @@ public abstract class RepositoryTestBase {
                 occurrenceCalendar,
                 new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
                 eventFieldRepo);
+    }
+
+    /**
+     * The rules every event group sign-up passes, over the shared repositories.
+     *
+     * @return the rules
+     */
+    protected static EventGroupSignUpRules newEventGroupSignUpRules() {
+        return new EventGroupSignUpRules(
+                newEventGroupService(), new EventGroupRepository(), eventRepo, occurrenceCalendar);
     }
 
     private static EventGroupCommentTarget eventGroupCommentTarget() {

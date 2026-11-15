@@ -17,7 +17,6 @@ import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.handler.EventCancelledHandler;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
-import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
@@ -112,15 +111,12 @@ class EventGroupNoticesTest extends RepositoryTestBase {
         signUps = new EventGroupRegistrationService(
                 eventGroupRepo,
                 new EventGroupRegistrationRepository(),
-                eventRepo,
                 eventRegistrationRepo,
                 registrations,
-                occurrenceCalendar,
                 mock(DomainEventBus.class),
                 memberNameResolver,
                 new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
-                new EventGroupPartnerRepository(),
-                newEventGroupService());
+                newEventGroupSignUpRules());
         zone = occurrenceCalendar.zoneOf(station.id());
     }
 

@@ -1058,15 +1058,12 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
         return new EventGroupRegistrationService(
                 new EventGroupRepository(),
                 new EventGroupRegistrationRepository(),
-                eventRepo,
                 eventRegistrationRepo,
                 registrations,
-                occurrenceCalendar,
                 new DomainEventBus(Set.of()),
                 memberNameResolver,
                 new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
-                new EventGroupPartnerRepository(),
-                newEventGroupService());
+                newEventGroupSignUpRules());
     }
 
     private static void signUp(GroupParts group, StationEvent... parts) {

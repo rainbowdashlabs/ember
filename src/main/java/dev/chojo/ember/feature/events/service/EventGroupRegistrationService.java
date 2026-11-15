@@ -9,33 +9,25 @@ import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventGroupRegistrationStatusChanged;
 import dev.chojo.ember.feature.events.entity.EventGroup;
-import dev.chojo.ember.feature.events.entity.EventGroupPart;
 import dev.chojo.ember.feature.events.entity.EventGroupPartState;
 import dev.chojo.ember.feature.events.entity.EventGroupRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
-import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.service.EventGroupRules.SetResult;
-import dev.chojo.ember.feature.events.service.EventGroupRules.SetRule;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
-import java.time.Instant;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -63,46 +55,33 @@ import java.util.stream.Collectors;
  */
 @Singleton
 public class EventGroupRegistrationService {
-    /** The statuses of a sign-up that holds or waits for a place. */
-    private static final Set<RegistrationStatus> HOLDING =
-            Set.of(RegistrationStatus.PENDING, RegistrationStatus.ACCEPTED);
-
     private final EventGroupRepository eventGroups;
-    private final EventGroupService eventGroupService;
+    private final EventGroupSignUpRules rules;
     private final EventGroupRegistrationRepository signUps;
-    private final EventRepository events;
     private final EventRegistrationRepository registrations;
     private final EventRegistrationService registrationService;
-    private final OccurrenceCalendar calendar;
     private final DomainEventBus eventBus;
     private final MemberNameResolver names;
-    private final EventGroupPartnerRepository partnerSignUps;
     private final EventGroupQuestionService questions;
 
     @Inject
     public EventGroupRegistrationService(
             EventGroupRepository eventGroups,
             EventGroupRegistrationRepository signUps,
-            EventRepository events,
             EventRegistrationRepository registrations,
             EventRegistrationService registrationService,
-            OccurrenceCalendar calendar,
             DomainEventBus eventBus,
             MemberNameResolver names,
             EventGroupQuestionService questions,
-            EventGroupPartnerRepository partnerSignUps,
-            EventGroupService eventGroupService) {
+            EventGroupSignUpRules rules) {
         this.eventGroups = eventGroups;
-        this.eventGroupService = eventGroupService;
+        this.rules = rules;
         this.signUps = signUps;
-        this.events = events;
         this.registrations = registrations;
         this.registrationService = registrationService;
-        this.calendar = calendar;
         this.eventBus = eventBus;
         this.names = names;
         this.questions = questions;
-        this.partnerSignUps = partnerSignUps;
     }
 
     /**
@@ -128,28 +107,24 @@ public class EventGroupRegistrationService {
             boolean override) {
         var written = new ArrayList<EventRegistration>();
         var signUp = Transactions.call(() -> {
-            var eventGroup = lockOpenEventGroup(stationId, eventGroupId, override);
+            var eventGroup = rules.lockOpen(stationId, eventGroupId, override);
             var existing = signUps.find(eventGroupId, memberId);
-            if (existing.filter(EventGroupRegistration::active).isPresent()) {
-                throw EventRefusal.EVENT_GROUP_ALREADY_SIGNED_UP.raise();
-            }
-            Integer limit = eventGroup.registrationLimit();
-            if (!override && limit != null && holding(eventGroupId) >= limit) {
-                throw EventRefusal.EVENT_GROUP_FULL.raise();
-            }
-            var parts = lockParts(eventGroupId);
-            var standing = Standing.of(stationId, parts, calendar);
-            requireChoosable(partIds, parts.keySet(), standing, Set.of(), override);
-            requireRulesMet(eventGroupId, partIds, standing, override);
+            EventGroupSignUpRules.requireNoActiveSignUp(
+                    existing.filter(EventGroupRegistration::active).isPresent());
+            rules.requireRoom(eventGroup, override);
+            var parts = rules.lockParts(eventGroupId);
+            var standing = rules.standing(stationId, parts);
+            EventGroupSignUpRules.requireChoosable(partIds, parts.keySet(), standing, Set.of(), override);
+            rules.requireRulesMet(eventGroupId, partIds, standing, override);
             var resolved = questions.resolveAnswers(eventGroupId, answers);
-            var status = eventGroup.requiresConfirmation() ? RegistrationStatus.PENDING : RegistrationStatus.ACCEPTED;
+            var status = EventGroupSignUpRules.initialStatus(eventGroup);
             existing.ifPresent(earlier -> registrations.findLinkedToEventGroup(earlier.id()).stream()
                     .filter(registration -> !partIds.contains(registration.eventId()))
                     .forEach(registration ->
                             written.add(registrationService.releaseFromEventGroup(registration, null))));
             var stored = signUps.signUp(eventGroupId, memberId, status, createdBy);
             questions.writeAnswers(stored.id(), resolved);
-            for (int partId : ascending(partIds)) {
+            for (int partId : EventGroupSignUpRules.ascending(partIds)) {
                 written.add(place(parts.get(partId), memberId, status, createdBy, stored.id()));
             }
             return stored;
@@ -180,28 +155,23 @@ public class EventGroupRegistrationService {
             boolean override) {
         var written = new ArrayList<EventRegistration>();
         var signUp = Transactions.call(() -> {
-            lockOpenEventGroup(stationId, eventGroupId, override);
+            rules.lockOpen(stationId, eventGroupId, override);
             var current = requireActive(eventGroupId, memberId);
-            var parts = lockParts(eventGroupId);
-            var standing = Standing.of(stationId, parts, calendar);
+            var parts = rules.lockParts(eventGroupId);
+            var standing = rules.standing(stationId, parts);
             var held = chosenRegistrations(current);
-            requireChoosable(partIds, parts.keySet(), standing, held.keySet(), override);
-            if (!override) {
-                var dropped = new HashSet<>(held.keySet());
-                dropped.removeAll(partIds);
-                if (dropped.stream().anyMatch(standing::tookPlace))
-                    throw EventRefusal.EVENT_GROUP_PART_TOOK_PLACE.raise();
-            }
-            requireRulesMet(eventGroupId, partIds, standing, override);
-            for (int partId : ascending(partIds)) {
+            EventGroupSignUpRules.requireChoosable(partIds, parts.keySet(), standing, held.keySet(), override);
+            EventGroupSignUpRules.requireDroppable(held.keySet(), partIds, standing, override);
+            rules.requireRulesMet(eventGroupId, partIds, standing, override);
+            for (int partId : EventGroupSignUpRules.ascending(partIds)) {
                 if (!held.containsKey(partId)) {
                     written.add(place(parts.get(partId), memberId, current.status(), createdBy, current.id()));
                 }
             }
             for (var registration : held.values()) {
                 if (!partIds.contains(registration.eventId())) {
-                    written.add(
-                            registrationService.releaseFromEventGroup(registration, givenUp(registration.status())));
+                    written.add(registrationService.releaseFromEventGroup(
+                            registration, EventGroupSignUpRules.givenUp(registration.status())));
                 }
             }
             return current;
@@ -230,7 +200,7 @@ public class EventGroupRegistrationService {
             boolean readsHiddenAnswers,
             boolean override) {
         return Transactions.call(() -> {
-            lockOpenEventGroup(stationId, eventGroupId, override);
+            rules.lockOpen(stationId, eventGroupId, override);
             var current = requireActive(eventGroupId, memberId);
             questions.replaceAnswers(eventGroupId, current.id(), answers, readsHiddenAnswers);
             return current;
@@ -248,14 +218,15 @@ public class EventGroupRegistrationService {
     public void withdraw(int stationId, int eventGroupId, int memberId) {
         var written = new ArrayList<EventRegistration>();
         var freed = Transactions.call(() -> {
-            var eventGroup = eventGroupService.lockEventGroup(stationId, eventGroupId);
+            var eventGroup = rules.lock(stationId, eventGroupId);
             var signUp = requireActive(eventGroupId, memberId);
-            var parts = lockParts(eventGroupId);
-            var standing = Standing.of(stationId, parts, calendar);
-            signUps.updateStatus(signUp.id(), givenUp(signUp.status()));
+            var standing = rules.standing(stationId, rules.lockParts(eventGroupId));
+            signUps.updateStatus(signUp.id(), EventGroupSignUpRules.givenUp(signUp.status()));
             questions.forgetAnswers(signUp.id());
             for (var registration : registrations.findLinkedToEventGroup(signUp.id())) {
-                var endsWith = standing.tookPlace(registration.eventId()) ? null : givenUp(registration.status());
+                var endsWith = standing.tookPlace(registration.eventId())
+                        ? null
+                        : EventGroupSignUpRules.givenUp(registration.status());
                 written.add(registrationService.releaseFromEventGroup(registration, endsWith));
             }
             return signUp.status() == RegistrationStatus.ACCEPTED ? eventGroup : null;
@@ -275,21 +246,15 @@ public class EventGroupRegistrationService {
      * @return the sign-up as it is now
      */
     public EventGroupRegistration decide(int stationId, int eventGroupId, int memberId, RegistrationStatus decision) {
-        if (decision != RegistrationStatus.ACCEPTED && decision != RegistrationStatus.DENIED) {
-            throw EventRefusal.EVENT_GROUP_DECISION_UNKNOWN.raise();
-        }
         var written = new ArrayList<EventRegistration>();
         var decided = new ArrayList<EventGroup>();
         var signUp = Transactions.call(() -> {
-            var eventGroup = eventGroupService.lockEventGroup(stationId, eventGroupId);
+            var eventGroup = rules.lockForDecision(stationId, eventGroupId, decision);
             decided.add(eventGroup);
-            if (decision == RegistrationStatus.ACCEPTED && eventGroup.cancelled()) {
-                throw EventRefusal.EVENT_GROUP_CANCELLED.raise();
-            }
             var current = signUps.find(eventGroupId, memberId)
                     .filter(found -> found.active() || found.status() == RegistrationStatus.DENIED)
                     .orElseThrow(EventRefusal.EVENT_GROUP_NOT_SIGNED_UP::raise);
-            lockParts(eventGroupId);
+            rules.lockParts(eventGroupId);
             signUps.updateStatus(current.id(), decision);
             for (var registration : registrations.findLinkedToEventGroup(current.id())) {
                 written.add(registrationService.restateForEventGroup(registration, decision));
@@ -340,10 +305,7 @@ public class EventGroupRegistrationService {
 
     private static Set<Integer> counted(EventGroupRegistration signUp, List<EventRegistration> tied) {
         return tied.stream()
-                .filter(registration -> registration.status() == RegistrationStatus.PENDING
-                        || registration.status() == RegistrationStatus.ACCEPTED
-                        || (registration.status() == RegistrationStatus.DENIED
-                                && signUp.status() == RegistrationStatus.DENIED))
+                .filter(registration -> EventGroupSignUpRules.counts(registration.status(), signUp.status()))
                 .map(EventRegistration::eventId)
                 .collect(Collectors.toSet());
     }
@@ -363,16 +325,16 @@ public class EventGroupRegistrationService {
                 .collect(Collectors.toMap(EventGroupRegistration::memberId, Function.identity()));
         var tiedByMember = registrations.findLinkedToEventGroupOf(eventGroupId).stream()
                 .collect(Collectors.groupingBy(EventRegistration::memberId));
-        var parts = partEvents(eventGroupId);
-        var calledOff = Standing.of(eventGroup.stationId(), parts, calendar).calledOff();
-        var rules = rulesOf(eventGroupId);
+        var calledOff = rules.standing(eventGroup.stationId(), rules.partEvents(eventGroupId))
+                .calledOff();
+        var setRules = rules.rulesOf(eventGroupId);
         return memberIds.stream()
                 .map(memberId -> {
                     var signUp = bySignUp.get(memberId);
                     if (signUp == null) return new EventGroupStanding(memberId, null, Set.of(), List.of());
                     var counted = counted(signUp, tiedByMember.getOrDefault(memberId, List.of()));
                     return new EventGroupStanding(
-                            memberId, signUp, counted, EventGroupRules.evaluate(rules, counted, calledOff));
+                            memberId, signUp, counted, EventGroupRules.evaluate(setRules, counted, calledOff));
                 })
                 .toList();
     }
@@ -395,7 +357,7 @@ public class EventGroupRegistrationService {
      * @return the pending and accepted sign-ups
      */
     public int holding(int eventGroupId) {
-        return eventGroups.countSignUps(eventGroupId, HOLDING);
+        return rules.holding(eventGroupId);
     }
 
     /**
@@ -407,8 +369,8 @@ public class EventGroupRegistrationService {
     public List<EventGroupPartState> partStates(int eventGroupId) {
         var eventGroup = eventGroups.findById(eventGroupId).orElseThrow(EventRefusal.EVENT_GROUP_NOT_HERE::raise);
         var parts = eventGroups.findParts(eventGroupId);
-        var appointments = partEvents(eventGroupId);
-        var standing = Standing.of(eventGroup.stationId(), appointments, calendar);
+        var appointments = rules.partEvents(eventGroupId);
+        var standing = rules.standing(eventGroup.stationId(), appointments);
         return parts.stream()
                 .filter(part -> appointments.containsKey(part.eventId()))
                 .map(part -> {
@@ -433,19 +395,7 @@ public class EventGroupRegistrationService {
      * @return what gives every set's result for a choice
      */
     public Function<Set<Integer>, List<SetResult>> evaluator(int eventGroupId) {
-        var eventGroup = eventGroups.findById(eventGroupId).orElseThrow(EventRefusal.EVENT_GROUP_NOT_HERE::raise);
-        var parts = partEvents(eventGroupId);
-        var calledOff = Standing.of(eventGroup.stationId(), parts, calendar).calledOff();
-        var rules = rulesOf(eventGroupId);
-        return chosen -> EventGroupRules.evaluate(rules, chosen, calledOff);
-    }
-
-    EventGroup lockOpenEventGroup(int stationId, int eventGroupId, boolean override) {
-        var eventGroup = eventGroupService.lockEventGroup(stationId, eventGroupId);
-        if (eventGroup.cancelled()) throw EventRefusal.EVENT_GROUP_CANCELLED.raise();
-        if (!override && eventGroup.deadlinePassed(Instant.now()))
-            throw EventRefusal.EVENT_GROUP_REGISTRATION_CLOSED.raise();
-        return eventGroup;
+        return rules.evaluator(eventGroupId);
     }
 
     private EventGroupRegistration requireActive(int eventGroupId, int memberId) {
@@ -454,82 +404,10 @@ public class EventGroupRegistrationService {
                 .orElseThrow(EventRefusal.EVENT_GROUP_NOT_SIGNED_UP::raise);
     }
 
-    /** Locks the parts of an event group in ascending order and reads them by id. */
-    Map<Integer, StationEvent> lockParts(int eventGroupId) {
-        var ids = eventGroups.findParts(eventGroupId).stream()
-                .map(EventGroupPart::eventId)
-                .sorted()
-                .toList();
-        ids.forEach(events::lockForSignUp);
-        return appointmentsOf(ids);
-    }
-
-    /** The appointments that are parts of an event group, by id. */
-    Map<Integer, StationEvent> partEvents(int eventGroupId) {
-        return appointmentsOf(eventGroups.findParts(eventGroupId).stream()
-                .map(EventGroupPart::eventId)
-                .toList());
-    }
-
-    private Map<Integer, StationEvent> appointmentsOf(List<Integer> eventIds) {
-        return eventIds.stream()
-                .map(events::findById)
-                .flatMap(Optional::stream)
-                .collect(Collectors.toMap(StationEvent::id, Function.identity()));
-    }
-
-    List<SetRule> rulesOf(int eventGroupId) {
-        var parts = eventGroups.findParts(eventGroupId);
-        var partsBySet = parts.stream()
-                .collect(Collectors.groupingBy(
-                        EventGroupPart::setId, Collectors.mapping(EventGroupPart::eventId, Collectors.toSet())));
-        var requiredBySet = parts.stream()
-                .filter(EventGroupPart::required)
-                .collect(Collectors.groupingBy(
-                        EventGroupPart::setId, Collectors.mapping(EventGroupPart::eventId, Collectors.toSet())));
-        return eventGroups.findSets(eventGroupId).stream()
-                .map(set -> new SetRule(
-                        set.id(),
-                        set.name(),
-                        set.minimum(),
-                        partsBySet.getOrDefault(set.id(), Set.of()),
-                        requiredBySet.getOrDefault(set.id(), Set.of())))
-                .toList();
-    }
-
     /** The registrations of the parts a sign-up chose, by part: every one still tied to it. */
     private Map<Integer, EventRegistration> chosenRegistrations(EventGroupRegistration signUp) {
         return registrations.findLinkedToEventGroup(signUp.id()).stream()
                 .collect(Collectors.toMap(EventRegistration::eventId, Function.identity(), (first, second) -> first));
-    }
-
-    void requireRulesMet(int eventGroupId, Set<Integer> chosen, Standing standing, boolean override) {
-        if (!override && !EventGroupRules.met(rulesOf(eventGroupId), chosen, standing.calledOff())) {
-            throw EventRefusal.EVENT_GROUP_CHOICE_SHORT.raise();
-        }
-    }
-
-    static void requireChoosable(
-            Set<Integer> chosen, Set<Integer> parts, Standing standing, Set<Integer> alreadyHeld, boolean override) {
-        if (chosen.isEmpty()) throw EventRefusal.EVENT_GROUP_CHOICE_EMPTY.raise();
-        if (!parts.containsAll(chosen)) throw EventRefusal.EVENT_GROUP_CHOICE_NOT_A_PART.raise();
-        var added = new HashSet<>(chosen);
-        added.removeAll(alreadyHeld);
-        if (added.stream().anyMatch(standing.calledOff()::contains))
-            throw EventRefusal.EVENT_GROUP_CHOICE_CALLED_OFF.raise();
-        if (!override && added.stream().anyMatch(standing::tookPlace)) {
-            throw EventRefusal.EVENT_GROUP_PART_TOOK_PLACE.raise();
-        }
-    }
-
-    /**
-     * The one day a part falls on.
-     *
-     * @param part the part
-     * @return its day
-     */
-    LocalDate dayOf(StationEvent part) {
-        return EventGroupPartDates.dayOf(calendar, part).orElseThrow(EventRefusal.EVENT_HAS_NO_START_TIME::raise);
     }
 
     private EventRegistration place(
@@ -539,42 +417,6 @@ public class EventGroupRegistrationService {
             @Nullable Integer createdBy,
             int eventGroupRegistrationId) {
         return registrationService.placeForEventGroup(
-                part.id(), memberId, dayOf(part), status, createdBy, eventGroupRegistrationId);
-    }
-
-    static RegistrationStatus givenUp(RegistrationStatus status) {
-        return status == RegistrationStatus.ACCEPTED ? RegistrationStatus.WITHDRAWN : RegistrationStatus.DECLINED;
-    }
-
-    static List<Integer> ascending(Set<Integer> ids) {
-        return ids.stream().sorted().toList();
-    }
-
-    /**
-     * Which parts of an event group are called off and which already took place, as the station's
-     * calendar says.
-     *
-     * @param calledOff the parts called off
-     * @param past      the parts whose day lies before today
-     */
-    record Standing(Set<Integer> calledOff, Set<Integer> past) {
-        static Standing of(int stationId, Map<Integer, StationEvent> parts, OccurrenceCalendar calendar) {
-            var stationCalendar = calendar.forStation(stationId);
-            var today = stationCalendar.today();
-            var calledOff = new HashSet<Integer>();
-            var past = new HashSet<Integer>();
-            for (var part : parts.values()) {
-                if (stationCalendar.cancelledAltogether(part)) calledOff.add(part.id());
-                stationCalendar
-                        .ruleOf(part)
-                        .filter(rule -> rule.first().isBefore(today))
-                        .ifPresent(rule -> past.add(part.id()));
-            }
-            return new Standing(Set.copyOf(calledOff), Set.copyOf(past));
-        }
-
-        boolean tookPlace(int partId) {
-            return past.contains(partId);
-        }
+                part.id(), memberId, rules.dayOf(part), status, createdBy, eventGroupRegistrationId);
     }
 }

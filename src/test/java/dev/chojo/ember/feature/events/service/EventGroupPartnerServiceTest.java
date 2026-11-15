@@ -142,24 +142,20 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
         signUps = new EventGroupRegistrationService(
                 eventGroupRepo,
                 new EventGroupRegistrationRepository(),
-                eventRepo,
                 eventRegistrationRepo,
                 newEventServices(new DomainEventBus(Set.of())).registration(),
-                occurrenceCalendar,
                 mock(DomainEventBus.class),
                 memberNameResolver,
                 questions,
-                partnerRepo,
-                newEventGroupService());
+                newEventGroupSignUpRules());
         var httpClient = mock(FederationHttpClient.class);
         when(httpClient.canSign(anyInt())).thenReturn(true);
         var transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
         partners = new EventGroupPartnerService(
                 eventGroups,
-                signUps,
+                newEventGroupSignUpRules(),
                 partnerRepo,
                 federationRegistrations,
-                occurrenceCalendar,
                 mock(EventRequirementService.class),
                 mock(FederatedRegistrantService.class),
                 federationRepo,

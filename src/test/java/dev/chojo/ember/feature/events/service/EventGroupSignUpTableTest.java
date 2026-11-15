@@ -16,7 +16,6 @@ import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
@@ -97,15 +96,12 @@ class EventGroupSignUpTableTest extends RepositoryTestBase {
         registrations = new EventGroupRegistrationService(
                 new EventGroupRepository(),
                 new EventGroupRegistrationRepository(),
-                eventRepo,
                 eventRegistrationRepo,
                 newEventServices(new DomainEventBus(Set.of())).registration(),
-                occurrenceCalendar,
                 mock(DomainEventBus.class),
                 memberNameResolver,
                 questions,
-                new EventGroupPartnerRepository(),
-                newEventGroupService());
+                newEventGroupSignUpRules());
         partners = mock(EventGroupPartnerService.class);
         table = new EventGroupSignUpTable(
                 eventGroups,

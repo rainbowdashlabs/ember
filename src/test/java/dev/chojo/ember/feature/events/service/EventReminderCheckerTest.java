@@ -294,6 +294,28 @@ class EventReminderCheckerTest {
         verify(reminderRepository).markDeadlineWarningSent(7, 3);
     }
 
+    @Test
+    void aDeadlineUnderADayAwayIsWarnedOnceAndCoversTheWiderLead() {
+        var closing = new EventRepository.ClosingEvent(7, STATION_ID, "Übung", Instant.now(), 1);
+        when(eventRepository.findEventsClosingIn(1)).thenReturn(List.of(closing));
+        when(eventRepository.findEventsClosingIn(3)).thenReturn(List.of());
+        when(eventRepository.findEventsWithReminders()).thenReturn(List.of());
+        when(readOnlyGuard.isWritable(STATION_ID)).thenReturn(true);
+        when(registrationRepository.findUnansweredMemberIds(7, STATION_ID)).thenReturn(List.of(10));
+        when(memberNameResolver.called(10)).thenReturn("Kind");
+
+        invokeCheck();
+
+        verify(notifier, times(1))
+                .notify(
+                        eq(StationAudience.household(List.of(10))),
+                        eq(NotificationType.REGISTRATION_CLOSING),
+                        any(NotificationData.class),
+                        eq(Delivery.EVERY_TIME));
+        verify(reminderRepository).markDeadlineWarningSent(7, 1);
+        verify(reminderRepository).markDeadlineWarningSent(7, 3);
+    }
+
     /**
      * Somebody the appointment is not open to owes no answer, so no deadline is warned about.
      *

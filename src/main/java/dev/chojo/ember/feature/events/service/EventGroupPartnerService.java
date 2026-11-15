@@ -16,7 +16,6 @@ import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupCancelled;
-import dev.chojo.ember.feature.events.service.EventGroupRegistrationService.Standing;
 import dev.chojo.ember.feature.events.service.EventGroupRules.SetResult;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -31,7 +30,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -55,10 +53,9 @@ public class EventGroupPartnerService {
     private static final Logger log = LoggerFactory.getLogger(EventGroupPartnerService.class);
 
     private final EventGroupService eventGroups;
-    private final EventGroupRegistrationService gate;
+    private final EventGroupSignUpRules rules;
     private final EventGroupPartnerRepository partners;
     private final EventFederationRepository federation;
-    private final OccurrenceCalendar calendar;
     private final EventRequirementService requirements;
     private final FederatedRegistrantService registrants;
     private final FederationRepository federationPartners;
@@ -67,19 +64,17 @@ public class EventGroupPartnerService {
     @Inject
     public EventGroupPartnerService(
             EventGroupService eventGroups,
-            EventGroupRegistrationService gate,
+            EventGroupSignUpRules rules,
             EventGroupPartnerRepository partners,
             EventFederationRepository federation,
-            OccurrenceCalendar calendar,
             EventRequirementService requirements,
             FederatedRegistrantService registrants,
             FederationRepository federationPartners,
             FederationTransport transport) {
         this.eventGroups = eventGroups;
-        this.gate = gate;
+        this.rules = rules;
         this.partners = partners;
         this.federation = federation;
-        this.calendar = calendar;
         this.requirements = requirements;
         this.registrants = registrants;
         this.federationPartners = federationPartners;
@@ -195,24 +190,20 @@ public class EventGroupPartnerService {
     public PartnerStanding register(
             int stationId, int eventGroupId, int partnerId, UUID remoteMemberId, Set<Integer> partIds) {
         Transactions.run(() -> {
-            var eventGroup = gate.lockOpenEventGroup(stationId, eventGroupId, false);
+            var eventGroup = rules.lockOpen(stationId, eventGroupId, false);
             var existing = partners.find(eventGroupId, partnerId, remoteMemberId);
-            if (existing.filter(EventGroupPartnerRegistration::active).isPresent()) {
-                throw EventRefusal.EVENT_GROUP_ALREADY_SIGNED_UP.raise();
-            }
-            Integer limit = eventGroup.registrationLimit();
-            if (limit != null && gate.holding(eventGroupId) >= limit) {
-                throw EventRefusal.EVENT_GROUP_FULL.raise();
-            }
-            var parts = gate.lockParts(eventGroupId);
-            var standing = Standing.of(stationId, parts, calendar);
-            EventGroupRegistrationService.requireChoosable(partIds, parts.keySet(), standing, Set.of(), false);
-            gate.requireRulesMet(eventGroupId, partIds, standing, false);
-            var status = eventGroup.requiresConfirmation() ? RegistrationStatus.PENDING : RegistrationStatus.ACCEPTED;
+            EventGroupSignUpRules.requireNoActiveSignUp(
+                    existing.filter(EventGroupPartnerRegistration::active).isPresent());
+            rules.requireRoom(eventGroup, false);
+            var parts = rules.lockParts(eventGroupId);
+            var standing = rules.standing(stationId, parts);
+            EventGroupSignUpRules.requireChoosable(partIds, parts.keySet(), standing, Set.of(), false);
+            rules.requireRulesMet(eventGroupId, partIds, standing, false);
+            var status = EventGroupSignUpRules.initialStatus(eventGroup);
             existing.ifPresent(earlier ->
                     partners.findLinked(earlier.id()).forEach(registration -> partners.unlink(registration.id())));
             var stored = partners.signUp(eventGroupId, partnerId, remoteMemberId, status);
-            for (int partId : EventGroupRegistrationService.ascending(partIds)) {
+            for (int partId : EventGroupSignUpRules.ascending(partIds)) {
                 place(parts.get(partId), stored, status);
             }
         });
@@ -233,22 +224,20 @@ public class EventGroupPartnerService {
     public PartnerStanding changeParts(
             int stationId, int eventGroupId, int partnerId, UUID remoteMemberId, Set<Integer> partIds) {
         Transactions.run(() -> {
-            gate.lockOpenEventGroup(stationId, eventGroupId, false);
+            rules.lockOpen(stationId, eventGroupId, false);
             var current = requireActive(eventGroupId, partnerId, remoteMemberId);
-            var parts = gate.lockParts(eventGroupId);
-            var standing = Standing.of(stationId, parts, calendar);
+            var parts = rules.lockParts(eventGroupId);
+            var standing = rules.standing(stationId, parts);
             var held = heldParts(current);
-            EventGroupRegistrationService.requireChoosable(partIds, parts.keySet(), standing, held.keySet(), false);
-            var dropped = new HashSet<>(held.keySet());
-            dropped.removeAll(partIds);
-            if (dropped.stream().anyMatch(standing::tookPlace)) throw EventRefusal.EVENT_GROUP_PART_TOOK_PLACE.raise();
-            gate.requireRulesMet(eventGroupId, partIds, standing, false);
-            for (int partId : EventGroupRegistrationService.ascending(partIds)) {
+            EventGroupSignUpRules.requireChoosable(partIds, parts.keySet(), standing, held.keySet(), false);
+            var dropped = EventGroupSignUpRules.requireDroppable(held.keySet(), partIds, standing, false);
+            rules.requireRulesMet(eventGroupId, partIds, standing, false);
+            for (int partId : EventGroupSignUpRules.ascending(partIds)) {
                 if (!held.containsKey(partId)) place(parts.get(partId), current, current.status());
             }
             for (int partId : dropped) {
                 var registration = held.get(partId);
-                partners.restate(registration.id(), EventGroupRegistrationService.givenUp(registration.status()));
+                partners.restate(registration.id(), EventGroupSignUpRules.givenUp(registration.status()));
                 partners.unlink(registration.id());
             }
         });
@@ -265,14 +254,13 @@ public class EventGroupPartnerService {
      */
     public void withdraw(int stationId, int eventGroupId, int partnerId, UUID remoteMemberId) {
         Transactions.run(() -> {
-            eventGroups.lockEventGroup(stationId, eventGroupId);
+            rules.lock(stationId, eventGroupId);
             var current = requireActive(eventGroupId, partnerId, remoteMemberId);
-            var parts = gate.lockParts(eventGroupId);
-            var standing = Standing.of(stationId, parts, calendar);
-            partners.updateStatus(current.id(), EventGroupRegistrationService.givenUp(current.status()));
+            var standing = rules.standing(stationId, rules.lockParts(eventGroupId));
+            partners.updateStatus(current.id(), EventGroupSignUpRules.givenUp(current.status()));
             for (var registration : partners.findLinked(current.id())) {
                 if (!standing.tookPlace(registration.eventId())) {
-                    partners.restate(registration.id(), EventGroupRegistrationService.givenUp(registration.status()));
+                    partners.restate(registration.id(), EventGroupSignUpRules.givenUp(registration.status()));
                 }
                 partners.unlink(registration.id());
             }
@@ -289,19 +277,13 @@ public class EventGroupPartnerService {
      * @param decision     {@link RegistrationStatus#ACCEPTED} or {@link RegistrationStatus#DENIED}
      */
     public void decide(int stationId, int eventGroupId, int signUpId, RegistrationStatus decision) {
-        if (decision != RegistrationStatus.ACCEPTED && decision != RegistrationStatus.DENIED) {
-            throw EventRefusal.EVENT_GROUP_DECISION_UNKNOWN.raise();
-        }
         Transactions.run(() -> {
-            var eventGroup = eventGroups.lockEventGroup(stationId, eventGroupId);
-            if (decision == RegistrationStatus.ACCEPTED && eventGroup.cancelled()) {
-                throw EventRefusal.EVENT_GROUP_CANCELLED.raise();
-            }
+            rules.lockForDecision(stationId, eventGroupId, decision);
             var current = partners.findById(signUpId)
                     .filter(found -> found.eventGroupId() == eventGroupId)
                     .filter(found -> found.active() || found.status() == RegistrationStatus.DENIED)
                     .orElseThrow(EventRefusal.EVENT_GROUP_NOT_SIGNED_UP::raise);
-            gate.lockParts(eventGroupId);
+            rules.lockParts(eventGroupId);
             partners.updateStatus(current.id(), decision);
             for (var registration : partners.findLinked(current.id())) {
                 partners.restate(registration.id(), decision);
@@ -344,7 +326,7 @@ public class EventGroupPartnerService {
      * @return one standing per member, in the order asked
      */
     public List<PartnerStanding> standings(int eventGroupId, int partnerId, List<UUID> remoteMemberIds) {
-        var evaluate = gate.evaluator(eventGroupId);
+        var evaluate = rules.evaluator(eventGroupId);
         var linked = partners.findLinkedByEventGroup(eventGroupId);
         var byMember = partners.findByEventGroup(eventGroupId).stream()
                 .filter(signUp -> signUp.partnerId() == partnerId)
@@ -360,7 +342,7 @@ public class EventGroupPartnerService {
     private PartnerStanding standingOf(int eventGroupId, int partnerId, UUID remoteMemberId) {
         return partners.find(eventGroupId, partnerId, remoteMemberId)
                 .map(signUp -> standing(
-                        signUp, Map.of(signUp.id(), partners.findLinked(signUp.id())), gate.evaluator(eventGroupId)))
+                        signUp, Map.of(signUp.id(), partners.findLinked(signUp.id())), rules.evaluator(eventGroupId)))
                 .orElseGet(() -> notSignedUp(remoteMemberId));
     }
 
@@ -378,7 +360,7 @@ public class EventGroupPartnerService {
      */
     public List<PartnerSignUp> signUps(int stationId, int eventGroupId) {
         eventGroups.requireEventGroup(stationId, eventGroupId);
-        var evaluate = gate.evaluator(eventGroupId);
+        var evaluate = rules.evaluator(eventGroupId);
         var linked = partners.findLinkedByEventGroup(eventGroupId);
         return partners.findByEventGroup(eventGroupId).stream()
                 .filter(signUp -> signUp.active() || signUp.status() == RegistrationStatus.DENIED)
@@ -394,10 +376,7 @@ public class EventGroupPartnerService {
             Map<Integer, List<EventFederationRegistration>> linked,
             Function<Set<Integer>, List<SetResult>> evaluate) {
         var counted = linked.getOrDefault(signUp.id(), List.of()).stream()
-                .filter(registration -> registration.status() == RegistrationStatus.PENDING
-                        || registration.status() == RegistrationStatus.ACCEPTED
-                        || (registration.status() == RegistrationStatus.DENIED
-                                && signUp.status() == RegistrationStatus.DENIED))
+                .filter(registration -> EventGroupSignUpRules.counts(registration.status(), signUp.status()))
                 .map(EventFederationRegistration::eventId)
                 .collect(Collectors.toSet());
         return new PartnerStanding(
@@ -422,7 +401,7 @@ public class EventGroupPartnerService {
 
     private void place(StationEvent part, EventGroupPartnerRegistration signUp, RegistrationStatus status) {
         var registration = federation.createRegistration(
-                part.id(), signUp.partnerId(), signUp.remoteMemberId(), gate.dayOf(part), status);
+                part.id(), signUp.partnerId(), signUp.remoteMemberId(), rules.dayOf(part), status);
         partners.link(registration.id(), signUp.id());
     }
 
