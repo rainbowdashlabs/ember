@@ -18,7 +18,7 @@ import RowLink from '@/components/navigation/RowLink.vue'
 import EventGroupFields from './EventGroupFields.vue'
 import type {EventGroupDetail, EventGroupPartState} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
-import {setRuleText} from '@/util/eventGroupChoice'
+import {partsOfSet, ruleOf} from '@/util/eventGroupChoice'
 import {formatDate, formatDateTime, formatTime} from '@/util/format'
 import EventGroupBand from '../eventshared/EventGroupBand.vue'
 import EventGroupHeading from '../eventshared/EventGroupHeading.vue'
@@ -59,17 +59,6 @@ const minimumRule = computed(() => {
     ? t('eventGroups.minimumRuleSameDay', {minimum})
     : t('eventGroups.minimumRule', {minimum, days})
 })
-
-/** The parts of a set in date order. */
-function partsOf(setId: number) {
-  return props.detail.parts.filter(part => part.setId === setId)
-}
-
-/** The rule a set states, "all mandatory" or "at least n of m". */
-function ruleOf(setId: number): string {
-  const set = props.detail.sets.find(candidate => candidate.id === setId)!
-  return setRuleText(set, props.detail.parts, t)
-}
 
 /** The event group as its bar names it, running from the start of its first part to the end of its last. */
 const mark = computed<EventGroupMark>(() => {
@@ -125,9 +114,9 @@ function whenOf(part: EventGroupPartState): string {
     <SectionHeader>{{ t('eventGroups.parts') }}</SectionHeader>
     <MutedText v-if="detail.parts.length === 0" tag="p" size="sm">{{ t('eventGroups.noParts') }}</MutedText>
     <section v-for="set in detail.sets" :key="set.id" class="space-y-2" :data-testid="`event-group-set-${set.id}`">
-      <SubHeader>{{ set.name }} <MutedText tag="span" size="sm">({{ ruleOf(set.id) }})</MutedText></SubHeader>
+      <SubHeader>{{ set.name }} <MutedText tag="span" size="sm">({{ ruleOf(set.id, detail.sets, detail.parts, t) }})</MutedText></SubHeader>
       <ul class="space-y-1">
-        <li v-for="part in partsOf(set.id)" :key="part.eventId">
+        <li v-for="part in partsOfSet(set.id, detail.parts)" :key="part.eventId">
           <RowLink :to="linkOf(part.eventId)" class="flex flex-wrap items-center gap-2 text-sm">
             <span :class="{'line-through text-(--text-muted)': part.calledOff}">{{ part.name }}</span>
             <MutedText tag="span" size="sm">{{ whenOf(part) }}</MutedText>

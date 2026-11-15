@@ -28,12 +28,12 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CommentSection from '@/components/comment/CommentSection.vue'
 import NoteEditor from '@/components/comment/NoteEditor.vue'
 import type {EventGroupDetail, MemberCompletion} from '@/api/generated/schema'
-import {StationPermission} from '@/api/generated/schema'
+import {NoteEntityType, StationPermission} from '@/api/generated/schema'
 import {eventGroups, stationMembers} from '@/api'
 import {eventGroupCommentSource} from '@/api/eventGroups'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 /**
  * One event group: what it is, its parts by set with each set's minimum, the sign-up of the reader and
@@ -48,10 +48,8 @@ const {loaded, hasPermission, sessionInfo} = useSession()
 
 const eventGroupId = computed(() => Number(route.params.eventGroupId))
 const detail = ref<EventGroupDetail | null>(null)
-const actionFailure = ref<Failure | null>(null)
 const cancelOpen = ref(false)
 const deleteOpen = ref(false)
-const busy = ref(false)
 const signUpsPanel = ref<InstanceType<typeof EventGroupSignUpsPanel> | null>(null)
 const attendancePanel = ref<InstanceType<typeof EventGroupAttendancePanel> | null>(null)
 
@@ -99,30 +97,26 @@ async function refresh() {
   await attendancePanel.value?.reload()
 }
 
+const {running: cancelling, failure: cancelFailure, run: runCancel} = useAsyncAction(async (reason: string | null) => {
+  detail.value = await eventGroups.cancelEventGroup(eventGroupId.value, reason)
+})
+const {running: deleting, failure: deleteFailure, run: runDelete} = useAsyncAction(async () => {
+  await eventGroups.deleteEventGroup(eventGroupId.value)
+  await router.push({name: 'events'})
+})
+const busy = computed(() => cancelling.value || deleting.value)
+const actionFailure = computed(() => cancelFailure.value ?? deleteFailure.value)
+
+/** Cancels the event group and closes the dialog, whether the cancelling worked or not. */
 async function cancelEventGroup(reason: string | null) {
-  busy.value = true
-  try {
-    detail.value = await eventGroups.cancelEventGroup(eventGroupId.value, reason)
-    cancelOpen.value = false
-  } catch (e) {
-    actionFailure.value = describeFailure(e, t)
-    cancelOpen.value = false
-  } finally {
-    busy.value = false
-  }
+  await runCancel(reason)
+  cancelOpen.value = false
 }
 
+/** Deletes the event group and leaves for the list; only a failed delete closes the dialog here. */
 async function deleteEventGroup() {
-  busy.value = true
-  try {
-    await eventGroups.deleteEventGroup(eventGroupId.value)
-    await router.push({name: 'events'})
-  } catch (e) {
-    actionFailure.value = describeFailure(e, t)
-    deleteOpen.value = false
-  } finally {
-    busy.value = false
-  }
+  await runDelete()
+  if (deleteFailure.value) deleteOpen.value = false
 }
 </script>
 
@@ -148,7 +142,7 @@ async function deleteEventGroup() {
           <EventGroupHouseholdPanel :detail="detail" :on-changed="refresh"/>
           <EventGroupMaterialsPanel :event-group-id="detail.eventGroup.id"/>
           <NeutralContainer v-if="canEdit">
-            <NoteEditor entity-type="EVENT_GROUP" :entity-id="eventGroupId"/>
+            <NoteEditor :entity-type="NoteEntityType.EVENT_GROUP" :entity-id="eventGroupId"/>
           </NeutralContainer>
           <NeutralContainer>
             <CommentSection :source="commentSource"/>

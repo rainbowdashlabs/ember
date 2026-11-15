@@ -7,7 +7,7 @@ import client from './client'
 import {documentFrom, type DocumentFile} from '@/util/documentFile'
 import type {ExportSeparator} from '@/util/exportFormat'
 import {stationMentionables, type CommentSource} from './comments'
-import {StationPermission} from './generated/schema'
+import {RestrictionType, StationPermission} from './generated/schema'
 import type {
     AgreementSigner,
     AppointmentField,
@@ -87,20 +87,6 @@ export async function cancelEventGroup(eventGroupId: number, reason: string | nu
     return (await client.post<EventGroupDetail>(`${EVENT_GROUPS}/${eventGroupId}/cancel`, {reason})).data
 }
 
-/** Replaces the sets of an event group, in their new order. */
-export async function replaceSets(eventGroupId: number, sets: EventGroupSetDraft[]): Promise<EventGroupDetail> {
-    return (await client.put<EventGroupDetail>(`${EVENT_GROUPS}/${eventGroupId}/sets`, {sets})).data
-}
-
-/** Sets who may sign up for an event group and who may see it. */
-export async function setAudiences(
-    eventGroupId: number,
-    registration: RestrictionAudience,
-    view: RestrictionAudience,
-): Promise<EventGroupDetail> {
-    return (await client.put<EventGroupDetail>(`${EVENT_GROUPS}/${eventGroupId}/audiences`, {registration, view})).data
-}
-
 /** Makes an existing one-time appointment a part of an event group. */
 export async function addPart(eventGroupId: number, eventId: number, setId: number): Promise<EventGroupPart> {
     return (await client.post<EventGroupPart>(`${EVENT_GROUPS}/${eventGroupId}/parts`, {eventId, setId})).data
@@ -111,12 +97,12 @@ export async function createPart(eventGroupId: number, request: EventGroupPartCr
     return (await client.post<EventGroupPart>(`${EVENT_GROUPS}/${eventGroupId}/parts/new`, request)).data
 }
 
-/** Moves a part into another set of its event group. */
 /** Marks a part as required by its set, or takes the mark off. */
 export async function setPartRequired(eventGroupId: number, eventId: number, required: boolean): Promise<EventGroupPart> {
     return (await client.put<EventGroupPart>(`${EVENT_GROUPS}/${eventGroupId}/parts/${eventId}/required`, {required})).data
 }
 
+/** Moves a part into another set of its event group. */
 export async function movePart(eventGroupId: number, eventId: number, setId: number): Promise<EventGroupPart> {
     return (await client.put<EventGroupPart>(`${EVENT_GROUPS}/${eventGroupId}/parts/${eventId}`, {setId})).data
 }
@@ -244,7 +230,7 @@ export function eventGroupCommentSource(eventGroupId: number): CommentSource {
         create: (parentId, content) => client.post(comments, {parentId, content}),
         update: (commentId, content) => client.put(`${comments}/${commentId}`, {content}),
         remove: commentId => client.delete(`${comments}/${commentId}`),
-        mentionables: () => stationMentionables({type: 'EVENT_GROUP_VIEW', entityId: eventGroupId}),
+        mentionables: () => stationMentionables({type: RestrictionType.EVENT_GROUP_VIEW, entityId: eventGroupId}),
         moderator: StationPermission.EVENT_MANAGER,
     }
 }

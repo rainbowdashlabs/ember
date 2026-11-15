@@ -21,7 +21,7 @@ const api = vi.hoisted(() => ({
 vi.mock('@/api', () => api)
 
 describe('AddToEventGroupCard', () => {
-  it('offers the open event groups and adds the appointment into the chosen block', async () => {
+  it('offers the open event groups and adds the appointment into the chosen set', async () => {
     const onAdded = vi.fn()
     const wrapper = mount(AddToEventGroupCard, {props: {eventId: 12, onAdded}})
     await flushPromises()
@@ -53,7 +53,7 @@ describe('AddToEventGroupCard', () => {
     expect(onAdded).not.toHaveBeenCalled()
   })
 
-  it('drops the blocks of a group that is no longer chosen', async () => {
+  it('drops the sets of an event group that is no longer chosen', async () => {
     let answerFirst: (value: {sets: {id: number, name: string}[]}) => void = () => undefined
     api.eventGroups.getEventGroup.mockImplementationOnce(() => new Promise(resolve => {
       answerFirst = resolve

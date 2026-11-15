@@ -19,8 +19,8 @@ import MemberName from '@/components/avatar/MemberName.vue'
 import type {EventGroupAttendance, EventGroupDetail} from '@/api/generated/schema'
 import {eventGroups} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {presentFile} from '@/util/documentFile'
-import {describeFailure, type Failure} from '@/util/failure'
 import type {ExportSeparator} from '@/util/exportFormat'
 
 /**
@@ -34,9 +34,7 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const rows = ref<EventGroupAttendance[]>([])
-const exporting = ref(false)
 const exportOpen = ref(false)
-const exportFailure = ref<Failure | null>(null)
 
 const {loading, failure, reload} = useAsyncLoader(async () => {
   rows.value = await eventGroups.listAttendance(props.detail.eventGroup.id)
@@ -44,18 +42,11 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
 
 watch(() => props.detail.eventGroup.id, () => reload())
 
-async function exportCsv(_format: 'csv' | 'pdf', separator: ExportSeparator) {
-  exporting.value = true
-  exportFailure.value = null
-  try {
-    await presentFile(await eventGroups.exportAttendance(props.detail.eventGroup.id, separator))
-    exportOpen.value = false
-  } catch (e) {
-    exportFailure.value = describeFailure(e, t)
-  } finally {
-    exporting.value = false
-  }
-}
+const {running: exporting, failure: exportFailure, run: exportCsv} = useAsyncAction(
+    async (_format: 'csv' | 'pdf', separator: ExportSeparator) => {
+      await presentFile(await eventGroups.exportAttendance(props.detail.eventGroup.id, separator))
+      exportOpen.value = false
+    })
 
 defineExpose({reload})
 </script>

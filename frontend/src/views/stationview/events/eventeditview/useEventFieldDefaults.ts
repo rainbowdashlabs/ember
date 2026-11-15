@@ -6,7 +6,8 @@
 import {computed, ref} from 'vue'
 import type {FieldDefaultsPort} from './eventOwnerPorts'
 
-interface FieldDefaultEntry {
+/** One pre-fill as the editors hold it: where the value comes from, and the value itself. */
+export interface FieldDefaultValue {
   source: string
   value: string
 }
@@ -16,9 +17,9 @@ interface FieldDefaultEntry {
  * field id. Whose values they are comes in as a port with every read and write.
  */
 export function useEventFieldDefaults() {
-  const defaults = ref<Map<number, FieldDefaultEntry>>(new Map())
+  const defaults = ref<Map<number, FieldDefaultValue>>(new Map())
 
-  function entryFor(fieldId: number): FieldDefaultEntry {
+  function entryFor(fieldId: number): FieldDefaultValue {
     return defaults.value.get(fieldId) ?? {source: '', value: ''}
   }
 
@@ -52,7 +53,7 @@ export function useEventFieldDefaults() {
 
   async function load(port: FieldDefaultsPort) {
     const loaded = await port.get()
-    const m = new Map<number, FieldDefaultEntry>()
+    const m = new Map<number, FieldDefaultValue>()
     for (const fd of loaded) {
       m.set(fd.fieldId, {source: fd.source, value: fd.value ?? ''})
     }

@@ -14,11 +14,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldDefaultRow from '../eventshared/FieldDefaultRow.vue'
 import EventReminderEditor from '../eventshared/EventReminderEditor.vue'
 import type {AttendanceTemplate, AttendanceTemplateField, EventCategory} from '@/api/generated/schema'
-
-interface FieldDefaultEntry {
-  source: string
-  value: string
-}
+import type {FieldDefaultValue} from '../eventeditview/useEventFieldDefaults'
 
 /**
  * What an event group hands to every part without a setting of its own: the category, the attendance
@@ -30,7 +26,7 @@ const props = defineProps<{
   templates: AttendanceTemplate[]
   /** The fields of the chosen attendance template, which the pre-fills are for. */
   templateFields: AttendanceTemplateField[]
-  fieldDefaults: Map<number, FieldDefaultEntry>
+  fieldDefaults: Map<number, FieldDefaultValue>
 }>()
 
 const emit = defineEmits<{
@@ -44,7 +40,7 @@ const reminders = defineModel<number[]>('reminders', {required: true})
 
 const {t} = useI18n()
 
-function entryFor(fieldId: number): FieldDefaultEntry {
+function entryFor(fieldId: number): FieldDefaultValue {
   return props.fieldDefaults.get(fieldId) ?? {source: '', value: ''}
 }
 </script>

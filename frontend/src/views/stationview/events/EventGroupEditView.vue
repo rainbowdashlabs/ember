@@ -36,16 +36,15 @@ import type {RequirementOwner} from '@/api/appointmentDocuments'
 import {useEventGroupSettings} from './eventgroupeditview/useEventGroupSettings'
 import EventGroupTemplateStart from './eventgroupeditview/EventGroupTemplateStart.vue'
 import {groupFieldsOf, groupQuestionsOf, useEventGroupTemplate, newByName} from './eventgroupeditview/eventGroupTemplate'
-import {toRestriction} from '@/components/input/restriction'
+import {emptyRestriction, toRestriction} from '@/components/input/restriction'
 import {entryOf, namedEntries} from './eventshared/eventQuestions'
-import type {EventGroupDetail, MemberGroup, MemberWithName, EventFieldEntry, RegistrationFieldDefinition, RestrictionAudience, StationEvent, UserTag} from '@/api/generated/schema'
+import type {EventGroupDetail, EventGroupDetails, MemberGroup, MemberWithName, EventFieldEntry, RegistrationFieldDefinition, StationEvent, UserTag} from '@/api/generated/schema'
 import {EventType, StationPermission} from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/api/types'
 import {eventGroups, events, memberGroups as memberGroupsApi, stationMembers, userTags as userTagsApi} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure, type Failure} from '@/util/failure'
-import {instantToLocalInput, localInputToInstant} from '@/util/format'
 import {showToast} from '@/util/toast'
 
 /**
@@ -69,17 +68,13 @@ const tags = ref<UserTag[]>([])
 const members = ref<MemberWithName[]>([])
 const groupMembers = ref(new Map<number, MemberWithName[]>())
 
-const name = ref('')
-const description = ref('')
-const limit = ref<number | undefined>(undefined)
-const deadline = ref('')
-const confirm = ref(false)
-const color = ref('')
-const minRegistrations = ref<number | undefined>(undefined)
-const thresholdDays = ref<number | undefined>(undefined)
+const details = ref<EventGroupDetails>({
+  name: '', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: false,
+  color: null, minRegistrations: null, thresholdDays: null,
+})
 const sets = ref<SetRow[]>([{id: null, name: t('eventGroups.defaultSet'), minimum: 1}])
-const registration = ref<RestrictionSelection>(emptySelection())
-const view = ref<RestrictionSelection>(emptySelection())
+const registration = ref<RestrictionSelection>(emptyRestriction())
+const view = ref<RestrictionSelection>(emptyRestriction())
 const questions = ref<RegistrationFieldDefinition[]>([])
 const fields = ref<EventFieldEntry[]>([])
 const startingAppointment = ref<StationEvent | null>(null)
@@ -97,7 +92,7 @@ const fromTemplate = useEventGroupTemplate()
  */
 async function applyTemplate(templateId: number) {
   const template = await fromTemplate.read(templateId)
-  if (template.template.description) description.value = template.template.description
+  if (template.template.description) details.value = {...details.value, description: template.template.description}
   dateSettings.takeFrom(template)
   await dateSettings.fieldDefaults.takeFrom(templateFieldDefaultsPort(templateId))
   const taken = groupFieldsOf(template.fields)
@@ -124,34 +119,13 @@ function requirementOwner(id: number): RequirementOwner {
 }
 const saveFailure = ref<Failure | null>(null)
 
-function emptySelection(): RestrictionSelection {
-  return {userTypes: [], groupIds: [], tagIds: [], memberIds: [], mode: 'AND'}
-}
-
-function selectionOf(audience: RestrictionAudience): RestrictionSelection {
-  return {
-    userTypes: [...audience.userTypes],
-    groupIds: [...audience.groupIds],
-    tagIds: [...audience.tagIds],
-    memberIds: [...audience.memberIds],
-    mode: audience.mode,
-  }
-}
-
 /** Fills the form from the stored event group. */
 function fill(loadedDetail: EventGroupDetail) {
   detail.value = loadedDetail
-  name.value = loadedDetail.eventGroup.details.name
-  description.value = loadedDetail.eventGroup.details.description ?? ''
-  limit.value = loadedDetail.eventGroup.details.registrationLimit ?? undefined
-  deadline.value = instantToLocalInput(loadedDetail.eventGroup.details.registrationDeadline)
-  confirm.value = loadedDetail.eventGroup.details.requiresConfirmation
-  color.value = loadedDetail.eventGroup.details.color ?? ''
-  minRegistrations.value = loadedDetail.eventGroup.details.minRegistrations ?? undefined
-  thresholdDays.value = loadedDetail.eventGroup.details.thresholdDays ?? undefined
+  details.value = {...loadedDetail.eventGroup.details}
   sets.value = loadedDetail.sets.map(set => ({id: set.id, name: set.name, minimum: set.minimum}))
-  registration.value = selectionOf(loadedDetail.registration)
-  view.value = selectionOf(loadedDetail.view)
+  registration.value = toRestriction(loadedDetail.registration)
+  view.value = toRestriction(loadedDetail.view)
   questions.value = loadedDetail.questions.map(({name, fieldType, config, overview}) => ({name, fieldType, config, overview}))
   fields.value = loadedDetail.fields.map(field => ({...entryOf(field), id: field.id}))
 }
@@ -199,10 +173,10 @@ async function takeStartingAppointment() {
   ])
   if (!event || event.eventType !== EventType.ONE_TIME) return
   startingAppointment.value = event
-  if (!name.value) name.value = event.name ?? ''
+  if (!details.value.name) details.value = {...details.value, name: event.name ?? ''}
   if (audiences) {
-    registration.value = selectionOf(audiences.register)
-    view.value = selectionOf(audiences.view)
+    registration.value = toRestriction(audiences.register)
+    view.value = toRestriction(audiences.view)
   }
 }
 
@@ -246,16 +220,18 @@ const partCounts = computed<Record<number, number>>(() => {
   return counts
 })
 
-function details() {
+/** The details as they are saved: an empty description and a minimum of none or zero, with its days, left out. */
+function detailsToSave(): EventGroupDetails {
+  const entered = details.value
   return {
-    name: name.value,
-    description: description.value.trim() === '' ? null : description.value,
-    registrationLimit: limit.value ?? null,
-    registrationDeadline: deadline.value ? localInputToInstant(deadline.value) : null,
-    requiresConfirmation: confirm.value,
-    color: color.value || null,
-    minRegistrations: minRegistrations.value || null,
-    thresholdDays: minRegistrations.value ? thresholdDays.value ?? null : null,
+    name: entered.name ?? '',
+    description: entered.description?.trim() ? entered.description : null,
+    registrationLimit: entered.registrationLimit ?? null,
+    registrationDeadline: entered.registrationDeadline ?? null,
+    requiresConfirmation: entered.requiresConfirmation ?? false,
+    color: entered.color || null,
+    minRegistrations: entered.minRegistrations || null,
+    thresholdDays: entered.minRegistrations ? entered.thresholdDays ?? null : null,
   }
 }
 
@@ -264,17 +240,17 @@ function details() {
  * the group itself; where one of those is refused, the group already exists, and saving again has to
  * change it rather than create a second one.
  */
-const createdGroupId = ref<number | null>(null)
+const createdEventGroupId = ref<number | null>(null)
 
 async function save() {
   saving.value = true
   saveFailure.value = null
   try {
     const drafts = sets.value.map(set => ({id: set.id, name: set.name, minimum: set.minimum}))
-    const savedId = eventGroupId.value ?? createdGroupId.value
+    const savedId = eventGroupId.value ?? createdEventGroupId.value
     if (savedId == null) {
       const created = await eventGroups.createEventGroup({
-        details: details(),
+        details: detailsToSave(),
         sets: drafts,
         registration: registration.value,
         view: view.value,
@@ -282,7 +258,7 @@ async function save() {
         fields: namedEntries(fields.value),
         appointmentId: startingAppointment.value?.id ?? null,
       })
-      createdGroupId.value = created.eventGroup.id
+      createdEventGroupId.value = created.eventGroup.id
       startingAppointment.value = null
       fill(created)
       await dateSettings.save(created.eventGroup.id)
@@ -292,7 +268,7 @@ async function save() {
       await router.replace({name: 'event-group-edit', params: {eventGroupId: created.eventGroup.id}})
       return
     }
-    fill(await eventGroups.updateEventGroup(savedId, details(), drafts, {
+    fill(await eventGroups.updateEventGroup(savedId, detailsToSave(), drafts, {
       registration: registration.value,
       view: view.value,
     }, savedQuestions(), namedEntries(fields.value)))
@@ -323,12 +299,7 @@ async function save() {
       <div class="space-y-6">
         <StartingAppointmentNotice v-if="startingAppointment" :name="startingAppointment.name" @drop="dropStartingAppointment"/>
         <EventGroupTemplateStart v-if="eventGroupId == null" v-bind="fromTemplate.props.value" @apply="applyTemplate"/>
-        <EventGroupDetailsForm
-            v-model:name="name" v-model:description="description"
-            v-model:limit="limit" v-model:deadline="deadline" v-model:confirm="confirm"
-            v-model:min-registrations="minRegistrations" v-model:threshold-days="thresholdDays"
-            v-model:color="color" :event-group-id="eventGroupId"
-        />
+        <EventGroupDetailsForm v-model="details" :event-group-id="eventGroupId"/>
 
         <NeutralContainer class="space-y-3">
           <SectionHeader>{{ t('eventGroups.sets') }}</SectionHeader>

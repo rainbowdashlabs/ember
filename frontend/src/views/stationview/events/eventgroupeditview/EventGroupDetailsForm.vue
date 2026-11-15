@@ -18,27 +18,52 @@ import ColorInput from '@/components/input/ColorInput.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {eventGroupColor} from '../eventshared/eventGroupColor'
 import {nonNegative} from '../templateeditview/signUpRules'
+import type {EventGroupDetails} from '@/api/generated/schema'
+import {instantToLocalInput, localInputToInstant} from '@/util/format'
 
 /**
  * What an event group holds besides its sets, audiences and parts: name, description, its sign-up, the
  * minimum of accepted sign-ups with the days before the first part it must be reached by, and the
  * colour that marks its parts. The days are only asked once a minimum is given. Without a colour of its own the picker shows the one its id picks,
  * and choosing that one keeps it as its own. A new event group has no id yet, so its picker stays
- * neutral and says that the palette colour is picked once it is saved.
+ * neutral and says that the palette colour is picked once it is saved. The details come and go as one
+ * value in the shape the server keeps them, the deadline as an instant.
  */
 const props = defineProps<{
   /** The event group being edited, or null for a new one; picks the colour shown while none is set. */
   eventGroupId: number | null
 }>()
 
-const name = defineModel<string>('name', {required: true})
-const description = defineModel<string>('description', {required: true})
-const limit = defineModel<number | undefined>('limit', {required: true})
-const deadline = defineModel<string>('deadline', {required: true})
-const confirm = defineModel<boolean>('confirm', {required: true})
-const color = defineModel<string>('color', {required: true})
-const minRegistrations = defineModel<number | undefined>('minRegistrations', {required: true})
-const thresholdDays = defineModel<number | undefined>('thresholdDays', {required: true})
+/** The details as the server keeps them; each field below reads and writes its own part. */
+const details = defineModel<EventGroupDetails>({required: true})
+
+function update(change: Partial<EventGroupDetails>) {
+  details.value = {...details.value, ...change}
+}
+
+const name = computed({get: () => details.value.name ?? '', set: (value: string) => update({name: value})})
+const description = computed({get: () => details.value.description ?? '', set: (value: string) => update({description: value})})
+const limit = computed({
+  get: () => details.value.registrationLimit ?? undefined,
+  set: (value: number | undefined) => update({registrationLimit: value ?? null}),
+})
+const deadline = computed({
+  get: () => instantToLocalInput(details.value.registrationDeadline),
+  set: (value: string) => update({registrationDeadline: value ? localInputToInstant(value) || null : null}),
+})
+const confirm = computed({
+  get: () => details.value.requiresConfirmation ?? false,
+  set: (value: boolean) => update({requiresConfirmation: value}),
+})
+const color = computed({get: () => details.value.color ?? '', set: (value: string) => update({color: value || null})})
+const minRegistrations = computed({
+  get: () => details.value.minRegistrations ?? undefined,
+  set: (value: number | undefined) => update({minRegistrations: value ?? null}),
+})
+const thresholdDays = computed({
+  get: () => details.value.thresholdDays ?? undefined,
+  set: (value: number | undefined) => update({thresholdDays: value ?? null}),
+})
 
 const NEUTRAL = '#9ca3af'
 

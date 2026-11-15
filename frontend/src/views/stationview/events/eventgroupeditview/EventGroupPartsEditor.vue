@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, onMounted, ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -21,7 +21,8 @@ import type {EventGroupDetail, EventSummary} from '@/api/generated/schema'
 import {EventType} from '@/api/generated/schema'
 import {eventGroups, events} from '@/api'
 import {useSession} from '@/composables/useSession'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {formatDateTime, localInputToInstant} from '@/util/format'
 
 /**
@@ -41,8 +42,6 @@ const {t} = useI18n()
 const {stationTimezone} = useSession()
 
 const candidates = ref<EventSummary[]>([])
-const failure = ref<Failure | null>(null)
-const busy = ref(false)
 const firstSet = computed(() => props.detail.sets[0]?.id ?? 0)
 const existingId = ref<number | null>(null)
 const existingSet = ref<number>(firstSet.value)
@@ -60,35 +59,37 @@ watch(() => props.detail.sets, sets => {
 })
 
 /** One-time appointments still to come that belong to no event group. */
-async function loadCandidates() {
+const {failure: candidatesFailure, reload: loadCandidates} = useAsyncLoader(async () => {
   const now = Date.now()
   candidates.value = (await events.listEvents())
       .filter(event => event.eventType === EventType.ONE_TIME && event.eventGroup == null)
       .filter(event => new Date(event.startTime).getTime() > now)
-}
-
-onMounted(() => {
-  loadCandidates().catch(e => { failure.value = describeFailure(e, t) })
 })
 
-async function act(work: () => Promise<unknown>) {
-  busy.value = true
-  failure.value = null
+/** Reloads the event group after a change that failed, which may have done part of its work; a reload that fails too is left alone. */
+async function reloadAfterFailure() {
   try {
-    await work()
     await props.onChanged?.()
-    await loadCandidates()
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-    try {
-      await props.onChanged?.()
-    } catch {
-      return
-    }
-  } finally {
-    busy.value = false
+  } catch {
+    return
   }
 }
+
+/**
+ * Runs one change to the parts and reloads the event group and the appointments on offer. A failed
+ * change still reloads the event group, so the page shows what the server holds.
+ */
+const {running: busy, failure: actFailure, run: act} = useAsyncAction(async (work: () => Promise<unknown>) => {
+  try {
+    await work()
+  } catch (e) {
+    await reloadAfterFailure()
+    throw e
+  }
+  await props.onChanged?.()
+  await loadCandidates()
+})
+const failure = computed(() => actFailure.value ?? candidatesFailure.value)
 
 function move(eventId: number, setId: number) {
   return act(() => eventGroups.movePart(props.detail.eventGroup.id, eventId, setId))

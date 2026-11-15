@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
+import AppIcon from '@/components/display/AppIcon.vue'
 import type {EventGroupPartSummary} from '@/api/generated/schema'
 
 /** Says which event group an appointment is a part of: "Jugendflamme 1, part 2 of 4". */
@@ -18,7 +19,7 @@ const {t} = useI18n()
 
 <template>
   <SecondaryBadge data-testid="event-group-part-badge">
-    <font-awesome-icon :icon="['fas', 'graduation-cap']" class="mr-1 h-3 w-3"/>
+    <AppIcon :icon="['fas', 'graduation-cap']" class="mr-1 h-3 w-3"/>
     {{ t('eventGroups.badge', {eventGroup: eventGroup.eventGroupName, number: eventGroup.number, count: eventGroup.count}) }}
   </SecondaryBadge>
 </template>

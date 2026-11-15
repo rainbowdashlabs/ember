@@ -10,7 +10,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import RegistrationFieldsModal from '../eventshared/RegistrationFieldsModal.vue'
 import type {EventGroupSignUp, EventRegistrationField, EventRegistrationFieldValue} from '@/api/generated/schema'
 import {eventGroups} from '@/api'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 /** Opens the answers a standing event group sign-up gave, to change them. */
 const props = defineProps<{
@@ -26,22 +26,11 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 const open = ref(false)
-const busy = ref(false)
-const failure = ref<Failure | null>(null)
-
-async function save(values: EventRegistrationFieldValue[]) {
-  busy.value = true
-  failure.value = null
-  try {
-    await eventGroups.changeAnswers(props.eventGroupId, values, props.entry.memberId)
-    open.value = false
-    emit('saved')
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  } finally {
-    busy.value = false
-  }
-}
+const {running: busy, failure, run: save} = useAsyncAction(async (values: EventRegistrationFieldValue[]) => {
+  await eventGroups.changeAnswers(props.eventGroupId, values, props.entry.memberId)
+  open.value = false
+  emit('saved')
+})
 </script>
 
 <template>

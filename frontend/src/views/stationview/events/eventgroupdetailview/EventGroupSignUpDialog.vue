@@ -21,10 +21,9 @@ import {eventGroupSigningStep} from './eventGroupSigning'
 import type {SigningStep} from '@/composables/useRegistrationSigningStep'
 import {answersToSend, missingAnswers, seedAnswers} from './eventGroupAnswers'
 import type {EventGroupDetail, EventGroupSignUp} from '@/api/generated/schema'
-import {RegistrationStatus} from '@/api/generated/schema'
 import {ownEventGroupPort, type EventGroupSignUpPort} from './eventGroupSignUpPort'
 import {useSession} from '@/composables/useSession'
-import {choiceMeetsRules, evaluateChoice, isMet, missingOf, setRuleText} from '@/util/eventGroupChoice'
+import {choiceMeetsRules, evaluateChoice, holdsOrWaitsForPlace, isMet, missingOf, partsOfSet, ruleOf} from '@/util/eventGroupChoice'
 import {describeFailure, type Failure} from '@/util/failure'
 import {formatDateTime} from '@/util/format'
 
@@ -67,8 +66,7 @@ const {stationTimezone} = useSession()
 const open = ref(true)
 const busy = ref(false)
 const failure = ref<Failure | null>(null)
-const changing = computed(() =>
-    props.entry.status === RegistrationStatus.PENDING || props.entry.status === RegistrationStatus.ACCEPTED)
+const changing = computed(() => holdsOrWaitsForPlace(props.entry.status))
 const held = new Set(changing.value ? props.entry.parts : [])
 const chosen = ref<Set<number>>(new Set(changing.value ? held : startingChoice()))
 
@@ -112,15 +110,6 @@ function nameOf(eventId: number): string {
   return props.detail.parts.find(part => part.eventId === eventId)?.name ?? ''
 }
 
-function partsOf(setId: number) {
-  return props.detail.parts.filter(part => part.setId === setId)
-}
-
-function ruleOf(setId: number): string {
-  const set = props.detail.sets.find(candidate => candidate.id === setId)!
-  return setRuleText(set, props.detail.parts, t)
-}
-
 function close() {
   open.value = false
   emit('close')
@@ -162,8 +151,8 @@ async function save() {
       <MutedText tag="p" size="sm">{{ t('eventGroups.dialogHint', {name}) }}</MutedText>
       <FailureAlert v-if="failure" :failure="failure"/>
       <fieldset v-for="set in detail.sets" :key="set.id" class="space-y-1">
-        <legend class="font-medium">{{ set.name }} <MutedText tag="span" size="sm">({{ ruleOf(set.id) }})</MutedText></legend>
-        <FieldLabel v-for="part in partsOf(set.id)" :key="part.eventId" inline>
+        <legend class="font-medium">{{ set.name }} <MutedText tag="span" size="sm">({{ ruleOf(set.id, detail.sets, detail.parts, t) }})</MutedText></legend>
+        <FieldLabel v-for="part in partsOfSet(set.id, detail.parts)" :key="part.eventId" inline>
           <CheckboxInput
               :model-value="chosen.has(part.eventId)"
               :disabled="!selectable(part.eventId)"

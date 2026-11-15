@@ -12,7 +12,7 @@ import RegistrationTableExport from '../eventdetailview/RegistrationTableExport.
 import {eventGroups} from '@/api'
 import {presentFile} from '@/util/documentFile'
 import type {ExportSeparator} from '@/util/exportFormat'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 /**
  * Takes the sign-ups of an event group away as a file: a spreadsheet in the separator asked for, or a
@@ -26,17 +26,14 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const open = ref(false)
-const failure = ref<Failure | null>(null)
+const {failure, run: runDownload} = useAsyncAction(async (format: 'csv' | 'pdf', separator: ExportSeparator) => {
+  await presentFile(await eventGroups.exportSignUps(props.eventGroupId, format, separator))
+})
 
+/** Downloads the file and closes the dialog, whether the download worked or not. */
 async function download(format: 'csv' | 'pdf', separator: ExportSeparator) {
-  failure.value = null
-  try {
-    await presentFile(await eventGroups.exportSignUps(props.eventGroupId, format, separator))
-    open.value = false
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-    open.value = false
-  }
+  await runDownload(format, separator)
+  open.value = false
 }
 </script>
 

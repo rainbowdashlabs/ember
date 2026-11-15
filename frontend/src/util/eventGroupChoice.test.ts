@@ -5,8 +5,18 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import type {EventGroupPartState, EventGroupSet} from '@/api/generated/schema'
-import {asksForAll, choiceMeetsRules, evaluateChoice, isMet, missingOf, setRuleText} from './eventGroupChoice'
+import {RegistrationStatus, type EventGroupPartState, type EventGroupSet} from '@/api/generated/schema'
+import {
+    asksForAll,
+    choiceMeetsRules,
+    evaluateChoice,
+    holdsOrWaitsForPlace,
+    isMet,
+    missingOf,
+    partsOfSet,
+    ruleOf,
+    setRuleText,
+} from './eventGroupChoice'
 
 const PRACTICE: EventGroupSet = {id: 1, eventGroupId: 9, name: 'Übung', minimum: 2, position: 0}
 const TEST: EventGroupSet = {id: 2, eventGroupId: 9, name: 'Prüfung', minimum: 1, position: 1}
@@ -67,5 +77,39 @@ describe('required parts', () => {
         expect(setRuleText(PRACTICE, parts, t)).toContain('eventGroups.setRuleRequired')
         expect(setRuleText(PRACTICE, parts, t)).toContain('Tag 11')
         expect(setRuleText(TEST, parts, t)).toBe('eventGroups.setAll:{}')
+    })
+})
+
+describe('partsOfSet', () => {
+    it('keeps the parts of the set in their order and nothing of another set', () => {
+        expect(partsOfSet(1, PARTS).map(entry => entry.eventId)).toEqual([11, 12, 13])
+        expect(partsOfSet(3, PARTS)).toEqual([])
+    })
+})
+
+describe('ruleOf', () => {
+    const t = (key: string, values?: Record<string, unknown>) => `${key}:${JSON.stringify(values ?? {})}`
+
+    it('says what the set of the id asks for, as setRuleText does', () => {
+        expect(ruleOf(1, [PRACTICE, TEST], PARTS, t)).toBe(setRuleText(PRACTICE, PARTS, t))
+    })
+
+    it('says nothing for a set the event group does not have', () => {
+        expect(ruleOf(5, [PRACTICE, TEST], PARTS, t)).toBe('')
+    })
+})
+
+describe('holdsOrWaitsForPlace', () => {
+    it('counts an accepted sign-up and one still waiting for a decision', () => {
+        expect(holdsOrWaitsForPlace(RegistrationStatus.ACCEPTED)).toBe(true)
+        expect(holdsOrWaitsForPlace(RegistrationStatus.PENDING)).toBe(true)
+    })
+
+    it('counts nothing declined, withdrawn or never signed up', () => {
+        const others = Object.values(RegistrationStatus)
+            .filter(status => status !== RegistrationStatus.ACCEPTED && status !== RegistrationStatus.PENDING)
+        expect(others.map(holdsOrWaitsForPlace)).toEqual(others.map(() => false))
+        expect(holdsOrWaitsForPlace(null)).toBe(false)
+        expect(holdsOrWaitsForPlace(undefined)).toBe(false)
     })
 })

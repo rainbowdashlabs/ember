@@ -22,9 +22,9 @@ import EventGroupShortfall from './EventGroupShortfall.vue'
 import EventGroupAnswersButton from './EventGroupAnswersButton.vue'
 import RegistrationFieldAnswers from '../eventdetailview/RegistrationFieldAnswers.vue'
 import type {EventGroupDetail, EventGroupSignUp} from '@/api/generated/schema'
-import {RegistrationStatus} from '@/api/generated/schema'
+import {holdsOrWaitsForPlace} from '@/util/eventGroupChoice'
 import {ownEventGroupPort, type EventGroupSignUpPort} from './eventGroupSignUpPort'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 /**
  * The sign-up of the reader and of everybody they look after: whether each is signed up, which parts
@@ -43,8 +43,6 @@ const {t} = useI18n()
 const dialogFor = ref<EventGroupSignUp | null>(null)
 const withdrawFor = ref<EventGroupSignUp | null>(null)
 const withdrawOpen = ref(false)
-const busy = ref(false)
-const failure = ref<Failure | null>(null)
 
 /** Whether sign-ups closed with the deadline. */
 const deadlinePassed = computed(() => {
@@ -72,30 +70,24 @@ const signUpClosed = computed(() => {
   return null
 })
 
-/** Whether a sign-up holds or waits for a place. */
-function active(entry: EventGroupSignUp): boolean {
-  return entry.status === RegistrationStatus.PENDING || entry.status === RegistrationStatus.ACCEPTED
-}
 
 function askWithdraw(entry: EventGroupSignUp) {
   withdrawFor.value = entry
   withdrawOpen.value = true
 }
 
+const {running: busy, failure, run: withdraw} = useAsyncAction(async (entry: EventGroupSignUp) => {
+  await (props.port ?? ownEventGroupPort(props.detail.eventGroup.id)).withdraw(entry.memberId)
+  withdrawOpen.value = false
+  await props.onChanged?.()
+})
+
+/** Withdraws the sign-up asked about and closes the dialog, whether the withdrawal worked or not. */
 async function confirmWithdraw() {
   const entry = withdrawFor.value
   if (!entry) return
-  busy.value = true
-  try {
-    await (props.port ?? ownEventGroupPort(props.detail.eventGroup.id)).withdraw(entry.memberId)
-    withdrawOpen.value = false
-    await props.onChanged?.()
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-    withdrawOpen.value = false
-  } finally {
-    busy.value = false
-  }
+  await withdraw(entry)
+  withdrawOpen.value = false
 }
 </script>
 
@@ -109,16 +101,16 @@ async function confirmWithdraw() {
         <MemberName :identity="entry.member"/>
         <RegistrationStatusBadge v-if="entry.status" :status="entry.status"/>
         <MutedText v-else tag="span" size="sm">{{ t('eventGroups.notSignedUp') }}</MutedText>
-        <MutedText v-if="active(entry)" tag="span" size="sm">{{ t('eventGroups.chosen', {count: entry.parts.length}) }}</MutedText>
-        <EventGroupShortfall v-if="active(entry)" :sets="entry.sets"/>
+        <MutedText v-if="holdsOrWaitsForPlace(entry.status)" tag="span" size="sm">{{ t('eventGroups.chosen', {count: entry.parts.length}) }}</MutedText>
+        <EventGroupShortfall v-if="holdsOrWaitsForPlace(entry.status)" :sets="entry.sets"/>
         <ErrorBadge v-if="entry.answersMissing" data-testid="event-group-answer-missing">{{ t('eventDetail.answerMissing') }}</ErrorBadge>
-        <RegistrationFieldAnswers v-if="active(entry)" :fields="detail.questions" :values="entry.answers" class="basis-full"/>
+        <RegistrationFieldAnswers v-if="holdsOrWaitsForPlace(entry.status)" :fields="detail.questions" :values="entry.answers" class="basis-full"/>
       </div>
-      <MutedText v-if="!entry.mayRegister && !active(entry)" tag="span" size="sm">
+      <MutedText v-if="!entry.mayRegister && !holdsOrWaitsForPlace(entry.status)" tag="span" size="sm">
         {{ t('eventGroups.notMeantFor', {name: entry.member.name ?? ''}) }}
       </MutedText>
       <ButtonRow v-else-if="!detail.eventGroup.cancelled" align="end">
-        <template v-if="!active(entry)">
+        <template v-if="!holdsOrWaitsForPlace(entry.status)">
           <MutedText v-if="signUpClosed" tag="span" size="sm" data-testid="event-group-closed">{{ signUpClosed }}</MutedText>
           <PrimaryButton v-else :icon="['fas', 'check']" data-testid="event-group-sign-up" @click="dialogFor = entry">
             {{ t('eventGroups.signUp') }}

@@ -28,9 +28,10 @@ import {fromCompletion} from '@/components/input/select/memberOption'
 import {useSession} from '@/composables/useSession'
 import type {EventGroupDetail, EventGroupSignUp, MemberCompletion} from '@/api/generated/schema'
 import {RegistrationStatus, StationPermission} from '@/api/generated/schema'
+import {holdsOrWaitsForPlace} from '@/util/eventGroupChoice'
 import {eventGroups, stationMembers} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 /**
  * Every sign-up of an event group for whoever handles registrations: who, in which status, how many parts,
@@ -54,14 +55,9 @@ const {hasPermission, sessionInfo} = useSession()
 /** Whoever runs events signs others up and corrects their answers, every question included, as the server allows. */
 const canAdd = computed(() => hasPermission(StationPermission.EVENT_MANAGER) && !props.detail.eventGroup.cancelled)
 
-function standing(entry: EventGroupSignUp): boolean {
-  return entry.status === RegistrationStatus.PENDING || entry.status === RegistrationStatus.ACCEPTED
-}
-
 /** The station's members who hold no sign-up yet, offered for signing up. */
 const options = computed(() => {
-  const taken = new Set(signUps.value.filter(entry => entry.status === RegistrationStatus.PENDING
-      || entry.status === RegistrationStatus.ACCEPTED).map(entry => entry.memberId))
+  const taken = new Set(signUps.value.filter(entry => holdsOrWaitsForPlace(entry.status)).map(entry => entry.memberId))
   const self = sessionInfo.value?.member?.id
   return members.value.filter(member => !taken.has(member.id) && member.id !== self).map(fromCompletion)
 })
@@ -78,8 +74,6 @@ async function added() {
   adding.value = null
   await props.onChanged?.()
 }
-const actionFailure = ref<Failure | null>(null)
-const deciding = ref<number | null>(null)
 
 const {loading, failure, reload} = useAsyncLoader(async () => {
   const [entries, completions] = await Promise.all([
@@ -92,18 +86,15 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
 
 watch(() => props.detail.eventGroup.id, () => reload())
 
-async function decide(entry: EventGroupSignUp, status: RegistrationStatus) {
-  deciding.value = entry.memberId
-  actionFailure.value = null
-  try {
-    await eventGroups.decide(props.detail.eventGroup.id, entry.memberId, status)
-    await props.onChanged?.()
-  } catch (e) {
-    actionFailure.value = describeFailure(e, t)
-  } finally {
-    deciding.value = null
-  }
-}
+/**
+ * Accepts or declines one sign-up. While one decision is on its way every decision button waits, so
+ * a second click is not dropped without a word.
+ */
+const {running: deciding, failure: actionFailure, run: decide} = useAsyncAction(
+    async (entry: EventGroupSignUp, status: RegistrationStatus) => {
+      await eventGroups.decide(props.detail.eventGroup.id, entry.memberId, status)
+      await props.onChanged?.()
+    })
 
 defineExpose({reload})
 </script>
@@ -141,13 +132,13 @@ defineExpose({reload})
             <RegistrationFieldAnswers :fields="detail.questions" :values="entry.answers" class="basis-full"/>
           </div>
           <ButtonRow align="end">
-            <EventGroupAnswersButton v-if="canAdd && standing(entry) && detail.questions.length > 0" :event-group-id="detail.eventGroup.id"
+            <EventGroupAnswersButton v-if="canAdd && holdsOrWaitsForPlace(entry.status) && detail.questions.length > 0" :event-group-id="detail.eventGroup.id"
                                  :entry="entry" :questions="detail.questions" @saved="onChanged?.()"/>
-            <SuccessButton v-if="entry.status !== RegistrationStatus.ACCEPTED" compact :disabled="deciding === entry.memberId"
+            <SuccessButton v-if="entry.status !== RegistrationStatus.ACCEPTED" compact :disabled="deciding"
                            data-testid="event-group-accept" @click="decide(entry, RegistrationStatus.ACCEPTED)">
               {{ t('eventGroups.accept') }}
             </SuccessButton>
-            <ErrorButton v-if="entry.status !== RegistrationStatus.DENIED" compact :disabled="deciding === entry.memberId"
+            <ErrorButton v-if="entry.status !== RegistrationStatus.DENIED" compact :disabled="deciding"
                          data-testid="event-group-deny" @click="decide(entry, RegistrationStatus.DENIED)">
               {{ t('eventGroups.deny') }}
             </ErrorButton>

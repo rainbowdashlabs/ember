@@ -32,11 +32,7 @@ import InheritedFieldsCard from './InheritedFieldsCard.vue'
 import InheritedSettingsCard, {type InheritedSetting} from './InheritedSettingsCard.vue'
 import {entryOf} from '../eventshared/eventQuestions'
 import RegistrationFieldsEditor from '../eventshared/RegistrationFieldsEditor.vue'
-
-interface FieldDefaultEntry {
-  source: string
-  value: string
-}
+import type {FieldDefaultValue} from './useEventFieldDefaults'
 
 const props = defineProps<{
   isEdit: boolean
@@ -51,7 +47,7 @@ const props = defineProps<{
   allMembers: MemberLike[]
   groupMembers: Map<number, MemberLike[]>
   currentTemplateFields: AttendanceTemplateField[]
-  fieldDefaults: Map<number, FieldDefaultEntry>
+  fieldDefaults: Map<number, FieldDefaultValue>
   partners: PartnerResponse[]
   /** What the share card says about an applied template's share it could not take over as it was. */
   federationNote?: string

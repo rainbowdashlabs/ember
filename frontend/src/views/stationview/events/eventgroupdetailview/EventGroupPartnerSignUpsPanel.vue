@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -19,7 +19,8 @@ import EventGroupShortfall from './EventGroupShortfall.vue'
 import type {EventGroupDetail, EventGroupPartnerSignUp} from '@/api/generated/schema'
 import {RegistrationStatus} from '@/api/generated/schema'
 import {eventGroups} from '@/api'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 /**
  * The sign-ups partner stations' members sent for a shared event group, decided the same way as the
@@ -34,30 +35,21 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const signUps = ref<EventGroupPartnerSignUp[]>([])
-const deciding = ref<number | null>(null)
-const failure = ref<Failure | null>(null)
+const {failure: loadFailure, reload} = useAsyncLoader(async () => {
+  signUps.value = await eventGroups.listPartnerSignUps(props.detail.eventGroup.id)
+}, {autoLoad: false})
 
-async function reload() {
-  try {
-    signUps.value = await eventGroups.listPartnerSignUps(props.detail.eventGroup.id)
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  }
-}
-
-async function decide(entry: EventGroupPartnerSignUp, status: RegistrationStatus) {
-  deciding.value = entry.id
-  failure.value = null
-  try {
-    await eventGroups.decidePartner(props.detail.eventGroup.id, entry.id, status)
-    await reload()
-    await props.onChanged?.()
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  } finally {
-    deciding.value = null
-  }
-}
+/**
+ * Accepts or declines one partner sign-up. While one decision is on its way every decision button
+ * waits, so a second click is not dropped without a word.
+ */
+const {running: deciding, failure: decideFailure, run: decide} = useAsyncAction(
+    async (entry: EventGroupPartnerSignUp, status: RegistrationStatus) => {
+      await eventGroups.decidePartner(props.detail.eventGroup.id, entry.id, status)
+      await reload()
+      await props.onChanged?.()
+    })
+const failure = computed(() => decideFailure.value ?? loadFailure.value)
 
 watch(() => props.detail.eventGroup.id, reload, {immediate: true})
 
@@ -78,11 +70,11 @@ defineExpose({reload})
           <EventGroupShortfall :sets="entry.sets"/>
         </div>
         <ButtonRow pair align="end">
-          <SuccessButton v-if="entry.status !== RegistrationStatus.ACCEPTED" compact :disabled="deciding === entry.id"
+          <SuccessButton v-if="entry.status !== RegistrationStatus.ACCEPTED" compact :disabled="deciding"
                          data-testid="event-group-partner-accept" @click="decide(entry, RegistrationStatus.ACCEPTED)">
             {{ t('eventGroups.accept') }}
           </SuccessButton>
-          <ErrorButton v-if="entry.status !== RegistrationStatus.DENIED" compact :disabled="deciding === entry.id"
+          <ErrorButton v-if="entry.status !== RegistrationStatus.DENIED" compact :disabled="deciding"
                        data-testid="event-group-partner-deny" @click="decide(entry, RegistrationStatus.DENIED)">
             {{ t('eventGroups.deny') }}
           </ErrorButton>
