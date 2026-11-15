@@ -19,10 +19,8 @@ import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.EventGroupTally;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
-import dev.chojo.ember.feature.question.FieldTypes;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMember;
 import dev.chojo.ember.feature.restriction.RestrictionType;
@@ -72,7 +70,7 @@ public class EventGroupService {
     private final OccurrenceCalendar calendar;
 
     private final EventGroupQuestionService questions;
-    private final EventFieldRepository fields;
+    private final EventFieldService fields;
     private EventGroupPartDeparture departure = EventGroupPartDeparture.NONE;
 
     @Inject
@@ -82,7 +80,7 @@ public class EventGroupService {
             RestrictionService restrictions,
             OccurrenceCalendar calendar,
             EventGroupQuestionService questions,
-            EventFieldRepository fields) {
+            EventFieldService fields) {
         this.questions = questions;
         this.fields = fields;
         this.eventGroups = eventGroups;
@@ -111,7 +109,6 @@ public class EventGroupService {
             RestrictionAudience view,
             @Nullable EventGroupContent content) {
         var checked = checked(details);
-        requireGroupFieldTypes(content);
         requireValidSets(sets);
         if (sets.stream().anyMatch(set -> set.id() != null))
             throw EventRefusal.EVENT_GROUP_SET_NOT_IN_EVENT_GROUP.raise();
@@ -206,7 +203,6 @@ public class EventGroupService {
             @Nullable RestrictionAudience registration,
             @Nullable RestrictionAudience view,
             @Nullable EventGroupContent content) {
-        requireGroupFieldTypes(content);
         return Transactions.call(() -> {
             var eventGroup = update(stationId, eventGroupId, details);
             if (sets != null) replaceSets(stationId, eventGroupId, sets);
@@ -221,22 +217,7 @@ public class EventGroupService {
         var askedQuestions = content.questions();
         if (askedQuestions != null) questions.replaceQuestions(eventGroupId, askedQuestions);
         var handedDown = content.fields();
-        if (handedDown != null) fields.replaceEventGroupFields(eventGroupId, questions.checkedFields(handedDown));
-    }
-
-    /**
-     * Refuses a field an event group cannot hand down: one that names members, is answered per date,
-     * takes self-registration or feeds an attendance sheet is about one date and stays on the
-     * appointment.
-     */
-    private static void requireGroupFieldTypes(@Nullable EventGroupContent content) {
-        var handedDown = content == null ? null : content.fields();
-        if (handedDown == null) return;
-        for (var field : handedDown) {
-            if (!FieldTypes.EVENT_GROUP.contains(field.fieldType()) || field.attendanceFieldId() != null) {
-                throw EventRefusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED.raise();
-            }
-        }
+        if (handedDown != null) fields.replaceEventGroupFields(eventGroupId, handedDown);
     }
 
     /**

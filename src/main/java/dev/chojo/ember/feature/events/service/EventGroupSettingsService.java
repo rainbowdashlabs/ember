@@ -9,6 +9,7 @@ import dev.chojo.ember.api.refusal.AttendanceRefusal;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.DateSettingIds;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventGroupPartSettings;
@@ -103,7 +104,7 @@ public class EventGroupSettingsService {
                 .distinct()
                 .sorted()
                 .toList();
-        var defaults = fieldDefaults.checkedForGroup(
+        var defaults = fieldDefaults.checkedForEventGroup(
                 templateId,
                 wanted.fieldDefaults().stream()
                         .map(entry ->
@@ -113,7 +114,7 @@ public class EventGroupSettingsService {
             eventGroups.lockEventGroup(stationId, eventGroupId);
             settings.setOfEventGroup(eventGroupId, templateId, categoryId);
             reminders.replaceEventGroupDays(eventGroupId, days);
-            fieldDefaults.replaceForGroup(eventGroupId, defaults);
+            fieldDefaults.replaceOfEventGroup(eventGroupId, defaults);
             return read(eventGroupId);
         });
     }
@@ -145,7 +146,7 @@ public class EventGroupSettingsService {
                 ids.templateId(),
                 ids.categoryId(),
                 reminders.findEventGroupDays(eventGroupId),
-                fieldDefaults.findForGroup(eventGroupId));
+                fieldDefaults.find(AppointmentOwner.EVENT_GROUP, eventGroupId));
     }
 
     private void requireTemplateOf(int stationId, @Nullable Integer templateId) {

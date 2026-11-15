@@ -14,7 +14,6 @@ import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
-import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
@@ -68,7 +67,7 @@ class EventGroupRequirementsTest extends GeneratorTestBase {
                 restrictionService,
                 occurrenceCalendar,
                 new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
-                new EventFieldRepository());
+                newEventFieldService());
     }
 
     @BeforeEach

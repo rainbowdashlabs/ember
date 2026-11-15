@@ -100,6 +100,7 @@ import dev.chojo.ember.feature.events.service.EventCommentTarget;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFieldDefaultService;
 import dev.chojo.ember.feature.events.service.EventFieldRegistrationService;
+import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventGroupCommentTarget;
 import dev.chojo.ember.feature.events.service.EventGroupGuards;
 import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
@@ -1004,6 +1005,22 @@ public abstract class RepositoryTestBase {
     }
 
     /**
+     * The appointment field service over the shared repositories.
+     *
+     * @return the service
+     */
+    protected static EventFieldService newEventFieldService() {
+        return new EventFieldService(
+                eventFieldRepo,
+                stationMemberRepo,
+                memberEligibility,
+                eventRepo,
+                attendanceRepo,
+                eventFieldRegistrationService,
+                new EventGroupRepository());
+    }
+
+    /**
      * The event group service over the shared repositories.
      *
      * @return the service
@@ -1015,7 +1032,7 @@ public abstract class RepositoryTestBase {
                 restrictionService,
                 occurrenceCalendar,
                 new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
-                eventFieldRepo);
+                newEventFieldService());
     }
 
     /**

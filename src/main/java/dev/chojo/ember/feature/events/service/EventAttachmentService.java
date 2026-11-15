@@ -24,8 +24,8 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * What an event hands over, and who is handed it, and the files a template hands every event made
- * from it.
+ * What an event hands over, and who is handed it, the files a template hands every event made from it,
+ * and the files an event group hands every one of its parts.
  *
  * <p>A file is either for everybody who may see the event or kept back from the room. Which of the
  * two a reader gets is decided here and nowhere else, so the list a screen draws and the answer a
@@ -128,8 +128,8 @@ public class EventAttachmentService {
      *
      * @param permissions the reader's permissions, already expanded
      */
-    public List<EventAttachment> listForGroup(int groupId, Collection<StationPermission> permissions) {
-        return visible(repository.findByGroup(groupId), readsInternal(permissions));
+    public List<EventAttachment> listForEventGroup(int eventGroupId, Collection<StationPermission> permissions) {
+        return visible(repository.findByOwner(AppointmentOwner.EVENT_GROUP, eventGroupId), readsInternal(permissions));
     }
 
     /**
@@ -137,8 +137,10 @@ public class EventAttachmentService {
      *
      * @return the attachment, or empty where the event group hands over no such file
      */
-    public Optional<EventAttachment> findOfGroup(int groupId, int attachmentId) {
-        return repository.findGroupAttachment(attachmentId).filter(attachment -> attachment.eventId() == groupId);
+    public Optional<EventAttachment> findOfEventGroup(int eventGroupId, int attachmentId) {
+        return repository
+                .findById(AppointmentOwner.EVENT_GROUP, attachmentId)
+                .filter(attachment -> attachment.eventId() == eventGroupId);
     }
 
     /**
@@ -146,34 +148,10 @@ public class EventAttachmentService {
      *
      * @param permissions the reader's permissions, already expanded
      */
-    public Optional<EventAttachment> findReadableOfGroup(
-            int groupId, int attachmentId, Collection<StationPermission> permissions) {
-        return findOfGroup(groupId, attachmentId)
+    public Optional<EventAttachment> findReadableOfEventGroup(
+            int eventGroupId, int attachmentId, Collection<StationPermission> permissions) {
+        return findOfEventGroup(eventGroupId, attachmentId)
                 .filter(attachment -> !attachment.internal() || readsInternal(permissions));
-    }
-
-    /**
-     * Attaches a file from the station's library to an event group, which hands it over on every part.
-     * The file has to belong to the same station.
-     */
-    public EventAttachment attachToGroup(
-            int groupId, int stationId, int fileId, @Nullable String label, boolean internal) {
-        requireFileOf(stationId, fileId);
-        var attachment = repository.attachToGroup(groupId, fileId, blankToNull(label), internal);
-        log.info("File {} attached to event group {} in station {}", fileId, groupId, stationId);
-        return attachment;
-    }
-
-    public boolean updateOfGroup(int attachmentId, @Nullable String label, boolean internal) {
-        return repository.updateGroupAttachment(attachmentId, blankToNull(label), internal);
-    }
-
-    public void reorderGroup(int groupId, List<Integer> attachmentIds) {
-        repository.reorderGroup(groupId, attachmentIds);
-    }
-
-    public boolean detachFromGroup(int attachmentId) {
-        return repository.detachFromGroup(attachmentId);
     }
 
     private void requireFileOf(int stationId, int fileId) {
@@ -184,9 +162,9 @@ public class EventAttachmentService {
     }
 
     /**
-     * Attaches a file from the station's library to an event or a template. The file has to belong
-     * to the same station, because an attachment is a reference into that station's library and
-     * nothing else.
+     * Attaches a file from the station's library to an event, a template or an event group, which hands
+     * it over on every part. The file has to belong to the same station, because an attachment is a
+     * reference into that station's library and nothing else.
      */
     public EventAttachment attach(
             AppointmentOwner owner, int ownerId, int stationId, int fileId, @Nullable String label, boolean internal) {

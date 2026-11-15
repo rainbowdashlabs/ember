@@ -24,7 +24,6 @@ import dev.chojo.ember.feature.events.entity.EventGroupTally;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
@@ -105,7 +104,7 @@ class EventGroupServiceTest extends RepositoryTestBase {
                 restrictionService,
                 occurrenceCalendar,
                 new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
-                new EventFieldRepository());
+                newEventFieldService());
         deadline = Instant.now().plus(Duration.ofDays(10)).truncatedTo(ChronoUnit.SECONDS);
     }
 
@@ -1030,6 +1029,10 @@ class EventGroupServiceTest extends RepositoryTestBase {
                         RestrictionAudience.empty(),
                         RestrictionAudience.empty(),
                         new EventGroupContent(null, List.of(member))));
+        assertTrue(
+                eventGroupRepo.findByStation(station.id()).stream()
+                        .noneMatch(eventGroup -> eventGroup.name().equals("Wettbewerb")),
+                "nothing of the refused event group is kept");
     }
 
     private EventGroup groupWith(String name, EventFieldDraft... fields) {

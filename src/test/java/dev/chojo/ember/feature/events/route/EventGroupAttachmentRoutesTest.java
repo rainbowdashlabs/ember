@@ -9,6 +9,7 @@ import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.EventAttachment;
 import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
@@ -30,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -80,10 +82,10 @@ class EventGroupAttachmentRoutesTest {
                 10,
                 "0".repeat(64),
                 true);
-        when(attachments.listForGroup(anyInt(), any())).thenReturn(List.of(file));
-        when(attachments.findOfGroup(EVENT_GROUP_ID, 9)).thenReturn(Optional.of(file));
-        when(attachments.detachFromGroup(9)).thenReturn(true);
-        when(attachments.attachToGroup(anyInt(), anyInt(), anyInt(), any(), anyBoolean()))
+        when(attachments.listForEventGroup(anyInt(), any())).thenReturn(List.of(file));
+        when(attachments.findOfEventGroup(EVENT_GROUP_ID, 9)).thenReturn(Optional.of(file));
+        when(attachments.detach(AppointmentOwner.EVENT_GROUP, 9)).thenReturn(true);
+        when(attachments.attach(eq(AppointmentOwner.EVENT_GROUP), anyInt(), anyInt(), anyInt(), any(), anyBoolean()))
                 .thenReturn(file);
         harness = RouteHarness.serving(
                 new EventGroupAttachmentRoutes(attachments, eventGroups, readGuards, mock(MediaLibraryService.class)));
@@ -113,11 +115,11 @@ class EventGroupAttachmentRoutesTest {
         assertEquals(403, call("POST", FILES, attach, StationPermission.USER).code());
         assertEquals(
                 403, call("DELETE", FILES + "/9", null, StationPermission.USER).code());
-        verify(attachments, never()).detachFromGroup(anyInt());
+        verify(attachments, never()).detach(any(), anyInt());
 
         assertEquals(
                 201, call("POST", FILES, attach, StationPermission.EVENT_EDIT).code());
-        verify(attachments).attachToGroup(EVENT_GROUP_ID, STATION_ID, 5, null, false);
+        verify(attachments).attach(AppointmentOwner.EVENT_GROUP, EVENT_GROUP_ID, STATION_ID, 5, null, false);
         assertEquals(
                 204,
                 call("DELETE", FILES + "/9", null, StationPermission.EVENT_EDIT).code());

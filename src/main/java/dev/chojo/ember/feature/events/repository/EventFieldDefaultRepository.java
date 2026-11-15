@@ -27,6 +27,7 @@ public class EventFieldDefaultRepository {
         return switch (owner) {
             case EVENT -> "event_field_default";
             case TEMPLATE -> "event_template_field_default";
+            case EVENT_GROUP -> "event_group_field_default";
         };
     }
 
@@ -34,15 +35,16 @@ public class EventFieldDefaultRepository {
         return switch (owner) {
             case EVENT -> "event_id";
             case TEMPLATE -> "template_id";
+            case EVENT_GROUP -> "event_group_id";
         };
     }
 
     /**
-     * The starting values an event or a template holds for the fields of its attendance sheet. A
-     * template's carries the template's id where an event's carries the event's.
+     * The starting values an event, a template or an event group holds for the fields of its attendance
+     * sheet. Each carries its owner's id: a template's the template's, an event group's the event group's.
      *
      * @param owner   whose values these are
-     * @param ownerId the event or template
+     * @param ownerId the event, template or event group
      * @return the field defaults
      */
     public List<EventFieldDefault> findByOwner(AppointmentOwner owner, int ownerId) {
@@ -88,50 +90,11 @@ public class EventFieldDefaultRepository {
     }
 
     /**
-     * The starting values an event group holds for the sheets of its parts that take its template.
-     * Each carries the event group's id.
-     *
-     * @param groupId the event group
-     * @return the field defaults
-     */
-    public List<EventFieldDefault> findByGroup(int groupId) {
-        return query("""
-                SELECT event_group_id AS event_id, field_id, source, value
-                FROM event_group_field_default
-                WHERE event_group_id = :event_group_id;""")
-                .single(call().bind("event_group_id", groupId))
-                .map(EventFieldDefault.map())
-                .all();
-    }
-
-    /**
-     * Replaces the starting values of an event group.
-     *
-     * @param groupId  the event group
-     * @param defaults the new values
-     */
-    public void replaceForGroup(int groupId, List<EventFieldDefault> defaults) {
-        query("DELETE FROM event_group_field_default WHERE event_group_id = :event_group_id;")
-                .single(call().bind("event_group_id", groupId))
-                .delete();
-        for (var def : defaults) {
-            query("""
-                    INSERT INTO event_group_field_default(event_group_id, field_id, source, value)
-                    VALUES (:event_group_id, :field_id, :source, :value);""")
-                    .single(call().bind("event_group_id", groupId)
-                            .bind("field_id", def.fieldId())
-                            .bind("source", def.source())
-                            .bind("value", def.value()))
-                    .insert();
-        }
-    }
-
-    /**
-     * Replaces all field defaults of an event or a template by deleting existing ones and inserting
-     * the given defaults.
+     * Replaces all field defaults of an event, a template or an event group by deleting existing ones
+     * and inserting the given defaults.
      *
      * @param owner    whose values these are
-     * @param ownerId  the event or template
+     * @param ownerId  the event, template or event group
      * @param defaults the new field default configurations
      */
     public void replace(AppointmentOwner owner, int ownerId, List<EventFieldDefault> defaults) {

@@ -22,7 +22,6 @@ import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
-import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
@@ -133,12 +132,7 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
         var federationRepo = new FederationRepository();
         var questions = new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility);
         eventGroups = new EventGroupService(
-                eventGroupRepo,
-                eventRepo,
-                restrictionService,
-                occurrenceCalendar,
-                questions,
-                new EventFieldRepository());
+                eventGroupRepo, eventRepo, restrictionService, occurrenceCalendar, questions, newEventFieldService());
         signUps = new EventGroupRegistrationService(
                 eventGroupRepo,
                 new EventGroupRegistrationRepository(),

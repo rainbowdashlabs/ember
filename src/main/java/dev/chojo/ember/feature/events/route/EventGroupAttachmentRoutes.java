@@ -11,6 +11,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.EventAttachment;
 import dev.chojo.ember.feature.events.route.EventAttachmentRoutes.AttachmentOrderRequest;
 import dev.chojo.ember.feature.events.route.EventAttachmentRoutes.AttachmentRequest;
@@ -87,7 +88,7 @@ public class EventGroupAttachmentRoutes implements Routes {
         var session = StationSession.from(ctx);
         int eventGroupId =
                 readGuards.requireOpen(session, pathInt(ctx, "eventGroupId")).id();
-        ctx.json(attachments.listForGroup(eventGroupId, session.user().permissions()));
+        ctx.json(attachments.listForEventGroup(eventGroupId, session.user().permissions()));
     }
 
     @OpenApi(
@@ -108,7 +109,7 @@ public class EventGroupAttachmentRoutes implements Routes {
         int eventGroupId =
                 readGuards.requireOpen(session, pathInt(ctx, "eventGroupId")).id();
         var attachment = attachments
-                .findReadableOfGroup(
+                .findReadableOfEventGroup(
                         eventGroupId,
                         pathInt(ctx, "attachmentId"),
                         session.user().permissions())
@@ -132,7 +133,8 @@ public class EventGroupAttachmentRoutes implements Routes {
         var request = ctx.bodyAsClass(AttachmentRequest.class);
         if (request.fileId() == null) throw EventRefusal.EVENT_FILE_NOT_CHOSEN.raise();
         ctx.status(HttpStatus.CREATED)
-                .json(attachments.attachToGroup(
+                .json(attachments.attach(
+                        AppointmentOwner.EVENT_GROUP,
                         eventGroupId,
                         session.stationId(),
                         request.fileId(),
@@ -152,7 +154,10 @@ public class EventGroupAttachmentRoutes implements Routes {
         var session = StationSession.from(ctx);
         int eventGroupId = ownedEventGroup(ctx, session);
         var request = ctx.bodyAsClass(AttachmentOrderRequest.class);
-        attachments.reorderGroup(eventGroupId, Objects.requireNonNullElse(request.attachmentIds(), List.of()));
+        attachments.reorder(
+                AppointmentOwner.EVENT_GROUP,
+                eventGroupId,
+                Objects.requireNonNullElse(request.attachmentIds(), List.of()));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -171,7 +176,7 @@ public class EventGroupAttachmentRoutes implements Routes {
         var attachment = requireOwnedAttachment(ctx);
         var request = ctx.bodyAsClass(AttachmentRequest.class);
         boolean internal = Objects.requireNonNullElse(request.internal(), attachment.internal());
-        if (!attachments.updateOfGroup(attachment.id(), request.label(), internal)) {
+        if (!attachments.update(AppointmentOwner.EVENT_GROUP, attachment.id(), request.label(), internal)) {
             throw EventRefusal.EVENT_FILE_NOT_CHANGED.raise();
         }
         ctx.status(HttpStatus.NO_CONTENT);
@@ -189,7 +194,8 @@ public class EventGroupAttachmentRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void detach(Context ctx) {
         var attachment = requireOwnedAttachment(ctx);
-        if (!attachments.detachFromGroup(attachment.id())) throw EventRefusal.EVENT_FILE_NOT_REMOVED.raise();
+        if (!attachments.detach(AppointmentOwner.EVENT_GROUP, attachment.id()))
+            throw EventRefusal.EVENT_FILE_NOT_REMOVED.raise();
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -204,7 +210,7 @@ public class EventGroupAttachmentRoutes implements Routes {
         var session = StationSession.from(ctx);
         int eventGroupId = ownedEventGroup(ctx, session);
         return attachments
-                .findOfGroup(eventGroupId, pathInt(ctx, "attachmentId"))
+                .findOfEventGroup(eventGroupId, pathInt(ctx, "attachmentId"))
                 .orElseThrow(EventRefusal.EVENT_FILE_NOT_HERE_ON_WRITE::raise);
     }
 }

@@ -26,18 +26,17 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  * the files an event group hands over on every part. Every read joins the media library, because an
  * attachment without its file name and size is not something a reader can be handed.
  *
- * <p>All live in tables of the same shape; {@link AppointmentOwner} says which one a call means, and the
- * methods naming an event group mean the event group's. A template's attachment reads back with the
- * template's id where an appointment's carries the appointment's, and an event group's with the event
- * group's. Read for one of its parts, an event group's file carries the part's id and says it comes from
- * the event group.
+ * <p>All live in tables of the same shape; {@link AppointmentOwner} says which one a call means. A
+ * template's attachment reads back with the template's id where an appointment's carries the
+ * appointment's, and an event group's with the event group's. Read for one of its parts, an event
+ * group's file carries the part's id and says it comes from the event group.
  */
 @Singleton
 public class EventAttachmentRepository {
 
     private static final Holder EVENT = new Holder("event_attachment", "event_id", "FALSE");
     private static final Holder TEMPLATE = new Holder("event_template_attachment", "template_id", "FALSE");
-    private static final Holder GROUP = new Holder("event_attachment", "event_group_id", "TRUE");
+    private static final Holder EVENT_GROUP = new Holder("event_attachment", "event_group_id", "TRUE");
 
     private static final String FILE_COLUMNS = """
             a.file_id, a.label, a.internal, a.sort_order, a.created_at,
@@ -71,22 +70,17 @@ public class EventAttachmentRepository {
         return switch (owner) {
             case EVENT -> EVENT;
             case TEMPLATE -> TEMPLATE;
+            case EVENT_GROUP -> EVENT_GROUP;
         };
     }
 
     /**
-     * Attaches a file to an appointment or a template, placing it last.
+     * Attaches a file to an appointment, a template or an event group, placing it last among the owner's
+     * files.
      */
     public EventAttachment attach(
             AppointmentOwner owner, int ownerId, int fileId, @Nullable String label, boolean internal) {
         return attach(holder(owner), ownerId, fileId, label, internal);
-    }
-
-    /**
-     * Attaches a file to an event group, placing it last among the event group's files.
-     */
-    public EventAttachment attachToGroup(int groupId, int fileId, @Nullable String label, boolean internal) {
-        return attach(GROUP, groupId, fileId, label, internal);
     }
 
     private EventAttachment attach(Holder holder, int ownerId, int fileId, @Nullable String label, boolean internal) {
@@ -112,14 +106,6 @@ public class EventAttachmentRepository {
         return findById(holder(owner), attachmentId);
     }
 
-    /**
-     * @param attachmentId the attachment
-     * @return the file of an event group, empty for none or for an appointment's
-     */
-    public Optional<EventAttachment> findGroupAttachment(int attachmentId) {
-        return findById(GROUP, attachmentId);
-    }
-
     private Optional<EventAttachment> findById(Holder holder, int attachmentId) {
         return query("""
                 SELECT %s
@@ -134,14 +120,6 @@ public class EventAttachmentRepository {
 
     public List<EventAttachment> findByOwner(AppointmentOwner owner, int ownerId) {
         return findByOwner(holder(owner), ownerId);
-    }
-
-    /**
-     * @param groupId the event group
-     * @return the files it hands over on every part, in their order
-     */
-    public List<EventAttachment> findByGroup(int groupId) {
-        return findByOwner(GROUP, groupId);
     }
 
     private List<EventAttachment> findByOwner(Holder holder, int ownerId) {
@@ -193,13 +171,6 @@ public class EventAttachmentRepository {
         return update(holder(owner), attachmentId, label, internal);
     }
 
-    /**
-     * Writes the label of a file of an event group and whether it is kept back from the room.
-     */
-    public boolean updateGroupAttachment(int attachmentId, @Nullable String label, boolean internal) {
-        return update(GROUP, attachmentId, label, internal);
-    }
-
     private boolean update(Holder holder, int attachmentId, @Nullable String label, boolean internal) {
         return query(
                         "UPDATE %s SET label = :label, internal = :internal WHERE id = :id AND %s IS NOT NULL;",
@@ -210,18 +181,12 @@ public class EventAttachmentRepository {
     }
 
     /**
-     * Writes the order whoever wrote the appointment or template put the files in. Ids that do not
-     * belong to it are ignored rather than moved, so a stale screen cannot reorder somebody else's.
+     * Writes the order whoever wrote the appointment, template or event group put the files in. Ids
+     * that do not belong to it are ignored rather than moved, so a stale screen cannot reorder somebody
+     * else's.
      */
     public void reorder(AppointmentOwner owner, int ownerId, List<Integer> attachmentIds) {
         reorder(holder(owner), ownerId, attachmentIds);
-    }
-
-    /**
-     * Writes the order of an event group's files, ignoring ids that are not the event group's.
-     */
-    public void reorderGroup(int groupId, List<Integer> attachmentIds) {
-        reorder(GROUP, groupId, attachmentIds);
     }
 
     private void reorder(Holder holder, int ownerId, List<Integer> attachmentIds) {
@@ -238,13 +203,6 @@ public class EventAttachmentRepository {
 
     public boolean detach(AppointmentOwner owner, int attachmentId) {
         return detach(holder(owner), attachmentId);
-    }
-
-    /**
-     * Takes a file off an event group, leaving it in the library.
-     */
-    public boolean detachFromGroup(int attachmentId) {
-        return detach(GROUP, attachmentId);
     }
 
     private boolean detach(Holder holder, int attachmentId) {

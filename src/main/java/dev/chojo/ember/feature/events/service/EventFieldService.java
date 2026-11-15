@@ -112,22 +112,28 @@ public class EventFieldService {
     }
 
     /**
-     * Group fields as they are stored: checked like an appointment's, so a choice holds one of its
-     * options, a date reads as a date and a member field names only members it is narrowed to, in the
-     * one shape each kind is stored in. A group field carries no per-date answers: every appointment
-     * of the group is one date already.
+     * Checks the fields an event group hands down to its appointments and stores them in their order,
+     * each shaped like an appointment's: a choice holds one of its options, a date reads as a date and a
+     * member field names only members it is narrowed to. A field the event group cannot hand down is
+     * refused: a kind outside the event group's kinds, a field tied to an attendance sheet, or one
+     * answered per date, because every appointment of the group is one date already.
      *
-     * @param fields      the fields of an event group as submitted
-     * @param eligibility who passes a member narrowing
-     * @return the fields to store
+     * @param eventGroupId the event group
+     * @param drafts       the fields as submitted, in their new order
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse where a field cannot be handed down or its
+     *                                                     value is not one its kind takes
      */
-    static List<EventFieldDraft> checkedEventGroupFields(List<EventFieldDraft> fields, MemberEligibility eligibility) {
-        for (var field : fields) {
-            if (field.config().perDate()) {
+    public void replaceEventGroupFields(int eventGroupId, List<EventFieldDraft> drafts) {
+        for (var field : drafts) {
+            if (!FieldTypes.EVENT_GROUP.contains(field.fieldType())
+                    || field.attendanceFieldId() != null
+                    || field.config().perDate()) {
                 throw EventRefusal.APPOINTMENT_FIELD_TYPE_NOT_OFFERED.raise();
             }
         }
-        return fields.stream().map(field -> answered(field, eligibility)).toList();
+        repository.replaceEventGroupFields(
+                eventGroupId,
+                drafts.stream().map(field -> answered(field, eligibility)).toList());
     }
 
     /**

@@ -43,6 +43,7 @@ public class EventFederationRepository {
         return switch (owner) {
             case EVENT -> "event_federation_share";
             case TEMPLATE -> "event_template_federation_share";
+            case EVENT_GROUP -> throw new IllegalArgumentException("An event group is shared through its own share");
         };
     }
 
@@ -54,6 +55,7 @@ public class EventFederationRepository {
         return switch (owner) {
             case EVENT -> "event_id";
             case TEMPLATE -> "template_id";
+            case EVENT_GROUP -> throw new IllegalArgumentException("An event group is shared through its own share");
         };
     }
 

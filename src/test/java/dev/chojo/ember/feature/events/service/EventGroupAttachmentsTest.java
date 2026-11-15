@@ -13,7 +13,6 @@ import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
-import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
@@ -69,7 +68,7 @@ class EventGroupAttachmentsTest extends RepositoryTestBase {
                 restrictionService,
                 occurrenceCalendar,
                 new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
-                new EventFieldRepository());
+                newEventFieldService());
         routeFile = file("anfahrt.pdf");
         crewFile = file("ausbilderplan.pdf");
         ownFile = file("tagesplan.pdf");
@@ -77,7 +76,9 @@ class EventGroupAttachmentsTest extends RepositoryTestBase {
 
     @AfterAll
     static void cleanup() {
-        groupIds.forEach(id -> repository.findByGroup(id).forEach(found -> repository.detachFromGroup(found.id())));
+        groupIds.forEach(id -> repository
+                .findByOwner(AppointmentOwner.EVENT_GROUP, id)
+                .forEach(found -> repository.detach(AppointmentOwner.EVENT_GROUP, found.id())));
         eventIds.forEach(id -> repository
                 .findByOwner(AppointmentOwner.EVENT, id)
                 .forEach(found -> repository.detach(AppointmentOwner.EVENT, found.id())));
@@ -143,8 +144,8 @@ class EventGroupAttachmentsTest extends RepositoryTestBase {
     void aPartHandsOverTheGroupsFilesBeforeItsOwn() {
         var group = group();
         var event = part(group);
-        service.attachToGroup(group.id(), station.id(), routeFile, "Anfahrt", false);
-        service.attachToGroup(group.id(), station.id(), crewFile, null, true);
+        service.attach(AppointmentOwner.EVENT_GROUP, group.id(), station.id(), routeFile, "Anfahrt", false);
+        service.attach(AppointmentOwner.EVENT_GROUP, group.id(), station.id(), crewFile, null, true);
         service.attach(AppointmentOwner.EVENT, event.id(), station.id(), ownFile, null, false);
 
         var forTheRoom = service.listFor(event.id(), ROOM);
@@ -163,7 +164,7 @@ class EventGroupAttachmentsTest extends RepositoryTestBase {
     void aPartHandsOutTheGroupsFileButCannotTakeItOff() {
         var group = group();
         var event = part(group);
-        int crew = service.attachToGroup(group.id(), station.id(), crewFile, null, true)
+        int crew = service.attach(AppointmentOwner.EVENT_GROUP, group.id(), station.id(), crewFile, null, true)
                 .id();
 
         assertTrue(service.findReadableOn(event.id(), crew, CREW).isPresent());
@@ -172,10 +173,10 @@ class EventGroupAttachmentsTest extends RepositoryTestBase {
         assertFalse(service.detach(AppointmentOwner.EVENT, crew));
         assertEquals(
                 1,
-                service.listForGroup(group.id(), Set.of(StationPermission.EVENT_INTERNAL))
+                service.listForEventGroup(group.id(), Set.of(StationPermission.EVENT_INTERNAL))
                         .size());
 
-        assertTrue(service.detachFromGroup(crew));
+        assertTrue(service.detach(AppointmentOwner.EVENT_GROUP, crew));
         assertTrue(service.listFor(event.id(), CREW).isEmpty());
     }
 
@@ -183,18 +184,35 @@ class EventGroupAttachmentsTest extends RepositoryTestBase {
     void theGroupsFilesStayWithTheGroup() {
         var group = group();
         var other = group();
-        int route = service.attachToGroup(group.id(), station.id(), routeFile, null, false)
+        int route = service.attach(AppointmentOwner.EVENT_GROUP, group.id(), station.id(), routeFile, null, false)
                 .id();
         var loose = appointment();
 
-        assertTrue(service.findOfGroup(other.id(), route).isEmpty());
-        assertTrue(service.findReadableOfGroup(group.id(), route, ROOM).isPresent());
+        assertTrue(service.findOfEventGroup(other.id(), route).isEmpty());
+        assertTrue(service.findReadableOfEventGroup(group.id(), route, ROOM).isPresent());
         assertTrue(service.listFor(loose.id(), CREW).isEmpty());
 
-        assertTrue(service.updateOfGroup(route, "Wegbeschreibung", true));
-        assertTrue(service.findReadableOfGroup(group.id(), route, ROOM).isEmpty());
+        assertTrue(service.update(AppointmentOwner.EVENT_GROUP, route, "Wegbeschreibung", true));
+        assertTrue(service.findReadableOfEventGroup(group.id(), route, ROOM).isEmpty());
         assertEquals(
                 "Wegbeschreibung",
-                service.listForGroup(group.id(), CREW).getFirst().displayName());
+                service.listForEventGroup(group.id(), CREW).getFirst().displayName());
+    }
+
+    @Test
+    void theGroupsFilesKeepTheOrderTheyWereGivenAndIgnoreOthers() {
+        var group = group();
+        var other = group();
+        int route = service.attach(AppointmentOwner.EVENT_GROUP, group.id(), station.id(), routeFile, null, false)
+                .id();
+        int crew = service.attach(AppointmentOwner.EVENT_GROUP, group.id(), station.id(), crewFile, null, false)
+                .id();
+        int foreign = service.attach(AppointmentOwner.EVENT_GROUP, other.id(), station.id(), ownFile, null, false)
+                .id();
+
+        service.reorder(AppointmentOwner.EVENT_GROUP, group.id(), List.of(crew, foreign, route));
+
+        assertEquals(List.of("ausbilderplan.pdf", "anfahrt.pdf"), names(service.listForEventGroup(group.id(), CREW)));
+        assertEquals(List.of("tagesplan.pdf"), names(service.listForEventGroup(other.id(), CREW)));
     }
 }

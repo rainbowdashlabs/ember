@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.system.service;
 
+import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
 import dev.chojo.ember.feature.events.service.EventGroupService;
@@ -73,7 +74,13 @@ public class DemoEventGroupMaterialsSeeder implements DemoPerStationSeeder {
                     log.info("Demo: The Jugendflamme at station {} asks for {}", stationId, template.name());
                 });
         media.listLibrary(stationId, false).stream().findFirst().ifPresent(listing -> {
-            attachments.attachToGroup(eventGroupId, stationId, listing.file().id(), "Infoblatt", false);
+            attachments.attach(
+                    AppointmentOwner.EVENT_GROUP,
+                    eventGroupId,
+                    stationId,
+                    listing.file().id(),
+                    "Infoblatt",
+                    false);
             log.info(
                     "Demo: The Jugendflamme at station {} hands over {}",
                     stationId,

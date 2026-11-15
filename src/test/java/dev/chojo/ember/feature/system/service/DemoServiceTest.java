@@ -439,7 +439,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 restrictionService,
                 occurrenceCalendar,
                 eventGroupQuestions,
-                new EventFieldRepository());
+                newEventFieldService());
         var eventGroupSeeder = new DemoEventGroupSeeder(
                 eventGroupService,
                 new EventGroupRegistrationService(

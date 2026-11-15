@@ -84,7 +84,7 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
                 restrictionService,
                 occurrenceCalendar,
                 new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
-                eventFieldRepo);
+                newEventFieldService());
         fields = new EventFieldService(
                 eventFieldRepo,
                 stationMemberRepo,
