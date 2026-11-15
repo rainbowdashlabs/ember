@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref, useId} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
@@ -19,7 +19,18 @@ import type {BatchRow, EventFieldEntry} from '@/api/generated/schema'
 import {events} from '@/api'
 import {readCsvText} from '@/util/csvText'
 import {describeFailure, type Failure} from '@/util/failure'
-import {localInputToInstant} from '@/util/format'
+import FileUploadButton from '@/components/button/FileUploadButton.vue'
+import Alert from '@/components/feedback/Alert.vue'
+import {
+  CsvTarget,
+  csvToBatchRows,
+  detectedDateFormat,
+  guessColumnMapping,
+  readCsvTable,
+  type CsvDateFormat,
+  type CsvProblem,
+  type CsvTable,
+} from './csvSchedule'
 
 const props = defineProps<{
   fieldDefs: EventFieldEntry[]
@@ -31,7 +42,6 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
-const csvFileId = useId()
 
 const mode = ref<'schedule' | 'csv'>('schedule')
 
@@ -43,10 +53,13 @@ const startTime = ref('')
 const endTime = ref('')
 const ignoreBreaks = ref(false)
 
-const csvColumns = ref<string[]>([])
-const csvRows = ref<string[][]>([])
+const csvFileName = ref('')
+const csvEmpty = ref(false)
+const csvTable = ref<CsvTable>({columns: [], lines: []})
+const csvColumns = computed(() => csvTable.value.columns)
+const csvProblems = ref<CsvProblem[]>([])
 const columnMapping = ref<Record<string, string>>({})
-const csvDateFormat = ref<'auto' | 'DD.MM.YYYY' | 'YYYY-MM-DD' | 'MM/DD/YYYY'>('auto')
+const csvDateFormat = ref<CsvDateFormat>('auto')
 const csvFallbackStartTime = ref('09:00')
 const csvFallbackEndTime = ref('17:00')
 const csvHasTimeColumns = ref(false)
@@ -109,102 +122,47 @@ async function generateScheduleDates() {
   }
 }
 
-async function handleCsvUpload(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (!file) return
-  parseCsv(await readCsvText(file))
-}
-
-function parseCsv(text: string) {
-  const [header, ...rows] = text.split('\n').map(l => l.trim()).filter(l => l)
-  if (!header || rows.length === 0) return
-  const separator = header.includes(';') ? ';' : ','
-  csvColumns.value = header.split(separator).map(c => c.trim().replace(/^"|"$/g, ''))
-  csvRows.value = rows.map(l => l.split(separator).map(c => c.trim().replace(/^"|"$/g, '')))
-
-  const mapping: Record<string, string> = {}
-  const fieldNames = props.fieldDefs.map(f => (f.name ?? '').toLowerCase())
-  for (const col of csvColumns.value) {
-    const lower = col.toLowerCase()
-    if (['datum', 'date', 'tag'].includes(lower)) mapping[col] = '__date__'
-    else if (['startzeit', 'start_time', 'starttime', 'von', 'beginn', 'start'].includes(lower)) mapping[col] = '__startTime__'
-    else if (['endzeit', 'end_time', 'endtime', 'bis', 'ende', 'end'].includes(lower)) mapping[col] = '__endTime__'
-    else if (['name', 'terminname', 'event_name', 'titel', 'title', 'bezeichnung'].includes(lower)) mapping[col] = '__name__'
-    else {
-      const match = props.fieldDefs[fieldNames.indexOf(lower)]
-      if (match?.name) mapping[col] = match.name
-    }
-  }
+async function handleCsvUpload(file: File) {
+  csvFileName.value = file.name
+  csvProblems.value = []
+  const table = readCsvTable(await readCsvText(file))
+  csvEmpty.value = table.columns.length === 0 || table.lines.length === 0
+  csvTable.value = csvEmpty.value ? {columns: [], lines: []} : table
+  columnMapping.value = {}
+  if (csvEmpty.value) return
+  const mapping = guessColumnMapping(table, props.fieldDefs.flatMap(field => (field.name ? [field.name] : [])))
   columnMapping.value = mapping
   const mapped = Object.values(mapping)
-  csvHasTimeColumns.value = mapped.includes('__startTime__') || mapped.includes('__endTime__')
+  csvHasTimeColumns.value = mapped.includes(CsvTarget.START_TIME) || mapped.includes(CsvTarget.END_TIME)
 
-  const dateColName = Object.entries(mapping).find(([, v]) => v === '__date__')?.[0]
-  if (dateColName && csvRows.value.length > 0) {
-    const sample = csvRows.value[0]?.[csvColumns.value.indexOf(dateColName)]?.trim() ?? ''
-    csvDateFormat.value = detectedDateFormat(sample)
-  }
+  const dateColumn = table.columns.indexOf(Object.entries(mapping).find(([, v]) => v === CsvTarget.DATE)?.[0] ?? '')
+  if (dateColumn >= 0) csvDateFormat.value = detectedDateFormat(table.lines[0]?.cells[dateColumn] ?? '')
 }
 
-/** The date format a sample from the date column is written in, or `auto` where none fits. */
-function detectedDateFormat(sample: string): typeof csvDateFormat.value {
-  if (/^\d{2}\.\d{2}\.\d{4}$/.test(sample)) return 'DD.MM.YYYY'
-  if (/^\d{4}-\d{2}-\d{2}$/.test(sample)) return 'YYYY-MM-DD'
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(sample)) return 'MM/DD/YYYY'
-  return 'auto'
-}
-
-function parseDateStr(raw: string): string {
-  const s = raw.trim()
-  const fmt = csvDateFormat.value
-  if (fmt === 'DD.MM.YYYY' || (fmt === 'auto' && /^\d{2}\.\d{2}\.\d{4}$/.test(s))) {
-    const [d, m, y] = s.split('.'); return `${y}-${m}-${d}`
-  }
-  if (fmt === 'MM/DD/YYYY' || (fmt === 'auto' && /^\d{2}\/\d{2}\/\d{4}$/.test(s))) {
-    const [m, d, y] = s.split('/'); return `${y}-${m}-${d}`
-  }
-  return s
+/** One line of the file that cannot become an appointment, with the value that cannot be read. */
+function problemText(problem: CsvProblem): string {
+  const params = {line: problem.line, value: problem.value}
+  if (problem.reason === 'date') return t('batchCreate.unreadableDate', params)
+  if (problem.reason === 'startTime') return t('batchCreate.unreadableStartTime', params)
+  if (problem.reason === 'endTime') return t('batchCreate.unreadableEndTime', params)
+  return t('batchCreate.endNotAfterStart', params)
 }
 
 /**
- * A day and a time of day from the file, as the moment they name on the reader's clock.
+ * Turns the file into the rows of the table, or names the lines that cannot become an appointment.
  *
- * <p>The time used to be written down as UTC, so an imported drill at seven in the evening stood
- * two hours early in Berlin in summer. A row without a readable day, or with a time no clock can
- * read, is placed at the moment of the import and left for the table to correct.
+ * <p>Nothing goes on while a line is left whose day or time cannot be read, so a batch never
+ * creates an appointment at a moment the file did not name.
  */
-function momentOf(isoDate: string, time: string): string {
-  return (isoDate && localInputToInstant(`${isoDate}T${time}`)) || new Date().toISOString()
-}
-
 function applyCsvToRows() {
-  const find = (target: string) => Object.entries(columnMapping.value).find(([, v]) => v === target)?.[0]
-  const dateCol = find('__date__')
-  const stCol = find('__startTime__')
-  const etCol = find('__endTime__')
-  const nameCol = find('__name__')
-
-  const result: BatchRow[] = csvRows.value.map(csvRow => {
-    const fieldValues: Record<string, string> = {}
-    for (const [col, target] of Object.entries(columnMapping.value)) {
-      if (target.startsWith('__')) continue
-      const i = csvColumns.value.indexOf(col)
-      if (i >= 0) fieldValues[target] = csvRow[i] ?? ''
-    }
-    const idx = (col?: string) => col ? csvColumns.value.indexOf(col) : -1
-    const rawDate = idx(dateCol) >= 0 ? csvRow[idx(dateCol)] ?? '' : ''
-    const isoDate = rawDate ? parseDateStr(rawDate) : ''
-    const st = idx(stCol) >= 0 ? csvRow[idx(stCol)]?.trim() : csvFallbackStartTime.value
-    const et = idx(etCol) >= 0 ? csvRow[idx(etCol)]?.trim() : csvFallbackEndTime.value
-    const n = idx(nameCol) >= 0 ? csvRow[idx(nameCol)] ?? null : null
-    return {
-      name: n,
-      startTime: momentOf(isoDate, st || '00:00'),
-      endTime: momentOf(isoDate, et || '23:59'),
-      fieldValues,
-    }
+  const result = csvToBatchRows(csvTable.value, {
+    mapping: columnMapping.value,
+    dateFormat: csvDateFormat.value,
+    fallbackStartTime: csvFallbackStartTime.value,
+    fallbackEndTime: csvFallbackEndTime.value,
   })
-  emit('done', result)
+  csvProblems.value = result.problems
+  if (result.problems.length === 0) emit('done', result.rows)
 }
 </script>
 
@@ -266,10 +224,17 @@ function applyCsvToRows() {
     </template>
 
     <template v-if="mode === 'csv'">
-      <div class="space-y-2">
-        <FieldLabel :for="csvFileId">{{ t('batchCreate.uploadCsv') }}</FieldLabel>
-        <input :id="csvFileId" type="file" accept=".csv,.txt" class="text-sm" @change="handleCsvUpload"/>
+      <div class="flex items-center gap-4 flex-wrap">
+        <FileUploadButton accept=".csv,.txt" @select="handleCsvUpload">
+          {{ t('batchCreate.uploadCsv') }}
+        </FileUploadButton>
+        <span v-if="csvFileName" class="text-sm">
+          <font-awesome-icon v-if="!csvEmpty" :icon="['fas', 'check']" class="text-success mr-1"/>
+          {{ csvFileName }}
+        </span>
       </div>
+
+      <Alert v-if="csvEmpty" variant="error">{{ t('batchCreate.emptyFile') }}</Alert>
 
       <template v-if="csvColumns.length > 0">
         <SubHeader>{{ t('batchCreate.mapColumns') }}</SubHeader>
@@ -308,6 +273,15 @@ function applyCsvToRows() {
             <TimeShortInput v-model="csvFallbackEndTime"/>
           </div>
         </div>
+
+        <Alert v-if="csvProblems.length > 0" variant="error">
+          <p>{{ t('batchCreate.unreadableLines') }}</p>
+          <ul class="mt-1 list-disc pl-5">
+            <li v-for="problem in csvProblems" :key="`${problem.line}-${problem.reason}`">
+              {{ problemText(problem) }}
+            </li>
+          </ul>
+        </Alert>
 
         <PrimaryButton @click="applyCsvToRows">
           {{ t('common.next') }}

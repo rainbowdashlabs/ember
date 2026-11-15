@@ -54,6 +54,8 @@ People who share a station can write to each other directly, in groups, and in c
 - **Words instead of raw values.** In some places technical values showed instead of words, such as the answer to a waiting-list invitation, a module the cluster switched off, member types in the station setup and mapped values in the member import, and the last setup step missed its hint. They now read in the interface language.
 - **Switched-off modules stayed reachable.** Pages of a switched-off module still opened from a saved link, and the documents and the public wiki stayed open when only the association had switched them off. Every page of a switched-off module now says that this part of the station is switched off.
 - **Two closing warnings at once for one appointment.** In some cases an appointment whose sign-up closed within a day of being set up or changed sent two warnings at once, one for three days and one for one day. It now sends the nearer one only, as event groups do.
+- **Imported appointments landed on the import time.** In some cases a file imported when creating appointments in a batch produced appointments at the time of the import, for example when its date column had an unusual name or a two-digit year. Such files are now read on the dates and times they give, and a line that cannot be read, or that ends before it starts, is named instead of becoming an appointment.
+- **Batch import file picker was unstyled.** Choosing the file for creating appointments in a batch showed the bare browser control. It now uses the same upload button as the other imports.
 
 ## v26.24.2
 
