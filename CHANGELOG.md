@@ -43,6 +43,7 @@ People who share a station can write to each other directly, in groups, and in c
 - **Switched-off modules take their notifications along.** Notifications of a switched-off module are no longer listed, counted or mailed, and none are written while it is off. They are kept and show again once the module is back, and the notification settings only list what the station uses.
 - **Switched-off modules grant no permissions.** The permission picker leaves out permissions of a switched-off module, and permissions already given grant nothing until the module is back. Requirements of a switched-off module, such as a mandatory poll, no longer hold anybody at the start page.
 - **Switched-off modules stay hidden from partners and public.** A station serves partner stations nothing of a module it switched off, and its own members see nothing of that module from partners either. The public calendar, blog, wiki, quiz and waiting lists go away with their module, also when the association denies it.
+- **Batch appointments entered one by one.** Besides a schedule and an imported file, creating appointments in a batch offers a list of appointments entered one by one, each with its date, start and end time and an optional title. Rows can be added and removed, and a row without a date or not ending after it starts is marked before anything is created.
 
 ### Changes
 

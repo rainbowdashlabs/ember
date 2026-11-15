@@ -6,11 +6,23 @@
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {localInputToInstant} from '@/util/format'
-import {draftProblems, draftToBatchRow, type DraftRow} from './draftRows'
+import {draftProblems, draftsToBatchRows, nextDraftRow, type DraftRow} from './draftRows'
 
 function draft(change: Partial<DraftRow>): DraftRow {
     return {date: '2026-12-04', startTime: '16:30', endTime: '19:00', name: '', fieldValues: {}, ...change}
 }
+
+describe('nextDraftRow', () => {
+    it('starts empty as the first row', () => {
+        expect(nextDraftRow([])).toEqual({key: 0, date: '', startTime: '', endTime: '', name: '', fieldValues: {}})
+    })
+
+    it('takes the day and the times of the last row, not its title, under a key of its own', () => {
+        const rows = [{...draft({}), key: 3}, {...draft({name: 'Adventszauber', date: '2026-12-05'}), key: 1}]
+        expect(nextDraftRow(rows))
+            .toEqual({key: 4, date: '2026-12-05', startTime: '16:30', endTime: '19:00', name: '', fieldValues: {}})
+    })
+})
 
 describe('draftProblems', () => {
     it('finds nothing wrong with a complete row', () => {
@@ -34,13 +46,29 @@ describe('draftProblems', () => {
     })
 })
 
-describe('draftToBatchRow', () => {
-    it('places a row on the reader\'s clock with its own title', () => {
-        expect(draftToBatchRow(draft({name: ' Adventszauber '}))).toEqual({
-            name: 'Adventszauber',
-            startTime: localInputToInstant('2026-12-04T16:30'),
-            endTime: localInputToInstant('2026-12-04T19:00'),
-            fieldValues: {},
+describe('draftsToBatchRows', () => {
+    it('places every row on the reader\'s clock with its own title', () => {
+        expect(draftsToBatchRows([draft({name: ' Adventszauber '}), draft({date: '2026-12-05'})])).toEqual({
+            rows: [
+                {
+                    name: 'Adventszauber',
+                    startTime: localInputToInstant('2026-12-04T16:30'),
+                    endTime: localInputToInstant('2026-12-04T19:00'),
+                    fieldValues: {},
+                },
+                {
+                    name: null,
+                    startTime: localInputToInstant('2026-12-05T16:30'),
+                    endTime: localInputToInstant('2026-12-05T19:00'),
+                    fieldValues: {},
+                },
+            ],
+            problems: [],
         })
+    })
+
+    it('creates nothing while one row cannot become an appointment', () => {
+        expect(draftsToBatchRows([draft({}), draft({date: ''})]))
+            .toEqual({rows: [], problems: [{index: 1, reason: 'date'}]})
     })
 })

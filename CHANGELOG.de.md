@@ -43,6 +43,7 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 - **Abgeschaltete Module nehmen ihre Benachrichtigungen mit.** Benachrichtigungen eines abgeschalteten Moduls werden nicht mehr angezeigt, gezählt oder gemailt, und solange es aus ist, entstehen keine neuen. Sie bleiben erhalten und sind wieder da, sobald das Modul läuft; die Einstellungen der Benachrichtigungen zeigen nur noch, was die Wache nutzt.
 - **Abgeschaltete Module vergeben keine Berechtigungen.** Die Auswahl der Berechtigungen lässt die eines abgeschalteten Moduls weg, und bereits vergebene gelten erst wieder, wenn das Modul läuft. Pflichten eines abgeschalteten Moduls, etwa eine Pflichtumfrage, halten niemanden mehr auf der Startseite fest.
 - **Partner und Öffentlichkeit sehen nichts von abgeschalteten Modulen.** Eine Wache gibt Partnerwachen nichts aus einem Modul heraus, das sie abgeschaltet hat, und ihre Mitglieder sehen von Partnern nichts aus diesem Modul. Öffentlicher Kalender, Blog, Wiki, Quiz und Wartelisten verschwinden mit ihrem Modul, auch wenn der Verband es verwehrt.
+- **Mehrere Termine einzeln eintragen.** Neben Zeitplan und Datei-Import bietet das Erstellen mehrerer Termine eine Liste einzeln eingetragener Termine, jeder mit Datum, Start- und Endzeit und auf Wunsch einem eigenen Titel. Zeilen lassen sich hinzufügen und entfernen, und eine Zeile ohne Datum oder mit einem Ende, das nicht nach dem Beginn liegt, wird markiert, bevor etwas entsteht.
 
 ### Änderungen
 

@@ -23,6 +23,7 @@ import {emptyRestriction, toRestriction} from '@/components/input/restriction'
 import type {RestrictionSelection} from '@/api/types'
 import BatchScheduleStep from './batchcreateview/BatchScheduleStep.vue'
 import BatchEditTable from './batchcreateview/BatchEditTable.vue'
+import {nextDraftRow, type KeyedDraftRow, type ScheduleMode} from './batchcreateview/draftRows'
 import type {
     AttendanceTemplateField,
     BatchFieldEntryDto,
@@ -64,6 +65,8 @@ const restriction = ref<RestrictionSelection>(emptyRestriction())
 const viewRestriction = ref<RestrictionSelection>(emptyRestriction())
 
 const rows = ref<BatchRow[]>([])
+const scheduleMode = ref<ScheduleMode>('schedule')
+const drafts = ref<KeyedDraftRow[]>([nextDraftRow([])])
 
 /**
  * The fields of the attendance sheet the batch names, and of no other.
@@ -220,6 +223,8 @@ const {running: saving, failure: createFailure, run: createBatch} = useAsyncActi
 
       <BatchScheduleStep
           v-if="step === 2"
+          v-model:mode="scheduleMode"
+          v-model:drafts="drafts"
           :field-defs="fieldDefs"
           @done="onScheduleDone"
           @error="failure = $event"

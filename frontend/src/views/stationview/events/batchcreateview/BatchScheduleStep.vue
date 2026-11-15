@@ -11,7 +11,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import DateInput from '@/components/input/datetime/DateInput.vue'
 import TimeShortInput from '@/components/input/datetime/TimeShortInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import ToggleSwitch from '@/components/input/toggle/ToggleSwitch.vue'
+import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -31,6 +31,8 @@ import {
   type CsvProblem,
   type CsvTable,
 } from './csvSchedule'
+import ManualRowsEditor from './ManualRowsEditor.vue'
+import type {KeyedDraftRow, ScheduleMode} from './draftRows'
 
 const props = defineProps<{
   fieldDefs: EventFieldEntry[]
@@ -43,7 +45,16 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const mode = ref<'schedule' | 'csv'>('schedule')
+/** The way the dates are entered, kept by the page so going back from the table returns to it. */
+const mode = defineModel<ScheduleMode>('mode', {required: true})
+/** The rows written by hand, kept by the page so going back from the table shows them as typed. */
+const drafts = defineModel<KeyedDraftRow[]>('drafts', {required: true})
+
+const modes = computed<{value: ScheduleMode, label: string}[]>(() => [
+  {value: 'schedule', label: t('batchCreate.schedule')},
+  {value: 'csv', label: t('batchCreate.csvImport')},
+  {value: 'manual', label: t('batchCreate.manualEntry')},
+])
 
 const intervalType = ref('RECURRING')
 const dayOfWeek = ref(1)
@@ -170,14 +181,19 @@ function applyCsvToRows() {
   <NeutralContainer class="space-y-4">
     <SubHeader>{{ t('batchCreate.stepSchedule') }}</SubHeader>
 
-    <ToggleSwitch
-        :model-value="mode"
-        option-a="schedule"
-        option-b="csv"
-        :label-a="t('batchCreate.schedule')"
-        :label-b="t('batchCreate.csvImport')"
-        @update:model-value="mode = $event as 'schedule' | 'csv'"
-    />
+    <div class="flex flex-wrap gap-2">
+      <SelectionToggleButton
+          v-for="option in modes"
+          :key="option.value"
+          :selected="mode === option.value"
+          size="md"
+          @toggle="mode = option.value"
+      >
+        {{ option.label }}
+      </SelectionToggleButton>
+    </div>
+
+    <ManualRowsEditor v-show="mode === 'manual'" v-model:drafts="drafts" @done="emit('done', $event)"/>
 
     <template v-if="mode === 'schedule'">
       <div class="grid gap-4 sm:grid-cols-2">
