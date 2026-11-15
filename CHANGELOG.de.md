@@ -32,6 +32,7 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 - **Abgeschaltete Module blieben erreichbar.** Seiten eines abgeschalteten Moduls öffneten sich weiter über einen gespeicherten Link, und Dokumente und das öffentliche Wiki blieben offen, wenn nur der Verband sie abgeschaltet hatte. Jede Seite eines abgeschalteten Moduls sagt jetzt, dass dieser Bereich an der Wache ausgeschaltet ist.
 - **Zwei Hinweise auf einmal zum Anmeldeschluss.** In manchen Fällen schickte ein Termin, dessen Anmeldeschluss beim Anlegen oder Ändern weniger als einen Tag entfernt lag, zwei Hinweise auf einmal, einen für drei Tage und einen für einen Tag. Jetzt kommt nur noch der nähere, wie bei Terminreihen.
 - **Mehrere Termine anzulegen scheiterte oder las Dateien falsch.** Eine Datei mit ungewöhnlich benannter Datumsspalte oder zweistelligem Jahr ergab Termine zum Zeitpunkt des Imports, eine Anmeldefrist ließ das Anlegen ganz scheitern, und die Dateiauswahl war ungestaltet. Dateien werden jetzt so gelesen, wie sie geschrieben sind, unlesbare Zeilen werden genannt, die Frist kommt richtig an, und die Dateiauswahl gleicht den anderen Importen.
+- **Namensfarben folgten Gruppenänderungen erst spät.** In manchen Fällen zeigten Namen in Listen und Kommentaren eine neue Gruppen- oder Tagfarbe oder eine neue Gruppenzugehörigkeit nicht, solange sie angesehen wurden. Jetzt übernehmen sie die Änderung, sobald sie gespeichert ist.
 
 ## v26.24.2
 

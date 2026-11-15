@@ -9,6 +9,7 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.MemberDisplayChanged;
 import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -124,6 +125,7 @@ public class GroupRulesService {
             return groupRepository.findById(group.id()).orElseThrow(MemberRefusal.GROUP_NOT_HERE_ON_CHANGE::raise);
         });
         log.info("Group updated: id={}, name='{}'", group.id(), checked);
+        eventBus.publish(MemberDisplayChanged.at(group.stationId()));
         return updated;
     }
 

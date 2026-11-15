@@ -270,6 +270,8 @@ import dev.chojo.ember.feature.maps.route.PublicMapsRoutes;
 import dev.chojo.ember.feature.media.route.MediaRoutes;
 import dev.chojo.ember.feature.media.route.PublicMediaRoutes;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
+import dev.chojo.ember.feature.members.handler.AudienceDisplayHandler;
+import dev.chojo.ember.feature.members.handler.MemberDisplayChangedHandler;
 import dev.chojo.ember.feature.members.handler.MembersAddedToGroupHandler;
 import dev.chojo.ember.feature.members.route.ManagedMemberRoutes;
 import dev.chojo.ember.feature.members.route.MemberCardRoutes;
@@ -827,6 +829,8 @@ public class EmberModule extends AbstractModule {
         Multibinder<DomainEventHandler<?>> eventBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<>() {});
         eventBinder.addBinding().to(EventCreatedHandler.class);
         eventBinder.addBinding().to(StationAudienceChangedHandler.class);
+        eventBinder.addBinding().to(AudienceDisplayHandler.class);
+        eventBinder.addBinding().to(MemberDisplayChangedHandler.class);
         eventBinder.addBinding().to(EventsBatchCreatedHandler.class);
         eventBinder.addBinding().to(EventDeletedHandler.class);
         eventBinder.addBinding().to(EventChangedHandler.class);
