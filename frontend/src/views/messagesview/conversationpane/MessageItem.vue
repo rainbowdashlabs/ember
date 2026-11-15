@@ -17,7 +17,7 @@ import {mentions} from '@/util/messageText'
 import SystemLine from './SystemLine.vue'
 import MessageBody from './MessageBody.vue'
 import ReplyQuote from './ReplyQuote.vue'
-import ChatPersonName from './ChatPersonName.vue'
+import ColoredName from '@/components/avatar/ColoredName.vue'
 import ReactionChips from './ReactionChips.vue'
 import MessageActionBar from './MessageActionBar.vue'
 import type {MessageActions} from './messageActions'
@@ -63,7 +63,10 @@ const highlight = computed(() => mentionsReader.value
     <div class="min-w-0 flex-1">
       <p v-if="opensRun" class="flex items-baseline gap-2">
         <PersonCardButton :account-uid="message.author?.uid" :name="nameOf(message.author)">
-          <ChatPersonName class="text-sm font-semibold" :name="nameOf(message.author)" :member="memberOf(message.author?.uid)"/>
+          <ColoredName class="text-sm font-semibold" testid="chat-person-name"
+                       :name-color="memberOf(message.author?.uid)?.nameColor" :display-tag="memberOf(message.author?.uid)?.displayTag">
+            {{ nameOf(message.author) }}
+          </ColoredName>
         </PersonCardButton>
         <MutedText>{{ formatTime(message.createdAt) }}</MutedText>
       </p>

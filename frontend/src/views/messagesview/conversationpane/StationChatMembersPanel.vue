@@ -12,7 +12,7 @@ import UserAvatar from '@/components/avatar/UserAvatar.vue'
 import PersonCardButton from '@/components/avatar/PersonCardButton.vue'
 import type {ConversationResponse} from '@/api/generated/schema'
 import {personName} from '@/util/conversationTitle'
-import ChatPersonName from './ChatPersonName.vue'
+import ColoredName from '@/components/avatar/ColoredName.vue'
 
 /**
  * The people of a station chat, at the right, to look at only: who is in it follows the audience the
@@ -41,7 +41,10 @@ const {t} = useI18n()
           <PersonCardButton :account-uid="member.uid" :name="personName(member)" class="min-w-0">
             <span class="flex min-w-0 items-center gap-3">
               <UserAvatar :identity="{accountUid: member.uid}" :name="personName(member)" size="sm"/>
-              <ChatPersonName class="text-sm" :name="personName(member)" :member="member.member"/>
+              <ColoredName class="text-sm" testid="chat-person-name"
+                           :name-color="member.member?.nameColor" :display-tag="member.member?.displayTag">
+                {{ personName(member) }}
+              </ColoredName>
             </span>
           </PersonCardButton>
           <MutedText v-if="member.guardianFor.length > 0" tag="p" class="pl-10">
