@@ -138,7 +138,6 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
                 group.id(),
                 part.id(),
                 groups.findSets(group.id()).getFirst().id());
-        fields.reconcilePart(part.id());
         return part;
     }
 
@@ -343,9 +342,22 @@ class EventGroupMemberFieldsTest extends RepositoryTestBase {
         assertEquals(1, placesOn(saturday));
 
         groups.removePart(station.id(), group.id(), saturday.id());
-        fields.reconcilePart(saturday.id());
 
         assertEquals(0, placesOn(saturday));
+    }
+
+    @Test
+    void deletingTheGroupGivesBackThePlacesItsFieldHandedOutOnEveryFormerPart() {
+        var group = groupWith(memberField(FieldType.MEMBER_LIST, ""));
+        var saturday = partOf(group, 36);
+        var sunday = partOf(group, 37);
+        fields.toggleEventGroupSelfRegistration(group.id(), groupFieldId(group), anna.id(), false);
+        assertEquals(1, placesOn(saturday));
+
+        groups.delete(station.id(), group.id());
+
+        assertEquals(0, placesOn(saturday));
+        assertEquals(0, placesOn(sunday));
     }
 
     @Test

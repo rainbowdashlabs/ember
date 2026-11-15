@@ -6,24 +6,15 @@
 package dev.chojo.ember.feature.comment.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.api.StationSession;
-import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.CommentRefusal;
-import dev.chojo.ember.feature.comment.entity.Comment;
 import dev.chojo.ember.feature.comment.entity.CommentEntityType;
 import dev.chojo.ember.feature.comment.entity.CommentFilter;
-import dev.chojo.ember.feature.comment.entity.CommentWriter;
-import dev.chojo.ember.feature.comment.entity.Moderation;
-import dev.chojo.ember.feature.comment.entity.NewComment;
 import dev.chojo.ember.feature.comment.service.CommentService;
-import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
-import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -45,28 +36,31 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
  */
 @Singleton
 public class EventCommentRoutes implements Routes {
-    private final CommentService commentService;
-    private final MemberIdentityFactory memberIdentityFactory;
-    private final MemberNameResolver memberNameResolver;
+    private final CommentRouteSupport comments;
 
     @Inject
     public EventCommentRoutes(
             CommentService commentService,
             MemberIdentityFactory memberIdentityFactory,
             MemberNameResolver memberNameResolver) {
-        this.commentService = commentService;
-        this.memberIdentityFactory = memberIdentityFactory;
-        this.memberNameResolver = memberNameResolver;
+        this.comments = new CommentRouteSupport(
+                commentService,
+                memberIdentityFactory,
+                CommentEntityType.EVENT,
+                comment -> CommentResponseMapper.fromEvent(memberNameResolver, comment));
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        routes.get(prefix + "/events/{eventId}/comments", this::list, StationPermission.LOGIN, StationModule.EVENTS);
-        routes.post(prefix + "/events/{eventId}/comments", this::create, StationPermission.LOGIN, StationModule.EVENTS);
-        routes.put(
-                prefix + "/events/comments/{commentId}", this::update, StationPermission.LOGIN, StationModule.EVENTS);
-        routes.delete(
-                prefix + "/events/comments/{commentId}", this::delete, StationPermission.LOGIN, StationModule.EVENTS);
+        comments.register(
+                routes,
+                StationModule.EVENTS,
+                prefix + "/events/{eventId}/comments",
+                prefix + "/events/comments/{commentId}",
+                this::list,
+                this::create,
+                this::update,
+                this::delete);
     }
 
     /**
@@ -107,12 +101,7 @@ public class EventCommentRoutes implements Routes {
             },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CommentResponse[].class)))
     private void list(Context ctx) {
-        int eventId = pathInt(ctx, "eventId");
-        commentService.requireReadable(StationSession.from(ctx), CommentEntityType.EVENT, eventId);
-        var filter = filterOf(ctx);
-        ctx.json(commentService.list(CommentEntityType.EVENT, eventId, filter).stream()
-                .map(this::toResponse)
-                .toList());
+        comments.list(ctx, pathInt(ctx, "eventId"), filterOf(ctx));
     }
 
     @OpenApi(
@@ -124,19 +113,7 @@ public class EventCommentRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateCommentRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = CommentResponse.class)))
     private void create(Context ctx) {
-        int eventId = pathInt(ctx, "eventId");
-        StationSession session = StationSession.from(ctx);
-        var request = ctx.bodyAsClass(CreateCommentRequest.class);
-        if (request.content() == null || request.content().isBlank()) {
-            throw CommentRefusal.COMMENT_NEEDS_TEXT.raise();
-        }
-        var comment = commentService.create(
-                session,
-                CommentEntityType.EVENT,
-                eventId,
-                writer(session),
-                new NewComment(request.parentId(), request.eventDate(), request.content()));
-        ctx.status(HttpStatus.CREATED).json(toResponse(comment));
+        comments.create(ctx, pathInt(ctx, "eventId"), CreateCommentRequest::eventDate);
     }
 
     @OpenApi(
@@ -151,22 +128,7 @@ public class EventCommentRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void update(Context ctx) {
-        int commentId = pathInt(ctx, "commentId");
-        StationSession session = StationSession.from(ctx);
-        var comment = commentService
-                .findById(CommentEntityType.EVENT, commentId)
-                .orElseThrow(CommentRefusal.COMMENT_NOT_HERE_ON_CHANGE::raise);
-        if (!commentService.mayModify(session, actor(session), comment, Moderation.EDIT)) {
-            throw CommentRefusal.COMMENT_NOT_YOURS_TO_CHANGE.raise();
-        }
-        var request = ctx.bodyAsClass(UpdateCommentRequest.class);
-        if (request.content() == null || request.content().isBlank()) {
-            throw CommentRefusal.COMMENT_CHANGE_NEEDS_TEXT.raise();
-        }
-        var updated = commentService
-                .update(comment, writer(session), request.content())
-                .orElseThrow(CommentRefusal.COMMENT_NOT_HERE_AFTER_CHANGE::raise);
-        ctx.json(toResponse(updated));
+        comments.update(ctx, comments.comment(pathInt(ctx, "commentId"), CommentRefusal.COMMENT_NOT_HERE_ON_CHANGE));
     }
 
     @OpenApi(
@@ -180,32 +142,7 @@ public class EventCommentRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void delete(Context ctx) {
-        int commentId = pathInt(ctx, "commentId");
-        StationSession session = StationSession.from(ctx);
-        var comment = commentService
-                .findById(CommentEntityType.EVENT, commentId)
-                .orElseThrow(CommentRefusal.COMMENT_NOT_HERE_ON_DELETE::raise);
-        commentService.requireSameStation(session, comment);
-        if (!commentService.mayModify(session, actor(session), comment, Moderation.DELETE)) {
-            throw CommentRefusal.COMMENT_NOT_YOURS_TO_DELETE.raise();
-        }
-        if (!commentService.delete(comment)) {
-            throw CommentRefusal.COMMENT_NOT_DELETED.raise();
-        }
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    private MemberIdentity actor(StationSession session) {
-        return memberIdentityFactory.local(session.stationId(), session.member().id());
-    }
-
-    private CommentWriter writer(StationSession session) {
-        return CommentWriter.local(
-                actor(session), NameParts.of(session.user().account()).called());
-    }
-
-    private CommentResponse toResponse(Comment comment) {
-        return CommentResponseMapper.fromEvent(memberNameResolver, comment);
+        comments.delete(ctx, comments.comment(pathInt(ctx, "commentId"), CommentRefusal.COMMENT_NOT_HERE_ON_DELETE));
     }
 
     /**

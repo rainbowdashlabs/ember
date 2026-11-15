@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.events.entity.PartnerDocumentToSign;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventSignUpGuards;
 import dev.chojo.ember.feature.events.service.PartnerAppointmentSignatures;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
@@ -70,6 +71,7 @@ public class FederatedEventRoutes implements Routes {
     private final MemberLookupService memberLookup;
     private final GuardianPolicy guardianPolicy;
     private final PartnerAppointmentSignatures signatures;
+    private final EventSignUpGuards signUpGuards;
 
     @Inject
     public FederatedEventRoutes(
@@ -78,7 +80,9 @@ public class FederatedEventRoutes implements Routes {
             StationMemberService stationMemberService,
             MemberLookupService memberLookup,
             GuardianPolicy guardianPolicy,
-            PartnerAppointmentSignatures signatures) {
+            PartnerAppointmentSignatures signatures,
+            EventSignUpGuards signUpGuards) {
+        this.signUpGuards = signUpGuards;
         this.eventFederationService = eventFederationService;
         this.federationService = federationService;
         this.stationMemberService = stationMemberService;
@@ -374,10 +378,7 @@ public class FederatedEventRoutes implements Routes {
     private FederatedRegContext answeredFor(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var fed = resolveFederatedRegContext(ctx);
-        if (!guardianPolicy.mayActFor(session.user(), fed.memberId())
-                && !session.hasPermission(StationPermission.EVENT_MANAGER)) {
-            throw EventRefusal.MEMBER_NOT_YOURS_TO_REGISTER.raise();
-        }
+        signUpGuards.requireTarget(session, fed.memberId());
         return fed;
     }
 

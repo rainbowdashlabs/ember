@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.events.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
-import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -14,35 +13,28 @@ import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventGroup;
+import dev.chojo.ember.feature.events.entity.EventGroupAwaiting;
 import dev.chojo.ember.feature.events.entity.EventGroupContent;
+import dev.chojo.ember.feature.events.entity.EventGroupDetail;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventGroupPart;
-import dev.chojo.ember.feature.events.entity.EventGroupPartState;
 import dev.chojo.ember.feature.events.entity.EventGroupPartSummary;
-import dev.chojo.ember.feature.events.entity.EventGroupRegistration;
-import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
-import dev.chojo.ember.feature.events.entity.EventGroupTally;
-import dev.chojo.ember.feature.events.entity.EventRegistrationField;
+import dev.chojo.ember.feature.events.entity.EventGroupSignUp;
+import dev.chojo.ember.feature.events.entity.EventGroupSummary;
+import dev.chojo.ember.feature.events.entity.EventRegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
-import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
-import dev.chojo.ember.feature.events.route.EventRegistrationRoutes.AwaitingMember;
-import dev.chojo.ember.feature.events.route.EventRegistrationRoutes.EventRegistrationFieldValue;
 import dev.chojo.ember.feature.events.route.EventStructureRoutes.EventFieldEntry;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventGroupCancellationService;
 import dev.chojo.ember.feature.events.service.EventGroupGuards;
 import dev.chojo.ember.feature.events.service.EventGroupPartFactory;
-import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
 import dev.chojo.ember.feature.events.service.EventGroupRegistrationService;
-import dev.chojo.ember.feature.events.service.EventGroupRegistrationService.EventGroupStanding;
-import dev.chojo.ember.feature.events.service.EventGroupRules.SetResult;
 import dev.chojo.ember.feature.events.service.EventGroupService;
-import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
+import dev.chojo.ember.feature.events.service.EventGroupViewService;
+import dev.chojo.ember.feature.events.service.EventSignUpGuards;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
-import dev.chojo.ember.feature.members.service.GuardianPolicy;
-import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
@@ -59,13 +51,9 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -89,37 +77,34 @@ public class EventGroupRoutes implements Routes {
 
     private final EventGroupService eventGroups;
     private final EventGroupRegistrationService signUps;
-    private final GuardianPolicy guardianPolicy;
-    private final MemberIdentityFactory identities;
     private final EventVisibility visibility;
     private final EventGroupCancellationService cancellation;
     private final EventGroupPartFactory partFactory;
-    private final EventGroupQuestionService questions;
     private final EventGroupGuards guards;
     private final EventFieldService fields;
     private final EventRequirementService requirements;
+    private final EventSignUpGuards signUpGuards;
+    private final EventGroupViewService view;
 
     @Inject
     public EventGroupRoutes(
             EventGroupService eventGroups,
             EventGroupRegistrationService signUps,
-            GuardianPolicy guardianPolicy,
-            MemberIdentityFactory identities,
             EventVisibility visibility,
             EventGroupCancellationService cancellation,
             EventGroupPartFactory partFactory,
-            EventGroupQuestionService questions,
             EventGroupGuards guards,
             EventFieldService fields,
-            EventRequirementService requirements) {
+            EventRequirementService requirements,
+            EventSignUpGuards signUpGuards,
+            EventGroupViewService view) {
+        this.signUpGuards = signUpGuards;
+        this.view = view;
         this.eventGroups = eventGroups;
         this.signUps = signUps;
-        this.guardianPolicy = guardianPolicy;
-        this.identities = identities;
         this.visibility = visibility;
         this.cancellation = cancellation;
         this.partFactory = partFactory;
-        this.questions = questions;
         this.guards = guards;
         this.fields = fields;
         this.requirements = requirements;
@@ -200,13 +185,7 @@ public class EventGroupRoutes implements Routes {
             tags = {"Events"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventGroupSummary[].class)))
     private void list(Context ctx) {
-        StationSession session = StationSession.from(ctx);
-        var tallies = eventGroups.tallies(session.stationId());
-        ctx.json(eventGroups.findByStation(session.stationId()).stream()
-                .filter(eventGroup -> guards.mayOpen(session, eventGroup.id()))
-                .map(eventGroup ->
-                        EventGroupSummary.of(eventGroup, tallies.getOrDefault(eventGroup.id(), EventGroupTally.NONE)))
-                .toList());
+        ctx.json(view.list(StationSession.from(ctx)));
     }
 
     @OpenApi(
@@ -252,8 +231,7 @@ public class EventGroupRoutes implements Routes {
                 audienceOr(request.view()),
                 new EventGroupContent(draftsOf(request.questions()), fieldDraftsOf(request.fields())),
                 request.appointmentId());
-        fields.reconcileEventGroup(eventGroup.id());
-        ctx.status(HttpStatus.CREATED).json(detailOf(session, eventGroup));
+        ctx.status(HttpStatus.CREATED).json(view.detailOf(session, eventGroup));
     }
 
     @OpenApi(
@@ -268,7 +246,7 @@ public class EventGroupRoutes implements Routes {
             })
     private void detail(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        ctx.json(detailOf(session, visibleEventGroup(ctx, session)));
+        ctx.json(view.detailOf(session, visibleEventGroup(ctx, session)));
     }
 
     @OpenApi(
@@ -293,8 +271,7 @@ public class EventGroupRoutes implements Routes {
                 request.registration(),
                 request.view(),
                 new EventGroupContent(draftsOf(request.questions()), fieldDraftsOf(request.fields())));
-        fields.reconcileEventGroup(eventGroup.id());
-        ctx.json(detailOf(session, eventGroup));
+        ctx.json(view.detailOf(session, eventGroup));
     }
 
     @OpenApi(
@@ -314,11 +291,10 @@ public class EventGroupRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var eventGroup = visibleEventGroup(ctx, session);
         ctx.json(fields.toggleEventGroupSelfRegistration(
-                eventGroup.id(), pathInt(ctx, "fieldId"), session.member().id(), runsEventGroups(session)));
-    }
-
-    private static boolean runsEventGroups(StationSession session) {
-        return session.hasPermission(StationPermission.EVENT_MANAGER);
+                eventGroup.id(),
+                pathInt(ctx, "fieldId"),
+                session.member().id(),
+                EventGroupViewService.runsEventGroups(session)));
     }
 
     @OpenApi(
@@ -333,11 +309,7 @@ public class EventGroupRoutes implements Routes {
             })
     private void delete(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        int eventGroupId = pathInt(ctx, "eventGroupId");
-        eventGroups.requireEventGroup(session.stationId(), eventGroupId);
-        var parts = eventGroups.findParts(eventGroupId);
-        eventGroups.delete(session.stationId(), eventGroupId);
-        parts.forEach(part -> fields.reconcilePart(part.eventId()));
+        eventGroups.delete(session.stationId(), pathInt(ctx, "eventGroupId"));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -361,7 +333,7 @@ public class EventGroupRoutes implements Routes {
                 eventGroupId,
                 request.reason(),
                 session.member().id());
-        ctx.json(detailOf(session, eventGroups.requireEventGroup(session.stationId(), eventGroupId)));
+        ctx.json(view.detailOf(session, eventGroups.requireEventGroup(session.stationId(), eventGroupId)));
     }
 
     @OpenApi(
@@ -381,7 +353,7 @@ public class EventGroupRoutes implements Routes {
         var request = ctx.bodyAsClass(EventGroupSetsRequest.class);
         eventGroups.replaceSets(
                 session.stationId(), eventGroupId, Objects.requireNonNullElse(request.sets(), List.of()));
-        ctx.json(detailOf(session, eventGroups.requireEventGroup(session.stationId(), eventGroupId)));
+        ctx.json(view.detailOf(session, eventGroups.requireEventGroup(session.stationId(), eventGroupId)));
     }
 
     @OpenApi(
@@ -401,7 +373,7 @@ public class EventGroupRoutes implements Routes {
         var request = ctx.bodyAsClass(EventGroupAudiences.class);
         eventGroups.setAudiences(
                 session.stationId(), eventGroupId, audienceOr(request.registration()), audienceOr(request.view()));
-        ctx.json(detailOf(session, eventGroups.requireEventGroup(session.stationId(), eventGroupId)));
+        ctx.json(view.detailOf(session, eventGroups.requireEventGroup(session.stationId(), eventGroupId)));
     }
 
     @OpenApi(
@@ -422,7 +394,6 @@ public class EventGroupRoutes implements Routes {
         eventGroups.requireEventGroup(session.stationId(), eventGroupId);
         requirements.requireJoinable(eventGroupId, request.eventId());
         var part = eventGroups.addPart(session.stationId(), eventGroupId, request.eventId(), request.setId());
-        fields.reconcilePart(part.eventId());
         ctx.status(HttpStatus.CREATED).json(part);
     }
 
@@ -449,7 +420,6 @@ public class EventGroupRoutes implements Routes {
                 request.startTime(),
                 request.endTime(),
                 null);
-        fields.reconcilePart(part.eventId());
         ctx.status(HttpStatus.CREATED).json(part);
     }
 
@@ -460,36 +430,7 @@ public class EventGroupRoutes implements Routes {
             tags = {"Events"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventGroupAwaiting[].class)))
     private void listAwaiting(Context ctx) {
-        StationSession session = StationSession.from(ctx);
-        var household = guardianPolicy.household(session.user());
-        var open = eventGroups.findOpenWithDeadline(session.stationId());
-        var answered = signUps.answeredBy(household);
-        var mayJoin = eventGroups.whoMaySignUp(
-                open.stream().map(EventGroup::id).toList(),
-                household,
-                session.user().permissions());
-        var names = new HashMap<Integer, String>();
-        var awaiting = new ArrayList<EventGroupAwaiting>();
-        for (var eventGroup : open) {
-            var gave = answered.getOrDefault(eventGroup.id(), Set.of());
-            var owing = mayJoin.getOrDefault(eventGroup.id(), List.of()).stream()
-                    .filter(memberId -> !gave.contains(memberId))
-                    .map(memberId -> new AwaitingMember(
-                            memberId,
-                            names.computeIfAbsent(
-                                    memberId,
-                                    id -> Objects.requireNonNullElse(
-                                            identities
-                                                    .local(session.stationId(), id)
-                                                    .name(),
-                                            ""))))
-                    .toList();
-            if (!owing.isEmpty()) {
-                awaiting.add(new EventGroupAwaiting(
-                        eventGroup.id(), eventGroup.name(), eventGroup.registrationDeadline(), owing));
-            }
-        }
-        ctx.json(awaiting);
+        ctx.json(view.awaiting(StationSession.from(ctx)));
     }
 
     @OpenApi(
@@ -551,7 +492,6 @@ public class EventGroupRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         int eventId = pathInt(ctx, "eventId");
         eventGroups.removePart(session.stationId(), pathInt(ctx, "eventGroupId"), eventId);
-        fields.reconcilePart(eventId);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -571,8 +511,8 @@ public class EventGroupRoutes implements Routes {
         var request = ctx.bodyAsClass(EventGroupSignUpRequest.class);
         var eventGroup = visibleEventGroup(ctx, session);
         int memberId = targetMember(session, request.memberId());
-        boolean override = overrides(session, memberId);
-        requireMayJoin(session, eventGroup.id(), memberId, override);
+        boolean override = EventGroupViewService.overrides(session, memberId);
+        guards.requireMayJoin(session, eventGroup.id(), memberId, override);
         signUps.register(
                 session.stationId(),
                 eventGroup.id(),
@@ -581,7 +521,7 @@ public class EventGroupRoutes implements Routes {
                 EventRegistrationRoutes.answersOf(request.answers()),
                 createdBy(session, memberId),
                 override);
-        ctx.status(HttpStatus.CREATED).json(signUpOf(session, eventGroup.id(), memberId));
+        ctx.status(HttpStatus.CREATED).json(view.signUpOf(session, eventGroup.id(), memberId));
     }
 
     @OpenApi(
@@ -600,8 +540,8 @@ public class EventGroupRoutes implements Routes {
         var request = ctx.bodyAsClass(EventGroupSignUpRequest.class);
         var eventGroup = visibleEventGroup(ctx, session);
         int memberId = targetMember(session, request.memberId());
-        boolean override = overrides(session, memberId);
-        requireMayJoin(session, eventGroup.id(), memberId, override);
+        boolean override = EventGroupViewService.overrides(session, memberId);
+        guards.requireMayJoin(session, eventGroup.id(), memberId, override);
         signUps.changeParts(
                 session.stationId(),
                 eventGroup.id(),
@@ -609,7 +549,7 @@ public class EventGroupRoutes implements Routes {
                 partsOf(request),
                 createdBy(session, memberId),
                 override);
-        ctx.json(signUpOf(session, eventGroup.id(), memberId));
+        ctx.json(view.signUpOf(session, eventGroup.id(), memberId));
     }
 
     @OpenApi(
@@ -633,9 +573,9 @@ public class EventGroupRoutes implements Routes {
                 eventGroup.id(),
                 memberId,
                 EventRegistrationRoutes.answersOf(request.answers()),
-                readsAnswersOf(session, memberId),
-                overrides(session, memberId));
-        ctx.json(signUpOf(session, eventGroup.id(), memberId));
+                view.readsAnswersOf(session, memberId),
+                EventGroupViewService.overrides(session, memberId));
+        ctx.json(view.signUpOf(session, eventGroup.id(), memberId));
     }
 
     @OpenApi(
@@ -655,7 +595,7 @@ public class EventGroupRoutes implements Routes {
         var asked = ctx.queryParam("memberId");
         int memberId = targetMember(session, asked == null ? null : Integer.valueOf(asked));
         signUps.withdraw(session.stationId(), eventGroup.id(), memberId);
-        ctx.json(signUpOf(session, eventGroup.id(), memberId));
+        ctx.json(view.signUpOf(session, eventGroup.id(), memberId));
     }
 
     @OpenApi(
@@ -670,16 +610,8 @@ public class EventGroupRoutes implements Routes {
             })
     private void listSignUps(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        var eventGroup = eventGroups.requireEventGroup(session.stationId(), pathInt(ctx, "eventGroupId"));
-        var standing = signUps.findByEventGroup(eventGroup.id()).stream()
-                .filter(signUp -> signUp.active() || signUp.status() == RegistrationStatus.DENIED)
-                .map(EventGroupRegistration::memberId)
-                .toList();
-        ctx.json(signUpsOf(
-                session,
-                questions.findByEventGroup(eventGroup.id()),
-                signUps.standings(eventGroup.id(), standing),
-                entry -> true));
+        ctx.json(view.signUpsOf(
+                session, eventGroups.requireEventGroup(session.stationId(), pathInt(ctx, "eventGroupId"))));
     }
 
     @OpenApi(
@@ -702,34 +634,18 @@ public class EventGroupRoutes implements Routes {
         int memberId = pathInt(ctx, "memberId");
         var request = ctx.bodyAsClass(EventGroupDecisionRequest.class);
         signUps.decide(session.stationId(), eventGroupId, memberId, request.status());
-        ctx.json(signUpOf(session, eventGroupId, memberId));
+        ctx.json(view.signUpOf(session, eventGroupId, memberId));
     }
 
     private EventGroup visibleEventGroup(Context ctx, StationSession session) {
         return guards.requireOpen(session, pathInt(ctx, "eventGroupId"));
     }
 
-    private void requireMayJoin(StationSession session, int eventGroupId, int memberId, boolean override) {
-        if (!override
-                && !eventGroups.canSignUp(eventGroupId, memberId, session.user().permissions())) {
-            throw EventRefusal.MEMBER_NOT_INVITED_TO_EVENT.raise();
-        }
-    }
-
     private int targetMember(StationSession session, @Nullable Integer requested) {
-        if (requested == null || requested == session.member().id())
-            return session.member().id();
-        if (!guardianPolicy.mayActFor(session.user(), requested)
-                && !session.hasPermission(StationPermission.EVENT_MANAGER)) {
-            throw EventRefusal.MEMBER_NOT_YOURS_TO_REGISTER.raise();
-        }
-        if (!eventGroups.isMemberHere(session.stationId(), requested))
+        int memberId = signUpGuards.requireTarget(session, requested);
+        if (memberId != session.member().id() && !eventGroups.isMemberHere(session.stationId(), memberId))
             throw EventRefusal.EVENT_GROUP_MEMBER_NOT_HERE.raise();
-        return requested;
-    }
-
-    private static boolean overrides(StationSession session, int memberId) {
-        return memberId != session.member().id() && session.hasPermission(StationPermission.EVENT_MANAGER);
+        return memberId;
     }
 
     private static @Nullable Integer createdBy(StationSession session, int memberId) {
@@ -755,188 +671,6 @@ public class EventGroupRoutes implements Routes {
     private static RestrictionAudience audienceOr(@Nullable RestrictionAudience audience) {
         return audience == null ? RestrictionAudience.empty() : audience;
     }
-
-    private EventGroupDetail detailOf(StationSession session, EventGroup eventGroup) {
-        var permissions = session.user().permissions();
-        var asked = questions.findByEventGroup(eventGroup.id());
-        var household = guardianPolicy.household(session.user()).stream()
-                .filter(memberId -> eventGroups.canSee(eventGroup.id(), memberId, permissions))
-                .toList();
-        return new EventGroupDetail(
-                EventGroupSummary.of(eventGroup, eventGroups.tally(eventGroup.id())),
-                eventGroups.findSets(eventGroup.id()),
-                signUps.partStates(eventGroup.id()),
-                eventGroups.registrationAudience(eventGroup.id()),
-                eventGroups.viewAudience(eventGroup.id()),
-                asked,
-                eventGroups.findFields(eventGroup.id()).stream()
-                        .map(field -> fields.asSeenOnEventGroup(
-                                eventGroup.id(), field, session.member().id(), runsEventGroups(session)))
-                        .toList(),
-                signUpsOf(
-                        session,
-                        asked,
-                        signUps.standings(eventGroup.id(), household),
-                        entry -> eventGroups.canSignUp(eventGroup.id(), entry.memberId(), permissions)));
-    }
-
-    private EventGroupSignUp signUpOf(StationSession session, int eventGroupId, int memberId) {
-        var permissions = session.user().permissions();
-        return signUpsOf(
-                        session,
-                        questions.findByEventGroup(eventGroupId),
-                        signUps.standings(eventGroupId, List.of(memberId)),
-                        entry -> eventGroups.canSignUp(eventGroupId, entry.memberId(), permissions))
-                .getFirst();
-    }
-
-    /**
-     * Turns standings into what a response shows, reading the answers of all of them at once. Answers
-     * kept for organisers are left out unless the reader runs events or the answers are about them or
-     * somebody they look after. Whether a required answer is still owed is told either way.
-     */
-    private List<EventGroupSignUp> signUpsOf(
-            StationSession session,
-            List<EventRegistrationField> asked,
-            List<EventGroupStanding> entries,
-            Predicate<EventGroupStanding> mayRegister) {
-        var answers = questions.answersBySignUp(entries.stream()
-                .map(EventGroupStanding::signUp)
-                .filter(Objects::nonNull)
-                .map(EventGroupRegistration::id)
-                .toList());
-        var required = EventGroupQuestionService.requiredIds(asked);
-        var hidden = asked.stream()
-                .filter(field -> field.config().managersOnly())
-                .map(EventRegistrationField::id)
-                .collect(Collectors.toSet());
-        return entries.stream()
-                .map(entry -> {
-                    var signUp = entry.signUp();
-                    boolean readsHidden = readsAnswersOf(session, entry.memberId());
-                    var stored = signUp == null
-                            ? List.<RegistrationFieldValue>of()
-                            : answers.getOrDefault(signUp.id(), List.of());
-                    var given = stored.stream()
-                            .filter(value -> readsHidden || !hidden.contains(value.fieldId()))
-                            .map(value -> new EventRegistrationFieldValue(value.fieldId(), value.value()))
-                            .toList();
-                    return new EventGroupSignUp(
-                            entry.memberId(),
-                            identities.local(session.stationId(), entry.memberId()),
-                            signUp == null ? null : signUp.status(),
-                            signUp == null ? null : signUp.registeredAt(),
-                            entry.counted().stream().sorted().toList(),
-                            entry.sets(),
-                            given,
-                            signUp != null
-                                    && EventRegistrationFieldService.owesAnswer(signUp.status(), required, stored),
-                            mayRegister.test(entry));
-                })
-                .toList();
-    }
-
-    private boolean readsAnswersOf(StationSession session, int memberId) {
-        return session.hasPermission(StationPermission.EVENT_EDIT)
-                || memberId == session.member().id()
-                || guardianPolicy.mayActFor(session.user(), memberId);
-    }
-
-    /**
-     * An event group as lists show it.
-     *
-     * @param id                   the event group
-     * @param name                 its name
-     * @param description          what it is about, as Markdown
-     * @param registrationLimit    how many people it takes, or null
-     * @param registrationDeadline when sign-ups close, or null
-     * @param requiresConfirmation whether a manager confirms each sign-up
-     * @param cancelled            whether it was called off
-     * @param cancelReason         why, where it was
-     * @param partCount            how many parts it has
-     * @param holding              how many sign-ups hold or wait for a place
-     * @param color                the colour that marks its parts (#RRGGBB), or null for one picked by its id
-     * @param minRegistrations     how many sign-ups must be accepted for it to take place, or null
-     * @param thresholdDays        how many days before its first part the minimum must be reached, or null
-     */
-    public record EventGroupSummary(
-            int id,
-            String name,
-            @Nullable String description,
-            @Nullable Integer registrationLimit,
-            @Nullable Instant registrationDeadline,
-            boolean requiresConfirmation,
-            boolean cancelled,
-            @Nullable String cancelReason,
-            int partCount,
-            int holding,
-            @Nullable String color,
-            @Nullable Integer minRegistrations,
-            @Nullable Integer thresholdDays) {
-        public static EventGroupSummary of(EventGroup eventGroup, EventGroupTally tally) {
-            return new EventGroupSummary(
-                    eventGroup.id(),
-                    eventGroup.name(),
-                    eventGroup.description(),
-                    eventGroup.registrationLimit(),
-                    eventGroup.registrationDeadline(),
-                    eventGroup.requiresConfirmation(),
-                    eventGroup.cancelled(),
-                    eventGroup.cancelReason(),
-                    tally.partCount(),
-                    tally.holding(),
-                    eventGroup.color(),
-                    eventGroup.minRegistrations(),
-                    eventGroup.thresholdDays());
-        }
-    }
-
-    /**
-     * An event group with everything its page shows.
-     *
-     * @param eventGroup   the event group
-     * @param sets         its sets in order
-     * @param parts        its parts in date order
-     * @param registration who may sign up
-     * @param view         who may see it
-     * @param questions    what it asks of everybody signing up, in order
-     * @param fields       what every appointment of it shows, such as its place, in order
-     * @param household    the sign-up of the reader and of everybody they look after who may see it
-     */
-    public record EventGroupDetail(
-            EventGroupSummary eventGroup,
-            List<EventGroupSet> sets,
-            List<EventGroupPartState> parts,
-            RestrictionAudience registration,
-            RestrictionAudience view,
-            List<EventRegistrationField> questions,
-            List<AppointmentField> fields,
-            List<EventGroupSignUp> household) {}
-
-    /**
-     * One member's standing in an event group.
-     *
-     * @param memberId       the member's id, which sign-ups and decisions for them name
-     * @param member         the member
-     * @param status         the sign-up's status, or null where the member is not signed up
-     * @param registeredAt   when they signed up, or null
-     * @param parts          the parts that count for the rules, in id order
-     * @param sets           how those parts stand against every set
-     * @param answers        the answers given to the event group's questions, those kept for organisers only
-     *                       where the reader may read them
-     * @param answersMissing whether a standing sign-up still owes an answer to a required question
-     * @param mayRegister    whether the member is one of the people the event group takes
-     */
-    public record EventGroupSignUp(
-            int memberId,
-            MemberIdentity member,
-            @Nullable RegistrationStatus status,
-            @Nullable Instant registeredAt,
-            List<Integer> parts,
-            List<SetResult> sets,
-            List<EventRegistrationFieldValue> answers,
-            boolean answersMissing,
-            boolean mayRegister) {}
 
     /**
      * A new event group.
@@ -1044,17 +778,6 @@ public class EventGroupRoutes implements Routes {
             @Nullable String description,
             @Nullable Instant startTime,
             @Nullable Instant endTime) {}
-
-    /**
-     * An event group still waiting on an answer, and everybody in the household who owes one.
-     *
-     * @param eventGroupId         the event group
-     * @param name                 its name
-     * @param registrationDeadline when sign-ups close
-     * @param members              who still owes an answer
-     */
-    public record EventGroupAwaiting(
-            int eventGroupId, String name, @Nullable Instant registrationDeadline, List<AwaitingMember> members) {}
 
     /** @param reason why the event group is called off, as told to the people signed up, or null */
     public record EventGroupCancelRequest(@Nullable String reason) {}

@@ -12,11 +12,12 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventGroup;
+import dev.chojo.ember.feature.events.entity.EventGroupSummary;
 import dev.chojo.ember.feature.events.entity.EventGroupTally;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
-import dev.chojo.ember.feature.events.route.EventGroupRoutes.EventGroupSummary;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupDetail;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService.PartnerStanding;
+import dev.chojo.ember.feature.events.service.EventSignUpGuards;
 import dev.chojo.ember.feature.events.service.PartnerEventGroupService;
 import dev.chojo.ember.feature.events.service.PartnerEventGroupSignatures;
 import dev.chojo.ember.feature.events.service.PartnerEventGroupSignatures.Holding;
@@ -107,8 +108,13 @@ class FederatedEventGroupRoutesTest {
                         List.of(),
                         List.of(standing, new PartnerStanding(UUID.randomUUID(), null, null, List.of(), List.of())),
                         null));
-        harness = RouteHarness.serving(
-                new FederatedEventGroupRoutes(partnerEventGroups, members, guardians, identities, partnerSignatures));
+        harness = RouteHarness.serving(new FederatedEventGroupRoutes(
+                partnerEventGroups,
+                members,
+                guardians,
+                identities,
+                partnerSignatures,
+                new EventSignUpGuards(guardians)));
     }
 
     private Response call(String method, String path, String json) {

@@ -122,6 +122,7 @@ public class EventGroupService {
             restrictions.setAudience(RestrictionType.EVENT_GROUP, eventGroup.id(), registration);
             restrictions.setAudience(RestrictionType.EVENT_GROUP_VIEW, eventGroup.id(), view);
             writeContent(eventGroup.id(), content);
+            Transactions.afterCommit(() -> fields.reconcileEventGroup(eventGroup.id()));
             return eventGroups.findById(eventGroup.id()).orElseThrow();
         });
     }
@@ -208,6 +209,7 @@ public class EventGroupService {
             if (sets != null) replaceSets(stationId, eventGroupId, sets);
             if (registration != null && view != null) setAudiences(stationId, eventGroupId, registration, view);
             writeContent(eventGroupId, content);
+            Transactions.afterCommit(() -> fields.reconcileEventGroup(eventGroupId));
             return eventGroups.findById(eventGroupId).orElse(eventGroup);
         });
     }
@@ -316,6 +318,7 @@ public class EventGroupService {
             eventGroups.alignParts(eventGroupId, eventGroup.requiresConfirmation(), eventGroup.registrationDeadline());
             handDownAudiences(eventGroupId, List.of(eventId));
             eventGroups.handDownShare(eventGroupId, eventId);
+            Transactions.afterCommit(() -> fields.reconcilePart(eventId));
             return eventGroups.findPart(eventId).orElseThrow();
         });
     }
@@ -403,6 +406,7 @@ public class EventGroupService {
             eventGroups.setPartSet(eventId, null);
             eventGroups.untieRegistrations(eventId);
             eventGroups.capMinimum(left);
+            Transactions.afterCommit(() -> fields.reconcilePart(eventId));
             return leaving;
         });
         afterLeaving.run();
@@ -473,8 +477,10 @@ public class EventGroupService {
     public void delete(int stationId, int eventGroupId) {
         Transactions.run(() -> {
             lockEventGroup(stationId, eventGroupId);
+            var formerParts = eventGroups.findParts(eventGroupId);
             eventGroups.releaseParts(eventGroupId);
             eventGroups.delete(eventGroupId);
+            Transactions.afterCommit(() -> formerParts.forEach(part -> fields.reconcilePart(part.eventId())));
         });
     }
 

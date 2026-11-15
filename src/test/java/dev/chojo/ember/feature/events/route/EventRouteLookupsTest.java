@@ -35,6 +35,7 @@ import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
+import dev.chojo.ember.feature.events.service.EventSignUpGuards;
 import dev.chojo.ember.feature.events.service.EventTemplateRestrictionService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
@@ -287,6 +288,7 @@ class EventRouteLookupsTest {
                 mock(MemberTableRenderer.class),
                 stationService,
                 mock(OccurrenceCalendar.class),
-                visibility);
+                visibility,
+                new EventSignUpGuards(mock(GuardianPolicy.class)));
     }
 }

@@ -122,11 +122,13 @@ class EventGroupCommentRoutesTest extends RepositoryTestBase {
     }
 
     @Test
-    void aSessionWithoutTheUserRightIsTurnedAway() {
+    void aSignedInMemberTheEventGroupIsMeantForNeedsNoFurtherRightAsOnAnAppointment() {
         var bare = stationSession(author).user();
 
-        assertEquals(403, read(bare, eventGroupId).code());
-        assertEquals(403, post(bare, eventGroupId, "{\"content\": \"x\"}").code());
+        assertEquals(200, read(bare, eventGroupId).code());
+        assertEquals(
+                201, post(bare, eventGroupId, "{\"content\": \"ohne Recht\"}").code());
+        assertEquals(EventRefusal.EVENT_GROUP_NOT_HERE, refusalOf(read(bare, hiddenEventGroupId)));
     }
 
     private static String comments(int group) {

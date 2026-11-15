@@ -10,10 +10,11 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
-import dev.chojo.ember.feature.events.route.EventGroupRoutes.EventGroupDetail;
-import dev.chojo.ember.feature.events.route.EventGroupRoutes.EventGroupSignUp;
+import dev.chojo.ember.feature.events.entity.EventGroupDetail;
+import dev.chojo.ember.feature.events.entity.EventGroupSignUp;
 import dev.chojo.ember.feature.events.route.EventGroupRoutes.EventGroupSignUpRequest;
 import dev.chojo.ember.feature.events.service.EventGroupPartnerService.PartnerStanding;
+import dev.chojo.ember.feature.events.service.EventSignUpGuards;
 import dev.chojo.ember.feature.events.service.PartnerEventGroupService;
 import dev.chojo.ember.feature.events.service.PartnerEventGroupSignatures;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -62,6 +63,7 @@ public class FederatedEventGroupRoutes implements Routes {
     private final GuardianPolicy guardianPolicy;
     private final MemberIdentityFactory identities;
     private final PartnerEventGroupSignatures signatures;
+    private final EventSignUpGuards signUpGuards;
 
     @Inject
     public FederatedEventGroupRoutes(
@@ -69,7 +71,9 @@ public class FederatedEventGroupRoutes implements Routes {
             StationMemberService members,
             GuardianPolicy guardianPolicy,
             MemberIdentityFactory identities,
-            PartnerEventGroupSignatures signatures) {
+            PartnerEventGroupSignatures signatures,
+            EventSignUpGuards signUpGuards) {
+        this.signUpGuards = signUpGuards;
         this.partnerEventGroups = partnerEventGroups;
         this.members = members;
         this.guardianPolicy = guardianPolicy;
@@ -205,12 +209,7 @@ public class FederatedEventGroupRoutes implements Routes {
     }
 
     private StationMember target(StationSession session, @Nullable Integer requested) {
-        int memberId = requested == null ? session.member().id() : requested;
-        if (memberId != session.member().id()
-                && !guardianPolicy.mayActFor(session.user(), memberId)
-                && !session.hasPermission(StationPermission.EVENT_MANAGER)) {
-            throw EventRefusal.MEMBER_NOT_YOURS_TO_REGISTER.raise();
-        }
+        int memberId = signUpGuards.requireTarget(session, requested);
         return members.findById(memberId)
                 .filter(member -> member.stationId() == session.stationId())
                 .orElseThrow(EventRefusal.EVENT_GROUP_MEMBER_NOT_HERE::raise);

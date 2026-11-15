@@ -60,6 +60,22 @@ public class EventGroupGuards {
         return eventGroup;
     }
 
+    /**
+     * Refuses a sign-up for a member the event group is not meant for, unless whoever runs events
+     * signs them up.
+     *
+     * @param session      the reader
+     * @param eventGroupId the event group
+     * @param memberId     the member signed up
+     * @param override     whether whoever runs events signs somebody else up
+     */
+    public void requireMayJoin(StationSession session, int eventGroupId, int memberId, boolean override) {
+        if (!override
+                && !eventGroups.canSignUp(eventGroupId, memberId, session.user().permissions())) {
+            throw EventRefusal.MEMBER_NOT_INVITED_TO_EVENT.raise();
+        }
+    }
+
     private static boolean seesEverything(StationSession session) {
         return session.hasPermission(StationPermission.EVENT_EDIT)
                 || session.hasPermission(StationPermission.EVENT_MANAGER)

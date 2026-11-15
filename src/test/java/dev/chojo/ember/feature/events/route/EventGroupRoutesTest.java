@@ -30,6 +30,8 @@ import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
 import dev.chojo.ember.feature.events.service.EventGroupRegistrationService;
 import dev.chojo.ember.feature.events.service.EventGroupRegistrationService.EventGroupStanding;
 import dev.chojo.ember.feature.events.service.EventGroupService;
+import dev.chojo.ember.feature.events.service.EventGroupViewService;
+import dev.chojo.ember.feature.events.service.EventSignUpGuards;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
@@ -141,18 +143,18 @@ class EventGroupRoutesTest {
         requirements = mock(EventRequirementService.class);
         when(fields.asSeenOnEventGroup(anyInt(), any(), anyInt(), anyBoolean()))
                 .thenAnswer(call -> call.getArgument(1));
+        var guards = new EventGroupGuards(eventGroups, guardians);
         harness = RouteHarness.serving(new EventGroupRoutes(
                 eventGroups,
                 signUps,
-                guardians,
-                identities,
                 visibility,
                 cancellation,
                 partFactory,
-                questions,
-                new EventGroupGuards(eventGroups, guardians),
+                guards,
                 fields,
-                requirements));
+                requirements,
+                new EventSignUpGuards(guardians),
+                new EventGroupViewService(eventGroups, signUps, guardians, identities, questions, guards, fields)));
     }
 
     private Response call(String method, String path, String json, StationPermission... permissions) {
@@ -225,19 +227,13 @@ class EventGroupRoutesTest {
     }
 
     @Test
-    void deletingAnEventGroupGivesBackThePlacesItsFieldsHandedOutOnEveryFormerPart() {
-        when(eventGroups.findParts(EVENT_GROUP_ID))
-                .thenReturn(List.of(
-                        new EventGroupPart(101, 5, EVENT_GROUP_ID), new EventGroupPart(102, 5, EVENT_GROUP_ID)));
-
+    void whoeverEditsAppointmentsDeletesAnEventGroup() {
         assertEquals(
                 204,
                 call("DELETE", EVENT_GROUP, null, StationPermission.USER, StationPermission.EVENT_EDIT)
                         .code());
 
         verify(eventGroups).delete(STATION_ID, EVENT_GROUP_ID);
-        verify(fields).reconcilePart(101);
-        verify(fields).reconcilePart(102);
     }
 
     @Test

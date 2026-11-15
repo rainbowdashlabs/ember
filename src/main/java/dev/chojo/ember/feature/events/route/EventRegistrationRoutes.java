@@ -13,8 +13,10 @@ import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
+import dev.chojo.ember.feature.events.entity.AwaitingMember;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
+import dev.chojo.ember.feature.events.entity.EventRegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 import dev.chojo.ember.feature.events.entity.RegistrationCount;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -24,6 +26,7 @@ import dev.chojo.ember.feature.events.service.EventMemberTableService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
+import dev.chojo.ember.feature.events.service.EventSignUpGuards;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.events.service.RegistrationAnswerReminder;
 import dev.chojo.ember.feature.events.service.RegistrationRowLookups;
@@ -99,6 +102,7 @@ public class EventRegistrationRoutes implements Routes {
     private final StationService stationService;
     private final OccurrenceCalendar occurrenceCalendar;
     private final EventVisibility visibility;
+    private final EventSignUpGuards signUpGuards;
 
     @Inject
     public EventRegistrationRoutes(
@@ -116,7 +120,9 @@ public class EventRegistrationRoutes implements Routes {
             MemberTableRenderer memberTableRenderer,
             StationService stationService,
             OccurrenceCalendar occurrenceCalendar,
-            EventVisibility visibility) {
+            EventVisibility visibility,
+            EventSignUpGuards signUpGuards) {
+        this.signUpGuards = signUpGuards;
         this.occurrenceCalendar = occurrenceCalendar;
         this.crudService = crudService;
         this.visibility = visibility;
@@ -340,13 +346,7 @@ public class EventRegistrationRoutes implements Routes {
      * Resolves and authorises the member id a register or decline call targets, defaulting to the caller.
      */
     private int resolveTargetMemberId(StationSession session, EventRegisterRequest req) {
-        if (req.memberId() == null) return session.member().id();
-        int memberId = req.memberId();
-        if (!guardianPolicy.mayActFor(session.user(), memberId)
-                && !session.hasPermission(StationPermission.EVENT_MANAGER)) {
-            throw EventRefusal.MEMBER_NOT_YOURS_TO_REGISTER.raise();
-        }
-        return memberId;
+        return signUpGuards.requireTarget(session, req.memberId());
     }
 
     @OpenApi(
@@ -390,9 +390,6 @@ public class EventRegistrationRoutes implements Routes {
             Instant registrationDeadline,
             @Nullable Integer categoryId,
             List<AwaitingMember> members) {}
-
-    /** Somebody who still owes an answer, named so a guardian can tell their children apart. */
-    public record AwaitingMember(int memberId, String name) {}
 
     @OpenApi(
             path = "/api/v1/events/registrations/mine",
@@ -1042,12 +1039,6 @@ public class EventRegistrationRoutes implements Routes {
             boolean placeGivenUp) {}
 
     public record EventRegisterRequest(String eventDate, Integer memberId, List<EventRegistrationFieldValue> fields) {}
-
-    /**
-     * One answer to one registration question. Deliberately the same shape as the attendance and
-     * batch field entries, so every custom field payload in the API reads alike.
-     */
-    public record EventRegistrationFieldValue(int fieldId, String value) {}
 
     public record RegistrationFieldsRequest(List<EventRegistrationFieldValue> fields) {}
 

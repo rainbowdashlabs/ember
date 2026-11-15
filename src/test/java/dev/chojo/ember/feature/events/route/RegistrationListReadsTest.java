@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.events.service.EventMemberTableService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
+import dev.chojo.ember.feature.events.service.EventSignUpGuards;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.events.service.RegistrationAnswerReminder;
 import dev.chojo.ember.feature.events.service.RegistrationRowLookups;
@@ -158,7 +159,8 @@ class RegistrationListReadsTest {
                 mock(MemberTableRenderer.class),
                 mock(StationService.class),
                 mock(OccurrenceCalendar.class),
-                mock(EventVisibility.class));
+                mock(EventVisibility.class),
+                new EventSignUpGuards(mock(GuardianPolicy.class)));
     }
 
     private void placed(List<Integer> memberIds) {
