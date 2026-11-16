@@ -3651,6 +3651,12 @@ export default {
         breaks: 'Pausen & Ferien',
         addEvent: 'Neuer Termin',
         editEvent: 'Termin bearbeiten',
+        copyEvent: 'Kopieren',
+        copy: {
+            notice: 'Kopie von {name}',
+            leftBehind: 'Anmeldungen, Antworten, Anwesenheit, Kommentare, Notizen und abgesagte Daten werden nicht übernommen, ebenso wenig Felder, die Personen nennen. Dateien und Materialbedarf kommen beim Speichern mit.',
+            filesHint: 'Diese Dateien des Originals werden angehängt, sobald der Termin gespeichert ist.',
+        },
         announceAsNews: 'Als Neuigkeit ankündigen',
         takeAttendance: 'Anwesenheit erfassen',
         openAttendance: 'Erfassung öffnen',

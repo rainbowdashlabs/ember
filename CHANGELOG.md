@@ -21,6 +21,7 @@ People who share a station can write to each other directly, in groups, and in c
 - **Registration questions can carry a description.** Like a profile field, a question asked when signing up for an appointment or an event group can carry a short explanation, shown under the question while answering.
 - **First steps remember what is known already.** On joining a further station, first steps that teach how the application works and were already done or skipped on another station are not asked again. Steps that belong to the station, such as its profile questions and notifications, stay.
 - **Fields can take two thirds or a quarter of a row.** Besides a third and a half, a profile, attendance or appointment field can take a quarter, two thirds or three quarters of a row, picked with a slider instead of a list.
+- **Appointments can be copied.** "Copy" on an appointment or in the list of appointments opens a new one with everything of the original filled in, ready for a new date. Sign-ups, attendance and comments are not copied.
 - **Unreadable requests name their field.** Where the server cannot read a value a page sent, the message now names the field it stopped at.
 
 ### Changes

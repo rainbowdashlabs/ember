@@ -64385,6 +64385,10 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "copiedFromEventId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         }
       },

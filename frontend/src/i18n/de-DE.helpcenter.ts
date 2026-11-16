@@ -3386,6 +3386,8 @@ volumes:
             linksText: 'Wurde eine Serie ab einem Termin als neue Serie weitergeführt oder ein einzelner Termin aus ihr gelöst, steht das oben auf der Seite: welcher Termin fortgeführt wird, als was die Serie weitergeht und welcher Tag ein eigener Termin geworden ist. Ein Klick auf den Namen öffnet den anderen Termin.',
             answeringTitle: 'An- und abmelden, auch für mehrere',
             answeringText: 'Wer nur für sich selbst antwortet, drückt auf Anmelden oder Abmelden. Wer für mehrere antwortet, etwa für sich und die eigenen Kinder, bekommt zusätzlich Für alle anmelden: dort wird angehakt, für wen die Antwort gilt. Stellt der Termin Fragen, bekommt jede angehakte Person eine eigene Kachel, denn die Antworten gehören der einzelnen Person.',
+            copyTitle: 'Termin kopieren',
+            copyText: 'Wer Termine anlegen darf, findet unter „Aktionen" den Eintrag „Kopieren". Er öffnet einen neuen Termin mit allem, was dieser Termin einstellt, bereit für ein neues Datum. Anmeldungen, Anwesenheit und Kommentare kommen nicht mit.',
             changingTitle: 'Antwort ändern',
             changingText: 'Solange die Anmeldung läuft, könnt ihr eure Antwort jederzeit ändern. Danach kann das nur noch, wer den Termin betreut, weil bis dahin mit der Liste geplant wurde. Wer sich erst abmeldet und später doch teilnimmt, meldet sich neu an: einen einmal freigegebenen Platz behält niemand.',
             laterQuestionTitle: 'Nachträglich gestellte Fragen',
@@ -5964,6 +5966,9 @@ volumes:
             loadTemplateRulesText: 'Auch die Anmelderegeln kommen mit: Mindestanzahl, Tage vorher und Anmeldefrist. Die Frist steht in der Vorlage als Zeit vor dem Beginn. Sobald du den Beginn einträgst, rechnet das Formular die Frist aus und passt sie an, wenn du den Beginn änderst. Änderst du die Frist selbst, bleibt sie, wie du sie eingetragen hast.',
             loadTemplateShareText: 'Feld-Vorbelegungen und die Freigabe für Partnerwachen kommen ebenfalls mit. Die Freigabe übernimmt das Formular nur, wenn du Termine föderieren darfst, und nur für Partnerwachen, mit denen deine Wache gerade aktiv verbunden ist. Sonst steht ein Hinweis im Block „Föderations-Freigabe".',
             loadTemplateFilesText: 'Die Dateien der Vorlage hängen an einem neuen Termin, sobald du ihn speicherst. Bis dahin zeigt das Formular, welche Dateien das sind. Wendest du die Vorlage auf einen schon gespeicherten Termin an, werden ihre Dateien sofort angehängt.',
+            copyTitle: 'Einen Termin kopieren',
+            copyText: 'Über „Kopieren" auf der Terminseite oder in der Terminliste öffnet sich dieses Formular mit allem, was der kopierte Termin einstellt: Felder, Fragen, Zielgruppen, Anmeldung, Erinnerungen, Freigabe und mitzubringende Dokumente. Ein Hinweis oben nennt das Original und führt zu ihm zurück. Dateien und Materialbedarf kommen beim Speichern mit. Anmeldungen, Antworten, Anwesenheit, Kommentare und Notizen bleiben beim Original, ebenso Werte von Feldern, die Personen nennen.',
+            copyDatesText: 'Ein einmaliger Termin startet ohne Datum, damit die Kopie nicht aus Versehen auf dem Tag des Originals landet. Gib zuerst den Beginn ein, das Ende folgt mit der Dauer des Originals. Eine Terminreihe behält Wiederholung, Uhrzeiten und Ende und beginnt am nächsten passenden Tag ab heute. Ein Ende, das schon vorbei ist, entfällt; trag dann ein neues ein. Ein Anmeldeschluss bleibt so viele Stunden vor dem Beginn wie beim Original.',
             tip: 'Wiederkehrende Termine werden automatisch während Pausen/Ferien ausgeblendet.',
         },
         attendanceConfigEdit: {

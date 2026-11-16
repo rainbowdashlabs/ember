@@ -9,6 +9,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useEventRoutes} from '@/composables/useEventRoutes'
 import EditButton from '@/components/button/EditButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
@@ -43,6 +44,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   edit: []
+  /** Opens a new appointment filled in from this one. */
+  copy: []
   remove: []
 }>()
 
@@ -119,6 +122,13 @@ const detailRoute = computed(() => {
       </div>
       <div class="flex items-center gap-2">
         <EditButton @click="emit('edit')"/>
+        <IconButton
+            :icon="['fas', 'copy']"
+            :label="t('events.copyEvent')"
+            class="text-(--text-muted) hover:bg-(--bg-accent)"
+            data-testid="event-entry-copy"
+            @click="emit('copy')"
+        />
         <DeleteButton @click="emit('remove')"/>
       </div>
     </EventGroupTile>

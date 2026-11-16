@@ -26,11 +26,14 @@ import {
   type RegistrationFieldDefinition,
 } from '@/api/generated/schema'
 import {isRecurringEvent} from '@/api/events'
+import {namesMembers} from '@/api/fieldTypes'
 import EventGroupPartNotice from './eventshared/EventGroupPartNotice.vue'
 import AddToEventGroupCard from './eventeditview/AddToEventGroupCard.vue'
 import {todayIsoDate} from '@/util/format'
 import EventEditBody from './eventeditview/EventEditBody.vue'
 import {useEventForm} from './eventeditview/useEventForm'
+import {copySourceOf, useEventCopy} from './eventeditview/useEventCopy'
+import CopiedFromNotice from './eventeditview/CopiedFromNotice.vue'
 import {useEventGroupPart} from './eventeditview/useEventGroupPart'
 import {useEventEditData} from './eventeditview/useEventEditData'
 import {useEventFieldDefaults} from './eventeditview/useEventFieldDefaults'
@@ -71,6 +74,9 @@ const savedInto = ref<number | null>(null)
 const eventId = computed(() => savedInto.value ?? (route.params.id ? Number(route.params.id) : null))
 const isEdit = computed(() => eventId.value !== null)
 
+/** The appointment a new one is copied from, as the address names it. Nothing while editing. */
+const copySourceId = computed(() => isEdit.value ? null : copySourceOf(route.query.copyFrom))
+
 const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 
 const form = useEventForm()
@@ -84,6 +90,11 @@ const data = useEventEditData(
 const fieldDefaults = useEventFieldDefaults()
 const federationShare = useEventFederationShare(canFederate)
 const documentRequirements = useDocumentRequirements()
+const copying = useEventCopy({
+  form, fieldDefaults, federationShare, documentRequirements, loadRegistrationFields, sheetFieldIds,
+  memberFieldIds: () => data.props.value.attendanceFields.filter(f => namesMembers(f.fieldType)).map(f => f.id),
+})
+const copiedFrom = copying.copiedFrom
 
 /** The ids of the fields on the attendance sheet the form names now. */
 function sheetFieldIds(): number[] {
@@ -229,6 +240,8 @@ const {loading, failure} = useAsyncLoader(async () => {
       opened.value = snapshotOf()
       openedRecurring.value = isRecurringEvent(form.state.eventType)
       watch(attachments.attachments, () => { attachmentsChanged.value = true }, {deep: true})
+    } else if (copySourceId.value !== null) {
+      templateFiles.value = await copying.copy(copySourceId.value)
     }
   } catch (e) {
     reportCaughtError(e, 'EventEditView.loadData')
@@ -426,6 +439,7 @@ const bodyHandlers = {
       <FailureAlert v-if="refused" :message="refused" expected/>
       <FailureAlert v-else :failure="failure ?? saveFailure ?? confirmFailure"/>
       <Alert v-if="templateAppliedMessage" variant="success">{{ templateAppliedMessage }}</Alert>
+      <CopiedFromNotice v-if="copiedFrom && !isEdit" :event-id="copiedFrom.id" :name="copiedFrom.name"/>
       <EventGroupPartNotice v-if="eventGroupPart" :event-group="eventGroupPart" :message="t('eventGroups.lockedByEventGroup')"/>
       <AddToEventGroupCard v-else-if="joinsGroup" :event-id="eventId!" :on-added="groupPart.reload"/>
 
@@ -442,7 +456,11 @@ const bodyHandlers = {
           :offered-count="documentRequirements.offeredCount.value"
       />
 
-      <TemplateFilesNote v-if="!loading && !isEdit && templateFiles.length > 0" :files="templateFiles"/>
+      <TemplateFilesNote
+          v-if="!loading && !isEdit && templateFiles.length > 0"
+          :files="templateFiles"
+          :hint="copiedFrom ? t('events.copy.filesHint') : undefined"
+      />
 
       <AttachmentsCard
           v-if="!loading && isEdit"

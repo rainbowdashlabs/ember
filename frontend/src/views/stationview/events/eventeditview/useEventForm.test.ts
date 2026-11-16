@@ -5,8 +5,18 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it, vi} from 'vitest'
-import {useEventForm} from './useEventForm'
-import {RestrictionMode, type EventTemplate, type RestrictionAudience, type TemplateDetailResponse} from '@/api/generated/schema'
+import {nextTick} from 'vue'
+import {useEventForm, type EventEditDetail} from './useEventForm'
+import {
+    EventType,
+    FieldType,
+    RestrictionMode,
+    type AppointmentField,
+    type EventTemplate,
+    type RestrictionAudience,
+    type StationEvent,
+    type TemplateDetailResponse,
+} from '@/api/generated/schema'
 
 vi.mock('@/api', () => ({events: {}}))
 
@@ -177,5 +187,161 @@ describe('useEventForm.applyTemplate deadline offset', () => {
         } finally {
             process.env.TZ = previous
         }
+    })
+})
+
+/** An appointment of the station with nothing special set, so a test names only what it is about. */
+function original(overrides: Partial<StationEvent> = {}): StationEvent {
+    return {
+        cancelled: false,
+        cancelledAt: null,
+        cancelReason: null,
+        categoryId: 3,
+        dayOfWeek: null,
+        description: 'Knoten und Stiche',
+        endTime: new Date('2026-05-12T20:30').toISOString(),
+        eventType: EventType.ONE_TIME,
+        id: 17,
+        isPublic: null,
+        minRegistrations: 4,
+        name: 'Dienstabend',
+        recurring: false,
+        registrationCloseDays: 1,
+        registrationDeadline: null,
+        registrationLimit: 20,
+        repeatCount: null,
+        repeatUntil: null,
+        requiresConfirmation: true,
+        requiresRegistration: true,
+        restricted: false,
+        restrictionMode: RestrictionMode.AND,
+        startTime: new Date('2026-05-12T18:00').toISOString(),
+        stationId: '00000000-0000-0000-0000-000000000000',
+        templateId: 6,
+        thresholdDays: 2,
+        viewRestrictionMode: RestrictionMode.AND,
+        ...overrides,
+    }
+}
+
+/** A field of the original, a plain line unless a test says otherwise. */
+function field(overrides: Partial<AppointmentField> = {}): AppointmentField {
+    return {
+        attendanceFieldId: null,
+        config: {perDate: false, selfRegistration: false, required: false, managersOnly: false},
+        eventId: 17,
+        fieldType: FieldType.TEXT,
+        id: 30,
+        isPublic: false,
+        name: 'Ort',
+        overview: true,
+        position: 0,
+        readerInWholeGroup: false,
+        selfRegistrationState: null,
+        value: 'Gerätehaus',
+        ...overrides,
+    }
+}
+
+const drivers: RestrictionAudience = {...nobody, groupIds: [2]}
+
+/** What the editor reads of an original: kept to one group, with two reminders. */
+function copyDetail(event: StationEvent, fields: AppointmentField[] = []): EventEditDetail {
+    return {event, restrictions: {register: drivers, view: nobody}, fields, reminders: [7, 1]}
+}
+
+describe('useEventForm.applyCopy', () => {
+    it('fills the form from the original and names it in the request', () => {
+        const form = useEventForm()
+
+        form.applyCopy(copyDetail(original(), [field()]), '2026-11-18', null)
+
+        expect(form.state.name).toBe('Dienstabend')
+        expect(form.state.description).toBe('Knoten und Stiche')
+        expect(form.state.categoryId).toBe('3')
+        expect(form.state.templateId).toBe('6')
+        expect(form.state.requiresRegistration).toBe(true)
+        expect(form.state.requiresConfirmation).toBe(true)
+        expect(form.state.registrationLimit).toBe(20)
+        expect(form.state.minRegistrations).toBe(4)
+        expect(form.state.registrationCloseDays).toBe(1)
+        expect(form.state.restriction.groupIds).toEqual([2])
+        expect(form.state.reminders).toEqual([7, 1])
+        expect(form.state.fields).toEqual([expect.objectContaining({name: 'Ort', value: 'Gerätehaus'})])
+        expect(form.state.fields[0]).not.toHaveProperty('id')
+        const payload = form.buildPayload()
+        expect(payload.copiedFromEventId).toBe(17)
+        expect(payload.eventTemplateId).toBeNull()
+    })
+
+    it('leaves out the values of fields that name people', () => {
+        const form = useEventForm()
+
+        form.applyCopy(copyDetail(original(), [
+            field(),
+            field({id: 31, name: 'Leitung', fieldType: FieldType.MEMBER, value: '12'}),
+        ]), '2026-11-18', null)
+
+        expect(form.state.fields.map(entry => entry.value)).toEqual(['Gerätehaus', ''])
+    })
+
+    it('starts a one-time copy without a date, then follows the start with the original length and deadline', async () => {
+        const form = useEventForm()
+        const deadline = new Date('2026-05-11T18:00').toISOString()
+
+        form.applyCopy(copyDetail(original({registrationDeadline: deadline})), '2026-11-18', null)
+
+        expect(form.state.startTime).toBe('')
+        expect(form.state.endTime).toBe('')
+        expect(form.state.registrationDeadline).toBe('')
+        expect(form.buildPayload().registrationDeadline).toBeNull()
+
+        form.state.startTime = '2026-12-01T18:00'
+        await nextTick()
+
+        expect(form.state.endTime).toBe('2026-12-01T20:30')
+        expect(form.state.registrationDeadline).toBe('2026-11-30T18:00')
+    })
+
+    it('moves a series to its next day from today and keeps its rule, times and end', () => {
+        const form = useEventForm()
+        const series = original({eventType: EventType.RECURRING, dayOfWeek: 2, recurring: true, repeatCount: 10})
+
+        form.applyCopy(copyDetail(series), '2026-11-18', '2026-11-24')
+
+        expect(form.state.eventType).toBe(EventType.RECURRING)
+        expect(form.state.dayOfWeek).toBe('2')
+        expect(form.state.startTime).toBe('2026-11-24T18:00')
+        expect(form.state.endTime).toBe('2026-11-24T20:30')
+        expect(form.state.repeatCount).toBe(10)
+    })
+
+    it('starts a series on the next date the server names for it', () => {
+        const form = useEventForm()
+        const quarterly = original({eventType: EventType.QUARTERLY, dayOfWeek: 2, recurring: true})
+
+        form.applyCopy(copyDetail(quarterly), '2026-11-18', '2027-02-02')
+
+        expect(form.state.startTime).toBe('2027-02-02T18:00')
+    })
+
+    it('drops the last day of an ended series and starts it again from today', () => {
+        const form = useEventForm()
+        const ended = original({eventType: EventType.RECURRING, dayOfWeek: 2, recurring: true, repeatUntil: '2026-06-30'})
+
+        form.applyCopy(copyDetail(ended), '2026-11-18', '2026-06-30')
+
+        expect(form.state.startTime).toBe('2026-11-24T18:00')
+        expect(form.state.repeatUntil).toBe('')
+        expect(form.buildPayload().repeatUntil).toBeNull()
+    })
+
+    it('keeps a last day that still lies after the new start', () => {
+        const form = useEventForm()
+        const running = original({eventType: EventType.RECURRING, dayOfWeek: 2, recurring: true, repeatUntil: '2027-06-29'})
+
+        form.applyCopy(copyDetail(running), '2026-11-18', '2026-11-24')
+
+        expect(form.state.repeatUntil).toBe('2027-06-29')
     })
 })

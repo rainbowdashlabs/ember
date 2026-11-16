@@ -21,6 +21,7 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 - **Fragen bei der Anmeldung können eine Erklärung tragen.** Wie ein Profilfeld kann eine Frage bei der Anmeldung zu einem Termin oder einer Terminreihe eine kurze Erklärung tragen, die beim Antworten unter der Frage steht.
 - **Erste Schritte merken sich, was schon bekannt ist.** Beim Beitritt zu einer weiteren Wache werden erste Schritte, die die Bedienung zeigen und auf einer anderen Wache schon erledigt oder übersprungen wurden, nicht noch einmal gefragt. Schritte, die zur Wache gehören, etwa ihre Profilfragen und Benachrichtigungen, bleiben.
 - **Felder können zwei Drittel oder ein Viertel einer Zeile einnehmen.** Neben einem Drittel und der Hälfte kann ein Profil-, Anwesenheits- oder Terminfeld ein Viertel, zwei Drittel oder drei Viertel einer Zeile einnehmen, gewählt mit einem Schieberegler statt aus einer Liste.
+- **Termine lassen sich kopieren.** „Kopieren" an einem Termin oder in der Terminliste öffnet einen neuen Termin mit allem aus dem Original, bereit für ein neues Datum. Anmeldungen, Anwesenheit und Kommentare werden nicht kopiert.
 - **Unlesbare Anfragen nennen ihr Feld.** Kann der Server einen Wert nicht lesen, den eine Seite geschickt hat, nennt die Meldung jetzt das Feld, an dem er hängen blieb.
 
 ### Änderungen

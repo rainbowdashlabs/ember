@@ -72368,6 +72368,8 @@ export interface components {
             categoryId?: number | null;
             changeNotice?: components["schemas"]["ChangeNotice"] | null;
             /** Format: int32 */
+            copiedFromEventId?: number | null;
+            /** Format: int32 */
             dayOfWeek?: number | null;
             description?: string | null;
             endTime?: components["schemas"]["Instant"];
