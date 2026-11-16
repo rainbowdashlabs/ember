@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.messages.route;
 
-import dev.chojo.ember.feature.messages.entity.ChatAudience;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.messages.entity.Conversation;
 import dev.chojo.ember.feature.messages.entity.ConversationDetail;
 import dev.chojo.ember.feature.messages.entity.ConversationKind;
@@ -112,17 +112,14 @@ public final class MessageWire {
      *
      * @param stationUid       the station it belongs to
      * @param stationName      the station's name
-     * @param audience         whom it is for: the whole station, a group or a tag
      * @param includeGuardians whether the guardians of its people are members too
      * @param closed           whether it is closed, readable but taking nothing new
      */
-    public record StationChatInfo(
-            UUID stationUid, String stationName, ChatAudience audience, boolean includeGuardians, boolean closed) {
+    public record StationChatInfo(UUID stationUid, String stationName, boolean includeGuardians, boolean closed) {
         static @Nullable StationChatInfo of(Conversation conversation, @Nullable StationRef station) {
             StationScope scope = conversation.station();
             if (scope == null || station == null) return null;
-            return new StationChatInfo(
-                    station.uid(), station.name(), scope.audience(), scope.includeGuardians(), scope.closed());
+            return new StationChatInfo(station.uid(), station.name(), scope.includeGuardians(), scope.closed());
         }
     }
 
@@ -173,13 +170,21 @@ public final class MessageWire {
      * @param joinedAt    when they started or were added
      * @param guardianFor in a station chat that takes guardians in, the people there this member looks
      *                    after; empty for everybody else
+     * @param member      in a station chat, how its station shows this person (name, group color
+     *                    and tag); null elsewhere and for somebody no longer at the station
      */
     public record ConversationMemberResponse(
-            UUID uid, String firstName, String lastName, Instant joinedAt, List<String> guardianFor) {
-        static ConversationMemberResponse of(Membership member, List<String> guardianFor) {
+            UUID uid,
+            String firstName,
+            String lastName,
+            Instant joinedAt,
+            List<String> guardianFor,
+            @Nullable MemberIdentity member) {
+        static ConversationMemberResponse of(
+                Membership member, List<String> guardianFor, @Nullable MemberIdentity identity) {
             Person person = member.person();
             return new ConversationMemberResponse(
-                    person.uid(), person.firstName(), person.lastName(), member.joinedAt(), guardianFor);
+                    person.uid(), person.firstName(), person.lastName(), member.joinedAt(), guardianFor, identity);
         }
     }
 
@@ -222,7 +227,9 @@ public final class MessageWire {
                     ownerUid,
                     detail.members().stream()
                             .map(member -> ConversationMemberResponse.of(
-                                    member, detail.guardianFor().getOrDefault(member.accountId(), List.of())))
+                                    member,
+                                    detail.guardianFor().getOrDefault(member.accountId(), List.of()),
+                                    detail.stationPeople().get(member.accountId())))
                             .toList(),
                     detail.mine().muted(),
                     detail.mine().lastReadMessageId(),

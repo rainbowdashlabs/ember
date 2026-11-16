@@ -11,6 +11,8 @@ import dev.chojo.ember.feature.content.entity.GuardianCondition;
 import dev.chojo.ember.feature.content.route.BlockRowRequest;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
@@ -61,7 +63,13 @@ class MemberNeutralTemplatesTest extends GeneratorTestBase {
         wiring = wire(stationRepo.create("Neutral Templates Station"));
         neutral = new MemberNeutralTemplates(wiring.templates());
         requirements = new EventRequirementService(
-                new EventRequirementRepository(), wiring.templates(), neutral, shares, new DomainEventBus(Set.of()));
+                new EventRequirementRepository(),
+                wiring.templates(),
+                neutral,
+                shares,
+                new DomainEventBus(Set.of()),
+                new EventGroupRepository(),
+                new EventGroupPartnerRepository());
         manager = wiring.member("neutral-manager-" + System.nanoTime() + "@example.com", "Maria", "Leitung");
     }
 

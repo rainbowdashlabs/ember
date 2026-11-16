@@ -41,6 +41,8 @@ import java.util.List;
  * @param max              the largest number a registrant may answer
  * @param managersOnly     whether the answer is kept for whoever runs the appointment: the registrant
  *                         is still asked, but only they, their household and the organisers read it
+ * @param description      a sentence saying what the registrant's question is after, shown under its
+ *                         label when answering, never in tables or exports; null for none
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record EventQuestionSettings(
@@ -55,9 +57,15 @@ public record EventQuestionSettings(
         @Nullable String defaultValue,
         @Nullable Integer min,
         @Nullable Integer max,
-        boolean managersOnly) {
+        boolean managersOnly,
+        @Nullable String description) {
+    /** Trims the description and keeps none where nothing but blanks was given. */
+    public EventQuestionSettings {
+        description = description == null || description.isBlank() ? null : description.strip();
+    }
+
     private static final EventQuestionSettings EMPTY =
-            new EventQuestionSettings(null, null, null, null, null, false, false, false, null, null, null, false);
+            new EventQuestionSettings(null, null, null, null, null, false, false, false, null, null, null, false, null);
 
     /** The settings of a question that carries none. */
     public static EventQuestionSettings empty() {
@@ -106,7 +114,19 @@ public record EventQuestionSettings(
      */
     public EventQuestionSettings organisers() {
         return new EventQuestionSettings(
-                options, groupId, userType, tagId, width, selfRegistration, perDate, false, null, null, null, false);
+                options,
+                groupId,
+                userType,
+                tagId,
+                width,
+                selfRegistration,
+                perDate,
+                false,
+                null,
+                null,
+                null,
+                false,
+                null);
     }
 
     /**
@@ -115,7 +135,19 @@ public record EventQuestionSettings(
      */
     public EventQuestionSettings registrants() {
         return new EventQuestionSettings(
-                options, groupId, userType, tagId, null, false, false, required, defaultValue, min, max, managersOnly);
+                options,
+                groupId,
+                userType,
+                tagId,
+                null,
+                false,
+                false,
+                required,
+                defaultValue,
+                min,
+                max,
+                managersOnly,
+                description);
     }
 
     /** The same settings with another starting value, which a template keeps beside them. */
@@ -132,6 +164,7 @@ public record EventQuestionSettings(
                 value,
                 min,
                 max,
-                managersOnly);
+                managersOnly,
+                description);
     }
 }

@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.events.service.EventMemberTableService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
+import dev.chojo.ember.feature.events.service.EventSignUpGuards;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.events.service.RegistrationAnswerReminder;
 import dev.chojo.ember.feature.events.service.RegistrationRowLookups;
@@ -158,7 +159,8 @@ class RegistrationListReadsTest {
                 mock(MemberTableRenderer.class),
                 mock(StationService.class),
                 mock(OccurrenceCalendar.class),
-                mock(EventVisibility.class));
+                mock(EventVisibility.class),
+                new EventSignUpGuards(mock(GuardianPolicy.class)));
     }
 
     private void placed(List<Integer> memberIds) {
@@ -166,7 +168,7 @@ class RegistrationListReadsTest {
                 .thenReturn(memberIds.stream()
                         .map(RegistrationListReadsTest::member)
                         .toList());
-        when(eventFieldService.findByEvent(EVENT_ID, DATE)).thenReturn(List.of(driversNaming(memberIds)));
+        when(eventFieldService.findOwnByEvent(EVENT_ID, DATE)).thenReturn(List.of(driversNaming(memberIds)));
     }
 
     /** Asks for the date's list as somebody who runs the station's appointments. */
@@ -192,7 +194,7 @@ class RegistrationListReadsTest {
         verify(memberRepository, times(1)).findByIds(anyList());
         verify(memberRepository, never()).findById(anyInt());
         verify(crudService, times(1)).findById(EVENT_ID);
-        verify(eventFieldService, times(1)).findByEvent(any(Integer.class), any(LocalDate.class));
+        verify(eventFieldService, times(1)).findOwnByEvent(any(Integer.class), any(LocalDate.class));
         verify(registrationFieldService, times(1)).findValuesByRegistration(anyList());
         verify(registrationFieldService, times(1)).requiredFieldIds(EVENT_ID);
     }

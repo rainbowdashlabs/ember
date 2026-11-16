@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -71,7 +72,8 @@ class RegistrationAnswersOwedTest extends RepositoryTestBase {
                 memberEligibility,
                 eventRepo,
                 attendanceRepo,
-                eventFieldRegistrationService);
+                eventFieldRegistrationService,
+                new EventGroupRepository());
 
         station = stationRepo.create("AnswersOwedStation");
         account = accountRepo.create("answers-owed@test.com", "Otto", "Offen");
@@ -114,7 +116,7 @@ class RegistrationAnswersOwedTest extends RepositoryTestBase {
                 name,
                 FieldType.TEXT,
                 new EventQuestionSettings(
-                        null, null, null, null, null, false, false, true, null, null, null, managersOnly),
+                        null, null, null, null, null, false, false, true, null, null, null, managersOnly, null),
                 true);
     }
 

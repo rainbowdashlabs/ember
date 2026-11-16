@@ -14,7 +14,6 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
-import dev.chojo.ember.feature.messages.entity.ChatAudience;
 import dev.chojo.ember.feature.messages.entity.Conversation;
 import dev.chojo.ember.feature.messages.entity.Membership;
 import dev.chojo.ember.feature.messages.entity.Message;
@@ -24,6 +23,9 @@ import dev.chojo.ember.feature.messages.repository.ConversationRepository;
 import dev.chojo.ember.feature.messages.repository.MessagePeopleRepository;
 import dev.chojo.ember.feature.messages.repository.MessageRepository;
 import dev.chojo.ember.feature.messages.repository.StationChatRepository;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.lifecycle.ScheduledTask;
 import dev.chojo.ember.lifecycle.TaskScheduler;
@@ -101,8 +103,7 @@ class StationChatMembershipTest extends MessageTestBase {
         UserTag tag = userTagRepo.create(station.id(), "Atemschutz");
         userTagRepo.addMember(tag.id(), member(anna).id());
         userTagRepo.addMember(tag.id(), member(trial).id());
-        Conversation chat = chats.create(station.id(), "Atemschutz", ChatAudience.TAG, null, tag.id(), false)
-                .orElseThrow();
+        Conversation chat = tagChat("Atemschutz", tag.id(), false);
 
         membership.reconcile(station.id());
 
@@ -190,8 +191,7 @@ class StationChatMembershipTest extends MessageTestBase {
         guard(member(parent), waiting);
         UserTag tag = userTagRepo.create(station.id(), "Bambini");
         userTagRepo.addMember(tag.id(), waiting.id());
-        Conversation chat = chats.create(station.id(), "Bambini", ChatAudience.TAG, null, tag.id(), true)
-                .orElseThrow();
+        Conversation chat = tagChat("Bambini", tag.id(), true);
 
         membership.reconcile(station.id());
 
@@ -282,8 +282,7 @@ class StationChatMembershipTest extends MessageTestBase {
     @Test
     void aChatWhoseTagIsDeletedIsClosedToo() {
         UserTag tag = userTagRepo.create(station.id(), "Atemschutz");
-        Conversation chat = chats.create(station.id(), "Atemschutz", ChatAudience.TAG, null, tag.id(), false)
-                .orElseThrow();
+        Conversation chat = tagChat("Atemschutz", tag.id(), false);
 
         userTagRepo.delete(tag.id());
         membership.reconcile(station.id());
@@ -459,8 +458,7 @@ class StationChatMembershipTest extends MessageTestBase {
         Conversation broken = stationWide();
         UserTag tag = userTagRepo.create(station.id(), "Alle");
         userTagRepo.addMember(tag.id(), member(anna).id());
-        Conversation working = chats.create(station.id(), "Alle", ChatAudience.TAG, null, tag.id(), false)
-                .orElseThrow();
+        Conversation working = tagChat("Alle", tag.id(), false);
         var failing = spy(chats);
         doThrow(new IllegalStateException("broken")).when(failing).audience(broken.id());
 
@@ -501,13 +499,34 @@ class StationChatMembershipTest extends MessageTestBase {
     }
 
     private Conversation stationWide() {
-        return chats.create(station.id(), "Alle", ChatAudience.STATION, null, null, false)
-                .orElseThrow();
+        return chats.create(station.id(), "Alle", false, false, 0);
     }
 
     private Conversation groupChat(MemberGroup group, boolean includeGuardians) {
-        return chats.create(station.id(), group.name(), ChatAudience.GROUP, group.id(), null, includeGuardians)
-                .orElseThrow();
+        return audienceChat(
+                group.name(),
+                new RestrictionAudience(List.of(), List.of(group.id()), List.of(), List.of(), RestrictionMode.AND),
+                includeGuardians);
+    }
+
+    private Conversation tagChat(String name, int tagId, boolean includeGuardians) {
+        return audienceChat(
+                name,
+                new RestrictionAudience(List.of(), List.of(), List.of(tagId), List.of(), RestrictionMode.AND),
+                includeGuardians);
+    }
+
+    private Conversation audienceChat(String name, RestrictionAudience audience, boolean includeGuardians) {
+        Conversation chat = chats.create(
+                station.id(),
+                name,
+                includeGuardians,
+                true,
+                audience.userTypes().size()
+                        + audience.groupIds().size()
+                        + audience.tagIds().size());
+        restrictionService.setAudience(RestrictionType.STATION_CHAT, chat.id(), audience);
+        return chat;
     }
 
     private StationMember member(Account account) {

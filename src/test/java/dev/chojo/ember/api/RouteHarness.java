@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.CsrfGuard;
 import dev.chojo.ember.api.auth.ModuleGuard;
 import dev.chojo.ember.api.auth.SessionCookies;
 import dev.chojo.ember.api.auth.SessionGate;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpGuard;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.conf.file.elements.Api;
@@ -37,6 +38,7 @@ import io.javalin.testtools.JavalinTest;
 import io.javalin.testtools.Request;
 import io.javalin.testtools.Response;
 import io.javalin.testtools.TestCase;
+import org.jspecify.annotations.Nullable;
 import org.mockito.Mockito;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.JsonNode;
@@ -201,6 +203,29 @@ public final class RouteHarness {
         var answered = new AtomicReference<Response>();
         run((server, client) -> answered.set(request.apply(client)));
         return answered.get();
+    }
+
+    /**
+     * Starts a fresh application and sends one request as a member of a station holding the given
+     * permissions.
+     *
+     * @param stationId   the member's station
+     * @param method      {@code GET}, {@code POST}, {@code PUT} or {@code DELETE}
+     * @param path        the address
+     * @param json        the body, or null for none
+     * @param permissions what the member holds
+     * @return the response
+     */
+    public Response call(
+            int stationId, String method, String path, @Nullable String json, StationPermission... permissions) {
+        var session = as(TestSessions.member(stationId, permissions));
+        return request(client -> switch (method) {
+            case "GET" -> client.get(path, session);
+            case "POST" -> client.post(path, json == null ? null : body(json), session);
+            case "PUT" -> client.put(path, json == null ? null : body(json), session);
+            case "DELETE" -> client.delete(path, json == null ? null : body(json), session);
+            default -> throw new IllegalArgumentException("Unknown method " + method);
+        });
     }
 
     /**

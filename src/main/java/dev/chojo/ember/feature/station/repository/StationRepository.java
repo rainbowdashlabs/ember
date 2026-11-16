@@ -798,6 +798,29 @@ public class StationRepository {
     }
 
     /**
+     * Switches one module of a station off or on, leaving every other module as it is. Two managers
+     * switching different modules at once both keep their change, which replacing the whole list
+     * from what each of them last read did not.
+     *
+     * @param stationId the station
+     * @param module    the module
+     * @param disabled  whether the station switches it off
+     */
+    public void setModuleDisabled(int stationId, StationModule module, boolean disabled) {
+        if (disabled) {
+            query("""
+                    INSERT INTO station_disabled_module(station_id, module) VALUES (:station_id, :module)
+                    ON CONFLICT DO NOTHING;""")
+                    .single(call().bind("station_id", stationId).bind("module", module))
+                    .insert();
+            return;
+        }
+        query("DELETE FROM station_disabled_module WHERE station_id = :station_id AND module = :module;")
+                .single(call().bind("station_id", stationId).bind("module", module))
+                .delete();
+    }
+
+    /**
      * Updates the UUID of a station (used during import to preserve the original UUID).
      */
     public void updateUid(int id, UUID uid) {

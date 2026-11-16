@@ -21,6 +21,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param version    its version now, which a copy generated from an older one is behind
  * @param archived   whether it was archived since, which takes it off the participants' list
  * @param lastUsedAt when a document was last generated from it, or null where none ever was
+ * @param fromEventGroup whether the event group of a part asks for it, which the part cannot take off
  */
 public record RequiredTemplate(
         int templateId,
@@ -28,7 +29,8 @@ public record RequiredTemplate(
         DocumentTemplateKind kind,
         int version,
         boolean archived,
-        @Nullable Instant lastUsedAt) {
+        @Nullable Instant lastUsedAt,
+        boolean fromEventGroup) {
 
     public static RowMapping<RequiredTemplate> map() {
         return row -> new RequiredTemplate(
@@ -37,6 +39,7 @@ public record RequiredTemplate(
                 row.getEnum("kind", DocumentTemplateKind.class),
                 row.getInt("version"),
                 row.getBoolean("archived"),
-                row.get("last_used_at", INSTANT_TIMESTAMP));
+                row.get("last_used_at", INSTANT_TIMESTAMP),
+                row.getBoolean("from_event_group"));
     }
 }

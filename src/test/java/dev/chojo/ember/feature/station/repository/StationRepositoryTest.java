@@ -347,4 +347,24 @@ class StationRepositoryTest extends RepositoryTestBase {
         assertTrue(stationRepo.delete(stationId));
         assertTrue(stationRepo.findById(stationId).isEmpty());
     }
+
+    /**
+     * Two managers switching different modules from screens loaded before either change both keep
+     * what they did: one module is written at a time, never the whole list read earlier.
+     */
+    @Test
+    void switchingOneModuleLeavesTheOthersAsTheyAre() {
+        Station station = stationRepo.create("Module Switches " + UUID.randomUUID());
+
+        stationRepo.setModuleDisabled(station.id(), StationModule.ATTENDANCE, true);
+        stationRepo.setModuleDisabled(station.id(), StationModule.LOST_AND_FOUND, true);
+        stationRepo.setModuleDisabled(station.id(), StationModule.LOST_AND_FOUND, true);
+        assertEquals(
+                Set.of(StationModule.ATTENDANCE, StationModule.LOST_AND_FOUND),
+                stationRepo.findDisabledModules(station.id()));
+
+        stationRepo.setModuleDisabled(station.id(), StationModule.LOST_AND_FOUND, false);
+        stationRepo.setModuleDisabled(station.id(), StationModule.LOST_AND_FOUND, false);
+        assertEquals(Set.of(StationModule.ATTENDANCE), stationRepo.findDisabledModules(station.id()));
+    }
 }

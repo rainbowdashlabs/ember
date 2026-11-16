@@ -9,7 +9,6 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.api.refusal.FederationRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
@@ -23,11 +22,13 @@ import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
+import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
 import dev.chojo.ember.feature.federation.FederationTestTransport;
@@ -56,7 +57,6 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.function.Executable;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -141,10 +141,13 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         memberEligibility,
                         eventRepo,
                         attendanceRepo,
-                        eventFieldRegistrationService),
+                        eventFieldRegistrationService,
+                        new EventGroupRepository()),
                 occurrenceCalendar,
                 media,
-                new Api());
+                new Api(),
+                new EventGroupRepository(),
+                newEventServices(mock(DomainEventBus.class)).registration());
         transport.serve(service);
 
         stationA = stationRepo.create("EventFedSvcStationA");
@@ -1591,8 +1594,46 @@ class EventFederationServiceTest extends RepositoryTestBase {
                         .status());
     }
 
-    private static void assertRefused(Refusal expected, Executable call) {
-        assertEquals(expected, assertThrows(RefusalResponse.class, call).refusal());
+    /** A part of an event group takes places through the event group; a partner cannot take or give one up on its own. */
+    @Test
+    @Order(96)
+    void aPartnerActsOnAPartOfAnEventGroupOnlyThroughTheEventGroup() {
+        var start = Instant.now().plus(3, ChronoUnit.DAYS);
+        var part = eventRepo.create(
+                stationA.id(),
+                "Kurstag",
+                null,
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                true,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        var eventGroupRepo = new EventGroupRepository();
+        var eventGroup =
+                eventGroupRepo.create(stationA.id(), new EventGroupDetails("Lehrgang", null, null, null, false, null));
+        var set = eventGroupRepo.createSet(eventGroup.id(), "Block", 1, 0);
+        eventGroupRepo.claimPart(part.id(), set.id());
+        service.setShare(part.id(), ShareScope.ALL_PARTNERS, List.of());
+        var day = start.atZone(occurrenceCalendar.zoneOf(stationA.id())).toLocalDate();
+
+        assertRefused(
+                EventRefusal.REGISTRATION_THROUGH_EVENT_GROUP,
+                () -> service.registerFederated(part.id(), partnerId, REMOTE_MEMBER_3, day));
+        assertRefused(
+                EventRefusal.REGISTRATION_THROUGH_EVENT_GROUP,
+                () -> service.withdrawFederatedRegistration(
+                        stationB.id(), stationA.uid(), part.id(), REMOTE_MEMBER_3, day));
+        assertRefused(
+                EventRefusal.REGISTRATION_THROUGH_EVENT_GROUP,
+                () -> service.undoFederatedWithdrawal(stationB.id(), stationA.uid(), part.id(), REMOTE_MEMBER_3, day));
     }
 
     /** The given station's own partner row for the other one. */

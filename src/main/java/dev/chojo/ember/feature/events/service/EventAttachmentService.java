@@ -24,8 +24,8 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * What an event hands over, and who is handed it, and the files a template hands every event made
- * from it.
+ * What an event hands over, and who is handed it, the files a template hands every event made from it,
+ * and the files an event group hands every one of its parts.
  *
  * <p>A file is either for everybody who may see the event or kept back from the room. Which of the
  * two a reader gets is decided here and nowhere else, so the list a screen draws and the answer a
@@ -72,7 +72,7 @@ public class EventAttachmentService {
      * @param permissions the reader's permissions, already expanded
      */
     public List<EventAttachment> listFor(int eventId, Collection<StationPermission> permissions) {
-        return visible(repository.findByOwner(AppointmentOwner.EVENT, eventId), readsInternal(permissions));
+        return visible(repository.findEffective(eventId), readsInternal(permissions));
     }
 
     /** Every file of an event or a template, for whoever is editing it. */
@@ -82,7 +82,7 @@ public class EventAttachmentService {
 
     /** The files that leave the station: what an event hands the room, and never what it keeps back. */
     public List<EventAttachment> listOpen(int eventId) {
-        return visible(repository.findByOwner(AppointmentOwner.EVENT, eventId), false);
+        return visible(repository.findEffective(eventId), false);
     }
 
     /**
@@ -99,28 +99,76 @@ public class EventAttachmentService {
     }
 
     /**
-     * The file behind an attachment, where this reader may be handed it.
+     * A file an appointment hands over: its own, or for a part one of its event group's.
      *
-     * @param permissions the reader's permissions, already expanded
-     * @return the attachment, or empty where there is none or it is kept back from this reader
+     * @param eventId      the appointment
+     * @param attachmentId the attachment
+     * @return the attachment carrying the appointment's id, or empty where the appointment hands over no such file
      */
-    public Optional<EventAttachment> findReadable(int attachmentId, Collection<StationPermission> permissions) {
-        return repository
-                .findById(AppointmentOwner.EVENT, attachmentId)
-                .filter(attachment -> !attachment.internal() || readsInternal(permissions));
+    public Optional<EventAttachment> findOn(int eventId, int attachmentId) {
+        return repository.findEffective(eventId).stream()
+                .filter(attachment -> attachment.id() == attachmentId)
+                .findFirst();
     }
 
     /**
-     * Attaches a file from the station's library to an event or a template. The file has to belong
-     * to the same station, because an attachment is a reference into that station's library and
-     * nothing else.
+     * The file behind an attachment of an appointment, where this reader may be handed it.
+     *
+     * @param eventId     the appointment, whose event group's files count as its own
+     * @param permissions the reader's permissions, already expanded
+     * @return the attachment, or empty where there is none or it is kept back from this reader
      */
-    public EventAttachment attach(
-            AppointmentOwner owner, int ownerId, int stationId, int fileId, @Nullable String label, boolean internal) {
+    public Optional<EventAttachment> findReadableOn(
+            int eventId, int attachmentId, Collection<StationPermission> permissions) {
+        return findOn(eventId, attachmentId).filter(attachment -> !attachment.internal() || readsInternal(permissions));
+    }
+
+    /**
+     * The files an event group hands over on every part, as this reader may have them.
+     *
+     * @param permissions the reader's permissions, already expanded
+     */
+    public List<EventAttachment> listForEventGroup(int eventGroupId, Collection<StationPermission> permissions) {
+        return visible(repository.findByOwner(AppointmentOwner.EVENT_GROUP, eventGroupId), readsInternal(permissions));
+    }
+
+    /**
+     * A file of an event group.
+     *
+     * @return the attachment, or empty where the event group hands over no such file
+     */
+    public Optional<EventAttachment> findOfEventGroup(int eventGroupId, int attachmentId) {
+        return repository
+                .findById(AppointmentOwner.EVENT_GROUP, attachmentId)
+                .filter(attachment -> attachment.eventId() == eventGroupId);
+    }
+
+    /**
+     * A file of an event group, where this reader may be handed it.
+     *
+     * @param permissions the reader's permissions, already expanded
+     */
+    public Optional<EventAttachment> findReadableOfEventGroup(
+            int eventGroupId, int attachmentId, Collection<StationPermission> permissions) {
+        return findOfEventGroup(eventGroupId, attachmentId)
+                .filter(attachment -> !attachment.internal() || readsInternal(permissions));
+    }
+
+    private void requireFileOf(int stationId, int fileId) {
         var file = media.findFile(fileId).orElseThrow(EventRefusal.EVENT_FILE_TO_ATTACH_NOT_HERE::raise);
         if (!Objects.equals(file.stationId(), stationId)) {
             throw EventRefusal.EVENT_FILE_TO_ATTACH_NOT_HERE.raise();
         }
+    }
+
+    /**
+     * Attaches a file from the station's library to an event, a template or an event group, which hands
+     * it over on every part. The file has to belong to the same station, because an attachment is a
+     * reference into that station's library and nothing else.
+     */
+    public EventAttachment attach(
+            AppointmentOwner owner, int ownerId, int stationId, int fileId, @Nullable String label, boolean internal) {
+        requireFileOf(stationId, fileId);
         var attachment = repository.attach(owner, ownerId, fileId, blankToNull(label), internal);
         log.info(
                 "File {} attached to {} {} in station {} ({})",

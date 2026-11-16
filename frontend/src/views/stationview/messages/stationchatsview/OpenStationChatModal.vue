@@ -4,120 +4,86 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, ref, watch} from 'vue'
+import {ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
+import FieldHint from '@/components/typography/FieldHint.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
+import Alert from '@/components/feedback/Alert.vue'
+import RestrictionsField from '@/components/input/RestrictionsField.vue'
 import ToggleSetting from '@/components/input/toggle/ToggleSetting.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {ChatAudience, type MemberGroup, type UserTag} from '@/api/generated/schema'
-import {openStationChat} from '@/api/messages'
-import {listGroups} from '@/api/memberGroups'
-import {listChoosableTags} from '@/api/userTags'
-import {describeFailure, type Failure} from '@/util/failure'
+import type {MemberGroup, StationChatResponse, UserTag} from '@/api/generated/schema'
+import type {RestrictionSelection} from '@/api/types'
+import {openStationChat, updateStationChat} from '@/api/messages'
+import {emptyRestriction, toRestriction} from '@/components/input/restriction'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 
 /**
- * Opens a chat for the whole station, a group or a tag. A group or tag chat can take the guardians
- * of its people in as well. Private tags are not offered: a chat shows who is in it.
+ * Opens a station chat, or changes one: its name, whom it is for and whether the guardians of its
+ * people are in it too. Whom it is for is picked the way an appointment picks its audience, so a
+ * group together with its leaders, or several tags, make one chat; picking nobody means the whole
+ * station without trial members. A chat is edited here as a whole, also while it is closed, which is
+ * how one whose audience is gone gets a new one. Such a chat shows only what is left of its audience,
+ * so the dialog asks for it to be checked before saving makes it whole again. The audience and the guardian choice always go
+ * along, an empty audience included, because the server refuses a change that leaves them out.
  */
 const open = defineModel<boolean>({required: true})
 
 const props = defineProps<{
-  onOpened: () => Promise<void> | void
+  /** The chat to change, or nothing to open a new one. */
+  chat?: StationChatResponse | null
+  groups: MemberGroup[]
+  tags: UserTag[]
+  onSaved: () => Promise<void> | void
 }>()
 
 const {t} = useI18n()
 const name = ref('')
-const audience = ref<ChatAudience>(ChatAudience.STATION)
-const chosen = ref<number | null>(null)
+const audience = ref<RestrictionSelection>(emptyRestriction())
 const includeGuardians = ref(false)
-const groups = ref<MemberGroup[]>([])
-const tags = ref<UserTag[]>([])
-const saving = ref(false)
-const failure = ref<Failure | null>(null)
 
-/** The audiences in the order the dialog offers them. */
-const AUDIENCES = [ChatAudience.STATION, ChatAudience.GROUP, ChatAudience.TAG] as const
-
-const choices = computed(() => audience.value === ChatAudience.GROUP ? groups.value : tags.value)
-
-watch(open, async isOpen => {
+watch(open, isOpen => {
   if (!isOpen) return
-  name.value = ''
-  audience.value = ChatAudience.STATION
-  chosen.value = null
-  includeGuardians.value = false
-  failure.value = null
-  groups.value = await listGroups().catch(() => [])
-  tags.value = await listChoosableTags().catch(() => [])
+  clearError()
+  name.value = props.chat?.name ?? ''
+  audience.value = props.chat ? toRestriction(props.chat.audience) : emptyRestriction()
+  includeGuardians.value = props.chat?.includeGuardians ?? false
+}, {immediate: true})
+
+const {running: saving, failure, run: submit, clearError} = useAsyncAction(async () => {
+  const request = {name: name.value.trim(), audience: audience.value, includeGuardians: includeGuardians.value}
+  if (props.chat) await updateStationChat(props.chat.uid, request)
+  else await openStationChat(request)
+  open.value = false
+  await props.onSaved()
 })
-
-watch(audience, () => {
-  chosen.value = null
-  includeGuardians.value = false
-})
-
-function chooseAudience(value: string | number | null | undefined) {
-  if (value === ChatAudience.GROUP || value === ChatAudience.TAG) {
-    audience.value = value
-    return
-  }
-  audience.value = ChatAudience.STATION
-}
-
-async function submit() {
-  saving.value = true
-  failure.value = null
-  try {
-    await openStationChat({
-      name: name.value.trim(),
-      audience: audience.value,
-      groupId: audience.value === ChatAudience.GROUP ? chosen.value : null,
-      tagId: audience.value === ChatAudience.TAG ? chosen.value : null,
-      includeGuardians: audience.value !== ChatAudience.STATION && includeGuardians.value,
-    })
-    open.value = false
-    await props.onOpened()
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  } finally {
-    saving.value = false
-  }
-}
 </script>
 
 <template>
   <Modal v-model="open" size="md">
     <div class="space-y-3 p-4">
-      <SubHeader>{{ t('stationChats.open.title') }}</SubHeader>
+      <SubHeader>{{ chat ? t('stationChats.open.editTitle') : t('stationChats.open.title') }}</SubHeader>
       <FieldLabel for="station-chat-name">{{ t('stationChats.open.name') }}</FieldLabel>
       <TextInput id="station-chat-name" v-model="name" maxlength="100" data-testid="station-chat-name"/>
-      <FieldLabel for="station-chat-audience">{{ t('stationChats.open.audience') }}</FieldLabel>
-      <SelectInput id="station-chat-audience" :model-value="audience" data-testid="station-chat-audience"
-                   @update:model-value="chooseAudience">
-        <option v-for="choice in AUDIENCES" :key="choice" :value="choice">{{ t(`stationChats.audience.${choice}`) }}</option>
-      </SelectInput>
-      <template v-if="audience !== ChatAudience.STATION">
-        <FieldLabel for="station-chat-target">{{ t(`stationChats.open.which.${audience}`) }}</FieldLabel>
-        <SelectInput id="station-chat-target" v-model="chosen" data-testid="station-chat-target">
-          <option :value="null" disabled>{{ t('stationChats.choose') }}</option>
-          <option v-for="choice in choices" :key="choice.id" :value="choice.id">{{ choice.name }}</option>
-        </SelectInput>
-        <ToggleSetting v-model="includeGuardians" :label="t('stationChats.guardians')"
-                       :hint="t('stationChats.guardiansHint')"/>
-      </template>
+      <FieldLabel>{{ t('stationChats.open.audience') }}</FieldLabel>
+      <Alert v-if="chat?.audienceGone" variant="info" data-testid="station-chat-audience-gone-check">
+        {{ t('stationChats.open.audienceGoneCheck') }}
+      </Alert>
+      <RestrictionsField v-model="audience" :groups="groups" :tags="tags" data-testid="station-chat-audience"/>
+      <FieldHint>{{ t('stationChats.open.audienceHint') }}</FieldHint>
+      <ToggleSetting v-model="includeGuardians" :label="t('stationChats.guardians')" :hint="t('stationChats.guardiansHint')"/>
       <FailureAlert :failure="failure"/>
       <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">{{ t('messages.composer.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="saving || !name.trim() || (audience !== ChatAudience.STATION && chosen === null)"
-                       :icon="['fas', 'plus']" data-testid="station-chat-submit" @click="submit">
-          {{ t('stationChats.open.submit') }}
+        <PrimaryButton :disabled="saving || !name.trim()" :icon="chat ? ['fas', 'floppy-disk'] : ['fas', 'plus']"
+                       data-testid="station-chat-submit" @click="submit">
+          {{ chat ? t('stationChats.open.save') : t('stationChats.open.submit') }}
         </PrimaryButton>
       </ButtonRow>
     </div>

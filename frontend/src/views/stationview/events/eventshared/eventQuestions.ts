@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {memberConstraintOf, namesMembers} from '@/api/fieldTypes'
-import {FieldType, type EventFieldEntry, type EventQuestionSettings} from '@/api/generated/schema'
+import {FieldType, type AppointmentField, type EventFieldEntry, type EventQuestionSettings} from '@/api/generated/schema'
 import type {QuestionSetting, QuestionSettingsModel} from '@/components/input/questionsettings/questionSettings'
 import {usableOptions} from '@/util/choiceOptions'
 
@@ -98,4 +98,22 @@ export function asSaved<T extends EventQuestionDraft>(question: T): T {
             max: type === FieldType.NUMBER ? settings.max : undefined,
         },
     }
+}
+
+/** A stored field as the editor holds it, without the id of wherever it is stored. */
+export function entryOf(field: AppointmentField): EventFieldEntry {
+    return {
+        name: field.name,
+        fieldType: field.fieldType,
+        config: field.config,
+        value: field.value,
+        overview: field.overview,
+        attendanceFieldId: field.attendanceFieldId ?? null,
+        isPublic: field.isPublic,
+    }
+}
+
+/** The fields worth saving, each in the shape it is saved in: one without a name is left out. */
+export function namedEntries<T extends EventQuestionDraft>(fields: T[]): T[] {
+    return fields.filter(field => field.name?.trim()).map(asSaved)
 }

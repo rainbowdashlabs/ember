@@ -38,6 +38,7 @@ function field(over: Partial<AppointmentField>): AppointmentField {
         isPublic: false,
         attendanceFieldId: null,
         selfRegistrationState: null,
+        readerInWholeGroup: false,
         ...over,
     }
 }

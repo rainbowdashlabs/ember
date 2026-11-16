@@ -16,9 +16,9 @@ import type {
     TemplatePage,
 } from '@/api/generated/schema'
 
-/** Who asks for documents to bring: an appointment or an appointment template, by id. */
+/** Who asks for documents to bring: an appointment, an appointment template or an event group, by id. */
 export interface RequirementOwner {
-    kind: 'events' | 'event-templates'
+    kind: 'events' | 'event-templates' | 'events/groups'
     id: number
 }
 

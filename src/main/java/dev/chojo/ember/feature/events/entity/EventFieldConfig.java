@@ -58,6 +58,18 @@ public record EventFieldConfig(
     /** These settings as the server keeps them. */
     public EventQuestionSettings settings() {
         return new EventQuestionSettings(
-                options, groupId, userType, tagId, width, selfRegistration, perDate, false, null, null, null, false);
+                options,
+                groupId,
+                userType,
+                tagId,
+                width,
+                selfRegistration,
+                perDate,
+                false,
+                null,
+                null,
+                null,
+                false,
+                null);
     }
 }

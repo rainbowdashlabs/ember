@@ -12,7 +12,6 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.BoardRefusal;
 import dev.chojo.ember.api.refusal.CommentRefusal;
 import dev.chojo.ember.api.refusal.FederationRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -68,7 +67,6 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.function.Executable;
 
 import java.time.Instant;
 import java.util.List;
@@ -1959,10 +1957,6 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
                 () -> structureProxy.proxyCreateLabel(partnerId, BOARD_KEY, "Nope", null));
 
         shareWithAskingStation(BoardShareMode.FULL);
-    }
-
-    private static void assertRefused(Refusal expected, Executable call) {
-        assertEquals(expected, assertThrows(RefusalResponse.class, call).refusal());
     }
 
     @Test

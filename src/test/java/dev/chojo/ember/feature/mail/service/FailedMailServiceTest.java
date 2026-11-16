@@ -6,8 +6,6 @@
 package dev.chojo.ember.feature.mail.service;
 
 import dev.chojo.ember.api.refusal.MailRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
-import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.mail.entity.FailedMail;
 import dev.chojo.ember.feature.mail.entity.FailedMailCause;
 import dev.chojo.ember.feature.mail.entity.MailAttachment;
@@ -20,7 +18,6 @@ import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 
 import java.time.Instant;
 import java.util.List;
@@ -33,7 +30,6 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -317,9 +313,5 @@ class FailedMailServiceTest extends RepositoryTestBase {
         query("UPDATE email_queue SET delivery_updated_at = now() - CAST(:ago AS INTERVAL) WHERE id = :id;")
                 .single(call().bind("id", id).bind("ago", ago))
                 .update();
-    }
-
-    private static void assertRefused(Refusal expected, Executable action) {
-        assertEquals(expected, assertThrows(RefusalResponse.class, action).refusal());
     }
 }

@@ -216,7 +216,7 @@ public class WaitlistInvitationMessage {
     }
 
     private String location(StationEvent event, Station station, LocalDate date) {
-        return eventFieldRepository.findByEventOn(event.id(), date).stream()
+        return eventFieldRepository.findShownOn(event.id(), date).stream()
                 .filter(field -> field.fieldType() == FieldType.LOCATION)
                 .map(AppointmentField::value)
                 .filter(value -> value != null && !value.isBlank())

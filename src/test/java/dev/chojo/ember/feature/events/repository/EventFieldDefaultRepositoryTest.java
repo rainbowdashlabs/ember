@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.repository;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
+import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -78,6 +79,39 @@ class EventFieldDefaultRepositoryTest extends RepositoryTestBase {
                     .isEmpty());
         } finally {
             eventRepo.delete(event.id());
+            attendanceRepo.archiveTemplate(template.id());
+        }
+    }
+
+    @Test
+    void anEventGroupHoldsItsOwnDefaultsUnderItsId() {
+        var template = attendanceRepo.createTemplate(station.id(), "FDGroupTemplate");
+        attendanceRepo.createTemplateField(
+                template.id(), "Kleidung", FieldType.TEXT, AttendanceFieldConfig.parse("{}"), 0);
+        int templateFieldId =
+                attendanceRepo.findTemplateFields(template.id()).getFirst().id();
+        var eventGroup = new EventGroupRepository()
+                .create(
+                        station.id(),
+                        new EventGroupDetails("FieldDefault Group", null, null, null, false, null, null, null));
+        try {
+            eventFieldDefaultRepo.replace(
+                    AppointmentOwner.EVENT_GROUP,
+                    eventGroup.id(),
+                    List.of(new EventFieldDefault(eventGroup.id(), templateFieldId, "VALUE", "Uniform")));
+            var found = eventFieldDefaultRepo.findByOwner(AppointmentOwner.EVENT_GROUP, eventGroup.id());
+            assertEquals(1, found.size());
+            assertEquals(eventGroup.id(), found.getFirst().eventId());
+            assertEquals("Uniform", found.getFirst().value());
+            assertTrue(eventFieldDefaultRepo
+                    .findByOwner(AppointmentOwner.EVENT, eventGroup.id())
+                    .isEmpty());
+
+            eventFieldDefaultRepo.replace(AppointmentOwner.EVENT_GROUP, eventGroup.id(), List.of());
+            assertTrue(eventFieldDefaultRepo
+                    .findByOwner(AppointmentOwner.EVENT_GROUP, eventGroup.id())
+                    .isEmpty());
+        } finally {
             attendanceRepo.archiveTemplate(template.id());
         }
     }

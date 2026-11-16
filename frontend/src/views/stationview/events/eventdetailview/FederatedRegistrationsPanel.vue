@@ -16,12 +16,15 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
 import type {EnrichedFederationRegistration, PartnerPlacesView} from '@/api/generated/schema'
+import {RegistrationStatus} from '@/api/generated/schema'
 import {formatDate} from '@/util/format'
 
 const props = defineProps<{
   registrations: EnrichedFederationRegistration[]
   /** What each partner may do here, by partner. Absent means this station decides, as it always did. */
   partnerPlaces: PartnerPlacesView[]
+  /** Whether the appointment is a part of an event group, whose partner sign-ups are decided on the event group. */
+  eventGroupPart?: boolean
 }>()
 
 /**
@@ -51,17 +54,20 @@ const {t} = useI18n()
         <div class="flex items-center gap-2">
           <MemberName v-if="fr.memberIdentity" :identity="fr.memberIdentity"/>
           <MutedText size="sm">{{ formatDate(fr.registration.eventDate) }}</MutedText>
-          <SuccessBadge v-if="fr.registration.status === 'ACCEPTED'">{{ t('eventsUpcoming.statusAccepted') }}</SuccessBadge>
-          <InfoBadge v-else-if="fr.registration.status === 'PENDING'">{{ t('eventsUpcoming.statusPending') }}</InfoBadge>
-          <ErrorBadge v-else-if="fr.registration.status === 'DENIED'">{{ t('eventsUpcoming.statusDenied') }}</ErrorBadge>
+          <SuccessBadge v-if="fr.registration.status === RegistrationStatus.ACCEPTED">{{ t('eventsUpcoming.statusAccepted') }}</SuccessBadge>
+          <InfoBadge v-else-if="fr.registration.status === RegistrationStatus.PENDING">{{ t('eventsUpcoming.statusPending') }}</InfoBadge>
+          <ErrorBadge v-else-if="fr.registration.status === RegistrationStatus.DENIED">{{ t('eventsUpcoming.statusDenied') }}</ErrorBadge>
           <ErrorBadge v-if="fr.registration.agreementWithdrawnAt" data-testid="federated-agreement-withdrawn">
             {{ t('eventDetail.federatedAgreementWithdrawn') }}
           </ErrorBadge>
         </div>
-        <MutedText v-if="partnerDecides(fr.registration.partnerId)" size="sm">
+        <MutedText v-if="eventGroupPart && fr.registration.status === RegistrationStatus.PENDING" size="sm" data-testid="federated-decided-on-group">
+          {{ t('eventGroups.decidedOnEventGroup') }}
+        </MutedText>
+        <MutedText v-else-if="partnerDecides(fr.registration.partnerId)" size="sm">
           {{ t('eventDetail.federatedPartnerDecides') }}
         </MutedText>
-        <ButtonRow v-else-if="fr.registration.status === 'PENDING'" pair>
+        <ButtonRow v-else-if="fr.registration.status === RegistrationStatus.PENDING" pair>
           <PrimaryButton compact @click="emit('accept', fr.registration.id)">
             <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>
             {{ t('eventsRegistrations.accept') }}

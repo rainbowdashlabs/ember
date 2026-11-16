@@ -107,44 +107,27 @@ public enum MessageRefusal implements Refusal {
     /** Starting a station chat the way a direct conversation or group is started. */
     START_NOT_A_STATION_CHAT(28, HttpStatus.BAD_REQUEST, "A station chat is opened by the station, not started"),
 
-    /** Leaving a station chat, whose members follow the station, a group or a tag. */
+    /** Leaving a station chat, whose members follow its audience. */
     STATION_CHAT_NOT_LEFT(29, HttpStatus.BAD_REQUEST, "A station chat cannot be left; mute it instead"),
 
     /** Writing, reacting or changing a message in a closed chat. */
     CHAT_CLOSED(30, HttpStatus.CONFLICT, "This chat is closed and takes nothing new"),
 
-    /** A second open chat for a station, group or tag that has one. */
-    STATION_CHAT_TAKEN(31, HttpStatus.CONFLICT, "There is an open chat for this already"),
-
     /** A station chat that does not exist or belongs to another station. */
     STATION_CHAT_NOT_HERE(32, HttpStatus.NOT_FOUND, "That chat is not one of this station's"),
 
-    /** A group chat for a group that is not one of the station's. */
-    STATION_CHAT_GROUP_NOT_HERE(33, HttpStatus.NOT_FOUND, "That group is not one of this station's"),
-
-    /** A tag chat for a tag that is not one of the station's. */
-    STATION_CHAT_TAG_NOT_HERE(34, HttpStatus.NOT_FOUND, "That tag is not one of this station's"),
+    /** A chat audience naming a group, tag or member of another station. */
+    STATION_CHAT_AUDIENCE_NOT_HERE(33, HttpStatus.NOT_FOUND, "Part of that audience is not of this station"),
 
     /** A station chat without a name. */
     STATION_CHAT_NAME_MISSING(35, HttpStatus.BAD_REQUEST, "A station chat needs a name"),
 
-    /** Reopening a chat whose group or tag was deleted. */
+    /** Reopening a chat whose audience lost part of what it named. */
     STATION_CHAT_AUDIENCE_GONE(
-            36, HttpStatus.CONFLICT, "The group or tag of this chat was deleted, so it stays closed"),
-
-    /** Taking guardians into a chat for the whole station, which has no such choice. */
-    STATION_CHAT_GUARDIANS_NOT_TAKEN(
-            37, HttpStatus.BAD_REQUEST, "Only a chat for a group or tag can take the guardians in"),
-
-    /** A group or tag chat that names no group or tag, or a station-wide chat that names one. */
-    STATION_CHAT_AUDIENCE_UNCLEAR(
-            38, HttpStatus.BAD_REQUEST, "A group chat names its group, a tag chat its tag, a station chat neither"),
+            36, HttpStatus.CONFLICT, "Part of whom this chat was for is gone; give it a new audience to reopen it"),
 
     /** A station chat name longer than a name can be. */
     STATION_CHAT_NAME_TOO_LONG(39, HttpStatus.BAD_REQUEST, "A chat name can be at most 100 characters long"),
-
-    /** Changing whether a chat takes the guardians in without saying which way. */
-    STATION_CHAT_GUARDIANS_UNSAID(40, HttpStatus.BAD_REQUEST, "Say whether the guardians are to be in the chat"),
 
     /** Reporting a message outside a station chat, where nobody handles reports. */
     REPORT_NOT_A_STATION_CHAT(41, HttpStatus.BAD_REQUEST, "Only messages in a station chat can be reported"),
@@ -164,12 +147,12 @@ public enum MessageRefusal implements Refusal {
     /** Changing anything in a station chat while its station moves to another installation. */
     STATION_CHAT_MOVING(46, HttpStatus.SERVICE_UNAVAILABLE, Sentences.STATION_BEING_TRANSFERRED),
 
-    /** A chat for a private tag, which would show everybody in it who carries the tag. */
-    STATION_CHAT_TAG_PRIVATE(
-            47, HttpStatus.BAD_REQUEST, "A private tag cannot have a chat, since the chat shows who carries it"),
-
     /** Anything about messages while an administrator turned them off for the whole instance. */
-    MESSAGES_OFF(48, HttpStatus.NOT_FOUND, "Messages are turned off on this instance");
+    MESSAGES_OFF(48, HttpStatus.NOT_FOUND, "Messages are turned off on this instance"),
+
+    /** Changing a station chat without saying whom it is for or whether guardians are in it. */
+    STATION_CHAT_CHANGE_UNSAID(
+            49, HttpStatus.BAD_REQUEST, "Say whom the chat is for and whether the guardians are in it");
 
     private final Definition definition;
 

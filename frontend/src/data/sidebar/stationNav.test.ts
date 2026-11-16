@@ -158,11 +158,30 @@ describe('STATION_NAV', () => {
     })
 
     describe('station chats', () => {
-        it('are there for whoever handles them while messages are on, and gone once the instance turned messages off', () => {
-            const manager = [StationPermission.MESSAGE_CHAT_MANAGE]
+        const manager = [StationPermission.MESSAGE_CHAT_MANAGE]
 
-            expect(section(nav(manager), 'station-messages')).toBeDefined()
-            expect(section(resolveNav(STATION_NAV, readerWith(manager, undefined, false), key => key), 'station-messages')).toBeUndefined()
+        function managePages(nodes: NavNode[]) {
+            const manage = section(nodes, 'manage')
+            return manage ? navPages([manage]).map(page => page.to) : []
+        }
+
+        it('sit in the station management for whoever handles them, even without any other right there', () => {
+            expect(managePages(nav(manager))).toEqual(['/station/manage/chats'])
+        })
+
+        it('leave the reported messages where they were', () => {
+            expect(section(nav(manager), 'message-reports')).toBeDefined()
+        })
+
+        it('are gone once the instance turned messages off', () => {
+            const off = resolveNav(STATION_NAV, readerWith(manager, undefined, false), key => key)
+
+            expect(managePages(off)).toEqual([])
+            expect(section(off, 'message-reports')).toBeUndefined()
+        })
+
+        it('stand among the other management pages for a station manager', () => {
+            expect(managePages(nav([StationPermission.STATION_GENERAL, ...manager]))).toContain('/station/manage/chats')
         })
     })
 })

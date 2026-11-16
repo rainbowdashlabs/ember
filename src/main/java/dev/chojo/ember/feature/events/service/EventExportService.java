@@ -167,7 +167,7 @@ public class EventExportService {
             var event = expanded.event();
             Map<String, String> fieldMap = Map.of();
             if (needsFields) {
-                var fields = eventFieldRepository.findByEventOn(event.id(), expanded.date());
+                var fields = eventFieldRepository.findShownOn(event.id(), expanded.date());
                 fieldMap = fieldCells(fields, memberNames(fields), language);
             }
             var values = new ArrayList<String>();

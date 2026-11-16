@@ -24,7 +24,7 @@ function summary(uid: string, overrides: Partial<ConversationSummaryResponse> = 
 
 const STATION_CHAT = summary('chat', {
   kind: 'STATION', name: 'Alle', others: [],
-  station: {stationUid: 'station', stationName: 'Wache Nord', audience: 'STATION', includeGuardians: false, closed: true},
+  station: {stationUid: 'station', stationName: 'Wache Nord', includeGuardians: false, closed: true},
 })
 
 function list(conversations: ConversationSummaryResponse[]) {

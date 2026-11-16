@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.board.route.RemoteBoardTicketDetailRoutes;
 import dev.chojo.ember.feature.board.route.RemoteBoardTicketLinkRoutes;
 import dev.chojo.ember.feature.board.route.RemoteBoardTicketRoutes;
 import dev.chojo.ember.feature.board.route.RemoteBoardWebhookRoutes;
+import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
 import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes;
@@ -41,6 +42,7 @@ public final class FederationContractCatalog {
                     RemoteLendingRoutes.CONTRACT,
                     RemoteInventoryTagRoutes.CONTRACT,
                     RemoteEventRoutes.CONTRACT,
+                    RemoteEventGroupRoutes.CONTRACT,
                     RemoteNewsRoutes.CONTRACT,
                     RemoteBoardWebhookRoutes.CONTRACT,
                     RemoteBoardRoutes.CONTRACT,

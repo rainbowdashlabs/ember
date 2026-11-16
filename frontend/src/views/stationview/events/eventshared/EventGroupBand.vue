@@ -1,0 +1,53 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+<script lang="ts" setup>
+import {computed} from 'vue'
+import {useI18n} from 'vue-i18n'
+import {eventGroupColor, type EventGroupMark} from './eventGroupColor'
+
+/**
+ * Marks an appointment as a part of an event group with the group's colour. As `edge` it is a band
+ * on the left edge of the row or tile it sits in, which must be positioned (`relative`) and rounded
+ * like the theme: the band lies over the tile's border and follows its rounded corners all the way
+ * down, and leaves the words to the {@link EventGroupHeading} that runs along the top edge; as `mark` it is a short bar in a line of
+ * text, for a calendar chip too narrow for a heading, and names the event group and the part
+ * ("Jugendflamme 1, Teil 2 von 4") as its label and tooltip, so nothing is said by colour alone.
+ */
+const props = withDefaults(defineProps<{
+  eventGroup: EventGroupMark
+  variant?: 'edge' | 'mark'
+}>(), {
+  variant: 'edge',
+})
+
+const {t} = useI18n()
+
+const label = computed(() => props.eventGroup.number == null
+  ? props.eventGroup.eventGroupName
+  : t('eventGroups.badge', {
+    eventGroup: props.eventGroup.eventGroupName,
+    number: props.eventGroup.number,
+    count: props.eventGroup.count,
+  }))
+const color = computed(() => eventGroupColor(props.eventGroup.eventGroupId, props.eventGroup.color))
+</script>
+
+<template>
+  <template v-if="variant === 'edge'">
+    <span aria-hidden="true" class="pointer-events-none absolute -inset-px m-0 overflow-hidden rounded-theme" data-testid="event-group-band">
+      <span class="absolute inset-y-0 left-0 w-1.5" :style="{backgroundColor: color}"/>
+    </span>
+  </template>
+  <span
+      v-else
+      role="img"
+      :aria-label="label"
+      :title="label"
+      class="inline-block w-1 h-[0.9em] mr-0.5 align-[-0.1em] rounded-sm"
+      :style="{backgroundColor: color}"
+      data-testid="event-group-band"
+  />
+</template>

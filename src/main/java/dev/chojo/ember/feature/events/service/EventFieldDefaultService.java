@@ -60,10 +60,10 @@ public class EventFieldDefaultService {
     }
 
     /**
-     * Retrieves all field default configurations of an event or a template.
+     * Retrieves all field default configurations of an event, a template or an event group.
      *
      * @param owner   whose values these are
-     * @param ownerId the event or template
+     * @param ownerId the event, template or event group
      * @return the list of field defaults
      */
     public List<EventFieldDefault> find(AppointmentOwner owner, int ownerId) {
@@ -78,7 +78,11 @@ public class EventFieldDefaultService {
      * sheet would fill in a sheet nobody opens. Such a value is dropped rather than stored, the way a
      * template question's tie to another sheet is.
      *
-     * @param owner    whose values these are
+     * <p>An event group's values are checked against the template it is being saved with, before that
+     * template is stored, so they go through {@link #checkedForEventGroup} and
+     * {@link #replaceOfEventGroup} instead.
+     *
+     * @param owner    whose values these are, an event or a template
      * @param ownerId  the event or template
      * @param defaults the new field default configurations
      */
@@ -95,6 +99,34 @@ public class EventFieldDefaultService {
                 : defaults;
         Transactions.run(() -> fieldDefaultRepository.replace(owner, ownerId, kept));
         log.info("Set field defaults for {} {} ({} defaults)", owner, ownerId, kept.size());
+    }
+
+    /**
+     * Checks the starting values an event group is to hold for its attendance template, the way a
+     * template's are: a value for a field the template does not use is dropped, none are kept without
+     * a template, and a typed value has to be one the field takes.
+     *
+     * @param sheetId  the event group's attendance template, or null for none
+     * @param defaults the values asked for
+     * @return the values to keep
+     */
+    public List<EventFieldDefault> checkedForEventGroup(@Nullable Integer sheetId, List<EventFieldDefault> defaults) {
+        var questions = sheetQuestions(sheetId);
+        requireAnswerable(questions, defaults);
+        return defaults.stream()
+                .filter(chosen -> questions.containsKey(chosen.fieldId()))
+                .toList();
+    }
+
+    /**
+     * Replaces the starting values of an event group, already checked against the attendance template it
+     * is saved with.
+     *
+     * @param eventGroupId the event group
+     * @param defaults     the values, from {@link #checkedForEventGroup}
+     */
+    public void replaceOfEventGroup(int eventGroupId, List<EventFieldDefault> defaults) {
+        fieldDefaultRepository.replace(AppointmentOwner.EVENT_GROUP, eventGroupId, defaults);
     }
 
     /**
@@ -118,7 +150,11 @@ public class EventFieldDefaultService {
         }
     }
 
-    /** The attendance sheet an event is taken on, or a template hands its events, if any. */
+    /**
+     * The attendance sheet an event is taken on, or a template hands its events, if any.
+     *
+     * @throws IllegalArgumentException for an event group, whose values are not set through here
+     */
     private @Nullable Integer sheetOf(AppointmentOwner owner, int ownerId) {
         return switch (owner) {
             case EVENT ->
@@ -128,6 +164,7 @@ public class EventFieldDefaultService {
                         .findById(ownerId)
                         .map(EventTemplate::attendanceTemplateId)
                         .orElse(null);
+            case EVENT_GROUP -> throw new IllegalArgumentException("An event group's values are checked on saving");
         };
     }
 
@@ -145,7 +182,7 @@ public class EventFieldDefaultService {
         var event = eventRepository.findById(eventId).orElse(null);
         if (event == null) return Map.of();
 
-        var defaults = fieldDefaultRepository.findByOwner(AppointmentOwner.EVENT, eventId);
+        var defaults = fieldDefaultRepository.findEffective(eventId);
         var result = new HashMap<Integer, String>();
         for (var def : defaults) {
             String resolved =

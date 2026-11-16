@@ -146,6 +146,17 @@ class ExceptionMappingTest {
     }
 
     @Test
+    void aValueOfTheWrongShapeNamesItsFieldBesideTheSentence() {
+        var response = reading("{\"name\":{\"first\":\"a\"}}");
+
+        var body = json(response);
+        assertEquals(BodyRefusal.BODY_DOES_NOT_MATCH.code(), body.path("code").asString());
+        assertTrue(body.path("message").asString().endsWith(": name"), body.toString());
+        assertEquals("TEXT", body.path("detail").path("kind").asString());
+        assertEquals("name", body.path("detail").path("text").asString());
+    }
+
+    @Test
     void aFieldTheEndpointDoesNotTakeIsNamed() {
         var response = reading("{\"name\":\"a\",\"colour\":\"red\"}");
 

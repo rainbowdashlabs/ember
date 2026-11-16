@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.messages.entity;
 
+import dev.chojo.ember.api.MemberIdentity;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
@@ -21,6 +22,8 @@ import java.util.Map;
  *                     guardian in it looks after there, by account; empty otherwise
  * @param moderator    whether the reader handles the chats of a station chat's station, and so may
  *                     remove any message in it
+ * @param stationPeople for a station chat, how its station shows each member who is still there,
+ *                     with their name, group color and tag, by account; empty otherwise
  */
 public record ConversationDetail(
         Conversation conversation,
@@ -28,4 +31,5 @@ public record ConversationDetail(
         Membership mine,
         @Nullable StationRef station,
         Map<Integer, List<String>> guardianFor,
-        boolean moderator) {}
+        boolean moderator,
+        Map<Integer, MemberIdentity> stationPeople) {}

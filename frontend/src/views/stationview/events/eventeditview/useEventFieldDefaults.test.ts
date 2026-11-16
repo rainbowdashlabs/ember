@@ -55,7 +55,7 @@ describe('useEventFieldDefaults', () => {
 
         expect(api.events.getTemplateFieldDefaults).toHaveBeenCalledWith(31)
         expect(api.events.setTemplateFieldDefaults).toHaveBeenCalledWith(31, [
-            {fieldId: 3, source: 'EVENT_NAME', value: undefined},
+            {fieldId: 3, source: 'EVENT_NAME', value: null},
             {fieldId: 4, source: 'VALUE', value: 'Hof'},
         ])
         expect(api.events.setFieldDefaults).not.toHaveBeenCalled()

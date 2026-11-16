@@ -29,6 +29,7 @@ defineEmits<{
 const classes = computed(() => [
   props.fullWidth ? 'w-full justify-center' : '',
   props.compact ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm',
+  props.to && !props.disabled ? 'row-link' : '',
   'inline-flex items-center whitespace-nowrap rounded-theme font-medium transition-all duration-150 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:hover:brightness-100',
 ])
 </script>

@@ -13,10 +13,9 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import EventFieldValueInput from './EventFieldValueInput.vue'
-import {useAnswerMembers} from './useAnswerMembers'
-import {FieldType, type EventRegistrationFieldValue, type EventRegistrationField} from '@/api/generated/schema'
+import RegistrationFieldInputs from './RegistrationFieldInputs.vue'
+import {answersToSend, missingAnswers, seedAnswers, type RegistrationAnswers} from './registrationAnswers'
+import type {EventRegistrationFieldValue, EventRegistrationField} from '@/api/generated/schema'
 
 const props = defineProps<{
   fields: EventRegistrationField[]
@@ -39,42 +38,18 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const answers = ref<Record<number, string>>({})
+const answers = ref<RegistrationAnswers>({})
 
-const {allMembers, groupMembers, tagMembers, loadMembers} = useAnswerMembers(computed(() => props.fields))
-
-const missing = computed(() =>
-    props.fields.filter(f => f.config?.required && !(answers.value[f.id] ?? '').trim()))
-
-/**
- * Seeds the form every time it opens: with the answers already on file where there are any, and
- * with the configured defaults where there are none. A default is what the member starts from, not
- * an answer already given on their behalf, so it never stands in front of one that was.
- */
-function seed() {
-  const onFile = new Map((props.values ?? []).map(value => [value.fieldId, value.value]))
-  const seeded: Record<number, string> = {}
-  for (const field of props.fields) {
-    seeded[field.id] = onFile.get(field.id) ?? field.config?.defaultValue ?? ''
-  }
-  answers.value = seeded
-}
-
-function answerOf(fieldId: number): string {
-  return answers.value[fieldId] ?? ''
-}
+const missing = computed(() => missingAnswers(props.fields, answers.value))
 
 function confirm() {
   if (missing.value.length > 0) return
-  emit('confirm', props.fields
-      .map(field => ({fieldId: field.id, value: answers.value[field.id] ?? ''}))
-      .filter(entry => entry.value.trim() !== ''))
+  emit('confirm', answersToSend(props.fields, answers.value))
 }
 
+/** Seeds the form every time it opens, from the answers on file and the configured defaults. */
 watch(show, (open) => {
-  if (!open) return
-  seed()
-  loadMembers()
+  if (open) answers.value = seedAnswers(props.fields, props.values)
 }, {immediate: true})
 </script>
 
@@ -84,33 +59,7 @@ watch(show, (open) => {
 
     <FailureAlert :failure="failure" :message="error" class="mb-3"/>
 
-    <div class="space-y-3">
-      <div v-for="field in fields" :key="field.id">
-        <FieldLabel class="mb-1">
-          {{ field.name }}
-          <span v-if="field.config?.required" class="text-error">*</span>
-        </FieldLabel>
-        <EventFieldValueInput
-            :model-value="answerOf(field.id)"
-            :field-type="field.fieldType"
-            :config="field.config"
-            :all-members="allMembers"
-            :group-members="groupMembers"
-            :tag-members="tagMembers"
-            @update:model-value="v => { answers[field.id] = v }"
-        />
-        <p
-            v-if="field.fieldType === FieldType.NUMBER && (field.config?.min != null || field.config?.max != null)"
-            class="text-xs text-(--text-muted) mt-1"
-        >
-          {{ t('events.registrationFields.range', {min: field.config?.min ?? '–', max: field.config?.max ?? '–'}) }}
-        </p>
-      </div>
-    </div>
-
-    <p v-if="missing.length > 0" class="text-xs text-error mt-3">
-      {{ t('events.registrationFields.missing', {fields: missing.map(f => f.name).join(', ')}) }}
-    </p>
+    <RegistrationFieldInputs v-model="answers" :fields="fields"/>
 
     <ButtonRow pair align="end" class="mt-4">
       <SecondaryButton @click="show = false">{{ t('common.cancel') }}</SecondaryButton>

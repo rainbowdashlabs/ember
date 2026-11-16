@@ -5,7 +5,7 @@
  */
 import type {AllEventRestrictions} from '@/api/events'
 import type {MemberGroup, UserTag} from '@/api/generated/schema'
-import {namesSomebody, normalizedRestriction, restrictionLabels} from '@/components/input/restriction'
+import {audienceWords, namesSomebody, normalizedRestriction} from '@/components/input/restriction'
 
 /** The slice of vue-i18n's translate this module needs: plain, interpolated and pluralised. */
 type Translate = (key: string, arg?: number | Record<string, unknown>) => string
@@ -18,11 +18,6 @@ type Translate = (key: string, arg?: number | Record<string, unknown>) => string
  * Where both audiences are the same no such reader exists, because whoever is outside the answering
  * audience never sees the appointment, and where no answering audience is named at all everybody
  * who sees it may answer. Both cases say nothing.
- *
- * <p>Within one kind a member matches any of the named values, so those are joined with "oder";
- * the kinds themselves combine by the audience's own mode. Individually picked members always
- * grant on their own, whatever the mode, so they join with "oder" and are counted rather than
- * named: whoever resolves names needs a permission the reader of this sentence rarely has.
  */
 export function registrationAudienceNote(
     restrictions: AllEventRestrictions,
@@ -37,19 +32,22 @@ export function registrationAudienceNote(
     if (!namesSomebody(register)) return null
     const view = normalizedRestriction(entry.view)
     if (JSON.stringify(register) === JSON.stringify(view)) return null
+    return t('eventsUpcoming.registrationAudience', {audience: audienceWords(entry.register, groups, tags, t)})
+}
 
-    const or = t('eventsUpcoming.audienceOr')
-    const labels = restrictionLabels(register, groups, tags)
-    const parts = [labels.userTypes, labels.groups, labels.tags]
-        .filter(names => names.length > 0)
-        .map(names => names.join(or))
-
-    let audience = parts.join(entry.register.mode === 'OR' ? or : t('eventsUpcoming.audienceAnd'))
-    if (register.memberIds.length > 0) {
-        const members = register.memberIds.length === 1
-            ? t('eventsUpcoming.audienceMemberOne')
-            : t('eventsUpcoming.audienceMemberMany', {n: register.memberIds.length})
-        audience = audience ? audience + or + members : members
-    }
-    return t('eventsUpcoming.registrationAudience', {audience})
+/**
+ * Who may see an appointment kept from some of the station, as one readable sentence, or null where
+ * everybody sees it. It goes with the lock a kept appointment carries, so the lock does not leave the
+ * reader guessing whom it keeps out.
+ */
+export function viewAudienceNote(
+    restrictions: AllEventRestrictions,
+    eventId: number,
+    groups: MemberGroup[],
+    tags: UserTag[],
+    t: Translate,
+): string | null {
+    const entry = restrictions[eventId]
+    if (!entry || !namesSomebody(normalizedRestriction(entry.view))) return null
+    return t('eventsUpcoming.viewAudience', {audience: audienceWords(entry.view, groups, tags, t)})
 }

@@ -32,6 +32,14 @@ const eventRoutes = useEventRoutes()
       <SecondaryButton :icon="['fas', 'calendar-plus']" @click="router.push({name: eventRoutes.batch})">
         {{ t('sidebar.eventBatch') }}
       </SecondaryButton>
+      <SecondaryButton
+          v-if="eventRoutes.eventGroupCreate"
+          :icon="['fas', 'layer-group']"
+          data-testid="event-group-create"
+          @click="router.push({name: eventRoutes.eventGroupCreate})"
+      >
+        {{ t('eventGroups.create') }}
+      </SecondaryButton>
       <PrimaryButton data-onboarding="events.create" :icon="['fas', 'plus']" @click="emit('addEvent')">
         {{ t('events.addEvent') }}
       </PrimaryButton>

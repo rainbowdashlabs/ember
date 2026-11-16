@@ -77,26 +77,28 @@ class StationChatRoutesTest extends MessageTestBase {
     }
 
     @Test
-    void aManagerOpensListsRenamesClosesAndReopensAChat() {
+    void aManagerOpensListsChangesClosesAndReopensAChat() {
         harness.run((server, client) -> {
             String base = PREFIX + "/messages/station-chats";
-            var opened = client.post(
-                    base,
-                    body("{\"name\":\"Alle\",\"audience\":\"STATION\"}"),
-                    as(manager, StationPermission.MESSAGE_CHAT_MANAGE));
+            var opened =
+                    client.post(base, body("{\"name\":\"Alle\"}"), as(manager, StationPermission.MESSAGE_CHAT_MANAGE));
             assertEquals(201, opened.code());
             var chat = json(opened);
-            assertEquals("STATION", chat.get("audience").asString());
+            assertEquals(0, chat.get("audience").get("groupIds").size(), "an audience naming nobody");
             assertEquals(2, chat.get("members").asInt());
             String uid = chat.get("uid").asString();
 
+            var changed = client.put(
+                    base + "/" + uid,
+                    body("{\"name\":\"Wache\",\"includeGuardians\":true,\"audience\":{\"userTypes\":[],"
+                            + "\"groupIds\":[],\"tagIds\":[],\"memberIds\":[" + member.id() + "],\"mode\":\"OR\"}}"),
+                    as(manager, StationPermission.MESSAGE_CHAT_MANAGE));
+            assertEquals(200, changed.code());
+            var edited = json(changed);
             assertEquals(
-                    204,
-                    client.put(
-                                    base + "/" + uid + "/name",
-                                    body("{\"name\":\"Wache\"}"),
-                                    as(manager, StationPermission.MESSAGE_CHAT_MANAGE))
-                            .code());
+                    member.id(), edited.get("audience").get("memberIds").get(0).asInt());
+            assertTrue(edited.get("includeGuardians").asBoolean());
+            assertEquals(1, edited.get("members").asInt());
             assertEquals(
                     204,
                     client.post(base + "/" + uid + "/close", null, as(manager, StationPermission.MESSAGE_CHAT_MANAGE))
@@ -110,21 +112,30 @@ class StationChatRoutesTest extends MessageTestBase {
                     client.post(base + "/" + uid + "/reopen", null, as(manager, StationPermission.MESSAGE_CHAT_MANAGE))
                             .code());
             assertEquals(
-                    MessageRefusal.STATION_CHAT_GUARDIANS_NOT_TAKEN,
+                    MessageRefusal.STATION_CHAT_AUDIENCE_NOT_HERE,
                     refusalOf(client.put(
-                            base + "/" + uid + "/guardians",
-                            body("{\"includeGuardians\":true}"),
+                            base + "/" + uid,
+                            body(
+                                    "{\"name\":\"Wache\",\"includeGuardians\":false,\"audience\":{\"userTypes\":[],\"groupIds\":[],"
+                                            + "\"tagIds\":[],\"memberIds\":[999999],\"mode\":\"AND\"}}"),
                             as(manager, StationPermission.MESSAGE_CHAT_MANAGE))));
+            assertEquals(
+                    MessageRefusal.STATION_CHAT_CHANGE_UNSAID,
+                    refusalOf(client.put(
+                            base + "/" + uid,
+                            body("{\"name\":\"Alle\"}"),
+                            as(manager, StationPermission.MESSAGE_CHAT_MANAGE))));
+            assertEquals(
+                    403,
+                    client.put(base + "/" + uid, body("{\"name\":\"Meins\"}"), as(member))
+                            .code());
         });
     }
 
     @Test
     void withoutThePermissionNobodyHandlesTheStationsChats() {
         harness.run((server, client) -> {
-            var refused = client.post(
-                    PREFIX + "/messages/station-chats",
-                    body("{\"name\":\"Alle\",\"audience\":\"STATION\"}"),
-                    as(member));
+            var refused = client.post(PREFIX + "/messages/station-chats", body("{\"name\":\"Alle\"}"), as(member));
             assertEquals(403, refused.code());
             assertEquals(
                     403,
@@ -137,7 +148,7 @@ class StationChatRoutesTest extends MessageTestBase {
         harness.run((server, client) -> {
             var opened = json(client.post(
                     PREFIX + "/messages/station-chats",
-                    body("{\"name\":\"Alle\",\"audience\":\"STATION\"}"),
+                    body("{\"name\":\"Alle\"}"),
                     as(manager, StationPermission.MESSAGE_CHAT_MANAGE)));
             String uid = opened.get("uid").asString();
 
@@ -164,7 +175,7 @@ class StationChatRoutesTest extends MessageTestBase {
         harness.run((server, client) -> {
             String uid = json(client.post(
                             PREFIX + "/messages/station-chats",
-                            body("{\"name\":\"Alle\",\"audience\":\"STATION\"}"),
+                            body("{\"name\":\"Alle\"}"),
                             as(manager, StationPermission.MESSAGE_CHAT_MANAGE)))
                     .get("uid")
                     .asString();
@@ -192,7 +203,7 @@ class StationChatRoutesTest extends MessageTestBase {
         harness.run((server, client) -> {
             String uid = json(client.post(
                             PREFIX + "/messages/station-chats",
-                            body("{\"name\":\"Alle\",\"audience\":\"STATION\"}"),
+                            body("{\"name\":\"Alle\"}"),
                             as(manager, StationPermission.MESSAGE_CHAT_MANAGE)))
                     .get("uid")
                     .asString();

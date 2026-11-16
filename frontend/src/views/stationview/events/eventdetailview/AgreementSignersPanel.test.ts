@@ -7,11 +7,12 @@ import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import {RequirementSignatureState, type AgreementSigner} from '@/api/generated/schema'
-import {appointmentDocuments} from '@/api'
+import {appointmentDocuments, eventGroups} from '@/api'
 import AgreementSignersPanel from './AgreementSignersPanel.vue'
 
 vi.mock('@/api', () => ({
     appointmentDocuments: {agreementSigners: vi.fn()},
+    eventGroups: {agreementSigners: vi.fn()},
 }))
 
 function signer(memberId: number | null, name: string, overrides: Partial<AgreementSigner> = {}): AgreementSigner {
@@ -85,5 +86,17 @@ describe('AgreementSignersPanel', () => {
         const panel = await mountPanel([])
 
         expect(panel.find('[data-testid="agreement-signers"]').exists()).toBe(false)
+    })
+
+    it('lists the signers of an event group\'s documents where an event group is given', async () => {
+        vi.mocked(eventGroups.agreementSigners).mockResolvedValue([signer(11, 'Lena Schmidt')])
+
+        const panel = await mountSuspended(AgreementSignersPanel, {props: {eventGroupId: 70}})
+        await flushPromises()
+
+        expect(eventGroups.agreementSigners).toHaveBeenCalledWith(70)
+        expect(appointmentDocuments.agreementSigners).not.toHaveBeenCalled()
+        expect(panel.findAll('[data-testid="agreement-signer"]')).toHaveLength(1)
+        expect(panel.text()).toContain('Eine Unterschrift gilt für alle Termine')
     })
 })

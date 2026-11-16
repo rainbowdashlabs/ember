@@ -23,13 +23,10 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import tools.jackson.core.JacksonException;
 import tools.jackson.core.exc.StreamReadException;
 import tools.jackson.databind.exc.MismatchedInputException;
 import tools.jackson.databind.exc.UnrecognizedPropertyException;
 import tools.jackson.databind.exc.ValueInstantiationException;
-
-import java.util.List;
 
 /**
  * Turns exceptions into standardized JSON error responses.
@@ -143,8 +140,9 @@ public class ExceptionMapping {
                 ctx.json(refused.body()).status(refused.getStatus());
                 return;
             }
-            answerRefusal(
-                    ctx, BodyRefusal.BODY_DOES_NOT_MATCH, atFieldPath(BodyRefusal.BODY_DOES_NOT_MATCH, err.getPath()));
+            var refused = BodyRefusal.BODY_DOES_NOT_MATCH.raise(
+                    Failures.fieldPath(err.getPath()).orElse(null));
+            ctx.json(refused.body()).status(refused.getStatus());
         });
 
         routes.exception(ValueInstantiationException.class, (err, ctx) -> {
@@ -261,19 +259,6 @@ public class ExceptionMapping {
         log.atWarn()
                 .addKeyValue(ProblemKey.NAME, "404 " + ctx.method() + " " + endpoint.path)
                 .log("404 on {} {}: {}", ctx.method(), ctx.path(), message);
-    }
-
-    /**
-     * Names the place in a body a refusal was about, where Jackson recorded one.
-     *
-     * <p>Naming the place is the difference between a reader guessing and a reader looking. The
-     * place is spelled the way the sender wrote it, out of their own field names, so nothing of
-     * the type it failed to become is revealed.
-     */
-    private static String atFieldPath(Refusal refusal, List<JacksonException.Reference> path) {
-        return Failures.fieldPath(path)
-                .map(where -> refusal.message() + ", at " + where)
-                .orElse(refusal.message());
     }
 
     /**

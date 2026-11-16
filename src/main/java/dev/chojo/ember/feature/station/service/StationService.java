@@ -427,11 +427,25 @@ public class StationService {
     }
 
     /**
-     * Replaces all disabled modules for a station with the given set.
+     * Replaces all disabled modules for a station with the given set. Meant for setting a station up
+     * at once; switching single modules goes through {@link #setModuleDisabled}, which leaves the
+     * others alone, so two managers switching at once do not undo each other.
      */
     public void setDisabledModules(int stationId, Set<StationModule> modules) {
         stationRepository.setDisabledModules(stationId, modules);
         log.info("Station modules updated: station={}, disabled={}", stationId, modules);
+    }
+
+    /**
+     * Switches one module of a station off or on and leaves the others alone.
+     *
+     * @param stationId the station
+     * @param module    the module
+     * @param disabled  whether the station switches it off
+     */
+    public void setModuleDisabled(int stationId, StationModule module, boolean disabled) {
+        stationRepository.setModuleDisabled(stationId, module, disabled);
+        log.info("Station module switched: station={}, module={}, disabled={}", stationId, module, disabled);
     }
 
     /**

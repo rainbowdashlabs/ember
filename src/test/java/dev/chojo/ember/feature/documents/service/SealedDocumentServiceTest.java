@@ -6,8 +6,6 @@
 package dev.chojo.ember.feature.documents.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
-import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Signing;
 import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.entity.DocumentFilter;
@@ -43,7 +41,6 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.api.io.TempDir;
 import org.postgresql.util.PSQLException;
 
@@ -416,10 +413,6 @@ class SealedDocumentServiceTest extends RepositoryTestBase {
                 .map(row -> row.getInt("count"))
                 .first()
                 .orElseThrow();
-    }
-
-    private static void assertRefused(Refusal refusal, Executable call) {
-        assertEquals(refusal, assertThrows(RefusalResponse.class, call).refusal());
     }
 
     /** Runs a statement straight against the database and expects one of the guards to refuse it. */

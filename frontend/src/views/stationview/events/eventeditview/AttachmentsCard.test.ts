@@ -24,6 +24,7 @@ function attachment(id: number, overrides: Partial<EventAttachment> = {}): Event
         mimeType: 'application/pdf',
         fileSize: 1024,
         contentHash: `hash-${id}`,
+        fromEventGroup: false,
         ...overrides,
     }
 }

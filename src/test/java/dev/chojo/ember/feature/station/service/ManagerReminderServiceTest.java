@@ -7,8 +7,6 @@ package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.MemberRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
-import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AuthService;
@@ -26,7 +24,6 @@ import dev.chojo.ember.feature.station.repository.StationOverviewRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -39,7 +36,6 @@ import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -283,11 +279,5 @@ class ManagerReminderServiceTest extends RepositoryTestBase {
                 .map(row -> row.getInt("n"))
                 .first()
                 .orElseThrow();
-    }
-
-    private static void assertRefused(Refusal refusal, Executable action) {
-        var thrown = assertThrows(RefusalResponse.class, action);
-        assertNotNull(thrown);
-        assertEquals(refusal, thrown.refusal());
     }
 }

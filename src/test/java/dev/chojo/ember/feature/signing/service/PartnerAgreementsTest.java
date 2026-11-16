@@ -22,10 +22,13 @@ import dev.chojo.ember.feature.events.entity.PartnerDocumentToSign;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
+import dev.chojo.ember.feature.events.service.EventGroupPartDates;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.FederatedRegistrantService;
 import dev.chojo.ember.feature.federation.FederationTestTransport;
@@ -260,16 +263,25 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                         memberEligibility,
                         eventRepo,
                         attendanceRepo,
-                        eventFieldRegistrationService),
+                        eventFieldRegistrationService,
+                        new EventGroupRepository()),
                 occurrenceCalendar,
                 media,
-                new Api());
+                new Api(),
+                new EventGroupRepository(),
+                newEventServices(mock(DomainEventBus.class)).registration());
 
         var guardianPolicy = new GuardianPolicy(stationMemberRepo);
         var requirementRepo = new EventRequirementRepository();
         var neutral = new MemberNeutralTemplates(organiser.templates());
         requirements = new EventRequirementService(
-                requirementRepo, organiser.templates(), neutral, shareRepo, new DomainEventBus(Set.of()));
+                requirementRepo,
+                organiser.templates(),
+                neutral,
+                shareRepo,
+                new DomainEventBus(Set.of()),
+                new EventGroupRepository(),
+                new EventGroupPartnerRepository());
         var appointments = new AppointmentDocumentService(
                 requirementRepo,
                 new PaperSubmissionRepository(),
@@ -284,7 +296,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 new EventRestrictionService(eventRepo, restrictionService),
                 RequirementSignatures.NONE,
                 stationMemberRepo,
-                occurrenceCalendar);
+                occurrenceCalendar,
+                new EventGroupPartDates(new EventGroupRepository(), eventRepo, occurrenceCalendar));
         var notices = TestNotices.notices(
                 newNotifier(), emailQueueRepo, stationRepo, stationMemberRepo, accountRepo, memberDocumentRepo);
         agreements = new PartnerAgreements(

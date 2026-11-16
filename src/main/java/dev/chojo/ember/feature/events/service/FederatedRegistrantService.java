@@ -53,8 +53,20 @@ public class FederatedRegistrantService {
      * @return the member, or {@code null} when the partnership it came on is gone
      */
     public @Nullable MemberIdentity identify(EventFederationRegistration registration) {
+        return identify(registration.partnerId(), registration.remoteMemberId());
+    }
+
+    /**
+     * A partner's member as this station shows them, by the partner they came with and the id their
+     * own station gave them.
+     *
+     * @param partnerId      this station's record of the partner
+     * @param remoteMemberId the member
+     * @return the member, or {@code null} when the partnership is gone
+     */
+    public @Nullable MemberIdentity identify(int partnerId, UUID remoteMemberId) {
         UUID partnerStationUid = federationRepository
-                .findPartnerById(registration.partnerId())
+                .findPartnerById(partnerId)
                 .map(FederationPartner::partnerStationId)
                 .orElse(null);
         if (partnerStationUid == null) return null;
@@ -62,18 +74,16 @@ public class FederatedRegistrantService {
         var partnerStation = stationRepository.findHereByUid(partnerStationUid);
         if (partnerStation.isPresent()) {
             var localMember =
-                    stationMemberRepository.findByUid(partnerStation.get().id(), registration.remoteMemberId());
+                    stationMemberRepository.findByUid(partnerStation.get().id(), remoteMemberId);
             if (localMember.isPresent()) {
                 return memberIdentityFactory.local(
                         localMember.get().stationId(), localMember.get().id());
             }
         }
 
-        String cachedName = eventFederationService
-                .getCachedName(registration.partnerId(), registration.remoteMemberId())
-                .orElse(null);
+        String cachedName =
+                eventFederationService.getCachedName(partnerId, remoteMemberId).orElse(null);
         String stationName = partnerStation.map(Station::name).orElse(null);
-        return new MemberIdentity(partnerStationUid, registration.remoteMemberId())
-                .withDisplay(cachedName, stationName, null, null);
+        return new MemberIdentity(partnerStationUid, remoteMemberId).withDisplay(cachedName, stationName, null, null);
     }
 }

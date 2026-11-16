@@ -26,6 +26,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  *                 internal one is read with the right to read what an event keeps internal, and stays
  *                 at the station that owns it
  * @param label    what a reader sees instead of the file name, or {@code null} to use the file name
+ * @param fromEventGroup whether the file is one an event group hands over on every part, which a part
+ *                 cannot take off
  */
 public record EventAttachment(
         int id,
@@ -38,7 +40,8 @@ public record EventAttachment(
         String fileName,
         String mimeType,
         long fileSize,
-        String contentHash) {
+        String contentHash,
+        boolean fromEventGroup) {
 
     /** What a reader is shown for this file, which is the label where one was written. */
     public String displayName() {
@@ -57,6 +60,7 @@ public record EventAttachment(
                 row.getString("file_name"),
                 row.getString("mime_type"),
                 row.getLong("file_size"),
-                row.getString("content_hash"));
+                row.getString("content_hash"),
+                row.getBoolean("from_event_group"));
     }
 }

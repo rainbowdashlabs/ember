@@ -42,6 +42,20 @@ public enum RestrictionType {
             "id",
             "view_restriction_mode",
             StationPermission.EVENT_MANAGER),
+    EVENT_GROUP(
+            "event_group_restriction",
+            "event_group_id",
+            "event_group",
+            "id",
+            "restriction_mode",
+            StationPermission.EVENT_MANAGER),
+    EVENT_GROUP_VIEW(
+            "event_group_view_restriction",
+            "event_group_id",
+            "event_group",
+            "id",
+            "view_restriction_mode",
+            StationPermission.EVENT_MANAGER),
     QUIZ_TEST(
             "quiz_test_restriction", "test_id", "quiz_test", "id", "restriction_mode", StationPermission.TEST_MANAGER),
     FORM("form_restriction", "form_id", "form", "id", "restriction_mode", StationPermission.POLL_MANAGER),
@@ -111,6 +125,20 @@ public enum RestrictionType {
             "id",
             "restriction_mode",
             StationPermission.PROCEDURE_MANAGER,
+            false,
+            true),
+    /**
+     * Whom a station chat is for. It guards nothing itself: the chat's members follow it, and the
+     * members' rows are what lets somebody read the chat. Its audience is kept to those who handle
+     * the station's chats, since it says who talks with whom.
+     */
+    STATION_CHAT(
+            "conversation_restriction",
+            "conversation_id",
+            "conversation",
+            "id",
+            "restriction_mode",
+            StationPermission.MESSAGE_CHAT_MANAGE,
             false,
             true);
 

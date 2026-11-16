@@ -10,7 +10,11 @@ import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.Question;
 import org.jspecify.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 /**
  * A question the organiser answers once for an appointment, or once per date of it, together with
@@ -25,6 +29,9 @@ import java.util.List;
  * @param selfRegistrationState whether the reader asking may put themselves into this member
  *                              question, or null where the question takes no self-registration or
  *                              nobody asked on a reader's behalf
+ * @param readerInWholeGroup    whether the reader asking stands in this member field of an event
+ *                              group for the whole group, on an appointment of it: stepping out there
+ *                              then means missing this appointment only
  */
 public record AppointmentField(
         int id,
@@ -37,7 +44,8 @@ public record AppointmentField(
         boolean overview,
         @Nullable Integer attendanceFieldId,
         boolean isPublic,
-        @Nullable SelfRegistration selfRegistrationState) {
+        @Nullable SelfRegistration selfRegistrationState,
+        boolean readerInWholeGroup) {
 
     /**
      * A question as stored, not yet measured against any reader.
@@ -53,7 +61,59 @@ public record AppointmentField(
             boolean overview,
             @Nullable Integer attendanceFieldId,
             boolean isPublic) {
-        this(id, eventId, name, fieldType, config, value, position, overview, attendanceFieldId, isPublic, null);
+        this(id, eventId, name, fieldType, config, value, position, overview, attendanceFieldId, isPublic, null, false);
+    }
+
+    /**
+     * Whether this field comes from the appointment's event group rather than from the appointment
+     * itself. Such a field carries the negated id of the event group's field.
+     *
+     * @return true for a field of the event group shown on one of its parts
+     */
+    public boolean inherited() {
+        return inherited(id);
+    }
+
+    /**
+     * The event group's field this one comes from.
+     *
+     * @return the id of the event group's field
+     * @throws IllegalStateException for a field of the appointment itself
+     */
+    public int groupFieldId() {
+        return groupFieldId(id);
+    }
+
+    /**
+     * Whether a field id, as the screens send it, names a field of the event group shown on a part.
+     *
+     * @param fieldId the id
+     * @return true for a negated id of an event group's field
+     */
+    public static boolean inherited(int fieldId) {
+        return fieldId < 0;
+    }
+
+    /**
+     * The id a field of an event group carries where one of its parts shows it.
+     *
+     * @param groupFieldId the id of the event group's field
+     * @return the negated id
+     */
+    public static int inheritedId(int groupFieldId) {
+        return -groupFieldId;
+    }
+
+    /**
+     * The event group's field a field id names.
+     *
+     * @param fieldId the id of a field of the event group as shown on a part
+     * @return the id of the event group's field
+     * @throws IllegalStateException for the id of an appointment's own field
+     */
+    public static int groupFieldId(int fieldId) {
+        if (!inherited(fieldId)) throw new IllegalStateException("Field " + fieldId + " is an appointment's own");
+        return -fieldId;
     }
 
     /**
@@ -64,7 +124,64 @@ public record AppointmentField(
      */
     public AppointmentField withSelfRegistration(@Nullable SelfRegistration state) {
         return new AppointmentField(
-                id, eventId, name, fieldType, config, value, position, overview, attendanceFieldId, isPublic, state);
+                id,
+                eventId,
+                name,
+                fieldType,
+                config,
+                value,
+                position,
+                overview,
+                attendanceFieldId,
+                isPublic,
+                state,
+                readerInWholeGroup);
+    }
+
+    /**
+     * The same member field of an event group on one of its appointments, telling the reader asking
+     * whether they stand in it for the whole group.
+     *
+     * @param inWholeGroup whether they do
+     * @return the field with that said
+     */
+    public AppointmentField withReaderInWholeGroup(boolean inWholeGroup) {
+        return new AppointmentField(
+                id,
+                eventId,
+                name,
+                fieldType,
+                config,
+                value,
+                position,
+                overview,
+                attendanceFieldId,
+                isPublic,
+                selfRegistrationState,
+                inWholeGroup);
+    }
+
+    /**
+     * The same question with another answer, such as the one an appointment of an event group shows
+     * once its own entries are taken into account.
+     *
+     * @param shownValue the answer
+     * @return the question with that answer
+     */
+    public AppointmentField withValue(String shownValue) {
+        return new AppointmentField(
+                id,
+                eventId,
+                name,
+                fieldType,
+                config,
+                shownValue,
+                position,
+                overview,
+                attendanceFieldId,
+                isPublic,
+                selfRegistrationState,
+                readerInWholeGroup);
     }
 
     /**
@@ -82,6 +199,39 @@ public record AppointmentField(
             }
         }
         return null;
+    }
+
+    /**
+     * The key two field names are matched by when an appointment field replaces a field of its event
+     * group: the name without surrounding space, in lower case.
+     *
+     * @param name a field name
+     * @return its key
+     */
+    public static String nameKey(String name) {
+        return name.strip().toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * What an appointment shows: the fields its event group hands down, then its own. A group field
+     * whose name an own field carries is left out, because the own one replaces it.
+     *
+     * @param own       the appointment's own fields
+     * @param inherited the fields its event group hands down
+     * @param ownNames  the names of all of the appointment's own fields, which may be more than
+     *                  {@code own} where only some are read
+     * @return the fields the appointment shows
+     */
+    public static List<AppointmentField> shown(
+            List<AppointmentField> own, List<AppointmentField> inherited, Collection<String> ownNames) {
+        if (inherited.isEmpty()) return own;
+        var replaced = ownNames.stream().map(AppointmentField::nameKey).collect(Collectors.toSet());
+        var shown = new ArrayList<AppointmentField>();
+        inherited.stream()
+                .filter(field -> !replaced.contains(nameKey(field.name())))
+                .forEach(shown::add);
+        shown.addAll(own);
+        return shown;
     }
 
     /** The question this field asks, as the one check measures an answer against it. */

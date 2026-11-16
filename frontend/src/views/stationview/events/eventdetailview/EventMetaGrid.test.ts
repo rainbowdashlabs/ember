@@ -27,6 +27,7 @@ function memberQuestion(over: Partial<AppointmentField>): AppointmentField {
         isPublic: false,
         attendanceFieldId: null,
         selfRegistrationState: SelfRegistration.OPEN,
+        readerInWholeGroup: false,
         ...over,
     }
 }
@@ -63,6 +64,13 @@ describe('EventMetaGrid self-registration', () => {
     it('always lets somebody standing in the question step out', async () => {
         const standingIn = memberQuestion({value: String(ME), selfRegistrationState: SelfRegistration.NOT_ELIGIBLE})
         expect(await buttonsFor(standingIn)).toEqual(['Austragen'])
+    })
+
+    it('lets somebody in an event group for all its dates miss this one and come back', async () => {
+        const inGroup = memberQuestion({id: -4, value: String(ME), readerInWholeGroup: true})
+        expect(await buttonsFor(inGroup)).toEqual(['An diesem Termin nicht dabei'])
+        const skipped = memberQuestion({id: -4, value: '', readerInWholeGroup: true})
+        expect(await buttonsFor(skipped)).toEqual(['An diesem Termin doch dabei'])
     })
 
     it('shows a taken single slot as taken', async () => {

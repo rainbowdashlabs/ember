@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {ConversationMessageResponse, MessagePersonResponse} from '@/api/generated/schema'
+import type {ConversationMessageResponse, MessagePersonResponse, MemberIdentity} from '@/api/generated/schema'
 
 /** The six reactions offered at a click, before the full picker. */
 export const QUICK_REACTIONS: readonly string[] = ['👍', '❤️', '😂', '😮', '😢', '🎉']
@@ -17,6 +17,11 @@ export interface MessageActions {
     readerUid: string | null
     /** The people the reader blocked, whose messages are folded away. */
     blocked: readonly string[]
+    /**
+     * In a station chat, how its station shows each person still there (group color, tag), by account;
+     * absent elsewhere, where names stay plain.
+     */
+    stationPeople?: Readonly<Record<string, MemberIdentity>>
     /** Whether the conversation is a closed station chat, which takes no reactions, answers or changes. */
     closed?: boolean
     reply: (message: ConversationMessageResponse) => void

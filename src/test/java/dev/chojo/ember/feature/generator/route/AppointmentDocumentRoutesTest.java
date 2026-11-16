@@ -59,7 +59,7 @@ class AppointmentDocumentRoutesTest {
     private static final Owner.Station OWNER = new Owner.Station(3);
     private static final LocalDate DAY = LocalDate.parse("2026-09-27");
     private static final RequiredTemplate CONSENT =
-            new RequiredTemplate(8, "Einverständnis", DocumentTemplateKind.PDF, 1, false, null);
+            new RequiredTemplate(8, "Einverständnis", DocumentTemplateKind.PDF, 1, false, null, false);
     private static final TemplatePage OFFERED = new TemplatePage(
             List.of(new DocumentTemplateSummary(
                     8,

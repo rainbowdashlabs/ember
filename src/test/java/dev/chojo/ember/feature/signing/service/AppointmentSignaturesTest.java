@@ -10,17 +10,24 @@ import dev.chojo.ember.api.TestUploads;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.EventRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
-import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.content.route.BlockRowRequest;
 import dev.chojo.ember.feature.documents.service.DocumentAccessService;
 import dev.chojo.ember.feature.documents.service.DocumentCatalogService;
+import dev.chojo.ember.feature.events.entity.EventGroupDetails;
+import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
+import dev.chojo.ember.feature.events.service.EventGroupPartDates;
+import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
+import dev.chojo.ember.feature.events.service.EventGroupRegistrationService;
+import dev.chojo.ember.feature.events.service.EventGroupService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.generator.entity.DocumentGeneration;
@@ -42,6 +49,8 @@ import dev.chojo.ember.feature.generator.service.ParticipantCopyService;
 import dev.chojo.ember.feature.generator.service.pdf.TestPdfs;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.signing.entity.AppointmentRequest;
 import dev.chojo.ember.feature.signing.entity.CompletedSigning;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.OpenSignature;
@@ -65,7 +74,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -74,6 +82,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -88,7 +97,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -106,6 +114,7 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
     private static final SignatureRequestRepository requestRepo = new SignatureRequestRepository();
 
     private static Wiring wiring;
+    private static AppointmentSignatures signatures;
     private static EventRequirementService requirements;
     private static AppointmentDocumentService appointments;
     private static PaperSubmissionService scans;
@@ -178,7 +187,9 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 wiring.templates(),
                 new MemberNeutralTemplates(wiring.templates()),
                 new EventFederationRepository(),
-                new DomainEventBus(Set.of()));
+                new DomainEventBus(Set.of()),
+                new EventGroupRepository(),
+                new EventGroupPartnerRepository());
         appointments = new AppointmentDocumentService(
                 requirementRepo,
                 submissions,
@@ -193,7 +204,8 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 new EventRestrictionService(eventRepo, restrictionService),
                 new RequirementSignatureStates(requestRepo, requests, new WithdrawalRights(guardianPolicy)),
                 stationMemberRepo,
-                occurrenceCalendar);
+                occurrenceCalendar,
+                new EventGroupPartDates(new EventGroupRepository(), eventRepo, occurrenceCalendar));
         var catalog =
                 new DocumentCatalogService(memberDocumentRepo, wiring.documents(), new SignatureSummaries(requestRepo));
         copies = new ParticipantCopyService(appointments, requirementRepo, catalog, wiring.documents());
@@ -206,7 +218,7 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 memberNameResolver,
                 newNotifier(),
                 new ScanSignatures(requestRepo, fields, notices));
-        var signatures = new AppointmentSignatures(
+        signatures = new AppointmentSignatures(
                 eventRepo,
                 eventRegistrationRepo,
                 appointments,
@@ -216,7 +228,8 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 requests,
                 new DocumentGenerationRepository(),
                 new IssuerSignatureRepository(),
-                mock(IssuedLetterSigner.class));
+                mock(IssuedLetterSigner.class),
+                new EventGroupPartDates(new EventGroupRepository(), eventRepo, occurrenceCalendar));
         registrations = new EventRegistrationService(
                 eventRegistrationRepo,
                 new EventRegistrationFieldRepository(),
@@ -918,10 +931,6 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 .anyMatch(due -> due.pending().requestUid().equals(request.uid()));
     }
 
-    private static void assertRefused(Refusal refusal, Executable call) {
-        assertEquals(refusal, assertThrows(RefusalResponse.class, call).refusal());
-    }
-
     private static StationMember member(String first, String last, boolean login) {
         var account = accountRepo.create("appointment-signing-" + NAMES.incrementAndGet() + "@test.com", first, last);
         var created = stationMemberRepo.create(wiring.station().id(), account.id());
@@ -987,5 +996,281 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 .filter(field -> field.fieldName().equals(name))
                 .findFirst()
                 .orElseThrow();
+    }
+
+    /** The day before the first part of an event group, which lies ahead so its parts can be given up. */
+    private static final Instant GROUP_START = Instant.parse("2027-03-06T07:00:00Z");
+
+    private static final LocalDate GROUP_DAY = LocalDate.parse("2027-03-06");
+
+    /** Two parts of a new event group on the two days after {@link #GROUP_START}, asking for the consent. */
+    private record GroupParts(int eventGroupId, StationEvent first, StationEvent second) {}
+
+    private GroupParts eventGroupAskingForConsent() {
+        var eventGroups = newEventGroupService();
+        var eventGroup = eventGroups.create(
+                wiring.station().id(),
+                new EventGroupDetails("Lehrgang " + NAMES.incrementAndGet(), null, null, null, false, null),
+                List.of(new EventGroupSetDraft(null, "Tage", 1)),
+                RestrictionAudience.empty(),
+                RestrictionAudience.empty(),
+                null);
+        int setId = eventGroups.findSets(eventGroup.id()).getFirst().id();
+        var first = partOn(eventGroups, eventGroup.id(), setId, 1);
+        var second = partOn(eventGroups, eventGroup.id(), setId, 2);
+        requirements.setForEventGroup(wiring.owner(), eventGroup.id(), List.of(consent));
+        return new GroupParts(eventGroup.id(), first, second);
+    }
+
+    private static StationEvent partOn(EventGroupService eventGroups, int eventGroupId, int setId, int daysAfter) {
+        var start = GROUP_START.plus(Duration.ofDays(daysAfter));
+        var part = eventRepo.create(
+                wiring.station().id(),
+                "Tag " + daysAfter + " " + NAMES.incrementAndGet(),
+                null,
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(Duration.ofHours(8)),
+                null,
+                true,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        eventGroups.addPart(wiring.station().id(), eventGroupId, part.id(), setId);
+        return part;
+    }
+
+    /** Signs a member up for an event group through the event group, as their guardian. */
+    private static EventGroupRegistrationService signUps() {
+        return new EventGroupRegistrationService(
+                new EventGroupRepository(),
+                new EventGroupRegistrationRepository(),
+                eventRegistrationRepo,
+                registrations,
+                new DomainEventBus(Set.of()),
+                memberNameResolver,
+                new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
+                newEventGroupSignUpRules());
+    }
+
+    private static void signUp(GroupParts group, StationEvent... parts) {
+        signUps()
+                .register(
+                        wiring.station().id(),
+                        group.eventGroupId(),
+                        child.id(),
+                        java.util.Arrays.stream(parts)
+                                .map(StationEvent::id)
+                                .collect(java.util.stream.Collectors.toSet()),
+                        java.util.Map.of(),
+                        guardian.id(),
+                        false);
+    }
+
+    private static List<SignatureRequest> liveOn(StationEvent part, int daysAfter, StationMember member) {
+        return requestRepo.liveForAppointment(part.id(), GROUP_DAY.plusDays(daysAfter), member.id()).stream()
+                .map(AppointmentRequest::request)
+                .toList();
+    }
+
+    private static RequiredDocumentStatus documentOn(
+            StationEvent part, int daysAfter, StationMember reader, StationMember participant, int templateId) {
+        return appointments
+                .documentsToBring(stationSession(reader), part, GROUP_DAY.plusDays(daysAfter), false)
+                .own()
+                .stream()
+                .filter(own -> own.memberId() == participant.id())
+                .findFirst()
+                .orElseThrow()
+                .documents()
+                .stream()
+                .filter(document -> document.templateId() == templateId)
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private static List<SignatureRequest> liveOnEither(GroupParts group) {
+        var live = new java.util.ArrayList<>(liveOn(group.first(), 1, child));
+        live.addAll(liveOn(group.second(), 2, child));
+        return live;
+    }
+
+    /**
+     * A document the event group asks every part for is asked once for the whole event group: signing up
+     * for two parts asks for it on one of them, and the other part shows that copy's signatures as its own.
+     * Signed there, it reads as signed on every part, and the event group lists the signer once.
+     */
+    @Test
+    void anEventGroupsDocumentIsAskedOnceAndCoversEveryPart() {
+        var group = eventGroupAskingForConsent();
+
+        signUp(group, group.first(), group.second());
+
+        var asked = liveOnEither(group);
+        assertEquals(1, asked.size(), "one request for both parts");
+        for (var part : List.of(group.first(), group.second())) {
+            int days = part.id() == group.first().id() ? 1 : 2;
+            var shown = documentOn(part, days, guardian, child, consent).signature();
+            assertNotNull(shown, "every part counts the one copy");
+            assertEquals(asked.getFirst().uid(), shown.requestUid());
+        }
+
+        signBoth(asked.getFirst());
+
+        var onSecond = documentOn(group.second(), 2, guardian, child, consent).signature();
+        assertNotNull(onSecond);
+        assertEquals(RequirementSignatureState.SIGNED, onSecond.state());
+        var listed = new EventGroupAgreementSigners(signers, new EventRequirementRepository(), partDates())
+                .of(group.eventGroupId());
+        assertEquals(1, listed.size(), "the signer is listed once for the event group");
+        assertEquals(child.id(), listed.getFirst().memberId());
+        assertEquals(RequirementSignatureState.SIGNED, listed.getFirst().state());
+    }
+
+    /**
+     * Giving up the part the event group's document was asked on while keeping another hands what is still
+     * open over to that other part; withdrawing from the event group asks for nothing.
+     */
+    @Test
+    void givingUpThePartItWasAskedOnHandsTheOpenDocumentOver() {
+        var group = eventGroupAskingForConsent();
+        signUp(group, group.first(), group.second());
+        boolean onFirst = !liveOn(group.first(), 1, child).isEmpty();
+        var kept = onFirst ? group.second() : group.first();
+        var given = onFirst ? group.first() : group.second();
+
+        signUps()
+                .changeParts(
+                        wiring.station().id(),
+                        group.eventGroupId(),
+                        child.id(),
+                        Set.of(kept.id()),
+                        guardian.id(),
+                        false);
+
+        assertEquals(List.of(), liveOn(given, given.id() == group.first().id() ? 1 : 2, child));
+        var handedOver = liveOn(kept, kept.id() == group.first().id() ? 1 : 2, child);
+        assertEquals(1, handedOver.size());
+        assertEquals(RequestState.OPEN, handedOver.getFirst().state());
+
+        signUps().withdraw(wiring.station().id(), group.eventGroupId(), child.id());
+
+        assertEquals(List.of(), liveOnEither(group));
+    }
+
+    /** A document signed on a part keeps covering the others after that part is given up. */
+    @Test
+    void aSignedEventGroupDocumentStaysCoveringAfterItsPartIsGivenUp() {
+        var group = eventGroupAskingForConsent();
+        signUp(group, group.first(), group.second());
+        var signed = liveOnEither(group).getFirst();
+        signBoth(signed);
+        boolean onFirst = !liveOn(group.first(), 1, child).isEmpty();
+        var kept = onFirst ? group.second() : group.first();
+        int keptDays = kept.id() == group.first().id() ? 1 : 2;
+
+        signUps()
+                .changeParts(
+                        wiring.station().id(),
+                        group.eventGroupId(),
+                        child.id(),
+                        Set.of(kept.id()),
+                        guardian.id(),
+                        false);
+
+        assertEquals(List.of(), liveOn(kept, keptDays, child), "nothing is asked again");
+        var shown = documentOn(kept, keptDays, guardian, child, consent).signature();
+        assertNotNull(shown);
+        assertEquals(RequirementSignatureState.SIGNED, shown.state());
+    }
+
+    /** A document a part asks for on its own is asked on that part, beside the event group's. */
+    @Test
+    void aPartsOwnDocumentIsAskedOnThatPart() {
+        var group = eventGroupAskingForConsent();
+        int ownConsent = template(
+                "Fahrt " + NAMES.incrementAndGet(),
+                row(text("Ich fahre mit.")),
+                row(signature(SignatureRole.GUARDIAN_1, "Erziehungsberechtigte Person")));
+        requirements.setForEvent(wiring.owner(), group.second().id(), List.of(ownConsent));
+
+        signUp(group, group.first(), group.second());
+
+        var onSecond = requestRepo.liveForAppointment(group.second().id(), GROUP_DAY.plusDays(2), child.id()).stream()
+                .map(AppointmentRequest::templateId)
+                .toList();
+        assertTrue(onSecond.contains(ownConsent), "the part's own document is asked on the part");
+        assertEquals(2, liveOnEither(group).size(), "one for the event group, one for the part");
+        assertEquals(
+                RequirementSignatureState.OPEN,
+                Objects.requireNonNull(documentOn(group.second(), 2, guardian, child, ownConsent)
+                                .signature())
+                        .state());
+    }
+
+    private static EventGroupPartDates partDates() {
+        return new EventGroupPartDates(new EventGroupRepository(), eventRepo, occurrenceCalendar);
+    }
+
+    /** The part an event group's document was asked on, and the other one. */
+    private record AskedOn(StationEvent asked, int askedDays, StationEvent other, int otherDays) {}
+
+    private static AskedOn askedOn(GroupParts group) {
+        boolean onFirst = !liveOn(group.first(), 1, child).isEmpty();
+        return onFirst
+                ? new AskedOn(group.first(), 1, group.second(), 2)
+                : new AskedOn(group.second(), 2, group.first(), 1);
+    }
+
+    /**
+     * Taking the part the event group's document was asked on out of the event group lets the open request
+     * there go and asks for the document on the other part the member holds.
+     */
+    @Test
+    void takingThePartOutOfTheEventGroupHandsTheDocumentOver() {
+        var group = eventGroupAskingForConsent();
+        signUp(group, group.first(), group.second());
+        var on = askedOn(group);
+        var asked = liveOn(on.asked(), on.askedDays(), child).getFirst();
+        var eventGroups = newEventGroupService();
+        eventGroups.tellOnDeparture(new EventGroupDocumentHandover(() -> signatures));
+
+        eventGroups.removePart(
+                wiring.station().id(), group.eventGroupId(), on.asked().id());
+
+        assertNotEquals(
+                RequestState.OPEN,
+                requestRepo.findById(asked.id()).orElseThrow().state());
+        var handedOver = liveOn(on.other(), on.otherDays(), child);
+        assertEquals(1, handedOver.size());
+        assertEquals(RequestState.OPEN, handedOver.getFirst().state());
+    }
+
+    /**
+     * Deleting the part the event group's document was asked on lets the open request there go and asks for
+     * the document on the other part the member holds.
+     */
+    @Test
+    void deletingThePartHandsTheDocumentOver() {
+        var group = eventGroupAskingForConsent();
+        signUp(group, group.first(), group.second());
+        var on = askedOn(group);
+        var asked = liveOn(on.asked(), on.askedDays(), child).getFirst();
+        var crud = newEventServices(new DomainEventBus(Set.of())).crud();
+        crud.tellOnDeparture(new EventGroupDocumentHandover(() -> signatures));
+
+        assertTrue(crud.delete(on.asked().id()));
+
+        assertNotEquals(
+                RequestState.OPEN,
+                requestRepo.findById(asked.id()).orElseThrow().state());
+        var handedOver = liveOn(on.other(), on.otherDays(), child);
+        assertEquals(1, handedOver.size());
+        assertEquals(RequestState.OPEN, handedOver.getFirst().state());
     }
 }

@@ -16,6 +16,7 @@ import {
   type AbsentMemberResponse,
   type AttendanceTemplate,
   type CancellationNotice,
+  type EventGroupPartSummary,
   type EventCategory,
   type AppointmentField,
   type ManagedMember,
@@ -23,11 +24,12 @@ import {
   type RegistrationResponse,
   type StationEvent,
 } from '@/api/generated/schema'
-import {attendance, events, managedMembers as managedMembersApi, stationMembers} from '@/api'
+import {attendance, events, managedMembers as managedMembersApi, stationMembers, eventGroups} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import EventLinksNote from './eventdetailview/EventLinksNote.vue'
 import EventDetailBody from './eventdetailview/EventDetailBody.vue'
+import EventGroupFrame from './eventshared/EventGroupFrame.vue'
 import EventAnswerDialog from './eventshared/EventAnswerDialog.vue'
 import RegistrationSigningStep from './eventshared/RegistrationSigningStep.vue'
 import {useEventAnswer} from '@/composables/useEventAnswer'
@@ -56,6 +58,7 @@ const focusedDate = computed(() => {
 
 const event = ref<StationEvent | null>(null)
 const categories = ref<EventCategory[]>([])
+const eventGroupPart = ref<EventGroupPartSummary | null>(null)
 const templates = ref<AttendanceTemplate[]>([])
 const fields = ref<AppointmentField[]>([])
 const reminders = ref<number[]>([])
@@ -190,15 +193,17 @@ const currentTemplateName = computed(() => {
 })
 
 const {loading, failure, reload} = useAsyncLoader(async () => {
-  const [ev, cats, flds, completions, nextDate, offDates] = await Promise.all([
+  const [ev, cats, flds, completions, nextDate, offDates, part] = await Promise.all([
     events.getEvent(eventId.value),
     events.listCategories(),
     events.getEventFields(eventId.value),
     stationMembers.listCompletions().catch(() => []),
     events.getNextDate(eventId.value).catch(() => null),
     events.listCancelledDates(eventId.value).catch(() => []),
+    eventGroups.eventGroupOfEvent(eventId.value).catch(() => null),
   ])
   event.value = ev
+  eventGroupPart.value = part
   cancelledDates.value = offDates
   nextOccurrenceDate.value = nextDate
   categories.value = cats
@@ -270,6 +275,10 @@ function onFieldUpdated(field: AppointmentField) {
     <Spinner v-if="loading" size="lg"/>
     <FailureAlert :failure="failure"/>
     <EventLinksNote v-if="!loading && event" :event-id="eventId"/>
+    <EventGroupFrame
+        :event-group="loading ? null : eventGroupPart"
+        :message="t('eventGroups.signUpThroughEventGroup')"
+        :to="eventGroupPart ? {name: 'event-group', params: {eventGroupId: eventGroupPart.eventGroupId}} : undefined">
     <EventDetailBody
         v-if="!loading && event"
         :event="event"
@@ -294,6 +303,7 @@ function onFieldUpdated(field: AppointmentField) {
         :has-permission="hasPermission"
         :my-registrations="myRegistrations"
         :registering="answer.registering.value !== null"
+        :event-group-part="eventGroupPart !== null"
         @cancelled="onEventCancelled"
         @answers-updated="reloadMyRegistrations"
         @field-updated="onFieldUpdated"
@@ -301,6 +311,7 @@ function onFieldUpdated(field: AppointmentField) {
         @decline="onDecline"
         @withdraw="answer.withdrawRegistration"
     />
+    </EventGroupFrame>
 
     <EventAnswerDialog
         :model-value="answer.answerPrompt.value !== null"

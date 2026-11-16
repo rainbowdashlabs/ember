@@ -23,7 +23,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  *
  * @param id        unique identifier of the comment, unique across every kind of target
  * @param type      what kind of thing the comment was written on
- * @param targetId  the appointment, entry, file or ticket it was written on
+ * @param targetId  the appointment, entry, file, ticket or event group it was written on
  * @param stationId the station owning that target, {@code null} only under a news entry the
  *                  instance published to every station
  * @param eventDate for comments on a specific occurrence of a recurring appointment, the date of
