@@ -13,7 +13,10 @@ import dev.chojo.ember.feature.content.route.BlockRowRequest;
 import dev.chojo.ember.feature.documents.service.DocumentAccessService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
+import dev.chojo.ember.feature.events.service.EventGroupPartDates;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
@@ -131,8 +134,9 @@ class ChangedRequirementSignaturesTest extends GeneratorTestBase {
                 wiring.templates(),
                 new MemberNeutralTemplates(wiring.templates()),
                 new EventFederationRepository(),
-                new DomainEventBus(
-                        Set.of(new RequirementChangeSignaturesHandler(() -> changes, () -> partnerNotices))));
+                new DomainEventBus(Set.of(new RequirementChangeSignaturesHandler(() -> changes, () -> partnerNotices))),
+                new EventGroupRepository(),
+                new EventGroupPartnerRepository());
         appointments = new AppointmentDocumentService(
                 requirementRepo,
                 submissions,
@@ -147,7 +151,8 @@ class ChangedRequirementSignaturesTest extends GeneratorTestBase {
                 new EventRestrictionService(eventRepo, restrictionService),
                 new RequirementSignatureStates(requestRepo, requests, new WithdrawalRights(guardianPolicy)),
                 stationMemberRepo,
-                occurrenceCalendar);
+                occurrenceCalendar,
+                new EventGroupPartDates(new EventGroupRepository(), eventRepo, occurrenceCalendar));
         signatures = new AppointmentSignatures(
                 eventRepo,
                 eventRegistrationRepo,
@@ -158,7 +163,8 @@ class ChangedRequirementSignaturesTest extends GeneratorTestBase {
                 requests,
                 new DocumentGenerationRepository(),
                 new IssuerSignatureRepository(),
-                mock(IssuedLetterSigner.class));
+                mock(IssuedLetterSigner.class),
+                new EventGroupPartDates(new EventGroupRepository(), eventRepo, occurrenceCalendar));
         registrations = new EventRegistrationService(
                 eventRegistrationRepo,
                 new EventRegistrationFieldRepository(),

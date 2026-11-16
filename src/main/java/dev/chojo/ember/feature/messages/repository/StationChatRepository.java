@@ -5,12 +5,14 @@
  */
 package dev.chojo.ember.feature.messages.repository;
 
+import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.api.auth.StationPermission;
-import dev.chojo.ember.feature.messages.entity.ChatAudience;
 import dev.chojo.ember.feature.messages.entity.Conversation;
-import dev.chojo.ember.feature.messages.entity.StationChatSummary;
 import dev.chojo.ember.feature.messages.entity.StationRef;
+import dev.chojo.ember.feature.messages.entity.StationScope;
+import dev.chojo.ember.feature.restriction.RestrictionSql;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.util.sql.PermissionHolderSql;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -20,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -31,19 +34,22 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING
  * Station chats: opening them, finding a station's chats, and who belongs in one.
  *
  * <p>Who belongs in a chat is read from the station on every call, never remembered: the current
- * members of the station, group or tag whose account can use messages, trial members only where a
- * group or tag names them, and, where the chat takes guardians in, the current guardians of those
- * people whatever their own messages allow.
+ * members its audience takes in whose account can use messages (an audience naming nobody is the
+ * station without its trial members), and, where the chat takes guardians in, the current guardians
+ * of those people whatever their own messages allow.
  */
 @Singleton
 public class StationChatRepository {
 
     /**
      * Two common table expressions for the chat bound as {@code :id}: {@code chat}, its row, and
-     * {@code people}, the current station members of its audience with their account, if any.
+     * {@code people}, the current station members of its audience with their account, if any. An
+     * audience naming nobody is the station without its trial members; one that lost part of what it
+     * named takes in nobody.
      */
-    /** The first key of the advisory lock {@link #lockOpening} takes, which names what it guards. */
-    private static final int OPENING_LOCK = 7_301;
+    private static final String MEMBER_COUNT = """
+            (SELECT count(*) FROM conversation_member m
+             WHERE m.conversation_id = c.id AND m.left_at IS NULL) AS member_count""";
 
     private static final String PEOPLE = """
             chat AS (
@@ -53,49 +59,107 @@ public class StationChatRepository {
                 SELECT sm.id AS member_id, sm.account_id
                 FROM chat c
                 JOIN station_member sm ON sm.station_id = c.station_id AND sm.former = FALSE
-                WHERE CASE c.audience
-                    WHEN 'STATION' THEN sm.user_type <> 'TRIAL'
-                    WHEN 'GROUP' THEN EXISTS (
-                        SELECT 1 FROM member_group_entry e
-                        WHERE e.group_id = c.audience_group_id AND e.member_id = sm.id)
-                    WHEN 'TAG' THEN EXISTS (
-                        SELECT 1 FROM user_tag_entry e
-                        WHERE e.tag_id = c.audience_tag_id AND e.member_id = sm.id)
-                    ELSE FALSE
+                WHERE CASE
+                    WHEN NOT c.audience_named THEN sm.user_type <> 'TRIAL'
+                    WHEN %s THEN FALSE
+                    ELSE %s
                 END
-            )""";
+            )""".formatted(
+            StationScope.audienceGone("c"), RestrictionSql.admits(RestrictionType.STATION_CHAT, "c.id", "sm.id"));
 
     /**
-     * Opens a station chat.
+     * Opens a station chat. Whom it is for is set apart, as its restrictions.
      *
      * @param stationId        the station
      * @param name             its name
-     * @param audience         whom it is for
-     * @param groupId          the group of a group chat, or null
-     * @param tagId            the tag of a tag chat, or null
      * @param includeGuardians whether the guardians of its people are members too
-     * @return the chat, or empty where its audience has an open chat already
+     * @param audienceNamed    whether its audience names anybody, rather than the whole station
+     * @param audienceKinds    how many user types, groups and tags its audience names
+     * @return the chat
      */
-    public Optional<Conversation> create(
-            int stationId,
-            String name,
-            ChatAudience audience,
-            @Nullable Integer groupId,
-            @Nullable Integer tagId,
-            boolean includeGuardians) {
+    public Conversation create(
+            int stationId, String name, boolean includeGuardians, boolean audienceNamed, int audienceKinds) {
         return query("""
-                INSERT INTO conversation AS c (kind, name, station_id, audience, audience_group_id, audience_tag_id, include_guardians)
-                VALUES ('STATION', :name, :station_id, :audience, :group_id, :tag_id, :include_guardians)
-                ON CONFLICT DO NOTHING
+                INSERT INTO conversation AS c (kind, name, station_id, include_guardians, audience_named, audience_kinds)
+                VALUES ('STATION', :name, :station_id, :include_guardians, :audience_named, :audience_kinds)
                 RETURNING %s;""", Conversation.COLUMNS)
                 .single(call().bind("name", name)
                         .bind("station_id", stationId)
-                        .bind("audience", audience)
-                        .bind("group_id", groupId)
-                        .bind("tag_id", tagId)
-                        .bind("include_guardians", includeGuardians))
+                        .bind("include_guardians", includeGuardians)
+                        .bind("audience_named", audienceNamed)
+                        .bind("audience_kinds", audienceKinds))
                 .map(Conversation.map())
+                .first()
+                .orElseThrow();
+    }
+
+    /**
+     * Changes a station chat's name, whether it takes guardians in, and whether its audience names
+     * anybody. Whom it is for is set apart, as its restrictions.
+     *
+     * @param conversationId   the chat
+     * @param name             its name
+     * @param includeGuardians whether the guardians of its people are members too
+     * @param audienceNamed    whether its audience names anybody, rather than the whole station
+     * @param audienceKinds    how many user types, groups and tags its audience names
+     */
+    public void update(
+            int conversationId, String name, boolean includeGuardians, boolean audienceNamed, int audienceKinds) {
+        query("""
+                UPDATE conversation
+                SET name = :name, include_guardians = :include_guardians, audience_named = :audience_named,
+                    audience_kinds = :audience_kinds
+                WHERE id = :id AND kind = 'STATION';""")
+                .single(call().bind("id", conversationId)
+                        .bind("name", name)
+                        .bind("include_guardians", includeGuardians)
+                        .bind("audience_named", audienceNamed)
+                        .bind("audience_kinds", audienceKinds))
+                .update();
+    }
+
+    /**
+     * Every chat of a station with how many take part, the open ones first, then the newest.
+     *
+     * @param stationId the station
+     * @return the chats
+     */
+    public List<Counted> counted(int stationId) {
+        return query("""
+                SELECT %s, %s FROM conversation c
+                WHERE c.kind = 'STATION' AND c.station_id = :station_id
+                ORDER BY c.closed_at IS NOT NULL, c.created_at DESC, c.id DESC;""", Conversation.COLUMNS, MEMBER_COUNT)
+                .single(call().bind("station_id", stationId))
+                .map(Counted.map())
+                .all();
+    }
+
+    /**
+     * One of a station's chats with how many take part.
+     *
+     * @param stationId      the station
+     * @param conversationId the chat
+     * @return the chat, or empty where it is gone
+     */
+    public Optional<Counted> counted(int stationId, int conversationId) {
+        return query("""
+                SELECT %s, %s FROM conversation c
+                WHERE c.kind = 'STATION' AND c.station_id = :station_id AND c.id = :id;""", Conversation.COLUMNS, MEMBER_COUNT)
+                .single(call().bind("station_id", stationId).bind("id", conversationId))
+                .map(Counted.map())
                 .first();
+    }
+
+    /**
+     * A station chat with how many take part in it right now.
+     *
+     * @param conversation the chat
+     * @param members      how many take part
+     */
+    public record Counted(Conversation conversation, int members) {
+        static RowMapping<Counted> map() {
+            return row -> new Counted(Conversation.map().map(row), row.getInt("member_count"));
+        }
     }
 
     /**
@@ -164,8 +228,8 @@ public class StationChatRepository {
 
     /**
      * The accounts of everybody at a station right now whose account can use messages, whatever
-     * their type. A chat that lost its group or tag keeps its members, but only while they are still
-     * at the station.
+     * their type. A chat whose audience lost part of what it named keeps its members, but only while
+     * they are still at the station.
      *
      * @param stationId the station
      * @return the account ids
@@ -185,11 +249,12 @@ public class StationChatRepository {
     /**
      * The accounts that belong in a station chat right now.
      *
-     * <p>The people of its audience are the current members of the station (trial members left out),
-     * of its group or of its tag. Of those, the ones with an account that can use messages are in.
-     * Where the chat takes guardians in, the current guardians of every one of those people are in
-     * too, also of people without an account or without messages, as long as the guardian's own
-     * account can use messages. A chat whose group or tag is gone has nobody.
+     * <p>The people of its audience are the current members its restrictions take in, or the
+     * station's current members without the trial members where it names nobody. Of those, the ones
+     * with an account that can use messages are in. Where the chat takes guardians in, the current
+     * guardians of every one of those people are in too, also of people without an account or without
+     * messages, as long as the guardian's own account can use messages. A chat whose audience lost
+     * part of what it named has nobody.
      *
      * @param conversationId the chat
      * @return the account ids
@@ -233,100 +298,6 @@ public class StationChatRepository {
     }
 
     /**
-     * Every chat of a station with its audience's name and how many take part, the open ones first,
-     * then the newest.
-     *
-     * @param stationId the station
-     * @return the chats
-     */
-    public List<StationChatSummary> summaries(int stationId) {
-        return query("""
-                SELECT %s,
-                    coalesce(g.name, t.name) AS audience_name,
-                    (SELECT count(*) FROM conversation_member m
-                     WHERE m.conversation_id = c.id AND m.left_at IS NULL) AS member_count
-                FROM conversation c
-                LEFT JOIN member_group g ON g.id = c.audience_group_id
-                LEFT JOIN user_tag t ON t.id = c.audience_tag_id
-                WHERE c.kind = 'STATION' AND c.station_id = :station_id
-                ORDER BY c.closed_at IS NOT NULL, c.created_at DESC, c.id DESC;""", Conversation.COLUMNS)
-                .single(call().bind("station_id", stationId))
-                .map(StationChatSummary.map())
-                .all();
-    }
-
-    /**
-     * The open chat a station has for an audience.
-     *
-     * @param stationId the station
-     * @param audience  whom the chat is for
-     * @param groupId   the group of a group chat, or null
-     * @param tagId     the tag of a tag chat, or null
-     * @return the open chat, or empty where there is none
-     */
-    public Optional<Conversation> findOpen(
-            int stationId, ChatAudience audience, @Nullable Integer groupId, @Nullable Integer tagId) {
-        return query("""
-                SELECT %s FROM conversation c
-                WHERE c.kind = 'STATION' AND c.station_id = :station_id AND c.audience = :audience
-                AND c.closed_at IS NULL
-                AND c.audience_group_id IS NOT DISTINCT FROM :group_id::int
-                AND c.audience_tag_id IS NOT DISTINCT FROM :tag_id::int;""", Conversation.COLUMNS)
-                .single(call().bind("station_id", stationId)
-                        .bind("audience", audience)
-                        .bind("group_id", groupId)
-                        .bind("tag_id", tagId))
-                .map(Conversation.map())
-                .first();
-    }
-
-    /**
-     * Whether a group belongs to a station.
-     *
-     * @param groupId   the group
-     * @param stationId the station
-     * @return true for one of the station's groups
-     */
-    public boolean groupOf(int groupId, int stationId) {
-        return query("""
-                SELECT id FROM member_group WHERE id = :id AND station_id = :station_id FOR KEY SHARE;""")
-                .single(call().bind("id", groupId).bind("station_id", stationId))
-                .map(row -> row.getInt("id"))
-                .first()
-                .isPresent();
-    }
-
-    /**
-     * Whether a tag belongs to a station.
-     *
-     * @param tagId     the tag
-     * @param stationId the station
-     * @return true for one of the station's tags
-     */
-    public boolean tagOf(int tagId, int stationId) {
-        return query("""
-                SELECT id FROM user_tag WHERE id = :id AND station_id = :station_id FOR SHARE;""")
-                .single(call().bind("id", tagId).bind("station_id", stationId))
-                .map(row -> row.getInt("id"))
-                .first()
-                .isPresent();
-    }
-
-    /**
-     * Holds the station's chats against a second opening or reopening for the rest of the running
-     * transaction, so two managers acting at once cannot both find an audience without an open chat.
-     *
-     * @param stationId the station
-     */
-    public void lockOpening(int stationId) {
-        query("""
-                SELECT 1 AS locked FROM (SELECT pg_advisory_xact_lock(%d, :station_id)) l;""", OPENING_LOCK)
-                .single(call().bind("station_id", stationId))
-                .map(row -> row.getInt("locked"))
-                .first();
-    }
-
-    /**
      * Whether a station chat takes nothing new: it is closed, or its station is being moved to
      * another installation or has moved there. Read with a lock that waits for a close running
      * right now and holds a close back until the running transaction ends.
@@ -362,51 +333,6 @@ public class StationChatRepository {
                 .map(row -> row.getBoolean("closed"))
                 .first()
                 .orElse(false);
-    }
-
-    /**
-     * One of a station's chats with its audience's name and how many take part.
-     *
-     * @param conversationId the chat
-     * @return the chat, or empty where it is gone
-     */
-    public Optional<StationChatSummary> summary(int conversationId) {
-        return query("""
-                SELECT %s,
-                    coalesce(g.name, t.name) AS audience_name,
-                    (SELECT count(*) FROM conversation_member m
-                     WHERE m.conversation_id = c.id AND m.left_at IS NULL) AS member_count
-                FROM conversation c
-                LEFT JOIN member_group g ON g.id = c.audience_group_id
-                LEFT JOIN user_tag t ON t.id = c.audience_tag_id
-                WHERE c.kind = 'STATION' AND c.id = :id;""", Conversation.COLUMNS)
-                .single(call().bind("id", conversationId))
-                .map(StationChatSummary.map())
-                .first();
-    }
-
-    /**
-     * Renames a station chat.
-     *
-     * @param conversationId the chat
-     * @param name           its new name
-     */
-    public void rename(int conversationId, String name) {
-        query("""
-                UPDATE conversation SET name = :name WHERE id = :id AND kind = 'STATION';""").single(call().bind("id", conversationId).bind("name", name)).update();
-    }
-
-    /**
-     * Takes the guardians of a group or tag chat's people in, or leaves them out.
-     *
-     * @param conversationId the chat
-     * @param include        whether they are members
-     */
-    public void setIncludeGuardians(int conversationId, boolean include) {
-        query("""
-                UPDATE conversation SET include_guardians = :include WHERE id = :id AND kind = 'STATION';""")
-                .single(call().bind("id", conversationId).bind("include", include))
-                .update();
     }
 
     /**
@@ -490,6 +416,26 @@ public class StationChatRepository {
     }
 
     /**
+     * The members the given accounts are at a station right now.
+     *
+     * @param stationId  the station
+     * @param accountIds the accounts
+     * @return each account that is a current member there, with its member's identity
+     */
+    public Map<Integer, UUID> memberUids(int stationId, Collection<Integer> accountIds) {
+        if (accountIds.isEmpty()) return Map.of();
+        return query("""
+                SELECT account_id, uid FROM station_member
+                WHERE station_id = :station_id AND former = FALSE AND account_id = ANY(:ids);""")
+                .single(call().bind("station_id", stationId)
+                        .bind("ids", List.copyOf(accountIds), PostgreSqlTypes.INTEGER))
+                .map(row -> Map.entry(row.getInt("account_id"), row.get("uid", UUID_STRING)))
+                .all()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    /**
      * The member an account is at a station right now.
      *
      * @param accountId the account
@@ -549,20 +495,5 @@ public class StationChatRepository {
                 .map(row -> row.getBoolean("moving"))
                 .first()
                 .orElse(true);
-    }
-
-    /**
-     * Whether a tag is private, kept to readers allowed to view members.
-     *
-     * @param tagId the tag
-     * @return whether it is private; false for no tag
-     */
-    public boolean tagPrivate(int tagId) {
-        return query("""
-                SELECT visibility = 'PRIVATE' AS private FROM user_tag WHERE id = :id;""")
-                .single(call().bind("id", tagId))
-                .map(row -> row.getBoolean("private"))
-                .first()
-                .orElse(false);
     }
 }

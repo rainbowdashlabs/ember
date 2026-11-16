@@ -220,9 +220,10 @@ class RouteConventionsTest {
      * {@code EventVisibility.requireVisibleEvent}, which checks the station before the audience, going
      * through a {@code *Guards} class, or resolving the federation partner whose station scopes a
      * {@code /remote} lookup. A handler that does none of them, directly or through a method of its
-     * own class it calls, is either a hole or an endpoint that genuinely belongs to no station, and
-     * the second kind says so with {@link StationFree}. An instance-admin route answers for the
-     * instance rather than for a station, which is the whole of its scope.
+     * own class or of a {@code *RouteSupport} helper it calls, is either a hole or an endpoint that
+     * genuinely belongs to no station, and the second kind says so with {@link StationFree}. An
+     * instance-admin route answers for the instance rather than for a station, which is the whole of
+     * its scope.
      *
      * <p>A {@code /remote} route the federation contract binder serves has no body in its route class:
      * the binder resolves the partner from the signature and hands the feature's serving function the
@@ -500,13 +501,15 @@ class RouteConventionsTest {
     }
 
     /**
-     * Whether a handler, or a method of its own class it reaches, says which station the addressed
-     * row belongs to.
+     * Whether a handler, or a method of its own class or of a route helper it reaches, says which
+     * station the addressed row belongs to.
      *
      * <p>Methods of the class are followed rather than named, because the codebase reaches its checks
      * through chains of its own: an attendance entry resolves to its session, and the session is what
      * carries the station. Following them is what keeps this rule about the check being made rather
-     * than about which words the handler happens to contain.
+     * than about which words the handler happens to contain. A {@code *RouteSupport} class beside the
+     * route classes holds handler bodies several route classes share, so its methods are followed the
+     * same way.
      */
     private static boolean checksStation(Route route) {
         JavaClass owner = routeClasses.get(route.owner());
@@ -520,7 +523,9 @@ class RouteConventionsTest {
             for (JavaAccess<?> access : unit.getAccessesFromSelf()) {
                 if (isStationEvidence(access)) return true;
                 JavaClass target = access.getTargetOwner();
-                if (isPartOf(owner, target)) pending.addAll(codeUnitsNamed(target, access.getName()));
+                if (isPartOf(owner, target) || isRouteHelper(target)) {
+                    pending.addAll(codeUnitsNamed(target, access.getName()));
+                }
             }
         }
         return false;
@@ -535,6 +540,10 @@ class RouteConventionsTest {
         if (name.equals("guards")) return true;
         if (name.equals("owner") && access.getTargetOwner().isEquivalentTo(StationSession.class)) return true;
         return access.getTargetOwner().getSimpleName().endsWith("Guards");
+    }
+
+    private static boolean isRouteHelper(JavaClass type) {
+        return type.getPackageName().contains(".route") && type.getSimpleName().endsWith("RouteSupport");
     }
 
     private static boolean isPartOf(JavaClass owner, JavaClass type) {

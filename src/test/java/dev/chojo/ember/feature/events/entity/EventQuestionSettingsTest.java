@@ -31,6 +31,18 @@ class EventQuestionSettingsTest {
     }
 
     @Test
+    void aRegistrantsQuestionKeepsItsDescriptionTrimmedAndAnOrganisersDropsIt() {
+        var settings = EventQuestionSettings.parse("{\"required\":true,\"description\":\"  Fuer das T-Shirt.  \"}");
+
+        assertEquals("Fuer das T-Shirt.", settings.description());
+        assertEquals(
+                "Fuer das T-Shirt.",
+                EventQuestionSettings.parse(settings.registrants().toJson()).description());
+        assertNull(settings.organisers().description());
+        assertNull(EventQuestionSettings.parse("{\"description\":\"   \"}").description());
+    }
+
+    @Test
     void parseInvalidReturnsEmpty() {
         var fallback = EventQuestionSettings.parse("not json");
         assertSame(fallback, EventQuestionSettings.parse("{"));
@@ -53,7 +65,7 @@ class EventQuestionSettingsTest {
 
     @Test
     void aRegistrantsQuestionRoundTripsThroughTheColumnAndTheScreen() {
-        var screen = new EventQuestionSettings(null, null, null, null, null, false, false, true, "2", 0, 5, true);
+        var screen = new EventQuestionSettings(null, null, null, null, null, false, false, true, "2", 0, 5, true, null);
         var parsed = EventQuestionSettings.parse(screen.toJson());
 
         assertTrue(parsed.required());

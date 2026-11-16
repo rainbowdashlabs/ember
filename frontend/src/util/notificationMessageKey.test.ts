@@ -27,6 +27,15 @@ describe('notificationMessageKey', () => {
             .toBe('notification.eventDateCancelledTooFew')
     })
 
+    it('says whether a whole event group was called off by a manager or for too few sign-ups', () => {
+        expect(notificationMessageKey('EVENT_CANCELLED', 'notification.eventCancelled',
+            {eventName: 'Jugendflamme', eventGroup: 'true', cause: 'MANUAL'}))
+            .toBe('notification.eventGroupCancelled')
+        expect(notificationMessageKey('EVENT_CANCELLED', 'notification.eventCancelled',
+            {eventName: 'Jugendflamme', eventGroup: 'true', cause: 'THRESHOLD'}))
+            .toBe('notification.eventGroupCancelledTooFew')
+    })
+
     it('names the next date of a moved appointment where one is left', () => {
         expect(notificationMessageKey('EVENT_DATE_DROPPED', 'notification.eventDateDropped', {nextDate: '2026-10-07'}))
             .toBe('notification.eventDateDropped')

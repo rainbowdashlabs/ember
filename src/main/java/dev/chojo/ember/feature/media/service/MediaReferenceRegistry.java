@@ -103,6 +103,11 @@ public class MediaReferenceRegistry {
             JOIN station_event e ON e.id = a.event_id
             WHERE e.station_id = :station_id;""", """
             SELECT f.id, f.content_hash
+            FROM event_attachment a
+            JOIN station_file f ON f.id = a.file_id
+            JOIN event_group g ON g.id = a.event_group_id
+            WHERE g.station_id = :station_id;""", """
+            SELECT f.id, f.content_hash
             FROM event_template_attachment a
             JOIN station_file f ON f.id = a.file_id
             JOIN event_template t ON t.id = a.template_id

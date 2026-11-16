@@ -685,7 +685,9 @@ test.describe('Events', () => {
 
     /**
      * A season of weekly appointments is entered once rather than fifty times. The story generates the
-     * dates, creates them in one go, and finds one of them in the planner afterwards.
+     * dates, creates them in one go, and finds one of them in the planner afterwards. Only the visible
+     * date fields are the timeframe: the rows entered by hand stay in the page while another way is
+     * chosen.
      */
     test('a run of events is created in one go', async ({managerPage: page}) => {
         const name = `Serie-${Date.now()}`
@@ -694,7 +696,7 @@ test.describe('Events', () => {
         await page.getByRole('textbox').first().fill(name)
         await page.getByRole('button', {name: 'Weiter'}).click()
 
-        const dates = page.locator('input[type="date"]')
+        const dates = page.locator('input[type="date"]:visible')
         await dates.first().fill('2026-12-01')
         await dates.nth(1).fill('2026-12-31')
 

@@ -12,7 +12,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
-import {appointmentDocuments} from '@/api'
+import {appointmentDocuments, eventGroups} from '@/api'
 import type {AgreementSigner} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {formatDateTime} from '@/util/format'
@@ -23,11 +23,16 @@ import SignatureStateBadge from '../eventshared/SignatureStateBadge.vue'
  * runs it: per participant and document where it stands, when it was signed or withdrawn, and whether they
  * said they will not come since. Members of partner stations who signed at home are named as their station
  * shares them. Nothing shows where the appointment asks for no agreement.
+ *
+ * <p>Given an event group instead, it lists who signed the documents the event group asks every part for,
+ * once per person and document, whichever part it was signed on.
  */
 const props = defineProps<{
-  eventId: number
+  eventId?: number
   /** The date of the appointment on screen. */
-  date: string
+  date?: string
+  /** The event group whose documents are listed, in place of one appointment's date. */
+  eventGroupId?: number
 }>()
 
 const {t} = useI18n()
@@ -35,11 +40,13 @@ const {t} = useI18n()
 const signers = ref<AgreementSigner[] | null>(null)
 
 const {failure, reload} = useAsyncLoader(async isCurrent => {
-  const loaded = await appointmentDocuments.agreementSigners(props.eventId, props.date)
+  const loaded = props.eventGroupId != null
+    ? await eventGroups.agreementSigners(props.eventGroupId)
+    : await appointmentDocuments.agreementSigners(props.eventId!, props.date!)
   if (isCurrent()) signers.value = loaded
 }, {autoLoad: false})
 
-watch(() => [props.eventId, props.date], reload, {immediate: true})
+watch(() => [props.eventId, props.date, props.eventGroupId], reload, {immediate: true})
 
 function signerKey(signer: AgreementSigner): string {
   const who = signer.partnerMember?.memberUid ?? String(signer.memberId)
@@ -50,7 +57,7 @@ function signerKey(signer: AgreementSigner): string {
 <template>
   <NeutralContainer v-if="failure || (signers && signers.length > 0)" class="space-y-3" data-testid="agreement-signers">
     <SubHeader>{{ t('events.documents.signers.title') }}</SubHeader>
-    <MutedText size="sm" tag="p">{{ t('events.documents.signers.hint') }}</MutedText>
+    <MutedText size="sm" tag="p">{{ eventGroupId != null ? t('events.documents.signers.eventGroupHint') : t('events.documents.signers.hint') }}</MutedText>
     <FailureAlert :failure="failure"/>
     <ul class="space-y-1 text-sm">
       <li v-for="signer in signers ?? []" :key="signerKey(signer)"

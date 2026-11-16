@@ -187,8 +187,8 @@ const UNIT_KEYS: Record<CountUnit, string> = {
 
 /**
  * Writes the value a refusal was about in the reader's language: text as it was typed, a count as a
- * number (with its unit where the refusal named one), and the room left of a pool as a size against
- * the size of the pool, in the units the storage screens use.
+ * number (with its unit where the refusal named one), the room left of a pool as a size against
+ * the size of the pool, in the units the storage screens use, and the numbers a value may take.
  *
  * @param detail what the refusal was about
  * @param t      the translator
@@ -205,6 +205,10 @@ export function formatRefusalDetail(detail: RefusalDetail, t: Translate): string
                 free: formatBytes(detail.freeBytes),
                 total: formatBytes(detail.totalBytes),
             })
+        case 'RANGE':
+            return detail.max == null
+                ? t('failure.detail.atLeast', {min: detail.min})
+                : t('failure.detail.range', {min: detail.min, max: detail.max})
     }
 }
 

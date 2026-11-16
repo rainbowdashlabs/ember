@@ -13,7 +13,8 @@ public enum CommentEntityType {
     EVENT("event_id"),
     NEWS("news_id"),
     BOARD_TICKET("board_ticket_id"),
-    KB("kb_file_id");
+    KB("kb_file_id"),
+    EVENT_GROUP("event_group_id");
 
     private final String column;
 

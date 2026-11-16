@@ -34,8 +34,8 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
  * HTTP route definitions for entity notes.
  * Provides endpoints for reading and updating notes with version history.
  *
- * <p>The routes serve several entity types with different permissions (event notes need
- * {@code EVENT_EDIT}, item and member notes {@code MEMBER_NOTES}), so the route gate admits either
+ * <p>The routes serve several entity types with different permissions (notes on appointments and
+ * event groups need {@code EVENT_EDIT}, item and member notes {@code MEMBER_NOTES}), so the route gate admits either
  * and each handler narrows it per entity type.
  */
 @SuppressWarnings("DefaultAnnotationParam")
@@ -49,7 +49,10 @@ public class NoteRoutes implements Routes {
     }
 
     private static StationPermission requiredPermission(NoteEntityType entityType) {
-        return entityType == NoteEntityType.EVENT ? StationPermission.EVENT_EDIT : StationPermission.MEMBER_NOTES;
+        return switch (entityType) {
+            case EVENT, EVENT_GROUP -> StationPermission.EVENT_EDIT;
+            case ITEM, MEMBER -> StationPermission.MEMBER_NOTES;
+        };
     }
 
     private static void requireNoteAccess(StationSession session, NoteEntityType entityType) {

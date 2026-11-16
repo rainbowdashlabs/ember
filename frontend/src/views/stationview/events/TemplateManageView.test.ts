@@ -83,6 +83,7 @@ function attachment(id: number, fileId: number, label: string | null, internal: 
         mimeType: 'application/pdf',
         fileSize: 1024,
         contentHash: `hash-${id}`,
+        fromEventGroup: false,
     }
 }
 

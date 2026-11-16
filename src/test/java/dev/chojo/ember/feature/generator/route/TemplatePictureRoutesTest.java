@@ -50,8 +50,8 @@ class TemplatePictureRoutesTest {
         when(visibility.requireVisibleEvent(any(), eq(6))).thenThrow(EventRefusal.EVENT_NOT_YOURS_TO_SEE.raise());
         when(requirements.forEvent(5))
                 .thenReturn(List.of(
-                        new RequiredTemplate(8, "Einverständnis", DocumentTemplateKind.PDF, 1, false, null),
-                        new RequiredTemplate(9, "Alt", DocumentTemplateKind.PDF, 1, true, null)));
+                        new RequiredTemplate(8, "Einverständnis", DocumentTemplateKind.PDF, 1, false, null, false),
+                        new RequiredTemplate(9, "Alt", DocumentTemplateKind.PDF, 1, true, null, false)));
         when(pictures.forStation(anyInt(), eq(8), anyInt()))
                 .thenReturn(Optional.of(new MediaContent(new byte[] {1}, "image/png")));
         harness = RouteHarness.serving(new TemplatePictureRoutes(pictures, visibility, requirements));

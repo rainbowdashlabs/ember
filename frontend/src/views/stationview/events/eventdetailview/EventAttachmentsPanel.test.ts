@@ -7,6 +7,7 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {mount} from '@vue/test-utils'
 import EventAttachmentsPanel from './EventAttachmentsPanel.vue'
+import {eventAttachmentReader} from './attachmentReaders'
 import FilePreviewModal from '@/components/documents/FilePreviewModal.vue'
 import type {EventAttachment} from '@/api/generated/schema'
 
@@ -44,6 +45,7 @@ function attachment(overrides: Partial<EventAttachment> = {}): EventAttachment {
         mimeType: 'application/pdf',
         fileSize: 2048,
         contentHash: 'abc',
+        fromEventGroup: false,
         ...overrides,
     }
 }
@@ -57,7 +59,7 @@ function attachment(overrides: Partial<EventAttachment> = {}): EventAttachment {
  */
 describe('EventAttachmentsPanel', () => {
     function panel() {
-        return mount(EventAttachmentsPanel, {props: {eventId: 12}})
+        return mount(EventAttachmentsPanel, {props: {reader: eventAttachmentReader(12)}})
     }
 
     async function settled(view: ReturnType<typeof panel>) {
@@ -70,6 +72,15 @@ describe('EventAttachmentsPanel', () => {
     beforeEach(() => {
         vi.clearAllMocks()
         listEventAttachments.mockResolvedValue([])
+    })
+
+    it('marks the files a part takes over from its event group', async () => {
+        listEventAttachments.mockResolvedValue([attachment({id: 3, fromEventGroup: true}), attachment({id: 4})])
+        const view = await settled(panel())
+
+        const rows = view.findAll('[data-testid="event-attachment-row"]')
+        expect(rows[0]!.find('[data-testid="event-attachment-group-badge"]').exists()).toBe(true)
+        expect(rows[1]!.find('[data-testid="event-attachment-group-badge"]').exists()).toBe(false)
     })
 
     it('says nothing where an event hands nothing over', async () => {

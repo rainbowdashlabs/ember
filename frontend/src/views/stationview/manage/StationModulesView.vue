@@ -32,10 +32,7 @@ const clusterDenied = ref<Set<StationModule>>(new Set())
 const clusterName = ref<string | null>(null)
 
 const {running: modulesSaving, failure, run: toggleModule} = useAsyncAction(async (key: StationModule) => {
-  const next = new Set(disabledModules.value)
-  if (next.has(key)) next.delete(key)
-  else next.add(key)
-  const res = await stationManage.setDisabledModules([...next])
+  const res = await stationManage.setModuleDisabled(key, !disabledModules.value.has(key))
   apply(res)
   reloadSession()
 })

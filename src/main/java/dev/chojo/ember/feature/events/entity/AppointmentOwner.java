@@ -6,15 +6,18 @@
 package dev.chojo.ember.feature.events.entity;
 
 /**
- * Whose setting a row is: an appointment's own, or a template's, held for the appointments made from
- * it.
+ * Whose setting a row is: an appointment's own, a template's, held for the appointments made from it,
+ * or an event group's, handed to every one of its parts.
  *
- * <p>Attachments, attendance field defaults and the partner share look the same on both, so one
- * service writes both and only the table it writes to differs.
+ * <p>Attachments and attendance field defaults look the same on all three, so one service writes them
+ * and only the table or column it writes to differs. The partner share looks the same on an appointment
+ * and a template only; an event group is shared through a share of its own.
  */
 public enum AppointmentOwner {
     /** An appointment, by its id in {@code station_event}. */
     EVENT,
     /** An appointment template, by its id in {@code event_template}. */
-    TEMPLATE
+    TEMPLATE,
+    /** An event group, by its id in {@code event_group}. */
+    EVENT_GROUP
 }

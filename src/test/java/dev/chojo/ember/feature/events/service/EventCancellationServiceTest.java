@@ -6,8 +6,6 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.refusal.EventRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
-import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
@@ -15,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.handler.EventCancelledHandler;
 import dev.chojo.ember.feature.events.handler.EventDateRestoredHandler;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
@@ -36,7 +35,6 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -78,7 +76,8 @@ class EventCancellationServiceTest extends RepositoryTestBase {
     void wire() {
         notifications = mock(Notifier.class);
         var bus = new DomainEventBus(Set.of(
-                new EventCancelledHandler(notifications, eventRegistrationRepo, occurrenceCalendar),
+                new EventCancelledHandler(
+                        notifications, eventRegistrationRepo, occurrenceCalendar, new EventGroupRepository()),
                 new EventDateRestoredHandler(notifications, eventRegistrationRepo)));
         var services = newEventServices(bus);
         service = services.cancellation();
@@ -340,10 +339,5 @@ class EventCancellationServiceTest extends RepositoryTestBase {
         assertTrue(upcoming.stream()
                 .allMatch(o -> "Aufgelöst".equals(o.cancellation().reason())));
         assertTrue(upcoming.getFirst().event().seriesCancelled());
-    }
-
-    private static void assertRefused(Refusal refusal, Runnable call) {
-        var thrown = assertThrows(RefusalResponse.class, call::run);
-        assertEquals(refusal, thrown.refusal());
     }
 }

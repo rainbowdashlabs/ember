@@ -11,5 +11,6 @@ package dev.chojo.ember.feature.comment.entity;
 public enum NoteEntityType {
     ITEM,
     EVENT,
-    MEMBER
+    MEMBER,
+    EVENT_GROUP
 }

@@ -63,6 +63,15 @@ export async function getDisabledModules(): Promise<ModulesResponse> {
     return res.data
 }
 
+/**
+ * Switches one module off or on and leaves the others as the server has them, so two managers
+ * switching different modules at once both keep their change.
+ */
+export async function setModuleDisabled(module: StationModule, disabled: boolean): Promise<ModulesResponse> {
+    const res = await client.put<ModulesResponse>(`/station/manage/modules/${module}`, {disabled})
+    return res.data
+}
+
 export async function setDisabledModules(disabledModules: StationModule[]): Promise<ModulesResponse> {
     const res = await client.put<ModulesResponse>('/station/manage/modules', {disabledModules})
     return res.data

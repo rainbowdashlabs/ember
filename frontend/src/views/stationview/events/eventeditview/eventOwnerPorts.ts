@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {events} from '@/api'
+import {eventGroups, events} from '@/api'
 import type {
     EventAttachment,
     EventFieldDefault,
@@ -49,13 +49,28 @@ export interface FederationSharePort {
     places?: PartnerPlacesPort
 }
 
+/**
+ * The files of one appointment as its editor writes them. A part's list leaves out the files its event
+ * group hands over, which only the event group takes off.
+ */
 export function eventAttachmentPort(eventId: number): AttachmentPort {
     return {
-        list: () => events.listEventAttachments(eventId),
+        list: async () => (await events.listEventAttachments(eventId)).filter(attachment => !attachment.fromEventGroup),
         attach: (fileId, label, internal) => events.attachEventFile(eventId, fileId, label, internal),
         update: (attachmentId, label, internal) => events.updateEventAttachment(eventId, attachmentId, label, internal),
         reorder: attachmentIds => events.reorderEventAttachments(eventId, attachmentIds),
         detach: attachmentId => events.detachEventFile(eventId, attachmentId),
+    }
+}
+
+/** The files an event group hands over on every part. */
+export function eventGroupAttachmentPort(eventGroupId: number): AttachmentPort {
+    return {
+        list: () => eventGroups.listAttachments(eventGroupId),
+        attach: (fileId, label, internal) => eventGroups.attachFile(eventGroupId, fileId, label, internal),
+        update: (attachmentId, label, internal) => eventGroups.updateAttachment(eventGroupId, attachmentId, label, internal),
+        reorder: attachmentIds => eventGroups.reorderAttachments(eventGroupId, attachmentIds),
+        detach: attachmentId => eventGroups.detachFile(eventGroupId, attachmentId),
     }
 }
 
@@ -94,6 +109,15 @@ export function eventFederationPort(eventId: number): FederationSharePort {
             set: (partnerId, slotBudget, partnerConfirms) =>
                 events.setPartnerPlaces(eventId, partnerId, slotBudget, partnerConfirms),
         },
+    }
+}
+
+/** How an event group, and with it every part, is shared with partner stations. */
+export function eventGroupFederationPort(eventGroupId: number): FederationSharePort {
+    return {
+        get: () => eventGroups.getFederationShare(eventGroupId),
+        set: (scope, partnerIds) => eventGroups.setFederationShare(eventGroupId, scope, partnerIds),
+        remove: () => eventGroups.removeFederationShare(eventGroupId),
     }
 }
 

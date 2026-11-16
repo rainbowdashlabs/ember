@@ -285,7 +285,7 @@ public class EventRegistrationFieldService {
      * @return the value to store per question id
      * @throws RefusalResponse when a question is unanswered, unknown, or answered out of range
      */
-    private static Map<Integer, String> validate(
+    static Map<Integer, String> validate(
             List<EventRegistrationField> fields, Map<Integer, String> answers, MemberEligibility eligibility) {
         var known = fields.stream().map(EventRegistrationField::id).collect(Collectors.toSet());
         for (Integer fieldId : answers.keySet()) {

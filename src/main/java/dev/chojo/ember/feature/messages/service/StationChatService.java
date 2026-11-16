@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.messages.service;
 
 import dev.chojo.ember.api.refusal.MessageRefusal;
-import dev.chojo.ember.feature.messages.entity.ChatAudience;
 import dev.chojo.ember.feature.messages.entity.Conversation;
 import dev.chojo.ember.feature.messages.entity.MembershipChange;
 import dev.chojo.ember.feature.messages.entity.MessageEvent;
@@ -16,6 +15,9 @@ import dev.chojo.ember.feature.messages.entity.SystemKind;
 import dev.chojo.ember.feature.messages.repository.ConversationRepository;
 import dev.chojo.ember.feature.messages.repository.MessageRepository;
 import dev.chojo.ember.feature.messages.repository.StationChatRepository;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -28,13 +30,13 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * A station's chats as its managers handle them: opening one for the whole station, a group or a
- * tag, renaming it, taking the guardians in or out, closing and reopening it.
+ * A station's chats as its managers handle them: opening one for any audience of the station,
+ * changing its name, audience and guardians, closing and reopening it.
  *
- * <p>A station has at most one open chat for the whole station, and each group and tag at most one,
- * so the same chat is never opened twice by accident. Opening, renaming, closing and reopening leave
- * a quiet line in the chat; who comes and goes with the audience does not. Who holds the permission
- * is checked by the route; everything here is held to the station named.
+ * <p>A station may have several open chats, each with its own name and audience. Opening, renaming,
+ * closing and reopening leave a quiet line in the chat; who comes and goes with the audience does
+ * not. Who holds the permission is checked by the route; everything here is held to the station
+ * named.
  */
 @Singleton
 public class StationChatService {
@@ -45,6 +47,7 @@ public class StationChatService {
     private final MessageRepository messages;
     private final StationChatMembership membership;
     private final MessageSignals signals;
+    private final RestrictionService restrictions;
 
     @Inject
     public StationChatService(
@@ -52,22 +55,24 @@ public class StationChatService {
             ConversationRepository conversations,
             MessageRepository messages,
             StationChatMembership membership,
-            MessageSignals signals) {
+            MessageSignals signals,
+            RestrictionService restrictions) {
         this.signals = signals;
         this.chats = chats;
         this.conversations = conversations;
         this.messages = messages;
         this.membership = membership;
+        this.restrictions = restrictions;
     }
 
     /**
      * The station's chats, the open ones first.
      *
      * @param stationId the station
-     * @return each with its audience's name and how many take part
+     * @return each with its audience and how many take part
      */
     public List<StationChatSummary> list(int stationId) {
-        return chats.summaries(stationId);
+        return chats.counted(stationId).stream().map(this::summarise).toList();
     }
 
     /**
@@ -79,7 +84,9 @@ public class StationChatService {
      */
     public StationChatSummary one(int stationId, UUID conversationUid) {
         Conversation chat = requireChat(stationId, conversationUid);
-        return chats.summary(chat.id()).orElseThrow(MessageRefusal.STATION_CHAT_NOT_HERE::raise);
+        return chats.counted(stationId, chat.id())
+                .map(this::summarise)
+                .orElseThrow(MessageRefusal.STATION_CHAT_NOT_HERE::raise);
     }
 
     /**
@@ -88,69 +95,64 @@ public class StationChatService {
      * @param stationId        the station
      * @param accountId        the manager opening it
      * @param name             its name
-     * @param audience         whom it is for
-     * @param groupId          the group of a group chat, or null
-     * @param tagId            the tag of a tag chat, or null
-     * @param includeGuardians whether the guardians of a group or tag's people are members too
+     * @param audience         whom it is for; null or one naming nobody is the whole station
+     * @param includeGuardians whether the guardians of its people are members too
      * @return the chat
      */
     public Conversation open(
             int stationId,
             int accountId,
             @Nullable String name,
-            @Nullable ChatAudience audience,
-            @Nullable Integer groupId,
-            @Nullable Integer tagId,
+            @Nullable RestrictionAudience audience,
             boolean includeGuardians) {
         String kept = requireName(name);
+        RestrictionAudience target = requireAudience(stationId, audience);
         Conversation chat = Transactions.call(() -> {
-            chats.lockOpening(stationId);
-            requireAudience(stationId, audience, groupId, tagId, includeGuardians);
-            var created = chats.create(stationId, kept, audience, groupId, tagId, includeGuardians)
-                    .orElseThrow(MessageRefusal.STATION_CHAT_TAKEN::raise);
+            var created = chats.create(stationId, kept, includeGuardians, !target.namesNobody(), kindsOf(target));
+            restrictions.setAudience(RestrictionType.STATION_CHAT, created.id(), target);
             messages.writeSystem(created.id(), accountId, SystemKind.OPENED, null, kept);
             return created;
         });
         reconcileQuietly(chat);
-        log.info(
-                "Station chat {} opened at station {} for {} by account {}", chat.id(), stationId, audience, accountId);
+        log.info("Station chat {} opened at station {} by account {}", chat.id(), stationId, accountId);
         return chat;
     }
 
     /**
-     * Renames a chat.
+     * Changes a chat's name, audience and whether it takes the guardians in, then takes the audience
+     * in. A new name leaves a quiet line in the chat. A closed chat keeps its changes for when it is
+     * reopened, which is how one that lost its audience gets a new one.
      *
-     * @param stationId       the station
-     * @param accountId       the manager renaming it
-     * @param conversationUid the chat
-     * @param name            its new name
+     * @param stationId        the station
+     * @param accountId        the manager changing it
+     * @param conversationUid  the chat
+     * @param name             its name
+     * @param audience         whom it is for; one naming nobody is the whole station. Refused when
+     *                         absent, so a change never widens a chat by leaving it out
+     * @param includeGuardians whether the guardians of its people are members too, refused when absent
      */
-    public void rename(int stationId, int accountId, UUID conversationUid, @Nullable String name) {
+    public void edit(
+            int stationId,
+            int accountId,
+            UUID conversationUid,
+            @Nullable String name,
+            @Nullable RestrictionAudience audience,
+            @Nullable Boolean includeGuardians) {
+        if (audience == null || includeGuardians == null) throw MessageRefusal.STATION_CHAT_CHANGE_UNSAID.raise();
         Conversation chat = requireChat(stationId, conversationUid);
         String kept = requireName(name);
-        if (kept.equals(chat.name())) return;
+        RestrictionAudience target = requireAudience(stationId, audience);
+        boolean guardians = includeGuardians;
+        boolean renamed = !kept.equals(chat.name());
         Transactions.run(() -> {
-            chats.rename(chat.id(), kept);
-            messages.writeSystem(chat.id(), accountId, SystemKind.RENAMED, null, kept);
-            conversations.touch(chat.id());
+            chats.update(chat.id(), kept, guardians, !target.namesNobody(), kindsOf(target));
+            restrictions.setAudience(RestrictionType.STATION_CHAT, chat.id(), target);
+            if (renamed) {
+                messages.writeSystem(chat.id(), accountId, SystemKind.RENAMED, null, kept);
+                conversations.touch(chat.id());
+            }
         });
-        tell(chat);
-    }
-
-    /**
-     * Takes the guardians of a group or tag chat's people in, or leaves them out again.
-     *
-     * @param stationId       the station
-     * @param conversationUid the chat
-     * @param include         whether the guardians are members, refused when not said
-     */
-    public void includeGuardians(int stationId, UUID conversationUid, @Nullable Boolean include) {
-        if (include == null) throw MessageRefusal.STATION_CHAT_GUARDIANS_UNSAID.raise();
-        Conversation chat = requireChat(stationId, conversationUid);
-        StationScope scope = scopeOf(chat);
-        if (scope.audience() == ChatAudience.STATION) throw MessageRefusal.STATION_CHAT_GUARDIANS_NOT_TAKEN.raise();
-        if (scope.includeGuardians() == include) return;
-        chats.setIncludeGuardians(chat.id(), include);
+        log.info("Station chat {} at station {} changed by account {}", chat.id(), stationId, accountId);
         if (!reconcileQuietly(chat)) tell(chat);
     }
 
@@ -175,7 +177,7 @@ public class StationChatService {
 
     /**
      * Opens a closed chat again and takes in whoever joined its audience meanwhile. A chat whose
-     * group or tag is gone, and one whose audience has another open chat by now, stay closed.
+     * audience lost part of what it named stays closed until it is given a new audience.
      *
      * @param stationId       the station
      * @param accountId       the manager reopening it
@@ -186,21 +188,14 @@ public class StationChatService {
         StationScope scope = scopeOf(chat);
         if (!scope.closed()) return;
         if (scope.orphaned()) throw MessageRefusal.STATION_CHAT_AUDIENCE_GONE.raise();
-        Integer tagId = scope.tagId();
-        if (tagId != null && chats.tagPrivate(tagId)) throw MessageRefusal.STATION_CHAT_TAG_PRIVATE.raise();
-        Transactions.run(() -> {
-            chats.lockOpening(stationId);
-            if (chats.findOpen(stationId, scope.audience(), scope.groupId(), scope.tagId())
-                    .isPresent()) {
-                throw MessageRefusal.STATION_CHAT_TAKEN.raise();
-            }
-            if (!chats.reopen(chat.id())) return;
+        boolean reopened = Transactions.call(() -> {
+            if (!chats.reopen(chat.id())) return false;
             messages.writeSystem(chat.id(), accountId, SystemKind.REOPENED, null, "");
             conversations.touch(chat.id());
+            return true;
         });
-        if (!reconcileQuietly(chat)) tell(chat);
+        if (reopened && !reconcileQuietly(chat)) tell(chat);
     }
-
     /**
      * Tells the tabs of everybody in a chat that its name or state changed.
      */
@@ -235,28 +230,23 @@ public class StationChatService {
                 .orElseThrow(MessageRefusal.STATION_CHAT_NOT_HERE::raise);
     }
 
-    private void requireAudience(
-            int stationId,
-            @Nullable ChatAudience audience,
-            @Nullable Integer groupId,
-            @Nullable Integer tagId,
-            boolean includeGuardians) {
-        if (audience == null) throw MessageRefusal.STATION_CHAT_AUDIENCE_UNCLEAR.raise();
-        switch (audience) {
-            case STATION -> {
-                if (groupId != null || tagId != null) throw MessageRefusal.STATION_CHAT_AUDIENCE_UNCLEAR.raise();
-                if (includeGuardians) throw MessageRefusal.STATION_CHAT_GUARDIANS_NOT_TAKEN.raise();
-            }
-            case GROUP -> {
-                if (groupId == null || tagId != null) throw MessageRefusal.STATION_CHAT_AUDIENCE_UNCLEAR.raise();
-                if (!chats.groupOf(groupId, stationId)) throw MessageRefusal.STATION_CHAT_GROUP_NOT_HERE.raise();
-            }
-            case TAG -> {
-                if (tagId == null || groupId != null) throw MessageRefusal.STATION_CHAT_AUDIENCE_UNCLEAR.raise();
-                if (!chats.tagOf(tagId, stationId)) throw MessageRefusal.STATION_CHAT_TAG_NOT_HERE.raise();
-                if (chats.tagPrivate(tagId)) throw MessageRefusal.STATION_CHAT_TAG_PRIVATE.raise();
-            }
-        }
+    private RestrictionAudience requireAudience(int stationId, @Nullable RestrictionAudience audience) {
+        RestrictionAudience target = audience == null ? RestrictionAudience.empty() : audience.distinct();
+        if (!restrictions.ofStation(stationId, target)) throw MessageRefusal.STATION_CHAT_AUDIENCE_NOT_HERE.raise();
+        return target;
+    }
+
+    private static int kindsOf(RestrictionAudience audience) {
+        var selection = audience.toSelection();
+        return selection.userTypes().size()
+                + selection.groupIds().size()
+                + selection.tagIds().size();
+    }
+
+    private StationChatSummary summarise(StationChatRepository.Counted counted) {
+        Conversation chat = counted.conversation();
+        return new StationChatSummary(
+                chat, restrictions.audienceOf(RestrictionType.STATION_CHAT, chat.id()), counted.members());
     }
 
     private static String requireName(@Nullable String name) {

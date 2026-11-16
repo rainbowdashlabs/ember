@@ -12,6 +12,9 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.documents.service.DocumentCatalogService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
+import dev.chojo.ember.feature.events.service.EventGroupPartDates;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.generator.entity.PaperState;
 import dev.chojo.ember.feature.generator.entity.PaperSubmission;
@@ -106,7 +109,9 @@ class PaperSubmissionServiceTest extends GeneratorTestBase {
                 wiring.templates(),
                 new MemberNeutralTemplates(wiring.templates()),
                 new EventFederationRepository(),
-                new DomainEventBus(Set.of()));
+                new DomainEventBus(Set.of()),
+                new EventGroupRepository(),
+                new EventGroupPartnerRepository());
         appointments = new AppointmentDocumentService(
                 repository,
                 submissions,
@@ -121,7 +126,8 @@ class PaperSubmissionServiceTest extends GeneratorTestBase {
                 new EventRestrictionService(eventRepo, restrictionService),
                 RequirementSignatures.NONE,
                 stationMemberRepo,
-                occurrenceCalendar);
+                occurrenceCalendar,
+                new EventGroupPartDates(new EventGroupRepository(), eventRepo, occurrenceCalendar));
         notifier = mock(Notifier.class);
         confirmations = mock(ScanConfirmations.class);
         scans = new PaperSubmissionService(

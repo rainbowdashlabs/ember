@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
+import dev.chojo.ember.feature.events.service.EventGroupPartDates;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
@@ -37,6 +38,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -63,6 +65,10 @@ import java.util.Set;
  * where signatures were asked for on the copy, where each of them stands ({@link RequirementSignatures}). On an
  * appointment that takes no registrations, a document the participant or a guardian signs is offered to sign
  * online wherever nothing stands for it yet, since no registration asks for it.
+ *
+ * <p>A document an event group asks every part for is signed once for the event group, on whichever part
+ * it was asked on. Every other part shows the participant's copy, scan and signatures from that part, so
+ * the document reads as signed, waiting or confirmed alike on every part.
  */
 @Singleton
 public class AppointmentDocumentService {
@@ -83,6 +89,7 @@ public class AppointmentDocumentService {
     private final RequirementSignatures signatures;
     private final StationMemberRepository members;
     private final OccurrenceCalendar occurrenceCalendar;
+    private final EventGroupPartDates partDates;
 
     @Inject
     public AppointmentDocumentService(
@@ -99,8 +106,10 @@ public class AppointmentDocumentService {
             EventRestrictionService audience,
             RequirementSignatures signatures,
             StationMemberRepository members,
-            OccurrenceCalendar occurrenceCalendar) {
+            OccurrenceCalendar occurrenceCalendar,
+            EventGroupPartDates partDates) {
         this.occurrenceCalendar = occurrenceCalendar;
+        this.partDates = partDates;
         this.audience = audience;
         this.signatures = signatures;
         this.members = members;
@@ -207,6 +216,7 @@ public class AppointmentDocumentService {
                         requirements.latest(event.id(), date, asked),
                         submissions.latest(event.id(), date, asked),
                         signatures.of(session, event.id(), date, asked));
+        copies = withOtherParts(session, event, required, asked, copies);
         var offers = event.requiresRegistration() ? Set.<Offer>of() : offers(event, own);
         return new AppointmentDocuments(
                 required,
@@ -214,6 +224,49 @@ public class AppointmentDocumentService {
                 overview
                         ? participantsOf(event, everyone, required, copies, Set.of(), withdrawals(event, date))
                         : null);
+    }
+
+    /**
+     * Adds, for the documents the event group of a part asks every part for, what the participants hold for
+     * them on another part of the event group, where they hold nothing for them on this one.
+     */
+    private Copies withOtherParts(
+            StationSession session,
+            StationEvent event,
+            List<RequiredTemplate> required,
+            Collection<Integer> asked,
+            Copies copies) {
+        var groupDocuments = required.stream()
+                .filter(RequiredTemplate::fromEventGroup)
+                .map(RequiredTemplate::templateId)
+                .toList();
+        if (groupDocuments.isEmpty() || asked.isEmpty()) return copies;
+        var generated = new ArrayList<>(copies.generated());
+        var scans = new ArrayList<>(copies.scans());
+        var signed = new ArrayList<>(copies.signed());
+        for (var part : partDates.siblings(event.id())) {
+            var other = new Copies(
+                    requirements.latest(part.eventId(), part.date(), asked),
+                    submissions.latest(part.eventId(), part.date(), asked),
+                    signatures.of(session, part.eventId(), part.date(), asked));
+            for (int memberId : asked) {
+                for (int templateId : groupDocuments) {
+                    if (new Copies(generated, scans, signed).holds(templateId, memberId)) continue;
+                    if (!other.holds(templateId, memberId)) continue;
+                    other.generated().stream()
+                            .filter(copy -> copy.templateId() == templateId && copy.memberId() == memberId)
+                            .forEach(generated::add);
+                    other.scans().stream()
+                            .filter(scan -> scan.templateId() == templateId && scan.memberId() == memberId)
+                            .forEach(scans::add);
+                    other.signed().stream()
+                            .filter(signature ->
+                                    signature.templateId() == templateId && signature.memberId() == memberId)
+                            .forEach(signed::add);
+                }
+            }
+        }
+        return new Copies(generated, scans, signed);
     }
 
     /** When each participant whose registration is flagged withdrew a signed agreement, by participant. */
@@ -523,7 +576,7 @@ public class AppointmentDocumentService {
     private GenerationContext.EventFacts facts(StationEvent event, LocalDate date) {
         var span = event.occurrenceOn(date, occurrenceCalendar.zoneOf(event.stationId()))
                 .orElseGet(() -> new StationEvent.Span(event.startTime(), event.endTime()));
-        var location = AppointmentField.firstLocation(fields.findByEventOn(event.id(), date));
+        var location = AppointmentField.firstLocation(fields.findShownOn(event.id(), date));
         return new GenerationContext.EventFacts(event.name(), span.start(), span.end(), location);
     }
 }

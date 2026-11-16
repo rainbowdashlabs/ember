@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.members.service;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.MemberDisplayChanged;
 import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.TagVisibility;
@@ -82,6 +83,7 @@ public class UserTagService {
         boolean updated = tagRepository.update(id, name, color, visibility, position);
         if (updated) {
             log.info("User tag updated: id={}, name='{}', visibility={}", id, name, visibility);
+            tagRepository.findById(id).ifPresent(tag -> eventBus.publish(MemberDisplayChanged.at(tag.stationId())));
         } else {
             log.warn("User tag update affected no rows: id={}", id);
         }

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import EventGroupTile from '@/views/stationview/events/eventshared/EventGroupTile.vue'
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useEventRoutes} from '@/composables/useEventRoutes'
@@ -12,7 +13,6 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import ColorBadge from '@/components/badge/ColorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
@@ -96,9 +96,9 @@ const detailRoute = computed(() => {
 
 <template>
   <RowLink :to="detailRoute">
-    <NeutralContainer data-testid="event-entry"
-                      :data-registration="item.event.requiresRegistration ? 'true' : 'false'"
-                      class="flex items-center justify-between cursor-pointer hover:bg-(--bg-accent) transition-colors">
+    <EventGroupTile data-testid="event-entry" :event-group="item.event.eventGroup"
+                     :data-registration="item.event.requiresRegistration ? 'true' : 'false'"
+                     class="flex items-center justify-between cursor-pointer hover:bg-(--bg-accent) transition-colors">
       <div class="flex items-center gap-2 flex-wrap">
         <ColorBadge v-if="category" :color="category.color" data-testid="event-entry-category">
           {{ category.name }}
@@ -121,6 +121,6 @@ const detailRoute = computed(() => {
         <EditButton @click="emit('edit')"/>
         <DeleteButton @click="emit('remove')"/>
       </div>
-    </NeutralContainer>
+    </EventGroupTile>
   </RowLink>
 </template>

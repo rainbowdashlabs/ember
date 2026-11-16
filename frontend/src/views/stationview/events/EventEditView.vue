@@ -15,19 +15,23 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
-import {events} from '@/api'
+import {eventGroups, events} from '@/api'
 import {
   EditScopeKind,
   EventChangePart,
+  EventType,
   StationPermission,
   type ChangeNotice,
   type EventAttachment,
   type RegistrationFieldDefinition,
 } from '@/api/generated/schema'
 import {isRecurringEvent} from '@/api/events'
+import EventGroupPartNotice from './eventshared/EventGroupPartNotice.vue'
+import AddToEventGroupCard from './eventeditview/AddToEventGroupCard.vue'
 import {todayIsoDate} from '@/util/format'
 import EventEditBody from './eventeditview/EventEditBody.vue'
 import {useEventForm} from './eventeditview/useEventForm'
+import {useEventGroupPart} from './eventeditview/useEventGroupPart'
 import {useEventEditData} from './eventeditview/useEventEditData'
 import {useEventFieldDefaults} from './eventeditview/useEventFieldDefaults'
 import {useEventFederationShare} from './eventeditview/useEventFederationShare'
@@ -45,7 +49,7 @@ import {
 } from './eventeditview/eventOwnerPorts'
 import DocumentRequirementsEditor from './eventshared/DocumentRequirementsEditor.vue'
 import {useDocumentRequirements} from './eventshared/useDocumentRequirements'
-import {asSaved} from './eventshared/eventQuestions'
+import {namedEntries} from './eventshared/eventQuestions'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -70,6 +74,8 @@ const isEdit = computed(() => eventId.value !== null)
 const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 
 const form = useEventForm()
+const groupPart = useEventGroupPart(() => eventId.value, form.state)
+const eventGroupPart = groupPart.part
 const attachments = useEventAttachments(() => (eventId.value === null ? null : eventAttachmentPort(eventId.value)), t)
 const data = useEventEditData(
     () => form.state.templateId,
@@ -212,11 +218,13 @@ const {loading, failure} = useAsyncLoader(async () => {
     if (isEdit.value) {
       await Promise.all([
         form.loadEvent(eventId.value!),
+        eventGroups.eventGroupOfEvent(eventId.value!).then(groupPart.load),
         fieldDefaults.load(eventFieldDefaultsPort(eventId.value!)),
         federationShare.load(eventFederationPort(eventId.value!)),
         loadRegistrationFields(eventId.value!),
         attachments.load(),
       ])
+      groupPart.keepOwnDateSettings()
       openedName.value = form.state.name
       opened.value = snapshotOf()
       openedRecurring.value = isRecurringEvent(form.state.eventType)
@@ -227,6 +235,11 @@ const {loading, failure} = useAsyncLoader(async () => {
     throw e
   }
 })
+
+/** Whether the appointment may join an event group: saved, one-time, in none yet, and in a station. */
+const joinsGroup = computed(() =>
+    isEdit.value && !loading.value && !!eventRoutes.eventGroupCreate
+    && form.state.eventType === EventType.ONE_TIME && eventGroupPart.value === null)
 
 /**
  * Saves the appointment and everything that hangs off it.
@@ -262,8 +275,10 @@ async function writeEvent(choice: SaveChoice | null): Promise<number> {
   await fieldDefaults.save(eventFieldDefaultsPort(savedEventId), isEdit.value)
   await events.setEventReminders(savedEventId, form.state.reminders)
   await events.setEventFields(savedEventId, {fields: form.namedFields()})
-  await events.setRegistrationFields(savedEventId, registrationFields.value.filter(f => f.name?.trim()).map(asSaved))
-  await federationShare.save(eventFederationPort(savedEventId))
+  if (!eventGroupPart.value) {
+    await events.setRegistrationFields(savedEventId, namedEntries(registrationFields.value))
+  }
+  if (!eventGroupPart.value) await federationShare.save(eventFederationPort(savedEventId))
   await documentRequirements.save({kind: 'events', id: savedEventId})
   if (scoped) await tellLater(savedEventId, choice.notice)
   return savedEventId
@@ -307,7 +322,7 @@ function snapshotOf() {
     name: form.state.name,
     description: form.state.description,
     fields: JSON.stringify(form.namedFields()),
-    questions: JSON.stringify(registrationFields.value.filter(f => f.name?.trim()).map(asSaved)),
+    questions: JSON.stringify(namedEntries(registrationFields.value)),
   }
 }
 
@@ -376,6 +391,9 @@ const bodyProps = computed(() => ({
   saving: saving.value || confirming.value,
   canFederate: canFederate.value,
   federationNote: federationNote.value,
+  eventGroupPart: eventGroupPart.value !== null,
+  inheritedFields: groupPart.inheritedFields.value,
+  inheritedSettings: groupPart.settings.value?.eventGroup ?? null,
   ...data.props.value,
   ...fieldDefaults.props.value,
   ...federationShare.props.value,
@@ -408,6 +426,8 @@ const bodyHandlers = {
       <FailureAlert v-if="refused" :message="refused" expected/>
       <FailureAlert v-else :failure="failure ?? saveFailure ?? confirmFailure"/>
       <Alert v-if="templateAppliedMessage" variant="success">{{ templateAppliedMessage }}</Alert>
+      <EventGroupPartNotice v-if="eventGroupPart" :event-group="eventGroupPart" :message="t('eventGroups.lockedByEventGroup')"/>
+      <AddToEventGroupCard v-else-if="joinsGroup" :event-id="eventId!" :on-added="groupPart.reload"/>
 
       <EventEditBody
           v-if="!loading"

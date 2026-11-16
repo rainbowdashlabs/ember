@@ -359,15 +359,23 @@ public class EventStructureRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/events/{id}/fields",
             methods = HttpMethod.GET,
-            summary = "Get fields for an event",
+            summary =
+                    "Get the fields of an event, with those its event group hands down unless only its own are asked for",
             tags = {"Events"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            queryParams = @OpenApiParam(name = "date", type = String.class),
+            queryParams = {
+                @OpenApiParam(name = "date", type = String.class),
+                @OpenApiParam(name = "own", type = Boolean.class)
+            },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = AppointmentField[].class)))
     private void getFields(Context ctx) {
         StationSession session = StationSession.from(ctx);
         int id = pathInt(ctx, "id");
         visibility.requireVisibleEvent(session, id);
+        if (Boolean.parseBoolean(ctx.queryParam("own"))) {
+            ctx.json(eventFieldService.findOwnByEvent(id));
+            return;
+        }
         ctx.json(eventFieldService.findByEventFor(
                 id, askedDate(ctx), session.member().id(), session.hasPermission(StationPermission.EVENT_MANAGER)));
     }
@@ -408,7 +416,7 @@ public class EventStructureRoutes implements Routes {
         var req = ctx.bodyAsClass(SetEventFieldsRequest.class);
         eventFieldService.replaceFields(
                 id, req.fields().stream().map(EventFieldEntry::toDraft).toList());
-        ctx.json(eventFieldService.findByEvent(id));
+        ctx.json(eventFieldService.findOwnByEvent(id));
     }
 
     @OpenApi(

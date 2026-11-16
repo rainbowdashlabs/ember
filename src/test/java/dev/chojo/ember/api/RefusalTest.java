@@ -272,6 +272,12 @@ class RefusalTest {
     }
 
     @Test
+    void aRangeNamesItsEndsOrOnlyItsStart() {
+        assertEquals("1 to 3", RefusalDetail.range(1, 3L).inEnglish());
+        assertEquals("at least 2", RefusalDetail.range(2, null).inEnglish());
+    }
+
+    @Test
     void roomNeverGoesBelowNothing() {
         assertEquals(new RefusalDetail.RoomDetail(0, 10), RefusalDetail.room(-5, 10));
     }

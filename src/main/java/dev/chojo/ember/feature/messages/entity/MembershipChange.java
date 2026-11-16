@@ -13,7 +13,7 @@ import java.util.Set;
  * @param conversation the chat, as it was read before the change
  * @param added        the accounts taken in
  * @param removed      the accounts taken out
- * @param closed       whether the chat was closed because its group or tag is gone
+ * @param closed       whether the chat was closed because everybody its audience named is gone
  */
 public record MembershipChange(Conversation conversation, Set<Integer> added, Set<Integer> removed, boolean closed) {
 

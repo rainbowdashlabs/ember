@@ -9,15 +9,11 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldDefaultRow from '../eventshared/FieldDefaultRow.vue'
 import type {AttendanceTemplateField} from '@/api/generated/schema'
-
-interface FieldDefaultEntry {
-  source: string
-  value: string
-}
+import type {FieldDefaultValue} from './useEventFieldDefaults'
 
 const props = defineProps<{
   fields: AttendanceTemplateField[]
-  defaults: Map<number, FieldDefaultEntry>
+  defaults: Map<number, FieldDefaultValue>
 }>()
 
 const emit = defineEmits<{
@@ -27,7 +23,7 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-function entryFor(fieldId: number): FieldDefaultEntry {
+function entryFor(fieldId: number): FieldDefaultValue {
   return props.defaults.get(fieldId) ?? {source: '', value: ''}
 }
 </script>

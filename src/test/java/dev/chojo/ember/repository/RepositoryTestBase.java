@@ -18,6 +18,8 @@ import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpGuard;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
@@ -85,6 +87,7 @@ import dev.chojo.ember.feature.events.repository.EventDetachedDateRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldDefaultRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventReminderRepository;
@@ -99,6 +102,12 @@ import dev.chojo.ember.feature.events.service.EventCommentTarget;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFieldDefaultService;
 import dev.chojo.ember.feature.events.service.EventFieldRegistrationService;
+import dev.chojo.ember.feature.events.service.EventFieldService;
+import dev.chojo.ember.feature.events.service.EventGroupCommentTarget;
+import dev.chojo.ember.feature.events.service.EventGroupGuards;
+import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
+import dev.chojo.ember.feature.events.service.EventGroupService;
+import dev.chojo.ember.feature.events.service.EventGroupSignUpRules;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
@@ -247,6 +256,7 @@ import dev.chojo.ember.util.sql.Transactions;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -261,6 +271,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.sql.DataSource;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
 @Tag("database")
@@ -998,6 +1010,66 @@ public abstract class RepositoryTestBase {
     }
 
     /**
+     * Runs a call that must be refused and checks the refusal it raised.
+     *
+     * @param refusal what the call is to be refused with
+     * @param call    the call
+     * @return the refusal raised, for a test that checks its detail as well
+     */
+    protected static RefusalResponse assertRefused(Refusal refusal, Executable call) {
+        var refused = assertThrows(RefusalResponse.class, call);
+        assertEquals(refusal, refused.refusal());
+        return refused;
+    }
+
+    /**
+     * The appointment field service over the shared repositories.
+     *
+     * @return the service
+     */
+    protected static EventFieldService newEventFieldService() {
+        return new EventFieldService(
+                eventFieldRepo,
+                stationMemberRepo,
+                memberEligibility,
+                eventRepo,
+                attendanceRepo,
+                eventFieldRegistrationService,
+                new EventGroupRepository());
+    }
+
+    /**
+     * The event group service over the shared repositories.
+     *
+     * @return the service
+     */
+    protected static EventGroupService newEventGroupService() {
+        return new EventGroupService(
+                new EventGroupRepository(),
+                eventRepo,
+                restrictionService,
+                occurrenceCalendar,
+                new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
+                newEventFieldService());
+    }
+
+    /**
+     * The rules every event group sign-up passes, over the shared repositories.
+     *
+     * @return the rules
+     */
+    protected static EventGroupSignUpRules newEventGroupSignUpRules() {
+        return new EventGroupSignUpRules(
+                newEventGroupService(), new EventGroupRepository(), eventRepo, occurrenceCalendar);
+    }
+
+    private static EventGroupCommentTarget eventGroupCommentTarget() {
+        var eventGroups = newEventGroupService();
+        return new EventGroupCommentTarget(
+                eventGroups, new EventGroupGuards(eventGroups, new GuardianPolicy(stationMemberRepo)));
+    }
+
+    /**
      * The comment service over the shared repositories, with a target bound for every kind that
      * goes through it, publishing to the given bus.
      *
@@ -1016,7 +1088,9 @@ public abstract class RepositoryTestBase {
                 CommentEntityType.NEWS,
                 new NewsCommentTarget(newNewsService(new DomainEventBus(Set.of()))),
                 CommentEntityType.BOARD_TICKET,
-                ticketCommentTarget());
+                ticketCommentTarget(),
+                CommentEntityType.EVENT_GROUP,
+                eventGroupCommentTarget());
         return new CommentService(
                 commentRepo,
                 targets,
@@ -1132,12 +1206,17 @@ public abstract class RepositoryTestBase {
         var lending = newLendingService(eventBus, availability);
         var release = new EquipmentReleaseService(equipmentNeedRepo, lending);
         var crudService = new EventCrudService(
-                eventRepo, eventBus, release, restrictionService, new AttendanceTemplateGuards(attendanceRepo));
+                eventRepo,
+                eventBus,
+                release,
+                restrictionService,
+                new AttendanceTemplateGuards(attendanceRepo),
+                new EventGroupRepository());
         var cancellation =
                 new EventCancellationService(eventRepo, eventDateCancellationRepo, calendar, release, eventBus);
         return new EventServices(
                 crudService,
-                new EventOccurrenceService(crudService, calendar),
+                new EventOccurrenceService(crudService, calendar, new EventGroupRepository()),
                 new EventCategoryService(eventCategoryRepo),
                 breakService,
                 new EventRestrictionService(eventRepo, restrictionService),

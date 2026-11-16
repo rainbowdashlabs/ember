@@ -6,8 +6,6 @@
 package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.api.refusal.EventRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
-import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.StationCalendar.DateCheck;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -27,7 +25,6 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Which day an appointment is read for, and which days it may be answered for. */
@@ -267,11 +264,6 @@ class OccurrenceCalendarTest extends RepositoryTestBase {
         assertRefused(
                 EventRefusal.REGISTRATION_DAY_CANCELLED,
                 () -> occurrenceCalendar.dateToAnswerFor(cancelledSeries, nextFriday));
-    }
-
-    private static void assertRefused(Refusal refusal, Runnable call) {
-        var thrown = assertThrows(RefusalResponse.class, call::run);
-        assertEquals(refusal, thrown.refusal());
     }
 
     /** The station's own clock, which is the one every date here is read on. */

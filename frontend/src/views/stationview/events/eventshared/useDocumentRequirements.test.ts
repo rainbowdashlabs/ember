@@ -18,7 +18,7 @@ vi.mock('@/api', () => ({
 }))
 
 function template(templateId: number, name: string): RequiredTemplate {
-    return {templateId, name, kind: DocumentTemplateKind.PDF, version: 1, archived: false, lastUsedAt: null}
+    return {templateId, name, kind: DocumentTemplateKind.PDF, version: 1, archived: false, lastUsedAt: null, fromEventGroup: false}
 }
 
 const consent = template(1, 'Einverständnis')
@@ -52,7 +52,7 @@ describe('the documents an appointment asks for', () => {
     it('turns a template taken in the picker into a document asked for', () => {
         expect(asRequired(photo)).toEqual({
             templateId: 3, name: 'Fotoerlaubnis', kind: DocumentTemplateKind.LETTER, version: 4, archived: false,
-            lastUsedAt: '2026-10-01T09:00:00Z',
+            lastUsedAt: '2026-10-01T09:00:00Z', fromEventGroup: false,
         })
     })
 

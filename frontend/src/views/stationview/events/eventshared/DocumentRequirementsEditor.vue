@@ -31,6 +31,8 @@ const chosen = defineModel<RequiredTemplate[]>({required: true})
 defineProps<{
   /** How many templates for appointments the station offers. */
   offeredCount: number
+  /** What the documents are for, where the owner is not an appointment: an event group says so in its own words. */
+  hint?: string
 }>()
 
 const {t} = useI18n()
@@ -53,7 +55,7 @@ function remove(templateId: number) {
 <template>
   <NeutralContainer v-if="shown" class="space-y-3" data-testid="document-requirements">
     <SubHeader>{{ t('events.documents.title') }}</SubHeader>
-    <MutedText size="sm" tag="p">{{ t('events.documents.hint') }}</MutedText>
+    <MutedText size="sm" tag="p">{{ hint ?? t('events.documents.hint') }}</MutedText>
     <MutedText v-if="offeredCount === 0" size="sm" tag="p" data-testid="document-requirements-none">
       {{ t('events.documents.noneOffered') }}
       <NuxtLink v-if="mayWriteTemplates" :to="{name: 'documents-templates'}">{{ t('events.documents.toTemplates') }}</NuxtLink>

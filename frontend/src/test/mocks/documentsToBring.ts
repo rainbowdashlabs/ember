@@ -29,6 +29,7 @@ export const CONSENT: RequiredTemplate = {
     version: 1,
     archived: false,
     lastUsedAt: null,
+    fromEventGroup: false,
 }
 
 /** The scan 20 of Lena's signed paper copy, filed as document 40, in the given state. */

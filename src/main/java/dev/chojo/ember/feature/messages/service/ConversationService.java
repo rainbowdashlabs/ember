@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.messages.service;
 
+import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.messages.entity.Conversation;
 import dev.chojo.ember.feature.messages.entity.ConversationDetail;
 import dev.chojo.ember.feature.messages.entity.ConversationOverview;
@@ -43,6 +45,7 @@ public class ConversationService {
     private final MessageGuards guards;
     private final MessageSignals signals;
     private final StationChatRepository stationChats;
+    private final MemberIdentityFactory identities;
 
     @Inject
     public ConversationService(
@@ -50,8 +53,10 @@ public class ConversationService {
             MessageRepository messages,
             MessageGuards guards,
             MessageSignals signals,
-            StationChatRepository stationChats) {
+            StationChatRepository stationChats,
+            MemberIdentityFactory identities) {
         this.stationChats = stationChats;
+        this.identities = identities;
         this.conversations = conversations;
         this.messages = messages;
         this.guards = guards;
@@ -129,13 +134,29 @@ public class ConversationService {
         Participation participation = guards.requireParticipant(accountId, conversationUid);
         Conversation conversation = participation.conversation();
         StationScope scope = conversation.station();
+        List<Membership> members = conversations.activeMembers(conversation.id());
+        StationRef station =
+                scope == null ? null : stationOf(conversation, stationChats.stations(Set.of(scope.stationId())));
         return new ConversationDetail(
                 conversation,
-                conversations.activeMembers(conversation.id()),
+                members,
                 participation.membership(),
-                scope == null ? null : stationOf(conversation, stationChats.stations(Set.of(scope.stationId()))),
+                station,
                 scope == null ? Map.of() : stationChats.guardiansFor(conversation.id()),
-                scope != null && stationChats.moderates(accountId, scope.stationId()));
+                scope != null && stationChats.moderates(accountId, scope.stationId()),
+                station == null ? Map.of() : stationPeople(station, members));
+    }
+
+    /**
+     * How a station shows the members of one of its chats who are still at the station, so the chat
+     * names them the way the rest of the station does.
+     */
+    private Map<Integer, MemberIdentity> stationPeople(StationRef station, List<Membership> members) {
+        var accountIds = members.stream().map(Membership::accountId).toList();
+        return stationChats.memberUids(station.id(), accountIds).entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> identities.enrich(new MemberIdentity(station.uid(), entry.getValue()))));
     }
 
     private static @Nullable StationRef stationOf(Conversation conversation, Map<Integer, StationRef> stations) {

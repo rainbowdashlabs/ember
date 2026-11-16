@@ -20,6 +20,8 @@ export interface EventRoutes {
     detailOnDate: string
     categories: string
     batch: string
+    /** A new event group, where the scope has them; a station's appointments do, an association's do not. */
+    eventGroupCreate?: string
 }
 
 export const STATION_EVENT_ROUTES: EventRoutes = {
@@ -30,6 +32,7 @@ export const STATION_EVENT_ROUTES: EventRoutes = {
     detailOnDate: 'event-detail-date',
     categories: 'event-categories',
     batch: 'event-batch',
+    eventGroupCreate: 'event-group-new',
 }
 
 const EVENT_ROUTES: InjectionKey<EventRoutes> = Symbol('eventRoutes')

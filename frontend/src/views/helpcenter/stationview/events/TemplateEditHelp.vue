@@ -62,7 +62,7 @@ const FIELD_DEFAULTS = new Map([
 const FILES: EventAttachment[] = [{
   id: 1, eventId: 1, fileId: 1, label: 'Laufzettel', internal: false, sortOrder: 0,
   createdAt: '2026-05-12T10:00:00Z', fileName: 'laufzettel.pdf', mimeType: 'application/pdf',
-  fileSize: 84_000, contentHash: 'demo',
+  fileSize: 84_000, contentHash: 'demo', fromEventGroup: false,
 }]
 
 const noop = () => undefined

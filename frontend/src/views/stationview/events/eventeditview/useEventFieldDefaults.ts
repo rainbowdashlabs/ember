@@ -4,9 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, ref} from 'vue'
+import type {EventFieldDefault, FieldDefaultEntry} from '@/api/generated/schema'
 import type {FieldDefaultsPort} from './eventOwnerPorts'
 
-interface FieldDefaultEntry {
+/** One pre-fill as the editors hold it: where the value comes from, and the value itself. */
+export interface FieldDefaultValue {
   source: string
   value: string
 }
@@ -16,9 +18,9 @@ interface FieldDefaultEntry {
  * field id. Whose values they are comes in as a port with every read and write.
  */
 export function useEventFieldDefaults() {
-  const defaults = ref<Map<number, FieldDefaultEntry>>(new Map())
+  const defaults = ref<Map<number, FieldDefaultValue>>(new Map())
 
-  function entryFor(fieldId: number): FieldDefaultEntry {
+  function entryFor(fieldId: number): FieldDefaultValue {
     return defaults.value.get(fieldId) ?? {source: '', value: ''}
   }
 
@@ -50,13 +52,20 @@ export function useEventFieldDefaults() {
     if (m.size !== defaults.value.size) defaults.value = m
   }
 
+  /** Replaces the values with the ones an owner holds, as the server sends them. */
+  function fromEntries(entries: EventFieldDefault[]) {
+    defaults.value = new Map(entries.map(entry => [entry.fieldId, {source: entry.source, value: entry.value ?? ''}]))
+  }
+
+  /** The values as the server takes them: only the fields with a source, an empty value sent as none. */
+  function toEntries(): FieldDefaultEntry[] {
+    return [...defaults.value.entries()]
+        .filter(([, entry]) => entry.source)
+        .map(([fieldId, entry]) => ({fieldId, source: entry.source, value: entry.value || null}))
+  }
+
   async function load(port: FieldDefaultsPort) {
-    const loaded = await port.get()
-    const m = new Map<number, FieldDefaultEntry>()
-    for (const fd of loaded) {
-      m.set(fd.fieldId, {source: fd.source, value: fd.value ?? ''})
-    }
-    defaults.value = m
+    fromEntries(await port.get())
   }
 
   /**
@@ -73,9 +82,7 @@ export function useEventFieldDefaults() {
   }
 
   async function save(port: FieldDefaultsPort, always: boolean) {
-    const entries = [...defaults.value.entries()]
-        .filter(([, v]) => v.source)
-        .map(([fieldId, v]) => ({fieldId, source: v.source, value: v.value || undefined}))
+    const entries = toEntries()
     if (entries.length > 0 || always) {
       await port.set(entries)
     }
@@ -88,5 +95,5 @@ export function useEventFieldDefaults() {
     'update:fieldDefaultValue': setValue,
   }
 
-  return {props, handlers, defaults, setSource, setValue, keepOnly, load, takeFrom, save}
+  return {props, handlers, defaults, setSource, setValue, keepOnly, fromEntries, toEntries, load, takeFrom, save}
 }

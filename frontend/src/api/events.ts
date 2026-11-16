@@ -491,10 +491,13 @@ export async function exportEventList(data: {
 
 /**
  * The questions of an appointment. With a date, as they stand on that occurrence; without one, as
- * the appointment itself carries them, which is what the editor edits.
+ * the appointment itself carries them. Unless only its own are asked for, the fields its event group
+ * hands down come along, with a negative id; the editor asks for its own, because that is what it
+ * edits.
  */
-export async function getEventFields(eventId: number, date?: string | null): Promise<AppointmentField[]> {
-    const res = await client.get<AppointmentField[]>(`/events/${eventId}/fields`, {params: date ? {date} : undefined})
+export async function getEventFields(eventId: number, date?: string | null, own = false): Promise<AppointmentField[]> {
+    const params = {...(date ? {date} : {}), ...(own ? {own: true} : {})}
+    const res = await client.get<AppointmentField[]>(`/events/${eventId}/fields`, {params})
     return res.data
 }
 

@@ -2,31 +2,24 @@
 
 ## v26.25.0
 
-People who share a station can write to each other directly, in groups, and in chats the station opens for everybody, a group or a tag. One date of a series, or a series from one date on, can be changed on its own, and saving a change can tell the people it concerns. Parts of the inventory, such as lending or procurement, can be switched off on their own, and a switched-off module takes its notifications and permissions with it. Shared appointments with a partner station on another server need both stations on this version.
+People who share a station can write to each other directly, in groups, and in chats the station opens for any of its people, such as a group together with its leaders. One date of a series, or a series from one date on, can be changed on its own, and saving a change can tell the people it concerns. Event groups such as the Jugendflamme group appointments into blocks, take one sign-up for all their dates and can be shared with partner stations. Shared appointments with a partner station on another server need both stations on this version.
 
 ### New Features
 
-- **Messages between people of a station.** Everybody can write to the people they share a station with, directly or in groups of up to 25, from the messages button in the header. A conversation looks the same whichever station is chosen, and a name in it opens the short profile at every station both share.
-- **New messages arrive without reloading.** Messages, changes and reactions appear as they are written, and the header shows how many wait unread. A message can be answered, changed, deleted and reacted to with any standard emoji, and people in a group can be mentioned.
-- **Station chats for everybody, a group or a tag.** Holders of the new permission "Manage station chats" open, rename, close and reopen chats for the whole station, a group or a tag, can take the guardians of a group or tag in as well, and remove any message in them. Who is in a chat follows the station, the group or the tag, so a chat can be muted but not left, and it moves along when the station moves.
-- **Reporting messages in station chats.** A message in a station chat can be reported with an optional reason, and the people handling the station's chats are notified. They see it in context under "Reported messages" and remove it for the station or dismiss the report.
-- **A daily mail for messages left unread.** Once a day, one mail covers what is new and unread in private conversations, and from station chats the mentions or, if chosen in the message settings, every unread message. The hour is set with `messages.digestHour` (18 by default, in the server's time zone).
-- **People can be blocked for messages.** A blocked person can no longer start a direct conversation with the blocker or add them to a group, and their messages in shared groups are folded away. They are not told.
-- **Guardians decide about messages.** A member with a guardian at any station has no messages until a guardian turns them on under Profile → Managed profiles. Turning them off again hides the conversations without deleting anything.
-- **Messages can be turned off for the instance.** Under Admin → Settings, administrators can switch messages off for everybody: private conversations, station chats and the daily mail disappear until they are switched on again, and nothing is deleted.
-- **Change one date or later dates.** Saving a change to a series asks whether it applies to only this date, to this and all later dates, or to all dates. A single date becomes an appointment of its own and later dates go on as a new series; places and attendance sheets move along, and both appointments link to each other.
-- **Tell the people an appointment concerns.** Saving a change can notify everybody holding a place, or everybody who may see an appointment without registration, with an optional note of up to 500 characters. The message names what changed, and partner stations pass it on to their members.
-- **Split series count as one.** In the station statistics, a series that goes on as a new one and the dates taken out of it count as one appointment under its newest name.
+- **Messages and station chats.** Members write to each other directly, in groups or in chats the station opens for any of its people, such as a group together with its leaders, with mentions, reactions, reports and a daily mail for what is left unread (its hour is set with `messages.digestHour`). People can be blocked, guardians decide whether a member in their care has messages, and administrators can switch messages off for the whole instance.
+- **Change one date or later dates of a series.** Saving a change to a series asks whether it applies to this date, to this and all later dates, or to all; the parts take their places and attendance sheets along, link to each other and count as one appointment in the statistics. Saving can also notify everybody concerned with an optional note, and partner stations pass it on.
+- **Event groups.** An event group such as the Jugendflamme groups one-time appointments into blocks with one sign-up for all of them, and sets fields, category, attendance sheet, reminders, documents, files and agreements once for every date. Its page shows the sign-ups and the attendance per block with exports, comments and notes, and an event group can be shared with partner stations and is called off on its own when too few sign-ups are accepted.
 - **Inventory parts switch off on their own.** Movements, lending, procurement, self-checks and inventory checks each have a switch under the inventory on Station → Modules. Associations can deny each part to their stations the same way as a whole module.
 
 ### Improvements
 
-- **Writing from the short profile.** The short profile of a member has a "Message" button that opens or starts the private conversation with them.
-- **Short profile for news authors.** The author's name in the news list and on the entry opens the short profile like every other name at the station.
+- **Short profile from more places.** The names of news authors open the short profile, and the short profile has a button to write a message.
+- **Restricted appointments say whom they are for.** In the list of upcoming appointments, an appointment only some members see names who may see it next to its lock, and still names who may sign up where that is fewer.
 - **New start times show on save.** The save dialog says how many people holding a place are told a new start time, which now also reaches series dates. Somebody who is also told about the change gets one message instead of two.
-- **Switched-off modules take their notifications along.** Notifications of a switched-off module are no longer listed, counted or mailed, and none are written while it is off. They are kept and show again once the module is back, and the notification settings only list what the station uses.
-- **Switched-off modules grant no permissions.** The permission picker leaves out permissions of a switched-off module, and permissions already given grant nothing until the module is back. Requirements of a switched-off module, such as a mandatory poll, no longer hold anybody at the start page.
-- **Switched-off modules stay hidden from partners and public.** A station serves partner stations nothing of a module it switched off, and its own members see nothing of that module from partners either. The public calendar, blog, wiki, quiz and waiting lists go away with their module, also when the association denies it.
+- **Switched-off modules are gone everywhere.** Notifications, permissions and requirements of a switched-off module take no effect until it is back, and nothing is deleted. Partner stations and the public see nothing of it either, also where only the association denies it.
+- **Batch appointments entered one by one.** Besides a schedule and an imported file, appointments can be written down row by row, each with its date, times and an optional title.
+- **Registration questions can carry a description.** Like a profile field, a question asked when signing up for an appointment or an event group can carry a short explanation, shown under the question while answering.
+- **Unreadable requests name their field.** Where the server cannot read a value a page sent, the message now names the field it stopped at.
 
 ### Changes
 
@@ -37,6 +30,10 @@ People who share a station can write to each other directly, in groups, and in c
 - **Short profiles show only what the reader may see.** After signing in as somebody else, switching profile or losing a right without reloading the page, a short profile already opened could still show private tags. It is now loaded again for whoever is looking.
 - **Words instead of raw values.** In some places technical values showed instead of words, such as the answer to a waiting-list invitation, a module the cluster switched off, member types in the station setup and mapped values in the member import, and the last setup step missed its hint. They now read in the interface language.
 - **Switched-off modules stayed reachable.** Pages of a switched-off module still opened from a saved link, and the documents and the public wiki stayed open when only the association had switched them off. Every page of a switched-off module now says that this part of the station is switched off.
+- **Two closing warnings at once for one appointment.** In some cases an appointment whose sign-up closed within a day of being set up or changed sent two warnings at once, one for three days and one for one day. It now sends the nearer one only, as event groups do.
+- **Creating appointments in a batch failed or misread files.** An imported file with an unusual date column or a two-digit year produced appointments at the time of the import, a registration deadline made the whole batch fail, and the file picker looked unstyled. Files are now read as given with unreadable lines named, the deadline is sent correctly, and the picker matches the other imports.
+- **Name colors lagged behind group changes.** In some cases a new group or tag color, or a new group membership, did not show on names in lists and comments while people kept looking at them. Names now take the change as soon as it is saved.
+- **Switching modules at the same time undid each other.** When two managers switched different modules within moments, the second change could switch the first one back. Each switch now changes only its own module.
 
 ## v26.24.2
 

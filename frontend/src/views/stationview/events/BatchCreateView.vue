@@ -23,6 +23,7 @@ import {emptyRestriction, toRestriction} from '@/components/input/restriction'
 import type {RestrictionSelection} from '@/api/types'
 import BatchScheduleStep from './batchcreateview/BatchScheduleStep.vue'
 import BatchEditTable from './batchcreateview/BatchEditTable.vue'
+import {nextDraftRow, type KeyedDraftRow, type ScheduleMode} from './batchcreateview/draftRows'
 import type {
     AttendanceTemplateField,
     BatchFieldEntryDto,
@@ -36,6 +37,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useEventEditDeps} from '@/composables/useEventEditDeps'
 import {describeFailure} from '@/util/failure'
+import {localInputToInstant} from '@/util/format'
 import {asSaved} from './eventshared/eventQuestions'
 
 const {t} = useI18n()
@@ -64,6 +66,8 @@ const restriction = ref<RestrictionSelection>(emptyRestriction())
 const viewRestriction = ref<RestrictionSelection>(emptyRestriction())
 
 const rows = ref<BatchRow[]>([])
+const scheduleMode = ref<ScheduleMode>('schedule')
+const drafts = ref<KeyedDraftRow[]>([nextDraftRow([])])
 
 /**
  * The fields of the attendance sheet the batch names, and of no other.
@@ -135,6 +139,15 @@ function onScheduleDone(newRows: BatchRow[]) {
   step.value = 3
 }
 
+/**
+ * The registration deadline as the instant the server reads, or nothing where the batch takes no
+ * registration or the switch is off. The field holds the local date and time picked, without a zone.
+ */
+function deadlineToSend(): string | undefined {
+  if (!requiresRegistration.value || !hasDeadline.value) return undefined
+  return localInputToInstant(registrationDeadline.value) || undefined
+}
+
 const {running: saving, failure: createFailure, run: createBatch} = useAsyncAction(async () => {
   failure.value = null
   const inlineFields: BatchFieldEntryDto[] = fieldDefs.value.map(asSaved).flatMap(f => (f.name?.trim() ? [{
@@ -153,7 +166,7 @@ const {running: saving, failure: createFailure, run: createBatch} = useAsyncActi
     rows: rows.value,
     requiresRegistration: requiresRegistration.value,
     requiresConfirmation: requiresConfirmation.value,
-    registrationDeadline: registrationDeadline.value || undefined,
+    registrationDeadline: deadlineToSend(),
     restriction: restriction.value,
     viewRestriction: viewRestriction.value,
   })
@@ -220,6 +233,8 @@ const {running: saving, failure: createFailure, run: createBatch} = useAsyncActi
 
       <BatchScheduleStep
           v-if="step === 2"
+          v-model:mode="scheduleMode"
+          v-model:drafts="drafts"
           :field-defs="fieldDefs"
           @done="onScheduleDone"
           @error="failure = $event"

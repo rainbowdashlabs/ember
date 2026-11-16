@@ -19,7 +19,7 @@ public enum SystemKind {
     OWNER_PASSED,
     /** The author opened the station chat under the line's text as its name. */
     OPENED,
-    /** The author closed the station chat, or nobody did where its group or tag was deleted. */
+    /** The author closed the station chat, or nobody did where everybody its audience named is gone. */
     CLOSED,
     /** The author opened the closed station chat again. */
     REOPENED

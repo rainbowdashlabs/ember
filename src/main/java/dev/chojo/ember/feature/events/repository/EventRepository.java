@@ -41,8 +41,28 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 @Singleton
 public class EventRepository {
 
-    private static final String EVENT_COLUMNS =
-            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, template_id, requires_registration, registration_deadline, requires_confirmation, category_id, restriction_mode, view_restriction_mode, \"public\", registration_limit, cancelled, cancelled_at, cancel_reason, min_registrations, threshold_days, registration_close_days, repeat_until, repeat_count";
+    private static final String OWN_COLUMNS =
+            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, requires_registration, registration_deadline, requires_confirmation, restriction_mode, view_restriction_mode, \"public\", registration_limit, cancelled, cancelled_at, cancel_reason, min_registrations, threshold_days, registration_close_days, repeat_until, repeat_count";
+
+    /** The columns of an appointment written to as {@code station_event}, for a {@code RETURNING}. */
+    private static final String EVENT_COLUMNS = eventColumns("station_event");
+
+    /** The columns of an appointment read as {@code e}. */
+    private static final String E_COLUMNS = eventColumns("e");
+
+    /**
+     * The columns {@link StationEvent#map()} reads, with the attendance template and the category as
+     * they take effect: a part of an event group without its own follows the event group's.
+     *
+     * @param table the name or alias the appointment row is read under
+     */
+    private static String eventColumns(String table) {
+        return "%s, %s AS template_id, %s AS category_id"
+                .formatted(
+                        SqlSupport.alias(table, OWN_COLUMNS),
+                        EventGroupInheritance.template(table),
+                        EventGroupInheritance.category(table));
+    }
 
     /**
      * The lock the lists draw, and what decides whether an event is handed out at all: both stand
@@ -62,7 +82,7 @@ public class EventRepository {
             "AND " + RestrictionSql.unrestricted(RestrictionType.EVENT_VIEW, "e.id");
     private static final String EVENT_ON_PUBLIC_CALENDAR = """
             AND (e.public = TRUE OR (e.public IS NULL AND EXISTS(
-                SELECT 1 FROM event_category pc WHERE pc.id = e.category_id AND pc.public = TRUE)))""";
+                SELECT 1 FROM event_category pc WHERE pc.id = %s AND pc.public = TRUE)))""".formatted(EventGroupInheritance.category("e"));
 
     /**
      * What every reader of the audience may see of the station's events, for a query that reads the
@@ -85,7 +105,7 @@ public class EventRepository {
                 SELECT %s, %s
                 FROM station_event e
                 WHERE e.station_id = :station_id
-                ORDER BY e.event_type, e.name;""", SqlSupport.alias("e", EVENT_COLUMNS), EVENT_RESTRICTED_COLUMN)
+                ORDER BY e.event_type, e.name;""", E_COLUMNS, EVENT_RESTRICTED_COLUMN)
                 .single(call().bind("station_id", stationId))
                 .map(StationEvent.map())
                 .all();
@@ -120,7 +140,7 @@ public class EventRepository {
                 SELECT %s, %s
                 FROM station_event e
                 WHERE e.station_id = :station_id
-                  AND e.public_uid = :public_uid::uuid;""", SqlSupport.alias("e", EVENT_COLUMNS), EVENT_RESTRICTED_COLUMN)
+                  AND e.public_uid = :public_uid::uuid;""", E_COLUMNS, EVENT_RESTRICTED_COLUMN)
                 .single(call().bind("station_id", stationId)
                         .bind("public_uid", publicUid, StandardValueConverter.UUID_STRING))
                 .map(StationEvent.map())
@@ -140,7 +160,7 @@ public class EventRepository {
                 FROM station_event e
                 WHERE e.station_id = :station_id
                   AND e.public_uid = :public_uid::uuid
-                  %s;""", SqlSupport.alias("e", EVENT_COLUMNS), EVENT_RESTRICTED_COLUMN, where.fragment())
+                  %s;""", E_COLUMNS, EVENT_RESTRICTED_COLUMN, where.fragment())
                 .single(where.apply(call().bind("station_id", stationId)
                         .bind("public_uid", publicUid, StandardValueConverter.UUID_STRING)))
                 .map(StationEvent.map())
@@ -167,11 +187,11 @@ public class EventRepository {
         return query("""
                 SELECT e.public_uid, e.name, e.start_time, c.name AS category_name
                 FROM station_event e
-                LEFT JOIN event_category c ON c.id = e.category_id
+                LEFT JOIN event_category c ON c.id = %s
                 WHERE e.station_id = :station_id
                   %s
                 ORDER BY %s
-                LIMIT :limit;""", where.fragment(), order)
+                LIMIT :limit;""", EventGroupInheritance.category("e"), where.fragment(), order)
                 .single(where.apply(call().bind("station_id", stationId).bind("limit", limit)))
                 .map(row -> new PickerEvent(
                         row.get("public_uid", StandardValueConverter.UUID_STRING),
@@ -196,7 +216,7 @@ public class EventRepository {
                 FROM station_event e
                 WHERE e.station_id = :station_id
                   AND %s
-                ORDER BY e.event_type, e.name;""", SqlSupport.alias("e", EVENT_COLUMNS), EVENT_RESTRICTED_COLUMN, EVENT_VISIBLE_FOR_MEMBER)
+                ORDER BY e.event_type, e.name;""", E_COLUMNS, EVENT_RESTRICTED_COLUMN, EVENT_VISIBLE_FOR_MEMBER)
                 .single(call().bind("station_id", stationId)
                         .bind("member_id", memberId)
                         .bind("is_manager", manager))
@@ -218,7 +238,7 @@ public class EventRepository {
             @Nullable Boolean requiresRegistration) {
         var where = WhereBuilder.create()
                 .add(EVENT_ADMITS_MEMBER_PREDICATE, "member_id", restrictedTo)
-                .add("AND e.category_id = :category_id", "category_id", categoryId)
+                .add("AND " + EventGroupInheritance.category("e") + " = :category_id", "category_id", categoryId)
                 .add(
                         "AND e.requires_registration = :requires_registration",
                         "requires_registration",
@@ -228,7 +248,7 @@ public class EventRepository {
                 FROM station_event e
                 WHERE e.station_id = :station_id
                   %s
-                ORDER BY e.event_type, e.name;""", SqlSupport.alias("e", EVENT_COLUMNS), EVENT_RESTRICTED_COLUMN, where.fragment())
+                ORDER BY e.event_type, e.name;""", E_COLUMNS, EVENT_RESTRICTED_COLUMN, where.fragment())
                 .single(where.apply(call().bind("station_id", stationId)))
                 .map(StationEvent.map())
                 .all();
@@ -244,7 +264,7 @@ public class EventRepository {
         return query("""
                 SELECT %s, %s
                 FROM station_event e
-                WHERE e.id = :id;""", SqlSupport.alias("e", EVENT_COLUMNS), EVENT_RESTRICTED_COLUMN)
+                WHERE e.id = :id;""", E_COLUMNS, EVENT_RESTRICTED_COLUMN)
                 .single(call().bind("id", id))
                 .map(StationEvent.map())
                 .first();
@@ -531,6 +551,44 @@ public class EventRepository {
     }
 
     /**
+     * Whether an appointment is a part of an event group, which takes sign-ups only through the event group.
+     *
+     * @param id the appointment
+     * @return true for a part
+     */
+    public boolean isEventGroupPart(int id) {
+        return SqlSupport.exists(
+                "SELECT 1 FROM station_event WHERE id = :id AND event_group_set_id IS NOT NULL;",
+                call().bind("id", id));
+    }
+
+    /**
+     * Whether an appointment is a part of an event group called off as a whole, whose parts stay off.
+     *
+     * @param id the appointment
+     * @return true for a part of a called-off event group
+     */
+    public boolean isPartOfCancelledEventGroup(int id) {
+        return SqlSupport.exists("""
+                SELECT 1
+                FROM station_event e
+                         JOIN event_group_set s ON s.id = e.event_group_set_id
+                         JOIN event_group c ON c.id = s.event_group_id
+                WHERE e.id = :id
+                  AND c.cancelled;""", call().bind("id", id));
+    }
+
+    /**
+     * Locks an appointment for the rest of the running transaction, so a sign-up for it and its
+     * becoming a part of an event group happen one after the other.
+     *
+     * @param id the appointment
+     */
+    public void lockForSignUp(int id) {
+        SqlSupport.exists("SELECT 1 FROM station_event WHERE id = :id FOR UPDATE;", call().bind("id", id));
+    }
+
+    /**
      * Deletes a station event by ID.
      *
      * @param id the event ID
@@ -599,6 +657,7 @@ public class EventRepository {
                   AND e.registration_deadline < now()
                   AND e.deadline_notified = FALSE
                   AND e.cancelled = FALSE
+                  AND e.event_group_set_id IS NULL
                   AND %s
                 GROUP BY e.id, e.station_id, e.name;""", CancellationSql.NO_DATE_CANCELLED)
                 .single(call())
@@ -632,6 +691,7 @@ public class EventRepository {
                 WHERE e.requires_registration
                   AND e.event_type = 'ONE_TIME'
                   AND e.cancelled = FALSE
+                  AND e.event_group_set_id IS NULL
                   AND %s
                   AND e.registration_deadline IS NOT NULL
                   AND e.registration_deadline > now()
@@ -662,7 +722,7 @@ public class EventRepository {
                 WHERE e.requires_registration
                   AND e.registration_close_days IS NOT NULL
                   AND e.event_type != 'ONE_TIME'
-                  AND e.cancelled = FALSE;""", SqlSupport.alias("e", EVENT_COLUMNS), EVENT_RESTRICTED_COLUMN)
+                  AND e.cancelled = FALSE;""", E_COLUMNS, EVENT_RESTRICTED_COLUMN)
                 .single(call())
                 .map(StationEvent.map())
                 .all();
@@ -740,14 +800,15 @@ public class EventRepository {
                 FROM station_event e
                 WHERE e.cancelled = FALSE
                   AND e.min_registrations IS NOT NULL
-                  AND e.threshold_days IS NOT NULL;""", SqlSupport.alias("e", EVENT_COLUMNS), EVENT_RESTRICTED_COLUMN)
+                  AND e.threshold_days IS NOT NULL;""", E_COLUMNS, EVENT_RESTRICTED_COLUMN)
                 .single(call())
                 .map(StationEvent.map())
                 .all();
     }
 
     /**
-     * Finds all active events that have at least one reminder configured.
+     * Finds all active events that have at least one reminder configured, their own or, for a part of
+     * an event group, the event group's.
      */
     public List<StationEvent> findEventsWithReminders() {
         return query("""
@@ -755,10 +816,15 @@ public class EventRepository {
                 FROM
                     station_event e
                 WHERE e.cancelled = FALSE
-                  AND exists (
+                  AND (exists (
                     SELECT 1
                     FROM event_reminder er
-                    WHERE er.event_id = e.id);""", SqlSupport.alias("e", EVENT_COLUMNS), EVENT_RESTRICTED_COLUMN)
+                    WHERE er.event_id = e.id)
+                    OR exists (
+                    SELECT 1
+                    FROM event_group_reminder gr
+                             JOIN event_group_set gs ON gs.event_group_id = gr.event_group_id
+                    WHERE gs.id = e.event_group_set_id));""", E_COLUMNS, EVENT_RESTRICTED_COLUMN)
                 .single(call())
                 .map(StationEvent.map())
                 .all();

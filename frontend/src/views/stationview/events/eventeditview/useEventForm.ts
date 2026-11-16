@@ -18,7 +18,7 @@ import {toRestriction} from '@/components/input/restriction'
 import {createEventFormState, eventTypeNamed} from './eventFormState'
 import {modelBindings} from './modelBindings'
 import {instantToLocalInput} from '@/util/format'
-import {asSaved} from '../eventshared/eventQuestions'
+import {entryOf, namedEntries} from '../eventshared/eventQuestions'
 import {offsetParts} from '../templateeditview/signUpRules'
 
 /**
@@ -142,16 +142,7 @@ export function useEventForm() {
   }
 
   function applyEventFields(fields: AppointmentField[]) {
-    state.fields = fields.map(f => ({
-      id: f.id,
-      name: f.name,
-      fieldType: f.fieldType,
-      config: f.config,
-      value: f.value,
-      overview: f.overview,
-      attendanceFieldId: f.attendanceFieldId,
-      isPublic: f.isPublic,
-    }))
+    state.fields = fields.map(f => ({id: f.id, ...entryOf(f)}))
   }
 
   function applyEvent(ev: StationEvent) {
@@ -179,7 +170,7 @@ export function useEventForm() {
     const [ev, restrictions, fields] = await Promise.all([
       events.getEvent(id),
       events.getRestrictions(id),
-      events.getEventFields(id),
+      events.getEventFields(id, null, true),
     ])
 
     applyEventFields(fields)
@@ -225,7 +216,7 @@ export function useEventForm() {
   }
 
   function namedFields(): EventFieldEntry[] {
-    return state.fields.filter(f => f.name?.trim()).map(asSaved)
+    return namedEntries(state.fields)
   }
 
   return {state, props, handlers, appliedTemplateId, applyTemplate, loadEvent, buildPayload, namedFields, endsBeforeItStarts}

@@ -44,8 +44,8 @@ import java.util.stream.Collectors;
  * loses the chat with it. Neither writes a line into the chat.
  *
  * <p>A closed chat takes nobody new in, but still lets go of whoever left its audience, so somebody
- * who left the station cannot read it any more. A chat whose group or tag was deleted is closed here
- * and keeps the members it had, as long as they are still at the station. A muted chat stays muted
+ * who left the station cannot read it any more. A chat that lost everybody its audience named (its
+ * groups and tags deleted, its named members gone) is closed here and keeps the members it had, as long as they are still at the station. A muted chat stays muted
  * for somebody taken out and back in.
  */
 @Singleton
@@ -183,7 +183,7 @@ public class StationChatMembership implements TaskSource {
         if (!chats.close(chat.id(), null)) return false;
         messages.writeSystem(chat.id(), null, SystemKind.CLOSED, null, "");
         conversations.touch(chat.id());
-        log.info("Station chat {} closed: its group or tag is gone", chat.id());
+        log.info("Station chat {} closed: everybody its audience named is gone", chat.id());
         return true;
     }
 
