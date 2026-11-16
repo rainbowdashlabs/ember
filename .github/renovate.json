@@ -6,6 +6,8 @@
   ],
   "timezone": "Europe/Berlin",
   "schedule": ["before 6am on monday"],
+  "automergeSchedule": ["before 6am on monday"],
+  "updateNotScheduled": false,
   "constraints": {
     "java": "25"
   },
