@@ -1742,7 +1742,7 @@ volumes:
             smtpTitle: 'Eigener SMTP-Server',
             smtpText: 'Wenn du einen eigenen SMTP-Server nutzt, musst du folgende Daten eingeben:',
             smtpHost: 'SMTP-Host - Die Adresse deines Mailservers (z.B. mail.example.com).',
-            smtpPort: 'SMTP-Port - Meistens 587 (mit STARTTLS) oder 465 (mit SSL).',
+            smtpPort: 'SMTP-Port - Meistens 587 (mit STARTTLS) oder 465 (mit SSL). Unter der Verschlüsselung steht der übliche Port. Passt der eingetragene nicht dazu, weist Ember darauf hin, speichert ihn aber trotzdem, denn manche Anbieter nutzen bewusst einen anderen.',
             smtpUser: 'SMTP-Benutzer - Dein Benutzername beim Mailserver.',
             smtpPassword: 'SMTP-Passwort - Das Passwort für deinen Mailserver.',
             smtpEncryption: 'Verschlüsselung - Bei Port 587 meist STARTTLS, bei Port 465 SSL/TLS. Bei STARTTLS muss der Server die Verschlüsselung anbieten, sonst verschickt Ember nichts. „Unverschlüsselt" nur für einen Mailserver im eigenen, geschützten Netz wählen, der keine Verschlüsselung kann: Dann gehen Passwort und Mails lesbar über das Netz.',
@@ -1757,7 +1757,7 @@ volumes:
             instanceTitle: 'Mailanbieter der Instanz',
             instanceText: 'Die Verwaltung der Instanz kann deiner Wache ihre eigenen Mailanbieter freigeben. Dann verschickt die Instanz eure Mails mit, sobald eure eigenen Anbieter für den Tag nichts mehr übrig haben. Hat deine Wache gar keinen eigenen Anbieter, gehen die Mails gleich über die Instanz.',
             instanceText2: 'Im Kasten „Mailanbieter der Instanz" siehst du, ob die Freigabe besteht und wie viele Mails heute schon über die Instanz gingen, gegen die feste Höchstzahl der Wache, wo eine gesetzt ist. Ist sie oder der Anteil aller Wachen erreicht, warten weitere Mails bis zum nächsten Tag. In der Zustellung stehen die Anbieter der Instanz unter euren eigenen, mit dem Zeichen „Instanz".',
-            replyToText: 'Mails über die Instanz kommen von ihrer Adresse, aber mit dem Namen deiner Wache. Trag eine Antwortadresse ein, damit Antworten bei euch ankommen. Sie gilt für alle Mails deiner Wache, auch über eure eigenen Anbieter.',
+            replyToText: 'Mails über die Instanz kommen von ihrer Adresse, aber mit dem Namen deiner Wache. Trag deshalb ganz oben auf der Seite eine Antwortadresse ein, damit Antworten bei euch ankommen. Sie gilt für alle Mails deiner Wache, auch über eure eigenen Anbieter.',
             tip: 'Für kleine Wachen reicht oft der kostenlose Tarif von Brevo oder Sweego. Beide hosten in der EU und sind DSGVO-konform.',
         },
         mailVendor: {

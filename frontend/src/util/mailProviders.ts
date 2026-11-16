@@ -61,3 +61,19 @@ export const PROVIDER_FREE_TIER: Record<string, ProviderFreeTier> = {
     },
     RAPIDMAIL: {noteKey: 'paidOnly', pricingUrl: 'https://www.rapidmail.de/preise', checked: '2026-08'},
 }
+
+/**
+ * The port a mail server usually answers on for a way of securing the connection: 587 for
+ * STARTTLS, 465 for SSL/TLS from the first byte. Unencrypted has no single usual port, so it has
+ * none here.
+ */
+export function usualSmtpPort(encryption: string | undefined): number | undefined {
+    if (encryption === 'STARTTLS') return 587
+    if (encryption === 'IMPLICIT_TLS') return 465
+    return undefined
+}
+
+/** Whether a provider reports deliveries back; a plain server of one's own sends no such reports. */
+export function reportsDeliveries(provider: string | undefined): boolean {
+    return provider !== 'SMTP'
+}

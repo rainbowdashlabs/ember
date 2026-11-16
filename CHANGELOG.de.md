@@ -1,5 +1,22 @@
 # Änderungsprotokoll
 
+## v26.26.0
+
+Die Mail-Einstellungen nennen den Port, den ein Mailserver üblicherweise erwartet, und wie oft die Instanz Benachrichtigungen verschickt.
+
+### Verbesserungen
+
+- **Üblicher Port für den Mailserver.** Die Mail-Einstellungen nennen den üblichen Port zur gewählten Verschlüsselung und weisen auf einen Port hin, der nicht dazu passt. Gespeichert wird der Port trotzdem so, wie er eingetragen ist.
+- **Versandabstand der Instanz sichtbar.** Überlässt eine Wache die Versandzeiten der Benachrichtigungen der Instanz, steht jetzt dabei, wie oft die Instanz sie verschickt.
+
+### Änderungen
+
+- **Antwortadresse oben in den Mail-Einstellungen.** Die Antwortadresse steht nicht mehr im Kasten zu den Mailanbietern der Instanz, sondern ganz oben auf der Seite, weil sie für alle Mails der Wache gilt.
+
+### Fehlerbehebungen
+
+- **Rückmeldeadresse beim eigenen Mailserver.** Die Mail-Einstellungen boten auch für einen eigenen Mailserver eine Adresse für Zustellrückmeldungen an, obwohl er keine schickt. Dort wird sie nicht mehr angezeigt.
+
 ## v26.25.1
 
 Gemeldete Chatnachrichten stehen jetzt unter Monitoring.
