@@ -81222,6 +81222,8 @@ export interface components {
             /** Format: int32 */
             id: number;
             invitation: components["schemas"]["WaitingListInvitation"] | null;
+            invitationDatesGoneAt: components["schemas"]["Instant"] | null;
+            invitationMailedAt: components["schemas"]["Instant"] | null;
             /** Format: int32 */
             invitationRound: number;
             invitedAt: components["schemas"]["Instant"] | null;

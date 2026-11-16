@@ -30,6 +30,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.*;
 
 class WaitingListRepositoryTest extends RepositoryTestBase {
@@ -164,6 +166,70 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
         var byToken = waitingListRepo.findEntryByToken(token);
         assertTrue(byToken.isPresent());
         assertEquals(entry.id(), byToken.get().id());
+    }
+
+    /**
+     * A new invitation counts as mailed now, which is where its weekly reminders count from; other
+     * dates start that count again and forget that the station was told the dates had run out, and
+     * taking the invitation back forgets both.
+     */
+    @Test
+    void anInvitationKeepsWhenItWasLastMailed() {
+        var list = waitingListRepo.create(stationId, "List", "", null, 180, null, null, 5, false, true, null, null);
+        var entry = waitingListRepo.createEntry(
+                list.id(),
+                "Max",
+                "Müller",
+                "",
+                "test@test.com",
+                UUID.randomUUID().toString(),
+                "",
+                null);
+        var event = eventRepo.create(
+                stationId,
+                "Dienstabend",
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.parse("2099-05-12T18:00:00Z"),
+                Instant.parse("2099-05-12T20:00:00Z"),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        var invitation = new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 12), null);
+        var before = Instant.now().minusSeconds(5);
+
+        waitingListRepo.updateInvitation(entry.id(), invitation);
+        var invited = waitingListRepo.findEntryById(entry.id()).orElseThrow();
+        assertNotNull(invited.invitationMailedAt());
+        assertTrue(invited.invitationMailedAt().isAfter(before), "a new invitation counts as mailed now");
+        assertNull(invited.invitationDatesGoneAt());
+
+        ageBookkeeping(entry.id());
+        waitingListRepo.updateInvitation(entry.id(), invitation);
+        var reoffered = waitingListRepo.findEntryById(entry.id()).orElseThrow();
+        assertTrue(reoffered.invitationMailedAt().isAfter(before), "other dates start the count again");
+        assertNull(reoffered.invitationDatesGoneAt(), "and forget that the dates had run out");
+
+        ageBookkeeping(entry.id());
+        waitingListRepo.updateInvitation(entry.id(), null);
+        var cleared = waitingListRepo.findEntryById(entry.id()).orElseThrow();
+        assertNull(cleared.invitationMailedAt(), "taking the invitation back forgets when it was mailed");
+        assertNull(cleared.invitationDatesGoneAt());
+    }
+
+    /** Moves the last mail a week and a day back and marks the dates as run out, as the daily job would. */
+    private static void ageBookkeeping(int entryId) {
+        query("""
+                UPDATE waiting_list_entry
+                SET invitation_mailed_at = now() - INTERVAL '8 days', invitation_dates_gone_at = now()
+                WHERE id = :id;""").single(call().bind("id", entryId)).update();
     }
 
     @Test

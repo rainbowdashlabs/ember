@@ -60,6 +60,7 @@ public class WaitingListRepository {
             reminder_sent_at, created_at, notes, member_id, invited_at, testing_at, joined_at, \
             withdrawn_at, attendance_count, invitation_round, invited_message, invitation_answer, \
             invitation_answered_at, invitation_answer_note, invitation_answer_position, trial_message, \
+            invitation_mailed_at, invitation_dates_gone_at, \
             (SELECT jsonb_agg(jsonb_build_object(
                         'position', invitation_option.position,
                         'event_id', invitation_option.event_id,
@@ -546,6 +547,9 @@ public class WaitingListRepository {
      * <p>A new invitation starts a new round, so an answer given on a page that still showed the
      * dates it replaced is refused. Clearing leaves the round where it is: nothing can be answered
      * until the next invitation raises it.
+     *
+     * <p>A new invitation counts as mailed now, which is where its weekly reminders count from, and
+     * forgets that the station was told its dates had run out. Clearing forgets both.
      */
     public void updateInvitation(int entryId, @Nullable WaitingListInvitation invitation) {
         Transactions.run(() -> {
@@ -575,7 +579,9 @@ public class WaitingListRepository {
                         invitation_answer          = NULL,
                         invitation_answered_at     = NULL,
                         invitation_answer_note     = '',
-                        invitation_answer_position = NULL
+                        invitation_answer_position = NULL,
+                        invitation_mailed_at       = CASE WHEN :round_step = 1 THEN now() END,
+                        invitation_dates_gone_at   = NULL
                     WHERE id = :id;""")
                     .single(call().bind("id", entryId)
                             .bind("message", invitation != null ? invitation.message() : "")

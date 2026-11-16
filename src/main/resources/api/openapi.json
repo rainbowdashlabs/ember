@@ -89962,9 +89962,23 @@
           },
           "trialMessage" : {
             "type" : "string"
+          },
+          "invitationMailedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "invitationDatesGoneAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "listId", "firstname", "lastname", "parentName", "email", "accessToken", "status", "confirmedAt", "reminderSentAt", "createdAt", "notes", "memberId", "invitedAt", "testingAt", "joinedAt", "withdrawnAt", "attendanceCount", "invitationRound", "invitation", "answer", "trialMessage" ]
+        "required" : [ "id", "listId", "firstname", "lastname", "parentName", "email", "accessToken", "status", "confirmedAt", "reminderSentAt", "createdAt", "notes", "memberId", "invitedAt", "testingAt", "joinedAt", "withdrawnAt", "attendanceCount", "invitationRound", "invitation", "answer", "trialMessage", "invitationMailedAt", "invitationDatesGoneAt" ]
       },
       "WaitingListEntryGuardian" : {
         "type" : "object",
