@@ -49,10 +49,26 @@ describe('MemberEntryTimeRange', () => {
             ...i18n,
         })
 
-        const fields = wrapper.findAll('input')
-        expect(fields.at(0)?.attributes('type')).toBe('datetime-local')
-        expect((fields.at(0)?.element as HTMLInputElement).value).toBe('2026-03-17T18:00')
-        expect((fields.at(1)?.element as HTMLInputElement).value).toBe('2026-03-19T16:00')
+        const values = wrapper.findAll('input').map(field => (field.element as HTMLInputElement).value)
+        expect(wrapper.findAll('input').map(field => field.attributes('type'))).toEqual(['date', 'time', 'date', 'time'])
+        expect(values).toEqual(['2026-03-17', '18:00', '2026-03-19', '16:00'])
+    })
+
+    it('hands over the whole moment when only the day of an arrival is changed', async () => {
+        const wrapper = mount(MemberEntryTimeRange, {
+            props: {
+                sessionStart: SESSION_START,
+                sessionEnd: '2026-03-19T15:00:00.000Z',
+                spansDays: true,
+            },
+            ...i18n,
+        })
+
+        const day = wrapper.findAll('input').at(0)!
+        await day.setValue('2026-03-18')
+        await day.trigger('change')
+
+        expect(wrapper.emitted('checkIn')?.at(-1)).toEqual(['2026-03-18T18:00'])
     })
 
     /** Nothing is stored for a member who was simply there, so the sheet's own times stand in. */

@@ -8,6 +8,7 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import {useEndFollowsStart} from '@/composables/useEndFollowsStart'
 import { useInstantSave } from '@/composables/useInstantSave'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -72,6 +73,7 @@ const allowEdit = ref(true)
 const forced = ref(false)
 const startAt = ref('')
 const endAt = ref('')
+useEndFollowsStart(startAt, endAt)
 const visibility = ref<FormVisibility>(FormVisibility.PUBLIC)
 const completionMessage = ref('')
 const completionLink = ref('')

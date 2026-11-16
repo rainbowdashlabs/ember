@@ -378,6 +378,27 @@ export function localInputToInstant(value?: string | null): string {
 }
 
 /**
+ * The end of a span whose start was moved, moved by as much, so the span stays as long as it was.
+ * Each moment may be a stored instant or a `datetime-local` value.
+ *
+ * <p>A drill moved to the next day still runs three hours, and an end that stayed behind would only
+ * ask to be corrected by hand. The length is counted on the clock rather than the calendar, so a span
+ * across a change to or from summer time keeps its hours.
+ *
+ * @param previousStart the start before it was moved
+ * @param start         the start now entered
+ * @param end           the end that belonged to the previous start
+ * @returns the moved end as an instant, or nothing where one of the three cannot be read
+ */
+export function endFollowingStart(previousStart: string, start: string, end: string): string {
+    const before = new Date(previousStart).getTime()
+    const after = new Date(start).getTime()
+    const ends = new Date(end).getTime()
+    if ([before, after, ends].some(Number.isNaN)) return ''
+    return new Date(ends + after - before).toISOString()
+}
+
+/**
  * A time of day, `HH:mm`, placed on the day another moment falls on, as a stored instant.
  *
  * <p>This is how a time typed beside a member reaches the sheet it belongs to. Reading it onto

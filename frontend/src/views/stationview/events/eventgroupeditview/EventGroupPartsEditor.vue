@@ -23,6 +23,7 @@ import {eventGroups, events} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useEndFollowsStart} from '@/composables/useEndFollowsStart'
 import {formatDateTime, localInputToInstant} from '@/util/format'
 
 /**
@@ -48,6 +49,7 @@ const existingSet = ref<number>(firstSet.value)
 const newName = ref('')
 const newStart = ref('')
 const newEnd = ref('')
+useEndFollowsStart(newStart, newEnd)
 const newSet = ref<number>(firstSet.value)
 const removing = ref<number | null>(null)
 const removeOpen = ref(false)
