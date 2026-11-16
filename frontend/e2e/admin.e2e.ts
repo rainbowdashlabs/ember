@@ -395,7 +395,10 @@ test.describe('Instance administration', () => {
         const days = page.getByTestId('setup-token-days')
         await expect(days).not.toHaveValue('')
         await days.fill('14')
+        const saved = page.waitForResponse(answer =>
+            answer.url().includes('/admin/config/auth/tokens') && answer.request().method() === 'PUT')
         await page.getByRole('button', {name: 'Speichern'}).first().click()
+        expect((await saved).ok(), 'the setting was stored before the page is read again').toBeTruthy()
 
         await page.reload()
         await expect(page.getByTestId('setup-token-days')).toHaveValue('14')
