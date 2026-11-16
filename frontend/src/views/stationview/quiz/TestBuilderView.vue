@@ -15,6 +15,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import type { MemberGroup, QuizCatalog, QuizCategory, QuizSectionDetail, UserTag } from '@/api/generated/schema'
 import { quiz, memberGroups, userTags } from '@/api'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import {useEndFollowsStart} from '@/composables/useEndFollowsStart'
 import { describeFailure } from '@/util/failure'
 import TestMetadataForm from './testbuilderview/TestMetadataForm.vue'
 import TestRestrictionsForm from './testbuilderview/TestRestrictionsForm.vue'
@@ -47,6 +48,7 @@ const shuffle = ref(false)
 const forced = ref(false)
 const startAt = ref('')
 const endAt = ref('')
+useEndFollowsStart(startAt, endAt)
 
 const allGroups = ref<MemberGroup[]>([])
 const allTags = ref<UserTag[]>([])

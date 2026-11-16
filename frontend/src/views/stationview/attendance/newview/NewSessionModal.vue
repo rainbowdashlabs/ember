@@ -16,6 +16,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import {instantToLocalInput, localInputToInstant} from '@/util/format'
+import {useEndFollowsStart} from '@/composables/useEndFollowsStart'
 
 /**
  * When the sheet about to be opened runs, and what it is called.
@@ -44,6 +45,7 @@ const emit = defineEmits<{
 const title = ref('')
 const start = ref('')
 const end = ref('')
+useEndFollowsStart(start, end)
 
 watch(open, (isOpen) => {
   if (!isOpen) return

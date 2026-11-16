@@ -179,3 +179,19 @@ describe('useEventForm.applyTemplate deadline offset', () => {
         }
     })
 })
+
+/**
+ * Moving an appointment to another day used to leave its end behind, so the form refused it for ending
+ * before it begins until the end was changed by hand as well.
+ */
+describe('useEventForm start and end', () => {
+    it('moves the end along when only the start is changed', () => {
+        const form = useEventForm()
+        form.state.startTime = '2026-12-10T19:00'
+        form.state.endTime = '2026-12-10T21:30'
+
+        form.state.startTime = '2026-12-17T19:00'
+
+        expect(form.state.endTime).toBe('2026-12-17T21:30')
+    })
+})
