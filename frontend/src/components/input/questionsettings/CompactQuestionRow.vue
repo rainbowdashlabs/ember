@@ -26,6 +26,8 @@ defineProps<{
   nameLabel: string
   /** The question's type, as the badge shows it. */
   typeLabel: string
+  /** Shown only, as on a help page: nothing on the line can be changed or opened. */
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -42,6 +44,7 @@ const {t} = useI18n()
       <TextInput
           :model-value="name"
           :aria-label="nameLabel"
+          :disabled="disabled"
           class="min-w-0 grow basis-32 font-semibold"
           data-testid="question-row-name"
           @update:model-value="value => emit('update:name', String(value ?? ''))"
@@ -53,12 +56,14 @@ const {t} = useI18n()
         <IconButton
             :icon="['fas', 'chevron-down']"
             :label="t('common.openSettings')"
+            :disabled="disabled"
             data-testid="question-row-open"
             @click="open = true"
         />
         <IconButton
             :icon="['fas', 'trash']"
             :label="t('common.delete')"
+            :disabled="disabled"
             data-testid="question-row-remove"
             @click="emit('remove')"
         />

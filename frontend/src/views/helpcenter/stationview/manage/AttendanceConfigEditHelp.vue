@@ -4,6 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {FieldType} from '@/api/generated/schema'
+import AttendanceFieldLine from '@/views/stationview/manage/attendanceconfigedit/AttendanceFieldLine.vue'
+import {blankDraft, type AttendanceFieldDraft} from '@/views/stationview/manage/attendanceconfigedit/attendanceFieldDraft'
 import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
@@ -12,7 +15,6 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
@@ -41,10 +43,10 @@ const sampleRules = [draftOf({
 })]
 
 /** Three fields of a sheet as their cards show them, each with its type and the width it is drawn at. */
-const sampleFields = [
-  {name: t('helpCenter.exampleFields.remark'), type: 'TEXT', width: 'Full'},
-  {name: t('helpCenter.exampleFields.rank'), type: 'CHOICE', width: 'Half'},
-  {name: t('helpCenter.exampleFields.arrival'), type: 'TIME', width: 'Half'},
+const sampleFields: AttendanceFieldDraft[] = [
+  {...blankDraft(), name: t('helpCenter.exampleFields.remark'), fieldType: FieldType.TEXT},
+  {...blankDraft(), name: t('helpCenter.exampleFields.rank'), fieldType: FieldType.CHOICE, width: 'half'},
+  {...blankDraft(), name: t('helpCenter.exampleFields.arrival'), fieldType: FieldType.TIME, width: 'half'},
 ]
 </script>
 
@@ -113,6 +115,7 @@ const sampleFields = [
 
     <HelpSection :title="t('helpCenter.attendanceConfigEdit.fieldsTitle')">
       <p>{{ t('helpCenter.attendanceConfigEdit.fieldsText') }}</p>
+      <p>{{ t('helpCenter.attendanceConfigEdit.fieldsLineText') }}</p>
     </HelpSection>
 
     <NeutralContainer class="space-y-4">
@@ -123,27 +126,13 @@ const sampleFields = [
         </SecondaryButton>
       </div>
       <div class="space-y-2">
-        <div v-for="sample in sampleFields" :key="sample.name" class="rounded border border-(--border) p-3 space-y-3">
-          <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-end">
-            <div class="space-y-1">
-              <FieldLabel>{{ t('attendanceConfig.fieldName') }}</FieldLabel>
-              <TextInput :model-value="sample.name" disabled/>
-            </div>
-            <div class="space-y-1 sm:w-56">
-              <FieldLabel>{{ t('fieldTypes.type') }}</FieldLabel>
-              <SelectInput :model-value="sample.type" disabled>
-                <option :value="sample.type">{{ t(`fieldTypes.label.${sample.type}`) }}</option>
-              </SelectInput>
-            </div>
-            <DeleteButton class="justify-self-end" disabled/>
-          </div>
-          <div class="w-40 space-y-1">
-            <FieldLabel>{{ t('membersConfig.fieldWidth') }}</FieldLabel>
-            <SelectInput :model-value="sample.width" disabled>
-              <option :value="sample.width">{{ t(`membersConfig.width${sample.width}`) }}</option>
-            </SelectInput>
-          </div>
-        </div>
+        <AttendanceFieldLine
+            v-for="sample in sampleFields"
+            :key="sample.name"
+            :model-value="sample"
+            :available-groups="[]"
+            disabled
+        />
       </div>
       <PrimaryButton disabled>{{ t('attendanceConfig.saveFields') }}</PrimaryButton>
     </NeutralContainer>

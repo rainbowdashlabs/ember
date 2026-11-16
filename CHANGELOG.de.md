@@ -21,10 +21,12 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 - **Fragen bei der Anmeldung können eine Erklärung tragen.** Wie ein Profilfeld kann eine Frage bei der Anmeldung zu einem Termin oder einer Terminreihe eine kurze Erklärung tragen, die beim Antworten unter der Frage steht.
 - **Unlesbare Anfragen nennen ihr Feld.** Kann der Server einen Wert nicht lesen, den eine Seite geschickt hat, nennt die Meldung jetzt das Feld, an dem er hängen blieb.
 - **Das Ende wandert mit dem Beginn.** Wird der Beginn eines Termins, eines Anwesenheitsbogens, eines Formulars oder eines Tests geändert, verschiebt sich das Ende um denselben Betrag, und die Dauer bleibt gleich. Ein Termin an einem anderen Tag braucht kein zweites geändertes Ende mehr.
+- **Der Wochentag folgt dem Beginn.** Ein wiederkehrender Termin übernimmt den Wochentag seines Beginns, bis ein anderer Wochentag gewählt wird.
 
 ### Änderungen
 
 - **Geteilte Termine brauchen auf beiden Seiten diese Version.** Zwischen einer Wache auf dieser Version und einer Partnerwache auf einer älteren auf einem anderen Server funktionieren geteilte Termine, die Anmeldung dazu und ihre Kommentare nicht. Sobald beide 26.25.0 betreiben, geht es wieder.
+- **Ein aufgeräumtes Terminformular.** Termine werden in einem Formular angelegt und bearbeitet, in der Reihenfolge des Ausfüllens, mit Speichern am Ende und Erklärungen hinter einem Info-Symbol. Felder von Terminen und Anwesenheitsvorlagen stehen in einer Zeile, ihre Einstellungen hinter einem Knopf.
 
 ### Fehlerbehebungen
 

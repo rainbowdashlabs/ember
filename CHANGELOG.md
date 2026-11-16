@@ -21,10 +21,12 @@ People who share a station can write to each other directly, in groups, and in c
 - **Registration questions can carry a description.** Like a profile field, a question asked when signing up for an appointment or an event group can carry a short explanation, shown under the question while answering.
 - **Unreadable requests name their field.** Where the server cannot read a value a page sent, the message now names the field it stopped at.
 - **The end moves with the start.** Changing the start of an appointment, an attendance sheet, a form or a test moves its end by the same amount, so the length stays the same. Moving an appointment to another day no longer needs the end changed as well.
+- **The weekday follows the start date.** A repeating appointment takes the weekday of its start date until another weekday is picked.
 
 ### Changes
 
 - **Shared appointments need this version on both sides.** Between a station on this version and a partner station on an older one on another server, shared appointments, signing up for them and their comments stop working. They work again once both run 26.25.0.
+- **A tidier appointment form.** Creating and editing an appointment is one form in the order it is filled in, with Save at the end and explanations behind a hint icon. Fields of appointments and attendance templates take one line each, with their settings behind a button.
 
 ### Fixes
 

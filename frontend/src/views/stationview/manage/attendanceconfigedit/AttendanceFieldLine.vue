@@ -22,6 +22,8 @@ const field = defineModel<AttendanceFieldDraft>({required: true})
 
 defineProps<{
   availableGroups: MemberGroup[]
+  /** Shown only, as on a help page. */
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -46,6 +48,7 @@ function update(patch: Partial<AttendanceFieldDraft>) {
       :name="field.name"
       :name-label="t('attendanceConfig.fieldName')"
       :type-label="fieldTypeLabel(t, field.fieldType)"
+      :disabled="disabled"
       @update:name="name => update({name})"
       @remove="emit('remove')"
   >
@@ -55,6 +58,7 @@ function update(patch: Partial<AttendanceFieldDraft>) {
           :model-value="field.settings.required ?? false"
           :icon="['fas', 'asterisk']"
           :label="t('questionSettings.required')"
+          :disabled="disabled"
           data-testid="attendance-field-required"
           @update:model-value="required => update({settings: {...field.settings, required}})"
       />
@@ -63,6 +67,7 @@ function update(patch: Partial<AttendanceFieldDraft>) {
           :model-value="field.autoAttend"
           :icon="['fas', 'user-check']"
           :label="t('attendanceConfig.fieldAutoAttend')"
+          :disabled="disabled"
           data-testid="attendance-field-auto-attend"
           @update:model-value="autoAttend => update({autoAttend})"
       />

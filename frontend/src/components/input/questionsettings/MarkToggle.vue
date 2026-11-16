@@ -15,6 +15,7 @@ const active = defineModel<boolean>({required: true})
 defineProps<{
   icon: string[]
   label: string
+  disabled?: boolean
 }>()
 </script>
 
@@ -23,6 +24,7 @@ defineProps<{
       :icon="icon"
       :label="label"
       :aria-pressed="active"
+      :disabled="disabled"
       :class="active ? 'text-primary' : 'text-(--text-muted) opacity-50'"
       @click="active = !active"
   />
