@@ -1031,8 +1031,9 @@ public class AttendanceRoutes implements Routes {
         String title = ctx.queryParam("title");
         int blankRows = ctx.queryParamAsClass("blankRows", Integer.class).getOrDefault(0);
         String instanceUrl = ctx.queryParam("instanceUrl");
+        boolean status = "true".equals(ctx.queryParam("status"));
         return new AttendanceExportService.SheetOptions(
-                signature, title, blankRows, instanceUrl == null ? null : "true".equals(instanceUrl));
+                signature, title, blankRows, instanceUrl == null ? null : "true".equals(instanceUrl), status);
     }
 
     @OpenApi(

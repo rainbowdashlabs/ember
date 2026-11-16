@@ -41,11 +41,13 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -101,20 +103,30 @@ public class AttendanceExportService {
      *                        up without being on the list
      * @param showInstanceUrl whether the address of this installation is printed at the foot, which is
      *                        what the station settled on where this is null
+     * @param includeStatus   whether a sheet to sign still shows what was recorded of each person, with
+     *                        the count of each status above the lines; a sheet that is not signed always
+     *                        shows it
      */
     public record SheetOptions(
             boolean signatureColumn,
             @Nullable String title,
             int blankRows,
-            @Nullable Boolean showInstanceUrl) {
+            @Nullable Boolean showInstanceUrl,
+            boolean includeStatus) {
         /** The sheet as the product has always printed it. */
-        public static final SheetOptions PLAIN = new SheetOptions(false, null, 0, null);
+        public static final SheetOptions PLAIN = new SheetOptions(false, null, 0, null, false);
 
         /** At most as many blank lines as fit on a page beyond the people already on the sheet. */
         public static final int MAX_BLANK_ROWS = 40;
 
         public SheetOptions {
             blankRows = Math.clamp(blankRows, 0, MAX_BLANK_ROWS);
+        }
+
+        /** A sheet that leaves the status off when it is signed. */
+        public SheetOptions(
+                boolean signatureColumn, @Nullable String title, int blankRows, @Nullable Boolean showInstanceUrl) {
+            this(signatureColumn, title, blankRows, showInstanceUrl, false);
         }
     }
 
@@ -142,7 +154,11 @@ public class AttendanceExportService {
         var session = attendanceRepository.findSessionById(sessionId);
         if (session.isEmpty()) return Optional.empty();
 
-        var entries = attendanceRepository.findEntries(sessionId);
+        var recorded = attendanceRepository.findEntries(sessionId);
+        var names = namesOf(recorded.stream().map(AttendanceEntry::memberId).toList());
+        var entries = recorded.stream()
+                .filter(entry -> names.containsKey(entry.memberId()))
+                .toList();
         var sessionFields = attendanceRepository.findSessionFields(sessionId);
         var templateFields = attendanceRepository.findSheetFields(sessionId);
         var audience = audienceService.audienceOf(session.get());
@@ -156,7 +172,12 @@ public class AttendanceExportService {
         var data = buildExportData(session.get(), entries, sessionFields, templateFields, zone, language);
         data.put(
                 "sections",
-                sections(audience, entries, stationId, language, entry -> buildEntryMap(entry, session.get(), zone)));
+                sections(
+                        audience,
+                        entries,
+                        stationId,
+                        language,
+                        entry -> buildEntryMap(entry, names.get(entry.memberId()), session.get(), zone)));
         data.put("stationName", station != null ? station.name() : "");
         data.put("generatedBy", generatedBy != null ? generatedBy : "");
         data.put("generatedAt", DATE_TIME_FMT.format(Instant.now().atZone(zone)));
@@ -166,6 +187,7 @@ public class AttendanceExportService {
                 "showInstanceUrl", showInstanceUrl != null ? showInstanceUrl : StationFormat.showsInstanceUrl(station));
         data.put("hasLogo", false);
         data.put("signatureColumn", options.signatureColumn());
+        data.put("includeStatus", options.includeStatus());
         data.put("blankRows", options.blankRows());
         String title = options.title();
         if (title != null) {
@@ -293,9 +315,10 @@ public class AttendanceExportService {
      * <p>A sheet that runs over more than one day prints the day beside each moment, since a time
      * alone would name two of them.
      */
-    private Map<String, String> buildEntryMap(AttendanceEntry entry, AttendanceSession session, ZoneId zone) {
+    private Map<String, String> buildEntryMap(
+            AttendanceEntry entry, String name, AttendanceSession session, ZoneId zone) {
         var map = new LinkedHashMap<String, String>();
-        map.put("name", resolveMemberName(entry.memberId()));
+        map.put("name", name);
         map.put("status", entry.status().name());
         Instant checkIn = entry.shownCheckIn(session.startTime());
         Instant checkOut = entry.shownCheckOut(session.endTime());
@@ -305,16 +328,40 @@ public class AttendanceExportService {
         return map;
     }
 
-    private String resolveMemberName(int memberId) {
-        var member = stationMemberRepository.findById(memberId);
-        if (member.isEmpty()) return "#" + memberId;
-        Integer accountId = member.get().accountId();
-        if (accountId == null) return "#" + memberId;
-        var account = accountRepository.findById(accountId);
-        if (account.isEmpty()) return "#" + memberId;
-        Account acc = account.get();
-        String name = NameParts.of(acc).official();
-        return name.isEmpty() ? acc.email() : name;
+    /**
+     * The printed names of the members that are still there to be named.
+     *
+     * <p>A member with an account is named by it. A member still waiting to link one is named as the
+     * station wrote them down. A member who has left the station, whose account is gone or who is
+     * no longer there at all has no name to print and is missing from the result: a sheet is read on
+     * paper, where a bare number means nothing to anybody.
+     */
+    private Map<Integer, String> namesOf(Collection<Integer> memberIds) {
+        var members = stationMemberRepository.findByIds(List.copyOf(new HashSet<>(memberIds)));
+        var accountIds = members.stream()
+                .map(StationMember::accountId)
+                .filter(Objects::nonNull)
+                .toList();
+        var accounts = new HashMap<Integer, Account>();
+        for (var account : accountRepository.findByIds(accountIds)) accounts.put(account.id(), account);
+
+        var names = new HashMap<Integer, String>();
+        for (var member : members) {
+            printedName(member, accounts).ifPresent(name -> names.put(member.id(), name));
+        }
+        return names;
+    }
+
+    private static Optional<String> printedName(StationMember member, Map<Integer, Account> accounts) {
+        Integer accountId = member.accountId();
+        if (accountId == null) {
+            boolean waitingToLink = !member.former() && !member.displayName().isBlank();
+            return waitingToLink ? Optional.of(member.displayName()) : Optional.empty();
+        }
+        return Optional.ofNullable(accounts.get(accountId)).map(account -> {
+            String name = NameParts.of(account).official();
+            return name.isEmpty() ? account.email() : name;
+        });
     }
 
     /**
@@ -326,7 +373,8 @@ public class AttendanceExportService {
      *
      * @param fields   the template's fields
      * @param values   the sheet's answers, by field id
-     * @param names    the names of the members the answers name, by member id
+     * @param names    the names of the members the answers name, by member id; a member missing here
+     *                 is left out of the answer
      * @param language the station's language
      * @return one line per answered field
      */
@@ -337,22 +385,24 @@ public class AttendanceExportService {
             String language) {
         var lines = new ArrayList<NameValue>();
         for (var field : fields) {
-            String text = QuestionText.format(field.fieldType(), values.get(field.id()), names, language);
+            String text = QuestionText.format(
+                    field.fieldType(), values.get(field.id()), names, language, QuestionText.UnknownMember.LEFT_OUT);
             if (!text.isBlank()) lines.add(new NameValue(field.name(), text));
         }
         return lines;
     }
 
-    /** The names of everybody the sheet's member fields name, written as the lines of people are. */
+    /**
+     * The names of everybody the sheet's member fields name, written as the lines of people are. A
+     * member who is no longer there is missing, and the answer then leaves them out.
+     */
     private Map<Integer, String> memberNames(List<AttendanceTemplateField> fields, Map<Integer, String> values) {
-        var names = new HashMap<Integer, String>();
+        var memberIds = new ArrayList<Integer>();
         for (var field : fields) {
             if (!field.fieldType().namesMembers()) continue;
-            for (int memberId : QuestionValues.memberIds(QuestionValues.read(values.get(field.id())))) {
-                names.computeIfAbsent(memberId, this::resolveMemberName);
-            }
+            memberIds.addAll(QuestionValues.memberIds(QuestionValues.read(values.get(field.id()))));
         }
-        return names;
+        return namesOf(memberIds);
     }
 
     private String formatMoment(Instant instant, ZoneId zone, boolean withDay) {

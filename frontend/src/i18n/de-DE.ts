@@ -3819,7 +3819,9 @@ export default {
             signature: 'Zum Unterschreiben',
             signatureHint:
                 'Jede Zeile bekommt ein Feld für die Unterschrift. Der in Ember erfasste Status '
-                + 'steht dann nicht auf dem Blatt: unterschrieben wird auf Papier, und was dort steht, gilt.',
+                + 'steht dann nur auf dem Blatt, wenn er unten mit ausgegeben wird.',
+            status: 'Status mit ausgeben',
+            statusHint: 'Zeigt neben der Unterschrift, was in Ember erfasst ist, und oben die Anzahl je Status.',
             documentTitle: 'Titel des Dokuments',
             documentTitlePlaceholder: 'Titel der Erfassung',
             documentTitleHint: 'Leer lassen, um stattdessen eine Linie zum Ausfüllen zu drucken.',

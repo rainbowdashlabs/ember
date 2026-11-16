@@ -859,11 +859,14 @@ test.describe('Attendance', () => {
         const dialog = page.getByTestId('export-sheet-modal')
         await expect(dialog).toBeVisible()
         await dialog.getByTestId('export-signature-toggle').getByRole('switch').click()
+        await dialog.getByTestId('export-status-toggle').getByRole('switch').click()
         await dialog.getByRole('spinbutton').fill('4')
 
+        const exported = page.waitForRequest(request => request.url().includes('/export?'))
         const download = page.waitForEvent('download')
         await dialog.getByTestId('export-submit').click()
 
+        expect((await exported).url(), 'the sheet to sign carries the status').toContain('status=true')
         const file = await (await download).path()
         expect(file).toBeTruthy()
         expect(statSync(file!).size, 'the sheet carries bytes').toBeGreaterThan(0)

@@ -36,6 +36,7 @@
 ]
 
 #let signing = data.at("signatureColumn", default: false)
+#let with-status = not signing or data.at("includeStatus", default: false)
 #let blank-rows = data.at("blankRows", default: 0)
 
 // A sheet handed out to be filled in can be given its heading by hand, which is what an empty
@@ -81,9 +82,9 @@
 
 // Summary
 //
-// What Ember recorded is left off a sheet that is about to be signed: the paper is the record of who
-// came, and a count taken before it was handed out would contradict it by the end of the evening.
-#if not signing [
+// What Ember recorded is left off a sheet that is about to be signed unless it was asked for: the
+// paper is then the record of who came.
+#if with-status [
   #let present = data.entries.filter(e => e.status == "PRESENT").len()
   #let absent = data.entries.filter(e => e.status == "ABSENT").len()
   #let declined = data.entries.filter(e => e.status == "DECLINED").len()
@@ -102,12 +103,35 @@
 // the paper answers. A line signed by hand needs room for a hand; a line that is only read does not.
 #let row-inset = if signing { (x: 6pt, y: 14pt) } else { 6pt }
 
+#let status-text(s) = if s == "PRESENT" {
+    text(fill: rgb("#00C507"))[Present]
+  } else if s == "ABSENT" {
+    text(fill: rgb("#ec2929"))[Absent]
+  } else if s == "DECLINED" {
+    text(fill: rgb("#3694FF"))[Declined]
+  } else {
+    text(fill: luma(150))[Pending]
+  }
+
 #for section in data.sections [
   #v(0.5em)
   #text(size: 11pt, weight: "bold")[#section.name]
   #v(0.3em)
 
-  #if signing [
+  #if signing and with-status [
+    #table(
+      columns: (auto, 1fr, auto, 1fr),
+      stroke: 0.5pt + luma(180),
+      inset: row-inset,
+      align: (center, left, center, left),
+      table.header(
+        [], [*Name*], [*Status*], [*Signature*],
+      ),
+      ..for (i, entry) in section.entries.enumerate() {
+        (str(i + 1), entry.name, status-text(entry.status), [])
+      }
+    )
+  ] else if signing [
     #table(
       columns: (auto, 1fr, 1fr),
       stroke: 0.5pt + luma(180),
@@ -130,15 +154,7 @@
         [], [*Name*], [*Status*], [*From*], [*To*],
       ),
       ..for (i, entry) in section.entries.enumerate() {
-        let status = if entry.status == "PRESENT" {
-          text(fill: rgb("#00C507"))[Present]
-        } else if entry.status == "ABSENT" {
-          text(fill: rgb("#ec2929"))[Absent]
-        } else if entry.status == "DECLINED" {
-          text(fill: rgb("#3694FF"))[Declined]
-        } else {
-          text(fill: luma(150))[Pending]
-        }
+        let status = status-text(entry.status)
         (str(i + 1), entry.name, status, entry.checkIn, entry.checkOut)
       }
     )
@@ -152,15 +168,23 @@
   #v(0.3em)
 
   #table(
-    columns: if signing { (auto, 1fr, 1fr) } else { (auto, 1fr) },
+    columns: if signing and with-status { (auto, 1fr, auto, 1fr) } else if signing { (auto, 1fr, 1fr) } else { (auto, 1fr) },
     stroke: 0.5pt + luma(180),
     inset: row-inset,
-    align: (center, left, left),
+    align: (center, left, center, left),
     table.header(
-      ..if signing { ([], [*Name*], [*Signature*]) } else { ([], [*Name*]) },
+      ..if signing and with-status {
+        ([], [*Name*], [*Status*], [*Signature*])
+      } else if signing {
+        ([], [*Name*], [*Signature*])
+      } else {
+        ([], [*Name*])
+      },
     ),
     ..for i in range(blank-rows) {
-      if signing {
+      if signing and with-status {
+        (str(i + 1), [], [], [])
+      } else if signing {
         (str(i + 1), [], [])
       } else {
         (str(i + 1), [])

@@ -43,6 +43,29 @@ public final class QuestionText {
      * @return the text to print, empty where nothing was answered or the type holds no value
      */
     public static String format(FieldType type, @Nullable String stored, Map<Integer, String> names, String language) {
+        return format(type, stored, names, language, UnknownMember.BY_NUMBER);
+    }
+
+    /** What an answer prints for a member that has no name in the export. */
+    public enum UnknownMember {
+        /** The member's number, for an export whose reader can still look the member up. */
+        BY_NUMBER,
+        /** Nothing, for a printed document on which a bare number would mean nothing to anybody. */
+        LEFT_OUT
+    }
+
+    /**
+     * The answer as an export prints it, saying what becomes of a member the export cannot name.
+     *
+     * @param unknown what is printed for a member missing from {@code names}
+     * @see #format(FieldType, String, Map, String)
+     */
+    public static String format(
+            FieldType type,
+            @Nullable String stored,
+            Map<Integer, String> names,
+            String language,
+            UnknownMember unknown) {
         String value = QuestionValues.read(stored);
         var kind = type.kind();
         if (value.isEmpty() || kind.isEmpty()) return "";
@@ -50,7 +73,7 @@ public final class QuestionText {
             case BOOLEAN -> yesOrNo(value, language);
             case DATE -> day(value);
             case TIME -> clock(value);
-            case MEMBER, MEMBER_LIST -> members(value, names);
+            case MEMBER, MEMBER_LIST -> members(value, names, unknown);
             default -> value;
         };
     }
@@ -78,10 +101,11 @@ public final class QuestionText {
         }
     }
 
-    private static String members(String value, Map<Integer, String> names) {
+    private static String members(String value, Map<Integer, String> names, UnknownMember unknown) {
         var ids = QuestionValues.memberIds(value);
         if (ids.isEmpty()) return value;
         return ids.stream()
+                .filter(id -> unknown == UnknownMember.BY_NUMBER || names.containsKey(id))
                 .map(id -> names.getOrDefault(id, String.valueOf(id)))
                 .collect(Collectors.joining(", "));
     }
