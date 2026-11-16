@@ -5,6 +5,7 @@
  */
 import {test, expect, apiHeaders, type Page} from './fixtures/auth'
 import {unique} from './fixtures/unique'
+import {fillMoment, momentFields} from './fixtures/moment'
 
 /**
  * Announcing an appointment as a news entry.
@@ -19,9 +20,9 @@ async function createAppointment(page: Page, name: string): Promise<number> {
     await page.goto('/station/events/new')
     await page.getByPlaceholder('Name des Termins').fill(name)
 
-    const times = page.locator('input[type="datetime-local"]')
-    await times.first().fill('2026-12-03T18:00')
-    if (await times.count() > 1) await times.nth(1).fill('2026-12-03T20:00')
+    const times = momentFields(page)
+    await fillMoment(times.first(), '2026-12-03T18:00')
+    if (await times.count() > 1) await fillMoment(times.nth(1), '2026-12-03T20:00')
 
     await page.getByRole('button', {name: /Speichern|Erstellen/}).last().click()
     await page.waitForURL(/\/station\/events/)

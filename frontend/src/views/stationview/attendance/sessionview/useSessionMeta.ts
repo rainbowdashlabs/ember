@@ -7,7 +7,7 @@ import type {Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {attendance} from '@/api'
 import type {AttendanceSession} from '@/api/generated/schema'
-import {localInputToInstant} from '@/util/format'
+import {endFollowingStart, localInputToInstant} from '@/util/format'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**
@@ -48,10 +48,13 @@ export function useSessionMeta(
     }
   }
 
+  /** Moves the start, and the end with it by as much, so the sheet keeps its length. */
   function setSessionStartTime(moment: string) {
     const instant = localInputToInstant(moment)
     if (!session.value || !instant) return
-    session.value = {...session.value, startTime: instant}
+    const {startTime, endTime} = session.value
+    const movedEnd = startTime && endTime ? endFollowingStart(startTime, instant, endTime) : ''
+    session.value = {...session.value, startTime: instant, endTime: movedEnd || endTime}
     saveSessionMeta()
   }
 

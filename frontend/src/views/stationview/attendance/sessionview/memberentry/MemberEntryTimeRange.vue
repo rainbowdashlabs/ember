@@ -44,6 +44,11 @@ const emit = defineEmits<{
 const shownCheckIn = computed(() => shown(props.checkIn, props.sessionStart))
 const shownCheckOut = computed(() => shown(props.checkOut, props.sessionEnd))
 
+/** What a field changed to: the day-and-time field hands the moment over, a time field its own event. */
+function changedValue(change: string | Event): string {
+  return typeof change === 'string' ? change : (change.target as HTMLInputElement).value
+}
+
 function shown(own?: string, session?: string): string {
   const moment = own || session
   return props.spansDays ? instantToLocalInput(moment) : formatTime(moment)
@@ -51,21 +56,21 @@ function shown(own?: string, session?: string): string {
 </script>
 
 <template>
-  <div class="flex items-center gap-1 text-xs">
+  <div class="flex flex-wrap items-center gap-1 text-xs">
     <component
         :is="spansDays ? DateTimeInput : TimeShortInput"
-        :class="[spansDays ? 'w-44' : 'w-20', {'opacity-60': !checkIn}]"
+        :class="[spansDays ? 'w-56' : 'w-20', {'opacity-60': !checkIn}]"
         :model-value="shownCheckIn"
         class="text-xs"
-        @change="emit('checkIn', ($event.target as HTMLInputElement).value)"
+        @change="emit('checkIn', changedValue($event))"
     />
     <span class="text-(--text-muted)">–</span>
     <component
         :is="spansDays ? DateTimeInput : TimeShortInput"
-        :class="[spansDays ? 'w-44' : 'w-20', {'opacity-60': !checkOut}]"
+        :class="[spansDays ? 'w-56' : 'w-20', {'opacity-60': !checkOut}]"
         :model-value="shownCheckOut"
         class="text-xs"
-        @change="emit('checkOut', ($event.target as HTMLInputElement).value)"
+        @change="emit('checkOut', changedValue($event))"
     />
     <IconButton
         v-if="checkIn || checkOut"

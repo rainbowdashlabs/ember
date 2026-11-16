@@ -7,6 +7,7 @@
 import {afterEach, beforeEach, describe, expect, it} from 'vitest'
 import {
     dateToInstant,
+    endFollowingStart,
     formatDate,
     formatDateLong,
     formatDateTime,
@@ -370,5 +371,16 @@ describe('placeLine', () => {
     it('leaves out the parts that are missing or empty', () => {
         expect(placeLine({addressLine: null, city: 'Musterstadt', country: ''})).toBe('Musterstadt')
         expect(placeLine({})).toBe('')
+    })
+})
+
+describe('endFollowingStart', () => {
+    it('moves a stored end by as much as its start', () => {
+        expect(endFollowingStart('2026-03-17T17:00:00.000Z', '2026-03-18T16:00:00.000Z', '2026-03-17T21:00:00.000Z'))
+            .toBe('2026-03-18T20:00:00.000Z')
+    })
+
+    it('answers nothing where a moment cannot be read', () => {
+        expect(endFollowingStart('', '2026-03-18T16:00:00.000Z', '2026-03-17T21:00:00.000Z')).toBe('')
     })
 })
