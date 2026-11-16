@@ -22,12 +22,14 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 - **Erste Schritte merken sich, was schon bekannt ist.** Beim Beitritt zu einer weiteren Wache werden erste Schritte, die die Bedienung zeigen und auf einer anderen Wache schon erledigt oder übersprungen wurden, nicht noch einmal gefragt. Schritte, die zur Wache gehören, etwa ihre Profilfragen und Benachrichtigungen, bleiben.
 - **Felder können zwei Drittel oder ein Viertel einer Zeile einnehmen.** Neben einem Drittel und der Hälfte kann ein Profil-, Anwesenheits- oder Terminfeld ein Viertel, zwei Drittel oder drei Viertel einer Zeile einnehmen, gewählt mit einem Schieberegler statt aus einer Liste.
 - **Termine lassen sich kopieren.** „Kopieren" an einem Termin oder in der Terminliste öffnet einen neuen Termin mit allem aus dem Original, bereit für ein neues Datum. Anmeldungen, Anwesenheit und Kommentare werden nicht kopiert.
+- **Fragen können auf eine beliebige Antwort warten.** Eine Profilfrage lässt sich erst zeigen, wenn eine Auswahl- oder Textfrage beantwortet ist, etwa das Ablaufdatum des Führerscheins, sobald eine Klasse gewählt ist. Die Vorlage Führerschein fragt die Klasse als Auswahl aus B, BE, C und CE.
 - **Unlesbare Anfragen nennen ihr Feld.** Kann der Server einen Wert nicht lesen, den eine Seite geschickt hat, nennt die Meldung jetzt das Feld, an dem er hängen blieb.
 - **Das Ende wandert mit dem Beginn.** Wird der Beginn eines Termins, eines Anwesenheitsbogens, eines Formulars oder eines Tests geändert, verschiebt sich das Ende um denselben Betrag, und die Dauer bleibt gleich. Ein Termin an einem anderen Tag braucht kein zweites geändertes Ende mehr.
 
 ### Änderungen
 
 - **Die Einführungstour gehört zu den ersten Schritten.** Die Leiste unten auf der Startseite ist weg. Der Rundgang durch die wichtigsten Bereiche ist jetzt der erste der ersten Schritte, zeigt nur eingeschaltete Bereiche und wird pro Person statt pro Browser gemerkt.
+- **Bedingungen bleiben in ihrer Gruppe.** Eine Frage in einer Feldgruppe kann nur hinter einer Frage derselben Gruppe stehen. Hängt eine bestehende Frage von einer außerhalb ihrer Gruppe ab, zeigt ihr Editor das an, und sie braucht bei der nächsten Änderung eine neue Bedingung.
 - **Geteilte Termine brauchen auf beiden Seiten diese Version.** Zwischen einer Wache auf dieser Version und einer Partnerwache auf einer älteren auf einem anderen Server funktionieren geteilte Termine, die Anmeldung dazu und ihre Kommentare nicht. Sobald beide 26.25.0 betreiben, geht es wieder.
 
 ### Fehlerbehebungen

@@ -142,6 +142,8 @@ public class ProfileFieldService {
         ProfileField field = profileFieldRepository.findById(fieldId).orElse(null);
         if (field == null || Objects.equals(field.fieldSetId(), setId)) return;
         requireSetAllowed(field.stationId(), setId);
+        FieldDependencies.requireWithinGroup(
+                fieldId, field.shownIfFieldId(), setId, dependencyNodes(field.stationId()));
         List<Integer> others = setId == null ? List.of() : sets.members(setId);
         sets.place(fieldId, setId);
         if (!others.isEmpty()) {
@@ -257,9 +259,9 @@ public class ProfileFieldService {
      * @param origin            who asked
      * @param readonlyAtStation whether the people at the station may read the answer but not write it, which
      *                          only an association's field can be
-     * @param shownIfFieldId    the yes/no field of the same origin this one depends on, or {@code null}. It only
+     * @param shownIfFieldId    the yes/no, choice or text field of the same origin this one depends on, or {@code null}. It only
      *                          takes effect where that field is asked on the same form: hidden and not required
-     *                          until it is answered yes
+     *                          until it lets it in (a yes, or any answer to a choice or text)
      * @param fieldSet          the bundle of the same origin this one belongs to, or {@code null}. A form keeps
      *                          its questions together and shows its name above them where it says so
      */
@@ -543,16 +545,29 @@ public class ProfileFieldService {
     }
 
     /**
-     * Makes a question depend on a yes/no question of the same station, or no longer depend on any.
+     * Makes a question depend on a yes/no, choice or text question of the same station, or no longer depend on any.
      *
      * @param id         the question
-     * @param controller the yes/no question, or {@code null} for none
+     * @param controller the question it is shown behind, or {@code null} for none
      * @throws RefusalResponse the refusals of {@link FieldDependencies#requireAllowed}
      */
     public void dependOn(int id, @Nullable Integer controller) {
         var field = profileFieldRepository.findById(id).orElse(null);
+        if (field == null) return;
+        dependOn(id, controller, field.fieldSetId());
+    }
+
+    /**
+     * The same, for a question that is to stand in the given group once the change it is part of is
+     * written, so moving a question into a group together with a question of that group is not refused
+     * halfway.
+     *
+     * @param setAfter the group the question is to be in, or {@code null} for none
+     */
+    public void dependOn(int id, @Nullable Integer controller, @Nullable Integer setAfter) {
+        var field = profileFieldRepository.findById(id).orElse(null);
         if (field == null || Objects.equals(field.shownIfFieldId(), controller)) return;
-        requireDependencyAllowed(field.stationId(), id, controller);
+        requireDependencyAllowed(field.stationId(), id, controller, setAfter);
         profileFieldRepository.setShownIf(id, controller);
         log.info("Profile field {} now depends on {}", id, controller);
     }
@@ -563,17 +578,22 @@ public class ProfileFieldService {
      *
      * @param stationId  the station whose questions these are
      * @param id         the question, or 0 for one about to be created
-     * @param controller the yes/no question, or {@code null} for none
-     * @throws RefusalResponse the refusals of {@link FieldDependencies#requireAllowed}
+     * @param controller the question it is shown behind, or {@code null} for none
+     * @param setAfter   the group the question is to be in, or {@code null} for none
+     * @throws RefusalResponse the refusals of {@link FieldDependencies#requireAllowed} and
+     *     {@link FieldDependencies#requireWithinGroup}
      */
-    public void requireDependencyAllowed(int stationId, int id, @Nullable Integer controller) {
-        FieldDependencies.requireAllowed(id, controller, dependencyNodes(stationId));
+    public void requireDependencyAllowed(
+            int stationId, int id, @Nullable Integer controller, @Nullable Integer setAfter) {
+        var owned = dependencyNodes(stationId);
+        FieldDependencies.requireAllowed(id, controller, owned);
+        FieldDependencies.requireWithinGroup(id, controller, setAfter, owned);
     }
 
     /**
      * Everything a change of a question writes, the question it depends on and its group included.
      *
-     * @param shownIfFieldId the yes/no question it is shown under, or null
+     * @param shownIfFieldId the question it is shown under, or null
      * @param fieldSetId     the group it belongs to, or null
      */
     public record FieldChange(
@@ -590,7 +610,7 @@ public class ProfileFieldService {
     /**
      * Changes a question after showing the questions that depend on it unconditionally, in one step.
      *
-     * <p>A yes/no question others are shown under cannot take another type while they are. Doing both
+     * <p>A question others are shown under cannot take a type they cannot be shown behind while they are. Doing both
      * here means the change cannot be refused for them, and a change refused for any other reason
      * leaves them depending on it as before. The question's own dependency is checked once they are
      * gone, because only then is it allowed.
@@ -611,8 +631,8 @@ public class ProfileFieldService {
                             change.width(),
                             change.keepOnArchive())
                     .orElseThrow(MemberRefusal.PROFILE_FIELD_NOT_HERE_ON_CHANGE::raise);
-            requireDependencyAllowed(stationId, id, change.shownIfFieldId());
-            dependOn(id, change.shownIfFieldId());
+            requireDependencyAllowed(stationId, id, change.shownIfFieldId(), change.fieldSetId());
+            dependOn(id, change.shownIfFieldId(), change.fieldSetId());
             joinSet(id, change.fieldSetId());
             return changed;
         });
@@ -646,8 +666,8 @@ public class ProfileFieldService {
 
     private List<FieldDependencies.Node> dependencyNodes(int stationId) {
         return profileFieldRepository.findByStation(stationId).stream()
-                .map(field ->
-                        new FieldDependencies.Node(field.id(), field.name(), field.fieldType(), field.shownIfFieldId()))
+                .map(field -> new FieldDependencies.Node(
+                        field.id(), field.name(), field.fieldType(), field.shownIfFieldId(), field.fieldSetId()))
                 .toList();
     }
 

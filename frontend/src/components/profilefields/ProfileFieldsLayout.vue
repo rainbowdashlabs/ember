@@ -42,7 +42,7 @@ export type LaidOutField = Pick<MergedField, 'id' | 'name'> & Partial<Pick<Merge
   readonly?: boolean
   /** Set on a cluster field the cluster keeps to itself, which nobody at the station may write. */
   readonlyAtStation?: boolean
-  /** The yes/no question of the same owner this one is only shown behind, while it is answered yes. */
+  /** The question of the same owner this one is only shown behind: a yes/no answered yes, or a choice or text answered. */
   shownIfFieldId?: number | null
   /** The group of the same owner this one belongs to, whose name may stand above it. */
   fieldSet?: FieldSetLabel | null

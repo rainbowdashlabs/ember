@@ -133,6 +133,7 @@ public class ClusterProfileFieldService {
         ClusterProfileField field = requireField(clusterId, fieldId);
         if (Objects.equals(field.fieldSetId(), setId)) return;
         requireSetAllowed(clusterId, setId);
+        FieldDependencies.requireWithinGroup(fieldId, field.shownIfFieldId(), setId, dependencyNodes(clusterId));
         List<Integer> others = setId == null ? List.of() : sets.members(setId);
         sets.place(fieldId, setId);
         if (!others.isEmpty()) {
@@ -316,17 +317,28 @@ public class ClusterProfileFieldService {
     }
 
     /**
-     * Makes a question depend on a yes/no question of the same association, or no longer depend on any.
+     * Makes a question depend on a yes/no, choice or text question of the same association, or no longer depend on any.
      *
      * @param clusterId  the association
      * @param fieldId    the question
-     * @param controller the yes/no question, or {@code null} for none
+     * @param controller the question it is shown behind, or {@code null} for none
      * @throws RefusalResponse the refusals of {@link FieldDependencies#requireAllowed}
      */
     public void dependOn(int clusterId, int fieldId, @Nullable Integer controller) {
+        dependOn(
+                clusterId, fieldId, controller, requireField(clusterId, fieldId).fieldSetId());
+    }
+
+    /**
+     * The same, for a question that is to stand in the given group once the change it is part of is
+     * written.
+     *
+     * @param setAfter the group the question is to be in, or {@code null} for none
+     */
+    public void dependOn(int clusterId, int fieldId, @Nullable Integer controller, @Nullable Integer setAfter) {
         ClusterProfileField field = requireField(clusterId, fieldId);
         if (Objects.equals(field.shownIfFieldId(), controller)) return;
-        requireDependencyAllowed(clusterId, fieldId, controller);
+        requireDependencyAllowed(clusterId, fieldId, controller, setAfter);
         fieldRepository.setShownIf(fieldId, controller);
         log.info("Cluster {} field {} now depends on {}", clusterId, fieldId, controller);
     }
@@ -337,11 +349,16 @@ public class ClusterProfileFieldService {
      *
      * @param clusterId  the association
      * @param fieldId    the question, or 0 for one about to be created
-     * @param controller the yes/no question, or {@code null} for none
-     * @throws RefusalResponse the refusals of {@link FieldDependencies#requireAllowed}
+     * @param controller the question it is shown behind, or {@code null} for none
+     * @param setAfter   the group the question is to be in, or {@code null} for none
+     * @throws RefusalResponse the refusals of {@link FieldDependencies#requireAllowed} and
+     *     {@link FieldDependencies#requireWithinGroup}
      */
-    public void requireDependencyAllowed(int clusterId, int fieldId, @Nullable Integer controller) {
-        FieldDependencies.requireAllowed(fieldId, controller, dependencyNodes(clusterId));
+    public void requireDependencyAllowed(
+            int clusterId, int fieldId, @Nullable Integer controller, @Nullable Integer setAfter) {
+        var owned = dependencyNodes(clusterId);
+        FieldDependencies.requireAllowed(fieldId, controller, owned);
+        FieldDependencies.requireWithinGroup(fieldId, controller, setAfter, owned);
     }
 
     /**
@@ -350,7 +367,7 @@ public class ClusterProfileFieldService {
      *
      * @param name           the new name, or null to keep it for an unnamed spacer
      * @param stationGroupId the station group the question is asked in, or null for every station
-     * @param shownIfFieldId the yes/no question it is shown under, or null
+     * @param shownIfFieldId the question it is shown under, or null
      * @param fieldSetId     the group of questions it belongs to, or null
      */
     public record FieldChange(
@@ -389,8 +406,8 @@ public class ClusterProfileFieldService {
                     change.stationReadonly(),
                     change.keepOnArchive(),
                     change.stationGroupId());
-            requireDependencyAllowed(clusterId, fieldId, change.shownIfFieldId());
-            dependOn(clusterId, fieldId, change.shownIfFieldId());
+            requireDependencyAllowed(clusterId, fieldId, change.shownIfFieldId(), change.fieldSetId());
+            dependOn(clusterId, fieldId, change.shownIfFieldId(), change.fieldSetId());
             joinSet(clusterId, fieldId, change.fieldSetId());
         });
     }
@@ -421,8 +438,8 @@ public class ClusterProfileFieldService {
 
     private List<FieldDependencies.Node> dependencyNodes(int clusterId) {
         return fieldRepository.findByCluster(clusterId).stream()
-                .map(field ->
-                        new FieldDependencies.Node(field.id(), field.name(), field.fieldType(), field.shownIfFieldId()))
+                .map(field -> new FieldDependencies.Node(
+                        field.id(), field.name(), field.fieldType(), field.shownIfFieldId(), field.fieldSetId()))
                 .toList();
     }
 

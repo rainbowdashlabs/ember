@@ -267,6 +267,105 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     }
 
     /**
+     * A question in a group can only be shown behind a question of the same group, whether the condition
+     * is set, the question joins a group, or the question depended on leaves its group.
+     */
+    @Test
+    @Order(22)
+    void aQuestionInAGroupDependsOnlyOnItsOwnGroup() {
+        var licence = service.create(
+                station.id(), "Klasse", FieldType.CHOICE, ProfileFieldConfig.empty(), false, false, null);
+        var until = service.create(
+                station.id(), "Gültig bis", FieldType.DATE, ProfileFieldConfig.empty(), false, false, null);
+        var outside = service.create(
+                station.id(), "Bemerkung", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
+        var group = service.createSet(station.id(), "Führerschein Gruppe", false);
+        try {
+            service.joinSet(until.id(), group.id());
+            assertEquals(
+                    MemberRefusal.PROFILE_DEPENDENCY_OUTSIDE_GROUP,
+                    assertThrows(RefusalResponse.class, () -> service.dependOn(until.id(), outside.id()))
+                            .refusal());
+
+            service.joinSet(licence.id(), group.id());
+            service.dependOn(until.id(), licence.id());
+            assertEquals(
+                    licence.id(), service.findById(until.id()).orElseThrow().shownIfFieldId());
+
+            assertEquals(
+                    MemberRefusal.PROFILE_DEPENDENCY_OUTSIDE_GROUP,
+                    assertThrows(RefusalResponse.class, () -> service.joinSet(licence.id(), null))
+                            .refusal(),
+                    "the condition cannot leave the group its dependents stand in");
+
+            service.joinSet(until.id(), null);
+            service.joinSet(licence.id(), null);
+            assertNull(service.findById(licence.id()).orElseThrow().fieldSetId(), "on its own anything goes");
+
+            var other = service.createSet(station.id(), "Andere Gruppe", false);
+            assertThrows(
+                    RefusalResponse.class,
+                    () -> service.joinSet(until.id(), other.id()),
+                    "a question cannot join a group its condition is not in");
+            service.dependOn(until.id(), null);
+            service.joinSet(until.id(), other.id());
+            service.joinSet(licence.id(), group.id());
+            assertThrows(RefusalResponse.class, () -> service.dependOn(until.id(), licence.id()));
+            service.dependOn(until.id(), licence.id(), group.id());
+            service.joinSet(until.id(), group.id());
+            assertEquals(
+                    group.id(),
+                    service.findById(until.id()).orElseThrow().fieldSetId(),
+                    "moved together with its new condition in one change");
+        } finally {
+            service.dependOn(until.id(), null, null);
+            service.delete(until.id());
+            service.delete(licence.id());
+            service.delete(outside.id());
+        }
+    }
+
+    /**
+     * A required question behind a choice counts against the profile once the choice is made, whatever
+     * was chosen, and not while it is left blank.
+     */
+    @Test
+    @Order(22)
+    void aQuestionBehindAChoiceCountsOnceAnythingIsChosen() {
+        var licence = ask(
+                "Führerscheinklasse",
+                FieldType.CHOICE,
+                "{\"options\":[\"B\",\"BE\",\"C\",\"CE\"]}",
+                ProfileFieldScope.MEMBER,
+                18);
+        var until = ask("Führerschein gültig bis", FieldType.DATE, "{}", ProfileFieldScope.MEMBER, 19, true, false);
+        service.dependOn(until.id(), licence.id());
+        var account6 = accountRepo.create("pfield-licence@test.com", "Lena", "Lkw");
+        var member6 = stationMemberRepo.create(station.id(), account6.id());
+        try {
+            assertTrue(service.isProfileComplete(member6.id()), "without a class the date is not asked");
+
+            service.setValues(
+                    member6.id(),
+                    List.of(new FieldValueEntry(licence.id(), "\"\"", FieldOrigin.STATION)),
+                    member6.id());
+            assertTrue(service.isProfileComplete(member6.id()), "a blank choice asks nothing either");
+
+            service.setValues(
+                    member6.id(),
+                    List.of(new FieldValueEntry(licence.id(), "\"CE\"", FieldOrigin.STATION)),
+                    member6.id());
+            assertFalse(service.isProfileComplete(member6.id()), "with a class the date is missing");
+        } finally {
+            stationMemberRepo.delete(member6.id());
+            accountRepo.delete(account6.id());
+            service.dependOn(until.id(), null);
+            service.delete(until.id());
+            service.delete(licence.id());
+        }
+    }
+
+    /**
      * A required question behind a yes/no question counts against the profile only once that one is
      * answered yes, and as usual for a member who is not asked the yes/no question at all.
      */
@@ -305,20 +404,20 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Only a yes/no question of the same station can carry a dependency, one level deep, and it cannot be
-     * deleted or given another type while anything depends on it.
+     * Only a yes/no, choice or text question of the same station can carry a dependency, one level deep,
+     * and it cannot be deleted or given a type no question can be shown behind while anything depends on it.
      */
     @Test
     @Order(22)
-    void dependenciesAreOneLevelOnYesNoQuestionsThatStayWhileUsed() {
+    void dependenciesAreOneLevelOnConditionQuestionsThatStayWhileUsed() {
         var flag = ask("Has licence", FieldType.BOOLEAN, "{}", ProfileFieldScope.MEMBER, 14);
         var text = ask("Licence class", FieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 15);
         var date = ask("Licence until", FieldType.DATE, "{}", ProfileFieldScope.MEMBER, 16);
         var nested = ask("Licence for trucks", FieldType.BOOLEAN, "{}", ProfileFieldScope.MEMBER, 17);
         try {
             assertEquals(
-                    MemberRefusal.PROFILE_DEPENDENCY_NOT_YES_NO,
-                    assertThrows(RefusalResponse.class, () -> service.dependOn(date.id(), text.id()))
+                    MemberRefusal.PROFILE_DEPENDENCY_NOT_A_CONDITION,
+                    assertThrows(RefusalResponse.class, () -> service.dependOn(text.id(), date.id()))
                             .refusal());
             assertEquals(
                     MemberRefusal.PROFILE_DEPENDENCY_ON_ITSELF,
@@ -343,7 +442,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                                     () -> service.update(
                                             flag.id(),
                                             flag.name(),
-                                            FieldType.TEXT,
+                                            FieldType.DATE,
                                             ProfileFieldConfig.empty(),
                                             false,
                                             false,

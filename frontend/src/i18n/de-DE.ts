@@ -3983,7 +3983,11 @@ export default {
         addField: 'Feld hinzufügen',
         shownIf: 'Nur anzeigen, wenn',
         shownAlways: 'Immer anzeigen',
-        shownIfHint: 'Das Feld erscheint und ist nur dann Pflicht, wenn die gewählte Ja/Nein-Frage mit Ja beantwortet ist. Wer die Ja/Nein-Frage nicht gestellt bekommt, sieht das Feld immer.',
+        shownIfHint: 'Das Feld erscheint und ist nur dann Pflicht, wenn die gewählte Frage es zulässt: eine Ja/Nein-Frage mit Ja, eine Auswahl oder ein Text, sobald etwas eingetragen ist. Wer die Frage nicht gestellt bekommt, sieht das Feld immer.',
+        shownIfWhenYes: '{name} (bei Ja)',
+        shownIfWhenAnswered: '{name} (wenn beantwortet)',
+        shownIfOutsideGroup: '{name} (außerhalb der Gruppe)',
+        shownIfOutsideGroupHint: 'Diese Bedingung steht außerhalb der Feldgruppe. Wähle eine Frage derselben Gruppe oder „Immer anzeigen“, sonst wird das Speichern abgelehnt.',
         shownIfBadge: 'Nur bei {name}',
         sets: {
             title: 'Feldgruppen',
@@ -4095,11 +4099,11 @@ export default {
         fieldKeepOnArchive: 'Bei Archivierung behalten',
         fieldKeepOnArchiveHint: 'Dieses Feld bleibt bei ehemaligen Mitgliedern erhalten.',
         deleteConfirm: 'Feld "{name}" wirklich löschen? Alle gespeicherten Werte gehen verloren.',
-        deleteDependentsIntro: 'Diese Fragen werden nur angezeigt, wenn "{name}" mit Ja beantwortet ist:',
+        deleteDependentsIntro: 'Diese Fragen werden nur angezeigt, wenn "{name}" sie zulässt:',
         deleteDependentsAfter: 'Beim Löschen verlieren sie diese Bedingung und werden immer angezeigt. '
             + 'Ihre Antworten bleiben erhalten.',
         deleteUnlinkConfirm: 'Bedingungen entfernen und löschen',
-        typeChangeDependents: 'Diese Fragen werden nur angezeigt, wenn diese Frage mit Ja beantwortet ist: '
+        typeChangeDependents: 'Diese Fragen werden nur angezeigt, wenn diese Frage sie zulässt: '
             + '{names}. Mit einem anderen Typ verlieren sie diese Bedingung und werden immer angezeigt. Ihre '
             + 'Antworten bleiben erhalten.',
     },

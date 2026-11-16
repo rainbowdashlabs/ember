@@ -22,12 +22,14 @@ People who share a station can write to each other directly, in groups, and in c
 - **First steps remember what is known already.** On joining a further station, first steps that teach how the application works and were already done or skipped on another station are not asked again. Steps that belong to the station, such as its profile questions and notifications, stay.
 - **Fields can take two thirds or a quarter of a row.** Besides a third and a half, a profile, attendance or appointment field can take a quarter, two thirds or three quarters of a row, picked with a slider instead of a list.
 - **Appointments can be copied.** "Copy" on an appointment or in the list of appointments opens a new one with everything of the original filled in, ready for a new date. Sign-ups, attendance and comments are not copied.
+- **Questions can wait for any answer.** A profile question can be shown only once a choice or text question is answered, such as a licence expiry date once a licence class is chosen. The licence template asks the class as a choice of B, BE, C and CE.
 - **Unreadable requests name their field.** Where the server cannot read a value a page sent, the message now names the field it stopped at.
 - **The end moves with the start.** Changing the start of an appointment, an attendance sheet, a form or a test moves its end by the same amount, so the length stays the same. Moving an appointment to another day no longer needs the end changed as well.
 
 ### Changes
 
 - **The introduction tour is part of the first steps.** The bar at the bottom of the dashboard is gone. The walk past the main areas is now the first of the first steps, shows only areas that are switched on, and is remembered per person instead of per browser.
+- **Conditions stay inside their group.** A question in a group of questions can only be shown behind a question of the same group. An existing question that depends on one outside its group is marked in its editor and has to get a new condition on its next change.
 - **Shared appointments need this version on both sides.** Between a station on this version and a partner station on an older one on another server, shared appointments, signing up for them and their comments stop working. They work again once both run 26.25.0.
 
 ### Fixes

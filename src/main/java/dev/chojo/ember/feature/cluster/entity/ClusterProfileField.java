@@ -33,8 +33,9 @@ import java.util.Optional;
  * @param keepOnArchive   whether the answer survives the member being marked as having left
  * @param stationGroupId  the group of stations it is asked of, or {@code null} for every station under the
  *                        association
- * @param shownIfFieldId  a yes/no field of the same association this one depends on, or {@code null}. While
- *                        a member is asked both and has not answered yes, this one is hidden and not required.
+ * @param shownIfFieldId  a yes/no, choice or text field of the same association this one depends on, or
+ *                        {@code null}. While a member is asked both and has not answered yes, or left the
+ *                        choice or text blank, this one is hidden and not required.
  * @param fieldSetId      the bundle of the association's fields this one belongs to, or {@code null}
  * @param setPosition     where it stands within that bundle, smallest first
  */

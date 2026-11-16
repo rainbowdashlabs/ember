@@ -23,12 +23,30 @@ import java.util.stream.Collectors;
  * groups as the first of those on their form, which is the way the profile lays them out.
  *
  * <p>Such a question counts against them when it takes an answer at all, they have to answer it, they may
- * write it, and the answer is blank. A question that depends on a yes/no question they are also asked does
- * not count while that one is not answered yes, since they never see it. A question the station only lets them read is not theirs to fill in,
+ * write it, and the answer is blank. A question that depends on another question they are also asked does
+ * not count while that one does not let it in (not answered yes, or a choice or text left blank), since
+ * they never see it. A question the station only lets them read is not theirs to fill in,
  * and neither is one the association asks and keeps to itself. Answers are documents, so a blank one is no
  * row, the document null a selection left on its blank entry writes, or the empty string.
  */
 public final class ProfileCompletenessSql {
+
+    /**
+     * Whether the answer {@code cv} to the question another depends on lets that one in: a yes to a
+     * yes/no question, or any answer to a choice or text question that holds more than blanks, the
+     * same rule the profile form applies. The kind is read from the question itself, so a no stored as
+     * text can never count as an answer behind a yes/no question.
+     *
+     * @param table the table the depended-on question lives in
+     */
+    private static String admits(String table) {
+        return """
+                (cv.value = 'true'::JSONB
+                 OR (jsonb_typeof(cv.value) IN ('string', 'number', 'boolean')
+                     AND (cv.value #>> '{}') ~ '[^[:space:]]'
+                     AND (SELECT controller_type.field_type FROM %s controller_type
+                          WHERE controller_type.id = cv.field_id) <> 'BOOLEAN'))""".formatted(table);
+    }
 
     private static final String INCOMPLETE = """
             (EXISTS (SELECT 1
@@ -59,7 +77,7 @@ public final class ProfileCompletenessSql {
                                                 FROM profile_field_value cv
                                                 WHERE cv.member_id = {m}.id
                                                   AND cv.field_id = f.shown_if_field_id
-                                                  AND cv.value = 'true'::JSONB))
+                                                  AND {admitsStation}))
                        AND {blank})
              OR EXISTS (SELECT 1
                         FROM cluster_profile_field cpf
@@ -85,8 +103,10 @@ public final class ProfileCompletenessSql {
                                                    FROM cluster_profile_field_value cv
                                                    WHERE cv.member_id = {m}.id
                                                      AND cv.field_id = cpf.shown_if_field_id
-                                                     AND cv.value = 'true'::JSONB))
+                                                     AND {admitsCluster}))
                           AND {blank}))""".replace("{answerless}", answerlessTypes())
+            .replace("{admitsStation}", admits("profile_field"))
+            .replace("{admitsCluster}", admits("cluster_profile_field"))
             .replace(
                     "{controllerReaches}", ClusterProfileFieldRepository.REACHES_STATION.replace("cpf.", "controller."))
             .replace("{reaches}", ClusterProfileFieldRepository.REACHES_STATION)

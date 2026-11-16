@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.cluster.service.ClusterProfileFieldService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.service.FieldDependencies;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.FieldTypes;
 import io.javalin.http.Context;
@@ -103,7 +104,7 @@ public class ClusterFieldRoutes implements Routes {
     private void create(Context ctx) {
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(ClusterFieldRequest.class);
-        fieldService.requireDependencyAllowed(cluster.id(), 0, request.shownIfFieldId());
+        fieldService.requireDependencyAllowed(cluster.id(), 0, request.shownIfFieldId(), request.fieldSetId());
         fieldService.requireSetAllowed(cluster.id(), request.fieldSetId());
         ClusterProfileField field = fieldService.create(
                 cluster.id(),
@@ -116,7 +117,7 @@ public class ClusterFieldRoutes implements Routes {
                 request.stationReadonly(),
                 request.keepOnArchive(),
                 request.stationGroupId());
-        fieldService.dependOn(cluster.id(), field.id(), request.shownIfFieldId());
+        fieldService.dependOn(cluster.id(), field.id(), request.shownIfFieldId(), request.fieldSetId());
         fieldService.joinSet(cluster.id(), field.id(), request.fieldSetId());
         ctx.status(HttpStatus.CREATED).json(toResponse(fieldService.requireField(cluster.id(), field.id())));
     }
@@ -151,12 +152,12 @@ public class ClusterFieldRoutes implements Routes {
                 request.stationGroupId(),
                 request.shownIfFieldId(),
                 request.fieldSetId());
-        if (unlinksDependents(ctx) && type != FieldType.BOOLEAN) {
+        if (unlinksDependents(ctx) && !FieldDependencies.canBeCondition(type)) {
             fieldService.changeUnlinkingDependents(cluster.id(), fieldId, change);
             ctx.status(HttpStatus.NO_CONTENT);
             return;
         }
-        fieldService.requireDependencyAllowed(cluster.id(), fieldId, request.shownIfFieldId());
+        fieldService.requireDependencyAllowed(cluster.id(), fieldId, request.shownIfFieldId(), request.fieldSetId());
         fieldService.update(
                 cluster.id(),
                 fieldId,
@@ -169,7 +170,7 @@ public class ClusterFieldRoutes implements Routes {
                 change.stationReadonly(),
                 change.keepOnArchive(),
                 change.stationGroupId());
-        fieldService.dependOn(cluster.id(), fieldId, change.shownIfFieldId());
+        fieldService.dependOn(cluster.id(), fieldId, change.shownIfFieldId(), change.fieldSetId());
         fieldService.joinSet(cluster.id(), fieldId, change.fieldSetId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -353,7 +354,7 @@ public class ClusterFieldRoutes implements Routes {
      *                        {@code null} for the whole row
      * @param stationGroupId  the association's group of stations the question is pointed at, or
      *                        {@code null} for none
-     * @param shownIfFieldId  the association's yes/no question this one depends on, or {@code null} for none
+     * @param shownIfFieldId  the association's yes/no, choice or text question this one depends on, or {@code null} for none
      * @param fieldSetId      the association's group of fields this one belongs to, or {@code null} for none
      */
     public record ClusterFieldRequest(
@@ -372,7 +373,7 @@ public class ClusterFieldRoutes implements Routes {
     /**
      * A question as the association's editor reads it back.
      *
-     * @param shownIfFieldId the association's yes/no question this one depends on, or {@code null} for none
+     * @param shownIfFieldId the association's yes/no, choice or text question this one depends on, or {@code null} for none
      * @param fieldSetId     the association's group of fields this one belongs to, or {@code null} for none
      * @param setPosition    where it stands within that group
      */

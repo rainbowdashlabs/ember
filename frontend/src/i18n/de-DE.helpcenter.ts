@@ -1868,19 +1868,23 @@ volumes:
             setsHeading: 'Mit „Name als Überschrift" steht der Name der Gruppe im Formular über ihren Feldern, '
                 + 'ohne dass du eine eigene Überschrift anlegen musst. Löst du eine Gruppe auf, bleiben ihre '
                 + 'Felder samt Antworten erhalten.',
-            shownIfTitle: 'Felder, die nur bei Ja erscheinen',
-            shownIfText: 'Unter „Nur anzeigen, wenn" verbindest du ein Feld mit einer Ja/Nein-Frage. Das Feld '
-                + 'erscheint im Profil erst, wenn die Ja/Nein-Frage mit Ja beantwortet ist, und ist nur dann '
-                + 'Pflicht. So fragt das Profil nach dem JuLeiCa-Ablaufdatum nur, wenn jemand eine JuLeiCa hat. '
-                + 'Wird die Frage wieder auf Nein gesetzt, bleibt die Antwort gespeichert und ist nur ausgeblendet.',
+            shownIfTitle: 'Felder, die erst nach einer Antwort erscheinen',
+            shownIfText: 'Unter „Nur anzeigen, wenn" verbindest du ein Feld mit einer Ja/Nein-, Auswahl- oder '
+                + 'Textfrage. Das Feld erscheint im Profil erst, wenn die Ja/Nein-Frage mit Ja beantwortet ist '
+                + 'oder in der Auswahl oder dem Text etwas steht, und ist nur dann Pflicht. So fragt das Profil '
+                + 'nach dem JuLeiCa-Ablaufdatum nur, wenn jemand eine JuLeiCa hat, und nach dem Ablauf des '
+                + 'Führerscheins erst, wenn eine Klasse gewählt ist. '
+                + 'Wird die Frage wieder auf Nein gesetzt oder geleert, bleibt die Antwort gespeichert und ist nur ausgeblendet.',
             shownIfScope: 'Das gilt nur, wenn jemand beide Felder gestellt bekommt. Wer nur das abhängige Feld '
                 + 'bekommt, sieht es immer, mit seiner üblichen Pflicht-Einstellung.',
-            shownIfRules: 'Ein Feld kann nur von einer Ja/Nein-Frage desselben Profils abhängen, und eine Frage, '
-                + 'von der andere abhängen, kann selbst nicht abhängen. Löschst du eine Ja/Nein-Frage, von der '
+            shownIfRules: 'Ein Feld kann nur von einer Ja/Nein-, Auswahl- oder Textfrage desselben Profils '
+                + 'abhängen, und eine Frage, von der andere abhängen, kann selbst nicht abhängen. Steht ein Feld '
+                + 'in einer Feldgruppe, kann es nur von einer Frage derselben Gruppe abhängen. Löschst du eine '
+                + 'solche Frage, von der '
                 + 'andere Felder abhängen, nennt Ember diese Felder, und „Bedingungen entfernen und löschen" nimmt '
                 + 'ihre Bedingung mit heraus. Bei einem anderen Typ geschieht das beim Speichern. Danach '
                 + 'erscheinen sie immer, ihre Antworten bleiben erhalten. Die '
-                + 'Vorlagen JuLeiCa und Leistungsspange legen die Verbindung gleich mit an.',
+                + 'Vorlagen JuLeiCa, Leistungsspange und Führerschein legen die Verbindung gleich mit an.',
             title: 'Mitglieder-Konfiguration',
             subtitle: 'Profilfelder für Mitglieder einrichten.',
             whatIs: 'Was sind Profilfelder?',

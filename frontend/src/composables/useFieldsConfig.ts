@@ -18,7 +18,7 @@ import {
     type ProfileFieldAssignment, type ProfileFieldScope, type StationGroupResponse,
 } from '@/api/generated/schema'
 import {
-    asAsked, keepSetsTogether, membersOfSet, placeForm, regroupForms, reorderedSets, withSetOrders,
+    asAsked, isConditionType, keepSetsTogether, membersOfSet, placeForm, regroupForms, reorderedSets, withSetOrders,
 } from '@/util/profileFields'
 import {moveWithin} from '@/util/reorder'
 import {describeFailure, FailureKind} from '@/util/failure'
@@ -371,8 +371,8 @@ export function useFieldsConfig(port: FieldsPort) {
     const dateFields = computed(() =>
         questions.value.filter(f => DATE_FIELD_TYPES.includes(f.fieldType ?? '')))
 
-    /** The yes/no questions of this owner, which another question can be shown behind. */
-    const booleanFields = computed(() => questions.value.filter(f => f.fieldType === FieldType.BOOLEAN))
+    /** The questions of this owner another question can be shown behind: yes/no, choice and text. */
+    const conditionFields = computed(() => questions.value.filter(f => isConditionType(f.fieldType)))
 
     /**
      * The names of the questions shown only under this one, read from every question of the owner and
@@ -813,7 +813,7 @@ export function useFieldsConfig(port: FieldsPort) {
         previewFields,
         formFor,
         dateFields,
-        booleanFields,
+        conditionFields,
         dependentsOf,
         birthDateField,
         genderField,

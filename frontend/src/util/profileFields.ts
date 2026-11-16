@@ -225,15 +225,26 @@ export function originOf(field: {origin?: FieldOrigin | null}): FieldOrigin {
     return field.origin ?? 'STATION'
 }
 
-/** A question as far as depending on a yes/no question goes. */
+/** The kinds of question another one can be shown behind, as the server allows them. */
+const CONDITION_TYPES: readonly string[] = ['BOOLEAN', 'CHOICE', 'TEXT', 'LONG_TEXT']
+
+/** Whether another question can be shown behind a question of this kind. */
+export function isConditionType(fieldType: string | null | undefined): boolean {
+    return !!fieldType && CONDITION_TYPES.includes(fieldType)
+}
+
+/** A question as far as depending on another question goes. */
 export interface DependentField {
     id: number
     origin?: FieldOrigin
     shownIfFieldId?: number | null
+    /** What kind of answer it takes; a question without one is read as yes/no. */
+    fieldType?: string
 }
 
 /**
- * Whether a question is hidden because the yes/no question it depends on is not answered yes.
+ * Whether a question is hidden because the question it depends on does not let it in: a yes/no question
+ * not answered yes, or a choice or text question left blank.
  *
  * <p>Only where that yes/no question is on the same form: a member asked only the dependent question sees
  * it as usual. The yes/no question is one of the same owner, since a station and its association number
@@ -251,8 +262,15 @@ export function hiddenByDependency<T extends DependentField>(
     if (field.shownIfFieldId == null) return false
     const controller = fields.find(other => other.id === field.shownIfFieldId && originOf(other) === originOf(field))
     if (!controller) return false
-    const answer = valueOf(controller)
-    return answer !== true && answer !== 'true'
+    return !admits(controller, valueOf(controller))
+}
+
+/** Whether an answer to the question another depends on lets that one in. */
+function admits(controller: DependentField, answer: unknown): boolean {
+    if (!controller.fieldType || controller.fieldType === 'BOOLEAN') return answer === true || answer === 'true'
+    if (answer == null) return false
+    const text = String(answer)
+    return /\S/.test(text) && text !== 'null' && !/^"\s*"$/.test(text)
 }
 
 /** A question as far as whether a member still has to answer it goes. */
@@ -269,7 +287,7 @@ export interface ExpectedField extends DependentField {
  *
  * <p>Only a question somebody writes counts: a heading, a gap and an age hold no answer to give, and
  * a question the member may only read is not theirs to fill in, whether the station or its association
- * locked it. A question hidden behind a yes/no question that is not answered yes does not count either.
+ * locked it. A question hidden behind a question that does not let it in does not count either.
  *
  * @param fields  every question on the form
  * @param valueOf the answer to a question, as text
@@ -284,7 +302,7 @@ export function incompleteFields<T extends ExpectedField>(fields: readonly T[], 
     })
 }
 
-/** The questions of a form that are shown, the ones hidden behind a yes/no question left out. */
+/** The questions of a form that are shown, the ones hidden behind another question left out. */
 export function shownFields<T extends DependentField>(fields: readonly T[], valueOf: (field: T) => unknown): T[] {
     return fields.filter(field => !hiddenByDependency(field, fields, valueOf))
 }
