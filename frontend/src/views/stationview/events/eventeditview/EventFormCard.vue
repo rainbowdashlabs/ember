@@ -93,7 +93,7 @@ const reminders = defineModel<number[]>('reminders', {required: true})
         <slot name="after-fields"/>
       </template>
       <template #after-description>
-        <EventReminderEditor v-model="reminders"/>
+        <EventReminderEditor v-model="reminders" compact/>
       </template>
     </EventFormPanel>
   </NeutralContainer>
