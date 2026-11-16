@@ -56,6 +56,10 @@ const sampleCancellation: CancellationNotice = {
       <p>{{ t('helpCenter.eventDetail.changingText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.eventDetail.copyTitle')">
+      <p>{{ t('helpCenter.eventDetail.copyText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.eventDetail.laterQuestionTitle')">
       <p>{{ t('helpCenter.eventDetail.laterQuestionText') }}</p>
     </HelpSection>
@@ -77,6 +81,7 @@ const sampleCancellation: CancellationNotice = {
           </HelpPermissionGuard>
           <ActionsMenu :label="t('common.actions')" test-id="help-event-actions">
             <DropdownMenuItem :icon="['fas', 'bullhorn']">{{ t('events.announceAsNews') }}</DropdownMenuItem>
+            <DropdownMenuItem :icon="['fas', 'copy']">{{ t('events.copyEvent') }}</DropdownMenuItem>
             <DropdownMenuItem :icon="['fas', 'ban']" destructive>{{ t('events.cancelDate') }}</DropdownMenuItem>
             <DropdownMenuItem :icon="['fas', 'calendar-xmark']" destructive>{{ t('events.cancelSeries') }}</DropdownMenuItem>
           </ActionsMenu>

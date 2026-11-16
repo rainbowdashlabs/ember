@@ -821,3 +821,8 @@ COMMENT ON COLUMN ember_schema.message_report.handled_by_account_id
     IS 'The account that handled the report. NULL while open and once that account is deleted.';
 COMMENT ON COLUMN ember_schema.message_report.outcome
     IS 'How the report was handled: DELETED when the message was removed, DISMISSED when it stayed. NULL while open.';
+
+INSERT INTO ember_schema.onboarding_member_task(member_id, task_key, state)
+SELECT DISTINCT member_id, 'member.tour', 'CONFIRMED'
+FROM ember_schema.onboarding_member_task
+ON CONFLICT (member_id, task_key) DO NOTHING;

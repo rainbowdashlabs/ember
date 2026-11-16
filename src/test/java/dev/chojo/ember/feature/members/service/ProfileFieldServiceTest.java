@@ -31,6 +31,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.util.Comparator;
 import java.util.List;
 
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -266,6 +267,105 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     }
 
     /**
+     * A question in a group can only be shown behind a question of the same group, whether the condition
+     * is set, the question joins a group, or the question depended on leaves its group.
+     */
+    @Test
+    @Order(22)
+    void aQuestionInAGroupDependsOnlyOnItsOwnGroup() {
+        var licence = service.create(
+                station.id(), "Klasse", FieldType.CHOICE, ProfileFieldConfig.empty(), false, false, null);
+        var until = service.create(
+                station.id(), "Gültig bis", FieldType.DATE, ProfileFieldConfig.empty(), false, false, null);
+        var outside = service.create(
+                station.id(), "Bemerkung", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
+        var group = service.createSet(station.id(), "Führerschein Gruppe", false);
+        try {
+            service.joinSet(until.id(), group.id());
+            assertEquals(
+                    MemberRefusal.PROFILE_DEPENDENCY_OUTSIDE_GROUP,
+                    assertThrows(RefusalResponse.class, () -> service.dependOn(until.id(), outside.id()))
+                            .refusal());
+
+            service.joinSet(licence.id(), group.id());
+            service.dependOn(until.id(), licence.id());
+            assertEquals(
+                    licence.id(), service.findById(until.id()).orElseThrow().shownIfFieldId());
+
+            assertEquals(
+                    MemberRefusal.PROFILE_DEPENDENCY_OUTSIDE_GROUP,
+                    assertThrows(RefusalResponse.class, () -> service.joinSet(licence.id(), null))
+                            .refusal(),
+                    "the condition cannot leave the group its dependents stand in");
+
+            service.joinSet(until.id(), null);
+            service.joinSet(licence.id(), null);
+            assertNull(service.findById(licence.id()).orElseThrow().fieldSetId(), "on its own anything goes");
+
+            var other = service.createSet(station.id(), "Andere Gruppe", false);
+            assertThrows(
+                    RefusalResponse.class,
+                    () -> service.joinSet(until.id(), other.id()),
+                    "a question cannot join a group its condition is not in");
+            service.dependOn(until.id(), null);
+            service.joinSet(until.id(), other.id());
+            service.joinSet(licence.id(), group.id());
+            assertThrows(RefusalResponse.class, () -> service.dependOn(until.id(), licence.id()));
+            service.dependOn(until.id(), licence.id(), group.id());
+            service.joinSet(until.id(), group.id());
+            assertEquals(
+                    group.id(),
+                    service.findById(until.id()).orElseThrow().fieldSetId(),
+                    "moved together with its new condition in one change");
+        } finally {
+            service.dependOn(until.id(), null, null);
+            service.delete(until.id());
+            service.delete(licence.id());
+            service.delete(outside.id());
+        }
+    }
+
+    /**
+     * A required question behind a choice counts against the profile once the choice is made, whatever
+     * was chosen, and not while it is left blank.
+     */
+    @Test
+    @Order(22)
+    void aQuestionBehindAChoiceCountsOnceAnythingIsChosen() {
+        var licence = ask(
+                "Führerscheinklasse",
+                FieldType.CHOICE,
+                "{\"options\":[\"B\",\"BE\",\"C\",\"CE\"]}",
+                ProfileFieldScope.MEMBER,
+                18);
+        var until = ask("Führerschein gültig bis", FieldType.DATE, "{}", ProfileFieldScope.MEMBER, 19, true, false);
+        service.dependOn(until.id(), licence.id());
+        var account6 = accountRepo.create("pfield-licence@test.com", "Lena", "Lkw");
+        var member6 = stationMemberRepo.create(station.id(), account6.id());
+        try {
+            assertTrue(service.isProfileComplete(member6.id()), "without a class the date is not asked");
+
+            service.setValues(
+                    member6.id(),
+                    List.of(new FieldValueEntry(licence.id(), "\"\"", FieldOrigin.STATION)),
+                    member6.id());
+            assertTrue(service.isProfileComplete(member6.id()), "a blank choice asks nothing either");
+
+            service.setValues(
+                    member6.id(),
+                    List.of(new FieldValueEntry(licence.id(), "\"CE\"", FieldOrigin.STATION)),
+                    member6.id());
+            assertFalse(service.isProfileComplete(member6.id()), "with a class the date is missing");
+        } finally {
+            stationMemberRepo.delete(member6.id());
+            accountRepo.delete(account6.id());
+            service.dependOn(until.id(), null);
+            service.delete(until.id());
+            service.delete(licence.id());
+        }
+    }
+
+    /**
      * A required question behind a yes/no question counts against the profile only once that one is
      * answered yes, and as usual for a member who is not asked the yes/no question at all.
      */
@@ -304,20 +404,20 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Only a yes/no question of the same station can carry a dependency, one level deep, and it cannot be
-     * deleted or given another type while anything depends on it.
+     * Only a yes/no, choice or text question of the same station can carry a dependency, one level deep,
+     * and it cannot be deleted or given a type no question can be shown behind while anything depends on it.
      */
     @Test
     @Order(22)
-    void dependenciesAreOneLevelOnYesNoQuestionsThatStayWhileUsed() {
+    void dependenciesAreOneLevelOnConditionQuestionsThatStayWhileUsed() {
         var flag = ask("Has licence", FieldType.BOOLEAN, "{}", ProfileFieldScope.MEMBER, 14);
         var text = ask("Licence class", FieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 15);
         var date = ask("Licence until", FieldType.DATE, "{}", ProfileFieldScope.MEMBER, 16);
         var nested = ask("Licence for trucks", FieldType.BOOLEAN, "{}", ProfileFieldScope.MEMBER, 17);
         try {
             assertEquals(
-                    MemberRefusal.PROFILE_DEPENDENCY_NOT_YES_NO,
-                    assertThrows(RefusalResponse.class, () -> service.dependOn(date.id(), text.id()))
+                    MemberRefusal.PROFILE_DEPENDENCY_NOT_A_CONDITION,
+                    assertThrows(RefusalResponse.class, () -> service.dependOn(text.id(), date.id()))
                             .refusal());
             assertEquals(
                     MemberRefusal.PROFILE_DEPENDENCY_ON_ITSELF,
@@ -342,7 +442,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                                     () -> service.update(
                                             flag.id(),
                                             flag.name(),
-                                            FieldType.TEXT,
+                                            FieldType.DATE,
                                             ProfileFieldConfig.empty(),
                                             false,
                                             false,
@@ -455,7 +555,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                     form.indexOf(city.id()),
                     "and the bundle stands together in its own order");
 
-            service.reorder(station.id(), ProfileFieldScope.TEAM, List.of(city.id(), loose.id(), street.id()));
+            service.reorder(station.id(), ProfileFieldScope.TEAM, List.of(street.id(), loose.id(), city.id()));
             List<ProfileFieldService.MergedField> reordered =
                     service.findMergedFields(station.id(), ProfileFieldScope.TEAM);
             assertEquals(
@@ -478,6 +578,82 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
             service.delete(city.id());
             service.delete(loose.id());
         }
+    }
+
+    /**
+     * A form put in a new order is the authority for its bundles too. A question dragged within its bundle
+     * stays where it was dropped, the bundle takes that order, and every other form asking the bundle
+     * follows. A bundle dragged as a whole keeps its order, and questions of a bundle that arrive apart are
+     * pulled together in the order they arrived.
+     */
+    @Test
+    @Order(22)
+    void aDragWithinABundleIsTheBundlesNewOrder() {
+        var loose = ask("Loose by the address", FieldType.TEXT, "{}", ProfileFieldScope.TEAM, 0);
+        var street = service.create(
+                station.id(), "Straße Ordnung", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
+        var city = service.create(
+                station.id(), "Ort Ordnung", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
+        var zip = service.create(
+                station.id(), "PLZ Ordnung", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
+        var address = service.createSet(station.id(), "Adresse Ordnung", false);
+        List<Integer> mine = List.of(loose.id(), street.id(), city.id(), zip.id());
+        try {
+            service.joinSet(street.id(), address.id());
+            service.joinSet(city.id(), address.id());
+            service.joinSet(zip.id(), address.id());
+            service.assignToRole(street.id(), ProfileFieldScope.TEAM, 5, null, null, null);
+            service.assignToRole(street.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+
+            service.reorder(
+                    station.id(), ProfileFieldScope.TEAM, List.of(loose.id(), zip.id(), street.id(), city.id()));
+            assertEquals(
+                    List.of(loose.id(), zip.id(), street.id(), city.id()),
+                    formOf(ProfileFieldScope.TEAM, mine),
+                    "a question dragged within its bundle stays where it was dropped");
+            assertEquals(List.of(zip.id(), street.id(), city.id()), bundleOrder(mine), "the bundle takes the order");
+            assertEquals(
+                    List.of(zip.id(), street.id(), city.id()),
+                    formOf(ProfileFieldScope.MEMBER, mine),
+                    "and every other form asking it follows");
+
+            service.reorder(
+                    station.id(), ProfileFieldScope.TEAM, List.of(zip.id(), street.id(), city.id(), loose.id()));
+            assertEquals(
+                    List.of(zip.id(), street.id(), city.id(), loose.id()),
+                    formOf(ProfileFieldScope.TEAM, mine),
+                    "a bundle dragged as a whole moves as a whole");
+            assertEquals(List.of(zip.id(), street.id(), city.id()), bundleOrder(mine), "and keeps its order");
+
+            service.reorder(
+                    station.id(), ProfileFieldScope.TEAM, List.of(city.id(), loose.id(), zip.id(), street.id()));
+            assertEquals(
+                    List.of(city.id(), zip.id(), street.id(), loose.id()),
+                    formOf(ProfileFieldScope.TEAM, mine),
+                    "questions of a bundle arriving apart are pulled together in the order they arrived");
+            assertEquals(List.of(city.id(), zip.id(), street.id()), bundleOrder(mine));
+        } finally {
+            service.dissolveSet(station.id(), address.id());
+            mine.forEach(service::delete);
+        }
+    }
+
+    /** The given questions in the order one audience's form puts them. */
+    private static List<Integer> formOf(ProfileFieldScope role, List<Integer> fieldIds) {
+        return service.findMergedFields(station.id(), role).stream()
+                .map(ProfileFieldService.MergedField::id)
+                .filter(fieldIds::contains)
+                .toList();
+    }
+
+    /** The given questions that are bundled, in their bundle's order. */
+    private static List<Integer> bundleOrder(List<Integer> fieldIds) {
+        return fieldIds.stream()
+                .map(id -> service.findById(id).orElseThrow())
+                .filter(field -> field.fieldSetId() != null)
+                .sorted(Comparator.comparingInt(ProfileField::setPosition))
+                .map(ProfileField::id)
+                .toList();
     }
 
     /** A bundle of another station is not one a question can join, and a bundle needs a name. */

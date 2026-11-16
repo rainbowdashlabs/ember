@@ -14,7 +14,8 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * A bundle stands together on a form, in its own order, where its first question was put.
+ * A bundle stands together on a form, in its own order, where its first question was put, and a form put
+ * in a new order gives its bundles that order.
  */
 class FieldSetsTest {
     private static final Map<Integer, FieldSetPlacement> ADDRESS = Map.of(
@@ -35,5 +36,25 @@ class FieldSetsTest {
     @Test
     void aBundleOnlyPartlyOnAFormKeepsWhatIsThere() {
         assertEquals(List.of(10, 12, 7), FieldSets.keepTogether(List.of(12, 7, 10), ADDRESS));
+    }
+
+    @Test
+    void questionsArrivingInANewOrderAreTheBundlesNewOrder() {
+        assertEquals(Map.of(1, List.of(12, 10, 11)), FieldSets.reorderedBundles(List.of(5, 12, 10, 11), ADDRESS));
+    }
+
+    @Test
+    void aBundleArrivingInItsOwnOrderIsLeftAlone() {
+        assertEquals(Map.of(), FieldSets.reorderedBundles(List.of(10, 11, 12, 5), ADDRESS));
+    }
+
+    @Test
+    void questionsArrivingApartAreOrderedByTheirFirstAppearance() {
+        assertEquals(Map.of(1, List.of(11, 10, 12)), FieldSets.reorderedBundles(List.of(11, 6, 10, 12), ADDRESS));
+    }
+
+    @Test
+    void questionsTheFormDoesNotAskKeepTheirPlacesInTheBundle() {
+        assertEquals(Map.of(1, List.of(12, 11, 10)), FieldSets.reorderedBundles(List.of(12, 7, 10), ADDRESS));
     }
 }

@@ -145,6 +145,35 @@ describe('useFieldsConfig', () => {
   })
 
   /**
+   * A question dragged within its group stays where it was dropped, the group takes that order, and every
+   * other form asking the group follows it, without a reload.
+   */
+  it('keeps a question dragged within its group where it was dropped', async () => {
+    const grouped = (id: number, name: string, setPosition: number): EditableField =>
+      ({...field(id, name, FieldType.TEXT), fieldSetId: 7, setPosition})
+    const sent: number[][] = []
+    const port: FieldsPort = {
+      ...portOf(
+          [field(1, 'Lose', FieldType.TEXT), grouped(2, 'Straße', 0), grouped(3, 'Ort', 1)],
+          [askedOf(10, 1, 'MEMBER', 1), askedOf(11, 2, 'MEMBER', 2), askedOf(12, 3, 'MEMBER', 3),
+            askedOf(13, 2, 'TEAM', 1), askedOf(14, 3, 'TEAM', 2)]),
+      reorder: async (_role, fieldIds) => {
+        sent.push(fieldIds)
+      },
+    }
+    const config = configOver(port)
+    await config.reload()
+
+    config.previewRole.value = 'MEMBER'
+    await config.onReorder('MEMBER', 2, 1)
+
+    expect(sent).toEqual([[1, 3, 2]])
+    expect(config.previewFields.value.map(f => f.id)).toEqual([1, 3, 2])
+    config.previewRole.value = 'TEAM'
+    expect(config.previewFields.value.map(f => f.id)).toEqual([3, 2])
+  })
+
+  /**
    * A template's expected and locked answers travel on the field, not in its settings, which the
    * server reads strictly and would refuse.
    */
@@ -240,6 +269,25 @@ describe('useFieldsConfig', () => {
     api!.toggleChecked(1)
     api!.toggleChecked(1)
     expect(api!.checkedIds.value.size).toBe(0)
+  })
+
+  /** The box of a group ticks all of its fields, and unticks them only once every one is ticked. */
+  it('ticks a whole group from its own box', async () => {
+    const street = {...field(1, 'Straße', FieldType.TEXT), fieldSetId: 7}
+    const city = {...field(2, 'Ort', FieldType.TEXT), fieldSetId: 7}
+    const config = configFor([street, city, field(3, 'Allein', FieldType.TEXT)])
+    await config.reload()
+
+    config.toggleChecked(3)
+    config.toggleSetChecked(7)
+    expect([...config.checkedIds.value].sort()).toEqual([1, 2, 3])
+
+    config.toggleSetChecked(7)
+    expect([...config.checkedIds.value]).toEqual([3])
+
+    config.checkedIds.value = new Set([1, 3])
+    config.toggleSetChecked(7)
+    expect([...config.checkedIds.value].sort()).toEqual([1, 2, 3])
   })
 
   /** A template naming a field the owner already has writes nothing, not even its group. */

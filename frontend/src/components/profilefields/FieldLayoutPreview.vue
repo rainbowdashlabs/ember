@@ -78,10 +78,10 @@ const {shown, startMove, startResize, widthOf, moving, resizing} = usePreviewLay
 
     <EmptyState v-if="fields.length === 0" compact>{{ emptyText }}</EmptyState>
 
-    <div v-else ref="grid" class="grid grid-cols-6 gap-x-4 gap-y-3 items-start">
+    <div v-else ref="grid" class="grid grid-cols-12 gap-x-4 gap-y-3 items-start">
       <template v-for="(field, index) in shown()" :key="index">
         <div v-if="groupStartingAt(shown(), index)"
-             class="col-span-6 -mb-2 flex items-center gap-2 text-xs font-semibold"
+             class="col-span-12 -mb-2 flex items-center gap-2 text-xs font-semibold"
              data-testid="preview-set-label">
           <font-awesome-icon :icon="['fas', 'layer-group']" class="h-3 w-3"/>
           {{ groupStartingAt(shown(), index) }}

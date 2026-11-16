@@ -53,6 +53,7 @@ const activeView = ref('')
       <p>{{ t('helpCenter.dashboard.onboardingInstall') }}</p>
       <p>{{ t('helpCenter.dashboard.onboardingSkip') }}</p>
       <p>{{ t('helpCenter.dashboard.onboardingShared') }}</p>
+      <p>{{ t('helpCenter.dashboard.onboardingOtherStations') }}</p>
     </HelpSection>
 
     <ErrorContainer class="flex items-center justify-between gap-4">

@@ -30,6 +30,24 @@ public class OnboardingTaskRepository {
                 .all();
     }
 
+    /**
+     * The marks the same person left on their other stations of this instance, one per task: a tick
+     * wins over anything else, and otherwise the latest word stands.
+     */
+    public List<OnboardingMark> findByOtherMembershipsOf(int memberId) {
+        return query("""
+                SELECT DISTINCT ON (mark.task_key) mark.task_key, mark.state, mark.changed_at
+                FROM station_member self
+                JOIN station_member other
+                    ON other.account_id = self.account_id AND other.id <> self.id
+                JOIN onboarding_member_task mark ON mark.member_id = other.id
+                WHERE self.id = :member_id
+                ORDER BY mark.task_key, mark.state = 'CONFIRMED' DESC, mark.changed_at DESC;""")
+                .single(call().bind("member_id", memberId))
+                .map(OnboardingMark.map(null))
+                .all();
+    }
+
     public void markForMember(int memberId, String taskKey, String state) {
         query("""
                 INSERT INTO onboarding_member_task(member_id, task_key, state)
@@ -44,6 +62,24 @@ public class OnboardingTaskRepository {
 
     public void clearForMember(int memberId, String taskKey) {
         query("DELETE FROM onboarding_member_task WHERE member_id = :member_id AND task_key = :task_key;")
+                .single(call().bind("member_id", memberId).bind("task_key", taskKey))
+                .update();
+    }
+
+    /**
+     * Takes a task back up on every station the member's person belongs to, for a task whose mark on
+     * one station counts on all of them.
+     */
+    public void clearForEveryMembershipOf(int memberId, String taskKey) {
+        query("""
+                DELETE FROM onboarding_member_task
+                WHERE task_key = :task_key
+                AND member_id IN (
+                    SELECT other.id
+                    FROM station_member self
+                    JOIN station_member other ON other.account_id = self.account_id
+                    WHERE self.id = :member_id
+                    UNION SELECT :member_id);""")
                 .single(call().bind("member_id", memberId).bind("task_key", taskKey))
                 .update();
     }

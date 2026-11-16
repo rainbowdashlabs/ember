@@ -73,7 +73,7 @@ function getMemberOptions(field: AttendanceTemplateField): MemberOption[] {
 <template>
   <NeutralContainer v-if="templateFields.length > 0" class="space-y-4">
     <SectionHeader>{{ t('attendanceSession.fields') }}</SectionHeader>
-    <div class="grid grid-cols-6 gap-3">
+    <div class="grid grid-cols-12 gap-3">
       <div v-for="field in templateFields" :key="field.id" :class="['space-y-1', spanForWidth(configOf(field.config).width)]">
         <FieldLabel>{{ field.name }}</FieldLabel>
         <FieldAnswerInput

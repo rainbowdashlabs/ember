@@ -64385,6 +64385,10 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "copiedFromEventId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         }
       },
@@ -75561,9 +75565,12 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "elsewhere" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "id", "key", "subject", "subjectId", "state", "confirmable", "actorName", "changedAt" ]
+        "required" : [ "id", "key", "subject", "subjectId", "state", "confirmable", "actorName", "changedAt", "elsewhere" ]
       },
       "OpenSignatureResponse" : {
         "type" : "object",

@@ -29,6 +29,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   edit: [event: EventSummary]
+  copy: [event: EventSummary]
   remove: [event: EventSummary]
   loadMore: []
 }>()
@@ -58,6 +59,7 @@ function templateNameOf(item: DatedEvent): string {
         :template-name="templateNameOf(item)"
         :fields="overviewFields[item.event.id] ?? []"
         @edit="emit('edit', item.event)"
+        @copy="emit('copy', item.event)"
         @remove="emit('remove', item.event)"
     />
     <SecondaryButton v-if="list.hasMore" class="w-full" :disabled="list.loadingMore" @click="emit('loadMore')">

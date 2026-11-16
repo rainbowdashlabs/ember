@@ -22,6 +22,7 @@ import java.time.Instant;
  * @param confirmable whether it can be ticked off by hand, which a derived task cannot
  * @param actorName   who ticked it off or passed it over, on the shared levels only
  * @param changedAt   when that was
+ * @param elsewhere   whether it was settled on another station of the instance rather than here
  */
 public record OnboardingTaskView(
         String id,
@@ -31,4 +32,5 @@ public record OnboardingTaskView(
         OnboardingTaskState state,
         boolean confirmable,
         @Nullable String actorName,
-        @Nullable Instant changedAt) {}
+        @Nullable Instant changedAt,
+        boolean elsewhere) {}

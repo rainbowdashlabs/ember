@@ -26,6 +26,9 @@ import {OnboardingTaskState, type OnboardingLevel, type OnboardingTaskView} from
  * colleague arriving later can see whose decision they are looking at, and take a skipped one back
  * up.
  *
+ * A task that teaches how Ember works and was passed over on another station of the same person says
+ * so, since nothing on this station explains why it is not open.
+ *
  * Who may see a level is not decided here. The card asks for it, and somebody who may not have it
  * is told so by the request rather than by a second permission check that could disagree with the
  * first: the card then simply has nothing to show and draws nothing.
@@ -151,6 +154,9 @@ onMounted(() => load(props.level))
         <span class="text-(--text-muted)">{{ title(task) }}</span>
         <MutedText v-if="shared && task.actorName" size="sm">
           {{ t('onboarding.card.settledBy', {name: task.actorName}) }}
+        </MutedText>
+        <MutedText v-else-if="task.elsewhere" size="sm" data-testid="onboarding-task-elsewhere">
+          {{ t('onboarding.card.settledElsewhere') }}
         </MutedText>
         <SecondaryButton class="text-xs sm:ml-auto" @click="resume(level, task.id)">
           {{ t('onboarding.card.resume') }}

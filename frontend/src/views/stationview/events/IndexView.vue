@@ -79,6 +79,11 @@ function openEditEvent(event: EventSummary) {
   router.push({name: eventRoutes.edit, params: {id: event.id}})
 }
 
+/** Opens a new appointment filled in from this one. */
+function openCopyEvent(event: EventSummary) {
+  router.push({name: eventRoutes.create, query: {copyFrom: String(event.id)}})
+}
+
 function openAddBreak() {
   editingBreak.value = null
   showBreakModal.value = true
@@ -179,6 +184,7 @@ async function catchUp() {
           :breaks="breaks"
           @add-event="openAddEvent"
           @edit-event="openEditEvent"
+          @copy-event="openCopyEvent"
           @delete-event="requestDeleteEvent"
           @add-break="openAddBreak"
           @edit-break="openEditBreak"

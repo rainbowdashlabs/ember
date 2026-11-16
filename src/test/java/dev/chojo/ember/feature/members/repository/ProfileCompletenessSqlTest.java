@@ -17,6 +17,7 @@ import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.node.BooleanNode;
 import tools.jackson.databind.node.StringNode;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -125,6 +126,77 @@ class ProfileCompletenessSqlTest extends RepositoryTestBase {
 
         clusterProfileFieldRepo.setValue(member.id(), field.id(), StringNode.valueOf("V-17"));
         assertTrue(complete());
+    }
+
+    /** A question behind a text question waits for any written answer, and a blank one is none. */
+    @Test
+    void aQuestionBehindATextQuestionCountsOnceItIsAnswered() {
+        var licence = profileFieldRepo.create(
+                station.id(), "Führerscheinklasse", FieldType.TEXT, ProfileFieldConfig.parse("{}"), false, false, null);
+        profileFieldRepo.assignToRole(licence.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        int until = requiredOf(ProfileFieldScope.MEMBER);
+        profileFieldRepo.setShownIf(until, licence.id());
+
+        assertTrue(complete(), "nothing written, so the dependent question is not asked");
+
+        profileFieldRepo.setValue(member.id(), licence.id(), StringNode.valueOf("   "));
+        assertTrue(complete(), "blanks are no answer");
+
+        profileFieldRepo.setValue(member.id(), licence.id(), StringNode.valueOf("CE"));
+        assertFalse(complete(), "with a class the dependent question is asked");
+    }
+
+    /** A no is never taken for an answer, not even where it was stored as text. */
+    @Test
+    void aNoStoredAsTextDoesNotLetTheQuestionIn() {
+        var flag = profileFieldRepo.create(
+                station.id(), "JuLeiCa", FieldType.BOOLEAN, ProfileFieldConfig.parse("{}"), false, false, null);
+        profileFieldRepo.assignToRole(flag.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        int until = requiredOf(ProfileFieldScope.MEMBER);
+        profileFieldRepo.setShownIf(until, flag.id());
+
+        profileFieldRepo.setValue(member.id(), flag.id(), StringNode.valueOf("false"));
+        assertTrue(complete());
+
+        profileFieldRepo.setValue(member.id(), flag.id(), BooleanNode.TRUE);
+        assertFalse(complete());
+    }
+
+    /** The association's questions follow the same rule as the station's. */
+    @Test
+    void anAssociationQuestionBehindAChoiceCountsOnceAnythingIsChosen() {
+        cluster = clusterRepo.create("Completeness Wahl " + station.id(), null, station.id());
+        stationRepo.setCluster(station.id(), cluster.id());
+        var licence = clusterProfileFieldRepo.create(
+                cluster.id(),
+                "Führerscheinklasse",
+                FieldType.CHOICE,
+                ProfileFieldConfig.parse("{\"options\":[\"B\",\"C\"]}"),
+                false,
+                false,
+                null,
+                false,
+                false,
+                null);
+        clusterProfileFieldRepo.assignToRole(licence.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        var until = clusterProfileFieldRepo.create(
+                cluster.id(),
+                "Führerschein gültig bis",
+                FieldType.DATE,
+                ProfileFieldConfig.parse("{}"),
+                true,
+                false,
+                null,
+                false,
+                false,
+                null);
+        clusterProfileFieldRepo.assignToRole(until.id(), ProfileFieldScope.MEMBER, 1, null, null, null);
+        clusterProfileFieldRepo.setShownIf(until.id(), licence.id());
+
+        assertTrue(complete());
+
+        clusterProfileFieldRepo.setValue(member.id(), licence.id(), StringNode.valueOf("C"));
+        assertFalse(complete());
     }
 
     @Test

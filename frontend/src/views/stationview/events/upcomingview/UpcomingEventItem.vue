@@ -107,7 +107,7 @@ const containerClass = computed(() => [
       </div>
     </div>
     <ButtonRow v-if="event.eventGroup && answerable && !cancellation" align="end">
-      <SecondaryButton :icon="['fas', 'graduation-cap']" :to="{name: 'event-group', params: {eventGroupId: event.eventGroup.eventGroupId}}"
+      <SecondaryButton :icon="['fas', 'layer-group']" :to="{name: 'event-group', params: {eventGroupId: event.eventGroup.eventGroupId}}"
                        data-testid="upcoming-event-group-sign-up">
         {{ t('eventGroups.openEventGroup') }}
       </SecondaryButton>

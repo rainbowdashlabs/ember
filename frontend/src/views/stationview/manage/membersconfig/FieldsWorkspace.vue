@@ -14,6 +14,7 @@ import FieldLayoutPreview from '@/components/profilefields/FieldLayoutPreview.vu
 import type {AskedField} from './askedField'
 import type {FieldTemplate} from './fieldTemplates'
 import type {EditableField} from '@/api/profileFields'
+import type {FieldSet} from '@/api/generated/schema'
 import type {useFieldsConfig} from '@/composables/useFieldsConfig'
 
 /**
@@ -58,6 +59,7 @@ const audienceCount = computed(() => c.allAssignments.value.reduce<Record<number
           @add="c.openAddField"
           @select="(f: EditableField) => c.select(f.id)"
           @toggle-checked="(f: EditableField) => c.toggleChecked(f.id)"
+          @toggle-set-checked="(s: FieldSet) => c.toggleSetChecked(s.id)"
           @assign-checked="c.assignCheckedTo"
           @clear-checked="c.clearChecked"
           @edit="c.openEditField"

@@ -71,11 +71,12 @@ const MEMBER_DATA_TEMPLATES: readonly FieldTemplate[] = [
   },
   {
     name: 'Führerschein', icon: 'id-card', fields: [
-      {name: 'Führerscheinklasse', fieldType: 'TEXT', config: {}, width: HALF},
+      {name: 'Führerscheinklasse', fieldType: 'CHOICE', config: {options: ['B', 'BE', 'C', 'CE']}, width: HALF},
       {
         name: 'Führerschein gültig bis',
         fieldType: 'EXPIRY_DATE',
         config: {warnFromDays: 60, reminderDays: [60, 14]},
+        shownIf: 'Führerscheinklasse',
         width: HALF,
       },
     ],

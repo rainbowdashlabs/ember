@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileWriter;
 import dev.chojo.ember.feature.members.entity.PronounLanguage;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.FieldDependencies;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -168,7 +169,8 @@ public class ProfileFieldRoutes implements Routes {
         if (request.fieldType() == null || isUnnamedNonSpacer(request)) {
             throw MemberRefusal.PROFILE_FIELD_DETAILS_MISSING_ON_CREATE.raise();
         }
-        profileFieldService.requireDependencyAllowed(session.stationId(), 0, request.shownIfFieldId());
+        profileFieldService.requireDependencyAllowed(
+                session.stationId(), 0, request.shownIfFieldId(), request.fieldSetId());
         profileFieldService.requireSetAllowed(session.stationId(), request.fieldSetId());
         ProfileField created = profileFieldService.create(
                 session.stationId(),
@@ -179,7 +181,7 @@ public class ProfileFieldRoutes implements Routes {
                 request.readonly() != null && request.readonly(),
                 request.width(),
                 Boolean.TRUE.equals(request.keepOnArchive()));
-        profileFieldService.dependOn(created.id(), request.shownIfFieldId());
+        profileFieldService.dependOn(created.id(), request.shownIfFieldId(), request.fieldSetId());
         profileFieldService.joinSet(created.id(), request.fieldSetId());
         ctx.status(HttpStatus.CREATED)
                 .json(profileFieldService.findById(created.id()).orElse(created));
@@ -305,12 +307,12 @@ public class ProfileFieldRoutes implements Routes {
         int stationId = StationSession.from(ctx).stationId();
         profileFieldService.requireSetAllowed(stationId, request.fieldSetId());
         var change = changeOf(request);
-        if (unlinksDependents(ctx) && change.fieldType() != FieldType.BOOLEAN) {
+        if (unlinksDependents(ctx) && !FieldDependencies.canBeCondition(change.fieldType())) {
             var changed = profileFieldService.changeUnlinkingDependents(stationId, id, change);
             ctx.json(profileFieldService.findById(id).orElse(changed));
             return;
         }
-        profileFieldService.requireDependencyAllowed(stationId, id, change.shownIfFieldId());
+        profileFieldService.requireDependencyAllowed(stationId, id, change.shownIfFieldId(), change.fieldSetId());
         profileFieldService
                 .update(
                         id,
@@ -323,7 +325,7 @@ public class ProfileFieldRoutes implements Routes {
                         change.keepOnArchive())
                 .ifPresentOrElse(
                         updated -> {
-                            profileFieldService.dependOn(id, change.shownIfFieldId());
+                            profileFieldService.dependOn(id, change.shownIfFieldId(), change.fieldSetId());
                             profileFieldService.joinSet(id, change.fieldSetId());
                             ctx.json(profileFieldService.findById(id).orElse(updated));
                         },
@@ -490,7 +492,7 @@ public class ProfileFieldRoutes implements Routes {
      *               without a word, which is how a field of group scope lost its group.
      * @param width  how much of a row the question takes by default, which an assignment may
      *               override, or {@code null} for the whole row
-     * @param shownIfFieldId the yes/no question of the station this one depends on, or {@code null} for none
+     * @param shownIfFieldId the yes/no, choice or text question of the station this one depends on, or {@code null} for none
      * @param fieldSetId     the station's group of fields this one belongs to, or {@code null} for none
      */
     public record ProfileFieldRequest(

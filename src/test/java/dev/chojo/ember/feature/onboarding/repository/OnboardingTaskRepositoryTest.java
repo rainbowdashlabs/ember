@@ -33,6 +33,10 @@ class OnboardingTaskRepositoryTest extends RepositoryTestBase {
     private static Station station;
     private static Account account;
     private static StationMember member;
+    private static Station otherStation;
+    private static StationMember otherMember;
+    private static Station thirdStation;
+    private static StationMember thirdMember;
 
     @BeforeAll
     static void setup() {
@@ -40,17 +44,24 @@ class OnboardingTaskRepositoryTest extends RepositoryTestBase {
         station = stationRepo.create("Onboarding Repository Station");
         account = accountRepo.create("onboarding-repo@test.com", "Ole", "Onboarding");
         member = stationMemberRepo.create(station.id(), account.id());
+        otherStation = stationRepo.create("Onboarding Repository Other Station");
+        otherMember = stationMemberRepo.create(otherStation.id(), account.id());
+        thirdStation = stationRepo.create("Onboarding Repository Third Station");
+        thirdMember = stationMemberRepo.create(thirdStation.id(), account.id());
     }
 
     @AfterAll
     static void cleanup() {
         stationRepo.delete(station.id());
+        stationRepo.delete(otherStation.id());
+        stationRepo.delete(thirdStation.id());
         accountRepo.delete(account.id());
     }
 
     @BeforeEach
     void clear() {
-        repository.clearForMember(member.id(), "member.bookmark");
+        repository.clearForEveryMembershipOf(member.id(), "member.bookmark");
+        repository.clearForEveryMembershipOf(member.id(), "member.wiki");
         repository.clearForStation(station.id(), "station.memberTypes");
         repository.clearForInstance("instance.security");
     }
@@ -79,6 +90,48 @@ class OnboardingTaskRepositoryTest extends RepositoryTestBase {
         repository.clearForMember(member.id(), "member.bookmark");
 
         assertTrue(find(repository.findByMember(member.id()), "member.bookmark").isEmpty());
+    }
+
+    @Test
+    void theSamePersonsMarksOnAnotherStationAreFoundAndNotTheirOwn() {
+        repository.markForMember(otherMember.id(), "member.bookmark", "CONFIRMED");
+        repository.markForMember(member.id(), "member.wiki", "SKIPPED");
+
+        List<OnboardingMark> elsewhere = repository.findByOtherMembershipsOf(member.id());
+
+        assertTrue(only(elsewhere, "member.bookmark").confirmed());
+        assertTrue(find(elsewhere, "member.wiki").isEmpty());
+    }
+
+    /** A tick says the person knows the thing, which a later word on another station does not undo. */
+    @Test
+    void aTickOnAnotherStationOutweighsALaterWord() {
+        repository.markForMember(otherMember.id(), "member.bookmark", "CONFIRMED");
+        repository.markForMember(thirdMember.id(), "member.bookmark", "SKIPPED");
+
+        assertTrue(only(repository.findByOtherMembershipsOf(member.id()), "member.bookmark")
+                .confirmed());
+    }
+
+    @Test
+    void withoutATickTheLatestWordOnAnotherStationStands() {
+        repository.markForMember(otherMember.id(), "member.bookmark", "SKIPPED");
+        repository.markForMember(thirdMember.id(), "member.bookmark", "DISMISSED");
+
+        assertTrue(only(repository.findByOtherMembershipsOf(member.id()), "member.bookmark")
+                .dismissed());
+    }
+
+    @Test
+    void takingACarriedTaskUpAgainClearsItOnEveryStationOfThePerson() {
+        repository.markForMember(member.id(), "member.bookmark", "SKIPPED");
+        repository.markForMember(otherMember.id(), "member.bookmark", "CONFIRMED");
+
+        repository.clearForEveryMembershipOf(member.id(), "member.bookmark");
+
+        assertTrue(find(repository.findByMember(member.id()), "member.bookmark").isEmpty());
+        assertTrue(find(repository.findByMember(otherMember.id()), "member.bookmark")
+                .isEmpty());
     }
 
     @Test

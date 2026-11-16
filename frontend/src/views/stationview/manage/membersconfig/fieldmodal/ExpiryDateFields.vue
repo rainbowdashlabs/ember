@@ -59,11 +59,13 @@ const remindManagement = computed({
 
 <template>
   <div class="space-y-4" data-testid="expiry-settings">
-    <LabelledField :label="t('membersConfig.expiry.warnFrom')" :help="t('membersConfig.expiry.warnFromHint')">
-      <NumberInput v-model="warnFromDays" class="w-28" data-testid="expiry-warn-from"/>
+    <LabelledField v-slot="{describedBy}" :label="t('membersConfig.expiry.warnFrom')"
+                   :help="t('membersConfig.expiry.warnFromHint')" help-as-hint>
+      <NumberInput v-model="warnFromDays" class="w-28" data-testid="expiry-warn-from" :aria-describedby="describedBy"/>
     </LabelledField>
-    <LabelledField :label="t('membersConfig.expiry.reminders')" :help="t('membersConfig.expiry.remindersHint')">
-      <ReminderDaysInput v-model="reminderDays"/>
+    <LabelledField v-slot="{describedBy}" :label="t('membersConfig.expiry.reminders')"
+                   :help="t('membersConfig.expiry.remindersHint')" help-as-hint>
+      <ReminderDaysInput v-model="reminderDays" role="group" :aria-describedby="describedBy"/>
     </LabelledField>
     <div class="space-y-2">
       <SettingToggle v-model="repeats" :label="t('membersConfig.expiry.repeat')"

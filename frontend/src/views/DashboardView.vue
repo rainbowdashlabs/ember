@@ -17,13 +17,10 @@ import {useSession} from '@/composables/useSession'
 import {useStations} from '@/composables/useStations'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useFederatedBoardBookmarks} from '@/composables/useFederatedBoardBookmarks'
-import OnboardingTour from '@/views/dashboardview/OnboardingTour.vue'
 import OnboardingGuide from '@/components/onboarding/OnboardingGuide.vue'
 import OnboardingResumeButton from '@/components/onboarding/OnboardingResumeButton.vue'
 import ReportProblemButton from '@/components/feedback/ReportProblemButton.vue'
 import DevToolsButton from '@/components/feedback/DevToolsButton.vue'
-import {useOnboardingTour} from '@/composables/useOnboardingTour'
-import {useOnboardingTasks} from '@/composables/useOnboardingTasks'
 import DashboardSidebar from '@/views/dashboardview/DashboardSidebar.vue'
 import DashboardHeaderActions from '@/views/dashboardview/DashboardHeaderActions.vue'
 import {useSidebarBoards} from '@/composables/useSidebarBoards'
@@ -63,16 +60,6 @@ const {
 const isDemo = ref(false)
 
 useQuickSearchShortcut('station')
-
-const {checkFirstLogin, handoverPending, takeHandover} = useOnboardingTour()
-const {load: loadOnboarding, startNext: startNextOnboarding} = useOnboardingTasks()
-
-watch(handoverPending, async pending => {
-  if (!pending) return
-  takeHandover()
-  await loadOnboarding('MEMBER')
-  startNextOnboarding('MEMBER')
-})
 
 onMounted(async () => {
   if (!sessionCurrent.value) {
@@ -132,7 +119,6 @@ watch(sessionReady, (ready) => {
   refreshSidebarCounts()
   if (isModuleEnabled(StationModule.BOARDS) && hasPermission(StationPermission.BOARD_USE)) refreshBoards()
   if (isModuleEnabled(StationModule.BOARDS) && hasPermission(StationPermission.BOARD_USE) && canManageFederation()) refreshBookmarkedBoards()
-  checkFirstLogin()
 }, {immediate: true})
 
 </script>
@@ -165,7 +151,6 @@ watch(sessionReady, (ready) => {
       </div>
     </Alert>
     <slot v-if="sessionReady && sessionInfo?.member"><RouterView/></slot>
-    <OnboardingTour/>
     <OnboardingGuide/>
     <QuickSearchPalette/>
   </SidebarLayout>

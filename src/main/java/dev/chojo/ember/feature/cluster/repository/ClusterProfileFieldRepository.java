@@ -312,7 +312,7 @@ public class ClusterProfileFieldRepository {
     }
 
     /**
-     * Sets the yes/no question this one depends on, or clears it.
+     * Sets the question this one is shown behind, or clears it.
      *
      * @param id         the question
      * @param controller the question it depends on, or {@code null} for none

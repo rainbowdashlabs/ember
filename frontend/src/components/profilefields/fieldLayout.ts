@@ -31,18 +31,70 @@ export interface PreviewField extends LayoutField {
  * other unless the short ones are allowed to stand beside each other.
  */
 export const FieldWidths = {
-    FULL: 'full',
-    HALF: 'half',
+    QUARTER: 'quarter',
     THIRD: 'third',
+    HALF: 'half',
+    TWO_THIRDS: 'two-thirds',
+    THREE_QUARTERS: 'three-quarters',
+    FULL: 'full',
 } as const
 
 export type FieldWidthName = (typeof FieldWidths)[keyof typeof FieldWidths]
 
-/** The row is six columns wide, which divides by two and by three. */
+/** Every width, narrowest first, which is the order a picker offers them in. */
+export const FIELD_WIDTHS: readonly FieldWidthName[] = [
+    FieldWidths.QUARTER,
+    FieldWidths.THIRD,
+    FieldWidths.HALF,
+    FieldWidths.TWO_THIRDS,
+    FieldWidths.THREE_QUARTERS,
+    FieldWidths.FULL,
+]
+
+/** How many columns a row has, which divides by two, by three and by four. */
+export const ROW_COLUMNS = 12
+
+/** How many of a row's columns each width takes. */
+export const WIDTH_COLUMNS: Record<FieldWidthName, number> = {
+    [FieldWidths.QUARTER]: 3,
+    [FieldWidths.THIRD]: 4,
+    [FieldWidths.HALF]: 6,
+    [FieldWidths.TWO_THIRDS]: 8,
+    [FieldWidths.THREE_QUARTERS]: 9,
+    [FieldWidths.FULL]: 12,
+}
+
+/**
+ * The grid class of each width, spelled out whole so the style build finds every one. Below the small
+ * breakpoint every field takes the whole row.
+ */
 const SPANS: Record<FieldWidthName, string> = {
-    [FieldWidths.FULL]: 'col-span-6',
-    [FieldWidths.HALF]: 'col-span-6 sm:col-span-3',
-    [FieldWidths.THIRD]: 'col-span-6 sm:col-span-2',
+    [FieldWidths.QUARTER]: 'col-span-12 sm:col-span-3',
+    [FieldWidths.THIRD]: 'col-span-12 sm:col-span-4',
+    [FieldWidths.HALF]: 'col-span-12 sm:col-span-6',
+    [FieldWidths.TWO_THIRDS]: 'col-span-12 sm:col-span-8',
+    [FieldWidths.THREE_QUARTERS]: 'col-span-12 sm:col-span-9',
+    [FieldWidths.FULL]: 'col-span-12',
+}
+
+/** Whether a stored value names one of the widths. */
+export function isFieldWidth(value: unknown): value is FieldWidthName {
+    return typeof value === 'string' && (FIELD_WIDTHS as readonly string[]).includes(value)
+}
+
+/** A stored width as one of the widths; anything unknown or missing takes the whole row. */
+export function asFieldWidth(value: unknown): FieldWidthName {
+    return isFieldWidth(value) ? value : FieldWidths.FULL
+}
+
+/**
+ * The width whose span is closest to a span dragged out by hand, the narrower one where two are as close.
+ *
+ * @param columns how many columns the drag would cover, not necessarily a whole number
+ */
+export function snapWidth(columns: number): FieldWidthName {
+    return FIELD_WIDTHS.reduce((best, candidate) =>
+        Math.abs(WIDTH_COLUMNS[candidate] - columns) < Math.abs(WIDTH_COLUMNS[best] - columns) ? candidate : best)
 }
 
 /**
@@ -69,22 +121,19 @@ export function configOf(config?: string | Record<string, unknown> | null): Reco
  * The grid class for a width on its own, for fields whose settings are a plain object.
  *
  * <p>An event's questions and an attendance sheet's are configured elsewhere and stored differently,
- * but a row is a row: they are laid out on the same six columns so that a station setting a width in
+ * but a row is a row: they are laid out on the same twelve columns so that a station setting a width in
  * one place gets the same result in the other.
  *
  * @param width what was configured, or nothing
  * @return the grid class, a whole row where nothing was said
  */
 export function spanForWidth(width?: unknown): string {
-    return width === FieldWidths.HALF || width === FieldWidths.THIRD
-        ? SPANS[width as FieldWidthName]
-        : SPANS[FieldWidths.FULL]
+    return SPANS[asFieldWidth(width)]
 }
 
 /** A field that says nothing about its width takes the whole row, which is how it always was. */
 export function widthOf(field: LayoutField): FieldWidthName {
-    const width = field.width
-    return width === FieldWidths.HALF || width === FieldWidths.THIRD ? width : FieldWidths.FULL
+    return asFieldWidth(field.width)
 }
 
 /**
