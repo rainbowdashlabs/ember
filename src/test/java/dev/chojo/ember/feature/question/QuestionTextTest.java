@@ -56,6 +56,18 @@ class QuestionTextTest {
         assertEquals("Paul", de(FieldType.MEMBER, "Paul"));
     }
 
+    /** A printed document leaves out a member it has no name for, where other exports print the number. */
+    @Test
+    void aMemberWithoutANameCanBeLeftOut() {
+        assertEquals(
+                "Anna Berg, Ben Kurz",
+                QuestionText.format(
+                        FieldType.MEMBER_LIST, "[1,9,2]", NAMES, "de", QuestionText.UnknownMember.LEFT_OUT));
+        assertEquals(
+                "",
+                QuestionText.format(FieldType.MEMBER_OF_GROUP, "9", NAMES, "de", QuestionText.UnknownMember.LEFT_OUT));
+    }
+
     @Test
     void everythingElseReadsAsStored() {
         assertEquals("Mischkost", de(FieldType.CHOICE, "\"Mischkost\""));

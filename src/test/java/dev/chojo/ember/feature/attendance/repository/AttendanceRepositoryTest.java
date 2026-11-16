@@ -30,6 +30,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -159,9 +160,56 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(24)
     void findSessionSummariesByStation() {
-        var summaries = attendanceRepo.findSessionSummariesByStation(station.id());
+        var summaries = attendanceRepo.findSessionSummariesByStation(station.id(), null, 100, 0);
         assertNotNull(summaries);
         assertTrue(summaries.stream().anyMatch(s -> s.id() == sessionId));
+    }
+
+    /**
+     * The past sheets are found by their own title or by their template's name, in any case, and a
+     * page at a time without a sheet falling between two pages or standing on both.
+     */
+    @Test
+    @Order(24)
+    void theSummariesAreSearchedByTitleOrTemplateAndPaged() {
+        var own = stationRepo.create("Search Station");
+        try {
+            int breathing =
+                    attendanceRepo.createTemplate(own.id(), "Atemschutz").id();
+            int youth = attendanceRepo.createTemplate(own.id(), "Jugend").id();
+            Instant start = Instant.parse("2026-02-02T17:00:00Z");
+            var ids = new ArrayList<Integer>();
+            for (int day = 0; day < 5; day++) {
+                Instant at = start.plus(day, ChronoUnit.DAYS);
+                int template = day < 3 ? breathing : youth;
+                String title = day == 1 ? "Übung am Wasser" : day == 4 ? null : "Dienstabend";
+                ids.add(attendanceRepo
+                        .createSession(template, at, at.plus(2, ChronoUnit.HOURS), null, title, null)
+                        .id());
+            }
+
+            assertEquals(
+                    List.of(ids.get(1)),
+                    idsOf(attendanceRepo.findSessionSummariesByStation(own.id(), "WASSER", 25, 0)),
+                    "by its own title, in any case");
+            assertEquals(
+                    List.of(ids.get(4), ids.get(3)),
+                    idsOf(attendanceRepo.findSessionSummariesByStation(own.id(), "jugend", 25, 0)),
+                    "by its template's name, an untitled sheet included, newest first");
+
+            var first = idsOf(attendanceRepo.findSessionSummariesByStation(own.id(), null, 2, 0));
+            var second = idsOf(attendanceRepo.findSessionSummariesByStation(own.id(), null, 2, 2));
+            var third = idsOf(attendanceRepo.findSessionSummariesByStation(own.id(), null, 2, 4));
+            assertEquals(List.of(ids.get(4), ids.get(3)), first);
+            assertEquals(List.of(ids.get(2), ids.get(1)), second);
+            assertEquals(List.of(ids.get(0)), third);
+        } finally {
+            stationRepo.delete(own.id());
+        }
+    }
+
+    private static List<Integer> idsOf(List<SessionSummary> summaries) {
+        return summaries.stream().map(SessionSummary::id).toList();
     }
 
     /**
@@ -184,7 +232,7 @@ class AttendanceRepositoryTest extends RepositoryTestBase {
                 .createSession(templateId, longAgo, longAgo.plus(2, ChronoUnit.HOURS), null, "Back-dated", null)
                 .id();
 
-        var summaries = attendanceRepo.findSessionSummariesByStation(station.id());
+        var summaries = attendanceRepo.findSessionSummariesByStation(station.id(), null, 100, 0);
         var ids = summaries.stream().map(SessionSummary::id).toList();
 
         assertTrue(

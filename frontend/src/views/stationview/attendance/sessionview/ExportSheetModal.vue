@@ -37,6 +37,7 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 const signature = ref(false)
+const status = ref(false)
 const title = ref('')
 const blankRows = ref(0)
 const instanceUrl = ref(true)
@@ -47,6 +48,7 @@ const instanceUrl = ref(true)
  */
 function resetOptions() {
   signature.value = false
+  status.value = false
   title.value = props.sessionTitle
   blankRows.value = 0
   instanceUrl.value = props.showsInstanceUrl
@@ -59,6 +61,7 @@ watch(open, isOpen => {
 function submit() {
   emit('export', {
     signature: signature.value,
+    status: signature.value && status.value,
     title: title.value === props.sessionTitle ? undefined : title.value,
     blankRows: blankRows.value,
     instanceUrl: instanceUrl.value,
@@ -76,6 +79,14 @@ function submit() {
           :hint="t('attendanceSession.exportOptions.signatureHint')"
           :label="t('attendanceSession.exportOptions.signature')"
           data-testid="export-signature-toggle"
+      />
+
+      <ToggleSetting
+          v-if="signature"
+          v-model="status"
+          :hint="t('attendanceSession.exportOptions.statusHint')"
+          :label="t('attendanceSession.exportOptions.status')"
+          data-testid="export-status-toggle"
       />
 
       <div class="space-y-1">

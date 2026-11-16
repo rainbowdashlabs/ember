@@ -58,6 +58,10 @@ const {t} = useI18n()
       </NeutralContainer>
     </div>
 
+    <HelpSection :title="t('helpCenter.attendancePast.searchTitle')">
+      <p>{{ t('helpCenter.attendancePast.searchText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.attendancePast.detailTitle')">
       <p>{{ t('helpCenter.attendancePast.detailText') }}</p>
     </HelpSection>

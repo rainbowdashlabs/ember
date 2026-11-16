@@ -61,4 +61,45 @@ describe('PastView', () => {
         expect(text).toContain('06.07.2026')
         expect(text).toMatch(/1[57]:30/)
     })
+
+    it('asks for the first page of 25 when nothing is searched', async () => {
+        await mountSuspended(PastView)
+        await new Promise(resolve => setTimeout(resolve, 0))
+
+        expect(listSessionSummaries).toHaveBeenCalledWith({search: undefined, limit: 25, offset: 0})
+    })
+
+    it('loads the next page behind the ones it shows when more are waiting', async () => {
+        const page = Array.from({length: 25}, (_, i) => ({...WRITTEN_DOWN_LATE, id: 100 + i}))
+        listSessionSummaries.mockResolvedValueOnce(page).mockResolvedValueOnce([WRITTEN_DOWN_LATE])
+        const wrapper = await mountSuspended(PastView)
+        await new Promise(resolve => setTimeout(resolve, 0))
+        await wrapper.vm.$nextTick()
+
+        await wrapper.get('[data-testid="attendance-past-more"]').trigger('click')
+        await new Promise(resolve => setTimeout(resolve, 0))
+        await wrapper.vm.$nextTick()
+
+        expect(listSessionSummaries).toHaveBeenLastCalledWith({search: undefined, limit: 25, offset: 25})
+        expect(wrapper.findAll('[data-testid="attendance-session"]')).toHaveLength(26)
+        expect(wrapper.find('[data-testid="attendance-past-more"]').exists(), 'a short page was the last').toBe(false)
+    })
+
+    it('searches from the first page again and says when nothing matches', async () => {
+        vi.useFakeTimers()
+        try {
+            const wrapper = await mountSuspended(PastView)
+            await vi.runAllTimersAsync()
+            listSessionSummaries.mockResolvedValue([])
+
+            await wrapper.get('[data-testid="attendance-past-search"] input').setValue('  Jugend ')
+            await vi.advanceTimersByTimeAsync(400)
+            await wrapper.vm.$nextTick()
+
+            expect(listSessionSummaries).toHaveBeenLastCalledWith({search: 'Jugend', limit: 25, offset: 0})
+            expect(wrapper.text()).toContain('Keine Anwesenheit passt zur Suche.')
+        } finally {
+            vi.useRealTimers()
+        }
+    })
 })

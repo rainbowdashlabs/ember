@@ -17,10 +17,13 @@ import type { PersonIdentity } from '@/util/personIdentity'
 import { listCompletions } from '@/api/stationMembers'
 import { search as searchKb } from '@/api/knowledgeBase'
 import { listUpcomingOccurrences } from '@/api/events'
+import { listSessionSummaries } from '@/api/attendance'
+import { formatDate } from '@/util/format'
 import type {
   Inventory,
   MemberCompletion,
   SearchResultResponse as KbSearchResult,
+  SessionSummary,
   UpcomingEventOccurrence,
 } from '@/api/generated/schema'
 import { listInventories } from '@/api/inventory'
@@ -29,9 +32,11 @@ import { matchesWords } from '@/util/listSearch'
 const MAX_PER_SECTION = 8
 const SEARCH_DEBOUNCE_MS = 200
 const MIN_KB_QUERY_LENGTH = 2
+/** How many past attendance sheets the palette names, newest first, once something is typed. */
+const MAX_ATTENDANCE_RESULTS = 5
 
 export interface PaletteResult {
-  kind: 'page' | 'member' | 'kb' | 'event' | 'inventory'
+  kind: 'page' | 'member' | 'kb' | 'event' | 'inventory' | 'attendance'
   label: string
   sublabel?: string
   icon: string
@@ -50,8 +55,9 @@ export interface PaletteSection {
  *
  * Pages are filtered in the browser from the scope's sidebar, so the palette offers exactly what the
  * sidebar shows the reader plus the few pages reached from inside others, and the inventories are filtered the same way and for the same reason. Members, knowledge
- * base files and events come from the server: members and inventories once per opening, the other
- * two debounced per keystroke. Every source is capped and every failure degrades to an empty
+ * base files, events and past attendance sheets come from the server: members and inventories once
+ * per opening, the other three debounced per keystroke, the attendance sheets only once something is
+ * typed. Every source is capped and every failure degrades to an empty
  * section, so one unavailable module cannot stop the palette from answering.
  *
  * @param query the current search text
@@ -65,10 +71,12 @@ export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
   const inventories = ref<Inventory[]>([])
   const kbResults = ref<KbSearchResult[]>([])
   const eventResults = ref<UpcomingEventOccurrence[]>([])
+  const attendanceResults = ref<SessionSummary[]>([])
   const dataLoading = ref(false)
 
   let kbDebounce: ReturnType<typeof setTimeout> | null = null
   let eventDebounce: ReturnType<typeof setTimeout> | null = null
+  let attendanceDebounce: ReturnType<typeof setTimeout> | null = null
   /** Whether the inventories of this opening are in hand, so a lost request is asked for again. */
   let inventoriesLoaded = false
 
@@ -151,10 +159,21 @@ export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
     }))
   })
 
+  const attendanceResultEntries = computed<PaletteResult[]>(() =>
+    attendanceResults.value.map(sheet => ({
+      kind: 'attendance' as const,
+      label: sheet.title || t('attendancePast.untitled'),
+      sublabel: formatDate(sheet.startTime),
+      icon: 'clipboard-user',
+      to: {name: 'attendance-session', params: {id: sheet.id}},
+    })),
+  )
+
   const sections = computed<PaletteSection[]>(() => [
     {key: 'pages', title: t('quickSearch.sectionPages'), items: pageResults.value},
     {key: 'members', title: t('quickSearch.sectionMembers'), items: memberResults.value},
     {key: 'events', title: t('quickSearch.sectionEvents'), items: eventResultEntries.value},
+    {key: 'attendance', title: t('quickSearch.sectionAttendance'), items: attendanceResultEntries.value},
     {key: 'inventories', title: t('quickSearch.sectionInventories'), items: inventoryResults.value},
     {key: 'kb', title: t('quickSearch.sectionKnowledge'), items: kbResultEntries.value},
   ].filter(section => section.items.length > 0))
@@ -215,11 +234,31 @@ export function useQuickSearchResults(query: Ref<string>, scope: Ref<string>) {
     }
   }
 
+  /**
+   * The past attendance sheets whose title or template holds what was typed. Nothing is listed
+   * before anything is typed: unlike the coming appointments, a station's latest sheets are not
+   * what somebody opening the palette is usually after.
+   */
+  async function runAttendanceSearch(q: string) {
+    if (!q || !inStation.value || !isModuleEnabled(StationModule.ATTENDANCE)
+        || !hasPermission(StationPermission.ATTENDANCE_READ)) {
+      attendanceResults.value = []
+      return
+    }
+    try {
+      attendanceResults.value = await listSessionSummaries({search: q, limit: MAX_ATTENDANCE_RESULTS})
+    } catch {
+      attendanceResults.value = []
+    }
+  }
+
   watch(query, (q) => {
     if (kbDebounce) clearTimeout(kbDebounce)
     if (eventDebounce) clearTimeout(eventDebounce)
     kbDebounce = setTimeout(() => runKbSearch(q.trim()), SEARCH_DEBOUNCE_MS)
     eventDebounce = setTimeout(() => runEventSearch(q.trim()), SEARCH_DEBOUNCE_MS)
+    if (attendanceDebounce) clearTimeout(attendanceDebounce)
+    attendanceDebounce = setTimeout(() => runAttendanceSearch(q.trim()), SEARCH_DEBOUNCE_MS)
     loadInventories()
   })
 

@@ -520,10 +520,18 @@ public class AttendanceRepository {
      * A sheet filled in weeks later is an ordinary thing, and ordering by the writing put it among
      * this week's while showing a date from July.
      *
+     * <p>A search keeps the sheets whose own title or whose template's name holds the text, in any
+     * case. Sheets of the same moment come newest written first, so a page never splits them
+     * differently from one request to the next.
+     *
      * @param stationId the station ID
+     * @param search    the text to look for, null for every sheet
+     * @param limit     how many sheets the page holds
+     * @param offset    how many sheets to pass over before the page begins
      * @return list of session summaries with present/absent/declined/unconfirmed counts
      */
-    public List<SessionSummary> findSessionSummariesByStation(int stationId) {
+    public List<SessionSummary> findSessionSummariesByStation(
+            int stationId, @Nullable String search, int limit, int offset) {
         return query("""
                 SELECT %s,
                        count(e.id) FILTER (WHERE e.status = 'PRESENT') AS present_count,
@@ -534,9 +542,16 @@ public class AttendanceRepository {
                 JOIN attendance_template t ON t.id = s.template_id
                 LEFT JOIN attendance_entry e ON e.session_id = s.id
                 WHERE t.station_id = :station_id
+                  AND (:search::TEXT IS NULL
+                       OR s.title ILIKE '%%' || :search || '%%'
+                       OR t.name ILIKE '%%' || :search || '%%')
                 GROUP BY s.id
-                ORDER BY s.start_time DESC;""", SqlSupport.alias("s", ATTENDANCE_SESSION_COLUMNS))
-                .single(call().bind("station_id", stationId))
+                ORDER BY s.start_time DESC, s.id DESC
+                LIMIT :limit OFFSET :offset;""", SqlSupport.alias("s", ATTENDANCE_SESSION_COLUMNS))
+                .single(call().bind("station_id", stationId)
+                        .bind("search", search)
+                        .bind("limit", limit)
+                        .bind("offset", offset))
                 .map(row -> new SessionSummary(
                         row.getInt("id"),
                         row.getInt("template_id"),

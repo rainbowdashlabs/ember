@@ -86,6 +86,32 @@ describe('ExportSheetModal', () => {
         expect(options.blankRows).toBe(5)
     })
 
+    it('offers the status on a sheet to sign only, and sends it when switched on', async () => {
+        const wrapper = await open()
+        expect(page().find('[data-testid="export-status-toggle"]').exists(), 'a plain sheet always has it')
+            .toBe(false)
+
+        await page().get('[data-testid="export-signature-toggle"] [role="switch"]').trigger('click')
+        await page().get('[data-testid="export-status-toggle"] [role="switch"]').trigger('click')
+        await submit()
+
+        const options = asked(wrapper)
+        expect(options.signature).toBe(true)
+        expect(options.status).toBe(true)
+    })
+
+    it('does not send the status once the signature is switched off again', async () => {
+        const wrapper = await open()
+        const signature = page().get('[data-testid="export-signature-toggle"] [role="switch"]')
+        await signature.trigger('click')
+        await page().get('[data-testid="export-status-toggle"] [role="switch"]').trigger('click')
+        await signature.trigger('click')
+
+        await submit()
+
+        expect(asked(wrapper).status).toBe(false)
+    })
+
     it('sends an empty heading as one, so the sheet is headed by hand', async () => {
         const wrapper = await open()
         await page().get('input[type="text"]').setValue('')

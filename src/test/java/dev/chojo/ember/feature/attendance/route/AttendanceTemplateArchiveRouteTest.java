@@ -142,6 +142,50 @@ class AttendanceTemplateArchiveRouteTest extends RepositoryTestBase {
         assertEquals(member.id(), detail.get("entries").get(0).get("memberId").asInt());
     }
 
+    /** The past sheets are searched and paged through the address, a deleted template's sheet among them. */
+    @Test
+    void thePastSheetsAreSearchedAndPagedFromTheAddress() {
+        harness.run((server, client) -> {
+            var found = json(client.get(
+                    RouteHarness.PREFIX + "/attendance/sessions?search=lager%20am&limit=1&offset=0",
+                    harness.as(sessionAt(StationPermission.ATTENDANCE_READ))));
+            assertEquals(1, found.size(), "one page of one sheet");
+            assertEquals("Lager am See", found.get(0).get("title").asString());
+
+            var nothing = json(client.get(
+                    RouteHarness.PREFIX + "/attendance/sessions?search=Fahrradtour",
+                    harness.as(sessionAt(StationPermission.ATTENDANCE_READ))));
+            assertEquals(0, nothing.size(), "a search that matches nothing finds nothing");
+        });
+    }
+
+    /**
+     * A blank search finds every sheet, a page asked for with no room holds one sheet, and an offset
+     * before the start reads from the start.
+     */
+    @Test
+    void anOddPageRequestIsReadAsTheNearestSensibleOne() {
+        harness.run((server, client) -> {
+            var all = json(client.get(
+                    RouteHarness.PREFIX + "/attendance/sessions?limit=100",
+                    harness.as(sessionAt(StationPermission.ATTENDANCE_READ))));
+            var blank = json(client.get(
+                    RouteHarness.PREFIX + "/attendance/sessions?search=%20%20&limit=100",
+                    harness.as(sessionAt(StationPermission.ATTENDANCE_READ))));
+            assertEquals(all.size(), blank.size(), "a blank search narrows nothing");
+
+            var none = json(client.get(
+                    RouteHarness.PREFIX + "/attendance/sessions?limit=0",
+                    harness.as(sessionAt(StationPermission.ATTENDANCE_READ))));
+            assertEquals(1, none.size(), "a page holds at least one sheet");
+
+            var before = json(client.get(
+                    RouteHarness.PREFIX + "/attendance/sessions?limit=1&offset=-5",
+                    harness.as(sessionAt(StationPermission.ATTENDANCE_READ))));
+            assertEquals(all.get(0).get("id").asInt(), before.get(0).get("id").asInt(), "read from the start");
+        });
+    }
+
     @Test
     void itTakesNoNewSheet() {
         var answer = harness.request(client -> client.post(

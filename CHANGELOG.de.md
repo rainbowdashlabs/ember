@@ -28,6 +28,8 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 - **Das Ende wandert mit dem Beginn.** Wird der Beginn eines Termins, eines Anwesenheitsbogens, eines Formulars oder eines Tests geändert, verschiebt sich das Ende um denselben Betrag, und die Dauer bleibt gleich. Ein Termin an einem anderen Tag braucht kein zweites geändertes Ende mehr.
 - **Der Wochentag folgt dem Beginn.** Ein wiederkehrender Termin übernimmt den Wochentag seines Beginns, bis ein anderer Wochentag gewählt wird.
 - **Erinnerungen an offene Einladungen.** Eine Familie, die auf eine Einladung von der Warteliste noch nicht geantwortet hat, wird einmal pro Woche erinnert, mit den Terminen, die noch offen sind. Bei Listen mit Mailversand bekommt die Wache eine Benachrichtigung, sobald alle angebotenen Termine ohne Antwort vorbei sind, und der Eintrag zeigt, dass kein Termin mehr offen ist.
+- **Anwesenheitsstatus auf Listen zum Unterschreiben.** Eine Liste zum Unterschreiben kann den erfassten Status jeder Person und die Anzahl je Status zeigen. Ein neuer Schalter im Export schaltet das ein.
+- **Vergangene Anwesenheiten durchsuchen.** Die Seite der vergangenen Anwesenheiten lässt sich nach Titel oder Vorlage durchsuchen und lädt ältere Listen erst auf Wunsch. Auch die Schnellsuche findet vergangene Anwesenheiten.
 
 ### Änderungen
 
@@ -50,6 +52,7 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 - **Klarere Datums- und Zeitfelder auf dem Handy.** Auf dem Handy öffnete ein Datum mit Uhrzeit erst einen Kalender und dann eine unbeschriftete Uhr, die wie eine Abfrage des Endes wirkte. Tag und Uhrzeit haben jetzt je ein eigenes Feld mit einer eigenen Auswahl.
 - **Vergangene Termine konnten noch zugesagt werden.** Die Antwortseite einer Einladung bot auch Termine an, die schon begonnen hatten, und sie ließen sich zusagen. Jetzt stehen dort nur noch Termine, die noch bevorstehen, und eine Einladung kann keinen begonnenen Termin mehr nennen.
 - **Angebotene Termine stehen in einem Block.** In der Einladung von der Warteliste und in der Mail mit anderen Terminen stand jede Zeile eines Termins in einem eigenen Kasten, sodass Name, Tag, Uhrzeit und Ort wie einzelne Termine wirkten. Jeder angebotene Termin steht jetzt in einem Kasten.
+- **Ehemalige Mitglieder als Nummer gedruckt.** Eine exportierte Anwesenheitsliste zeigte Personen, die die Wache verlassen hatten, als bloße Nummer. Sie stehen jetzt nicht mehr auf der Liste und zählen nicht mit.
 
 ## v26.24.2
 

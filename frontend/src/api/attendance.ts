@@ -104,7 +104,18 @@ const templateSessions = createScopedCrudResource<
     SessionRequest
 >((templateId: number) => `/attendance/templates/${templateId}/sessions`)
 
-export const listSessionSummaries = sessions.list
+/** What the past sheets are narrowed to: a text to find, and the page. */
+export interface SessionSummaryQuery {
+    /** Text to find in a sheet's title or its template's name. */
+    search?: string
+    limit?: number
+    offset?: number
+}
+
+/** One page of the station's sheets, newest first. */
+export function listSessionSummaries(query: SessionSummaryQuery = {}): Promise<SessionSummary[]> {
+    return sessions.list({search: query.search, limit: query.limit, offset: query.offset})
+}
 export const listSessions = templateSessions.list
 export const getSession = sessions.get
 export const createSession = templateSessions.create
@@ -230,8 +241,10 @@ export async function lockSession(sessionId: number): Promise<AttendanceSession>
  * produced: the recorded attendance, with the address of the instance at the foot of the page.
  */
 export interface SheetOptions {
-    /** Whether every line ends in a box to sign, which drops the recorded status from the sheet. */
+    /** Whether every line ends in a box to sign, which drops the recorded status unless {@link status} asks for it. */
     signature?: boolean
+    /** Whether a sheet to sign still shows the recorded status of each person and the counts. */
+    status?: boolean
     /** The heading, the session's own where it is absent, and a line to write on where it is empty. */
     title?: string
     /** Empty numbered lines after the last person, for whoever turns up without being on the list. */
@@ -243,6 +256,7 @@ export interface SheetOptions {
 export async function exportPdf(sessionId: number, options: SheetOptions = {}): Promise<DocumentFile> {
     const params: Record<string, string> = {}
     if (options.signature) params.signature = 'true'
+    if (options.signature && options.status) params.status = 'true'
     if (options.title !== undefined) params.title = options.title
     if (options.blankRows) params.blankRows = String(options.blankRows)
     if (options.instanceUrl !== undefined) params.instanceUrl = String(options.instanceUrl)

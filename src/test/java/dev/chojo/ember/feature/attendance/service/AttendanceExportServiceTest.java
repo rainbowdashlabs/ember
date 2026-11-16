@@ -16,6 +16,8 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -190,14 +192,14 @@ class AttendanceExportServiceTest extends RepositoryTestBase {
                 5, "\"Übung \\\"Brand\\\"\"",
                 6, "\"\"");
 
-        var lines = AttendanceExportService.fieldLines(fields, values, Map.of(7, "Anna Berg", 8, "#8"), "de");
+        var lines = AttendanceExportService.fieldLines(fields, values, Map.of(7, "Anna Berg"), "de");
 
         assertEquals(
                 List.of(
                         new AttendanceExportService.NameValue("Fahrzeug geprüft", "Ja"),
                         new AttendanceExportService.NameValue("Funk geprüft", "Ja"),
                         new AttendanceExportService.NameValue("Datum", "06.03.2026"),
-                        new AttendanceExportService.NameValue("Leitung", "Anna Berg, #8"),
+                        new AttendanceExportService.NameValue("Leitung", "Anna Berg"),
                         new AttendanceExportService.NameValue("Bemerkung", "Übung \"Brand\"")),
                 lines);
         assertEquals(
@@ -205,6 +207,63 @@ class AttendanceExportServiceTest extends RepositoryTestBase {
                 AttendanceExportService.fieldLines(fields.subList(0, 1), values, Map.of(), "en")
                         .getFirst()
                         .value());
+    }
+
+    /**
+     * Somebody who left the station has no line, no count and no place in an answer: on paper a bare
+     * number tells nobody who it was. A sheet to sign shows what was recorded only when it is asked to.
+     */
+    @Test
+    void aSheetNamesOnlyWhoIsStillThereAndShowsTheStatusWhenAsked() throws Exception {
+        int templateId = attendanceRepo.findSessionById(sessionId).orElseThrow().templateId();
+        var own = attendanceRepo.createSession(
+                templateId,
+                Instant.parse("2026-03-13T17:00:00Z"),
+                Instant.parse("2026-03-13T19:00:00Z"),
+                null,
+                "Übungsabend",
+                null);
+        var leftAccount = accountRepo.create("left-the-station@test.com", "Lars", "Weg");
+        var left = stationMemberRepo.create(station.id(), leftAccount.id());
+        attendanceRepo.createEntry(
+                own.id(), member.id(), AttendanceEntry.AttendanceStatus.PRESENT, AttendanceEntry.EntrySource.EXPECTED);
+        attendanceRepo.createEntry(
+                own.id(), left.id(), AttendanceEntry.AttendanceStatus.ABSENT, AttendanceEntry.EntrySource.EXPECTED);
+        stationMemberRepo.setDisplayNameAndClearAccount(left.id(), "Lars Weg");
+        stationMemberRepo.setFormer(left.id(), true);
+        accountRepo.delete(leftAccount.id());
+        var waiting = stationMemberRepo.createWithoutAccount(station.id(), "Wanda Wartend");
+        attendanceRepo.createEntry(
+                own.id(), waiting.id(), AttendanceEntry.AttendanceStatus.PRESENT, AttendanceEntry.EntrySource.EXPECTED);
+        try {
+            String plain = textOf(own.id(), AttendanceExportService.SheetOptions.PLAIN);
+            assertTrue(plain.contains("Schmidt"), plain);
+            assertFalse(plain.contains("#" + left.id()), "no number stands in for who left");
+            assertFalse(plain.contains("Weg"), "who left is not on the sheet");
+            assertTrue(plain.contains("Wanda Wartend"), "who has yet to link an account is still named: " + plain);
+            assertTrue(plain.contains("Gesamt: 2"), "who left is not in the counts: " + plain);
+
+            String signedOnly = textOf(own.id(), new AttendanceExportService.SheetOptions(true, null, 0, null));
+            assertTrue(signedOnly.contains("Unterschrift"), signedOnly);
+            assertFalse(signedOnly.contains("Gesamt"), "a sheet to sign leaves the status off: " + signedOnly);
+            assertFalse(signedOnly.contains("Anwesend"), signedOnly);
+
+            String withStatus = textOf(own.id(), new AttendanceExportService.SheetOptions(true, null, 0, null, true));
+            assertTrue(withStatus.contains("Unterschrift"), withStatus);
+            assertTrue(withStatus.contains("Gesamt: 2"), "asked for, the counts are there: " + withStatus);
+            assertTrue(withStatus.contains("Status"), withStatus);
+        } finally {
+            attendanceRepo.deleteSession(own.id());
+            stationMemberRepo.delete(waiting.id());
+            stationMemberRepo.delete(left.id());
+        }
+    }
+
+    private static String textOf(int session, AttendanceExportService.SheetOptions options) throws Exception {
+        var pdf = service.exportSessionPdf(session, "Max Mustermann", options).orElseThrow();
+        try (var document = Loader.loadPDF(pdf.bytes())) {
+            return new PDFTextStripper().getText(document).replaceAll("\\s+", " ");
+        }
     }
 
     /** A sheet whose fields hold answers still renders, members named in them included. */
@@ -220,6 +279,39 @@ class AttendanceExportServiceTest extends RepositoryTestBase {
         attendanceRepo.setSessionField(sessionId, fields.get(1).id(), String.valueOf(member.id()));
 
         assertTrue(export(AttendanceExportService.SheetOptions.PLAIN).length > 0);
+    }
+
+    /** An answer naming somebody still waiting to link an account names them as they were written down. */
+    @Test
+    void anAnswerNamesWhoIsWaitingToLinkAndLeavesOutWhoLeft() throws Exception {
+        int templateId = attendanceRepo.findSessionById(sessionId).orElseThrow().templateId();
+        var own = attendanceRepo.createSession(
+                templateId,
+                Instant.parse("2026-03-20T17:00:00Z"),
+                Instant.parse("2026-03-20T19:00:00Z"),
+                null,
+                "Gruppenstunde",
+                null);
+        attendanceRepo.createTemplateField(
+                templateId, "Betreuung", FieldType.MEMBER_LIST, AttendanceFieldConfig.parse("{}"), 5);
+        var field = attendanceRepo.findTemplateFields(templateId).stream()
+                .filter(f -> f.name().equals("Betreuung"))
+                .findFirst()
+                .orElseThrow();
+        var waiting = stationMemberRepo.createWithoutAccount(station.id(), "Willi Wartend");
+        var gone = stationMemberRepo.createWithoutAccount(station.id(), "Greta Gegangen");
+        stationMemberRepo.setFormer(gone.id(), true);
+        attendanceRepo.setSessionField(own.id(), field.id(), "[" + waiting.id() + "," + gone.id() + "]");
+        try {
+            String text = textOf(own.id(), AttendanceExportService.SheetOptions.PLAIN);
+            assertTrue(text.contains("Willi Wartend"), text);
+            assertFalse(text.contains("Gegangen"), text);
+            assertFalse(text.contains(String.valueOf(gone.id()) + ","), text);
+        } finally {
+            attendanceRepo.deleteSession(own.id());
+            stationMemberRepo.delete(waiting.id());
+            stationMemberRepo.delete(gone.id());
+        }
     }
 
     /** More blank lines than fit on a page are cut back rather than refused. */

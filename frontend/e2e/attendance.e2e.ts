@@ -583,6 +583,16 @@ test.describe('Attendance', () => {
         const entry = page.locator(`[data-testid="attendance-session"][data-session="${id}"]`)
         await expect(entry).toBeVisible()
 
+        const search = page.getByTestId('attendance-past-search').locator('input')
+        await search.fill('Kein solcher Bogen')
+        await expect(page.getByText('Keine Anwesenheit passt zur Suche.'), 'a search that matches nothing says so')
+            .toBeVisible()
+        await expect(entry).toHaveCount(0)
+        const title = (await page.request.get(`/api/v1/attendance/sessions/${id}`, {headers: await apiHeaders(page)})
+            .then(answer => answer.json())).session.title as string
+        await search.fill(title)
+        await expect(entry, 'the sheet is found by its title').toBeVisible()
+
         await entry.click()
         await expect(page).toHaveURL(sessionUrl)
     })
@@ -859,11 +869,14 @@ test.describe('Attendance', () => {
         const dialog = page.getByTestId('export-sheet-modal')
         await expect(dialog).toBeVisible()
         await dialog.getByTestId('export-signature-toggle').getByRole('switch').click()
+        await dialog.getByTestId('export-status-toggle').getByRole('switch').click()
         await dialog.getByRole('spinbutton').fill('4')
 
+        const exported = page.waitForRequest(request => request.url().includes('/export?'))
         const download = page.waitForEvent('download')
         await dialog.getByTestId('export-submit').click()
 
+        expect((await exported).url(), 'the sheet to sign carries the status').toContain('status=true')
         const file = await (await download).path()
         expect(file).toBeTruthy()
         expect(statSync(file!).size, 'the sheet carries bytes').toBeGreaterThan(0)

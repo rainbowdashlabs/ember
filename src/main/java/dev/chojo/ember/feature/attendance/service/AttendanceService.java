@@ -74,6 +74,9 @@ import java.util.stream.Collectors;
 public class AttendanceService {
     private static final Logger log = LoggerFactory.getLogger(AttendanceService.class);
     private static final ObjectMapper JSON = Json.MAPPER;
+    /** The most sheets one page of the past sheets may hold, however many were asked for. */
+    public static final int MAX_SESSION_PAGE = 100;
+
     /** How long a sheet runs where nothing and nobody says otherwise. */
     private static final Duration DEFAULT_SESSION_LENGTH = Duration.ofHours(2);
     /** The longest span a sheet may cover, which is longer than any camp and shorter than a typo. */
@@ -353,8 +356,18 @@ public class AttendanceService {
         return attendanceRepository.findSheetFields(sessionId);
     }
 
-    public List<SessionSummary> findSessionSummaries(int stationId) {
-        return attendanceRepository.findSessionSummariesByStation(stationId);
+    /**
+     * One page of a station's sheets, newest first, as {@link AttendanceRepository#findSessionSummariesByStation}
+     * finds them.
+     *
+     * @param search the text to look for in a sheet's title or its template's name; blank for every sheet
+     * @param limit  how many sheets the page holds, at least one and at most {@link #MAX_SESSION_PAGE}
+     * @param offset how many sheets to pass over, never fewer than none
+     */
+    public List<SessionSummary> findSessionSummaries(int stationId, @Nullable String search, int limit, int offset) {
+        String text = search == null || search.isBlank() ? null : search.strip();
+        return attendanceRepository.findSessionSummariesByStation(
+                stationId, text, Math.clamp(limit, 1, MAX_SESSION_PAGE), Math.max(offset, 0));
     }
 
     public List<AttendanceSession> findSessionsByTemplate(int templateId) {
