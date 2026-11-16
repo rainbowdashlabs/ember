@@ -19,21 +19,30 @@ People who share a station can write to each other directly, in groups, and in c
 - **Switched-off modules are gone everywhere.** Notifications, permissions and requirements of a switched-off module take no effect until it is back, and nothing is deleted. Partner stations and the public see nothing of it either, also where only the association denies it.
 - **Batch appointments entered one by one.** Besides a schedule and an imported file, appointments can be written down row by row, each with its date, times and an optional title.
 - **Registration questions can carry a description.** Like a profile field, a question asked when signing up for an appointment or an event group can carry a short explanation, shown under the question while answering.
+- **First steps remember what is known already.** On joining a further station, first steps that teach how the application works and were already done or skipped on another station are not asked again. Steps that belong to the station, such as its profile questions and notifications, stay.
+- **Fields can take two thirds or a quarter of a row.** Besides a third and a half, a profile, attendance or appointment field can take a quarter, two thirds or three quarters of a row, picked with a slider instead of a list.
+- **Appointments can be copied.** "Copy" on an appointment or in the list of appointments opens a new one with everything of the original filled in, ready for a new date. Sign-ups, attendance and comments are not copied.
+- **Questions can wait for any answer.** A profile question can be shown only once a choice or text question is answered, such as a licence expiry date once a licence class is chosen. The licence template asks the class as a choice of B, BE, C and CE.
+- **Groups of questions are ticked as one.** In the list of profile questions a group has one box in its header that ticks all of its questions, and the questions inside carry none. The explanations on the members configuration page sit behind info icons.
 - **Unreadable requests name their field.** Where the server cannot read a value a page sent, the message now names the field it stopped at.
 - **The end moves with the start.** Changing the start of an appointment, an attendance sheet, a form or a test moves its end by the same amount, so the length stays the same. Moving an appointment to another day no longer needs the end changed as well.
 
 ### Changes
 
+- **The introduction tour is part of the first steps.** The bar at the bottom of the dashboard is gone. The walk past the main areas is now the first of the first steps, shows only areas that are switched on, and is remembered per person instead of per browser.
+- **Conditions stay inside their group.** A question in a group of questions can only be shown behind a question of the same group. An existing question that depends on one outside its group is marked in its editor and has to get a new condition on its next change.
 - **Shared appointments need this version on both sides.** Between a station on this version and a partner station on an older one on another server, shared appointments, signing up for them and their comments stop working. They work again once both run 26.25.0.
 
 ### Fixes
 
+- **The question dialog's scroll bar covered its switches.** In some cases the scroll bar of the dialog for creating or editing a profile question lay over the switches. The dialog now leaves room for it.
 - **Short profiles show only what the reader may see.** After signing in as somebody else, switching profile or losing a right without reloading the page, a short profile already opened could still show private tags. It is now loaded again for whoever is looking.
 - **Words instead of raw values.** In some places technical values showed instead of words, such as the answer to a waiting-list invitation, a module the cluster switched off, member types in the station setup and mapped values in the member import, and the last setup step missed its hint. They now read in the interface language.
 - **Switched-off modules stayed reachable.** Pages of a switched-off module still opened from a saved link, and the documents and the public wiki stayed open when only the association had switched them off. Every page of a switched-off module now says that this part of the station is switched off.
 - **Two closing warnings at once for one appointment.** In some cases an appointment whose sign-up closed within a day of being set up or changed sent two warnings at once, one for three days and one for one day. It now sends the nearer one only, as event groups do.
 - **Creating appointments in a batch failed or misread files.** An imported file with an unusual date column or a two-digit year produced appointments at the time of the import, a registration deadline made the whole batch fail, and the file picker looked unstyled. Files are now read as given with unreadable lines named, the deadline is sent correctly, and the picker matches the other imports.
 - **Name colors lagged behind group changes.** In some cases a new group or tag color, or a new group membership, did not show on names in lists and comments while people kept looking at them. Names now take the change as soon as it is saved.
+- **Questions inside a group can be moved again.** Moving a profile question within its group had no effect, and the question jumped back to its old place. The new order is now kept on every form that asks the group.
 - **Switching modules at the same time undid each other.** When two managers switched different modules within moments, the second change could switch the first one back. Each switch now changes only its own module.
 - **Clearer date and time fields on phones.** On phones, a date with a time opened a calendar followed by a clock that did not say what it was for, which read as the end being asked for when only the start was changed. The day and the time now have a field of their own, each with one picker.
 

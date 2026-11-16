@@ -3651,6 +3651,12 @@ export default {
         breaks: 'Pausen & Ferien',
         addEvent: 'Neuer Termin',
         editEvent: 'Termin bearbeiten',
+        copyEvent: 'Kopieren',
+        copy: {
+            notice: 'Kopie von {name}',
+            leftBehind: 'Anmeldungen, Antworten, Anwesenheit, Kommentare, Notizen und abgesagte Daten werden nicht übernommen, ebenso wenig Felder, die Personen nennen. Dateien und Materialbedarf kommen beim Speichern mit.',
+            filesHint: 'Diese Dateien des Originals werden angehängt, sobald der Termin gespeichert ist.',
+        },
         announceAsNews: 'Als Neuigkeit ankündigen',
         takeAttendance: 'Anwesenheit erfassen',
         openAttendance: 'Erfassung öffnen',
@@ -3955,14 +3961,15 @@ export default {
         },
         orderEmpty: 'Diese Zielgruppe wird noch nichts gefragt.',
         colWidth: 'Breite',
-        widthShortFull: '1/1',
-        widthShortHalf: '1/2',
+        widthShortQuarter: '1/4',
         widthShortThird: '1/3',
+        widthShortHalf: '1/2',
+        widthShortTwoThirds: '2/3',
+        widthShortThreeQuarters: '3/4',
+        widthShortFull: '1/1',
         fieldWidth: 'Breite',
         fieldWidthHint: 'Schmale Felder stehen nebeneinander, solange eine Zeile sie fasst.',
-        widthFull: 'Ganze Zeile',
-        widthHalf: 'Halbe Zeile',
-        widthThird: 'Drittel Zeile',
+        widthSliderFull: 'voll',
         previewTitle: 'Formular',
         previewHint: 'So sieht das Formular beim Ausfüllen aus. Felder lassen sich hier verschieben und '
             + 'an der rechten Kante breiter oder schmaler ziehen. Beides gilt nur für diese Zielgruppe.',
@@ -3976,7 +3983,11 @@ export default {
         addField: 'Feld hinzufügen',
         shownIf: 'Nur anzeigen, wenn',
         shownAlways: 'Immer anzeigen',
-        shownIfHint: 'Das Feld erscheint und ist nur dann Pflicht, wenn die gewählte Ja/Nein-Frage mit Ja beantwortet ist. Wer die Ja/Nein-Frage nicht gestellt bekommt, sieht das Feld immer.',
+        shownIfHint: 'Das Feld erscheint und ist nur dann Pflicht, wenn die gewählte Frage es zulässt: eine Ja/Nein-Frage mit Ja, eine Auswahl oder ein Text, sobald etwas eingetragen ist. Wer die Frage nicht gestellt bekommt, sieht das Feld immer.',
+        shownIfWhenYes: '{name} (bei Ja)',
+        shownIfWhenAnswered: '{name} (wenn beantwortet)',
+        shownIfOutsideGroup: '{name} (außerhalb der Gruppe)',
+        shownIfOutsideGroupHint: 'Diese Bedingung steht außerhalb der Feldgruppe. Wähle eine Frage derselben Gruppe oder „Immer anzeigen“, sonst wird das Speichern abgelehnt.',
         shownIfBadge: 'Nur bei {name}',
         sets: {
             title: 'Feldgruppen',
@@ -3994,6 +4005,7 @@ export default {
         questionsHint: 'Jede Frage wird einmal beschrieben. Wem sie gestellt wird, steht daneben.',
         batch: {
             toggleRow: 'Frage auswählen',
+            toggleSet: 'Feldgruppe „{name}“ auswählen',
             chosen: '{count} Fragen ausgewählt',
             assignPlaceholder: 'Allen eine Zielgruppe geben',
             clear: 'Auswahl aufheben',
@@ -4088,11 +4100,11 @@ export default {
         fieldKeepOnArchive: 'Bei Archivierung behalten',
         fieldKeepOnArchiveHint: 'Dieses Feld bleibt bei ehemaligen Mitgliedern erhalten.',
         deleteConfirm: 'Feld "{name}" wirklich löschen? Alle gespeicherten Werte gehen verloren.',
-        deleteDependentsIntro: 'Diese Fragen werden nur angezeigt, wenn "{name}" mit Ja beantwortet ist:',
+        deleteDependentsIntro: 'Diese Fragen werden nur angezeigt, wenn "{name}" sie zulässt:',
         deleteDependentsAfter: 'Beim Löschen verlieren sie diese Bedingung und werden immer angezeigt. '
             + 'Ihre Antworten bleiben erhalten.',
         deleteUnlinkConfirm: 'Bedingungen entfernen und löschen',
-        typeChangeDependents: 'Diese Fragen werden nur angezeigt, wenn diese Frage mit Ja beantwortet ist: '
+        typeChangeDependents: 'Diese Fragen werden nur angezeigt, wenn diese Frage sie zulässt: '
             + '{names}. Mit einem anderen Typ verlieren sie diese Bedingung und werden immer angezeigt. Ihre '
             + 'Antworten bleiben erhalten.',
     },
@@ -9997,6 +10009,7 @@ export default {
             skippedTitle: 'Übersprungen',
             skippedHint: 'Verworfene Aufgaben verschwinden dauerhaft und kommen nicht zurück.',
             settledBy: 'von {name}',
+            settledElsewhere: 'auf einer anderen Wache',
             MEMBER: {
                 title: 'Deine ersten Schritte',
                 hint: 'Ich zeige dir, wo alles liegt. Du klickst selbst, dann kennst du den Weg beim nächsten Mal.',
@@ -10053,6 +10066,10 @@ export default {
         },
         tasks: {
             member: {
+                tour: {
+                    title: 'Ember kennenlernen',
+                    body: 'Ein kurzer Rundgang durch die Bereiche deiner Wache, damit du weißt, wo was liegt.',
+                },
                 profile: {
                     title: 'Dein Profil durchsehen',
                     body: 'Schau nach, was über dich hinterlegt ist, und ergänze, was fehlt. Dauert zwei Minuten.',
@@ -10182,6 +10199,27 @@ export default {
         },
         steps: {
             member: {
+                tour: {
+                    welcome: 'Willkommen bei Ember! Ich zeige dir die Bereiche deiner Wache. Du kannst dabei '
+                        + 'alles ganz normal anklicken.',
+                    dashboard: 'Deine Startseite: Benachrichtigungen, deine nächsten Termine und was es Neues gibt.',
+                    news: 'Hier stehen die Neuigkeiten deiner Wache. Du kannst sie lesen und kommentieren.',
+                    profile: 'Dein Profil mit allem, was über dich gespeichert ist. Manches kannst du selbst ändern.',
+                    absences: 'Kannst du mal nicht, etwa wegen Krankheit oder Urlaub, trägst du das hier ein.',
+                    events: 'Hier stehen die kommenden Übungen und Veranstaltungen. Zu manchen meldest du dich an.',
+                    inventory: 'Hier siehst du die Ausrüstung, die dir zugewiesen ist.',
+                    forms: 'Hier findest du die Umfragen deiner Wache.',
+                    knowledgeBase: 'Im Wiki liegt das Wissen deiner Wache: Anleitungen, Dokumente und Videos.',
+                    lending: 'Hier fragst du Ausrüstung bei anderen Wachen an und siehst, was verliehen ist.',
+                    managedProfiles: 'Hier kümmerst du dich um die Mitglieder in deiner Obhut.',
+                    members: 'Hier stehen alle Mitglieder deiner Wache.',
+                    attendance: 'Hier erfasst du, wer bei einem Dienst da war.',
+                    eventManagement: 'Hier legst du Termine an und verwaltest sie.',
+                    federation: 'Hier verbindest du deine Wache mit anderen Wachen.',
+                    station: 'Hier stellst du deine Wache ein.',
+                    helpCenter: 'Oben rechts öffnet das Fragezeichen die Hilfe zu der Seite, auf der du gerade bist. '
+                        + 'Das war der Rundgang!',
+                },
                 profile: {
                     0: 'Öffne dein Profil, dort steht alles über dich.',
                     1: 'Schau einmal durch, ob das alles noch stimmt: deine Wache plant damit. '
@@ -10310,96 +10348,6 @@ export default {
                 operations: {
                     0: 'Karten und Protokolle. Merk dir den Weg hierher.',
                 },
-            },
-        },
-    },
-    tour: {
-        back: 'Zurück',
-        next: 'Weiter',
-        finish: 'Fertig',
-        skip: 'Tour überspringen',
-        restartButton: 'Einführungstour wiederholen',
-        restartHint: 'Du kannst die Einführungstour jederzeit hier nochmal starten.',
-        steps: {
-            welcome: {
-                title: 'Willkommen bei Ember!',
-                body: 'Schön, dass du da bist! Wir zeigen dir jetzt die wichtigsten Seiten. Schau dir alles in Ruhe an - du kannst die Seite oben ganz normal ansehen, während wir dir hier unten erklären, was du dort findest.',
-            },
-            dashboard: {
-                title: 'Deine Übersicht',
-                body: 'Das hier ist deine Startseite. Du siehst hier Benachrichtigungen, deine nächsten Termine und ob es Neuigkeiten gibt. Schau hier einfach regelmäßig vorbei.',
-            },
-            news: {
-                title: 'Neuigkeiten',
-                body: 'Hier findest du alle Nachrichten deiner Wache. Du kannst sie lesen und auch Kommentare schreiben. Neue Beiträge erscheinen ganz oben.',
-            },
-            profile: {
-                title: 'Dein Profil',
-                body: 'Das ist dein Profil. Hier siehst du deine gespeicherten Daten. Manche Felder kannst du selbst bearbeiten.',
-            },
-            absences: {
-                title: 'Abwesenheiten',
-                body: 'Hier trägst du ein, wenn du mal nicht kommen kannst - zum Beispiel bei Krankheit oder Urlaub. So wissen alle Bescheid.',
-            },
-            events: {
-                title: 'Termine',
-                body: 'Hier siehst du alle kommenden Übungen und Veranstaltungen. Bei manchen Terminen kannst du dich an- oder abmelden - einfach auf den entsprechenden Knopf klicken.',
-            },
-            inventory: {
-                title: 'Dein Inventar',
-                body: 'Hier siehst du, welche Ausrüstung dir zugewiesen ist. Wenn etwas nicht mehr passt, kannst du hier einen Tausch beantragen.',
-            },
-            forms: {
-                title: 'Umfragen',
-                body: 'Hier findest du die Umfragen deiner Wache. Klicke auf „Ausfüllen", um eine zu öffnen. Schau ab und zu rein, ob es etwas Neues gibt.',
-            },
-            knowledgeBase: {
-                title: 'Wiki',
-                body: 'Hier findest du Wissen deiner Wache - Anleitungen, Dokumente und Videos. Alles ist in Ordnern sortiert und du kannst nach Begriffen suchen.',
-            },
-            lending: {
-                title: 'Inventar-Ausleihe',
-                body: 'Hier kannst du Ausrüstung von anderen Wachen anfragen oder sehen, was aktuell verliehen ist. Anfragen durchlaufen einen Genehmigungsprozess.',
-            },
-            managedProfiles: {
-                title: 'Verwaltete Profile',
-                body: 'Dir sind Mitglieder zugewiesen, deren Profile du hier bearbeiten kannst. Du kannst auch Abwesenheiten eintragen oder sie für Termine anmelden.',
-            },
-            members: {
-                title: 'Mitgliederliste',
-                body: 'Hier siehst du alle Mitglieder. Du kannst auf einen Namen klicken, um das Profil zu öffnen.',
-            },
-            attendance: {
-                title: 'Anwesenheit erfassen',
-                body: 'Hier startest du eine neue Anwesenheitserfassung. Wähle eine Vorlage und trage ein, wer da war. Vergangene Erfassungen findest du unter „Vergangene Anwesenheiten".',
-            },
-            eventManagement: {
-                title: 'Termine verwalten',
-                body: 'Hier verwaltest du alle Termine. Du kannst neue erstellen, bestehende bearbeiten oder Kategorien und Pausen anlegen. Klicke auf einen Termin für Details.',
-            },
-            federation: {
-                title: 'Föderation',
-                body: 'Hier verbindest du deine Wache mit anderen Jugendfeuerwehren. Ihr könnt dann Lernmaterial, Quiz-Kataloge und Prüfungsbögen teilen oder Ausrüstung verleihen.',
-            },
-            discovery: {
-                title: 'Wachen-Verzeichnis',
-                body: 'Im Verzeichnis findest du andere Wachen auf dieser Instanz und die öffentlichen Wachen anderer Ember-Instanzen. Wachen dieser Instanz kannst du eine Föderations-Anfrage schicken oder ihr öffentliches Wiki durchstöbern; Wachen anderer Instanzen öffnest du auf ihrer eigenen Instanz.',
-            },
-            station: {
-                title: 'Wache verwalten',
-                body: 'Hier findest du die Einstellungen für deine Wache - Name, Anwesenheitsvorlagen und Mitglieder-Felder.',
-            },
-            settings: {
-                title: 'Einstellungen',
-                body: 'Hier kannst du einstellen, welche Benachrichtigungen du bekommst. Du siehst auch deine aktiven Sitzungen und kannst diese Tour jederzeit neu starten.',
-            },
-            helpCenter: {
-                title: 'Das Hilfe-Center',
-                body: 'Oben rechts findest du immer ein Fragezeichen (?). Klicke darauf und es öffnet sich das Hilfe-Center. Dort wird dir zu jeder Seite einfach erklärt, was du dort machen kannst.',
-            },
-            done: {
-                title: 'Das war\'s!',
-                body: 'Jetzt kennst du die wichtigsten Bereiche. Viel Spaß mit Ember! Du findest diese Tour jederzeit unter „Profil" → „Einstellungen".',
             },
         },
     },
@@ -13199,7 +13147,7 @@ export default {
                 hint: 'Alles Nötige ist eingerichtet. Offene optionale Schritte lassen sich jederzeit später nachholen.',
                 body: 'Deine Wache ist bereit. Du kannst die Tour starten oder direkt zur Übersicht.',
                 missingHint: 'Es sind noch Pflicht-Schritte offen. Wir bringen dich zum nächsten.',
-                takeTour: 'Geführte Tour starten',
+                firstSteps: 'Erste Schritte beginnen',
                 goDashboard: 'Zur Übersicht',
                 mailReminder: 'Hinweis: Die Mailing-Anbindung der Wache ist noch nicht eingerichtet - Benachrichtigungen werden bis dahin nicht versendet.',
             },

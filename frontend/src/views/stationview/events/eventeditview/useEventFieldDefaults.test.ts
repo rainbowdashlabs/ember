@@ -81,4 +81,14 @@ describe('useEventFieldDefaults', () => {
         expect(defaults.defaults.value.get(3)).toEqual({source: 'EVENT_NAME', value: ''})
         expect(defaults.defaults.value.get(4)).toEqual({source: 'VALUE', value: 'Halle'})
     })
+
+    it('forgets the values typed in for the fields named and keeps the ones taken from the appointment', async () => {
+        const defaults = useEventFieldDefaults()
+        await defaults.load(templateFieldDefaultsPort(31))
+
+        defaults.forgetValuesOf([3, 4])
+
+        expect(defaults.defaults.value.get(3)).toEqual({source: 'EVENT_NAME', value: ''})
+        expect(defaults.defaults.value.has(4)).toBe(false)
+    })
 })

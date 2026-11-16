@@ -412,6 +412,40 @@ public class EventCrudService {
     }
 
     /**
+     * Refuses an end of repetition an appointment cannot take: a last day and a number of times at
+     * once, any end on a one-off, a number below one, or a last day before the start.
+     *
+     * <p>Asked of a new appointment before it is written, so a refused end leaves no appointment
+     * behind, and of an existing one before its end changes.
+     *
+     * @param eventType how the appointment repeats
+     * @param startTime when it starts, or null where it has no start
+     * @param until     the last day it may fall on, or null
+     * @param count     how many times it takes place in total, or null
+     * @throws RefusalResponse where the end cannot be taken
+     */
+    public static void requireUsableRepeatEnd(
+            StationEvent.EventType eventType,
+            @Nullable Instant startTime,
+            @Nullable LocalDate until,
+            @Nullable Integer count) {
+        if (until != null && count != null) {
+            throw EventRefusal.EVENT_SERIES_END_GIVEN_TWICE.raise();
+        }
+        if ((until != null || count != null) && eventType == StationEvent.EventType.ONE_TIME) {
+            throw EventRefusal.EVENT_SERIES_END_ON_ONE_OFF.raise();
+        }
+        if (count != null && count < 1) {
+            throw EventRefusal.EVENT_SERIES_COUNT_BELOW_ONE.raise();
+        }
+        if (until != null
+                && startTime != null
+                && until.isBefore(startTime.atZone(ZoneOffset.UTC).toLocalDate())) {
+            throw EventRefusal.EVENT_SERIES_ENDS_BEFORE_IT_STARTS.raise();
+        }
+    }
+
+    /**
      * Says when a repeating event stops repeating, or takes the end off again.
      *
      * <p>A last day and a number of times are two ways of saying the same thing, so only one of them
@@ -429,20 +463,7 @@ public class EventCrudService {
             log.warn("Cannot set the repeat end: event {} not found", id);
             return Optional.empty();
         }
-        if (until != null && count != null) {
-            throw EventRefusal.EVENT_SERIES_END_GIVEN_TWICE.raise();
-        }
-        if ((until != null || count != null) && !event.isRecurring()) {
-            throw EventRefusal.EVENT_SERIES_END_ON_ONE_OFF.raise();
-        }
-        if (count != null && count < 1) {
-            throw EventRefusal.EVENT_SERIES_COUNT_BELOW_ONE.raise();
-        }
-        if (until != null
-                && event.startTime() != null
-                && until.isBefore(event.startTime().atZone(ZoneOffset.UTC).toLocalDate())) {
-            throw EventRefusal.EVENT_SERIES_ENDS_BEFORE_IT_STARTS.raise();
-        }
+        requireUsableRepeatEnd(event.eventType(), event.startTime(), until, count);
 
         eventRepository.updateRepeatEnd(id, until, count);
         log.info("Event {} now repeats until {} or {} times", id, until, count);

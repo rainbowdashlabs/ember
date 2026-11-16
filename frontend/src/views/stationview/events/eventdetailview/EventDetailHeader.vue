@@ -26,6 +26,8 @@ import {computed} from 'vue'
 const props = defineProps<{
   event: StationEvent
   canManageEvents: boolean
+  /** Whether the reader may create appointments, which is what copying this one hangs on. */
+  canCreateEvents?: boolean
   /** Whether the reader may write news here, which is what the announcement entry hangs on. */
   canWriteNews: boolean
   /** The one occurrence the page is showing, which is the one an announcement is about. */
@@ -83,7 +85,8 @@ const canRestoreDate = computed(() =>
  * coloured, since a row under a harmless one reads as harmless otherwise.
  */
 const hasMenu = computed(() =>
-    props.canWriteNews || hasAttendance.value || canCancelDate.value || canCancelSeries.value || canRestoreDate.value)
+    props.canWriteNews || props.canCreateEvents || hasAttendance.value
+    || canCancelDate.value || canCancelSeries.value || canRestoreDate.value)
 
 function back() {
   goBack(router, {name: 'events-upcoming'})
@@ -95,6 +98,11 @@ function goEdit() {
     params: {id: props.event.id},
     query: props.effectiveDate ? {date: props.effectiveDate} : {},
   })
+}
+
+/** Opens a new appointment filled in from this one. */
+function copyEvent() {
+  router.push({name: eventRoutes.create, query: {copyFrom: String(props.event.id)}})
 }
 
 /**
@@ -132,6 +140,10 @@ function announce() {
         <DropdownMenuItem v-if="canWriteNews" :icon="['fas', 'bullhorn']" data-testid="event-announce"
                           @click="announce">
           {{ t('events.announceAsNews') }}
+        </DropdownMenuItem>
+        <DropdownMenuItem v-if="canCreateEvents" :icon="['fas', 'copy']" data-testid="event-copy"
+                          @click="copyEvent">
+          {{ t('events.copyEvent') }}
         </DropdownMenuItem>
         <DropdownMenuItem v-if="hasAttendance" :icon="['fas', 'clipboard-user']" data-testid="event-attendance"
                           @click="emit('attendance')">

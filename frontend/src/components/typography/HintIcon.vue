@@ -17,6 +17,11 @@ import BareButton from '@/components/button/BareButton.vue'
 defineProps<{
   /** The explanation itself, read out as the icon's own label and shown when it is reached. */
   text: string
+  /**
+   * An id for the explanation, so the control it explains can name it as its description with
+   * `aria-describedby` and a screen reader reads it out with the control, not only on the icon.
+   */
+  id?: string
 }>()
 </script>
 
@@ -31,6 +36,7 @@ defineProps<{
       <font-awesome-icon :icon="['fas', 'circle-info']" class="h-3.5 w-3.5"/>
     </BareButton>
     <span
+        :id="id"
         role="tooltip"
         class="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1 hidden w-56 -translate-x-1/2
                rounded-md border border-(--border) bg-(--bg) px-2 py-1 text-xs font-normal

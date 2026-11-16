@@ -8,7 +8,7 @@ import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import MutedText from '@/components/typography/MutedText.vue'
+import HintIcon from '@/components/typography/HintIcon.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import FieldSetRow from './fieldsetspanel/FieldSetRow.vue'
@@ -52,8 +52,10 @@ function create() {
 
 <template>
   <NeutralContainer class="space-y-3" data-testid="field-sets">
-    <SectionHeader>{{ t('membersConfig.sets.title') }}</SectionHeader>
-    <MutedText size="sm" tag="p">{{ t('membersConfig.sets.hint') }}</MutedText>
+    <div class="flex items-center gap-1">
+      <SectionHeader>{{ t('membersConfig.sets.title') }}</SectionHeader>
+      <HintIcon :text="t('membersConfig.sets.hint')"/>
+    </div>
 
     <FieldSetRow
         v-for="set in props.sets"

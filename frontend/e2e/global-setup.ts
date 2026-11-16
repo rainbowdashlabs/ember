@@ -41,7 +41,6 @@ async function saveSession(
                 origin: baseURL,
                 localStorage: [
                     {name: 'storage_consent', value: 'accepted'},
-                    {name: 'onboarding_tour_completed', value: 'true'},
                     ...(stationId ? [{name: 'station_id', value: stationId}] : []),
                 ],
             }],

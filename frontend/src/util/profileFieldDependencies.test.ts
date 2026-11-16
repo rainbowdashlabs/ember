@@ -5,7 +5,7 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import {hiddenByDependency, shownFields, type DependentField} from './profileFields'
+import {hiddenByDependency, isConditionType, shownFields, type DependentField} from './profileFields'
 
 const JULEICA: DependentField = {id: 1, origin: 'STATION'}
 const EXPIRY: DependentField = {id: 2, origin: 'STATION', shownIfFieldId: 1}
@@ -36,5 +36,36 @@ describe('profile field dependencies', () => {
 
     it('leaves the hidden questions out of the form', () => {
         expect(shownFields([JULEICA, EXPIRY], () => 'false')).toEqual([JULEICA])
+    })
+
+    it('shows a question behind a choice or a text once anything is answered', () => {
+        const licence: DependentField = {id: 3, origin: 'STATION', fieldType: 'CHOICE'}
+        const until: DependentField = {id: 4, origin: 'STATION', shownIfFieldId: 3}
+        const fields = [licence, until]
+        const answering = (answer: unknown) => (field: DependentField) => field.id === 3 ? answer : ''
+
+        expect(hiddenByDependency(until, fields, answering(''))).toBe(true)
+        expect(hiddenByDependency(until, fields, answering('  '))).toBe(true)
+        expect(hiddenByDependency(until, fields, answering('""'))).toBe(true)
+        expect(hiddenByDependency(until, fields, answering(null))).toBe(true)
+        expect(hiddenByDependency(until, fields, answering('CE'))).toBe(false)
+        expect(hiddenByDependency(until, fields, answering('"B"'))).toBe(false)
+    })
+
+    it('takes a written no for an answer only where the question is not a yes/no', () => {
+        const remark: DependentField = {id: 5, origin: 'STATION', fieldType: 'TEXT'}
+        const flag: DependentField = {id: 6, origin: 'STATION', fieldType: 'BOOLEAN'}
+        const behindRemark: DependentField = {id: 7, origin: 'STATION', shownIfFieldId: 5}
+        const behindFlag: DependentField = {id: 8, origin: 'STATION', shownIfFieldId: 6}
+        const fields = [remark, flag, behindRemark, behindFlag]
+
+        expect(hiddenByDependency(behindRemark, fields, () => 'false')).toBe(false)
+        expect(hiddenByDependency(behindFlag, fields, () => 'false')).toBe(true)
+    })
+
+    it('knows which kinds of question another can be shown behind', () => {
+        expect(['BOOLEAN', 'CHOICE', 'TEXT', 'LONG_TEXT'].every(isConditionType)).toBe(true)
+        expect(isConditionType('DATE')).toBe(false)
+        expect(isConditionType(undefined)).toBe(false)
     })
 })

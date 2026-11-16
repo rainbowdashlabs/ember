@@ -39,7 +39,7 @@ const port: FieldsPort = {
 
 const config = useFieldsConfig(port)
 const {
-  birthDateField, genderField, dateFields, booleanFields, sets, showFieldModal, editingField, loading, failure,
+  birthDateField, genderField, dateFields, conditionFields, sets, showFieldModal, editingField, loading, failure,
   saveField, showDeleteModal, deleteTarget, confirmDelete, dependentsOf,
 } = config
 </script>
@@ -60,7 +60,7 @@ const {
           :birth-date-field="birthDateField"
           :gender-field="genderField"
           :date-fields="dateFields"
-          :boolean-fields="booleanFields"
+          :condition-fields="conditionFields"
           :sets="sets"
           :field="editingField"
           :dependents="dependentsOf(editingField)"

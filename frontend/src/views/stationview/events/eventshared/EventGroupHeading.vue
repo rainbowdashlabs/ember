@@ -58,7 +58,7 @@ const span = computed(() => {
       :style="{backgroundColor: color, color: textColor}"
       data-testid="event-group-heading">
     <span aria-hidden="true" class="pointer-events-none absolute top-full left-1.5" :style="innerCorner" data-testid="event-group-inner-corner"/>
-    <AppIcon :icon="['fas', 'graduation-cap']" class="shrink-0"/>
+    <AppIcon :icon="['fas', 'layer-group']" class="shrink-0"/>
     <span class="min-w-0 truncate font-semibold">{{ eventGroup.eventGroupName }}</span>
     <span v-if="eventGroup.number != null" class="shrink-0">{{ t('eventGroups.partNumber', {number: eventGroup.number, count: eventGroup.count}) }}</span>
     <span v-if="span" class="shrink-0">{{ span }}</span>

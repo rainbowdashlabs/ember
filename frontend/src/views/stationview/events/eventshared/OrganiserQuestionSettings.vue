@@ -69,7 +69,7 @@ function widthOf(width: string): string | undefined {
       </SelectInput>
     </LabelledField>
 
-    <div class="w-40">
+    <div class="w-full sm:w-72">
       <WidthField :model-value="settings.width ?? FieldWidths.FULL"
                   @update:model-value="width => updateSettings({width: widthOf(width)})"/>
     </div>

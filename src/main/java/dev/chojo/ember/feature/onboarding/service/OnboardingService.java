@@ -119,6 +119,7 @@ public class OnboardingService {
      */
     public OnboardingStatus forMember(StationMember member, StationUserType userType) {
         Map<String, OnboardingMark> marks = byKey(markRepository.findByMember(member.id()));
+        Map<String, OnboardingMark> elsewhere = byKey(markRepository.findByOtherMembershipsOf(member.id()));
         Set<StationModule> disabled = stationService.findEffectiveDisabledModules(member.stationId());
         List<StationMember> managed =
                 userType == StationUserType.GUARDIAN ? memberRepository.findManaged(member.id()) : List.of();
@@ -128,7 +129,16 @@ public class OnboardingService {
             if (!applies(task, userType, disabled)) continue;
             if (!worthAsking(task, member.stationId())) continue;
             if (!task.perManagedMember()) {
-                views.add(view(task, null, null, marks, () -> memberTaskDone(task, member, userType)));
+                boolean carried = task.carriesAcrossStations()
+                        && !marks.containsKey(task.key())
+                        && elsewhere.containsKey(task.key());
+                views.add(view(
+                        task,
+                        null,
+                        null,
+                        carried ? elsewhere : marks,
+                        () -> memberTaskDone(task, member, userType),
+                        carried));
                 continue;
             }
             for (StationMember child : managed) {
@@ -140,7 +150,8 @@ public class OnboardingService {
                         childAccount.firstName(),
                         child.id(),
                         marks,
-                        () -> guardianTaskDone(task, child, childAccount)));
+                        () -> guardianTaskDone(task, child, childAccount),
+                        false));
             }
         }
         return OnboardingStatus.of(OnboardingLevel.MEMBER, views);
@@ -160,8 +171,8 @@ public class OnboardingService {
 
         List<OnboardingTaskView> views = new ArrayList<>();
         for (OnboardingTask task : OnboardingTask.of(OnboardingLevel.STATION)) {
-            if (task.module().filter(disabled::contains).isPresent()) continue;
-            views.add(view(task, null, null, marks, () -> steps.getOrDefault(setupStepOf(task), false)));
+            if (!task.runsWith(disabled)) continue;
+            views.add(view(task, null, null, marks, () -> steps.getOrDefault(setupStepOf(task), false), false));
         }
         return OnboardingStatus.of(OnboardingLevel.STATION, views);
     }
@@ -174,7 +185,7 @@ public class OnboardingService {
         Map<String, OnboardingMark> marks = byKey(markRepository.findForInstance());
         List<OnboardingTaskView> views = new ArrayList<>();
         for (OnboardingTask task : OnboardingTask.of(OnboardingLevel.INSTANCE)) {
-            views.add(view(task, null, null, marks, () -> instanceTaskDone(task, account)));
+            views.add(view(task, null, null, marks, () -> instanceTaskDone(task, account), false));
         }
         return OnboardingStatus.of(OnboardingLevel.INSTANCE, views);
     }
@@ -182,6 +193,9 @@ public class OnboardingService {
     /**
      * Records that somebody ticked a task off, passed it over, or took it up again. A derived task
      * refuses to be ticked off, because its answer is not anybody's to declare.
+     *
+     * <p>A task that carries across stations is taken up again on all of them: a mark left on
+     * another station would otherwise settle it again the moment the local one is gone.
      */
     public void mark(OnboardingLevel level, String taskId, OnboardingTaskState state, int memberId, int accountId) {
         OnboardingTask task = OnboardingTask.byKey(keyOf(taskId))
@@ -198,8 +212,9 @@ public class OnboardingService {
                 };
         switch (level) {
             case MEMBER -> {
-                if (state == OnboardingTaskState.OPEN) markRepository.clearForMember(memberId, taskId);
-                else markRepository.markForMember(memberId, taskId, stored);
+                if (state != OnboardingTaskState.OPEN) markRepository.markForMember(memberId, taskId, stored);
+                else if (task.carriesAcrossStations()) markRepository.clearForEveryMembershipOf(memberId, taskId);
+                else markRepository.clearForMember(memberId, taskId);
             }
             case STATION -> {
                 int stationId = memberRepository
@@ -217,13 +232,19 @@ public class OnboardingService {
         log.debug("Onboarding task {} at {} level set to {} by member {}", taskId, level, state, memberId);
     }
 
-    /** A dismissed task stays dismissed, whatever its data would now say. */
+    /**
+     * A dismissed task stays dismissed, whatever its data would now say.
+     *
+     * @param elsewhere whether the marks are the reader's own from another station, which is said
+     *                  rather than passed off as a mark left here
+     */
     private OnboardingTaskView view(
             OnboardingTask task,
             @Nullable String subject,
             @Nullable Integer subjectId,
             Map<String, OnboardingMark> marks,
-            DerivedCheck derived) {
+            DerivedCheck derived,
+            boolean elsewhere) {
         String id = subjectId == null ? task.key() : task.key() + ":" + subjectId;
         OnboardingMark mark = marks.get(id);
         OnboardingTaskState state;
@@ -246,7 +267,8 @@ public class OnboardingService {
                 state,
                 !task.derived(),
                 mark == null ? null : actorName(mark, task.level()),
-                mark == null ? null : mark.changedAt());
+                mark == null ? null : mark.changedAt(),
+                elsewhere);
     }
 
     private boolean memberTaskDone(OnboardingTask task, StationMember member, StationUserType userType) {
@@ -319,7 +341,7 @@ public class OnboardingService {
     }
 
     private static boolean applies(OnboardingTask task, StationUserType userType, Set<StationModule> disabled) {
-        if (task.module().filter(module -> module.isOffIn(disabled)).isPresent()) return false;
+        if (!task.runsWith(disabled)) return false;
         return task.reaches(userType);
     }
 

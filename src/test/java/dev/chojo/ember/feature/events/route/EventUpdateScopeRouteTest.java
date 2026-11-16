@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventChangeNotifier;
 import dev.chojo.ember.feature.events.service.EventChangePreviewService;
+import dev.chojo.ember.feature.events.service.EventCopyService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventEditScopeService;
 import dev.chojo.ember.feature.events.service.EventExportService;
@@ -104,7 +105,8 @@ class EventUpdateScopeRouteTest {
                 new EventVisibility(crudService, restrictions, mock(GuardianPolicy.class)),
                 scopeService,
                 changeNotifier,
-                previewService);
+                previewService,
+                mock(EventCopyService.class));
         harness = RouteHarness.serving(routes);
     }
 

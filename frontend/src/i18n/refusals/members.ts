@@ -278,9 +278,10 @@ export default {
     'M-240': 'Dein Konto hat in diesem Verband schon eine Rolle und hat keine zweite bekommen',
     'M-241': 'Die Frage, von der diese abhängen soll, gibt es hier nicht, es wurde nichts gespeichert',
     'M-242': 'Eine Frage kann nicht von sich selbst abhängen, es wurde nichts gespeichert',
-    'M-243': 'Eine Frage kann nur von einer Ja/Nein-Frage abhängen, es wurde nichts gespeichert',
+    'M-243': 'Eine Frage kann nur von einer Ja/Nein-, Auswahl- oder Textfrage abhängen, es wurde nichts gespeichert',
     'M-244': 'Abhängigkeiten lassen sich nicht verketten: Eine Frage, von der andere abhängen, kann selbst nicht abhängen, es wurde nichts gespeichert',
-    'M-245': 'Andere Fragen hängen von dieser Ja/Nein-Frage ab, sie wurde nicht gelöscht oder geändert',
+    'M-245': 'Andere Fragen hängen von dieser Frage ab, sie wurde nicht gelöscht oder geändert',
     'M-246': 'Diese Feldgruppe gibt es hier nicht mehr',
     'M-247': 'Eine Feldgruppe braucht einen Namen, es wurde nichts gespeichert',
+    'M-248': 'Eine Frage in einer Feldgruppe kann nur von einer Frage derselben Gruppe abhängen, es wurde nichts gespeichert',
 }

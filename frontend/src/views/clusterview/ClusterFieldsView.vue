@@ -51,7 +51,7 @@ const port: FieldsPort = {
 const config = useFieldsConfig(port)
 const {
   availableStationGroups, selectedStationGroupId,
-  birthDateField, genderField, dateFields, booleanFields, sets, showFieldModal, editingField, loading, failure,
+  birthDateField, genderField, dateFields, conditionFields, sets, showFieldModal, editingField, loading, failure,
   saveField, showDeleteModal, deleteTarget, confirmDelete, dependentsOf,
 } = config
 
@@ -88,7 +88,7 @@ const activeStationGroup = computed({
           :birth-date-field="birthDateField"
           :gender-field="genderField"
           :date-fields="dateFields"
-          :boolean-fields="booleanFields"
+          :condition-fields="conditionFields"
           :sets="sets"
           :field="editingField"
           :dependents="dependentsOf(editingField)"

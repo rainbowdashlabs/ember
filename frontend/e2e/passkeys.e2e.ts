@@ -355,7 +355,6 @@ test.describe('Passkeys', () => {
         const page = await context.newPage()
         await page.addInitScript(() => {
             window.localStorage.setItem('storage_consent', 'accepted')
-            window.localStorage.setItem('onboarding_tour_completed', 'true')
         })
         await addAuthenticator(page)
         await answerStepUpPrompts(page)

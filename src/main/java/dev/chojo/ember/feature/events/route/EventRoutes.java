@@ -33,6 +33,7 @@ import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import dev.chojo.ember.feature.events.service.BatchEventService;
 import dev.chojo.ember.feature.events.service.EventChangeNotifier;
 import dev.chojo.ember.feature.events.service.EventChangePreviewService;
+import dev.chojo.ember.feature.events.service.EventCopyService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventEditScopeService;
 import dev.chojo.ember.feature.events.service.EventExportService;
@@ -103,6 +104,7 @@ public class EventRoutes implements Routes {
     private final EventEditScopeService scopeService;
     private final EventChangeNotifier changeNotifier;
     private final EventChangePreviewService previewService;
+    private final EventCopyService copyService;
 
     @Inject
     public EventRoutes(
@@ -119,8 +121,10 @@ public class EventRoutes implements Routes {
             EventVisibility visibility,
             EventEditScopeService scopeService,
             EventChangeNotifier changeNotifier,
-            EventChangePreviewService previewService) {
+            EventChangePreviewService previewService,
+            EventCopyService copyService) {
         this.previewService = previewService;
+        this.copyService = copyService;
         this.scopeService = scopeService;
         this.changeNotifier = changeNotifier;
         this.occurrenceCalendar = occurrenceCalendar;
@@ -456,7 +460,9 @@ public class EventRoutes implements Routes {
         Integer eventTemplateId = req.eventTemplateId();
         var template =
                 eventTemplateId == null ? null : templateService.requireOwn(session.stationId(), eventTemplateId);
+        var source = copySource(session, req.copiedFromEventId());
         var eventType = req.eventType();
+        EventCrudService.requireUsableRepeatEnd(eventType, req.startTime(), req.repeatUntil(), req.repeatCount());
         var event = crudService.createWithoutEvent(
                 session.stationId(),
                 req.name(),
@@ -476,12 +482,23 @@ public class EventRoutes implements Routes {
                 req.registrationCloseDays());
         applyAudiences(event.id(), req);
         if (template != null) templateService.copyInto(template, event.id());
+        if (source != null) copyService.copyInto(source, event.id());
         var withEnd = crudService
                 .setRepeatEnd(event.id(), req.repeatUntil(), req.repeatCount())
                 .orElse(event);
         crudService.announceCreated(session.stationId(), withEnd);
 
         ctx.status(HttpStatus.CREATED).json(withEnd);
+    }
+
+    /**
+     * The appointment a new one is copied from, where it names one: of the caller's station and one
+     * they may see, or the copy is refused before anything is written.
+     */
+    private @Nullable StationEvent copySource(StationSession session, @Nullable Integer copiedFromEventId) {
+        if (copiedFromEventId == null) return null;
+        return copyService.requireSource(
+                session.stationId(), copiedFromEventId, event -> visibility.canSee(session, event));
     }
 
     @OpenApi(
@@ -928,6 +945,9 @@ public class EventRoutes implements Routes {
      * @param templateId      the attendance sheet the appointment is taken on
      * @param eventTemplateId the appointment template it is made from, read only when it is created;
      *                        it has to be one of the station's own
+     * @param copiedFromEventId the appointment it is a copy of, read only when it is created; it has to
+     *                        be one of the station's own the caller may see. Its files, documents to
+     *                        bring and equipment needed on every date are handed to the new one
      * @param scope           which dates of a series a change applies to, read only when it is
      *                        changed; none means every date. Only one date, and one date and those
      *                        after it, save into a new appointment, whose id the answer carries
@@ -958,7 +978,8 @@ public class EventRoutes implements Routes {
             @Nullable LocalDate repeatUntil,
             @Nullable Integer repeatCount,
             @Nullable EditScope scope,
-            @Nullable ChangeNotice changeNotice) {}
+            @Nullable ChangeNotice changeNotice,
+            @Nullable Integer copiedFromEventId) {}
 
     /**
      * The next day an appointment falls on, or nothing for one that has no date at all.

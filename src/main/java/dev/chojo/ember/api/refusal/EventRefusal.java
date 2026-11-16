@@ -830,7 +830,15 @@ public enum EventRefusal implements Refusal {
                     + " nothing was saved"),
 
     /** An event group filed under a category of another station, or one that is gone. */
-    EVENT_GROUP_CATEGORY_NOT_HERE(221, HttpStatus.NOT_FOUND, Sentences.EVENT_CATEGORY_NOT_HERE);
+    EVENT_GROUP_CATEGORY_NOT_HERE(221, HttpStatus.NOT_FOUND, Sentences.EVENT_CATEGORY_NOT_HERE),
+
+    /**
+     * An appointment copied from one that is gone, belongs to another station or is hidden from the
+     * one copying it. One code for all three, so a guessed id says nothing about appointments the
+     * caller may not see.
+     */
+    EVENT_TO_COPY_NOT_HERE(
+            222, HttpStatus.NOT_FOUND, "The appointment to copy is not here any more, nothing was saved");
 
     private final Definition definition;
 

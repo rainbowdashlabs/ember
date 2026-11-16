@@ -19,7 +19,7 @@ const {t} = useI18n()
 
 <template>
   <SecondaryBadge data-testid="event-group-part-badge">
-    <AppIcon :icon="['fas', 'graduation-cap']" class="mr-1 h-3 w-3"/>
+    <AppIcon :icon="['fas', 'layer-group']" class="mr-1 h-3 w-3"/>
     {{ t('eventGroups.badge', {eventGroup: eventGroup.eventGroupName, number: eventGroup.number, count: eventGroup.count}) }}
   </SecondaryBadge>
 </template>

@@ -4,28 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {onBeforeUnmount, ref, shallowRef, type Ref} from 'vue'
-import {FieldWidths, type FieldWidthName, type PreviewField} from './fieldLayout'
+import {
+    asFieldWidth, ROW_COLUMNS, snapWidth, WIDTH_COLUMNS, type FieldWidthName, type PreviewField,
+} from './fieldLayout'
 import {moveWithin} from '@/util/reorder'
-
-/** The row is six columns wide, which is what each width costs. */
-const SPANS: Record<FieldWidthName, number> = {
-    [FieldWidths.FULL]: 6,
-    [FieldWidths.HALF]: 3,
-    [FieldWidths.THIRD]: 2,
-}
-
-/** The widths a field can be dragged to, narrowest first, so a span can be snapped to the nearest. */
-const SNAP: ReadonlyArray<{width: FieldWidthName; span: number}> = [
-    {width: FieldWidths.THIRD, span: 2},
-    {width: FieldWidths.HALF, span: 3},
-    {width: FieldWidths.FULL, span: 6},
-]
-
-/** The width whose span is closest to the one being dragged out. */
-function nearestWidth(span: number): FieldWidthName {
-    return SNAP.reduce((best, candidate) =>
-        Math.abs(candidate.span - span) < Math.abs(best.span - span) ? candidate : best).width
-}
 
 /**
  * Arranging one audience's form by hand: dragging a question to a new place, and dragging its edge
@@ -135,12 +117,12 @@ export function usePreviewLayout<T extends PreviewField>(
         resizing.value = field
         resizingTo.value = null
         const startX = event.clientX
-        const column = grid.getBoundingClientRect().width / 6
-        const startSpan = SPANS[(field.width ?? FieldWidths.FULL) as FieldWidthName] ?? 6
+        const column = grid.getBoundingClientRect().width / ROW_COLUMNS
+        const startSpan = WIDTH_COLUMNS[asFieldWidth(field.width)]
 
         const move = (moved: PointerEvent) => {
             if (column <= 0) return
-            resizingTo.value = nearestWidth(startSpan + (moved.clientX - startX) / column)
+            resizingTo.value = snapWidth(startSpan + (moved.clientX - startX) / column)
         }
 
         const finish = () => {
@@ -157,7 +139,7 @@ export function usePreviewLayout<T extends PreviewField>(
     /** What one question is drawn at right now, which is the drag in progress where there is one. */
     function widthOf(field: T): FieldWidthName {
         if (resizing.value === field && resizingTo.value) return resizingTo.value
-        return (field.width ?? FieldWidths.FULL) as FieldWidthName
+        return asFieldWidth(field.width)
     }
 
     return {shown, startMove, startResize, widthOf, moving, resizing}

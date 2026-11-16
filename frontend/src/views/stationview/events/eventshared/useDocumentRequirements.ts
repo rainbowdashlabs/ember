@@ -31,10 +31,14 @@ export function useDocumentRequirements() {
         chosen.value = current
     }
 
-    /** Adds the documents an appointment template asks for, after the ones chosen already. */
+    /**
+     * Adds the documents an appointment template or a copied appointment asks for, after the ones
+     * chosen already. What a copied appointment shows from its event group stays behind, since the
+     * copy belongs to none.
+     */
     async function takeFrom(owner: RequirementOwner) {
         const handed = await appointmentDocuments.listRequirements(owner)
-        chosen.value = withoutTwice([...chosen.value, ...handed])
+        chosen.value = withoutTwice([...chosen.value, ...handed.filter(template => !template.fromEventGroup)])
     }
 
     /** Writes the chosen documents for a saved appointment or template. */

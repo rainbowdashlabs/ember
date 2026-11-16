@@ -59,7 +59,7 @@ function update(patch: Partial<AttendanceFieldDraft>) {
   >
     <AutoAttendToggle v-if="namesPeople" :auto-attend="field.autoAttend"
                       @update:auto-attend="autoAttend => update({autoAttend})"/>
-    <div class="w-40">
+    <div class="w-full sm:w-72">
       <WidthField :model-value="field.width" @update:model-value="width => update({width})"/>
     </div>
   </QuestionCard>
