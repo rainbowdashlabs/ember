@@ -102,8 +102,8 @@ public final class FieldDependencies {
                     });
         }
         dependents(fieldId, owned).stream()
-                .filter(dependent -> dependent.fieldSetId() != null
-                        && !dependent.fieldSetId().equals(setAfter))
+                .filter(dependent ->
+                        dependent.fieldSetId() != null && !Objects.equals(dependent.fieldSetId(), setAfter))
                 .findFirst()
                 .ifPresent(left -> {
                     throw MemberRefusal.PROFILE_DEPENDENCY_OUTSIDE_GROUP.raise(left.name());
