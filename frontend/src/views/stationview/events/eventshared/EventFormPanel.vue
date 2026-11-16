@@ -11,7 +11,6 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import MarkdownEditor from '@/components/input/MarkdownEditor.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
-import ToggleSwitch from '@/components/input/toggle/ToggleSwitch.vue'
 import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -86,6 +85,14 @@ const viewRestriction = defineModel<RestrictionSelection>('viewRestriction', {re
 const endsBeforeItStarts = computed(() =>
     !!startTime.value && !!endTime.value && new Date(endTime.value) < new Date(startTime.value))
 
+/** Whether the appointment repeats, in any rhythm. */
+const recurring = computed(() => eventType.value !== undefined && eventType.value !== EventType.ONE_TIME)
+
+/** Switches between a single appointment and a weekly series, the rhythm a series starts with. */
+function setRecurring(repeats: boolean) {
+  eventType.value = repeats ? EventType.RECURRING : EventType.ONE_TIME
+}
+
 const {t} = useI18n()
 
 const labelId = useId()
@@ -93,12 +100,43 @@ const labelId = useId()
 
 <template>
   <div class="space-y-4">
-    <SubHeader>{{ t('events.general') }}</SubHeader>
+    <TextInput v-model="name" :aria-label="t('events.name')" :placeholder="t('events.namePlaceholder')"
+               class="text-lg font-semibold"/>
 
-    <div class="space-y-1">
-      <FieldLabel>{{ t('events.name') }}</FieldLabel>
-      <TextInput v-model="name" :placeholder="t('events.namePlaceholder')"/>
-    </div>
+    <template v-if="showSchedule && eventType !== undefined">
+      <div class="space-y-1">
+        <div class="grid grid-cols-1 items-center gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-3">
+          <DateTimeInput v-model="startTime" :label="t('events.startTime')" data-testid="event-start"/>
+          <span class="text-sm text-(--text-muted)">{{ t('events.until') }}</span>
+          <DateTimeInput v-model="endTime" :label="t('events.endTime')" :min="startTime" data-testid="event-end"/>
+        </div>
+        <FieldHint v-if="endsBeforeItStarts" data-testid="event-end-before-start" class="text-error">
+          {{ t('events.endBeforeStart') }}
+        </FieldHint>
+      </div>
+
+      <div v-if="!eventGroupPart" class="flex flex-wrap items-center gap-3">
+        <label class="flex items-center gap-2 text-sm font-medium" data-testid="event-type-toggle">
+          <ToggleInput :model-value="recurring" @update:model-value="setRecurring"/>
+          {{ t('events.typeRecurringShort') }}
+        </label>
+        <SelectInput v-if="recurring" v-model="eventType" :aria-label="t('events.type')">
+          <option :value="EventType.RECURRING">{{ t('events.typeRecurring') }}</option>
+          <option :value="EventType.MONTHLY_FIRST">{{ t('events.typeMonthlyFirst') }}</option>
+          <option :value="EventType.QUARTERLY">{{ t('events.typeQuarterly') }}</option>
+          <option :value="EventType.YEARLY">{{ t('events.typeYearly') }}</option>
+        </SelectInput>
+        <SelectInput v-if="needsDayOfWeek(eventType)" v-model="dayOfWeek" :aria-label="t('events.dayOfWeek')">
+          <option v-for="day in 7" :key="day" :value="String(day)">{{ weekdayName(day) }}</option>
+        </SelectInput>
+      </div>
+
+      <RepeatEndField
+          v-if="recurring && repeatUntil !== undefined"
+          v-model:until="repeatUntil"
+          v-model:count="repeatCount"
+      />
+    </template>
 
     <div class="space-y-1">
       <FieldLabel>{{ t('events.description') }}</FieldLabel>
@@ -121,55 +159,6 @@ const labelId = useId()
         </SelectInput>
       </div>
     </div>
-
-    <template v-if="showSchedule && eventType !== undefined">
-      <hr class="border-(--border)"/>
-      <div v-if="!eventGroupPart" class="space-y-2">
-        <FieldLabel>{{ t('events.type') }}</FieldLabel>
-        <ToggleSwitch
-            :model-value="eventType === EventType.ONE_TIME ? 'onetime' : 'recurring'"
-            option-a="onetime"
-            option-b="recurring"
-            :label-a="t('events.typeOneTime')"
-            :label-b="t('events.typeRecurringShort')"
-            data-testid="event-type-toggle"
-            @update:model-value="eventType = $event === 'onetime' ? EventType.ONE_TIME : EventType.RECURRING"
-        />
-        <SelectInput v-if="eventType !== EventType.ONE_TIME" v-model="eventType" class="w-full">
-          <option :value="EventType.RECURRING">{{ t('events.typeRecurring') }}</option>
-          <option :value="EventType.MONTHLY_FIRST">{{ t('events.typeMonthlyFirst') }}</option>
-          <option :value="EventType.QUARTERLY">{{ t('events.typeQuarterly') }}</option>
-          <option :value="EventType.YEARLY">{{ t('events.typeYearly') }}</option>
-        </SelectInput>
-      </div>
-
-      <div v-if="needsDayOfWeek(eventType)" class="space-y-1">
-        <FieldLabel>{{ t('events.dayOfWeek') }}</FieldLabel>
-        <SelectInput v-model="dayOfWeek" class="w-full">
-          <option v-for="day in 7" :key="day" :value="String(day)">{{ weekdayName(day) }}</option>
-        </SelectInput>
-      </div>
-
-      <RepeatEndField
-          v-if="eventType !== EventType.ONE_TIME && repeatUntil !== undefined"
-          v-model:until="repeatUntil"
-          v-model:count="repeatCount"
-      />
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div class="space-y-1">
-          <FieldLabel>{{ t('events.startTime') }}</FieldLabel>
-          <DateTimeInput v-model="startTime"/>
-        </div>
-        <div class="space-y-1">
-          <FieldLabel>{{ t('events.endTime') }}</FieldLabel>
-          <DateTimeInput v-model="endTime" :min="startTime"/>
-          <FieldHint v-if="endsBeforeItStarts" data-testid="event-end-before-start" class="text-error">
-            {{ t('events.endBeforeStart') }}
-          </FieldHint>
-        </div>
-      </div>
-    </template>
 
     <slot name="after-schedule" />
 

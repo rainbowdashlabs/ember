@@ -3682,6 +3682,7 @@ export default {
         startTime: 'Beginn',
         endTime: 'Ende',
         endBeforeStart: 'Das Ende darf nicht vor dem Beginn liegen.',
+        until: 'bis',
         template: 'Anwesenheitsvorlage',
         noTemplate: 'Keine Vorlage',
         breakName: 'Name',

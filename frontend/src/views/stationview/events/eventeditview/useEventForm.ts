@@ -46,6 +46,44 @@ export function useEventForm() {
   useEndFollowsStart(toRef(state, 'startTime'), toRef(state, 'endTime'))
 
   /**
+   * Whether the weekday of a series still follows its start. It does until a weekday is picked by
+   * hand, which is any change to the weekday this form did not make itself.
+   */
+  let weekdayFollowsStart = true
+  let followingStart = false
+
+  /** Sets the weekday without counting it as picked by hand. */
+  function setWeekdayFromStart(day: string) {
+    followingStart = true
+    state.dayOfWeek = day
+    followingStart = false
+  }
+
+  watch(() => state.startTime, start => {
+    const day = isoWeekday(start)
+    if (weekdayFollowsStart && day !== null) setWeekdayFromStart(String(day))
+  }, {flush: 'sync'})
+
+  watch(() => state.dayOfWeek, () => {
+    if (!followingStart) weekdayFollowsStart = false
+  }, {flush: 'sync'})
+
+  /**
+   * Takes the weekday a saved appointment comes with. A series keeps following its start only when
+   * it runs on the start's weekday; one without a weekday, a single appointment, takes its start's.
+   */
+  function applyWeekday(saved: number | null | undefined) {
+    const startDay = isoWeekday(state.startTime)
+    if (saved != null) {
+      setWeekdayFromStart(String(saved))
+      weekdayFollowsStart = saved === startDay
+      return
+    }
+    setWeekdayFromStart(startDay !== null ? String(startDay) : '1')
+    weekdayFollowsStart = true
+  }
+
+  /**
    * How many hours before the start the applied template closes registration, for as long as the
    * deadline still follows the start. Null once nothing follows: no template offset was applied, or
    * the deadline was changed by hand.
@@ -151,9 +189,9 @@ export function useEventForm() {
     state.name = ev.name ?? ''
     state.description = ev.description ?? ''
     state.eventType = ev.eventType ?? EventType.RECURRING
-    state.dayOfWeek = ev.dayOfWeek != null ? String(ev.dayOfWeek) : '1'
     state.startTime = instantToLocalInput(ev.startTime)
     state.endTime = instantToLocalInput(ev.endTime)
+    applyWeekday(ev.dayOfWeek)
     state.templateId = ev.templateId != null ? String(ev.templateId) : ''
     state.categoryId = ev.categoryId != null ? String(ev.categoryId) : ''
     state.requiresRegistration = ev.requiresRegistration ?? false
@@ -222,4 +260,12 @@ export function useEventForm() {
   }
 
   return {state, props, handlers, appliedTemplateId, applyTemplate, loadEvent, buildPayload, namedFields, endsBeforeItStarts}
+}
+
+/** The weekday a `datetime-local` value falls on, 1 for Monday through 7 for Sunday, or nothing. */
+function isoWeekday(moment?: string): number | null {
+  if (!moment) return null
+  const day = new Date(moment)
+  if (Number.isNaN(day.getTime())) return null
+  return ((day.getDay() + 6) % 7) + 1
 }

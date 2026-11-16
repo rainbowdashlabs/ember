@@ -397,6 +397,7 @@ export default {
         week: 'Calendar week',
     },
     events: {
+        until: 'to',
         notOpenToYou: 'Registration is open only to part of the station, not to you.',
         notOpenToHousehold: 'Registration is open only to part of the station, not to you or the people you look after.',
     },

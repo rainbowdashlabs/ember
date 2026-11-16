@@ -29,6 +29,8 @@ const props = defineProps<{
   min?: string
   /** What a label's `for` names, given to the day. */
   id?: string
+  /** What the moment is, for a field that shows no label of its own; read out before each half. */
+  label?: string
 }>()
 
 const emit = defineEmits<{
@@ -37,6 +39,11 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+
+/** What a half is read out as: the field's own label first, where it has one. */
+function partLabel(part: string): string {
+  return props.label ? `${props.label}, ${part}` : part
+}
 
 const day = ref('')
 const time = ref('')
@@ -62,7 +69,7 @@ watch([day, time], () => {
     <DateInput
         :id="props.id"
         v-model="day"
-        :aria-label="t('common.datePart')"
+        :aria-label="partLabel(t('common.datePart'))"
         :disabled="disabled"
         :min="min?.slice(0, 10) || undefined"
         class="min-w-0"
@@ -70,7 +77,7 @@ watch([day, time], () => {
     />
     <TimeShortInput
         v-model="time"
-        :aria-label="t('common.timePart')"
+        :aria-label="partLabel(t('common.timePart'))"
         :disabled="disabled"
         class="min-w-0"
         @change="emit('change', combined())"

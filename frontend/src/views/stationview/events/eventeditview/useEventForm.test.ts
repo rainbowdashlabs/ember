@@ -6,6 +6,7 @@
 /** @vitest-environment happy-dom */
 import {describe, expect, it, vi} from 'vitest'
 import {useEventForm} from './useEventForm'
+import {events} from '@/api'
 import {RestrictionMode, type EventTemplate, type RestrictionAudience, type TemplateDetailResponse} from '@/api/generated/schema'
 
 vi.mock('@/api', () => ({events: {}}))
@@ -193,5 +194,93 @@ describe('useEventForm start and end', () => {
         form.state.startTime = '2026-12-17T19:00'
 
         expect(form.state.endTime).toBe('2026-12-17T21:30')
+    })
+})
+
+/**
+ * A series runs on the weekday it starts on unless somebody says otherwise, so the weekday is not a
+ * second thing to set after picking the date.
+ */
+describe('useEventForm weekday', () => {
+    async function loaded(eventType: string, dayOfWeek: number | null, startTime: string) {
+        Object.assign(events, {
+            getEvent: vi.fn().mockResolvedValue({id: 1, name: 'Dienst', eventType, dayOfWeek, startTime, endTime: startTime}),
+            getRestrictions: vi.fn().mockResolvedValue({register: null, view: null}),
+            getEventFields: vi.fn().mockResolvedValue([]),
+            getEventReminders: vi.fn().mockResolvedValue([]),
+        })
+        const form = useEventForm()
+        await form.loadEvent(1)
+        return form
+    }
+
+    it('takes the weekday of the start', () => {
+        const form = useEventForm()
+
+        form.state.startTime = '2026-11-20T19:00'
+
+        expect(form.state.dayOfWeek).toBe('5')
+    })
+
+    it('follows a moved start while the weekday was left alone', () => {
+        const form = useEventForm()
+        form.state.startTime = '2026-11-20T19:00'
+
+        form.state.startTime = '2026-11-24T19:00'
+
+        expect(form.state.dayOfWeek).toBe('2')
+    })
+
+    it('keeps a weekday picked by hand', () => {
+        const form = useEventForm()
+        form.state.startTime = '2026-11-20T19:00'
+        form.state.dayOfWeek = '3'
+
+        form.state.startTime = '2026-11-24T19:00'
+
+        expect(form.state.dayOfWeek).toBe('3')
+    })
+
+    it('keeps a weekday picked before any start was entered', () => {
+        const form = useEventForm()
+        form.state.dayOfWeek = '3'
+
+        form.state.startTime = '2026-11-20T19:00'
+
+        expect(form.state.dayOfWeek).toBe('3')
+    })
+
+    it('keeps a picked weekday while the start is cleared and entered again', () => {
+        const form = useEventForm()
+        form.state.startTime = '2026-11-20T19:00'
+        form.state.dayOfWeek = '3'
+
+        form.state.startTime = ''
+        form.state.startTime = '2026-11-24T19:00'
+
+        expect(form.state.dayOfWeek).toBe('3')
+    })
+
+    it('loads a single appointment on the weekday of its start', async () => {
+        const form = await loaded('ONE_TIME', null, '2026-11-20T12:00:00.000Z')
+
+        expect(form.state.dayOfWeek).toBe('5')
+    })
+
+    it('keeps the weekday a series was saved with when it differs from its start', async () => {
+        const form = await loaded('RECURRING', 3, '2026-11-20T12:00:00.000Z')
+        expect(form.state.dayOfWeek).toBe('3')
+
+        form.state.startTime = '2026-11-24T19:00'
+
+        expect(form.state.dayOfWeek).toBe('3')
+    })
+
+    it('lets a series saved on its start\'s weekday follow a moved start', async () => {
+        const form = await loaded('RECURRING', 5, '2026-11-20T12:00:00.000Z')
+
+        form.state.startTime = '2026-11-24T19:00'
+
+        expect(form.state.dayOfWeek).toBe('2')
     })
 })
