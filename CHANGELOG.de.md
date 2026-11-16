@@ -26,7 +26,7 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 ### Änderungen
 
 - **Geteilte Termine brauchen auf beiden Seiten diese Version.** Zwischen einer Wache auf dieser Version und einer Partnerwache auf einer älteren auf einem anderen Server funktionieren geteilte Termine, die Anmeldung dazu und ihre Kommentare nicht. Sobald beide 26.25.0 betreiben, geht es wieder.
-- **Ein aufgeräumtes Terminformular.** Termine werden in einem Formular angelegt und bearbeitet, in der Reihenfolge des Ausfüllens, mit Speichern am Ende und Erklärungen hinter einem Info-Symbol. Felder von Terminen und Anwesenheitsvorlagen stehen in einer Zeile, ihre Einstellungen hinter einem Knopf.
+- **Ein aufgeräumtes Terminformular.** Termine und Terminreihen werden in einem Formular angelegt und bearbeitet, in der Reihenfolge des Ausfüllens, mit Speichern am Ende und Erklärungen hinter einem Info-Symbol. Felder von Terminen und Anwesenheitsvorlagen stehen in einer Zeile, ihre Einstellungen hinter einem Knopf.
 
 ### Fehlerbehebungen
 

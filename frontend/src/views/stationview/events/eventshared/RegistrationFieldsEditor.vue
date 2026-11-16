@@ -28,6 +28,8 @@ defineProps<{
   allMembers?: MemberLike[]
   /** What the questions are for behind a hint icon by the heading. */
   compact?: boolean
+  /** What the questions are for, where the owner is not an appointment. */
+  hint?: string
 }>()
 
 const {t} = useI18n()
@@ -52,7 +54,7 @@ function replace(index: number, field: RegistrationFieldDefinition) {
 
 <template>
   <NeutralContainer class="space-y-4" data-testid="registration-question-list">
-    <HintedSubHeader v-if="compact" :hint="t('events.registrationFields.sectionHint')">
+    <HintedSubHeader v-if="compact" :hint="hint ?? t('events.registrationFields.sectionHint')">
       {{ t('events.registrationFields.sectionTitle') }}
     </HintedSubHeader>
     <div v-else>

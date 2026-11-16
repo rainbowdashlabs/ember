@@ -29,7 +29,7 @@ import {asRequired} from './useDocumentRequirements'
  */
 const chosen = defineModel<RequiredTemplate[]>({required: true})
 
-defineProps<{
+const props = defineProps<{
   /** How many templates for appointments the station offers. */
   offeredCount: number
   /** What the documents are for, where the owner is not an appointment: an event group says so in its own words. */
@@ -39,6 +39,10 @@ defineProps<{
 }>()
 
 const {t} = useI18n()
+
+/** The hint by the heading in compact form: what the documents are for, and that they can be signed in the app. */
+const compactHint = computed(() =>
+    (props.hint ? `${props.hint} ${t('events.documents.signInApp')}` : t('events.documents.hintSigning')))
 const {isModuleEnabled, hasPermission} = useSession()
 
 const shown = computed(() => isModuleEnabled(StationModule.DOCUMENTS) || chosen.value.length > 0)
@@ -57,7 +61,7 @@ function remove(templateId: number) {
 
 <template>
   <NeutralContainer v-if="shown" class="space-y-3" data-testid="document-requirements">
-    <HintedSubHeader v-if="compact" :hint="t('events.documents.hintSigning')">{{ t('events.documents.title') }}</HintedSubHeader>
+    <HintedSubHeader v-if="compact" :hint="compactHint">{{ t('events.documents.title') }}</HintedSubHeader>
     <template v-else>
       <SubHeader>{{ t('events.documents.title') }}</SubHeader>
       <MutedText size="sm" tag="p">{{ hint ?? t('events.documents.hint') }}</MutedText>

@@ -26,7 +26,7 @@ People who share a station can write to each other directly, in groups, and in c
 ### Changes
 
 - **Shared appointments need this version on both sides.** Between a station on this version and a partner station on an older one on another server, shared appointments, signing up for them and their comments stop working. They work again once both run 26.25.0.
-- **A tidier appointment form.** Creating and editing an appointment is one form in the order it is filled in, with Save at the end and explanations behind a hint icon. Fields of appointments and attendance templates take one line each, with their settings behind a button.
+- **A tidier appointment form.** Creating and editing an appointment or an event group is one form in the order it is filled in, with Save at the end and explanations behind a hint icon. Fields of appointments and attendance templates take one line each, with their settings behind a button.
 
 ### Fixes
 

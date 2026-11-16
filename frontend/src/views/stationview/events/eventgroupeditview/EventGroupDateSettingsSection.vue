@@ -18,6 +18,8 @@ import type {useEventGroupSettings} from './useEventGroupSettings'
  */
 const props = defineProps<{
   settings: ReturnType<typeof useEventGroupSettings>
+  /** The form's compact card: category and template in one row, reminders asked elsewhere. */
+  compact?: boolean
 }>()
 
 const {categories, templates} = useEventEditDeps()
@@ -38,10 +40,18 @@ watch(props.settings.templateId, async id => {
       :templates="templates"
       :template-fields="templateFields"
       :field-defaults="props.settings.fieldDefaults.defaults.value"
+      :compact="compact"
       @update:category-id="props.settings.setCategory"
       @update:template-id="props.settings.setTemplate"
       @update:reminders="props.settings.setReminders"
       @update:field-default-source="props.settings.fieldDefaults.setSource"
       @update:field-default-value="props.settings.fieldDefaults.setValue"
-  />
+  >
+    <template #row-end>
+      <slot name="row-end"/>
+    </template>
+    <template #after-row>
+      <slot name="after-row"/>
+    </template>
+  </EventGroupDateSettingsCard>
 </template>

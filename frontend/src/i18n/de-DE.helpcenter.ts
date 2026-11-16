@@ -3520,6 +3520,7 @@ volumes:
             subtitle: 'Anmeldung, Blöcke, Zielgruppe und Termine festlegen.',
             whatIs: 'Was stelle ich ein?',
             whatIsText: 'Gib der Terminreihe einen Namen und eine Beschreibung. Bei „Plätze“ legst du fest, wie viele Leute mitmachen können. Lass das Feld leer, wenn es keine Grenze gibt. Beim Anmeldeschluss endet die Anmeldung. Mit „Anmeldungen bestätigen“ entscheidet die Leitung über jede Anmeldung. Die Farbe markiert die Termine der Terminreihe mit einem Streifen am linken Rand; ohne eigene Farbe kommt eine aus der Palette. Unten speicherst du alles auf einmal.',
+            formText: 'Alles steht in einem Formular, in derselben Reihenfolge wie bei einem Termin: Name, Kategorie, Anwesenheitsvorlage und Farbe, Felder, Beschreibung und Erinnerungen, dann Anmeldung, Blöcke, Zielgruppe, Fragen, Dokumente, Dateien und die Freigabe für Partnerwachen. Gespeichert wird unten im Formular, die Termine der Reihe kommen darunter nach dem ersten Speichern dazu.',
             minimumTitle: 'Mindestanzahl',
             minimumText: 'Soll die Terminreihe nur stattfinden, wenn genug Leute mitmachen, trägst du eine Mindestanzahl angenommener Anmeldungen ein. Dazu gibst du an, wie viele Tage vor dem ersten Termin sie erreicht sein muss. Fehlen dann noch Anmeldungen, sagt Ember die ganze Terminreihe ab und schreibt allen Angemeldeten. Anmeldungen von Partnerwachen zählen mit. Lass das Feld leer, wenn es keine Mindestanzahl gibt.',
             setsTitle: 'Blöcke',

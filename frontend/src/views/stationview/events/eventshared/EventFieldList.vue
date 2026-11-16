@@ -44,6 +44,8 @@ const props = defineProps<{
   offeredTypes?: readonly FieldType[]
   /** One line per field with its settings behind a button, and the ways to add one below the list. */
   compact?: boolean
+  /** Without its own heading, where the owner names the fields itself. */
+  hideHeading?: boolean
 }>()
 
 const {t} = useI18n()
@@ -153,8 +155,8 @@ function resizeField(shown: PreviewField, width: FieldWidthName) {
 </script>
 
 <template>
-  <div class="flex items-center justify-between">
-    <SubHeader>{{ t('events.eventFields') }}</SubHeader>
+  <div v-if="!hideHeading || !compact" class="flex items-center justify-between">
+    <SubHeader v-if="!hideHeading">{{ t('events.eventFields') }}</SubHeader>
     <ButtonRow v-if="!compact" align="end">
       <EventFieldAddButtons :existing-names="existingNames" @add="addField" @add-quick="addQuickField"/>
     </ButtonRow>

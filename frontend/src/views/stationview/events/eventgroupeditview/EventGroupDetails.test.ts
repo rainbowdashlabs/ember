@@ -6,7 +6,10 @@
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
-import EventGroupDetailsForm from './EventGroupDetailsForm.vue'
+import {ref} from 'vue'
+import EventGroupColorField from './EventGroupColorField.vue'
+import EventGroupSignUpFields from './EventGroupSignUpFields.vue'
+import {useEventGroupDetails} from './useEventGroupDetails'
 import {EVENT_GROUP_PALETTE} from '../eventshared/eventGroupColor'
 import type {EventGroupDetails} from '@/api/generated/schema'
 
@@ -16,18 +19,25 @@ function detailsOf(color: string, minRegistrations?: number): EventGroupDetails 
 }
 
 function mountForm(color: string, eventGroupId: number | null, minRegistrations?: number) {
-  return mount(EventGroupDetailsForm, {
+  return mount(EventGroupColorField, {
     props: {modelValue: detailsOf(color, minRegistrations), eventGroupId},
-    global: {stubs: {MarkdownEditor: true, DateTimeInput: true}},
+    global: {stubs: {'font-awesome-icon': true}},
   })
 }
 
-function lastDetails(form: ReturnType<typeof mountForm>): EventGroupDetails {
+function mountSignUp(minRegistrations?: number) {
+  return mount(EventGroupSignUpFields, {
+    props: {modelValue: detailsOf('', minRegistrations)},
+    global: {stubs: {'font-awesome-icon': true, DateTimeInput: true}},
+  })
+}
+
+function lastDetails(form: {emitted: (event: string) => unknown[][] | undefined}): EventGroupDetails {
   return form.emitted('update:modelValue')?.at(-1)?.[0] as EventGroupDetails
 }
 
 /** Without a colour of its own the form shows the one the id picks and offers nothing to reset. */
-describe('EventGroupDetailsForm colour', () => {
+describe('EventGroupColorField', () => {
   it('shows the palette colour the id picks while none is set', () => {
     const form = mountForm('', 2)
 
@@ -48,19 +58,19 @@ describe('EventGroupDetailsForm colour', () => {
 
     const style = form.get('[data-testid="event-group-color"]').attributes('style') ?? ''
     expect(EVENT_GROUP_PALETTE.some(color => style.includes(color))).toBe(false)
-    expect(form.text()).toContain('wird beim Speichern eine aus der Palette gewählt')
+    expect(form.get('[data-testid="hint-icon"]').attributes('aria-label')).toContain('wird beim Speichern eine aus der Palette gewählt')
   })
 })
 
 /** The days before the first part are asked only once a minimum is given, and a typed count is kept whole. */
-describe('EventGroupDetailsForm minimum', () => {
+describe('EventGroupSignUpFields minimum', () => {
   it('asks for the days only with a minimum', () => {
-    expect(mountForm('', 2).find('[data-testid="event-group-threshold"]').exists()).toBe(false)
-    expect(mountForm('', 2, 6).find('[data-testid="event-group-threshold"]').exists()).toBe(true)
+    expect(mountSignUp().find('[data-testid="event-group-threshold"]').exists()).toBe(false)
+    expect(mountSignUp(6).find('[data-testid="event-group-threshold"]').exists()).toBe(true)
   })
 
   it('hands on the minimum as a whole number of zero or more', async () => {
-    const form = mountForm('', 2)
+    const form = mountSignUp()
 
     await form.get('[data-testid="event-group-minimum"]').setValue('-3')
 
@@ -69,17 +79,17 @@ describe('EventGroupDetailsForm minimum', () => {
 })
 
 /** The details come and go as one value, each field changing its own part and the deadline kept as an instant. */
-describe('EventGroupDetailsForm details', () => {
-  it('changes the name and keeps every other part', async () => {
-    const form = mountForm('#123456', 2, 6)
+describe('useEventGroupDetails', () => {
+  it('changes the name and keeps every other part', () => {
+    const details = ref(detailsOf('#123456', 6))
 
-    await form.get('[data-testid="event-group-name"]').setValue('Aufbaulehrgang')
+    useEventGroupDetails(details).name.value = 'Aufbaulehrgang'
 
-    expect(lastDetails(form)).toEqual({...detailsOf('#123456', 6), name: 'Aufbaulehrgang'})
+    expect(details.value).toEqual({...detailsOf('#123456', 6), name: 'Aufbaulehrgang'})
   })
 
   it('hands on the deadline typed in local time as an instant, and none when it is cleared', async () => {
-    const form = mountForm('', 2)
+    const form = mountSignUp()
     const deadline = form.getComponent({name: 'DateTimeInput'})
 
     deadline.vm.$emit('update:modelValue', '2026-12-01T18:00')
