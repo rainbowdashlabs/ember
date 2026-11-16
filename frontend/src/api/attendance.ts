@@ -104,7 +104,18 @@ const templateSessions = createScopedCrudResource<
     SessionRequest
 >((templateId: number) => `/attendance/templates/${templateId}/sessions`)
 
-export const listSessionSummaries = sessions.list
+/** What the past sheets are narrowed to: a text to find, and the page. */
+export interface SessionSummaryQuery {
+    /** Text to find in a sheet's title or its template's name. */
+    search?: string
+    limit?: number
+    offset?: number
+}
+
+/** One page of the station's sheets, newest first. */
+export function listSessionSummaries(query: SessionSummaryQuery = {}): Promise<SessionSummary[]> {
+    return sessions.list({search: query.search, limit: query.limit, offset: query.offset})
+}
 export const listSessions = templateSessions.list
 export const getSession = sessions.get
 export const createSession = templateSessions.create

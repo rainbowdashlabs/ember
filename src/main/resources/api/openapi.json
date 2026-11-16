@@ -6678,7 +6678,7 @@
     },
     "/api/v1/attendance/sessions" : {
       "get" : {
-        "summary" : "List the station's sessions with their counts",
+        "summary" : "List the station's sessions with their counts, newest first, a page at a time",
         "tags" : [ "Attendance" ],
         "responses" : {
           "200" : {
@@ -6694,7 +6694,28 @@
               }
             }
           }
-        }
+        },
+        "parameters" : [ {
+          "name" : "search",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "limit",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "offset",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
       }
     },
     "/api/v1/attendance/sessions/{id}" : {

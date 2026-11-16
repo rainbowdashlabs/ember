@@ -277,7 +277,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
     @Test
     @Order(23)
     void findSessionSummaries() {
-        var summaries = service.findSessionSummaries(station.id());
+        var summaries = service.findSessionSummaries(station.id(), null, 100, 0);
         assertFalse(summaries.isEmpty());
     }
 

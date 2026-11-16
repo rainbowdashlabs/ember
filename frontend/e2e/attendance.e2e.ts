@@ -583,6 +583,16 @@ test.describe('Attendance', () => {
         const entry = page.locator(`[data-testid="attendance-session"][data-session="${id}"]`)
         await expect(entry).toBeVisible()
 
+        const search = page.getByTestId('attendance-past-search').locator('input')
+        await search.fill('Kein solcher Bogen')
+        await expect(page.getByText('Keine Anwesenheit passt zur Suche.'), 'a search that matches nothing says so')
+            .toBeVisible()
+        await expect(entry).toHaveCount(0)
+        const title = (await page.request.get(`/api/v1/attendance/sessions/${id}`, {headers: await apiHeaders(page)})
+            .then(answer => answer.json())).session.title as string
+        await search.fill(title)
+        await expect(entry, 'the sheet is found by its title').toBeVisible()
+
         await entry.click()
         await expect(page).toHaveURL(sessionUrl)
     })

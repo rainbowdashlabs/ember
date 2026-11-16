@@ -9250,10 +9250,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List the station's sessions with their counts */
+        /** List the station's sessions with their counts, newest first, a page at a time */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    limit?: number;
+                    offset?: number;
+                    search?: string;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;

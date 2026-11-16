@@ -68,6 +68,9 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
  */
 @Singleton
 public class AttendanceRoutes implements Routes {
+    /** How many past sheets a page holds where the request does not say. */
+    private static final int SESSION_PAGE = 25;
+
     private final AttendanceService attendanceService;
     private final MemberCheckNotesService memberCheckNotesService;
     private final AttendanceExportService exportService;
@@ -572,12 +575,23 @@ public class AttendanceRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/attendance/sessions",
             methods = HttpMethod.GET,
-            summary = "List the station's sessions with their counts",
+            summary = "List the station's sessions with their counts, newest first, a page at a time",
             tags = {"Attendance"},
+            queryParams = {
+                @OpenApiParam(
+                        name = "search",
+                        description = "Text to find in the sheet's title or its template's name"),
+                @OpenApiParam(name = "limit", type = Integer.class, description = "Sheets per page, 25 where absent"),
+                @OpenApiParam(name = "offset", type = Integer.class, description = "Sheets to pass over")
+            },
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = SessionSummary[].class)))
     private void listSessionSummaries(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        ctx.json(attendanceService.findSessionSummaries(session.stationId()));
+        ctx.json(attendanceService.findSessionSummaries(
+                session.stationId(),
+                ctx.queryParam("search"),
+                ctx.queryParamAsClass("limit", Integer.class).getOrDefault(SESSION_PAGE),
+                ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0)));
     }
 
     @OpenApi(

@@ -3800,6 +3800,9 @@ export default {
     },
     attendancePast: {
         empty: 'Keine vergangenen Anwesenheiten vorhanden.',
+        noMatch: 'Keine Anwesenheit passt zur Suche.',
+        searchPlaceholder: 'Nach Titel oder Vorlage suchen',
+        loadMore: 'Ältere laden',
         untitled: 'Ohne Titel',
         present: 'Anwesend',
         absent: 'Abwesend',

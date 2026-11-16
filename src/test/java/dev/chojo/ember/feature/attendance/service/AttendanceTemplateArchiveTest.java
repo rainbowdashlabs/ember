@@ -158,7 +158,8 @@ class AttendanceTemplateArchiveTest extends RepositoryTestBase {
     void theSheetsOfADeletedTemplateStillCountInTheListTheHoursAndTheStatistics() {
         service.archiveTemplate(templateId);
 
-        assertTrue(service.findSessionSummaries(station.id()).stream().anyMatch(s -> s.id() == sheet.id()));
+        assertTrue(service.findSessionSummaries(station.id(), null, 100, 0).stream()
+                .anyMatch(s -> s.id() == sheet.id()));
         var report = reportService.buildReport(
                 station.id(), List.of(), List.of(group.id()), START.minus(1, ChronoUnit.DAYS), END, "exact");
         var line = report.sessions().stream()
