@@ -27,6 +27,7 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 - **Unlesbare Anfragen nennen ihr Feld.** Kann der Server einen Wert nicht lesen, den eine Seite geschickt hat, nennt die Meldung jetzt das Feld, an dem er hängen blieb.
 - **Das Ende wandert mit dem Beginn.** Wird der Beginn eines Termins, eines Anwesenheitsbogens, eines Formulars oder eines Tests geändert, verschiebt sich das Ende um denselben Betrag, und die Dauer bleibt gleich. Ein Termin an einem anderen Tag braucht kein zweites geändertes Ende mehr.
 - **Der Wochentag folgt dem Beginn.** Ein wiederkehrender Termin übernimmt den Wochentag seines Beginns, bis ein anderer Wochentag gewählt wird.
+- **Erinnerungen an offene Einladungen.** Eine Familie, die auf eine Einladung von der Warteliste noch nicht geantwortet hat, wird einmal pro Woche erinnert, mit den Terminen, die noch offen sind. Bei Listen mit Mailversand bekommt die Wache eine Benachrichtigung, sobald alle angebotenen Termine ohne Antwort vorbei sind, und der Eintrag zeigt, dass kein Termin mehr offen ist.
 
 ### Änderungen
 
@@ -47,6 +48,7 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 - **Fragen innerhalb einer Gruppe lassen sich wieder verschieben.** Eine Profilfrage innerhalb ihrer Gruppe zu verschieben, hatte keine Wirkung, und die Frage sprang an ihren alten Platz zurück. Jetzt bleibt die neue Reihenfolge erhalten, auf jedem Formular, das die Gruppe abfragt.
 - **Gleichzeitig geschaltete Module hoben sich auf.** Schalteten zwei Verwaltende kurz nacheinander verschiedene Module um, konnte die zweite Änderung die erste zurückdrehen. Jetzt ändert jeder Schalter nur sein eigenes Modul.
 - **Klarere Datums- und Zeitfelder auf dem Handy.** Auf dem Handy öffnete ein Datum mit Uhrzeit erst einen Kalender und dann eine unbeschriftete Uhr, die wie eine Abfrage des Endes wirkte. Tag und Uhrzeit haben jetzt je ein eigenes Feld mit einer eigenen Auswahl.
+- **Vergangene Termine konnten noch zugesagt werden.** Die Antwortseite einer Einladung bot auch Termine an, die schon begonnen hatten, und sie ließen sich zusagen. Jetzt stehen dort nur noch Termine, die noch bevorstehen, und eine Einladung kann keinen begonnenen Termin mehr nennen.
 
 ## v26.24.2
 

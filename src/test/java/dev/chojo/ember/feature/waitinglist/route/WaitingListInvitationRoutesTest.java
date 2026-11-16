@@ -13,11 +13,14 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.legal.service.ConsentService;
+import dev.chojo.ember.feature.mail.entity.WaitlistInvitationDetails;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitationAnswer;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListVisitor;
 import dev.chojo.ember.feature.waitinglist.service.PublicWaitingListRateLimiter;
 import dev.chojo.ember.feature.waitinglist.service.PublicWaitingListService;
@@ -56,12 +59,14 @@ class WaitingListInvitationRoutesTest {
     private static final String ENTRY = PREFIX + "/waiting-lists/5/entries/9";
 
     private WaitingListService lists;
+    private PublicWaitingListService publicLists;
     private GuardianPolicy guardians;
     private RouteHarness harness;
 
     @BeforeEach
     void setup() {
         lists = mock(WaitingListService.class);
+        publicLists = mock(PublicWaitingListService.class);
         guardians = mock(GuardianPolicy.class);
         var events = mock(EventCrudService.class);
         var restrictions = mock(EventRestrictionService.class);
@@ -85,7 +90,7 @@ class WaitingListInvitationRoutesTest {
 
         harness = RouteHarness.serving(new WaitingListRoutes(
                 lists,
-                mock(PublicWaitingListService.class),
+                publicLists,
                 mock(ConsentService.class),
                 mock(PublicWaitingListRateLimiter.class),
                 events,
@@ -164,6 +169,58 @@ class WaitingListInvitationRoutesTest {
                 json(client.get(PREFIX + "/public/waiting-list/entry/token"))
                         .path("trialMessage")
                         .asString()));
+    }
+
+    /**
+     * An open invitation whose dates have all begun says that no date is left, so the page stops
+     * asking for one. Once answered it shows every date again, because the answer names one of them,
+     * and an invitation that never named a date is not "no date left": coming is still the answer.
+     */
+    @Test
+    void anOpenInvitationWithEveryDateBegunSaysThatNoDateIsLeft() {
+        var family = mock(WaitingListEntry.class);
+        when(family.listId()).thenReturn(5);
+        when(family.confirmedAt()).thenReturn(Instant.EPOCH);
+        when(family.createdAt()).thenReturn(Instant.EPOCH);
+        when(family.status()).thenReturn(WaitingListEntryStatus.INVITED);
+        when(family.invitationRound()).thenReturn(2);
+        var invitation = new WaitingListInvitation(7, LocalDate.of(2020, 5, 12), null);
+        when(family.invitation()).thenReturn(invitation);
+        when(lists.findEntryByToken("token")).thenReturn(Optional.of(family));
+        var drill = new WaitlistInvitationDetails.Appointment(0, "Dienstabend", "12.05.2020", "18:00 - 20:00", "", "");
+        when(publicLists.invitationDetails(3, invitation, true)).thenReturn(WaitlistInvitationDetails.NONE);
+        when(publicLists.invitationDetails(3, invitation, false))
+                .thenReturn(new WaitlistInvitationDetails(List.of(drill), ""));
+
+        harness.run((server, client) -> {
+            var open = json(client.get(PREFIX + "/public/waiting-list/entry/token"))
+                    .path("invitation");
+            assertEquals(true, open.path("noDatesLeft").asBoolean());
+            assertEquals(0, open.path("appointments").size());
+        });
+
+        when(family.answer())
+                .thenReturn(new WaitingListInvitationAnswer(WaitingListAnswer.COMING, Instant.EPOCH, "", 0));
+        harness.run((server, client) -> {
+            var answered = json(client.get(PREFIX + "/public/waiting-list/entry/token"))
+                    .path("invitation");
+            assertEquals(false, answered.path("noDatesLeft").asBoolean());
+            assertEquals(
+                    "Dienstabend",
+                    answered.path("appointments")
+                            .path(0)
+                            .path("appointmentName")
+                            .asString());
+        });
+
+        when(family.answer()).thenReturn(null);
+        when(family.invitation()).thenReturn(null);
+        harness.run((server, client) -> assertEquals(
+                false,
+                json(client.get(PREFIX + "/public/waiting-list/entry/token"))
+                        .path("invitation")
+                        .path("noDatesLeft")
+                        .asBoolean()));
     }
 
     @Test

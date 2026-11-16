@@ -7,15 +7,19 @@ package dev.chojo.ember.feature.mail.service;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -76,6 +80,47 @@ class MailTemplateRendererTest {
         assertFalse(
                 rendered.matches("(?s).*\\{\\{\\s*\\w+\\s*}}.*"),
                 "rendered output still contains unsubstituted placeholders");
+    }
+
+    /**
+     * The weekly reminder names the dates still open, each in one box with its details, and words itself
+     * for one date or several.
+     */
+    @ParameterizedTest(name = "{0}")
+    @CsvSource({
+        "de, Diese Termine sind noch offen, Dieser Termin ist noch offen",
+        "en, These dates are still open, This date is still open"
+    })
+    void theReminderNamesEachOpenDateInOneBox(String locale, String several, String one) {
+        var drill = Map.of(
+                "appointmentName", "Dienstabend",
+                "appointmentDate", "12.05.2099",
+                "appointmentTime", "18:00 - 20:00",
+                "arrivalTime", "17:45",
+                "location", "Feuerwache");
+        var exercise = Map.of(
+                "appointmentName", "Übung",
+                "appointmentDate", "19.05.2099",
+                "appointmentTime", "18:00 - 20:00",
+                "arrivalTime", "",
+                "location", "");
+
+        var vars = new HashMap<String, Object>(VARS);
+        vars.put("appointments", List.of(drill, exercise));
+        String twoDates = renderer.render("waitlist-invitation-reminder.html", locale, vars);
+        var boxes = Pattern.compile("(?s)<li class=\"notification-item\">(.*?)</li>")
+                .matcher(twoDates)
+                .results()
+                .map(match -> match.group(1))
+                .toList();
+        assertEquals(3, boxes.size(), "the station's message and one box per date");
+        assertTrue(boxes.get(1).contains("Dienstabend") && boxes.get(1).contains("17:45"));
+        assertTrue(boxes.get(2).contains("Übung") && boxes.get(2).contains("19.05.2099"));
+        assertTrue(twoDates.contains(several));
+
+        vars.put("appointments", List.of(drill));
+        assertTrue(renderer.render("waitlist-invitation-reminder.html", locale, vars)
+                .contains(one));
     }
 
     @Test

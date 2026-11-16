@@ -267,7 +267,14 @@ public enum WaitingListRefusal implements Refusal {
             70, HttpStatus.BAD_REQUEST, "The message is longer than 2000 characters, so nothing was changed"),
 
     /** An entry that went before it could be offered other dates. */
-    WAITING_LIST_ENTRY_NOT_HERE_ON_OTHER_DATES(71, HttpStatus.NOT_FOUND, Sentences.WAITING_LIST_ENTRY_NOT_HERE);
+    WAITING_LIST_ENTRY_NOT_HERE_ON_OTHER_DATES(71, HttpStatus.NOT_FOUND, Sentences.WAITING_LIST_ENTRY_NOT_HERE),
+
+    /** Coming to an offered date whose appointment has already begun. */
+    WAITING_LIST_ANSWER_DATE_PASSED(72, HttpStatus.CONFLICT, "That date has already begun, so nothing was saved"),
+
+    /** Inviting to a date whose appointment has already begun, or no longer exists. */
+    WAITING_LIST_INVITE_DATE_PASSED(
+            73, HttpStatus.CONFLICT, "One of the dates has already begun, so nothing was changed");
 
     private final Definition definition;
 

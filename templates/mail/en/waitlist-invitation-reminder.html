@@ -1,0 +1,29 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hello {{ name }},</h2>
+      <p><strong>{{ stationName }}</strong> invited you to come along and have a look, and we have not heard back from you yet.</p>
+      {% if message %}
+      <ul class="notification-list">
+        <li class="notification-item"><p class="message" style="white-space:pre-line">{{ message }}</p></li>
+      </ul>
+      {% endif %}
+      {% if appointments | length > 1 %}
+      <p>These dates are still open. Pick whichever suits you best:</p>
+      {% else %}
+      <p>This date is still open:</p>
+      {% endif %}
+      {% for appointment in appointments %}
+      <ul class="notification-list">
+        <li class="notification-item">
+          <strong>{{ appointment.appointmentName }}</strong>
+          {% if appointment.appointmentDate %}<br>Date: {{ appointment.appointmentDate }}{% endif %}
+          {% if appointment.appointmentTime %}<br>Time: {{ appointment.appointmentTime }}{% endif %}
+          {% if appointment.arrivalTime %}<br>Please be there by {{ appointment.arrivalTime }} so we can welcome you properly.{% endif %}
+          {% if appointment.location %}<br>Where: {{ appointment.location }}{% endif %}
+        </li>
+      </ul>
+      {% endfor %}
+      <p>Please let us know on the page below. You can also say there that {% if appointments | length > 1 %}none of the dates works{% else %}the date does not work{% endif %} for you, or that you are no longer interested:</p>
+      <div class="btn-wrap"><a class="btn" href="{{ url }}">Answer the invitation</a></div>
+      <p class="hint">We remind you once a week until you have answered or no date is left. Until you have been here for the first time you are still only on the waiting list.</p>
+{% endblock %}

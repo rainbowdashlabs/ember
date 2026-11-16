@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryValue;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListFieldConfig;
@@ -70,7 +71,8 @@ class WaitingListAnswersTest extends RepositoryTestBase {
                         accountRepo, stationRepo, stationMemberRepo, newGroupMemberships(), mock(AuthService.class)),
                 new WaitlistInvitationMessage(eventRepo, eventFieldRepo, emailService),
                 new DomainEventBus(Set.of()),
-                newGdprDeletionService());
+                newGdprDeletionService(),
+                mock(ModuleAvailability.class));
         station = stationRepo.create("WaitlistAnswersStation");
     }
 

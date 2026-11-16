@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -27,8 +28,10 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -105,12 +108,15 @@ class PublicWaitingListServiceTest {
         var open = station(3, true);
         when(stations.findById(3)).thenReturn(Optional.of(open));
         var invitation = new WaitingListInvitation(7, LocalDate.of(2026, 10, 1), null);
-        when(invitations.describe(open, invitation)).thenReturn(WaitlistInvitationDetails.NONE);
+        when(invitations.describeUpcoming(eq(open), eq(invitation), any())).thenReturn(WaitlistInvitationDetails.NONE);
 
-        assertSame(WaitlistInvitationDetails.NONE, service.invitationDetails(3, invitation));
+        assertSame(WaitlistInvitationDetails.NONE, service.invitationDetails(3, invitation, true));
+        var all = new WaitlistInvitationDetails(List.of(), "alle");
+        when(invitations.describe(open, invitation)).thenReturn(all);
+        assertSame(all, service.invitationDetails(3, invitation, false), "an answered one keeps every date");
         assertEquals(
                 WaitingListRefusal.STATION_NOT_HERE_BEHIND_INVITATION,
-                assertThrows(RefusalResponse.class, () -> service.invitationDetails(4, invitation))
+                assertThrows(RefusalResponse.class, () -> service.invitationDetails(4, invitation, true))
                         .refusal());
     }
 

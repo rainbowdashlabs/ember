@@ -60,6 +60,7 @@ public class WaitingListRepository {
             reminder_sent_at, created_at, notes, member_id, invited_at, testing_at, joined_at, \
             withdrawn_at, attendance_count, invitation_round, invited_message, invitation_answer, \
             invitation_answered_at, invitation_answer_note, invitation_answer_position, trial_message, \
+            invitation_mailed_at, invitation_dates_gone_at, \
             (SELECT jsonb_agg(jsonb_build_object(
                         'position', invitation_option.position,
                         'event_id', invitation_option.event_id,
@@ -546,6 +547,9 @@ public class WaitingListRepository {
      * <p>A new invitation starts a new round, so an answer given on a page that still showed the
      * dates it replaced is refused. Clearing leaves the round where it is: nothing can be answered
      * until the next invitation raises it.
+     *
+     * <p>A new invitation counts as mailed now, which is where its weekly reminders count from, and
+     * forgets that the station was told its dates had run out. Clearing forgets both.
      */
     public void updateInvitation(int entryId, @Nullable WaitingListInvitation invitation) {
         Transactions.run(() -> {
@@ -575,13 +579,97 @@ public class WaitingListRepository {
                         invitation_answer          = NULL,
                         invitation_answered_at     = NULL,
                         invitation_answer_note     = '',
-                        invitation_answer_position = NULL
+                        invitation_answer_position = NULL,
+                        invitation_mailed_at       = CASE WHEN :round_step = 1 THEN now() END,
+                        invitation_dates_gone_at   = NULL
                     WHERE id = :id;""")
                     .single(call().bind("id", entryId)
                             .bind("message", invitation != null ? invitation.message() : "")
                             .bind("round_step", invitation != null ? 1 : 0))
                     .update();
         });
+    }
+
+    /**
+     * The open invitations of a list whose last mail went out at or before the given moment: invited,
+     * unanswered, and with at least one offered date. Whether a date is still ahead is the caller's
+     * to decide, since it depends on the appointment's time of day on the station's clock.
+     *
+     * @param mailedBefore the latest moment the last mail may have gone out
+     */
+    public List<WaitingListEntry> findInvitationsMailedBefore(int listId, Instant mailedBefore) {
+        return query("""
+                SELECT %s FROM waiting_list_entry
+                WHERE list_id = :list_id
+                  AND status = 'INVITED'
+                  AND invitation_answer IS NULL
+                  AND invitation_mailed_at <= :before
+                  AND EXISTS (SELECT 1 FROM waiting_list_invitation_option WHERE entry_id = waiting_list_entry.id)
+                ORDER BY id;""", WAITING_LIST_ENTRY_READ_COLUMNS)
+                .single(call().bind("list_id", listId).bind("before", mailedBefore, INSTANT_TIMESTAMP))
+                .map(WaitingListEntry.map())
+                .all();
+    }
+
+    /**
+     * Records that the family was sent the invitation again, which is where the next reminder counts
+     * from. Written only while the entry still holds the same open invitation: other dates sent in the
+     * meantime start their own count, and an answer ends the reminders.
+     *
+     * @param round the invitation round the reminder was about
+     * @return whether it was written
+     */
+    public boolean markInvitationMailed(int entryId, int round, Instant at) {
+        return query("""
+                UPDATE waiting_list_entry
+                SET invitation_mailed_at = :at
+                WHERE id = :id
+                  AND invitation_round = :round
+                  AND status = 'INVITED'
+                  AND invitation_answer IS NULL;""")
+                .single(call().bind("id", entryId).bind("round", round).bind("at", at, INSTANT_TIMESTAMP))
+                .update()
+                .changed();
+    }
+
+    /**
+     * The open invitations of a list the station has not yet been told about: invited, unanswered, with
+     * at least one offered date and not marked as run out. Whether every date has begun is the caller's
+     * to decide.
+     */
+    public List<WaitingListEntry> findOpenInvitationsNotReportedGone(int listId) {
+        return query("""
+                SELECT %s FROM waiting_list_entry
+                WHERE list_id = :list_id
+                  AND status = 'INVITED'
+                  AND invitation_answer IS NULL
+                  AND invitation_dates_gone_at IS NULL
+                  AND EXISTS (SELECT 1 FROM waiting_list_invitation_option WHERE entry_id = waiting_list_entry.id)
+                ORDER BY id;""", WAITING_LIST_ENTRY_READ_COLUMNS)
+                .single(call().bind("list_id", listId))
+                .map(WaitingListEntry.map())
+                .all();
+    }
+
+    /**
+     * Records that the station was told the invitation has no date left, so it is told once. Written
+     * only while the entry still holds the same open invitation and nobody marked it yet.
+     *
+     * @param round the invitation round whose dates ran out
+     * @return whether it was written, false when another run or other dates came first
+     */
+    public boolean markInvitationDatesGone(int entryId, int round, Instant at) {
+        return query("""
+                UPDATE waiting_list_entry
+                SET invitation_dates_gone_at = :at
+                WHERE id = :id
+                  AND invitation_round = :round
+                  AND status = 'INVITED'
+                  AND invitation_answer IS NULL
+                  AND invitation_dates_gone_at IS NULL;""")
+                .single(call().bind("id", entryId).bind("round", round).bind("at", at, INSTANT_TIMESTAMP))
+                .update()
+                .changed();
     }
 
     /**

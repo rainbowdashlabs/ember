@@ -13,6 +13,7 @@ import dev.chojo.ember.api.refusal.WaitingListRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.event.events.WaitlistInvitationAnswered;
+import dev.chojo.ember.event.events.WaitlistInvitationDatesGone;
 import dev.chojo.ember.event.events.WaitlistPublicRegistration;
 import dev.chojo.ember.event.events.WaitlistTrialEnded;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -38,7 +39,9 @@ import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
@@ -94,6 +97,7 @@ public class WaitingListService implements TaskSource {
     private final WaitlistInvitationMessage invitationMessage;
     private final DomainEventBus eventBus;
     private final GdprDeletionService deletion;
+    private final ModuleAvailability modules;
 
     @Inject
     public WaitingListService(
@@ -108,7 +112,8 @@ public class WaitingListService implements TaskSource {
             StationMemberInviteService inviteService,
             WaitlistInvitationMessage invitationMessage,
             DomainEventBus eventBus,
-            GdprDeletionService deletion) {
+            GdprDeletionService deletion,
+            ModuleAvailability modules) {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -121,6 +126,7 @@ public class WaitingListService implements TaskSource {
         this.invitationMessage = invitationMessage;
         this.eventBus = eventBus;
         this.deletion = deletion;
+        this.modules = modules;
     }
 
     public List<WaitingList> findByStation(int stationId) {
@@ -642,6 +648,9 @@ public class WaitingListService implements TaskSource {
      * manager starting the trial or withdrawing between the first look and the write would otherwise
      * leave a trial carrying fresh dates, and a mail offering them.
      *
+     * <p>Every offered date must still lie ahead: a family cannot come along to an appointment that is
+     * already running, and its answer page would not even show it.
+     *
      * @param expected the status the step starts from
      * @param alongside the step's own change, written in the same transaction
      * @return the entry as it was before the write, with its list and station
@@ -652,6 +661,13 @@ public class WaitingListService implements TaskSource {
                 repository.findEntryById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
         var list = repository.findById(entry.listId()).orElseThrow();
         var station = stationRepository.findById(list.stationId()).orElseThrow();
+        if (invitation != null
+                && invitationMessage
+                                .upcoming(station, invitation, Instant.now())
+                                .size()
+                        < invitation.options().size()) {
+            throw WaitingListRefusal.WAITING_LIST_INVITE_DATE_PASSED.raise();
+        }
 
         Transactions.run(() -> {
             var current = repository
@@ -749,7 +765,7 @@ public class WaitingListService implements TaskSource {
         if (entry.invitationRound() != round) {
             throw WaitingListRefusal.WAITING_LIST_INVITATION_ANSWER_FOR_ANOTHER.raise();
         }
-        var picked = answer == WaitingListAnswer.COMING ? pickedOption(entry.invitation(), position) : null;
+        var picked = answer == WaitingListAnswer.COMING ? pickedOption(entry, position) : null;
 
         String writtenNote = note == null ? "" : note.trim();
         boolean recorded = repository.updateInvitationAnswer(
@@ -771,20 +787,39 @@ public class WaitingListService implements TaskSource {
     /**
      * The offered date a coming answer picks.
      *
+     * <p>Only a date whose appointment has not begun can be picked: one already running or over is
+     * refused, also when it was the only date offered. With a single date still ahead there is
+     * nothing to choose and the position may be left out.
+     *
      * <p>An invitation left without dates, because every appointment it named was deleted, can still
      * be answered with coming: the person means to come, and the station has to hear it.
      *
      * @return the option, or {@code null} when the invitation offers no dates at all
      */
-    private static WaitingListInvitation.@Nullable OfferedDate pickedOption(
-            @Nullable WaitingListInvitation invitation, @Nullable Integer position) {
-        var options = invitation == null ? List.<WaitingListInvitation.OfferedDate>of() : invitation.options();
-        if (options.isEmpty()) return null;
+    private WaitingListInvitation.@Nullable OfferedDate pickedOption(
+            WaitingListEntry entry, @Nullable Integer position) {
+        var invitation = entry.invitation();
+        if (invitation == null || invitation.options().isEmpty()) return null;
+        var upcoming = upcomingOptions(entry, invitation);
         if (position == null) {
-            if (options.size() == 1) return options.getFirst();
+            if (upcoming.size() == 1) return upcoming.getFirst();
+            if (upcoming.isEmpty()) throw WaitingListRefusal.WAITING_LIST_ANSWER_DATE_PASSED.raise();
             throw WaitingListRefusal.WAITING_LIST_ANSWER_NEEDS_A_DATE.raise();
         }
-        return invitation.option(position).orElseThrow(WaitingListRefusal.WAITING_LIST_ANSWER_DATE_NOT_OFFERED::raise);
+        var picked =
+                invitation.option(position).orElseThrow(WaitingListRefusal.WAITING_LIST_ANSWER_DATE_NOT_OFFERED::raise);
+        if (!upcoming.contains(picked)) throw WaitingListRefusal.WAITING_LIST_ANSWER_DATE_PASSED.raise();
+        return picked;
+    }
+
+    /** The dates of the invitation that have not begun, read in the zone of the station the list belongs to. */
+    private List<WaitingListInvitation.OfferedDate> upcomingOptions(
+            WaitingListEntry entry, WaitingListInvitation invitation) {
+        return repository
+                .findById(entry.listId())
+                .flatMap(list -> stationRepository.findById(list.stationId()))
+                .map(station -> invitationMessage.upcoming(station, invitation, Instant.now()))
+                .orElse(invitation.options());
     }
 
     /** The picked date in one line, as the station is told it. */
@@ -1425,12 +1460,75 @@ public class WaitingListService implements TaskSource {
     }
 
     private void checkAllExpiredConfirmations() {
-        try {
-            for (var list : repository.findAll()) {
+        for (var list : repository.findAll()) {
+            try {
                 checkExpiredConfirmations(list);
+                var now = Instant.now();
+                remindOpenInvitations(list, now);
+                reportInvitationsWithoutDates(list, now);
+            } catch (Exception e) {
+                log.warn("Error checking waiting list {}", list.id(), e);
             }
-        } catch (Exception e) {
-            log.warn("Error checking waiting list confirmations", e);
+        }
+    }
+
+    /**
+     * Tells the station once about every open invitation whose offered dates have all begun without an
+     * answer. The family is no longer reminded of it then, and the next step is the station's: other
+     * dates, or back to waiting. Other dates make it count again.
+     *
+     * <p>Like the reminders, it stays silent for a list that writes to nobody and for a station whose
+     * waiting list is switched off.
+     *
+     * <p>The invitation is marked before the station is told, so a run that fails while telling loses
+     * that one notice rather than repeating it every day after.
+     *
+     * @param now the moment that decides which dates have begun
+     */
+    public void reportInvitationsWithoutDates(WaitingList list, Instant now) {
+        if (!list.sendsMail()) return;
+        if (StationModule.WAITING_LIST.isOffIn(modules.disabledAt(list.stationId()))) return;
+        var station = stationRepository.findById(list.stationId()).orElse(null);
+        if (station == null) return;
+        for (var entry : repository.findOpenInvitationsNotReportedGone(list.id())) {
+            var invitation = entry.invitation();
+            if (invitation == null
+                    || !invitationMessage.upcoming(station, invitation, now).isEmpty()) continue;
+            if (repository.markInvitationDatesGone(entry.id(), entry.invitationRound(), now)) {
+                eventBus.publish(new WaitlistInvitationDatesGone(list.stationId(), entry.fullName(), list.name()));
+                log.info("Waiting-list entry {} has no date of its invitation left", entry.id());
+            }
+        }
+    }
+
+    /** How long an invitation sits unanswered before the family is reminded of it, and again after that. */
+    static final Duration INVITATION_REMINDER_INTERVAL = Duration.ofDays(7);
+
+    /**
+     * Reminds the families on a list of the invitations they have not answered, once a week, naming
+     * only the dates still ahead.
+     *
+     * <p>The week counts from the last mail about the invitation: the invitation itself, other dates or
+     * the previous reminder. The reminders end with any answer, with the entry leaving the invited
+     * section, and once no offered date is left; other dates start them again. A list that writes to
+     * nobody reminds nobody, and neither does a station whose waiting list is switched off, by itself
+     * or by its cluster.
+     *
+     * @param now the moment the run happens at, which decides what is due and which dates have begun
+     */
+    public void remindOpenInvitations(WaitingList list, Instant now) {
+        if (!list.sendsMail()) return;
+        if (StationModule.WAITING_LIST.isOffIn(modules.disabledAt(list.stationId()))) return;
+        var station = stationRepository.findById(list.stationId()).orElse(null);
+        if (station == null) return;
+        for (var entry : repository.findInvitationsMailedBefore(list.id(), now.minus(INVITATION_REMINDER_INTERVAL))) {
+            var invitation = entry.invitation();
+            if (invitation == null) continue;
+            var guardians = repository.findGuardiansByEntry(entry.id());
+            if (invitationMessage.sendReminder(entry, guardians, station, invitation, now)) {
+                repository.markInvitationMailed(entry.id(), entry.invitationRound(), now);
+                log.info("Reminded waiting-list entry {} of its open invitation", entry.id());
+            }
         }
     }
 

@@ -106,6 +106,8 @@ const sampleFields = [
         <li>{{ t('helpCenter.waitingList.invitationNo') }}</li>
       </ul>
       <p class="mt-2 text-sm">{{ t('helpCenter.waitingList.invitationStays') }}</p>
+      <p class="mt-2 text-sm">{{ t('helpCenter.waitingList.invitationReminder') }}</p>
+      <p class="mt-2 text-sm">{{ t('helpCenter.waitingList.invitationDatesGone') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.waitingList.messagesTitle')">

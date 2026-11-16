@@ -1622,6 +1622,84 @@ class EventServicesTest extends RepositoryTestBase {
         }
     }
 
+    /**
+     * Asked to, the upcoming list leaves out a date of today that has already begun and keeps the
+     * ones still ahead. Unasked it keeps both, since today's running drill is still on today's list.
+     */
+    @Test
+    @Order(127)
+    void upcomingLeavesOutWhatHasBegunWhenAsked() {
+        var today = stationToday();
+        var running = oneTime("Begun Already", today.atStartOfDay(stationZone()).toInstant());
+        var later = oneTime(
+                "Still Ahead",
+                today.plusDays(1).atTime(18, 0).atZone(stationZone()).toInstant());
+        var weekly = crudService.create(
+                station.id(),
+                "Weekly Begun Today",
+                null,
+                StationEvent.EventType.RECURRING,
+                today.getDayOfWeek().getValue(),
+                today.atStartOfDay(stationZone()).toInstant(),
+                today.atStartOfDay(stationZone()).toInstant().plus(2, ChronoUnit.HOURS),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        try {
+            var notBegun = new OccurrenceQuery(null, null, false, null, null, null, 500, 0, true);
+            var ahead = occurrenceService.findUpcomingOccurrences(station.id(), null, notBegun).stream()
+                    .map(o -> o.event().id())
+                    .collect(Collectors.toSet());
+            var all = occurrenceService.findUpcomingOccurrences(station.id(), null, page(500, 0)).stream()
+                    .map(o -> o.event().id())
+                    .collect(Collectors.toSet());
+
+            assertFalse(ahead.contains(running.id()), "what has begun is left out");
+            assertTrue(ahead.contains(later.id()), "what is ahead stays");
+            assertTrue(all.contains(running.id()), "unasked, today keeps what is running");
+            assertEquals(today.plusWeeks(1), firstDateOf(weekly, notBegun), "a series moves on to its next week");
+            assertEquals(today, firstDateOf(weekly, page(500, 0)), "unasked, the series keeps today");
+        } finally {
+            crudService.delete(weekly.id());
+            crudService.delete(running.id());
+            crudService.delete(later.id());
+        }
+    }
+
+    private LocalDate firstDateOf(StationEvent event, OccurrenceQuery query) {
+        return occurrenceService.findUpcomingOccurrences(station.id(), null, query).stream()
+                .filter(o -> o.event().id() == event.id())
+                .map(UpcomingEventOccurrence::date)
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private StationEvent oneTime(String name, Instant start) {
+        return crudService.create(
+                station.id(),
+                name,
+                null,
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+    }
+
     @Test
     @Order(127)
     void findUpcomingOccurrencesYearly() {

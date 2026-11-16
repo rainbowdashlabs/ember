@@ -21,12 +21,18 @@ import type {WaitingListAnswer, WaitingListPublicAppointment} from '@/api/genera
  * followed by scanners, which would answer on the reader's behalf.
  *
  * An invitation offering several dates asks which one before "I'm coming" can be clicked, and its
- * "the date does not suit" becomes "none of them suits".
+ * "the date does not suit" becomes "none of them suits". Once every offered date is over, only "not
+ * interested" is left: the station sends new dates, and coming to one that is over is refused.
  */
 const note = defineModel<string>('note', {required: true})
 const picked = defineModel<string>('picked', {required: true})
 
-const props = defineProps<{answering: boolean, appointments: WaitingListPublicAppointment[]}>()
+const props = defineProps<{
+  answering: boolean
+  appointments: WaitingListPublicAppointment[]
+  /** No offered date is left to come to, so only saying no is offered until new dates arrive. */
+  noDatesLeft?: boolean
+}>()
 
 const emit = defineEmits<{(e: 'answer', answer: WaitingListAnswer): void}>()
 
@@ -57,6 +63,7 @@ const choosing = computed(() => props.appointments.length > 1)
     </div>
     <div class="flex flex-col sm:flex-row gap-3">
       <PrimaryButton
+          v-if="!props.noDatesLeft"
           :icon="['fas', 'check']"
           :disabled="props.answering || (choosing && picked === '')"
           class="flex-1"
@@ -66,6 +73,7 @@ const choosing = computed(() => props.appointments.length > 1)
         {{ t('waitingList.publicStatus.answerComing') }}
       </PrimaryButton>
       <SecondaryButton
+          v-if="!props.noDatesLeft"
           :icon="['fas', 'calendar-days']"
           :disabled="props.answering"
           class="flex-1"

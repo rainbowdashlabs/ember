@@ -328,4 +328,41 @@ class WaitlistInvitationMessageTest extends RepositoryTestBase {
                 .sendWaitlistInvitationEmail(
                         eq("still@test.com"), eq("Kind Muster"), anyString(), anyString(), anyString(), any(), any());
     }
+
+    /**
+     * A date is over once its appointment has started on that day, not only once the day is over, and a
+     * date of a deleted appointment is not upcoming either.
+     */
+    @Test
+    void onlyDatesWhoseAppointmentHasNotBegunAreUpcoming() {
+        var event = appointment("Dienstabend");
+        var day = LocalDate.of(2026, 6, 2);
+        var invitation = new WaitingListInvitation(
+                "",
+                List.of(
+                        new WaitingListInvitation.OfferedDate(0, event.id(), day, null),
+                        new WaitingListInvitation.OfferedDate(1, event.id(), day.plusDays(7), null),
+                        new WaitingListInvitation.OfferedDate(2, Integer.MAX_VALUE, day.plusDays(14), null)));
+
+        var beforeStart = day.atTime(17, 59).toInstant(ZoneOffset.UTC);
+        var atStart = day.atTime(18, 0).toInstant(ZoneOffset.UTC);
+
+        assertEquals(
+                List.of(0, 1),
+                message.upcoming(station, invitation, beforeStart).stream()
+                        .map(WaitingListInvitation.OfferedDate::position)
+                        .toList());
+        assertEquals(
+                List.of(1),
+                message.upcoming(station, invitation, atStart).stream()
+                        .map(WaitingListInvitation.OfferedDate::position)
+                        .toList(),
+                "a date whose appointment has started is no longer offered");
+        assertEquals(
+                List.of(1),
+                message.describeUpcoming(station, invitation, atStart).appointments().stream()
+                        .map(WaitlistInvitationDetails.Appointment::position)
+                        .toList(),
+                "and the page and mail describe only the dates still ahead");
+    }
 }

@@ -34,7 +34,9 @@ public record WaitingListEntry(
         int invitationRound,
         @Nullable WaitingListInvitation invitation,
         @Nullable WaitingListInvitationAnswer answer,
-        String trialMessage) {
+        String trialMessage,
+        @Nullable Instant invitationMailedAt,
+        @Nullable Instant invitationDatesGoneAt) {
 
     public static RowMapping<WaitingListEntry> map() {
         return row -> new WaitingListEntry(
@@ -59,7 +61,9 @@ public record WaitingListEntry(
                 row.getInt("invitation_round"),
                 WaitingListInvitation.from(row),
                 WaitingListInvitationAnswer.from(row),
-                row.getString("trial_message"));
+                row.getString("trial_message"),
+                row.get("invitation_mailed_at", INSTANT_TIMESTAMP),
+                row.get("invitation_dates_gone_at", INSTANT_TIMESTAMP));
     }
 
     public String fullName() {

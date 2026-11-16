@@ -488,6 +488,7 @@ import dev.chojo.ember.feature.twofactor.service.SecondFactorCredentialStore;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnCredentialStore;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnRelyingPartyFactory;
 import dev.chojo.ember.feature.waitinglist.handler.WaitlistInvitationAnsweredHandler;
+import dev.chojo.ember.feature.waitinglist.handler.WaitlistInvitationDatesGoneHandler;
 import dev.chojo.ember.feature.waitinglist.handler.WaitlistPublicRegistrationHandler;
 import dev.chojo.ember.feature.waitinglist.handler.WaitlistTrialEndedHandler;
 import dev.chojo.ember.feature.waitinglist.route.WaitingListRoutes;
@@ -889,6 +890,7 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(WaitlistPublicRegistrationHandler.class);
         eventBinder.addBinding().to(WaitlistInvitationAnsweredHandler.class);
         eventBinder.addBinding().to(WaitlistTrialEndedHandler.class);
+        eventBinder.addBinding().to(WaitlistInvitationDatesGoneHandler.class);
         eventBinder.addBinding().to(StorageWarningHandler.class);
 
         bind(FederationTransport.class).to(RoutingFederationTransport.class);

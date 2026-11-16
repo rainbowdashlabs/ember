@@ -12,18 +12,23 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.api.refusal.WaitingListRefusal;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.DomainEventHandler;
+import dev.chojo.ember.event.events.WaitlistInvitationDatesGone;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
+import dev.chojo.ember.feature.mail.entity.WaitlistInvitationDetails;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
@@ -43,6 +48,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -59,6 +65,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
     private static Station station;
     private static AuthService authService;
     private static EmailService emailService;
+    private static ModuleAvailability modules;
+    private static final List<WaitlistInvitationDatesGone> datesGone = new ArrayList<>();
     private int listId;
 
     private static List<GuardianInput> guardians(String name, String email) {
@@ -70,6 +78,16 @@ class WaitingListServiceTest extends RepositoryTestBase {
         return service.inviteEntry(entryId, null);
     }
 
+    /**
+     * An invitation as it was sent some time ago, so it may hold dates that have begun since. Inviting
+     * to such a date today is refused, so the dates are written straight onto the invited entry.
+     */
+    private static WaitingListEntry invitedEarlier(int entryId, WaitingListInvitation invitation) {
+        invite(entryId);
+        waitingListRepo.updateInvitation(entryId, invitation);
+        return service.findEntryById(entryId).orElseThrow();
+    }
+
     private static StationEvent appointment(String name) {
         return eventRepo.create(
                 station.id(),
@@ -77,8 +95,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 "",
                 StationEvent.EventType.ONE_TIME,
                 null,
-                Instant.parse("2026-05-12T18:00:00Z"),
-                Instant.parse("2026-05-12T20:00:00Z"),
+                Instant.parse("2099-05-12T18:00:00Z"),
+                Instant.parse("2099-05-12T20:00:00Z"),
                 null,
                 false,
                 null,
@@ -93,6 +111,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         emailService = mock(EmailService.class);
+        modules = mock(ModuleAvailability.class);
         var notificationService = mock(Notifier.class);
         authService = mock(AuthService.class);
         service = new WaitingListService(
@@ -107,8 +126,19 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 TestAccountLinks.inviteService(
                         accountRepo, stationRepo, stationMemberRepo, newGroupMemberships(), authService),
                 new WaitlistInvitationMessage(eventRepo, eventFieldRepo, emailService),
-                new DomainEventBus(Set.of()),
-                newGdprDeletionService());
+                new DomainEventBus(Set.of(new DomainEventHandler<WaitlistInvitationDatesGone>() {
+                    @Override
+                    public Class<WaitlistInvitationDatesGone> eventType() {
+                        return WaitlistInvitationDatesGone.class;
+                    }
+
+                    @Override
+                    public void handle(WaitlistInvitationDatesGone event) {
+                        datesGone.add(event);
+                    }
+                })),
+                newGdprDeletionService(),
+                modules);
         station = stationRepo.create("WaitlistStation");
     }
 
@@ -688,7 +718,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
         var invited = service.inviteEntry(
                 entry.id(),
-                new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), null, "Bring Sportschuhe mit"));
+                new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 12), null, "Bring Sportschuhe mit"));
         assertEquals("Bring Sportschuhe mit", invited.invitation().message());
 
         var back = service.returnToWaiting(entry.id());
@@ -705,13 +735,13 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var entry = service.createEntry(listId, "Neu", "Gast", guardians("", "gast@test.com"), Map.of(), "");
 
         var invited = service.inviteEntry(
-                entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), LocalTime.of(17, 45)));
+                entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 12), LocalTime.of(17, 45)));
 
         assertEquals(WaitingListEntryStatus.INVITED, invited.status());
         assertNotNull(invited.invitation());
         var offered = invited.invitation().options().getFirst();
         assertEquals(event.id(), offered.eventId());
-        assertEquals(LocalDate.of(2026, 5, 12), offered.date());
+        assertEquals(LocalDate.of(2099, 5, 12), offered.date());
         assertEquals(LocalTime.of(17, 45), offered.arrivalTime());
         assertEquals(1, invited.invitationRound(), "an invitation starts a round its answer has to name");
     }
@@ -722,11 +752,11 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var event = appointment("Kein Platz");
         var entry = service.createEntry(listId, "Neu", "Gast", guardians("", "gast2@test.com"), Map.of(), "");
 
-        service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), null));
+        service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 12), null));
 
         assertTrue(
                 eventRegistrationRepo
-                        .findByEventAndDate(event.id(), LocalDate.of(2026, 5, 12))
+                        .findByEventAndDate(event.id(), LocalDate.of(2099, 5, 12))
                         .isEmpty(),
                 "an invitation is a message, not a place on the attendee list");
     }
@@ -750,7 +780,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var event = appointment("Passt nicht");
         var entry = service.createEntry(listId, "Neu", "Zurueck", guardians("", "zurueck@test.com"), Map.of(), "");
         var invited =
-                service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), null));
+                service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 12), null));
 
         var back = service.returnToWaiting(invited.id());
 
@@ -775,7 +805,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var event = appointment("Antwort");
         var entry = service.createEntry(listId, "Neu", "Ja", guardians("", "ja@test.com"), Map.of(), "");
         var invited =
-                service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), null));
+                service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 12), null));
 
         var answered = service.answerInvitation(
                 invited.accessToken(), invited.invitationRound(), WaitingListAnswer.COMING, null, "  Bis dann  ");
@@ -793,9 +823,9 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 new WaitingListInvitation(
                         "",
                         List.of(
-                                new WaitingListInvitation.OfferedDate(0, event.id(), LocalDate.of(2026, 5, 12), null),
+                                new WaitingListInvitation.OfferedDate(0, event.id(), LocalDate.of(2099, 5, 12), null),
                                 new WaitingListInvitation.OfferedDate(
-                                        1, event.id(), LocalDate.of(2026, 5, 19), null))));
+                                        1, event.id(), LocalDate.of(2099, 5, 19), null))));
     }
 
     @Test
@@ -822,6 +852,34 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 () -> service.answerInvitation(
                         invited.accessToken(), invited.invitationRound(), WaitingListAnswer.COMING, null, null));
         assertEquals(WaitingListRefusal.WAITING_LIST_ANSWER_NEEDS_A_DATE, refused.refusal());
+    }
+
+    /**
+     * A date whose appointment has already begun can no longer be the one somebody comes to; with a
+     * single date still ahead, coming without naming one picks that one.
+     */
+    @Test
+    void comingToADateThatHasBegunIsRefused() {
+        var event = appointment("Vorbei");
+        var entry = service.createEntry(listId, "Neu", "Vorbei", guardians("", "vorbei@test.com"), Map.of(), "");
+        var invited = invitedEarlier(
+                entry.id(),
+                new WaitingListInvitation(
+                        "",
+                        List.of(
+                                new WaitingListInvitation.OfferedDate(0, event.id(), LocalDate.of(2020, 5, 12), null),
+                                new WaitingListInvitation.OfferedDate(
+                                        1, event.id(), LocalDate.of(2099, 5, 19), null))));
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.answerInvitation(
+                        invited.accessToken(), invited.invitationRound(), WaitingListAnswer.COMING, 0, null));
+        assertEquals(WaitingListRefusal.WAITING_LIST_ANSWER_DATE_PASSED, refused.refusal());
+
+        var answered = service.answerInvitation(
+                invited.accessToken(), invited.invitationRound(), WaitingListAnswer.COMING, null, null);
+        assertEquals(1, answered.answer().position(), "the one date still ahead is the one picked");
     }
 
     @Test
@@ -879,10 +937,10 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var second = appointment("Zweiter");
         var entry = service.createEntry(listId, "Neu", "Alt", guardians("", "alt@test.com"), Map.of(), "");
         var firstInvitation =
-                service.inviteEntry(entry.id(), new WaitingListInvitation(first.id(), LocalDate.of(2026, 5, 12), null));
+                service.inviteEntry(entry.id(), new WaitingListInvitation(first.id(), LocalDate.of(2099, 5, 12), null));
         service.returnToWaiting(entry.id());
         var invited = service.inviteEntry(
-                entry.id(), new WaitingListInvitation(second.id(), LocalDate.of(2026, 5, 19), null));
+                entry.id(), new WaitingListInvitation(second.id(), LocalDate.of(2099, 5, 19), null));
 
         var refused = assertThrows(
                 RefusalResponse.class,
@@ -922,7 +980,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var second = appointment("Zweite Wahl");
         var entry = service.createEntry(listId, "Neu", "Andere", guardians("", "andere@test.com"), Map.of(), "");
         var invited =
-                service.inviteEntry(entry.id(), new WaitingListInvitation(first.id(), LocalDate.of(2026, 5, 12), null));
+                service.inviteEntry(entry.id(), new WaitingListInvitation(first.id(), LocalDate.of(2099, 5, 12), null));
         service.answerInvitation(
                 invited.accessToken(),
                 invited.invitationRound(),
@@ -932,7 +990,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
         var reoffered = service.reofferEntry(
                 entry.id(),
-                new WaitingListInvitation(second.id(), LocalDate.of(2026, 5, 15), null, "Wie wäre Freitag?"));
+                new WaitingListInvitation(second.id(), LocalDate.of(2099, 5, 15), null, "Wie wäre Freitag?"));
 
         assertEquals(WaitingListEntryStatus.INVITED, reoffered.status());
         assertNull(reoffered.answer(), "the answer belonged to the dates that were replaced");
@@ -952,7 +1010,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         assertThrows(
                 IllegalStateException.class,
                 () -> service.reofferEntry(
-                        entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 15), null)));
+                        entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 15), null)));
     }
 
     /** Starting the trial tells the family, with what the station wrote, and the page keeps it. */
@@ -1024,8 +1082,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var quiet = service.create(station.id(), "Still Probe", "", null, 180, null, null, 5, false, false, null, null);
         var entry = service.createEntry(quiet.id(), "Neu", "Leise", guardians("", "leise@test.com"), Map.of(), "");
         var event = appointment("Leiser Abend");
-        service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), null));
-        service.reofferEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 19), null));
+        service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 12), null));
+        service.reofferEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 19), null));
 
         var testing = service.moveToTesting(entry.id(), "Willkommen");
 
@@ -1070,7 +1128,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         assertThrows(
                 IllegalStateException.class,
                 () -> service.reofferEntry(
-                        entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 19), null)));
+                        entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 19), null)));
         verify(emailService, never())
                 .sendWaitlistOtherDatesEmail(eq("spaet@test.com"), any(), any(), any(), any(), any(), any());
     }
@@ -1092,7 +1150,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
         var event = appointment("Neuer Anlauf");
         var again =
-                service.inviteEntry(back.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 19), null));
+                service.inviteEntry(back.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 19), null));
         assertNull(again.answer());
     }
 
@@ -2122,6 +2180,218 @@ class WaitingListServiceTest extends RepositoryTestBase {
     }
 
     /** A public list nobody is written to, which is what a station behind its own network keeps. */
+    /** Invites a new entry to the given dates of one appointment, as the station's dialog would. */
+    private WaitingListEntry invitedTo(String surname, String email, LocalDate... dates) {
+        var event = appointment("Erinnerung " + surname);
+        var entry = service.createEntry(listId, "Neu", surname, guardians("", email), Map.of(), "");
+        var options = new ArrayList<WaitingListInvitation.OfferedDate>();
+        for (int i = 0; i < dates.length; i++) {
+            options.add(new WaitingListInvitation.OfferedDate(i, event.id(), dates[i], null));
+        }
+        return invitedEarlier(entry.id(), new WaitingListInvitation("", options));
+    }
+
+    private void verifyReminders(String email, int times) {
+        verify(emailService, times(times))
+                .sendWaitlistInvitationReminderEmail(
+                        eq(email), anyString(), anyString(), anyString(), anyString(), any(), any());
+    }
+
+    private WaitingList currentList() {
+        return service.findById(listId).orElseThrow();
+    }
+
+    /**
+     * An unanswered invitation is brought back once a week, counted from its last mail, and not before.
+     * A reminder counts as a mail itself, so the next one waits another week.
+     */
+    @Test
+    void anUnansweredInvitationIsRemindedOnceAWeek() {
+        invitedTo("Woche", "woche@test.com", LocalDate.of(2099, 5, 12));
+        var now = Instant.now();
+
+        service.remindOpenInvitations(currentList(), now.plus(Duration.ofDays(6)));
+        verifyReminders("woche@test.com", 0);
+
+        service.remindOpenInvitations(currentList(), now.plus(Duration.ofDays(8)));
+        verifyReminders("woche@test.com", 1);
+
+        service.remindOpenInvitations(currentList(), now.plus(Duration.ofDays(9)));
+        verifyReminders("woche@test.com", 1);
+
+        service.remindOpenInvitations(currentList(), now.plus(Duration.ofDays(16)));
+        verifyReminders("woche@test.com", 2);
+    }
+
+    /** A reminder names only the dates still ahead. */
+    @Test
+    void aReminderNamesOnlyTheDatesStillAhead() {
+        invitedTo("Rest", "rest@test.com", LocalDate.of(2020, 5, 12), LocalDate.of(2099, 5, 19));
+
+        service.remindOpenInvitations(currentList(), Instant.now().plus(Duration.ofDays(8)));
+
+        var details = ArgumentCaptor.forClass(WaitlistInvitationDetails.class);
+        verify(emailService)
+                .sendWaitlistInvitationReminderEmail(
+                        eq("rest@test.com"),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        any(),
+                        details.capture());
+        assertEquals(1, details.getValue().appointments().size());
+        assertEquals(1, details.getValue().appointments().getFirst().position());
+    }
+
+    /** Any answer ends the reminders, and so does an invitation whose dates are all over. */
+    @Test
+    void anAnsweredOrPastInvitationIsNotReminded() {
+        var answered = invitedTo("Antwort", "antwort@test.com", LocalDate.of(2099, 5, 12));
+        service.answerInvitation(
+                answered.accessToken(), answered.invitationRound(), WaitingListAnswer.DATE_DOES_NOT_SUIT, null, null);
+        invitedTo("Vorbei", "vorbei-erinnerung@test.com", LocalDate.of(2020, 5, 12));
+
+        service.remindOpenInvitations(currentList(), Instant.now().plus(Duration.ofDays(8)));
+
+        verifyReminders("antwort@test.com", 0);
+        verifyReminders("vorbei-erinnerung@test.com", 0);
+    }
+
+    /** Other dates start the week again, so the family is not reminded of dates they were sent today. */
+    @Test
+    void otherDatesStartTheWeekAgain() {
+        var invited = invitedTo("Neu", "neu-erinnerung@test.com", LocalDate.of(2099, 5, 12));
+        var start = Instant.now();
+        service.remindOpenInvitations(currentList(), start.plus(Duration.ofDays(8)));
+        verifyReminders("neu-erinnerung@test.com", 1);
+
+        var event = appointment("Andere");
+        service.reofferEntry(invited.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 6, 2), null));
+
+        service.remindOpenInvitations(currentList(), Instant.now().plus(Duration.ofDays(6)));
+        verifyReminders("neu-erinnerung@test.com", 1);
+        service.remindOpenInvitations(currentList(), Instant.now().plus(Duration.ofDays(8)));
+        verifyReminders("neu-erinnerung@test.com", 2);
+    }
+
+    /** A station whose waiting list is switched off reminds nobody, by itself or by its cluster. */
+    @Test
+    void aSwitchedOffWaitingListRemindsNobody() {
+        invitedTo("Aus", "aus@test.com", LocalDate.of(2099, 5, 12));
+        when(modules.disabledAt(station.id())).thenReturn(Set.of(StationModule.WAITING_LIST));
+        try {
+            service.remindOpenInvitations(currentList(), Instant.now().plus(Duration.ofDays(8)));
+        } finally {
+            when(modules.disabledAt(station.id())).thenReturn(Set.of());
+        }
+
+        verifyReminders("aus@test.com", 0);
+    }
+
+    /**
+     * Once every offered date has begun without an answer, the station is told, and only once. Other
+     * dates make it count again.
+     */
+    @Test
+    void theStationIsToldOnceWhenAnInvitationHasNoDateLeft() {
+        var invited = invitedTo("Leer", "leer@test.com", LocalDate.of(2020, 5, 12));
+        datesGone.clear();
+
+        service.reportInvitationsWithoutDates(currentList(), Instant.now());
+        service.reportInvitationsWithoutDates(currentList(), Instant.now());
+        assertEquals(
+                List.of("Neu Leer"),
+                datesGone.stream()
+                        .map(WaitlistInvitationDatesGone::applicantName)
+                        .toList());
+        assertNotNull(service.findEntryById(invited.id()).orElseThrow().invitationDatesGoneAt());
+
+        var event = appointment("Wieder vorbei");
+        waitingListRepo.updateInvitation(
+                invited.id(), new WaitingListInvitation(event.id(), LocalDate.of(2021, 5, 12), null));
+        service.reportInvitationsWithoutDates(currentList(), Instant.now());
+        assertEquals(2, datesGone.size(), "other dates that ran out too are reported again");
+    }
+
+    /** An invitation with a date still ahead, an answered one and one without dates are not reported. */
+    @Test
+    void anInvitationWithADateAheadOrAnAnswerIsNotReported() {
+        invitedTo("Offen", "offen@test.com", LocalDate.of(2020, 5, 12), LocalDate.of(2099, 5, 12));
+        var answered = invitedTo("Beantwortet", "beantwortet@test.com", LocalDate.of(2020, 5, 12));
+        service.answerInvitation(
+                answered.accessToken(), answered.invitationRound(), WaitingListAnswer.NOT_INTERESTED, null, null);
+        var entry =
+                service.createEntry(listId, "Neu", "Ohne Termin", guardians("", "ohne-termin@test.com"), Map.of(), "");
+        invite(entry.id());
+        datesGone.clear();
+
+        service.reportInvitationsWithoutDates(currentList(), Instant.now());
+
+        assertEquals(List.of(), datesGone);
+    }
+
+    /** A list that writes to nobody and a switched-off waiting list tell the station nothing either. */
+    @Test
+    void aQuietOrSwitchedOffListReportsNothing() {
+        invitedTo("Still", "still-leer@test.com", LocalDate.of(2020, 5, 12));
+        datesGone.clear();
+        when(modules.disabledAt(station.id())).thenReturn(Set.of(StationModule.WAITING_LIST));
+        try {
+            service.reportInvitationsWithoutDates(currentList(), Instant.now());
+        } finally {
+            when(modules.disabledAt(station.id())).thenReturn(Set.of());
+        }
+        assertEquals(List.of(), datesGone, "not while the waiting list is switched off");
+
+        var quiet = service.create(station.id(), "Still leer", "", null, 180, null, null, 5, false, false, null, null);
+        listId = quiet.id();
+        invitedTo("Leise", "leise-leer@test.com", LocalDate.of(2020, 5, 12));
+        service.reportInvitationsWithoutDates(currentList(), Instant.now());
+        assertEquals(List.of(), datesGone, "not for a list that writes to nobody");
+    }
+
+    /**
+     * Nobody is invited to a date that has already begun, neither at first nor with other dates: the
+     * family could not come along, and its answer page would not even show the date.
+     */
+    @Test
+    void aDateThatHasBegunCannotBeOffered() {
+        var event = appointment("Schon vorbei");
+        var entry = service.createEntry(listId, "Neu", "Zu spaet", guardians("", "zu-spaet@test.com"), Map.of(), "");
+        var past = new WaitingListInvitation(event.id(), LocalDate.of(2020, 5, 12), null);
+
+        var refused = assertThrows(RefusalResponse.class, () -> service.inviteEntry(entry.id(), past));
+        assertEquals(WaitingListRefusal.WAITING_LIST_INVITE_DATE_PASSED, refused.refusal());
+        assertEquals(
+                WaitingListEntryStatus.WAITING,
+                service.findEntryById(entry.id()).orElseThrow().status());
+
+        service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 12), null));
+        var other = assertThrows(RefusalResponse.class, () -> service.reofferEntry(entry.id(), past));
+        assertEquals(WaitingListRefusal.WAITING_LIST_INVITE_DATE_PASSED, other.refusal());
+        assertEquals(
+                LocalDate.of(2099, 5, 12),
+                service.findEntryById(entry.id())
+                        .orElseThrow()
+                        .invitation()
+                        .options()
+                        .getFirst()
+                        .date());
+    }
+
+    /** A list that writes to nobody reminds nobody. */
+    @Test
+    void aListWithoutMailRemindsNobody() {
+        var quiet = service.create(station.id(), "Leise", "", null, 180, null, null, 5, false, false, null, null);
+        listId = quiet.id();
+        invitedTo("Leise", "leise@test.com", LocalDate.of(2099, 5, 12));
+
+        service.remindOpenInvitations(currentList(), Instant.now().plus(Duration.ofDays(8)));
+
+        verifyReminders("leise@test.com", 0);
+    }
+
     private WaitingList silentList(String name) {
         return service.create(
                 station.id(), name + " " + UUID.randomUUID(), "", null, 0, null, null, 5, true, false, null, null);

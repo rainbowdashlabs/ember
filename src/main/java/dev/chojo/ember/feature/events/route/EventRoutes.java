@@ -313,6 +313,10 @@ public class EventRoutes implements Routes {
                         description = "Keep only dates that can still be signed up for: registration required, "
                                 + "deadline not passed, not closed days before the date, date not called off"),
                 @OpenApiParam(
+                        name = "notBegun",
+                        type = Boolean.class,
+                        description = "Leave out the dates of today that have already begun"),
+                @OpenApiParam(
                         name = "search",
                         description = "Free-text search over event name and description (case-insensitive)"),
                 @OpenApiParam(
@@ -404,7 +408,8 @@ public class EventRoutes implements Routes {
                 parseDate(ctx.queryParam("from")),
                 parseDate(ctx.queryParam("to")),
                 ctx.queryParamAsClass("limit", Integer.class).getOrDefault(10),
-                ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0));
+                ctx.queryParamAsClass("offset", Integer.class).getOrDefault(0),
+                Boolean.parseBoolean(ctx.queryParam("notBegun")));
     }
 
     /** An optional date bound, absent where the parameter was not sent or was sent empty. */

@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
+import dev.chojo.ember.feature.events.service.OccurrenceWindows;
 import dev.chojo.ember.feature.inventory.entity.LineTarget;
 import dev.chojo.ember.feature.inventory.service.LineTargetService;
 import jakarta.inject.Inject;
@@ -193,9 +194,8 @@ public class EquipmentNeedService {
         lineTargets.requireOwnedBy(
                 LineTarget.item(itemId), event.stationId(), "A station only hands over its own gear");
         ZoneId zone = occurrenceCalendar.zoneOf(event.stationId());
-        Instant from =
-                EquipmentOccurrenceWindows.startOf(event, eventDate, zone).minus(need.lead());
-        Instant to = EquipmentOccurrenceWindows.endOf(event, eventDate, zone).plus(need.trail());
+        Instant from = OccurrenceWindows.startOf(event, eventDate, zone).minus(need.lead());
+        Instant to = OccurrenceWindows.endOf(event, eventDate, zone).plus(need.trail());
         return needRepository.recordHandover(needId, eventDate, itemId, from, to, handedBy);
     }
 
@@ -247,8 +247,8 @@ public class EquipmentNeedService {
         var coverage = new ArrayList<NeedCoverage>();
         ZoneId zone = occurrenceCalendar.zoneOf(event.stationId());
         for (var need : lines) {
-            Instant from = EquipmentOccurrenceWindows.startOf(event, date, zone).minus(need.lead());
-            Instant to = EquipmentOccurrenceWindows.endOf(event, date, zone).plus(need.trail());
+            Instant from = OccurrenceWindows.startOf(event, date, zone).minus(need.lead());
+            Instant to = OccurrenceWindows.endOf(event, date, zone).plus(need.trail());
             EquipmentAvailability availability =
                     availabilityService.availability(event.stationId(), need.target(), from, to, need.id());
             int borrowed = availabilityRepository.borrowedAgainstNeed(need.id());

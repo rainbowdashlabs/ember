@@ -826,3 +826,16 @@ INSERT INTO ember_schema.onboarding_member_task(member_id, task_key, state)
 SELECT DISTINCT member_id, 'member.tour', 'CONFIRMED'
 FROM ember_schema.onboarding_member_task
 ON CONFLICT (member_id, task_key) DO NOTHING;
+
+ALTER TABLE ember_schema.waiting_list_entry
+    ADD COLUMN invitation_mailed_at TIMESTAMPTZ,
+    ADD COLUMN invitation_dates_gone_at TIMESTAMPTZ;
+
+COMMENT ON COLUMN ember_schema.waiting_list_entry.invitation_mailed_at
+    IS 'When the family was last sent the current invitation: the invitation, other dates or a weekly reminder. Set for every new invitation, also on a list that sends no mail. NULL while there is no invitation.';
+COMMENT ON COLUMN ember_schema.waiting_list_entry.invitation_dates_gone_at
+    IS 'When the station was told that no offered date of the current invitation is left. NULL until then; other dates clear it.';
+
+UPDATE ember_schema.waiting_list_entry
+SET invitation_mailed_at = invited_at
+WHERE status = 'INVITED';

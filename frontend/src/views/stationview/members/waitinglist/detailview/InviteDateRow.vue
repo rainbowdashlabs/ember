@@ -37,6 +37,7 @@ const suffix = computed(() => props.index === 0 ? '' : `-${props.index}`)
             :placeholder="t('waitingList.invitePickAppointment')"
             :empty-label="t('waitingList.inviteNoAppointments')"
             :testid="`waitlist-invite-occurrence${suffix}`"
+            not-begun
             :data-autofocus="props.index === 0 ? '' : undefined"
             @update:model-value="draft = {...draft, occurrence: $event}"
         />
