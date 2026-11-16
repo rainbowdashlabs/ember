@@ -5,6 +5,7 @@
  */
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import {useEndFollowsStart} from '@/composables/useEndFollowsStart'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -87,6 +88,7 @@ function catalogName(catalogId: number): string {
 
 const editStartAt = ref('')
 const editEndAt = ref('')
+useEndFollowsStart(editStartAt, editEndAt)
 const timesDirty = ref(false)
 
 function markTimesDirty() { timesDirty.value = true }

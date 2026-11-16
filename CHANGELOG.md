@@ -20,7 +20,7 @@ People who share a station can write to each other directly, in groups, and in c
 - **Batch appointments entered one by one.** Besides a schedule and an imported file, appointments can be written down row by row, each with its date, times and an optional title.
 - **Registration questions can carry a description.** Like a profile field, a question asked when signing up for an appointment or an event group can carry a short explanation, shown under the question while answering.
 - **Unreadable requests name their field.** Where the server cannot read a value a page sent, the message now names the field it stopped at.
-- **The end moves with the start.** Changing the start of an appointment or an attendance sheet moves its end by the same amount, so the length stays the same. Moving an appointment to another day no longer needs the end changed as well.
+- **The end moves with the start.** Changing the start of an appointment, an attendance sheet, a form or a test moves its end by the same amount, so the length stays the same. Moving an appointment to another day no longer needs the end changed as well.
 
 ### Changes
 

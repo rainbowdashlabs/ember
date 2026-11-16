@@ -20,7 +20,7 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 - **Mehrere Termine einzeln eintragen.** Neben Zeitplan und Datei-Import lassen sich Termine Zeile für Zeile eintragen, jeder mit Datum, Uhrzeiten und auf Wunsch einem eigenen Titel.
 - **Fragen bei der Anmeldung können eine Erklärung tragen.** Wie ein Profilfeld kann eine Frage bei der Anmeldung zu einem Termin oder einer Terminreihe eine kurze Erklärung tragen, die beim Antworten unter der Frage steht.
 - **Unlesbare Anfragen nennen ihr Feld.** Kann der Server einen Wert nicht lesen, den eine Seite geschickt hat, nennt die Meldung jetzt das Feld, an dem er hängen blieb.
-- **Das Ende wandert mit dem Beginn.** Wird der Beginn eines Termins oder eines Anwesenheitsbogens geändert, verschiebt sich das Ende um denselben Betrag, und die Dauer bleibt gleich. Ein Termin an einem anderen Tag braucht kein zweites geändertes Ende mehr.
+- **Das Ende wandert mit dem Beginn.** Wird der Beginn eines Termins, eines Anwesenheitsbogens, eines Formulars oder eines Tests geändert, verschiebt sich das Ende um denselben Betrag, und die Dauer bleibt gleich. Ein Termin an einem anderen Tag braucht kein zweites geändertes Ende mehr.
 
 ### Änderungen
 
