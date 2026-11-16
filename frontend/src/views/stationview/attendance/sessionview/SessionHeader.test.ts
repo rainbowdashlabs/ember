@@ -35,7 +35,8 @@ describe('SessionHeader', () => {
     it('lets the times be corrected on a sheet an appointment made', () => {
         const wrapper = mount(SessionHeader, {props: {session: sheet({eventId: 7})}, ...i18n})
 
-        expect(wrapper.findAll('input[type="datetime-local"]')).toHaveLength(2)
+        expect(wrapper.findAll('input[type="date"]')).toHaveLength(2)
+        expect(wrapper.findAll('input[type="time"]')).toHaveLength(2)
     })
 
     it('shows what a whole presence counts as, in hours', () => {

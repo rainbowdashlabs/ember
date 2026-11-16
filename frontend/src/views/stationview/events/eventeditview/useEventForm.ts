@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, reactive, ref, watch} from 'vue'
+import {computed, reactive, ref, toRef, watch} from 'vue'
 import {events} from '@/api'
 import {needsDayOfWeek} from '@/api/events'
 import {namesMembers} from '@/api/fieldTypes'
@@ -20,6 +20,7 @@ import {toRestriction} from '@/components/input/restriction'
 import {createEventFormState, eventTypeNamed} from './eventFormState'
 import {modelBindings} from './modelBindings'
 import {instantToLocalInput} from '@/util/format'
+import {useEndFollowsStart} from '@/composables/useEndFollowsStart'
 import {entryOf, namedEntries} from '../eventshared/eventQuestions'
 import {offsetParts} from '../templateeditview/signUpRules'
 import {copyStartDay, deadlineHoursBefore, lengthOf, placedOn} from './copyDates'
@@ -79,6 +80,7 @@ export function useEventForm() {
       state.endTime = endAfter(val)
     }
   })
+  useEndFollowsStart(toRef(state, 'startTime'), toRef(state, 'endTime'))
 
   /** The end a start entered into an empty end gives: the copied length after it, or the start itself. */
   function endAfter(start: string): string {

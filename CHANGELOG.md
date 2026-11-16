@@ -23,6 +23,7 @@ People who share a station can write to each other directly, in groups, and in c
 - **Fields can take two thirds or a quarter of a row.** Besides a third and a half, a profile, attendance or appointment field can take a quarter, two thirds or three quarters of a row, picked with a slider instead of a list.
 - **Appointments can be copied.** "Copy" on an appointment or in the list of appointments opens a new one with everything of the original filled in, ready for a new date. Sign-ups, attendance and comments are not copied.
 - **Unreadable requests name their field.** Where the server cannot read a value a page sent, the message now names the field it stopped at.
+- **The end moves with the start.** Changing the start of an appointment, an attendance sheet, a form or a test moves its end by the same amount, so the length stays the same. Moving an appointment to another day no longer needs the end changed as well.
 
 ### Changes
 
@@ -39,6 +40,7 @@ People who share a station can write to each other directly, in groups, and in c
 - **Name colors lagged behind group changes.** In some cases a new group or tag color, or a new group membership, did not show on names in lists and comments while people kept looking at them. Names now take the change as soon as it is saved.
 - **Questions inside a group can be moved again.** Moving a profile question within its group had no effect, and the question jumped back to its old place. The new order is now kept on every form that asks the group.
 - **Switching modules at the same time undid each other.** When two managers switched different modules within moments, the second change could switch the first one back. Each switch now changes only its own module.
+- **Clearer date and time fields on phones.** On phones, a date with a time opened a calendar followed by a clock that did not say what it was for, which read as the end being asked for when only the start was changed. The day and the time now have a field of their own, each with one picker.
 
 ## v26.24.2
 

@@ -9726,6 +9726,8 @@ export default {
         separatorHint: 'Tabellenprogramme auf Deutsch erwarten das Semikolon.',
     },
     common: {
+        datePart: 'Datum',
+        timePart: 'Uhrzeit',
         send: 'Abschicken',
         continue: 'Weiter',
         export: 'Exportieren',

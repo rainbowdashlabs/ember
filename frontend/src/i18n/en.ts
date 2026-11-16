@@ -19,6 +19,8 @@
  */
 export default {
     common: {
+        datePart: 'Date',
+        timePart: 'Time',
         send: 'Send',
         continue: 'Continue',
         loading: 'Loading...',

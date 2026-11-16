@@ -9,6 +9,7 @@ import {test, expect, apiHeaders, type Page} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 import {stationDay} from './fixtures/stationDay'
 import {ownMember} from './fixtures/ownMember'
+import {fillMoment} from './fixtures/moment'
 
 /** Where half a row stands on the width slider, counted from its narrowest stop. */
 const HALF_STOP = '2'
@@ -604,8 +605,8 @@ test.describe('Attendance', () => {
         await page.getByTestId('attendance-audience-confirm').click()
 
         await page.getByTestId('new-session-title').fill(unique('Zeltlager'))
-        await page.getByTestId('new-session-start').fill(asLocalInput(start))
-        await page.getByTestId('new-session-end').fill(asLocalInput(end))
+        await fillMoment(page.getByTestId('new-session-start'), asLocalInput(start))
+        await fillMoment(page.getByTestId('new-session-end'), asLocalInput(end))
         await page.getByTestId('new-session-create').click()
         await page.waitForURL(/\/station\/attendance\/session\/\d+/)
 
@@ -619,9 +620,10 @@ test.describe('Attendance', () => {
         expect(spanHours).toBe(44)
 
         await page.locator('button[aria-label="Anwesend"]:not([disabled])').first().click()
-        const memberMoments = page.locator('[data-testid^="member-row-"] input[type="datetime-local"]')
-        await expect(memberMoments.first()).toBeVisible()
-        expect(await memberMoments.first().inputValue()).toBe(asLocalInput(start))
+        const memberMoment = page.locator('[data-testid^="member-row-"] [data-moment]').first()
+        await expect(memberMoment).toBeVisible()
+        expect(await memberMoment.locator('input[type="date"]').inputValue()).toBe(asLocalInput(start).slice(0, 10))
+        expect(await memberMoment.locator('input[type="time"]').inputValue()).toBe(asLocalInput(start).slice(11, 16))
     })
 
     /**

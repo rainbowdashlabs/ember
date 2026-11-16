@@ -70,7 +70,7 @@ function onCountedHours(value: number | string | undefined) {
         <FieldLabel>{{ t('attendanceSession.startTime') }}</FieldLabel>
         <DateTimeInput v-if="!readonly"
                        :model-value="instantToLocalInput(session.startTime)"
-                       @change="emit('updateStartTime', ($event.target as HTMLInputElement).value)"
+                       @change="emit('updateStartTime', $event)"
         />
         <span v-else class="text-sm">{{ formatDateTime(session.startTime) || '-' }}</span>
       </div>
@@ -78,7 +78,7 @@ function onCountedHours(value: number | string | undefined) {
         <FieldLabel>{{ t('attendanceSession.endTime') }}</FieldLabel>
         <DateTimeInput v-if="!readonly"
                        :model-value="instantToLocalInput(session.endTime)"
-                       @change="emit('updateEndTime', ($event.target as HTMLInputElement).value)"
+                       @change="emit('updateEndTime', $event)"
         />
         <span v-else class="text-sm">{{ formatDateTime(session.endTime) || '-' }}</span>
       </div>

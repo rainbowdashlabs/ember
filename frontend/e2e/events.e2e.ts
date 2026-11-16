@@ -6,6 +6,7 @@
 import {test, expect, apiHeaders, type Page} from './fixtures/auth'
 import {pickMemberByName} from './fixtures/memberMenu'
 import {stationDay} from './fixtures/stationDay'
+import {fillMoment, momentFields} from './fixtures/moment'
 
 /**
  * Registering for an event, withdrawing again, and the organiser's view of who has signed up.
@@ -626,9 +627,9 @@ test.describe('Events', () => {
         await managerPage.goto('/station/events/new')
         await managerPage.getByPlaceholder('Name des Termins').fill(event)
 
-        const times = managerPage.locator('input[type="datetime-local"]')
-        await times.first().fill('2026-12-01T18:00')
-        if (await times.count() > 1) await times.nth(1).fill('2026-12-01T20:00')
+        const times = momentFields(managerPage)
+        await fillMoment(times.first(), '2026-12-01T18:00')
+        if (await times.count() > 1) await fillMoment(times.nth(1), '2026-12-01T20:00')
 
         await managerPage.getByText('Anmeldung erforderlich')
             .locator('xpath=following-sibling::button').click()
@@ -665,9 +666,9 @@ test.describe('Events', () => {
         await page.goto('/station/events/new')
         await page.getByPlaceholder('Name des Termins').fill(name)
 
-        const times = page.locator('input[type="datetime-local"]')
-        await times.first().fill('2026-12-03T18:00')
-        if (await times.count() > 1) await times.nth(1).fill('2026-12-03T20:00')
+        const times = momentFields(page)
+        await fillMoment(times.first(), '2026-12-03T18:00')
+        if (await times.count() > 1) await fillMoment(times.nth(1), '2026-12-03T20:00')
 
         await page.getByTestId('event-type-toggle').getByRole('switch').click()
         await page.getByTestId('repeat-end-kind').selectOption('afterCount')

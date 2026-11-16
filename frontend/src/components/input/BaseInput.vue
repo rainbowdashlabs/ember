@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {useId} from 'vue'
+import {normalizeClass, useAttrs, useId} from 'vue'
 import {BORDERED_INPUT_CLASSES, BORDERLESS_INPUT_CLASSES} from './inputClasses'
 
 const model = defineModel<string | number>()
@@ -26,6 +26,18 @@ const props = defineProps<{
 }>()
 
 const generatedId = useId()
+
+const attrs = useAttrs()
+
+/**
+ * Whether the field takes the whole row, which it does unless the caller gives it a width of its
+ * own. The two would otherwise sit on the element side by side, and which of them wins is down to
+ * the order of the stylesheet: a time field meant to be narrow took the whole row and squeezed the
+ * date beside it down to nothing.
+ */
+function fillsRow(): boolean {
+  return !normalizeClass(attrs.class).split(/\s+/).some(token => /^(?:[\w-]+:)*w-/.test(token))
+}
 
 /** The types whose value is picked from a calendar or a clock rather than typed. */
 const PICKER_TYPES = ['date', 'time', 'datetime-local']
@@ -73,7 +85,7 @@ function openPicker(event: Event) {
       :step="step"
       :type="type ?? 'text'"
       :autocomplete="autocomplete"
-      :class="['w-full', props.borderless ? BORDERLESS_INPUT_CLASSES : BORDERED_INPUT_CLASSES]"
+      :class="[{'w-full': fillsRow()}, props.borderless ? BORDERLESS_INPUT_CLASSES : BORDERED_INPUT_CLASSES]"
       @focus="openPicker"
   />
 </template>
