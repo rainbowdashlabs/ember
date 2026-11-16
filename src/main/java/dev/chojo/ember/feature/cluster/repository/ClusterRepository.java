@@ -336,6 +336,32 @@ public class ClusterRepository {
     }
 
     /**
+     * Whether a cluster member wants the association's notifications pushed to their devices.
+     *
+     * @param memberId the cluster member
+     * @return their choice, {@code false} for a member that does not exist
+     */
+    public boolean isPushEnabled(int memberId) {
+        return query("SELECT push_enabled FROM cluster_member WHERE id = :id;")
+                .single(call().bind("id", memberId))
+                .map(row -> row.getBoolean("push_enabled"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
+     * Switches pushing the association's notifications on or off for a cluster member.
+     *
+     * @param memberId the cluster member
+     * @param enabled  whether they want pushes
+     */
+    public void setPushEnabled(int memberId, boolean enabled) {
+        query("UPDATE cluster_member SET push_enabled = :enabled WHERE id = :id;")
+                .single(call().bind("enabled", enabled).bind("id", memberId))
+                .update();
+    }
+
+    /**
      * Switches a cluster member's mail on or off.
      *
      * @param memberId the cluster member

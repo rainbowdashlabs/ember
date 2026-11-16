@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.push.service;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
+import dev.chojo.ember.feature.notifications.service.NotificationVisibility;
 import dev.chojo.ember.feature.push.entity.PushSubscription;
 import dev.chojo.ember.feature.push.repository.PushOutboxRepository;
 import dev.chojo.ember.feature.push.repository.PushSubscriptionRepository;
@@ -66,7 +67,12 @@ class PushSenderTest extends RepositoryTestBase {
         sender = new PushSender(
                 outbox,
                 subscriptions,
-                new PushMessages(new NotificationText(), applicationSettingRepo, new Api()),
+                new PushMessages(
+                        new NotificationText(),
+                        applicationSettingRepo,
+                        notificationRepo,
+                        mock(NotificationVisibility.class),
+                        new Api()),
                 new VapidKeys(new VapidKeyRepository(), new SigningKeyWrap(SECRET)),
                 transport,
                 instance,
@@ -214,11 +220,14 @@ class PushSenderTest extends RepositoryTestBase {
         assertTrue(new String(payload, java.nio.charset.StandardCharsets.UTF_8).contains("https://ember.example/a"));
     }
 
+    /** Switched off, nothing goes out, and what was queued is dropped rather than sent stale later. */
     @Test
-    void nothingGoesOutWhilePushIsSwitchedOff() {
+    void nothingGoesOutWhilePushIsSwitchedOffAndNothingPilesUp() {
         when(instance.pushEnabled()).thenReturn(false);
         outbox.enqueueTest(browser.id());
 
+        sweep();
+        when(instance.pushEnabled()).thenReturn(true);
         sweep();
 
         assertTrue(sent.isEmpty());

@@ -110,8 +110,8 @@ class NotificationDigestTest extends RepositoryTestBase {
     void aStationDigestReadsAsItAlwaysHas() throws Exception {
         var station = station("Wache Golden", "de-DE", "Europe/Berlin");
         var greta = memberWithMail(station, "golden@test.com", "Greta", "Golden");
-        notificationSettingsRepo.upsert(greta.id(), NotificationType.NEW_NEWS, true, true, true);
-        notificationSettingsRepo.upsert(greta.id(), NotificationType.NEWS_COMMENT, true, true, true);
+        notificationSettingsRepo.upsert(greta.id(), NotificationType.NEW_NEWS, true, true, true, true);
+        notificationSettingsRepo.upsert(greta.id(), NotificationType.NEWS_COMMENT, true, true, true, true);
         notify(
                 greta,
                 NotificationType.NEW_NEWS,
@@ -162,7 +162,7 @@ class NotificationDigestTest extends RepositoryTestBase {
                 email,
                 new NotificationVisibility(new ModuleAvailability(stationRepo, clusterRepo), stationMemberRepo));
         assertFalse(preferences.clusterMailOf(wantsMail.id()).emailEnabled(), "mail is off until asked for");
-        assertTrue(preferences.setClusterMail(wantsMail.id(), true).emailEnabled());
+        assertTrue(preferences.setClusterMail(wantsMail.id(), true, null).emailEnabled());
         assertTrue(preferences.clusterMailOf(wantsMail.id()).mailAvailable());
         notificationRepo.insertForCluster(
                 List.of(wantsMail.id(), noMail.id()),
@@ -199,8 +199,8 @@ class NotificationDigestTest extends RepositoryTestBase {
     void aSwitchedOffModuleIsNotMailedButMarked() {
         var station = station("Wache Ohne Nachrichten", "de-DE", "Europe/Berlin");
         var reader = memberWithMail(station, "ohne-news@test.com", "Nora", "Nachricht");
-        notificationSettingsRepo.upsert(reader.id(), NotificationType.NEW_NEWS, true, true, true);
-        notificationSettingsRepo.upsert(reader.id(), NotificationType.NEW_EVENT, true, true, true);
+        notificationSettingsRepo.upsert(reader.id(), NotificationType.NEW_NEWS, true, true, true, true);
+        notificationSettingsRepo.upsert(reader.id(), NotificationType.NEW_EVENT, true, true, true, true);
         notify(reader, NotificationType.NEW_NEWS, news("Verborgen"));
         notify(
                 reader,
@@ -236,7 +236,7 @@ class NotificationDigestTest extends RepositoryTestBase {
     void aStationWhoseMomentHasNotComeKeepsItsNotifications() {
         var station = station("Wache Später", "de-DE", "Europe/Berlin");
         var member = memberWithMail(station, "later@test.com", "Lea", "Later");
-        notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true);
+        notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true, true);
         var schedules = new NotificationScheduleRepository();
         var now = Instant.parse("2026-09-30T10:00:00Z");
         schedules.markStationSent(station.id(), now.minus(Duration.ofHours(2)));
@@ -254,7 +254,7 @@ class NotificationDigestTest extends RepositoryTestBase {
     void aStationWhoseClockCannotBeReadIsStillWrittenTo() {
         var station = station("Wache Nirgends", "de-DE", "Nirgendwo/Nirgends");
         var member = memberWithMail(station, "nowhere@test.com", "Nora", "Nirgends");
-        notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true);
+        notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true, true);
         new NotificationScheduleRepository().setStationSendTimes(station.id(), List.of(LocalTime.of(0, 0)));
         notify(member, NotificationType.NEW_NEWS, news("Irgendwo"));
 
@@ -272,7 +272,7 @@ class NotificationDigestTest extends RepositoryTestBase {
         var failing = memberWithMail(station, "failing@test.com", "Fay", "Failing");
         var fine = memberWithMail(station, "fine@test.com", "Finn", "Fine");
         for (var member : List.of(failing, fine)) {
-            notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true);
+            notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true, true);
             notify(member, NotificationType.NEW_NEWS, news("Logo"));
         }
         doThrow(new IllegalStateException("queue away"))
@@ -293,11 +293,11 @@ class NotificationDigestTest extends RepositoryTestBase {
         var station = station("Wache Stumm", "de-DE", "Europe/Berlin");
         when(email.canStationSend(station.id())).thenReturn(false);
         var member = memberWithMail(station, "mute@test.com", "Mia", "Mute");
-        notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true);
+        notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true, true);
         notify(member, NotificationType.NEW_NEWS, news("Stumm"));
         var elsewhere = station("Wache Namenlos", "de-DE", "Europe/Berlin");
         var nameless = memberWithMail(elsewhere, "nameless@test.com", "Nils", "Namenlos");
-        notificationSettingsRepo.upsert(nameless.id(), NotificationType.NEW_NEWS, true, true, true);
+        notificationSettingsRepo.upsert(nameless.id(), NotificationType.NEW_NEWS, true, true, true, true);
         notify(nameless, NotificationType.NEW_NEWS, news("Namenlos"));
         stationMemberRepo.setDisplayNameAndClearAccount(nameless.id(), "Nils Namenlos");
 
@@ -313,7 +313,7 @@ class NotificationDigestTest extends RepositoryTestBase {
         var station = station("Wache Zwanzig", "de-DE", "Europe/Berlin");
         for (int i = 0; i < 20; i++) {
             var member = memberWithMail(station, "twenty-" + i + "@test.com", "Zwanzig", "No" + i);
-            notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true);
+            notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true, true);
         }
         for (int n = 0; n < 5; n++) {
             notificationRepo.insertForStation(
@@ -337,7 +337,7 @@ class NotificationDigestTest extends RepositoryTestBase {
     void anInstallationCanTurnTheDigestOff() {
         var station = station("Wache Aus", "de-DE", "Europe/Berlin");
         var member = memberWithMail(station, "off@test.com", "Otto", "Off");
-        notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true);
+        notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true, true);
         notify(member, NotificationType.NEW_NEWS, news("Aus"));
         var silent = digestWith(notificationRepo, mock(Mailing.class));
 
@@ -424,7 +424,7 @@ class NotificationDigestTest extends RepositoryTestBase {
         var lena = memberWithMail(station, "lena@family.local", "Lena", "Groß");
         var max = memberWithMail(station, "max@family.local", "Max", "Groß");
         for (var member : List.of(greta, lena, max)) {
-            notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true);
+            notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true, true);
             stationMemberRepo.addManager(greta.id(), member.id());
         }
         notifyAll(List.of(greta, lena, max), news("Dienstplan"));
@@ -456,7 +456,7 @@ class NotificationDigestTest extends RepositoryTestBase {
         var station = station("Wache Gruß", "de-DE", "Europe/Berlin");
         var hanna = memberWithMail(station, "hanna@greeting.test", "Hanna", "Hof");
         var tim = memberWithMail(station, "tim@greeting.local", "Tim", "Hof");
-        notificationSettingsRepo.upsert(tim.id(), NotificationType.NEW_NEWS, true, true, true);
+        notificationSettingsRepo.upsert(tim.id(), NotificationType.NEW_NEWS, true, true, true, true);
         stationMemberRepo.addManager(hanna.id(), tim.id());
         notify(tim, NotificationType.NEW_NEWS, news("Nur Tim"));
 
@@ -475,7 +475,7 @@ class NotificationDigestTest extends RepositoryTestBase {
         var paula = memberWithMail(station, "paula@own.test", "Paula", "Pohl");
         var jonas = memberWithMail(station, "jonas@own.test", "Jonas", "Pohl");
         for (var member : List.of(paula, jonas)) {
-            notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true);
+            notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true, true);
         }
         stationMemberRepo.addManager(paula.id(), jonas.id());
         notifyAll(List.of(paula, jonas), news("Dienstplan"));
@@ -495,7 +495,7 @@ class NotificationDigestTest extends RepositoryTestBase {
         var olga = memberWithMail(station, "olga@off.test", "Olga", "Ost");
         var ben = memberWithMail(station, "ben@off.local", "Ben", "Ost");
         userSettingsRepo.updateEmailEnabled(ben.id(), false);
-        notificationSettingsRepo.upsert(ben.id(), NotificationType.NEW_NEWS, true, true, true);
+        notificationSettingsRepo.upsert(ben.id(), NotificationType.NEW_NEWS, true, true, true, true);
         stationMemberRepo.addManager(olga.id(), ben.id());
         notify(ben, NotificationType.NEW_NEWS, news("Nur Ben"));
 
@@ -510,7 +510,7 @@ class NotificationDigestTest extends RepositoryTestBase {
     void aNotificationReadInTheAppIsNotMailed() {
         var station = station("Wache Gelesen", "de-DE", "Europe/Berlin");
         var rita = memberWithMail(station, "rita@read.test", "Rita", "Rot");
-        notificationSettingsRepo.upsert(rita.id(), NotificationType.NEW_NEWS, true, true, true);
+        notificationSettingsRepo.upsert(rita.id(), NotificationType.NEW_NEWS, true, true, true, true);
         notify(rita, NotificationType.NEW_NEWS, news("Schon gelesen"));
         notificationRepo.acknowledge(
                 Recipient.stationMember(rita.id()), onlyUnread(rita).id());
@@ -530,7 +530,7 @@ class NotificationDigestTest extends RepositoryTestBase {
         var gina = memberWithMail(station, "gina@seen.test", "Gina", "Grün");
         var leo = memberWithMail(station, "leo@seen.local", "Leo", "Grün");
         for (var member : List.of(gina, leo)) {
-            notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true);
+            notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true, true);
         }
         stationMemberRepo.addManager(gina.id(), leo.id());
         notifyAll(List.of(gina, leo), news("Dienstplan"));
@@ -555,7 +555,7 @@ class NotificationDigestTest extends RepositoryTestBase {
         var mara = memberWithMail(station, "mara@marker.test", "Mara", "Mohn");
         var finn = memberWithMail(station, "finn@marker.local", "Finn", "Mohn");
         for (var member : List.of(mara, finn)) {
-            notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true);
+            notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true, true);
         }
         stationMemberRepo.addManager(mara.id(), finn.id());
         notifyAll(List.of(mara, finn), news("Für beide"));
@@ -574,7 +574,7 @@ class NotificationDigestTest extends RepositoryTestBase {
     void aLongDetailIsCutAndOffersTheWholeText() {
         var station = station("Wache Lang", "de-DE", "Europe/Berlin");
         var lena = memberWithMail(station, "lena@long.test", "Lena", "Lang");
-        notificationSettingsRepo.upsert(lena.id(), NotificationType.NEW_EVENT, true, true, true);
+        notificationSettingsRepo.upsert(lena.id(), NotificationType.NEW_EVENT, true, true, true, true);
         String description = "1 < 2 & 3 " + "Wort ".repeat(100);
         notify(
                 lena,

@@ -183,8 +183,8 @@ class OnboardingServiceTest {
     @Test
     void aTaskIsDoneBecauseTheThingItAsksForExists() {
         when(notificationSettingsRepository.findByMember(eq(MEMBER)))
-                .thenReturn(
-                        List.of(new NotificationSetting(MEMBER, NotificationType.EVENT_REMINDER, true, false, false)));
+                .thenReturn(List.of(
+                        new NotificationSetting(MEMBER, NotificationType.EVENT_REMINDER, true, false, false, true)));
 
         assertEquals(
                 OnboardingTaskState.DONE,

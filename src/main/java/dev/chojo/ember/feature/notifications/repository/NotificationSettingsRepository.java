@@ -23,7 +23,7 @@ import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
 @Singleton
 public class NotificationSettingsRepository {
     private static final String USER_NOTIFICATION_SETTINGS_COLUMNS =
-            "member_id, notification_type, app_enabled, email_enabled, feed_enabled";
+            "member_id, notification_type, app_enabled, email_enabled, feed_enabled, push_enabled";
 
     /**
      * Retrieves all notification settings for a member.
@@ -62,24 +62,33 @@ public class NotificationSettingsRepository {
      * @param type         the notification type
      * @param appEnabled   whether in-app notifications are enabled
      * @param emailEnabled whether email notifications are enabled
+     * @param feedEnabled  whether it appears in the calendar feed
+     * @param pushEnabled  whether it is also pushed
      * @return the persisted setting
      */
     public NotificationSetting upsert(
-            int memberId, NotificationType type, boolean appEnabled, boolean emailEnabled, boolean feedEnabled) {
+            int memberId,
+            NotificationType type,
+            boolean appEnabled,
+            boolean emailEnabled,
+            boolean feedEnabled,
+            boolean pushEnabled) {
         return insertReturning(
                 """
-                INSERT INTO user_notification_settings(member_id, notification_type, app_enabled, email_enabled, feed_enabled)
-                VALUES(:member_id, :type, :app_enabled, :email_enabled, :feed_enabled)
+                INSERT INTO user_notification_settings(member_id, notification_type, app_enabled, email_enabled, feed_enabled, push_enabled)
+                VALUES(:member_id, :type, :app_enabled, :email_enabled, :feed_enabled, :push_enabled)
                 ON CONFLICT (member_id, notification_type) DO UPDATE SET
                     app_enabled = :app_enabled,
                     email_enabled = :email_enabled,
-                    feed_enabled = :feed_enabled
+                    feed_enabled = :feed_enabled,
+                    push_enabled = :push_enabled
                 RETURNING %s;""",
                 call().bind("member_id", memberId)
                         .bind("type", type)
                         .bind("app_enabled", appEnabled)
                         .bind("email_enabled", emailEnabled)
-                        .bind("feed_enabled", feedEnabled),
+                        .bind("feed_enabled", feedEnabled)
+                        .bind("push_enabled", pushEnabled),
                 NotificationSetting.map(),
                 USER_NOTIFICATION_SETTINGS_COLUMNS);
     }
@@ -93,7 +102,7 @@ public class NotificationSettingsRepository {
     public void upsertAll(int memberId, Map<NotificationType, NotificationSetting> settings) {
         for (var entry : settings.entrySet()) {
             var s = entry.getValue();
-            upsert(memberId, entry.getKey(), s.appEnabled(), s.emailEnabled(), s.feedEnabled());
+            upsert(memberId, entry.getKey(), s.appEnabled(), s.emailEnabled(), s.feedEnabled(), s.pushEnabled());
         }
     }
 

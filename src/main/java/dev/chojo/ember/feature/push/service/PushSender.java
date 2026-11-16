@@ -37,7 +37,8 @@ import static org.slf4j.LoggerFactory.getLogger;
  * and a restart in between would lose the push. A push the service asks to wait for is tried again
  * with a growing pause; one it refuses outright is dropped; a browser it no longer knows is
  * forgotten. Each browser takes at most {@link #PER_HOUR} pushes an hour, and what the limit holds
- * back goes out as one summary once the hour allows it again.
+ * back goes out as one summary once the hour allows it again. While the instance has push switched
+ * off, whatever is queued is dropped, so switching it on again sends nothing stale.
  */
 @Singleton
 public class PushSender implements TaskSource {
@@ -102,7 +103,10 @@ public class PushSender implements TaskSource {
                 outbox.prune();
                 lastPrune = now;
             }
-            if (!instance.pushEnabled()) return;
+            if (!instance.pushEnabled()) {
+                outbox.dropWaiting();
+                return;
+            }
             var due = outbox.claimDue(BATCH, LEASE);
             if (due.isEmpty()) return;
             Map<Integer, List<PushOutboxRepository.Due>> byBrowser = new LinkedHashMap<>();

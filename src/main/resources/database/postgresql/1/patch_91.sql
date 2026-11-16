@@ -92,3 +92,18 @@ COMMENT ON COLUMN ember_schema.push_outbox.next_attempt_at IS 'When the push is 
 COMMENT ON COLUMN ember_schema.push_outbox.deferred IS
     'Held back by the rate limit; several held back for one browser go out as one summary.';
 COMMENT ON COLUMN ember_schema.push_outbox.sent_at IS 'When the push service took it, empty while waiting.';
+
+-- Whether a notification type also goes out as a push. On by default: whoever allowed push on a
+-- device expects to receive something, and only types also shown in Ember are pushed.
+
+ALTER TABLE ember_schema.user_notification_settings
+    ADD COLUMN push_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+
+COMMENT ON COLUMN ember_schema.user_notification_settings.push_enabled IS
+    'Whether this type is also pushed to the devices the member''s account allowed push on.';
+
+ALTER TABLE ember_schema.cluster_member
+    ADD COLUMN push_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+
+COMMENT ON COLUMN ember_schema.cluster_member.push_enabled IS
+    'Whether the association''s notifications are also pushed to the devices the member''s account allowed push on.';

@@ -61,7 +61,7 @@ const consent = computed(() => {
 })
 
 function getToggle(type: string): NotificationToggle {
-  return props.settings.notifications?.[type] ?? {app: true, email: false, feed: true}
+  return props.settings.notifications?.[type] ?? {app: true, email: false, feed: true, push: true}
 }
 </script>
 

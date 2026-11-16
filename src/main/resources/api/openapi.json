@@ -14684,7 +14684,7 @@
         }
       },
       "put" : {
-        "summary" : "Switch the caller's mail for the association's notifications on or off",
+        "summary" : "Switch the caller's mail or pushes for the association's notifications on or off",
         "tags" : [ "Cluster" ],
         "responses" : {
           "200" : {
@@ -58608,15 +58608,21 @@
           },
           "mailAvailable" : {
             "type" : "boolean"
+          },
+          "pushEnabled" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "emailEnabled", "mailAvailable" ]
+        "required" : [ "emailEnabled", "mailAvailable", "pushEnabled" ]
       },
       "ClusterMailRequest" : {
         "type" : "object",
         "properties" : {
           "emailEnabled" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
+          },
+          "pushEnabled" : {
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -75524,9 +75530,12 @@
           },
           "feed" : {
             "type" : "boolean"
+          },
+          "push" : {
+            "type" : [ "boolean", "null" ]
           }
         },
-        "required" : [ "app", "email", "feed" ]
+        "required" : [ "app", "email", "feed", "push" ]
       },
       "NotificationType" : {
         "type" : "string",

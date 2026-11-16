@@ -47,22 +47,22 @@ function toggleEmailEnabled() {
 
 function toggleApp(type: string) {
   if (!settings.value) return
-  const current = settings.value.notifications?.[type] ?? {app: true, email: false, feed: true}
-  settings.value.notifications[type] = {app: !current.app, email: current.email, feed: current.feed}
+  const current = settings.value.notifications?.[type] ?? {app: true, email: false, feed: true, push: true}
+  settings.value.notifications[type] = {app: !current.app, email: current.email, feed: current.feed, push: current.push}
   save()
 }
 
 function toggleEmail(type: string) {
   if (!settings.value) return
-  const current = settings.value.notifications?.[type] ?? {app: true, email: false, feed: true}
-  settings.value.notifications[type] = {app: current.app, email: !current.email, feed: current.feed}
+  const current = settings.value.notifications?.[type] ?? {app: true, email: false, feed: true, push: true}
+  settings.value.notifications[type] = {app: current.app, email: !current.email, feed: current.feed, push: current.push}
   save()
 }
 
 function toggleFeed(type: string) {
   if (!settings.value) return
-  const current = settings.value.notifications?.[type] ?? {app: true, email: false, feed: true}
-  settings.value.notifications[type] = {app: current.app, email: current.email, feed: !current.feed}
+  const current = settings.value.notifications?.[type] ?? {app: true, email: false, feed: true, push: true}
+  settings.value.notifications[type] = {app: current.app, email: current.email, feed: !current.feed, push: current.push}
   save()
 }
 </script>

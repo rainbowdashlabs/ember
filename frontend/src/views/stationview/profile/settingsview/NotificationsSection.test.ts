@@ -26,8 +26,8 @@ describe('NotificationsSection', () => {
         mailConfigured: true,
         mailProviders: [{type: 'SMTP', name: 'Beispiel Mail GmbH', url: ''}],
         notifications: {
-            NEW_NEWS: {app: true, email: false, feed: true},
-            EXPIRY_REMINDER: {app: true, email: false, feed: true},
+            NEW_NEWS: {app: true, email: false, feed: true, push: true},
+            EXPIRY_REMINDER: {app: true, email: false, feed: true, push: true},
         },
     }
 

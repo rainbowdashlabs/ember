@@ -24,6 +24,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
@@ -102,11 +103,15 @@ public class UserSettingsRoutes implements Routes {
 
         var notifMap = new EnumMap<NotificationType, NotificationSetting>(NotificationType.class);
         if (request.notifications() != null) {
+            var stored = preferences.settingsOf(memberId);
             for (var entry : request.notifications().entrySet()) {
                 var type = entry.getKey();
                 var toggle = entry.getValue();
+                var before = stored.get(type);
+                boolean push = toggle.push() != null ? toggle.push() : before == null || before.pushEnabled();
                 notifMap.put(
-                        type, new NotificationSetting(memberId, type, toggle.app(), toggle.email(), toggle.feed()));
+                        type,
+                        new NotificationSetting(memberId, type, toggle.app(), toggle.email(), toggle.feed(), push));
             }
         }
         preferences.updateSettings(memberId, notifMap);
@@ -141,13 +146,27 @@ public class UserSettingsRoutes implements Routes {
             boolean app = setting == null || setting.appEnabled();
             boolean email = setting != null && setting.emailEnabled();
             boolean feed = setting == null || setting.feedEnabled();
-            responseMap.put(type, new NotificationToggle(app, email, feed));
+            boolean push = setting == null || setting.pushEnabled();
+            responseMap.put(type, new NotificationToggle(app, email, feed, push));
         }
 
         return new SettingsResponse(emailEnabled, theme, darkMode, feel, responseMap, mailConfigured, mailProviders);
     }
 
-    public record NotificationToggle(boolean app, boolean email, boolean feed) {}
+    /**
+     * The channels one notification type goes out on.
+     *
+     * @param app   shown in Ember
+     * @param email gathered into the mail digest
+     * @param feed  in the calendar feed
+     * @param push  pushed to the account's devices; left out by a client that does not know it yet,
+     *              which keeps what is stored
+     */
+    public record NotificationToggle(
+            boolean app,
+            boolean email,
+            boolean feed,
+            @Nullable Boolean push) {}
 
     public record SettingsRequest(
             Boolean emailEnabled,

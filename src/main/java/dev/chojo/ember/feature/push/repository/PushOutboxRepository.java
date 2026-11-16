@@ -187,6 +187,14 @@ public class PushOutboxRepository {
     }
 
     /**
+     * Drops every push still waiting, for when the instance switched push off: switched on again
+     * later, it starts from nothing rather than delivering what piled up meanwhile.
+     */
+    public void dropWaiting() {
+        query("DELETE FROM push_outbox WHERE sent_at IS NULL;").single(call()).delete();
+    }
+
+    /**
      * Forgets what no longer matters: pushes sent more than an hour ago, which the rate limit no
      * longer counts, and pushes nobody could deliver for a day, which would only arrive stale.
      */
