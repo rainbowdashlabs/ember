@@ -66207,7 +66207,7 @@ export interface paths {
                 };
             };
         };
-        /** Set disabled modules */
+        /** Replace the whole list of disabled modules */
         put: {
             parameters: {
                 query?: never;
@@ -66228,6 +66228,66 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ModulesResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/manage/modules/{module}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Switch one module off or on, leaving the others as they are */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    module: components["schemas"]["StationModule"];
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ModuleSwitchRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ModulesResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
             };
@@ -75693,6 +75753,9 @@ export interface components {
             clusterName: string | null;
             disabledModules: components["schemas"]["StationModule"][];
         };
+        ModuleSwitchRequest: {
+            disabled?: boolean | null;
+        };
         MonitoringCounts: {
             beaconActive: boolean;
             /** Format: int32 */
@@ -82519,6 +82582,7 @@ export type MissingValue = components['schemas']['MissingValue'];
 export type Mode = components['schemas']['Mode'];
 export type ModelInfo = components['schemas']['ModelInfo'];
 export type ModulesResponse = components['schemas']['ModulesResponse'];
+export type ModuleSwitchRequest = components['schemas']['ModuleSwitchRequest'];
 export type MonitoringCounts = components['schemas']['MonitoringCounts'];
 export type MonthCount = components['schemas']['MonthCount'];
 export type MonthSummary = components['schemas']['MonthSummary'];

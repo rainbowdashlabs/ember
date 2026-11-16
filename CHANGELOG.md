@@ -33,6 +33,7 @@ People who share a station can write to each other directly, in groups, and in c
 - **Two closing warnings at once for one appointment.** In some cases an appointment whose sign-up closed within a day of being set up or changed sent two warnings at once, one for three days and one for one day. It now sends the nearer one only, as event groups do.
 - **Creating appointments in a batch failed or misread files.** An imported file with an unusual date column or a two-digit year produced appointments at the time of the import, a registration deadline made the whole batch fail, and the file picker looked unstyled. Files are now read as given with unreadable lines named, the deadline is sent correctly, and the picker matches the other imports.
 - **Name colors lagged behind group changes.** In some cases a new group or tag color, or a new group membership, did not show on names in lists and comments while people kept looking at them. Names now take the change as soon as it is saved.
+- **Switching modules at the same time undid each other.** When two managers switched different modules within moments, the second change could switch the first one back. Each switch now changes only its own module.
 
 ## v26.24.2
 

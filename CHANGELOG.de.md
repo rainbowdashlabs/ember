@@ -33,6 +33,7 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 - **Zwei Hinweise auf einmal zum Anmeldeschluss.** In manchen Fällen schickte ein Termin, dessen Anmeldeschluss beim Anlegen oder Ändern weniger als einen Tag entfernt lag, zwei Hinweise auf einmal, einen für drei Tage und einen für einen Tag. Jetzt kommt nur noch der nähere, wie bei Terminreihen.
 - **Mehrere Termine anzulegen scheiterte oder las Dateien falsch.** Eine Datei mit ungewöhnlich benannter Datumsspalte oder zweistelligem Jahr ergab Termine zum Zeitpunkt des Imports, eine Anmeldefrist ließ das Anlegen ganz scheitern, und die Dateiauswahl war ungestaltet. Dateien werden jetzt so gelesen, wie sie geschrieben sind, unlesbare Zeilen werden genannt, die Frist kommt richtig an, und die Dateiauswahl gleicht den anderen Importen.
 - **Namensfarben folgten Gruppenänderungen erst spät.** In manchen Fällen zeigten Namen in Listen und Kommentaren eine neue Gruppen- oder Tagfarbe oder eine neue Gruppenzugehörigkeit nicht, solange sie angesehen wurden. Jetzt übernehmen sie die Änderung, sobald sie gespeichert ist.
+- **Gleichzeitig geschaltete Module hoben sich auf.** Schalteten zwei Verwaltende kurz nacheinander verschiedene Module um, konnte die zweite Änderung die erste zurückdrehen. Jetzt ändert jeder Schalter nur sein eigenes Modul.
 
 ## v26.24.2
 

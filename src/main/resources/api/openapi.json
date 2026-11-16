@@ -51600,7 +51600,7 @@
         }
       },
       "put" : {
-        "summary" : "Set disabled modules",
+        "summary" : "Replace the whole list of disabled modules",
         "tags" : [ "Station Manage" ],
         "responses" : {
           "200" : {
@@ -51619,6 +51619,61 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/ModulesResponse"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/station/manage/modules/{module}" : {
+      "put" : {
+        "summary" : "Switch one module off or on, leaving the others as they are",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ModulesResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "module",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/StationModule"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ModuleSwitchRequest"
               }
             }
           }
@@ -73916,6 +73971,14 @@
           }
         },
         "required" : [ "id", "name" ]
+      },
+      "ModuleSwitchRequest" : {
+        "type" : "object",
+        "properties" : {
+          "disabled" : {
+            "type" : [ "boolean", "null" ]
+          }
+        }
       },
       "ModulesResponse" : {
         "type" : "object",

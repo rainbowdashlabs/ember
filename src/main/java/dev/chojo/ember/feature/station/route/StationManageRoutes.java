@@ -10,6 +10,7 @@ import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.BodyRefusal;
 import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
@@ -167,6 +168,7 @@ public class StationManageRoutes implements Routes {
         routes.post(prefix + "/station/manage/mail/test-mail", this::sendTestMail, StationPermission.STATION_MAIL);
         routes.get(prefix + "/station/manage/modules", this::getDisabledModules, StationPermission.STATION_MODULES);
         routes.put(prefix + "/station/manage/modules", this::setDisabledModules, StationPermission.STATION_MODULES);
+        routes.put(prefix + "/station/manage/modules/{module}", this::switchModule, StationPermission.STATION_MODULES);
         routes.post(prefix + "/station/manage/import", this::importInto, StationPermission.STATION_IMPORT_EXPORT);
         routes.get(
                 prefix + "/station/manage/import/progress",
@@ -620,19 +622,16 @@ public class StationManageRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ModulesResponse.class)))
     private void getDisabledModules(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        ctx.json(new ModulesResponse(
-                stationService.findDisabledModules(session.stationId()),
-                stationService.findClusterDeniedModules(session.stationId()),
-                clusterService
-                        .findByStation(session.stationId())
-                        .map(Cluster::name)
-                        .orElse(null)));
+        ctx.json(modulesOf(session.stationId()));
     }
 
     @OpenApi(
             path = "/api/v1/station/manage/modules",
             methods = HttpMethod.PUT,
-            summary = "Set disabled modules",
+            summary = "Replace the whole list of disabled modules",
+            description = "Meant for setting a station up at once. It replaces every module's state with the "
+                    + "list sent, so a screen switching single modules uses the per-module route, or two "
+                    + "managers switching at once would undo each other.",
             tags = {"Station Manage"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ModulesResponse.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ModulesResponse.class)))
@@ -640,13 +639,43 @@ public class StationManageRoutes implements Routes {
         StationSession session = StationSession.from(ctx);
         var body = ctx.bodyAsClass(ModulesResponse.class);
         stationService.setDisabledModules(session.stationId(), body.disabledModules());
-        ctx.json(new ModulesResponse(
-                stationService.findDisabledModules(session.stationId()),
-                stationService.findClusterDeniedModules(session.stationId()),
-                clusterService
-                        .findByStation(session.stationId())
-                        .map(Cluster::name)
-                        .orElse(null)));
+        ctx.json(modulesOf(session.stationId()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/station/manage/modules/{module}",
+            methods = HttpMethod.PUT,
+            summary = "Switch one module off or on, leaving the others as they are",
+            tags = {"Station Manage"},
+            pathParams = @OpenApiParam(name = "module", type = StationModule.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ModuleSwitchRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ModulesResponse.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void switchModule(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        StationModule module = moduleOf(ctx.pathParam("module"));
+        Boolean disabled = ctx.bodyAsClass(ModuleSwitchRequest.class).disabled();
+        if (disabled == null) throw BodyRefusal.BODY_DOES_NOT_MATCH.raise();
+        stationService.setModuleDisabled(session.stationId(), module, disabled);
+        ctx.json(modulesOf(session.stationId()));
+    }
+
+    private ModulesResponse modulesOf(int stationId) {
+        return new ModulesResponse(
+                stationService.findDisabledModules(stationId),
+                stationService.findClusterDeniedModules(stationId),
+                clusterService.findByStation(stationId).map(Cluster::name).orElse(null));
+    }
+
+    private static StationModule moduleOf(String name) {
+        try {
+            return StationModule.valueOf(name);
+        } catch (IllegalArgumentException e) {
+            throw BodyRefusal.INPUT_NOT_USABLE.raise();
+        }
     }
 
     @OpenApi(
@@ -889,6 +918,14 @@ public class StationManageRoutes implements Routes {
         dashboardService.liftBlock(StationSession.from(ctx).stationId(), provider, ctx.queryParam("domain"));
         throw new NoContentResponse();
     }
+
+    /**
+     * Switches one module.
+     *
+     * @param disabled whether the station switches it off; refused when left out, so an empty body never
+     *                 switches a module on
+     */
+    public record ModuleSwitchRequest(@Nullable Boolean disabled) {}
 
     /**
      * Response and request body for the set of disabled modules.

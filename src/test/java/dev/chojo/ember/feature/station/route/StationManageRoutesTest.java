@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.station.route;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.BodyRefusal;
 import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
@@ -25,6 +26,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationPreferences;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationImportService;
 import dev.chojo.ember.feature.station.service.StationLocationService;
 import dev.chojo.ember.feature.station.service.StationLogoService;
@@ -41,6 +43,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
@@ -134,6 +137,35 @@ class StationManageRoutesTest {
 
         assertEquals(204, answer.code());
         assertEquals("public, max-age=3600", header(answer, "Cache-Control"));
+    }
+
+    /** One switch writes its own module only, and an address naming no module is refused. */
+    @Test
+    void aModuleIsSwitchedOnItsOwn() {
+        when(stations.findDisabledModules(STATION_ID)).thenReturn(Set.of(StationModule.ATTENDANCE));
+        var modules = harness.as(TestSessions.member(STATION_ID, StationPermission.STATION_MODULES));
+
+        var answer = harness.request(client ->
+                client.put(PREFIX + "/station/manage/modules/ATTENDANCE", body("{\"disabled\": true}"), modules));
+
+        assertEquals(200, answer.code());
+        assertEquals("ATTENDANCE", json(answer).path("disabledModules").get(0).asString());
+        verify(stations).setModuleDisabled(STATION_ID, StationModule.ATTENDANCE, true);
+        assertEquals(
+                BodyRefusal.INPUT_NOT_USABLE,
+                refusalOf(harness.request(client ->
+                        client.put(PREFIX + "/station/manage/modules/NOPE", body("{\"disabled\": true}"), modules))));
+        assertEquals(
+                BodyRefusal.BODY_DOES_NOT_MATCH,
+                refusalOf(harness.request(
+                        client -> client.put(PREFIX + "/station/manage/modules/ATTENDANCE", body("{}"), modules))));
+        assertEquals(
+                403,
+                harness.request(client -> client.put(
+                                PREFIX + "/station/manage/modules/ATTENDANCE",
+                                body("{\"disabled\": true}"),
+                                harness.as(TestSessions.member(STATION_ID, StationPermission.USER))))
+                        .code());
     }
 
     @Test
