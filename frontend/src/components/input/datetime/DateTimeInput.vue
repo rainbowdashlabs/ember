@@ -58,21 +58,21 @@ watch([day, time], () => {
 </script>
 
 <template>
-  <div class="flex gap-2" data-moment>
+  <div class="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-2" data-moment>
     <DateInput
         :id="props.id"
         v-model="day"
         :aria-label="t('common.datePart')"
         :disabled="disabled"
         :min="min?.slice(0, 10) || undefined"
-        class="min-w-0 flex-1"
+        class="min-w-0"
         @change="emit('change', combined())"
     />
     <TimeShortInput
         v-model="time"
         :aria-label="t('common.timePart')"
         :disabled="disabled"
-        class="w-24 shrink-0"
+        class="min-w-0"
         @change="emit('change', combined())"
     />
   </div>
