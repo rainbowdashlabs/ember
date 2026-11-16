@@ -28,9 +28,9 @@ describe('EventFieldRow', () => {
     it('shows name, value and type on one line', () => {
         const wrapper = row({})
 
-        expect((wrapper.get('[data-testid="event-field-row-name"]').element as HTMLInputElement).value).toBe('Ort')
+        expect((wrapper.get('[data-testid="question-row-name"]').element as HTMLInputElement).value).toBe('Ort')
         expect(wrapper.find('[data-testid="event-field-row-value"]').exists()).toBe(true)
-        expect(wrapper.get('[data-testid="event-field-row-type"]').text()).not.toBe('')
+        expect(wrapper.get('[data-testid="question-row-type"]').text()).not.toBe('')
         expect(wrapper.find('event-question-editor-stub').exists()).toBe(false)
     })
 
@@ -56,10 +56,10 @@ describe('EventFieldRow', () => {
     it('opens the full settings on request and closes them again', async () => {
         const wrapper = row({})
 
-        await wrapper.get('[data-testid="event-field-row-open"]').trigger('click')
+        await wrapper.get('[data-testid="question-row-open"]').trigger('click')
         expect(wrapper.find('event-question-editor-stub').exists()).toBe(true)
 
-        await wrapper.get('[data-testid="event-field-row-close"]').trigger('click')
+        await wrapper.get('[data-testid="question-row-close"]').trigger('click')
         expect(wrapper.find('event-question-editor-stub').exists()).toBe(false)
     })
 

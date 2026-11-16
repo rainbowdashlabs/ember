@@ -896,14 +896,15 @@ test.describe('Attendance', () => {
 
         /**
          * The questions are written in the list itself and saved together, so the width is set in
-         * the question's own card and read back there after a reload.
+         * the question's own card, opened from its line, and read back there after a reload.
          */
         test('a question set to half a row keeps that width', async ({managerPage: page}) => {
             await openConfig(page)
 
             const row = page.getByTestId('attendance-field-row').first()
-            const name = await row.getByTestId('question-name').inputValue()
+            const name = await row.getByTestId('question-row-name').inputValue()
 
+            await row.getByTestId('question-row-open').click()
             await row.getByTestId('field-width').selectOption('half')
             const readBack = page.waitForResponse(response =>
                 response.url().includes('/fields') && response.request().method() === 'GET')
@@ -914,7 +915,8 @@ test.describe('Attendance', () => {
             const first = page.getByTestId('attendance-field-row').first()
             await first.waitFor()
 
-            await expect(first.getByTestId('question-name')).toHaveValue(name)
+            await expect(first.getByTestId('question-row-name')).toHaveValue(name)
+            await first.getByTestId('question-row-open').click()
             await expect(first.getByTestId('field-width')).toHaveValue('half')
         })
 
@@ -953,7 +955,7 @@ test.describe('Attendance', () => {
 
             await page.goto(`/station/attendance/config/edit/${template.id}`)
             const row = page.getByTestId('attendance-field-row').first()
-            await expect(row.getByTestId('question-name'), 'the sheet asks the one question').toHaveValue(topic)
+            await expect(row.getByTestId('question-row-name'), 'the sheet asks the one question').toHaveValue(topic)
             await row.getByLabel('Löschen').click()
             const confirm = page.getByTestId('modal')
             await expect(confirm, 'the question says it is archived').toContainText('archiviert')

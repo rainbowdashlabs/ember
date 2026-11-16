@@ -16,7 +16,7 @@ import FieldLayoutPreview from '@/components/profilefields/FieldLayoutPreview.vu
 import type {FieldWidthName, PreviewField} from '@/components/profilefields/fieldLayout'
 import type {MemberGroup} from '@/api/generated/schema'
 import {moveWithin} from '@/util/reorder'
-import FieldEditor from './FieldEditor.vue'
+import AttendanceFieldLine from './AttendanceFieldLine.vue'
 import {blankDraft, previewOf, type AttendanceFieldDraft} from './attendanceFieldDraft'
 
 /**
@@ -25,8 +25,9 @@ import {blankDraft, previewOf, type AttendanceFieldDraft} from './attendanceFiel
  *
  * <p>They were a list of names with a dialog behind each, which asked for the place in the sheet
  * as a number, and a picture of the sheet that could only be looked at. Now the list is the editor:
- * a field is written in its row, dragged to another place by its grip or in the preview, and made
- * narrower by its edge there. The whole list is saved at once.
+ * a field is a line with its name and marks, its card opens from there, it is dragged to another
+ * place by its grip or in the preview, and made narrower by its edge there. The whole list is saved
+ * at once.
  */
 const fields = defineModel<AttendanceFieldDraft[]>('fields', {required: true})
 
@@ -81,7 +82,7 @@ function resizeField(shown: PreviewField, width: FieldWidthName) {
     <DragList :items="fields" :key-fn="(field, index) => field.id ?? `new-${index}`" @reorder="moveField">
       <template #default="{index}">
         <div class="mb-2" data-testid="attendance-field-row">
-          <FieldEditor
+          <AttendanceFieldLine
               :available-groups="props.availableGroups"
               :model-value="fields[index]!"
               @update:model-value="updateField(index, $event)"

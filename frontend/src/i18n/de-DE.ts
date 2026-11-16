@@ -9720,6 +9720,8 @@ export default {
         separatorHint: 'Tabellenprogramme auf Deutsch erwarten das Semikolon.',
     },
     common: {
+        openSettings: 'Einstellungen öffnen',
+        closeSettings: 'Einstellungen schließen',
         datePart: 'Datum',
         timePart: 'Uhrzeit',
         send: 'Abschicken',
@@ -12393,8 +12395,6 @@ export default {
             + 'Mitglieder der Partnerwachen können sie dann sehen und sich dafür anmelden.',
     },
     eventFields: {
-        openSettings: 'Einstellungen öffnen',
-        closeSettings: 'Einstellungen schließen',
         name: 'Feldname',
         namePlaceholder: 'z.B. Treffpunkt',
         overview: 'Übersicht',
