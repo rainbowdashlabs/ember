@@ -44,8 +44,11 @@ describe('EventGroupPartsEditor', () => {
     await flushPromises()
 
     await editor.find('#event-group-part-name').setValue('Samstag')
-    await editor.find('#event-group-part-start').setValue('2027-03-06T08:00')
-    await editor.find('#event-group-part-end').setValue('2027-03-06T16:00')
+    const [startDay, startTime, endDay, endTime] = editor.findAll('[data-moment] input')
+    await startDay!.setValue('2027-03-06')
+    await startTime!.setValue('08:00')
+    await endDay!.setValue('2027-03-06')
+    await endTime!.setValue('16:00')
     await editor.find('#event-group-part-set').setValue('2')
     await editor.find('[data-testid="event-group-create-part"]').trigger('click')
     await flushPromises()

@@ -5,6 +5,7 @@
  */
 import {test, expect, apiHeaders, type Page} from './fixtures/auth'
 import {STATION_TIMEZONE, stationMoment} from './fixtures/stationDay'
+import {fillMoment, momentFields} from './fixtures/moment'
 
 async function makeAppointment(page: Page, headers: Record<string, string>, name: string, start: Date) {
     const created = await page.request.post('/api/v1/events', {
@@ -95,9 +96,9 @@ test.describe('The time of an appointment', () => {
         expect(refused.status(), await refused.text()).toBe(400)
 
         await page.goto('/station/events/new')
-        const times = page.locator('input[type="datetime-local"]')
-        await times.first().fill('2026-06-05T18:00')
-        await times.nth(1).fill('2026-06-05T16:00')
+        const times = momentFields(page)
+        await fillMoment(times.first(), '2026-06-05T18:00')
+        await fillMoment(times.nth(1), '2026-06-05T16:00')
 
         await expect(page.getByTestId('event-end-before-start'), 'the editor says so before anything is sent').toBeVisible()
     })

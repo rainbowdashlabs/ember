@@ -20,6 +20,7 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 - **Mehrere Termine einzeln eintragen.** Neben Zeitplan und Datei-Import lassen sich Termine Zeile für Zeile eintragen, jeder mit Datum, Uhrzeiten und auf Wunsch einem eigenen Titel.
 - **Fragen bei der Anmeldung können eine Erklärung tragen.** Wie ein Profilfeld kann eine Frage bei der Anmeldung zu einem Termin oder einer Terminreihe eine kurze Erklärung tragen, die beim Antworten unter der Frage steht.
 - **Unlesbare Anfragen nennen ihr Feld.** Kann der Server einen Wert nicht lesen, den eine Seite geschickt hat, nennt die Meldung jetzt das Feld, an dem er hängen blieb.
+- **Das Ende wandert mit dem Beginn.** Wird der Beginn eines Termins, eines Anwesenheitsbogens, eines Formulars oder eines Tests geändert, verschiebt sich das Ende um denselben Betrag, und die Dauer bleibt gleich. Ein Termin an einem anderen Tag braucht kein zweites geändertes Ende mehr.
 
 ### Änderungen
 
@@ -34,6 +35,7 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 - **Mehrere Termine anzulegen scheiterte oder las Dateien falsch.** Eine Datei mit ungewöhnlich benannter Datumsspalte oder zweistelligem Jahr ergab Termine zum Zeitpunkt des Imports, eine Anmeldefrist ließ das Anlegen ganz scheitern, und die Dateiauswahl war ungestaltet. Dateien werden jetzt so gelesen, wie sie geschrieben sind, unlesbare Zeilen werden genannt, die Frist kommt richtig an, und die Dateiauswahl gleicht den anderen Importen.
 - **Namensfarben folgten Gruppenänderungen erst spät.** In manchen Fällen zeigten Namen in Listen und Kommentaren eine neue Gruppen- oder Tagfarbe oder eine neue Gruppenzugehörigkeit nicht, solange sie angesehen wurden. Jetzt übernehmen sie die Änderung, sobald sie gespeichert ist.
 - **Gleichzeitig geschaltete Module hoben sich auf.** Schalteten zwei Verwaltende kurz nacheinander verschiedene Module um, konnte die zweite Änderung die erste zurückdrehen. Jetzt ändert jeder Schalter nur sein eigenes Modul.
+- **Klarere Datums- und Zeitfelder auf dem Handy.** Auf dem Handy öffnete ein Datum mit Uhrzeit erst einen Kalender und dann eine unbeschriftete Uhr, die wie eine Abfrage des Endes wirkte. Tag und Uhrzeit haben jetzt je ein eigenes Feld mit einer eigenen Auswahl.
 
 ## v26.24.2
 

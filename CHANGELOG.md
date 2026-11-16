@@ -20,6 +20,7 @@ People who share a station can write to each other directly, in groups, and in c
 - **Batch appointments entered one by one.** Besides a schedule and an imported file, appointments can be written down row by row, each with its date, times and an optional title.
 - **Registration questions can carry a description.** Like a profile field, a question asked when signing up for an appointment or an event group can carry a short explanation, shown under the question while answering.
 - **Unreadable requests name their field.** Where the server cannot read a value a page sent, the message now names the field it stopped at.
+- **The end moves with the start.** Changing the start of an appointment, an attendance sheet, a form or a test moves its end by the same amount, so the length stays the same. Moving an appointment to another day no longer needs the end changed as well.
 
 ### Changes
 
@@ -34,6 +35,7 @@ People who share a station can write to each other directly, in groups, and in c
 - **Creating appointments in a batch failed or misread files.** An imported file with an unusual date column or a two-digit year produced appointments at the time of the import, a registration deadline made the whole batch fail, and the file picker looked unstyled. Files are now read as given with unreadable lines named, the deadline is sent correctly, and the picker matches the other imports.
 - **Name colors lagged behind group changes.** In some cases a new group or tag color, or a new group membership, did not show on names in lists and comments while people kept looking at them. Names now take the change as soon as it is saved.
 - **Switching modules at the same time undid each other.** When two managers switched different modules within moments, the second change could switch the first one back. Each switch now changes only its own module.
+- **Clearer date and time fields on phones.** On phones, a date with a time opened a calendar followed by a clock that did not say what it was for, which read as the end being asked for when only the start was changed. The day and the time now have a field of their own, each with one picker.
 
 ## v26.24.2
 

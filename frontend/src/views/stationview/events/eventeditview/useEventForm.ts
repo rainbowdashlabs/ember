@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {computed, reactive, ref, watch} from 'vue'
+import {computed, reactive, ref, toRef, watch} from 'vue'
 import {events} from '@/api'
 import {needsDayOfWeek} from '@/api/events'
 import {
@@ -18,6 +18,7 @@ import {toRestriction} from '@/components/input/restriction'
 import {createEventFormState, eventTypeNamed} from './eventFormState'
 import {modelBindings} from './modelBindings'
 import {instantToLocalInput} from '@/util/format'
+import {useEndFollowsStart} from '@/composables/useEndFollowsStart'
 import {entryOf, namedEntries} from '../eventshared/eventQuestions'
 import {offsetParts} from '../templateeditview/signUpRules'
 
@@ -42,6 +43,7 @@ export function useEventForm() {
       state.endTime = val
     }
   })
+  useEndFollowsStart(toRef(state, 'startTime'), toRef(state, 'endTime'))
 
   /**
    * How many hours before the start the applied template closes registration, for as long as the
