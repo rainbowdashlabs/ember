@@ -27,7 +27,7 @@ async function openTemplateQuestions(page: Page) {
     await page.getByTestId('question-name').first().waitFor()
 }
 
-/** The questions of the first attendance sheet, which is a list every station has. */
+/** The fields of the first attendance sheet, which is a list every station has, one line per field. */
 async function openAttendanceFields(page: Page) {
     await page.goto('/station/attendance/config')
     await page.getByLabel('Bearbeiten').first().click()
@@ -63,17 +63,16 @@ test.describe('Sorting', () => {
     /**
      * A row of one line has its controls beside it, and a row with room to spare has them stacked.
      *
-     * <p>The two screens are the two shapes a sortable row comes in: a line naming a question, and a
-     * card holding the whole form for one. Standing the controls up in a card puts each of them where
-     * the eye looks for it and makes it a larger thing to press.
+     * <p>The two screens are the two shapes a sortable row comes in: a line naming a category, and a
+     * card holding the whole form for a question of an event template. Standing the controls up in a
+     * card puts each of them where the eye looks for it and makes it a larger thing to press.
      */
     test('tall rows stand their controls up and short rows lay them out beside', async ({managerPage: page}) => {
         await page.goto('/station/events/categories')
         await expect(page.getByTestId('drag-controls').first()).toHaveAttribute('data-layout', 'inline')
 
-        await openAttendanceFields(page)
-        await expect(page.getByTestId('attendance-fields').getByTestId('drag-controls').first())
-            .toHaveAttribute('data-layout', 'stacked')
+        await openTemplateQuestions(page)
+        await expect(page.getByTestId('drag-controls').first()).toHaveAttribute('data-layout', 'stacked')
     })
 
     /**

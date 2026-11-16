@@ -3493,6 +3493,7 @@ export default {
         attachments: {
             title: 'Dateien',
             hint: 'Dateien aus der Mediathek, die zu diesem Termin gehören: Laufzettel, Formulare, Pläne.',
+            savedRightAway: 'Änderungen an den Dateien gelten sofort, nicht erst mit Speichern.',
             add: 'Datei anhängen',
             empty: 'Noch keine Dateien angehängt.',
             labelPlaceholder: 'Anzeigename (optional)',
@@ -3505,6 +3506,8 @@ export default {
         documents: {
             title: 'Mitzubringende Dokumente',
             hint: 'Vorlagen für Termine, die alle angemeldeten Teilnehmenden ausgefüllt mit ihren Daten herunterladen, ausdrucken und unterschrieben mitbringen.',
+            hintSigning: 'Vorlagen, die alle Angemeldeten ausgefüllt mitbringen. Ist das Modul Dokumente aktiv, lassen sie sich auch direkt in der App unterschreiben.',
+            signInApp: 'Ist das Modul Dokumente aktiv, lassen sie sich auch direkt in der App unterschreiben.',
             add: 'Dokument hinzufügen',
             remove: 'Dokument entfernen',
             archived: 'Archiviert',
@@ -3688,6 +3691,7 @@ export default {
         startTime: 'Beginn',
         endTime: 'Ende',
         endBeforeStart: 'Das Ende darf nicht vor dem Beginn liegen.',
+        until: 'bis',
         template: 'Anwesenheitsvorlage',
         noTemplate: 'Keine Vorlage',
         breakName: 'Name',
@@ -3750,6 +3754,8 @@ export default {
         restrictToRolesHint: 'Wer sich anmelden darf. Ohne Auswahl alle. Wer nicht dazugehört, sieht den Termin '
             + 'weiterhin im Kalender und kann ihn nur nicht beantworten.',
         restrictVisibility: 'Sichtbarkeit einschränken',
+        restrictedRegistration: 'Anmeldung nur für',
+        restrictedVisibility: 'Sichtbar nur für',
         restrictVisibilityHint: 'Wer überhaupt von diesem Termin erfahren darf. Ohne Auswahl alle. Für alle '
             + 'anderen taucht er nirgends auf, weder im Kalender noch in einer Benachrichtigung. Ein so '
             + 'eingeschränkter Termin kann weder öffentlich stehen noch mit Partnerwachen geteilt werden.',
@@ -9731,6 +9737,8 @@ export default {
         separatorHint: 'Tabellenprogramme auf Deutsch erwarten das Semikolon.',
     },
     common: {
+        openSettings: 'Einstellungen öffnen',
+        closeSettings: 'Einstellungen schließen',
         datePart: 'Datum',
         timePart: 'Uhrzeit',
         send: 'Abschicken',
@@ -12238,9 +12246,11 @@ export default {
         name: 'Name',
         description: 'Beschreibung',
         limit: 'Plätze',
-        limitHint: 'Leer lassen für beliebig viele Teilnehmende.',
         deadlineField: 'Anmeldeschluss',
         confirmationField: 'Anmeldungen bestätigen',
+        namePlaceholder: 'Name der Terminreihe',
+        registerAudienceHint: 'Wer sich für die Terminreihe anmelden darf. Ohne Auswahl alle.',
+        viewAudienceHint: 'Wer die Terminreihe und ihre Termine überhaupt sieht. Ohne Auswahl alle.',
         sets: 'Blöcke',
         setsHint: 'Jeder Termin gehört zu einem Block. Ein Block verlangt eine Mindestzahl seiner Termine, etwa zwei von drei Übungstagen. Verlangt er alle, sind sie verpflichtend.',
         setName: 'Name des Blocks',
@@ -12253,8 +12263,6 @@ export default {
         removeSet: 'Block entfernen',
         defaultSet: 'Termine',
         audiences: 'Zielgruppe',
-        registerAudience: 'Wer sich anmelden darf',
-        viewAudience: 'Wer die Terminreihe sieht',
         audienceHint: 'Gilt für die Terminreihe und alle ihre Termine.',
         parts: 'Termine',
         partSet: 'Block',
@@ -12359,6 +12367,7 @@ export default {
         attendanceLink: 'Anwesenheitsfeld',
         fromAttendance: 'Aus der Anwesenheitsvorlage übernehmen:',
         takeAllFromAttendance: 'Alle übernehmen',
+        takeAllFromAttendanceSheet: 'Alle aus der Anwesenheitsvorlage',
         value: 'Wert',
         defaultValue: 'Standardwert',
         public: 'Öffentlich',

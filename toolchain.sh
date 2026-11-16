@@ -257,6 +257,8 @@ Release
                         REPOSITORY, asked for again while an artifact is not listed yet
   ci-test [name]        The tests of the scripts under scripts/, or those whose file name contains
                         the given word
+  ci-images <cmd>       The images a CI run starts, kept in one cached archive: list, key, missing,
+                        pull-missing, save <file>, load <file>
   release-check <pr>    Whether the release pull request is ready: release/vX.Y.Z into main at
                         version X.Y.Z, unreleased, with a changelog block, CI green on its head, and
                         main fast-forwardable to it. Changes nothing
@@ -657,6 +659,7 @@ case "$cmd" in
     ci-migration-order) cd "$ROOT"; run bash scripts/check-migration-order.sh "$@" ;;
     ci-coverage-data)   cd "$ROOT"; run bash scripts/fetch-coverage-data.sh "$@" ;;
     ci-test)            cd "$ROOT"; run bash scripts/test/run.sh "$@" ;;
+    ci-images)          cd "$ROOT"; run bash scripts/ci-images.sh "$@" ;;
     release-check)      cd "$ROOT"; run bash scripts/release.sh check "$@" ;;
     release-feature)    cd "$ROOT"; run bash scripts/release.sh feature "$@" ;;
     release-fix)        cd "$ROOT"; run bash scripts/release.sh fix "$@" ;;

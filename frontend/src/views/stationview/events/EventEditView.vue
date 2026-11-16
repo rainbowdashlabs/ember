@@ -448,30 +448,31 @@ const bodyHandlers = {
           v-model:registration-fields="registrationFields"
           v-bind="bodyProps"
           v-on="bodyHandlers"
-      />
+      >
+        <DocumentRequirementsEditor
+            v-model="documentRequirements.chosen.value"
+            compact
+            :offered-count="documentRequirements.offeredCount.value"
+        />
 
-      <DocumentRequirementsEditor
-          v-if="!loading"
-          v-model="documentRequirements.chosen.value"
-          :offered-count="documentRequirements.offeredCount.value"
-      />
+        <TemplateFilesNote
+            v-if="!isEdit && templateFiles.length > 0"
+            :files="templateFiles"
+            :hint="copiedFrom ? t('events.copy.filesHint') : undefined"
+        />
 
-      <TemplateFilesNote
-          v-if="!loading && !isEdit && templateFiles.length > 0"
-          :files="templateFiles"
-          :hint="copiedFrom ? t('events.copy.filesHint') : undefined"
-      />
-
-      <AttachmentsCard
-          v-if="!loading && isEdit"
-          v-model:attachments="attachments.attachments.value"
-          :station-uid="stationUid"
-          :failure="attachments.failure.value"
-          @add="attachments.add"
-          @save="attachments.save"
-          @remove="attachments.remove"
-          @reorder="attachments.reorder"
-      />
+        <AttachmentsCard
+            v-if="isEdit"
+            v-model:attachments="attachments.attachments.value"
+            compact
+            :station-uid="stationUid"
+            :failure="attachments.failure.value"
+            @add="attachments.add"
+            @save="attachments.save"
+            @remove="attachments.remove"
+            @reorder="attachments.reorder"
+        />
+      </EventEditBody>
     </div>
 
     <EventSaveDialog

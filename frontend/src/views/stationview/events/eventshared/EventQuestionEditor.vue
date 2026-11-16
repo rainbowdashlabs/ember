@@ -12,12 +12,12 @@ import type {QuestionSettingsModel} from '@/components/input/questionsettings/qu
 import EventFieldValueInput from './EventFieldValueInput.vue'
 import OrganiserQuestionSettings from './OrganiserQuestionSettings.vue'
 import RegistrantQuestionSettings from './RegistrantQuestionSettings.vue'
-import {namesMembers, OfferedFieldTypes} from '@/api/fieldTypes'
+import {OfferedFieldTypes} from '@/api/fieldTypes'
 import {
   FieldType, type AttendanceTemplateField, type EventFieldEntry, type MemberGroup, type UserTag,
 } from '@/api/generated/schema'
 import {fromMember, type MemberLike} from '@/components/input/select/memberOption'
-import {SHARED_SETTINGS, settingsModelOf, withSettingsModel, type EventQuestionMode} from './eventQuestions'
+import {offersFieldValue, SHARED_SETTINGS, settingsModelOf, withSettingsModel, type EventQuestionMode} from './eventQuestions'
 
 /**
  * One question of an appointment, whoever answers it.
@@ -68,16 +68,9 @@ const nameLabel = computed(() =>
 const namePlaceholder = computed(() =>
     (organiser.value ? t('eventFields.namePlaceholder') : t('events.registrationFields.fieldNamePlaceholder')))
 
-/**
- * Whether this row offers a value at all.
- *
- * <p>A question that names a member can only be answered where the members are known. The template
- * editor knows the questions but not who is in the station, and a person is not something a template
- * should answer with anyway, so such a question is left without one there.
- */
-const offersValue = computed(() => organiser.value && Boolean(props.showValue)
-    && (question.value.name ?? '').trim() !== ''
-    && (!namesMembers(fieldType.value) || Boolean(props.allMembers?.length)))
+/** Whether this question offers its answer here, which only the organiser's question does. */
+const offersValue = computed(() => organiser.value
+    && offersFieldValue(question.value, Boolean(props.showValue), Boolean(props.allMembers?.length)))
 
 function update(patch: Partial<EventFieldEntry>) {
   question.value = {...question.value, ...patch}

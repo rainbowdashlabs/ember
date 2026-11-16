@@ -81,4 +81,14 @@ describe('AttachmentsCard', () => {
         expect(rows).toHaveLength(2)
         expect(rows[0]!.text()).toContain('datei-1.pdf')
     })
+
+    it('says behind its hint icon that the files save at once, inside the appointment form', () => {
+        const wrapper = mount(AttachmentsCard, {
+            props: {attachments: [], stationUid: 'station-uid', compact: true},
+            global: {stubs: {MediaBrowseButton: true, DragList: false}},
+        })
+
+        expect(wrapper.get('[data-testid="hint-icon"]').attributes('aria-label')).toContain('sofort')
+        expect(wrapper.findAll('p').some(paragraph => paragraph.text().includes('Intern:'))).toBe(false)
+    })
 })

@@ -8,6 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import type {
     AppointmentField,
@@ -125,88 +126,96 @@ function override(field: AppointmentField) {
 </script>
 
 <template>
-  <EventEditHeader
-      :is-edit="props.isEdit"
-      :event-templates="props.eventTemplates"
-      @apply-template="emit('apply-template', $event)"
-  />
+  <NeutralContainer sheet data-testid="event-form-sheet">
+    <EventEditHeader
+        :is-edit="props.isEdit"
+        :event-templates="props.eventTemplates"
+        @apply-template="emit('apply-template', $event)"
+    />
 
-  <EventFormCard
-      v-model:name="name"
-      v-model:description="description"
-      v-model:category-id="categoryId"
-      v-model:template-id="templateId"
-      v-model:event-type="eventType"
-      v-model:day-of-week="dayOfWeek"
-      v-model:start-time="startTime"
-      v-model:end-time="endTime"
-      v-model:repeat-until="repeatUntil"
-      v-model:repeat-count="repeatCount"
-      v-model:requires-registration="requiresRegistration"
-      v-model:requires-confirmation="requiresConfirmation"
-      v-model:has-deadline="hasDeadline"
-      v-model:registration-deadline="registrationDeadline"
-      v-model:registration-limit="registrationLimit"
-      v-model:min-registrations="minRegistrations"
-      v-model:threshold-days="thresholdDays"
-      v-model:registration-close-days="registrationCloseDays"
-      v-model:restriction="restriction"
-      v-model:view-restriction="viewRestriction"
-      v-model:fields="fields"
-      v-model:reminders="reminders"
-      :categories="props.categories"
-      :templates="props.templates"
-      :attendance-fields="props.attendanceFields"
-      :groups="props.groups"
-      :tags="props.tags"
-      :all-members="props.allMembers"
-      :group-members="props.groupMembers"
-      :event-group-part="props.eventGroupPart"
-  />
+    <EventFormCard
+        v-model:name="name"
+        v-model:description="description"
+        v-model:category-id="categoryId"
+        v-model:template-id="templateId"
+        v-model:event-type="eventType"
+        v-model:day-of-week="dayOfWeek"
+        v-model:start-time="startTime"
+        v-model:end-time="endTime"
+        v-model:repeat-until="repeatUntil"
+        v-model:repeat-count="repeatCount"
+        v-model:requires-registration="requiresRegistration"
+        v-model:requires-confirmation="requiresConfirmation"
+        v-model:has-deadline="hasDeadline"
+        v-model:registration-deadline="registrationDeadline"
+        v-model:registration-limit="registrationLimit"
+        v-model:min-registrations="minRegistrations"
+        v-model:threshold-days="thresholdDays"
+        v-model:registration-close-days="registrationCloseDays"
+        v-model:restriction="restriction"
+        v-model:view-restriction="viewRestriction"
+        v-model:fields="fields"
+        v-model:reminders="reminders"
+        :categories="props.categories"
+        :templates="props.templates"
+        :attendance-fields="props.attendanceFields"
+        :groups="props.groups"
+        :tags="props.tags"
+        :all-members="props.allMembers"
+        :group-members="props.groupMembers"
+        :event-group-part="props.eventGroupPart"
+    >
+      <template #after-fields>
+        <InheritedFieldsCard
+            v-if="props.eventGroupPart"
+            :inherited="props.inheritedFields ?? []"
+            :own="fields"
+            @override="override"
+        />
 
-  <InheritedFieldsCard
-      v-if="props.eventGroupPart"
-      :inherited="props.inheritedFields ?? []"
-      :own="fields"
-      @override="override"
-  />
+        <FieldDefaultsCard
+            v-if="props.currentTemplateFields.length > 0"
+            :fields="props.currentTemplateFields"
+            :defaults="props.fieldDefaults"
+            @update:source="(fieldId, source) => emit('update:fieldDefaultSource', fieldId, source)"
+            @update:value="(fieldId, value) => emit('update:fieldDefaultValue', fieldId, value)"
+        />
+      </template>
+    </EventFormCard>
 
-  <InheritedSettingsCard
-      v-if="props.eventGroupPart && props.inheritedSettings"
-      :settings="props.inheritedSettings"
-      :categories="props.categories"
-      :templates="props.templates"
-      :own-category-id="categoryId"
-      :own-template-id="templateId"
-      :own-reminders="reminders"
-      @override="overrideSetting"
-  />
+    <InheritedSettingsCard
+        v-if="props.eventGroupPart && props.inheritedSettings"
+        :settings="props.inheritedSettings"
+        :categories="props.categories"
+        :templates="props.templates"
+        :own-category-id="categoryId"
+        :own-template-id="templateId"
+        :own-reminders="reminders"
+        @override="overrideSetting"
+    />
 
-  <FederationCard
-      v-if="!props.eventGroupPart"
-      v-model:shared="federationShared"
-      v-model:scope="federationScope"
-      v-model:partner-ids="federationPartnerIds"
-      v-model:places="federationPlaces"
-      :partners="props.partners"
-      :can-federate="props.canFederate"
-      :note="props.federationNote"
-  />
+    <RegistrationFieldsEditor v-if="requiresRegistration && !props.eventGroupPart" v-model="registrationFields" :all-members="props.allMembers"
+                              compact/>
 
-  <FieldDefaultsCard
-      v-if="props.currentTemplateFields.length > 0"
-      :fields="props.currentTemplateFields"
-      :defaults="props.fieldDefaults"
-      @update:source="(fieldId, source) => emit('update:fieldDefaultSource', fieldId, source)"
-      @update:value="(fieldId, value) => emit('update:fieldDefaultValue', fieldId, value)"
-  />
+    <slot/>
 
-  <RegistrationFieldsEditor v-if="requiresRegistration && !props.eventGroupPart" v-model="registrationFields" :all-members="props.allMembers"/>
+    <FederationCard
+        v-if="!props.eventGroupPart"
+        v-model:shared="federationShared"
+        v-model:scope="federationScope"
+        v-model:partner-ids="federationPartnerIds"
+        v-model:places="federationPlaces"
+        compact
+        :partners="props.partners"
+        :can-federate="props.canFederate"
+        :note="props.federationNote"
+    />
 
-  <ButtonRow pair align="end">
-    <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
-    <PrimaryButton :disabled="!canSubmit" @click="emit('submit')">
-      {{ props.saving ? t('common.loading') : t('common.save') }}
-    </PrimaryButton>
-  </ButtonRow>
+    <ButtonRow pair align="end" data-testid="event-form-actions">
+      <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
+      <PrimaryButton :disabled="!canSubmit" @click="emit('submit')">
+        {{ props.saving ? t('common.loading') : t('common.save') }}
+      </PrimaryButton>
+    </ButtonRow>
+  </NeutralContainer>
 </template>

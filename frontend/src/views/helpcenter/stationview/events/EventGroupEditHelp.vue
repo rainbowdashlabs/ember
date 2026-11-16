@@ -10,8 +10,8 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import HintIcon from '@/components/typography/HintIcon.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import FieldHint from '@/components/typography/FieldHint.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
@@ -35,27 +35,50 @@ const templates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exampleG
   <HelpArticle :title="t('helpCenter.eventGroupEdit.title')" :subtitle="t('helpCenter.eventGroupEdit.subtitle')">
     <HelpSection :title="t('helpCenter.eventGroupEdit.whatIs')">
       <p>{{ t('helpCenter.eventGroupEdit.whatIsText') }}</p>
-      <NeutralContainer class="space-y-2">
-        <FieldLabel>{{ t('eventGroups.name') }}</FieldLabel>
-        <TextInput :model-value="t('helpCenter.eventGroups.exampleName')"/>
-        <FieldLabel>{{ t('eventGroups.limit') }}</FieldLabel>
-        <NumberInput :model-value="12"/>
-        <FieldLabel inline><ToggleInput :model-value="true"/> {{ t('eventGroups.confirmationField') }}</FieldLabel>
-        <FieldLabel>{{ t('eventGroups.color') }}</FieldLabel>
-        <div class="flex items-center gap-2">
-          <ColorInput model-value="#8b5cf6"/>
-          <SecondaryButton compact>{{ t('eventGroups.colorReset') }}</SecondaryButton>
+      <p>{{ t('helpCenter.eventGroupEdit.formText') }}</p>
+      <NeutralContainer class="space-y-3">
+        <TextInput :model-value="t('helpCenter.eventGroups.exampleName')" :aria-label="t('eventGroups.name')"
+                   class="text-lg font-semibold" disabled/>
+        <div class="space-y-1">
+          <div class="flex items-center gap-1">
+            <FieldLabel>{{ t('eventGroups.color') }}</FieldLabel>
+            <HintIcon :text="t('eventGroups.colorHint')"/>
+          </div>
+          <div class="flex items-center gap-2">
+            <ColorInput model-value="#8b5cf6"/>
+            <SecondaryButton compact>{{ t('eventGroups.colorReset') }}</SecondaryButton>
+          </div>
         </div>
       </NeutralContainer>
+    </HelpSection>
+    <HelpSection :title="t('helpCenter.eventGroupEdit.dateSettingsTitle')">
+      <p>{{ t('helpCenter.eventGroupEdit.dateSettingsText') }}</p>
+      <EventGroupDateSettingsCard
+          category-id="1"
+          template-id="4"
+          :reminders="[7, 1]"
+          :categories="categories"
+          :templates="templates"
+          :template-fields="[]"
+          :field-defaults="new Map()"
+      />
+    </HelpSection>
+    <HelpSection :title="t('helpCenter.eventGroupEdit.fieldsTitle')">
+      <p>{{ t('helpCenter.eventGroupEdit.fieldsText') }}</p>
     </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupEdit.minimumTitle')">
       <p>{{ t('helpCenter.eventGroupEdit.minimumText') }}</p>
       <NeutralContainer class="space-y-2">
+        <FieldLabel>{{ t('eventGroups.limit') }}</FieldLabel>
+        <NumberInput :model-value="12"/>
+        <FieldLabel inline><ToggleInput :model-value="true"/> {{ t('eventGroups.confirmationField') }}</FieldLabel>
         <FieldLabel>{{ t('eventGroups.minimumField') }}</FieldLabel>
         <NumberInput :model-value="6"/>
-        <FieldLabel>{{ t('eventGroups.thresholdField') }}</FieldLabel>
+        <div class="flex items-center gap-1">
+          <FieldLabel>{{ t('eventGroups.thresholdField') }}</FieldLabel>
+          <HintIcon :text="t('eventGroups.minimumHint')"/>
+        </div>
         <NumberInput :model-value="7"/>
-        <FieldHint>{{ t('eventGroups.minimumHint') }}</FieldHint>
       </NeutralContainer>
     </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupEdit.setsTitle')">
@@ -77,26 +100,11 @@ const templates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exampleG
     <HelpSection :title="t('helpCenter.eventGroupEdit.audienceTitle')">
       <p>{{ t('helpCenter.eventGroupEdit.audienceText') }}</p>
     </HelpSection>
-    <HelpSection :title="t('helpCenter.eventGroupEdit.dateSettingsTitle')">
-      <p>{{ t('helpCenter.eventGroupEdit.dateSettingsText') }}</p>
-      <EventGroupDateSettingsCard
-          category-id="1"
-          template-id="4"
-          :reminders="[7, 1]"
-          :categories="categories"
-          :templates="templates"
-          :template-fields="[]"
-          :field-defaults="new Map()"
-      />
+    <HelpSection :title="t('helpCenter.eventGroupEdit.questionsTitle')">
+      <p>{{ t('helpCenter.eventGroupEdit.questionsText') }}</p>
     </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupEdit.filesTitle')">
       <p>{{ t('helpCenter.eventGroupEdit.filesText') }}</p>
-    </HelpSection>
-    <HelpSection :title="t('helpCenter.eventGroupEdit.fieldsTitle')">
-      <p>{{ t('helpCenter.eventGroupEdit.fieldsText') }}</p>
-    </HelpSection>
-    <HelpSection :title="t('helpCenter.eventGroupEdit.questionsTitle')">
-      <p>{{ t('helpCenter.eventGroupEdit.questionsText') }}</p>
     </HelpSection>
     <HelpSection :title="t('helpCenter.eventGroupEdit.partsTitle')">
       <p>{{ t('helpCenter.eventGroupEdit.partsText') }}</p>

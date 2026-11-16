@@ -26,12 +26,14 @@ People who share a station can write to each other directly, in groups, and in c
 - **Groups of questions are ticked as one.** In the list of profile questions a group has one box in its header that ticks all of its questions, and the questions inside carry none. The explanations on the members configuration page sit behind info icons.
 - **Unreadable requests name their field.** Where the server cannot read a value a page sent, the message now names the field it stopped at.
 - **The end moves with the start.** Changing the start of an appointment, an attendance sheet, a form or a test moves its end by the same amount, so the length stays the same. Moving an appointment to another day no longer needs the end changed as well.
+- **The weekday follows the start date.** A repeating appointment takes the weekday of its start date until another weekday is picked.
 
 ### Changes
 
 - **The introduction tour is part of the first steps.** The bar at the bottom of the dashboard is gone. The walk past the main areas is now the first of the first steps, shows only areas that are switched on, and is remembered per person instead of per browser.
 - **Conditions stay inside their group.** A question in a group of questions can only be shown behind a question of the same group. An existing question that depends on one outside its group is marked in its editor and has to get a new condition on its next change.
 - **Shared appointments need this version on both sides.** Between a station on this version and a partner station on an older one on another server, shared appointments, signing up for them and their comments stop working. They work again once both run 26.25.0.
+- **A tidier appointment form.** Creating and editing an appointment or an event group is one form in the order it is filled in, with Save at the end and explanations behind a hint icon. Fields of appointments and attendance templates take one line each, with their settings behind a button.
 
 ### Fixes
 

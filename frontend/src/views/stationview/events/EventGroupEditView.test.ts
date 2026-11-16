@@ -50,7 +50,7 @@ vi.mock('@/util/toast', () => ({showToast: toast}))
 
 function mountEditor() {
   return mount(EventGroupEditView, {
-    global: {stubs: {ViewContent: {template: '<div><slot/></div>'}, EventGroupDetailsForm: true, RestrictionsField: true, EventGroupSetsEditor: true,
+    global: {stubs: {ViewContent: {template: '<div><slot/></div>'}, MarkdownEditor: true, EventGroupSignUpFields: true, EventGroupColorField: true, RestrictionsField: true, EventGroupSetsEditor: true,
       EventGroupQuestionsCard: true, EventGroupFieldsCard: true, EventGroupShareCard: true, EventGroupPartsEditor: true, EventGroupDateSettingsSection: true, EventGroupFilesSection: true}},
   })
 }
@@ -241,5 +241,31 @@ describe('EventGroupEditView from an appointment template', () => {
     }))
     expect(api.eventGroups.setSettings).toHaveBeenCalledWith(7, expect.objectContaining({templateId: 4, categoryId: 2, reminderDays: [3]}))
     expect(api.eventGroups.attachFile).toHaveBeenCalledWith(7, 40, 'Anfahrt', false)
+  })
+})
+
+/**
+ * The event group is one form in the appointment form's order, saved at its end; its parts come below,
+ * since they need a saved group.
+ */
+describe('EventGroupEditView layout', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    route.query = {}
+  })
+
+  it('asks in the appointment form\'s order and keeps the parts below the form', async () => {
+    const wrapper = mountEditor()
+    await flushPromises()
+
+    const form = wrapper.get('[data-testid="event-group-form"]')
+    const html = form.html()
+    const order = ['event-group-name', 'event-group-sign-up-fields-stub', 'event-group-sets-editor-stub',
+      'restrict-registration', 'event-group-questions-card-stub', 'event-group-files-section-stub', 'event-group-save']
+    const positions = order.map(marker => html.indexOf(marker))
+
+    expect(positions.every(position => position >= 0)).toBe(true)
+    expect([...positions].sort((a, b) => a - b)).toEqual(positions)
+    expect(form.find('event-group-parts-editor-stub').exists()).toBe(false)
   })
 })
