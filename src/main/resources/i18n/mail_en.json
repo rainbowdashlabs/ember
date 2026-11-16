@@ -20,6 +20,7 @@
     "waitlist-registered": "Waiting list registration{stationSuffix}",
     "waitlist-invitation": "An invitation to come and look{stationSuffix}",
     "waitlist-other-dates": "Other dates to come and look{stationSuffix}",
+    "waitlist-invitation-reminder": "Reminder: an invitation to come and look{stationSuffix}",
     "waitlist-trial-started": "Your trial has begun{stationSuffix}",
     "waitlist-removed": "You are no longer on the waiting list{stationSuffix}",
     "waitlist-confirm-reminder": "Please confirm your interest{stationSuffix}",

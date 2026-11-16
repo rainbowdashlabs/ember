@@ -117,6 +117,34 @@ public class WaitlistInvitationMessage {
     }
 
     /**
+     * Reminds the family of an invitation they have not answered, naming only the dates still ahead.
+     *
+     * @param now the moment that decides which dates have begun
+     * @return whether a reminder went out, false when no date is left to remind of
+     */
+    public boolean sendReminder(
+            WaitingListEntry entry,
+            List<WaitingListEntryGuardian> guardians,
+            Station station,
+            WaitingListInvitation invitation,
+            Instant now) {
+        var details = describeUpcoming(station, invitation, now);
+        if (details.appointments().isEmpty()) return false;
+        String language = StationFormat.languageOf(station);
+        for (var recipient : recipients(entry, guardians)) {
+            emailService.sendWaitlistInvitationReminderEmail(
+                    recipient.email(),
+                    recipient.name(),
+                    entry.accessToken(),
+                    station.name(),
+                    language,
+                    station.id(),
+                    details);
+        }
+        return true;
+    }
+
+    /**
      * Tells everybody on the entry who left an address that the trial has begun.
      *
      * @param message what the station wrote to them, empty for nothing

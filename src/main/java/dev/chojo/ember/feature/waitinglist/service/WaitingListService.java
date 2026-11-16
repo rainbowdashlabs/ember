@@ -38,7 +38,9 @@ import dev.chojo.ember.feature.question.QuestionCheck;
 import dev.chojo.ember.feature.question.QuestionValues;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
+import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
@@ -94,6 +96,7 @@ public class WaitingListService implements TaskSource {
     private final WaitlistInvitationMessage invitationMessage;
     private final DomainEventBus eventBus;
     private final GdprDeletionService deletion;
+    private final ModuleAvailability modules;
 
     @Inject
     public WaitingListService(
@@ -108,7 +111,8 @@ public class WaitingListService implements TaskSource {
             StationMemberInviteService inviteService,
             WaitlistInvitationMessage invitationMessage,
             DomainEventBus eventBus,
-            GdprDeletionService deletion) {
+            GdprDeletionService deletion,
+            ModuleAvailability modules) {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -121,6 +125,7 @@ public class WaitingListService implements TaskSource {
         this.invitationMessage = invitationMessage;
         this.eventBus = eventBus;
         this.deletion = deletion;
+        this.modules = modules;
     }
 
     public List<WaitingList> findByStation(int stationId) {
@@ -1444,12 +1449,44 @@ public class WaitingListService implements TaskSource {
     }
 
     private void checkAllExpiredConfirmations() {
-        try {
-            for (var list : repository.findAll()) {
+        for (var list : repository.findAll()) {
+            try {
                 checkExpiredConfirmations(list);
+                remindOpenInvitations(list, Instant.now());
+            } catch (Exception e) {
+                log.warn("Error checking waiting list {}", list.id(), e);
             }
-        } catch (Exception e) {
-            log.warn("Error checking waiting list confirmations", e);
+        }
+    }
+
+    /** How long an invitation sits unanswered before the family is reminded of it, and again after that. */
+    static final Duration INVITATION_REMINDER_INTERVAL = Duration.ofDays(7);
+
+    /**
+     * Reminds the families on a list of the invitations they have not answered, once a week, naming
+     * only the dates still ahead.
+     *
+     * <p>The week counts from the last mail about the invitation: the invitation itself, other dates or
+     * the previous reminder. The reminders end with any answer, with the entry leaving the invited
+     * section, and once no offered date is left; other dates start them again. A list that writes to
+     * nobody reminds nobody, and neither does a station whose waiting list is switched off, by itself
+     * or by its cluster.
+     *
+     * @param now the moment the run happens at, which decides what is due and which dates have begun
+     */
+    public void remindOpenInvitations(WaitingList list, Instant now) {
+        if (!list.sendsMail()) return;
+        if (StationModule.WAITING_LIST.isOffIn(modules.disabledAt(list.stationId()))) return;
+        var station = stationRepository.findById(list.stationId()).orElse(null);
+        if (station == null) return;
+        for (var entry : repository.findInvitationsMailedBefore(list.id(), now.minus(INVITATION_REMINDER_INTERVAL))) {
+            var invitation = entry.invitation();
+            if (invitation == null) continue;
+            var guardians = repository.findGuardiansByEntry(entry.id());
+            if (invitationMessage.sendReminder(entry, guardians, station, invitation, now)) {
+                repository.markInvitationMailed(entry.id(), entry.invitationRound(), now);
+                log.info("Reminded waiting-list entry {} of its open invitation", entry.id());
+            }
         }
     }
 

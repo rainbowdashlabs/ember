@@ -18,12 +18,15 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
+import dev.chojo.ember.feature.mail.entity.WaitlistInvitationDetails;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationModule;
+import dev.chojo.ember.feature.station.service.ModuleAvailability;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
@@ -43,6 +46,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -59,6 +63,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     private static Station station;
     private static AuthService authService;
     private static EmailService emailService;
+    private static ModuleAvailability modules;
     private int listId;
 
     private static List<GuardianInput> guardians(String name, String email) {
@@ -93,6 +98,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         emailService = mock(EmailService.class);
+        modules = mock(ModuleAvailability.class);
         var notificationService = mock(Notifier.class);
         authService = mock(AuthService.class);
         service = new WaitingListService(
@@ -108,7 +114,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
                         accountRepo, stationRepo, stationMemberRepo, newGroupMemberships(), authService),
                 new WaitlistInvitationMessage(eventRepo, eventFieldRepo, emailService),
                 new DomainEventBus(Set.of()),
-                newGdprDeletionService());
+                newGdprDeletionService(),
+                modules);
         station = stationRepo.create("WaitlistStation");
     }
 
@@ -2150,6 +2157,127 @@ class WaitingListServiceTest extends RepositoryTestBase {
     }
 
     /** A public list nobody is written to, which is what a station behind its own network keeps. */
+    /** Invites a new entry to the given dates of one appointment, as the station's dialog would. */
+    private WaitingListEntry invitedTo(String surname, String email, LocalDate... dates) {
+        var event = appointment("Erinnerung " + surname);
+        var entry = service.createEntry(listId, "Neu", surname, guardians("", email), Map.of(), "");
+        var options = new ArrayList<WaitingListInvitation.OfferedDate>();
+        for (int i = 0; i < dates.length; i++) {
+            options.add(new WaitingListInvitation.OfferedDate(i, event.id(), dates[i], null));
+        }
+        return service.inviteEntry(entry.id(), new WaitingListInvitation("", options));
+    }
+
+    private void verifyReminders(String email, int times) {
+        verify(emailService, times(times))
+                .sendWaitlistInvitationReminderEmail(
+                        eq(email), anyString(), anyString(), anyString(), anyString(), any(), any());
+    }
+
+    private WaitingList currentList() {
+        return service.findById(listId).orElseThrow();
+    }
+
+    /**
+     * An unanswered invitation is brought back once a week, counted from its last mail, and not before.
+     * A reminder counts as a mail itself, so the next one waits another week.
+     */
+    @Test
+    void anUnansweredInvitationIsRemindedOnceAWeek() {
+        invitedTo("Woche", "woche@test.com", LocalDate.of(2099, 5, 12));
+        var now = Instant.now();
+
+        service.remindOpenInvitations(currentList(), now.plus(Duration.ofDays(6)));
+        verifyReminders("woche@test.com", 0);
+
+        service.remindOpenInvitations(currentList(), now.plus(Duration.ofDays(8)));
+        verifyReminders("woche@test.com", 1);
+
+        service.remindOpenInvitations(currentList(), now.plus(Duration.ofDays(9)));
+        verifyReminders("woche@test.com", 1);
+
+        service.remindOpenInvitations(currentList(), now.plus(Duration.ofDays(16)));
+        verifyReminders("woche@test.com", 2);
+    }
+
+    /** A reminder names only the dates still ahead. */
+    @Test
+    void aReminderNamesOnlyTheDatesStillAhead() {
+        invitedTo("Rest", "rest@test.com", LocalDate.of(2020, 5, 12), LocalDate.of(2099, 5, 19));
+
+        service.remindOpenInvitations(currentList(), Instant.now().plus(Duration.ofDays(8)));
+
+        var details = ArgumentCaptor.forClass(WaitlistInvitationDetails.class);
+        verify(emailService)
+                .sendWaitlistInvitationReminderEmail(
+                        eq("rest@test.com"),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        any(),
+                        details.capture());
+        assertEquals(1, details.getValue().appointments().size());
+        assertEquals(1, details.getValue().appointments().getFirst().position());
+    }
+
+    /** Any answer ends the reminders, and so does an invitation whose dates are all over. */
+    @Test
+    void anAnsweredOrPastInvitationIsNotReminded() {
+        var answered = invitedTo("Antwort", "antwort@test.com", LocalDate.of(2099, 5, 12));
+        service.answerInvitation(
+                answered.accessToken(), answered.invitationRound(), WaitingListAnswer.DATE_DOES_NOT_SUIT, null, null);
+        invitedTo("Vorbei", "vorbei-erinnerung@test.com", LocalDate.of(2020, 5, 12));
+
+        service.remindOpenInvitations(currentList(), Instant.now().plus(Duration.ofDays(8)));
+
+        verifyReminders("antwort@test.com", 0);
+        verifyReminders("vorbei-erinnerung@test.com", 0);
+    }
+
+    /** Other dates start the week again, so the family is not reminded of dates they were sent today. */
+    @Test
+    void otherDatesStartTheWeekAgain() {
+        var invited = invitedTo("Neu", "neu-erinnerung@test.com", LocalDate.of(2099, 5, 12));
+        var start = Instant.now();
+        service.remindOpenInvitations(currentList(), start.plus(Duration.ofDays(8)));
+        verifyReminders("neu-erinnerung@test.com", 1);
+
+        var event = appointment("Andere");
+        service.reofferEntry(invited.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 6, 2), null));
+
+        service.remindOpenInvitations(currentList(), Instant.now().plus(Duration.ofDays(6)));
+        verifyReminders("neu-erinnerung@test.com", 1);
+        service.remindOpenInvitations(currentList(), Instant.now().plus(Duration.ofDays(8)));
+        verifyReminders("neu-erinnerung@test.com", 2);
+    }
+
+    /** A station whose waiting list is switched off reminds nobody, by itself or by its cluster. */
+    @Test
+    void aSwitchedOffWaitingListRemindsNobody() {
+        invitedTo("Aus", "aus@test.com", LocalDate.of(2099, 5, 12));
+        when(modules.disabledAt(station.id())).thenReturn(Set.of(StationModule.WAITING_LIST));
+        try {
+            service.remindOpenInvitations(currentList(), Instant.now().plus(Duration.ofDays(8)));
+        } finally {
+            when(modules.disabledAt(station.id())).thenReturn(Set.of());
+        }
+
+        verifyReminders("aus@test.com", 0);
+    }
+
+    /** A list that writes to nobody reminds nobody. */
+    @Test
+    void aListWithoutMailRemindsNobody() {
+        var quiet = service.create(station.id(), "Leise", "", null, 180, null, null, 5, false, false, null, null);
+        listId = quiet.id();
+        invitedTo("Leise", "leise@test.com", LocalDate.of(2099, 5, 12));
+
+        service.remindOpenInvitations(currentList(), Instant.now().plus(Duration.ofDays(8)));
+
+        verifyReminders("leise@test.com", 0);
+    }
+
     private WaitingList silentList(String name) {
         return service.create(
                 station.id(), name + " " + UUID.randomUUID(), "", null, 0, null, null, 5, true, false, null, null);

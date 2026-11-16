@@ -591,6 +591,48 @@ public class WaitingListRepository {
     }
 
     /**
+     * The open invitations of a list whose last mail went out at or before the given moment: invited,
+     * unanswered, and with at least one offered date. Whether a date is still ahead is the caller's
+     * to decide, since it depends on the appointment's time of day on the station's clock.
+     *
+     * @param mailedBefore the latest moment the last mail may have gone out
+     */
+    public List<WaitingListEntry> findInvitationsMailedBefore(int listId, Instant mailedBefore) {
+        return query("""
+                SELECT %s FROM waiting_list_entry
+                WHERE list_id = :list_id
+                  AND status = 'INVITED'
+                  AND invitation_answer IS NULL
+                  AND invitation_mailed_at <= :before
+                  AND EXISTS (SELECT 1 FROM waiting_list_invitation_option WHERE entry_id = waiting_list_entry.id)
+                ORDER BY id;""", WAITING_LIST_ENTRY_READ_COLUMNS)
+                .single(call().bind("list_id", listId).bind("before", mailedBefore, INSTANT_TIMESTAMP))
+                .map(WaitingListEntry.map())
+                .all();
+    }
+
+    /**
+     * Records that the family was sent the invitation again, which is where the next reminder counts
+     * from. Written only while the entry still holds the same open invitation: other dates sent in the
+     * meantime start their own count, and an answer ends the reminders.
+     *
+     * @param round the invitation round the reminder was about
+     * @return whether it was written
+     */
+    public boolean markInvitationMailed(int entryId, int round, Instant at) {
+        return query("""
+                UPDATE waiting_list_entry
+                SET invitation_mailed_at = :at
+                WHERE id = :id
+                  AND invitation_round = :round
+                  AND status = 'INVITED'
+                  AND invitation_answer IS NULL;""")
+                .single(call().bind("id", entryId).bind("round", round).bind("at", at, INSTANT_TIMESTAMP))
+                .update()
+                .changed();
+    }
+
+    /**
      * Records what came back to the invitation the entry currently holds.
      *
      * <p>Written together with its moment, because an answer nobody can date says nothing about how
