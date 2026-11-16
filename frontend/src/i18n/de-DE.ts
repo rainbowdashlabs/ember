@@ -4005,6 +4005,7 @@ export default {
         questionsHint: 'Jede Frage wird einmal beschrieben. Wem sie gestellt wird, steht daneben.',
         batch: {
             toggleRow: 'Frage auswählen',
+            toggleSet: 'Feldgruppe „{name}“ auswählen',
             chosen: '{count} Fragen ausgewählt',
             assignPlaceholder: 'Allen eine Zielgruppe geben',
             clear: 'Auswahl aufheben',

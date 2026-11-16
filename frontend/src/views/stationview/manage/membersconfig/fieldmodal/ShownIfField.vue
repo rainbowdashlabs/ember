@@ -5,9 +5,8 @@
  */
 <script lang="ts" setup>
 import {computed} from 'vue'
+import LabelledField from '@/components/input/LabelledField.vue'
 import {useI18n} from 'vue-i18n'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import MutedText from '@/components/typography/MutedText.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import type {EditableField} from '@/api/profileFields'
 import {FieldType} from '@/api/generated/schema'
@@ -58,18 +57,19 @@ const choice = computed({
 </script>
 
 <template>
-  <div v-if="choices.length > 0 || outside" class="space-y-1">
-    <FieldLabel>{{ t('membersConfig.shownIf') }}</FieldLabel>
-    <SelectInput v-model="choice" class="w-full" data-testid="field-shown-if">
-      <option value="">{{ t('membersConfig.shownAlways') }}</option>
-      <option v-for="field in choices" :key="field.id" :value="String(field.id)">{{ optionLabel(field) }}</option>
-      <option v-if="outside" :value="String(outside.id)">
-        {{ t('membersConfig.shownIfOutsideGroup', {name: outside.name}) }}
-      </option>
-    </SelectInput>
-    <p v-if="outside" class="text-xs text-warning" data-testid="field-shown-if-outside">
-      {{ t('membersConfig.shownIfOutsideGroupHint') }}
-    </p>
-    <MutedText size="xs" tag="p">{{ t('membersConfig.shownIfHint') }}</MutedText>
-  </div>
+  <LabelledField v-if="choices.length > 0 || outside" :label="t('membersConfig.shownIf')"
+                 :help="t('membersConfig.shownIfHint')" help-as-hint>
+    <template #default="{describedBy}">
+      <SelectInput v-model="choice" class="w-full" data-testid="field-shown-if" :aria-describedby="describedBy">
+        <option value="">{{ t('membersConfig.shownAlways') }}</option>
+        <option v-for="field in choices" :key="field.id" :value="String(field.id)">{{ optionLabel(field) }}</option>
+        <option v-if="outside" :value="String(outside.id)">
+          {{ t('membersConfig.shownIfOutsideGroup', {name: outside.name}) }}
+        </option>
+      </SelectInput>
+      <p v-if="outside" class="text-xs text-warning" data-testid="field-shown-if-outside">
+        {{ t('membersConfig.shownIfOutsideGroupHint') }}
+      </p>
+    </template>
+  </LabelledField>
 </template>

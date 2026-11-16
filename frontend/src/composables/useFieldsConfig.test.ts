@@ -271,6 +271,25 @@ describe('useFieldsConfig', () => {
     expect(api!.checkedIds.value.size).toBe(0)
   })
 
+  /** The box of a group ticks all of its fields, and unticks them only once every one is ticked. */
+  it('ticks a whole group from its own box', async () => {
+    const street = {...field(1, 'Straße', FieldType.TEXT), fieldSetId: 7}
+    const city = {...field(2, 'Ort', FieldType.TEXT), fieldSetId: 7}
+    const config = configFor([street, city, field(3, 'Allein', FieldType.TEXT)])
+    await config.reload()
+
+    config.toggleChecked(3)
+    config.toggleSetChecked(7)
+    expect([...config.checkedIds.value].sort()).toEqual([1, 2, 3])
+
+    config.toggleSetChecked(7)
+    expect([...config.checkedIds.value]).toEqual([3])
+
+    config.checkedIds.value = new Set([1, 3])
+    config.toggleSetChecked(7)
+    expect([...config.checkedIds.value].sort()).toEqual([1, 2, 3])
+  })
+
   /** A template naming a field the owner already has writes nothing, not even its group. */
   it('writes nothing of a template whose field names are taken', async () => {
     const created: EditableFieldRequest[] = []

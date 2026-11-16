@@ -23,6 +23,7 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 - **Felder können zwei Drittel oder ein Viertel einer Zeile einnehmen.** Neben einem Drittel und der Hälfte kann ein Profil-, Anwesenheits- oder Terminfeld ein Viertel, zwei Drittel oder drei Viertel einer Zeile einnehmen, gewählt mit einem Schieberegler statt aus einer Liste.
 - **Termine lassen sich kopieren.** „Kopieren" an einem Termin oder in der Terminliste öffnet einen neuen Termin mit allem aus dem Original, bereit für ein neues Datum. Anmeldungen, Anwesenheit und Kommentare werden nicht kopiert.
 - **Fragen können auf eine beliebige Antwort warten.** Eine Profilfrage lässt sich erst zeigen, wenn eine Auswahl- oder Textfrage beantwortet ist, etwa das Ablaufdatum des Führerscheins, sobald eine Klasse gewählt ist. Die Vorlage Führerschein fragt die Klasse als Auswahl aus B, BE, C und CE.
+- **Feldgruppen werden als Ganzes ausgewählt.** In der Liste der Profilfragen hat eine Feldgruppe ein Kästchen in ihrer Kopfzeile, das alle ihre Fragen auswählt, und die Fragen darin haben keines. Die Erklärungen auf der Seite der Mitglieder-Konfiguration stehen hinter Info-Symbolen.
 - **Unlesbare Anfragen nennen ihr Feld.** Kann der Server einen Wert nicht lesen, den eine Seite geschickt hat, nennt die Meldung jetzt das Feld, an dem er hängen blieb.
 - **Das Ende wandert mit dem Beginn.** Wird der Beginn eines Termins, eines Anwesenheitsbogens, eines Formulars oder eines Tests geändert, verschiebt sich das Ende um denselben Betrag, und die Dauer bleibt gleich. Ein Termin an einem anderen Tag braucht kein zweites geändertes Ende mehr.
 
@@ -34,6 +35,7 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 
 ### Fehlerbehebungen
 
+- **Die Bildlaufleiste verdeckte Schalter im Fragen-Dialog.** In manchen Fällen lag die Bildlaufleiste des Dialogs zum Anlegen oder Bearbeiten einer Profilfrage über den Schaltern. Der Dialog lässt ihr jetzt Platz.
 - **Kurzprofile zeigen nur, was der Lesende sehen darf.** Nach einer Anmeldung als jemand anderes, einem Profilwechsel oder einem entzogenen Recht konnte ein schon geöffnetes Kurzprofil ohne Neuladen der Seite noch private Tags zeigen. Es wird jetzt für die Person neu geladen, die gerade schaut.
 - **Wörter statt technischer Werte.** An einigen Stellen erschienen technische Werte statt Wörtern, etwa die Antwort auf eine Einladung von der Warteliste, ein vom Verband abgeschaltetes Modul, die Mitgliedsarten in der Einrichtung der Wache und zugeordnete Werte beim Mitgliederimport, und dem letzten Einrichtungsschritt fehlte sein Hinweis. Alles erscheint jetzt in der Sprache der Oberfläche.
 - **Abgeschaltete Module blieben erreichbar.** Seiten eines abgeschalteten Moduls öffneten sich weiter über einen gespeicherten Link, und Dokumente und das öffentliche Wiki blieben offen, wenn nur der Verband sie abgeschaltet hatte. Jede Seite eines abgeschalteten Moduls sagt jetzt, dass dieser Bereich an der Wache ausgeschaltet ist.

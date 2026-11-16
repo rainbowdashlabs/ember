@@ -5,9 +5,8 @@
  */
 <script lang="ts" setup>
 import {computed} from 'vue'
+import LabelledField from '@/components/input/LabelledField.vue'
 import {useI18n} from 'vue-i18n'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
-import MutedText from '@/components/typography/MutedText.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import type {FieldSet} from '@/api/generated/schema'
 
@@ -32,12 +31,13 @@ const choice = computed({
 </script>
 
 <template>
-  <div v-if="sets.length > 0" class="space-y-1">
-    <FieldLabel>{{ t('membersConfig.sets.field') }}</FieldLabel>
-    <SelectInput v-model="choice" class="w-full" data-testid="field-set-choice">
-      <option value="">{{ t('membersConfig.sets.none') }}</option>
-      <option v-for="set in sets" :key="set.id" :value="String(set.id)">{{ set.name }}</option>
-    </SelectInput>
-    <MutedText size="xs" tag="p">{{ t('membersConfig.sets.fieldHint') }}</MutedText>
-  </div>
+  <LabelledField v-if="sets.length > 0" :label="t('membersConfig.sets.field')"
+                 :help="t('membersConfig.sets.fieldHint')" help-as-hint>
+    <template #default="{describedBy}">
+      <SelectInput v-model="choice" class="w-full" data-testid="field-set-choice" :aria-describedby="describedBy">
+        <option value="">{{ t('membersConfig.sets.none') }}</option>
+        <option v-for="set in sets" :key="set.id" :value="String(set.id)">{{ set.name }}</option>
+      </SelectInput>
+    </template>
+  </LabelledField>
 </template>

@@ -23,6 +23,7 @@ People who share a station can write to each other directly, in groups, and in c
 - **Fields can take two thirds or a quarter of a row.** Besides a third and a half, a profile, attendance or appointment field can take a quarter, two thirds or three quarters of a row, picked with a slider instead of a list.
 - **Appointments can be copied.** "Copy" on an appointment or in the list of appointments opens a new one with everything of the original filled in, ready for a new date. Sign-ups, attendance and comments are not copied.
 - **Questions can wait for any answer.** A profile question can be shown only once a choice or text question is answered, such as a licence expiry date once a licence class is chosen. The licence template asks the class as a choice of B, BE, C and CE.
+- **Groups of questions are ticked as one.** In the list of profile questions a group has one box in its header that ticks all of its questions, and the questions inside carry none. The explanations on the members configuration page sit behind info icons.
 - **Unreadable requests name their field.** Where the server cannot read a value a page sent, the message now names the field it stopped at.
 - **The end moves with the start.** Changing the start of an appointment, an attendance sheet, a form or a test moves its end by the same amount, so the length stays the same. Moving an appointment to another day no longer needs the end changed as well.
 
@@ -34,6 +35,7 @@ People who share a station can write to each other directly, in groups, and in c
 
 ### Fixes
 
+- **The question dialog's scroll bar covered its switches.** In some cases the scroll bar of the dialog for creating or editing a profile question lay over the switches. The dialog now leaves room for it.
 - **Short profiles show only what the reader may see.** After signing in as somebody else, switching profile or losing a right without reloading the page, a short profile already opened could still show private tags. It is now loaded again for whoever is looking.
 - **Words instead of raw values.** In some places technical values showed instead of words, such as the answer to a waiting-list invitation, a module the cluster switched off, member types in the station setup and mapped values in the member import, and the last setup step missed its hint. They now read in the interface language.
 - **Switched-off modules stayed reachable.** Pages of a switched-off module still opened from a saved link, and the documents and the public wiki stayed open when only the association had switched them off. Every page of a switched-off module now says that this part of the station is switched off.

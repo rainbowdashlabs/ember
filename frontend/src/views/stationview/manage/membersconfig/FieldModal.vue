@@ -229,7 +229,7 @@ function submit() {
 
 <template>
   <Modal v-model="modelValue">
-    <div class="space-y-4">
+    <div class="space-y-4 pr-3" data-testid="field-modal-body">
       <SubHeader>{{ field ? t('membersConfig.editField') : t('membersConfig.addField') }}</SubHeader>
       <BasicFields v-model:name="fieldName" v-model:field-type="fieldType"
                    v-model:description="fieldDescription"

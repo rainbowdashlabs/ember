@@ -31,6 +31,8 @@ defineProps<{
   audiences: number
   selected: boolean
   checked: boolean
+  /** Whether the row has a box of its own; the questions of a group are ticked by the group's box. */
+  checkable: boolean
   /** The yes/no question this one is only shown behind, by name. */
   shownIfName?: string
 }>()
@@ -62,10 +64,12 @@ const gridClass = computed(() => fieldGrid(capabilities.writability))
       @click="emit('select', field)">
     <div class="font-medium px-2 truncate flex items-center gap-2">
       <CheckboxInput
+          v-if="checkable"
           :model-value="checked"
           :aria-label="t('membersConfig.batch.toggleRow')"
           :data-testid="`field-check-${field.name}`"
           @click.stop="emit('toggleChecked', field)"/>
+      <span v-else class="w-4 shrink-0" aria-hidden="true"/>
       <span
           role="button"
           tabindex="0"

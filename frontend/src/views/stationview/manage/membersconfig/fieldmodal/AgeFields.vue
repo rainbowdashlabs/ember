@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import LabelledField from '@/components/input/LabelledField.vue'
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
@@ -28,14 +29,14 @@ const {t} = useI18n()
 
 <template>
   <div class="space-y-3">
-    <div class="space-y-1">
-      <FieldLabel>{{ t('membersConfig.fieldAgeSource') }}</FieldLabel>
-      <SelectInput v-model="sourceId">
-        <option :value="null" disabled>{{ t('membersConfig.fieldAgeSourcePlaceholder') }}</option>
-        <option v-for="f in dateFields" :key="f.id" :value="f.id">{{ f.name }}</option>
-      </SelectInput>
-      <p class="text-xs text-(--text-muted)">{{ t('membersConfig.fieldAgeSourceHint') }}</p>
-    </div>
+    <LabelledField :label="t('membersConfig.fieldAgeSource')" :help="t('membersConfig.fieldAgeSourceHint')" help-as-hint>
+      <template #default="{describedBy}">
+        <SelectInput v-model="sourceId" :aria-describedby="describedBy">
+          <option :value="null" disabled>{{ t('membersConfig.fieldAgeSourcePlaceholder') }}</option>
+          <option v-for="f in dateFields" :key="f.id" :value="f.id">{{ f.name }}</option>
+        </SelectInput>
+      </template>
+    </LabelledField>
     <div class="space-y-1">
       <FieldLabel>{{ t('membersConfig.fieldAgeMode') }}</FieldLabel>
       <SelectInput v-model="mode">

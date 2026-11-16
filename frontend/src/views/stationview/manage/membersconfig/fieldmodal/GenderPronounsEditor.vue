@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import MutedText from '@/components/typography/MutedText.vue'
+import HintIcon from '@/components/typography/HintIcon.vue'
 import GenderAnswerPronouns from './GenderAnswerPronouns.vue'
 import type {AnswerPronouns, GenderPronouns, PronounOffer} from './genderPronouns'
 
@@ -32,8 +32,10 @@ function setAnswer(answer: string, value: AnswerPronouns | undefined) {
 
 <template>
   <div class="space-y-3" data-testid="gender-pronouns">
-    <SubHeader>{{ t('membersConfig.gender.title') }}</SubHeader>
-    <MutedText size="sm" tag="p">{{ t('membersConfig.gender.hint') }}</MutedText>
+    <div class="flex items-center gap-1">
+      <SubHeader>{{ t('membersConfig.gender.title') }}</SubHeader>
+      <HintIcon :text="t('membersConfig.gender.hint')"/>
+    </div>
     <GenderAnswerPronouns v-for="answer in answers" :key="answer" :answer="answer" :offer="offer"
                           :model-value="pronouns[answer]" @update:model-value="value => setAnswer(answer, value)"/>
   </div>

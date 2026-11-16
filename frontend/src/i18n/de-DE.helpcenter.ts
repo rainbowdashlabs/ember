@@ -1864,7 +1864,9 @@ volumes:
                 + 'besten an ihrem ersten Feld. '
                 + 'Pflicht, Breite und Änderbarkeit bleiben je Feld einstellbar. In der Feldliste und in der '
                 + 'Formularvorschau stehen die Felder einer Gruppe eingerahmt unter ihrem Namen, und wählst du ein '
-                + 'Feld einer Gruppe aus, gelten die Zielgruppen für die ganze Gruppe.',
+                + 'Feld einer Gruppe aus, gelten die Zielgruppen für die ganze Gruppe. Zum Auswählen für eine '
+                + 'gemeinsame Zielgruppe hat in der Feldliste die Gruppe ein Kästchen in ihrer Kopfzeile, ihre '
+                + 'einzelnen Felder haben keines: Ein Haken dort wählt alle Felder der Gruppe aus.',
             setsHeading: 'Mit „Name als Überschrift" steht der Name der Gruppe im Formular über ihren Feldern, '
                 + 'ohne dass du eine eigene Überschrift anlegen musst. Löst du eine Gruppe auf, bleiben ihre '
                 + 'Felder samt Antworten erhalten.',

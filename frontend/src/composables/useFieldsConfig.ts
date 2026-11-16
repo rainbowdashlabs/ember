@@ -614,10 +614,21 @@ export function useFieldsConfig(port: FieldsPort) {
      * whole group is ticked or unticked with it.
      */
     function toggleChecked(fieldId: number) {
-        const together = membersOfSetOf(fieldId)
+        tickAll(membersOfSetOf(fieldId), !checkedIds.value.has(fieldId))
+    }
+
+    /**
+     * Ticks every question of a group, which is what the group's own box does, or unticks them all where
+     * every one of them is ticked already.
+     */
+    function toggleSetChecked(setId: number) {
+        const members = idsInSet(setId)
+        tickAll(members, !members.every(id => checkedIds.value.has(id)))
+    }
+
+    function tickAll(fieldIds: readonly number[], tick: boolean) {
         const next = new Set(checkedIds.value)
-        const tick = !next.has(fieldId)
-        for (const id of together) {
+        for (const id of fieldIds) {
             if (tick) next.add(id)
             else next.delete(id)
         }
@@ -627,7 +638,11 @@ export function useFieldsConfig(port: FieldsPort) {
     /** The question and every other question of its group, or the question alone. */
     function membersOfSetOf(fieldId: number): number[] {
         const setId = allFields.value.find(f => f.id === fieldId)?.fieldSetId
-        if (setId == null) return [fieldId]
+        return setId == null ? [fieldId] : idsInSet(setId)
+    }
+
+    /** Every question of a group, by id. */
+    function idsInSet(setId: number): number[] {
         return allFields.value.filter(f => f.fieldSetId === setId).map(f => f.id)
     }
 
@@ -842,6 +857,7 @@ export function useFieldsConfig(port: FieldsPort) {
         setPreviewWidth,
         checkedIds,
         toggleChecked,
+        toggleSetChecked,
         toggleAllChecked,
         clearChecked,
         assignCheckedTo,
