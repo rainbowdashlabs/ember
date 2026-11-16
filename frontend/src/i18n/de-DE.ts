@@ -1998,6 +1998,7 @@ export default {
         sectionPages: 'Seiten',
         sectionMembers: 'Mitglieder',
         sectionEvents: 'Termine',
+        sectionAttendance: 'Vergangene Anwesenheiten',
         sectionInventories: 'Inventare',
         sectionKnowledge: 'Wiki',
         hintNavigate: 'Navigieren',
