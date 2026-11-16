@@ -28,6 +28,8 @@ People who share a station can write to each other directly, in groups, and in c
 - **The end moves with the start.** Changing the start of an appointment, an attendance sheet, a form or a test moves its end by the same amount, so the length stays the same. Moving an appointment to another day no longer needs the end changed as well.
 - **The weekday follows the start date.** A repeating appointment takes the weekday of its start date until another weekday is picked.
 - **Reminders for open invitations.** A family that has not answered an invitation from the waiting list is reminded once a week, with only the dates still ahead. On lists that send mail, the station is notified once every offered date has passed without an answer, and the entry shows that no date is left.
+- **Attendance status on sheets to sign.** A sheet exported for signing can show the recorded status of each person and the count of each status. A new switch in the export dialog turns it on.
+- **Searching past attendance.** The past attendance page can be searched by title or template and loads older sheets on request instead of all at once. The quick search finds past attendance sheets as well.
 
 ### Changes
 
@@ -50,6 +52,7 @@ People who share a station can write to each other directly, in groups, and in c
 - **Clearer date and time fields on phones.** On phones, a date with a time opened a calendar followed by a clock that did not say what it was for, which read as the end being asked for when only the start was changed. The day and the time now have a field of their own, each with one picker.
 - **Past dates could still be accepted.** The answer page of an invitation still offered dates that had already begun, and they could be accepted. Only dates still ahead are offered now, and an invitation can no longer name a date that has begun.
 - **Invited dates read as one block each.** In the invitation from the waiting list and in the mail with other dates, every line of a date stood in a box of its own, so name, day, time and place looked like separate dates. Each offered date now stands in one box.
+- **Former members printed as numbers.** An exported attendance sheet showed people who had left the station as a bare number. They are now left off the sheet and out of its counts.
 
 ## v26.24.2
 

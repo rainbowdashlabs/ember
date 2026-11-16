@@ -178,6 +178,7 @@ const sampleRules: TimeRule[] = [{
       <p>{{ t('helpCenter.attendanceSession.signingText') }}</p>
       <BulletList>
         <li>{{ t('helpCenter.attendanceSession.signingColumn') }}</li>
+        <li>{{ t('helpCenter.attendanceSession.signingStatus') }}</li>
         <li>{{ t('helpCenter.attendanceSession.signingTitleField') }}</li>
         <li>{{ t('helpCenter.attendanceSession.signingBlankRows') }}</li>
         <li>{{ t('helpCenter.attendanceSession.signingInstanceUrl') }}</li>
