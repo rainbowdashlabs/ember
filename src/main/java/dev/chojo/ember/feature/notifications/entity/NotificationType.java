@@ -133,6 +133,10 @@ public enum NotificationType {
             StationModule.WAITING_LIST),
     WAITLIST_TRIAL_ENDED(
             NotificationParams.WaitlistTrialEnded.class, "notification.waitlistTrialEnded", StationModule.WAITING_LIST),
+    WAITLIST_INVITATION_DATES_GONE(
+            NotificationParams.WaitlistInvitationDatesGone.class,
+            "notification.waitlistInvitationDatesGone",
+            StationModule.WAITING_LIST),
     STORAGE_WARNING(NotificationParams.StorageWarning.class, "notification.storageWarning"),
     MAILBOX_SUSPENDED(
             NotificationParams.MailboxSuspended.class, "notification.mailboxSuspended", StationModule.DOCUMENTS),

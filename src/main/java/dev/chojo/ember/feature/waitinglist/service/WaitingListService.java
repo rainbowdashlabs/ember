@@ -13,6 +13,7 @@ import dev.chojo.ember.api.refusal.WaitingListRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.StationAudienceChanged;
 import dev.chojo.ember.event.events.WaitlistInvitationAnswered;
+import dev.chojo.ember.event.events.WaitlistInvitationDatesGone;
 import dev.chojo.ember.event.events.WaitlistPublicRegistration;
 import dev.chojo.ember.event.events.WaitlistTrialEnded;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
@@ -1452,9 +1453,40 @@ public class WaitingListService implements TaskSource {
         for (var list : repository.findAll()) {
             try {
                 checkExpiredConfirmations(list);
-                remindOpenInvitations(list, Instant.now());
+                var now = Instant.now();
+                remindOpenInvitations(list, now);
+                reportInvitationsWithoutDates(list, now);
             } catch (Exception e) {
                 log.warn("Error checking waiting list {}", list.id(), e);
+            }
+        }
+    }
+
+    /**
+     * Tells the station once about every open invitation whose offered dates have all begun without an
+     * answer. The family is no longer reminded of it then, and the next step is the station's: other
+     * dates, or back to waiting. Other dates make it count again.
+     *
+     * <p>Like the reminders, it stays silent for a list that writes to nobody and for a station whose
+     * waiting list is switched off.
+     *
+     * <p>The invitation is marked before the station is told, so a run that fails while telling loses
+     * that one notice rather than repeating it every day after.
+     *
+     * @param now the moment that decides which dates have begun
+     */
+    public void reportInvitationsWithoutDates(WaitingList list, Instant now) {
+        if (!list.sendsMail()) return;
+        if (StationModule.WAITING_LIST.isOffIn(modules.disabledAt(list.stationId()))) return;
+        var station = stationRepository.findById(list.stationId()).orElse(null);
+        if (station == null) return;
+        for (var entry : repository.findOpenInvitationsNotReportedGone(list.id())) {
+            var invitation = entry.invitation();
+            if (invitation == null
+                    || !invitationMessage.upcoming(station, invitation, now).isEmpty()) continue;
+            if (repository.markInvitationDatesGone(entry.id(), entry.invitationRound(), now)) {
+                eventBus.publish(new WaitlistInvitationDatesGone(list.stationId(), entry.fullName(), list.name()));
+                log.info("Waiting-list entry {} has no date of its invitation left", entry.id());
             }
         }
     }

@@ -12,6 +12,8 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.api.refusal.WaitingListRefusal;
 import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.DomainEventHandler;
+import dev.chojo.ember.event.events.WaitlistInvitationDatesGone;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
@@ -64,6 +66,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     private static AuthService authService;
     private static EmailService emailService;
     private static ModuleAvailability modules;
+    private static final List<WaitlistInvitationDatesGone> datesGone = new ArrayList<>();
     private int listId;
 
     private static List<GuardianInput> guardians(String name, String email) {
@@ -113,7 +116,17 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 TestAccountLinks.inviteService(
                         accountRepo, stationRepo, stationMemberRepo, newGroupMemberships(), authService),
                 new WaitlistInvitationMessage(eventRepo, eventFieldRepo, emailService),
-                new DomainEventBus(Set.of()),
+                new DomainEventBus(Set.of(new DomainEventHandler<WaitlistInvitationDatesGone>() {
+                    @Override
+                    public Class<WaitlistInvitationDatesGone> eventType() {
+                        return WaitlistInvitationDatesGone.class;
+                    }
+
+                    @Override
+                    public void handle(WaitlistInvitationDatesGone event) {
+                        datesGone.add(event);
+                    }
+                })),
                 newGdprDeletionService(),
                 modules);
         station = stationRepo.create("WaitlistStation");
@@ -2264,6 +2277,67 @@ class WaitingListServiceTest extends RepositoryTestBase {
         }
 
         verifyReminders("aus@test.com", 0);
+    }
+
+    /**
+     * Once every offered date has begun without an answer, the station is told, and only once. Other
+     * dates make it count again.
+     */
+    @Test
+    void theStationIsToldOnceWhenAnInvitationHasNoDateLeft() {
+        var invited = invitedTo("Leer", "leer@test.com", LocalDate.of(2020, 5, 12));
+        datesGone.clear();
+
+        service.reportInvitationsWithoutDates(currentList(), Instant.now());
+        service.reportInvitationsWithoutDates(currentList(), Instant.now());
+        assertEquals(
+                List.of("Neu Leer"),
+                datesGone.stream()
+                        .map(WaitlistInvitationDatesGone::applicantName)
+                        .toList());
+        assertNotNull(service.findEntryById(invited.id()).orElseThrow().invitationDatesGoneAt());
+
+        var event = appointment("Wieder vorbei");
+        service.reofferEntry(invited.id(), new WaitingListInvitation(event.id(), LocalDate.of(2021, 5, 12), null));
+        service.reportInvitationsWithoutDates(currentList(), Instant.now());
+        assertEquals(2, datesGone.size(), "other dates that ran out too are reported again");
+    }
+
+    /** An invitation with a date still ahead, an answered one and one without dates are not reported. */
+    @Test
+    void anInvitationWithADateAheadOrAnAnswerIsNotReported() {
+        invitedTo("Offen", "offen@test.com", LocalDate.of(2020, 5, 12), LocalDate.of(2099, 5, 12));
+        var answered = invitedTo("Beantwortet", "beantwortet@test.com", LocalDate.of(2020, 5, 12));
+        service.answerInvitation(
+                answered.accessToken(), answered.invitationRound(), WaitingListAnswer.NOT_INTERESTED, null, null);
+        var entry =
+                service.createEntry(listId, "Neu", "Ohne Termin", guardians("", "ohne-termin@test.com"), Map.of(), "");
+        invite(entry.id());
+        datesGone.clear();
+
+        service.reportInvitationsWithoutDates(currentList(), Instant.now());
+
+        assertEquals(List.of(), datesGone);
+    }
+
+    /** A list that writes to nobody and a switched-off waiting list tell the station nothing either. */
+    @Test
+    void aQuietOrSwitchedOffListReportsNothing() {
+        invitedTo("Still", "still-leer@test.com", LocalDate.of(2020, 5, 12));
+        datesGone.clear();
+        when(modules.disabledAt(station.id())).thenReturn(Set.of(StationModule.WAITING_LIST));
+        try {
+            service.reportInvitationsWithoutDates(currentList(), Instant.now());
+        } finally {
+            when(modules.disabledAt(station.id())).thenReturn(Set.of());
+        }
+        assertEquals(List.of(), datesGone, "not while the waiting list is switched off");
+
+        var quiet = service.create(station.id(), "Still leer", "", null, 180, null, null, 5, false, false, null, null);
+        listId = quiet.id();
+        invitedTo("Leise", "leise-leer@test.com", LocalDate.of(2020, 5, 12));
+        service.reportInvitationsWithoutDates(currentList(), Instant.now());
+        assertEquals(List.of(), datesGone, "not for a list that writes to nobody");
     }
 
     /** A list that writes to nobody reminds nobody. */

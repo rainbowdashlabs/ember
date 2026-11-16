@@ -633,6 +633,46 @@ public class WaitingListRepository {
     }
 
     /**
+     * The open invitations of a list the station has not yet been told about: invited, unanswered, with
+     * at least one offered date and not marked as run out. Whether every date has begun is the caller's
+     * to decide.
+     */
+    public List<WaitingListEntry> findOpenInvitationsNotReportedGone(int listId) {
+        return query("""
+                SELECT %s FROM waiting_list_entry
+                WHERE list_id = :list_id
+                  AND status = 'INVITED'
+                  AND invitation_answer IS NULL
+                  AND invitation_dates_gone_at IS NULL
+                  AND EXISTS (SELECT 1 FROM waiting_list_invitation_option WHERE entry_id = waiting_list_entry.id)
+                ORDER BY id;""", WAITING_LIST_ENTRY_READ_COLUMNS)
+                .single(call().bind("list_id", listId))
+                .map(WaitingListEntry.map())
+                .all();
+    }
+
+    /**
+     * Records that the station was told the invitation has no date left, so it is told once. Written
+     * only while the entry still holds the same open invitation and nobody marked it yet.
+     *
+     * @param round the invitation round whose dates ran out
+     * @return whether it was written, false when another run or other dates came first
+     */
+    public boolean markInvitationDatesGone(int entryId, int round, Instant at) {
+        return query("""
+                UPDATE waiting_list_entry
+                SET invitation_dates_gone_at = :at
+                WHERE id = :id
+                  AND invitation_round = :round
+                  AND status = 'INVITED'
+                  AND invitation_answer IS NULL
+                  AND invitation_dates_gone_at IS NULL;""")
+                .single(call().bind("id", entryId).bind("round", round).bind("at", at, INSTANT_TIMESTAMP))
+                .update()
+                .changed();
+    }
+
+    /**
      * Records what came back to the invitation the entry currently holds.
      *
      * <p>Written together with its moment, because an answer nobody can date says nothing about how
