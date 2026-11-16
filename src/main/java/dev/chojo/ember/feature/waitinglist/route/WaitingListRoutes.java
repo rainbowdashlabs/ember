@@ -351,17 +351,23 @@ public class WaitingListRoutes implements Routes {
      * was deliberately invited, and an answer given without knowing the occasion is not an answer
      * worth collecting.
      *
-     * <p>An invited entry whose dates are all gone and which carries no note still gets an invitation
-     * here, empty but for its round, because the round is what the answer has to send back.
+     * <p>While the invitation is open, only dates whose appointment has not begun are listed, and an
+     * invitation that named dates and has none still ahead says so: the station sends new ones. Once
+     * it is answered every date is listed, because the answer names one of them.
+     *
+     * <p>An invited entry without dates, because the invitation named none or every appointment it
+     * named was deleted, still gets an invitation here, empty but for its round, because the round is
+     * what the answer has to send back. That is not "no date left": coming is still the answer.
      */
     private @Nullable WaitingListPublicInvitation describeInvitation(int stationId, WaitingListEntry entry) {
         var invitation = entry.invitation();
         if (invitation == null) {
             return entry.status() == WaitingListEntryStatus.INVITED
-                    ? new WaitingListPublicInvitation(entry.invitationRound(), List.of(), "")
+                    ? new WaitingListPublicInvitation(entry.invitationRound(), List.of(), "", false)
                     : null;
         }
-        var details = publicLists.invitationDetails(stationId, invitation);
+        boolean open = entry.answer() == null;
+        var details = publicLists.invitationDetails(stationId, invitation, open);
         var appointments = details.appointments().stream()
                 .map(appointment -> new WaitingListPublicAppointment(
                         appointment.position(),
@@ -371,7 +377,8 @@ public class WaitingListRoutes implements Routes {
                         appointment.arrivalTime(),
                         appointment.location()))
                 .toList();
-        return new WaitingListPublicInvitation(entry.invitationRound(), appointments, details.message());
+        boolean noDatesLeft = open && !invitation.options().isEmpty() && appointments.isEmpty();
+        return new WaitingListPublicInvitation(entry.invitationRound(), appointments, details.message(), noDatesLeft);
     }
 
     private static @Nullable WaitingListPublicAnswer describeAnswer(WaitingListEntry entry) {
@@ -1302,11 +1309,14 @@ public class WaitingListRoutes implements Routes {
      * The invitation the entry holds, as the page has to show it.
      *
      * @param round        the invitation round, sent back with the answer so it names what it answers
-     * @param appointments the dates offered, written out for a reader, empty when all are gone
+     * @param appointments the dates offered, written out for a reader: while the invitation is open only
+     *                     those whose appointment has not begun, once answered every one
      * @param message      the personal note the station wrote into the invitation, empty for none
+     * @param noDatesLeft  whether the open invitation named dates and none of them is left to come to,
+     *                     so the page says the station sends new ones instead of asking for a date
      */
     public record WaitingListPublicInvitation(
-            int round, List<WaitingListPublicAppointment> appointments, String message) {}
+            int round, List<WaitingListPublicAppointment> appointments, String message, boolean noDatesLeft) {}
 
     /**
      * One offered date, as the page has to show it.

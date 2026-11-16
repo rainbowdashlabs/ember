@@ -749,7 +749,7 @@ public class WaitingListService implements TaskSource {
         if (entry.invitationRound() != round) {
             throw WaitingListRefusal.WAITING_LIST_INVITATION_ANSWER_FOR_ANOTHER.raise();
         }
-        var picked = answer == WaitingListAnswer.COMING ? pickedOption(entry.invitation(), position) : null;
+        var picked = answer == WaitingListAnswer.COMING ? pickedOption(entry, position) : null;
 
         String writtenNote = note == null ? "" : note.trim();
         boolean recorded = repository.updateInvitationAnswer(
@@ -771,20 +771,39 @@ public class WaitingListService implements TaskSource {
     /**
      * The offered date a coming answer picks.
      *
+     * <p>Only a date whose appointment has not begun can be picked: one already running or over is
+     * refused, also when it was the only date offered. With a single date still ahead there is
+     * nothing to choose and the position may be left out.
+     *
      * <p>An invitation left without dates, because every appointment it named was deleted, can still
      * be answered with coming: the person means to come, and the station has to hear it.
      *
      * @return the option, or {@code null} when the invitation offers no dates at all
      */
-    private static WaitingListInvitation.@Nullable OfferedDate pickedOption(
-            @Nullable WaitingListInvitation invitation, @Nullable Integer position) {
-        var options = invitation == null ? List.<WaitingListInvitation.OfferedDate>of() : invitation.options();
-        if (options.isEmpty()) return null;
+    private WaitingListInvitation.@Nullable OfferedDate pickedOption(
+            WaitingListEntry entry, @Nullable Integer position) {
+        var invitation = entry.invitation();
+        if (invitation == null || invitation.options().isEmpty()) return null;
+        var upcoming = upcomingOptions(entry, invitation);
         if (position == null) {
-            if (options.size() == 1) return options.getFirst();
+            if (upcoming.size() == 1) return upcoming.getFirst();
+            if (upcoming.isEmpty()) throw WaitingListRefusal.WAITING_LIST_ANSWER_DATE_PASSED.raise();
             throw WaitingListRefusal.WAITING_LIST_ANSWER_NEEDS_A_DATE.raise();
         }
-        return invitation.option(position).orElseThrow(WaitingListRefusal.WAITING_LIST_ANSWER_DATE_NOT_OFFERED::raise);
+        var picked =
+                invitation.option(position).orElseThrow(WaitingListRefusal.WAITING_LIST_ANSWER_DATE_NOT_OFFERED::raise);
+        if (!upcoming.contains(picked)) throw WaitingListRefusal.WAITING_LIST_ANSWER_DATE_PASSED.raise();
+        return picked;
+    }
+
+    /** The dates of the invitation that have not begun, read in the zone of the station the list belongs to. */
+    private List<WaitingListInvitation.OfferedDate> upcomingOptions(
+            WaitingListEntry entry, WaitingListInvitation invitation) {
+        return repository
+                .findById(entry.listId())
+                .flatMap(list -> stationRepository.findById(list.stationId()))
+                .map(station -> invitationMessage.upcoming(station, invitation, Instant.now()))
+                .orElse(invitation.options());
     }
 
     /** The picked date in one line, as the station is told it. */

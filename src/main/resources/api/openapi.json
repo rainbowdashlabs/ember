@@ -90389,9 +90389,12 @@
           },
           "message" : {
             "type" : "string"
+          },
+          "noDatesLeft" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "round", "appointments", "message" ]
+        "required" : [ "round", "appointments", "message", "noDatesLeft" ]
       },
       "WaitingListPublicStatus" : {
         "type" : "object",

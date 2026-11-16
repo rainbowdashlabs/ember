@@ -6898,6 +6898,7 @@ export default {
             trialMessageTitle: 'Nachricht zu deiner Probezeit',
             invitationIntro: 'Wir würden uns freuen, dich kennenzulernen. Sag uns bitte kurz Bescheid, ob es dir passt.',
             invitationIntroSeveral: 'Wir würden uns freuen, dich kennenzulernen. Such dir einen der Termine aus und sag uns kurz Bescheid.',
+            invitationNoDatesLeft: 'Die angebotenen Termine sind vorbei. Die Wache schickt dir neue Termine.',
             invitationOption: 'Termin {number}',
             invitationAppointment: 'Termin',
             invitationDate: 'Datum',

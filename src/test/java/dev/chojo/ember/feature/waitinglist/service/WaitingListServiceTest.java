@@ -77,8 +77,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 "",
                 StationEvent.EventType.ONE_TIME,
                 null,
-                Instant.parse("2026-05-12T18:00:00Z"),
-                Instant.parse("2026-05-12T20:00:00Z"),
+                Instant.parse("2099-05-12T18:00:00Z"),
+                Instant.parse("2099-05-12T20:00:00Z"),
                 null,
                 false,
                 null,
@@ -688,7 +688,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
         var invited = service.inviteEntry(
                 entry.id(),
-                new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), null, "Bring Sportschuhe mit"));
+                new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 12), null, "Bring Sportschuhe mit"));
         assertEquals("Bring Sportschuhe mit", invited.invitation().message());
 
         var back = service.returnToWaiting(entry.id());
@@ -705,13 +705,13 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var entry = service.createEntry(listId, "Neu", "Gast", guardians("", "gast@test.com"), Map.of(), "");
 
         var invited = service.inviteEntry(
-                entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), LocalTime.of(17, 45)));
+                entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 12), LocalTime.of(17, 45)));
 
         assertEquals(WaitingListEntryStatus.INVITED, invited.status());
         assertNotNull(invited.invitation());
         var offered = invited.invitation().options().getFirst();
         assertEquals(event.id(), offered.eventId());
-        assertEquals(LocalDate.of(2026, 5, 12), offered.date());
+        assertEquals(LocalDate.of(2099, 5, 12), offered.date());
         assertEquals(LocalTime.of(17, 45), offered.arrivalTime());
         assertEquals(1, invited.invitationRound(), "an invitation starts a round its answer has to name");
     }
@@ -722,11 +722,11 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var event = appointment("Kein Platz");
         var entry = service.createEntry(listId, "Neu", "Gast", guardians("", "gast2@test.com"), Map.of(), "");
 
-        service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), null));
+        service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 12), null));
 
         assertTrue(
                 eventRegistrationRepo
-                        .findByEventAndDate(event.id(), LocalDate.of(2026, 5, 12))
+                        .findByEventAndDate(event.id(), LocalDate.of(2099, 5, 12))
                         .isEmpty(),
                 "an invitation is a message, not a place on the attendee list");
     }
@@ -750,7 +750,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var event = appointment("Passt nicht");
         var entry = service.createEntry(listId, "Neu", "Zurueck", guardians("", "zurueck@test.com"), Map.of(), "");
         var invited =
-                service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), null));
+                service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 12), null));
 
         var back = service.returnToWaiting(invited.id());
 
@@ -775,7 +775,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var event = appointment("Antwort");
         var entry = service.createEntry(listId, "Neu", "Ja", guardians("", "ja@test.com"), Map.of(), "");
         var invited =
-                service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), null));
+                service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 12), null));
 
         var answered = service.answerInvitation(
                 invited.accessToken(), invited.invitationRound(), WaitingListAnswer.COMING, null, "  Bis dann  ");
@@ -793,9 +793,9 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 new WaitingListInvitation(
                         "",
                         List.of(
-                                new WaitingListInvitation.OfferedDate(0, event.id(), LocalDate.of(2026, 5, 12), null),
+                                new WaitingListInvitation.OfferedDate(0, event.id(), LocalDate.of(2099, 5, 12), null),
                                 new WaitingListInvitation.OfferedDate(
-                                        1, event.id(), LocalDate.of(2026, 5, 19), null))));
+                                        1, event.id(), LocalDate.of(2099, 5, 19), null))));
     }
 
     @Test
@@ -822,6 +822,34 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 () -> service.answerInvitation(
                         invited.accessToken(), invited.invitationRound(), WaitingListAnswer.COMING, null, null));
         assertEquals(WaitingListRefusal.WAITING_LIST_ANSWER_NEEDS_A_DATE, refused.refusal());
+    }
+
+    /**
+     * A date whose appointment has already begun can no longer be the one somebody comes to; with a
+     * single date still ahead, coming without naming one picks that one.
+     */
+    @Test
+    void comingToADateThatHasBegunIsRefused() {
+        var event = appointment("Vorbei");
+        var entry = service.createEntry(listId, "Neu", "Vorbei", guardians("", "vorbei@test.com"), Map.of(), "");
+        var invited = service.inviteEntry(
+                entry.id(),
+                new WaitingListInvitation(
+                        "",
+                        List.of(
+                                new WaitingListInvitation.OfferedDate(0, event.id(), LocalDate.of(2020, 5, 12), null),
+                                new WaitingListInvitation.OfferedDate(
+                                        1, event.id(), LocalDate.of(2099, 5, 19), null))));
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.answerInvitation(
+                        invited.accessToken(), invited.invitationRound(), WaitingListAnswer.COMING, 0, null));
+        assertEquals(WaitingListRefusal.WAITING_LIST_ANSWER_DATE_PASSED, refused.refusal());
+
+        var answered = service.answerInvitation(
+                invited.accessToken(), invited.invitationRound(), WaitingListAnswer.COMING, null, null);
+        assertEquals(1, answered.answer().position(), "the one date still ahead is the one picked");
     }
 
     @Test
@@ -879,10 +907,10 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var second = appointment("Zweiter");
         var entry = service.createEntry(listId, "Neu", "Alt", guardians("", "alt@test.com"), Map.of(), "");
         var firstInvitation =
-                service.inviteEntry(entry.id(), new WaitingListInvitation(first.id(), LocalDate.of(2026, 5, 12), null));
+                service.inviteEntry(entry.id(), new WaitingListInvitation(first.id(), LocalDate.of(2099, 5, 12), null));
         service.returnToWaiting(entry.id());
         var invited = service.inviteEntry(
-                entry.id(), new WaitingListInvitation(second.id(), LocalDate.of(2026, 5, 19), null));
+                entry.id(), new WaitingListInvitation(second.id(), LocalDate.of(2099, 5, 19), null));
 
         var refused = assertThrows(
                 RefusalResponse.class,
@@ -922,7 +950,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var second = appointment("Zweite Wahl");
         var entry = service.createEntry(listId, "Neu", "Andere", guardians("", "andere@test.com"), Map.of(), "");
         var invited =
-                service.inviteEntry(entry.id(), new WaitingListInvitation(first.id(), LocalDate.of(2026, 5, 12), null));
+                service.inviteEntry(entry.id(), new WaitingListInvitation(first.id(), LocalDate.of(2099, 5, 12), null));
         service.answerInvitation(
                 invited.accessToken(),
                 invited.invitationRound(),
@@ -932,7 +960,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
         var reoffered = service.reofferEntry(
                 entry.id(),
-                new WaitingListInvitation(second.id(), LocalDate.of(2026, 5, 15), null, "Wie wäre Freitag?"));
+                new WaitingListInvitation(second.id(), LocalDate.of(2099, 5, 15), null, "Wie wäre Freitag?"));
 
         assertEquals(WaitingListEntryStatus.INVITED, reoffered.status());
         assertNull(reoffered.answer(), "the answer belonged to the dates that were replaced");
@@ -952,7 +980,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         assertThrows(
                 IllegalStateException.class,
                 () -> service.reofferEntry(
-                        entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 15), null)));
+                        entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 15), null)));
     }
 
     /** Starting the trial tells the family, with what the station wrote, and the page keeps it. */
@@ -1024,8 +1052,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var quiet = service.create(station.id(), "Still Probe", "", null, 180, null, null, 5, false, false, null, null);
         var entry = service.createEntry(quiet.id(), "Neu", "Leise", guardians("", "leise@test.com"), Map.of(), "");
         var event = appointment("Leiser Abend");
-        service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), null));
-        service.reofferEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 19), null));
+        service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 12), null));
+        service.reofferEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 19), null));
 
         var testing = service.moveToTesting(entry.id(), "Willkommen");
 
@@ -1070,7 +1098,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         assertThrows(
                 IllegalStateException.class,
                 () -> service.reofferEntry(
-                        entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 19), null)));
+                        entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 19), null)));
         verify(emailService, never())
                 .sendWaitlistOtherDatesEmail(eq("spaet@test.com"), any(), any(), any(), any(), any(), any());
     }
@@ -1092,7 +1120,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
         var event = appointment("Neuer Anlauf");
         var again =
-                service.inviteEntry(back.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 19), null));
+                service.inviteEntry(back.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 19), null));
         assertNull(again.answer());
     }
 

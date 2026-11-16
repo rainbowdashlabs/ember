@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
+import dev.chojo.ember.feature.events.service.OccurrenceWindows;
 import dev.chojo.ember.feature.inventory.entity.LineTarget;
 import dev.chojo.ember.feature.inventory.entity.ResolvedTarget;
 import jakarta.inject.Inject;
@@ -249,7 +250,7 @@ public class EquipmentAvailabilityService {
         LocalDate first = from.atZone(ZoneOffset.UTC).toLocalDate().minusDays(slack + 1L);
         LocalDate last = to.atZone(ZoneOffset.UTC).toLocalDate().plusDays(slack + 1L);
         if (event.isRecurring()) return calendar.between(event, first, last);
-        LocalDate single = EquipmentOccurrenceWindows.singleDateOf(event, calendar.zone());
+        LocalDate single = OccurrenceWindows.singleDateOf(event, calendar.zone());
         if (single != null && !single.isBefore(first) && !single.isAfter(last)) return List.of(single);
         return List.of();
     }
@@ -303,9 +304,9 @@ public class EquipmentAvailabilityService {
             for (LocalDate date : occurrencesIn(event, calendar, from, to, slack)) {
                 if (calendar.isCancelled(event, date)) continue;
                 for (var need : needsForDate(needs, date)) {
-                    Instant start = EquipmentOccurrenceWindows.startOf(event, date, calendar.zone())
+                    Instant start = OccurrenceWindows.startOf(event, date, calendar.zone())
                             .minus(need.lead());
-                    Instant end = EquipmentOccurrenceWindows.endOf(event, date, calendar.zone())
+                    Instant end = OccurrenceWindows.endOf(event, date, calendar.zone())
                             .plus(need.trail());
                     if (!start.isBefore(to) || !end.isAfter(from)) continue;
                     int handed = firm.getOrDefault(new HandoverKey(need.id(), date), List.of())

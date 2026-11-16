@@ -167,6 +167,7 @@ const failure = computed(() => confirmFailure.value
             v-model:note="answerNote"
             v-model:picked="pickedDate"
             :appointments="offeredDates"
+            :no-dates-left="status.invitation?.noDatesLeft ?? false"
             :answering="answering"
             @answer="answer"
           />

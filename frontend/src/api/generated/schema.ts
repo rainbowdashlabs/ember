@@ -81389,6 +81389,7 @@ export interface components {
         WaitingListPublicInvitation: {
             appointments: components["schemas"]["WaitingListPublicAppointment"][];
             message: string;
+            noDatesLeft: boolean;
             /** Format: int32 */
             round: number;
         };
