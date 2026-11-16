@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:3c63b3638507f157fb6e3b7cdf32fb30ade9af03c67978064814f861d77baad0",
-  "generatedAt": "2026-11-16T15:45:46Z",
+  "schemaHash": "sha256:68768a857cd2de1d42fef367c07413b0f1d22e7adf8532ae50a4a00167754eaa",
+  "generatedAt": "2026-11-16T22:28:30Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -26790,6 +26790,55 @@
         ]
       },
       "description": "Stored values of profile fields per member."
+    },
+    "push_vapid_key": {
+      "feature": "push",
+      "scope": "INSTANCE",
+      "tableHash": "sha256:09f69f681d09c726e2e5149e292cf43e0c970554b3d91aa10ef0a8c538cd835a",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int2",
+          "nullable": false,
+          "verified": true,
+          "description": "Always 1: there is exactly one key pair per installation."
+        },
+        {
+          "name": "public_key",
+          "type": "bytea",
+          "nullable": false,
+          "verified": true,
+          "description": "The public key as an uncompressed P-256 point, 65 bytes, handed to browsers when they subscribe."
+        },
+        {
+          "name": "wrapped_private_key",
+          "type": "bytea",
+          "nullable": false,
+          "verified": true,
+          "description": "The private key, wrapped under the at-rest secret like the signing keys. Lost or unreadable, every subscription has to be made again."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the key pair was generated."
+        }
+      ],
+      "foreignKeys": [],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "The key pair belongs to this installation and never moves with a station; browsers subscribe again at the new installation."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Key material of the installation, not personal data."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Key material of the installation, not personal data."
+      },
+      "description": "The one key pair this installation signs its push messages with. Browsers bind their subscriptions to the public key, so replacing it ends every subscription."
     },
     "quiz_catalog": {
       "feature": "quiz",
