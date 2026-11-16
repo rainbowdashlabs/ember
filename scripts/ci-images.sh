@@ -49,10 +49,13 @@ pull() {
 }
 
 pull_missing() {
-    local image failed=0
+    local image failed=0 pulled=0
     while read -r image; do
+        echo "ci-images: $image is not on this machine, pulling it" >&2
         pull "$image" || failed=1
+        pulled=$((pulled + 1))
     done < <(missing)
+    [ "$pulled" -gt 0 ] || echo "ci-images: every image is on this machine already, nothing pulled" >&2
     return "$failed"
 }
 
