@@ -6,11 +6,13 @@
 import {computed, reactive, ref, toRef, watch} from 'vue'
 import {events} from '@/api'
 import {needsDayOfWeek} from '@/api/events'
+import {namesMembers} from '@/api/fieldTypes'
 import {
     EventType,
     type AppointmentField,
     type EventFieldEntry,
     type EventRequest,
+    type EventRestrictions,
     type StationEvent,
     type TemplateDetailResponse,
 } from '@/api/generated/schema'
@@ -21,6 +23,29 @@ import {instantToLocalInput} from '@/util/format'
 import {useEndFollowsStart} from '@/composables/useEndFollowsStart'
 import {entryOf, namedEntries} from '../eventshared/eventQuestions'
 import {offsetParts} from '../templateeditview/signUpRules'
+import {copyStartDay, deadlineHoursBefore, lengthOf, placedOn} from './copyDates'
+
+/**
+ * What the editor reads of a saved appointment to fill its form: the appointment, both audiences, its
+ * own fields with their values and its reminders.
+ */
+export interface EventEditDetail {
+  event: StationEvent
+  restrictions: EventRestrictions
+  fields: AppointmentField[]
+  reminders: number[]
+}
+
+/** Reads what the editor fills its form from. Reminders that cannot be read count as none. */
+export async function fetchEditDetail(id: number): Promise<EventEditDetail> {
+  const [event, restrictions, fields] = await Promise.all([
+    events.getEvent(id),
+    events.getRestrictions(id),
+    events.getEventFields(id, null, true),
+  ])
+  const reminders = await events.getEventReminders(id).catch(() => [] as number[])
+  return {event, restrictions, fields, reminders}
+}
 
 /**
  * Owns the event editor form: its state, the mapping onto the editor body, and
@@ -38,12 +63,32 @@ export function useEventForm() {
    */
   const appliedTemplateId = ref<number | null>(null)
 
+  /**
+   * The appointment this one is a copy of, which the server hands its files, documents to bring and
+   * equipment from when the copy is created.
+   */
+  const copiedFromId = ref<number | null>(null)
+
+  /**
+   * How long the copied appointment ran, for a copy that starts without a date: the end follows the
+   * start entered first by that much rather than landing on the start itself.
+   */
+  const copiedLength = ref<number | null>(null)
+
   watch(() => state.startTime, (val) => {
     if (val && !state.endTime) {
-      state.endTime = val
+      state.endTime = endAfter(val)
     }
   })
   useEndFollowsStart(toRef(state, 'startTime'), toRef(state, 'endTime'))
+
+  /** The end a start entered into an empty end gives: the copied length after it, or the start itself. */
+  function endAfter(start: string): string {
+    if (copiedLength.value === null) return start
+    const begins = new Date(start).getTime()
+    if (Number.isNaN(begins)) return start
+    return instantToLocalInput(new Date(begins + copiedLength.value).toISOString())
+  }
 
   /**
    * Whether the weekday of a series still follows its start. It does until a weekday is picked by
@@ -185,6 +230,61 @@ export function useEventForm() {
     state.fields = fields.map(f => ({id: f.id, ...entryOf(f)}))
   }
 
+  /**
+   * Fills the form from an appointment it is a copy of.
+   *
+   * <p>Everything the editor shows comes over, so what is saved is what was seen. Fields keep their
+   * values except the ones naming people: a copy signs nobody up and puts nobody in charge.
+   *
+   * <p>The dates do not come over as they were. A one-time copy starts without a date, so it cannot
+   * land on the original's day by accident, and the end follows the start entered by the original's
+   * length. A series keeps its rule, its times and its end and starts on the original's next date,
+   * or on the next day from today its pattern falls on where the original has ended. A last day that
+   * then lies before the new start is dropped, since the copy would have no date at all; a number of
+   * times is kept and counts from the new start. A deadline is kept as the hours it lay before the
+   * start and follows the new start.
+   *
+   * @param detail   what the editor reads of the original
+   * @param today    today, as `yyyy-MM-dd`
+   * @param nextDate the date the server names for the original, null where it named none
+   */
+  function applyCopy(detail: EventEditDetail, today: string, nextDate: string | null) {
+    applyEvent(detail.event)
+    state.fields = detail.fields.map(field => {
+      const entry = entryOf(field)
+      return namesMembers(entry.fieldType) ? {...entry, value: ''} : entry
+    })
+    state.restriction = toRestriction(detail.restrictions.register)
+    state.viewRestriction = toRestriction(detail.restrictions.view)
+    state.reminders = [...detail.reminders]
+    copiedFromId.value = detail.event.id
+    placeCopy(detail.event, today, nextDate)
+  }
+
+  /** Moves the copy off the original's dates, as {@link applyCopy} describes. */
+  function placeCopy(ev: StationEvent, today: string, nextDate: string | null) {
+    const offset = deadlineHoursBefore(ev.startTime, ev.registrationDeadline)
+    state.hasDeadline = false
+    state.registrationDeadline = ''
+    if (eventTypeNamed(state.eventType) === EventType.ONE_TIME) {
+      copiedLength.value = lengthOf(state.startTime, state.endTime)
+      state.startTime = ''
+      state.endTime = ''
+    } else {
+      const dayOfWeek = needsDayOfWeek(state.eventType) ? Number(state.dayOfWeek) : null
+      const day = copyStartDay(state.eventType, dayOfWeek, state.startTime.slice(0, 10), today, nextDate)
+      const placed = placedOn(state.startTime, state.endTime, day)
+      state.startTime = placed.startTime
+      state.endTime = placed.endTime
+      if (state.repeatUntil && state.repeatUntil < day) state.repeatUntil = ''
+    }
+    if (offset === null) return
+    derivedDeadline = ''
+    deadlineOffsetHours.value = offset
+    state.hasDeadline = true
+    followStart()
+  }
+
   function applyEvent(ev: StationEvent) {
     state.name = ev.name ?? ''
     state.description = ev.description ?? ''
@@ -207,21 +307,12 @@ export function useEventForm() {
   }
 
   async function loadEvent(id: number) {
-    const [ev, restrictions, fields] = await Promise.all([
-      events.getEvent(id),
-      events.getRestrictions(id),
-      events.getEventFields(id, null, true),
-    ])
-
-    applyEventFields(fields)
-    applyEvent(ev)
-
-    state.restriction = toRestriction(restrictions.register)
-    state.viewRestriction = toRestriction(restrictions.view)
-
-    try {
-      state.reminders = await events.getEventReminders(id)
-    } catch { state.reminders = [] }
+    const detail = await fetchEditDetail(id)
+    applyEventFields(detail.fields)
+    applyEvent(detail.event)
+    state.restriction = toRestriction(detail.restrictions.register)
+    state.viewRestriction = toRestriction(detail.restrictions.view)
+    state.reminders = detail.reminders
   }
 
   function buildPayload(): EventRequest {
@@ -234,6 +325,7 @@ export function useEventForm() {
       endTime: state.endTime ? new Date(state.endTime).toISOString() : undefined,
       templateId: state.templateId ? Number(state.templateId) : null,
       eventTemplateId: appliedTemplateId.value,
+      copiedFromEventId: copiedFromId.value,
       categoryId: state.categoryId ? Number(state.categoryId) : null,
       requiresRegistration: state.requiresRegistration,
       registrationDeadline: state.hasDeadline && state.registrationDeadline
@@ -259,7 +351,19 @@ export function useEventForm() {
     return namedEntries(state.fields)
   }
 
-  return {state, props, handlers, appliedTemplateId, applyTemplate, loadEvent, buildPayload, namedFields, endsBeforeItStarts}
+  return {
+    state,
+    props,
+    handlers,
+    appliedTemplateId,
+    copiedFromId,
+    applyTemplate,
+    applyCopy,
+    loadEvent,
+    buildPayload,
+    namedFields,
+    endsBeforeItStarts,
+  }
 }
 
 /** The weekday a `datetime-local` value falls on, 1 for Monday through 7 for Sunday, or nothing. */

@@ -134,7 +134,7 @@ export async function stationUnder(
     const setupDone = await request.post('/api/v1/station/setup/complete', {headers: asManager})
     if (!setupDone.ok()) throw new Error(`Finishing the setup answered ${setupDone.status()}`)
 
-    const context = await browserContextWith(browser, session, station.uid, true)
+    const context = await browserContextWith(browser, session, station.uid)
 
     return {uid: station.uid, name, page: await context.newPage()}
 }

@@ -248,4 +248,5 @@ export default {
     'E-218': 'Die Farbe einer Terminreihe wird als #RRGGBB angegeben, nichts wurde gespeichert',
     'E-220': 'Eine Mindestzahl braucht mindestens eine Anmeldung und die Tage vor dem ersten Termin, bis zu denen sie erreicht sein muss, nichts wurde gespeichert',
     'E-221': 'Diese Kategorie gibt es hier nicht mehr',
+    'E-222': 'Den Termin, der kopiert werden soll, gibt es hier nicht mehr, nichts wurde gespeichert',
 }

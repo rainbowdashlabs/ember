@@ -6,6 +6,9 @@
 import {test, expect, type Page} from './fixtures/auth'
 import {unique} from './fixtures/unique'
 
+/** Where half a row stands on the width slider, counted from its narrowest stop. */
+const HALF_STOP = '2'
+
 /**
  * The templates a station writes its events from, and the questions on them.
  *
@@ -102,8 +105,8 @@ test.describe('Event templates', () => {
         const preview = page.getByTestId('field-layout-preview')
         await expect(preview).toBeVisible()
 
-        await page.getByTestId('field-width').first().selectOption('half')
-        await expect(preview.locator('[data-preview-index]').first()).toHaveClass(/sm:col-span-3/)
+        await page.getByTestId('field-width').first().getByRole('slider').fill(HALF_STOP)
+        await expect(preview.locator('[data-preview-index]').first()).toHaveClass(/sm:col-span-6/)
 
         await Promise.all([
             page.waitForResponse(response =>
@@ -113,7 +116,8 @@ test.describe('Event templates', () => {
         await page.reload()
         await page.getByTestId('field-width').first().waitFor()
 
-        await expect(page.getByTestId('field-width').first(), 'the width outlives the save').toHaveValue('half')
+        await expect(page.getByTestId('field-width').first().getByRole('slider'), 'the width outlives the save')
+            .toHaveValue(HALF_STOP)
     })
 
     /**

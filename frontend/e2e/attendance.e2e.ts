@@ -11,6 +11,9 @@ import {stationDay} from './fixtures/stationDay'
 import {ownMember} from './fixtures/ownMember'
 import {fillMoment} from './fixtures/moment'
 
+/** Where half a row stands on the width slider, counted from its narrowest stop. */
+const HALF_STOP = '2'
+
 /**
  * Acknowledges step after step until the swap stands on the one that puts the piece into the
  * member's hands, naming the replacement at the step that asks for it.
@@ -905,7 +908,7 @@ test.describe('Attendance', () => {
             const name = await row.getByTestId('question-row-name').inputValue()
 
             await row.getByTestId('question-row-open').click()
-            await row.getByTestId('field-width').selectOption('half')
+            await row.getByTestId('field-width').getByRole('slider').fill(HALF_STOP)
             const readBack = page.waitForResponse(response =>
                 response.url().includes('/fields') && response.request().method() === 'GET')
             await page.getByRole('button', {name: 'Felder speichern'}).click()
@@ -917,7 +920,7 @@ test.describe('Attendance', () => {
 
             await expect(first.getByTestId('question-row-name')).toHaveValue(name)
             await first.getByTestId('question-row-open').click()
-            await expect(first.getByTestId('field-width')).toHaveValue('half')
+            await expect(first.getByTestId('field-width').getByRole('slider')).toHaveValue(HALF_STOP)
         })
 
         /**

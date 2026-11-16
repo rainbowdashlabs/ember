@@ -129,6 +129,6 @@ class ProfileFieldSetRoutesTest {
 
         verify(fields, times(2)).requireSetAllowed(STATION, 4);
         verify(fields, times(2)).joinSet(9, 4);
-        verify(fields, times(2)).dependOn(9, 8);
+        verify(fields, times(2)).dependOn(9, 8, 4);
     }
 }

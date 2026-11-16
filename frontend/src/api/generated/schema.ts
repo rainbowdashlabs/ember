@@ -72368,6 +72368,8 @@ export interface components {
             categoryId?: number | null;
             changeNotice?: components["schemas"]["ChangeNotice"] | null;
             /** Format: int32 */
+            copiedFromEventId?: number | null;
+            /** Format: int32 */
             dayOfWeek?: number | null;
             description?: string | null;
             endTime?: components["schemas"]["Instant"];
@@ -76280,6 +76282,7 @@ export interface components {
             actorName: string | null;
             changedAt: components["schemas"]["Instant"] | null;
             confirmable: boolean;
+            elsewhere: boolean;
             id: string;
             key: string;
             state: components["schemas"]["OnboardingTaskState"];

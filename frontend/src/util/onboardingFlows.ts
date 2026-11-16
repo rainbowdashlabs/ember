@@ -3,6 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {StationModule, StationPermission} from '@/api/generated/schema'
+
 /**
  * One step of a task: what should light up, and what carries the guide on to the next one.
  *
@@ -35,7 +37,75 @@ export interface OnboardingStep {
      */
     advance: 'click' | 'route' | 'fill' | 'read'
     optional?: boolean
+    /**
+     * What the step's text is found under. Steps without one are counted, which is fine for a walk
+     * that is the same for everybody; a walk that leaves steps out for some readers names its steps,
+     * so leaving one out does not shift the words of the rest.
+     */
+    id?: string
+    /** Modules of which at least one has to run for the step to be shown. */
+    modules?: StationModule[]
+    /** Rights of which the reader needs at least one for the step to be shown. */
+    permissions?: StationPermission[]
 }
+
+/** What decides whether a reader is shown a step that names modules or rights. */
+export interface StepReader {
+    runs: (module: StationModule) => boolean
+    can: (permission: StationPermission) => boolean
+}
+
+/**
+ * The walk past the station's areas. Every stop points at an entry of the sidebar and explains it;
+ * a stop about a switched-off area, or one the reader has no right to, is left out.
+ */
+const TOUR: OnboardingStep[] = [
+    {id: 'welcome', advance: 'read'},
+    {id: 'dashboard', target: 'nav.dashboard', advance: 'read', optional: true},
+    {id: 'news', target: 'nav.news', advance: 'read', optional: true, modules: [StationModule.NEWS]},
+    {id: 'profile', target: 'nav.profile', advance: 'read', optional: true},
+    {
+        id: 'absences', target: 'nav.profile.absences', advance: 'read', optional: true,
+        modules: [StationModule.EVENTS, StationModule.ATTENDANCE],
+    },
+    {id: 'events', target: 'nav.events.upcoming', advance: 'read', optional: true, modules: [StationModule.EVENTS]},
+    {id: 'inventory', target: 'nav.inventory', advance: 'read', optional: true, modules: [StationModule.INVENTORY]},
+    {id: 'forms', target: 'nav.forms', advance: 'read', optional: true, modules: [StationModule.FORMS]},
+    {
+        id: 'knowledgeBase', target: 'nav.knowledge', advance: 'read', optional: true,
+        modules: [StationModule.KNOWLEDGE_BASE],
+    },
+    {
+        id: 'lending', target: 'nav.inventory.lending', advance: 'read', optional: true,
+        modules: [StationModule.INVENTORY_LENDING],
+        permissions: [StationPermission.INVENTORY_LENDING_REQUEST, StationPermission.INVENTORY_LENDING_MANAGER],
+    },
+    {
+        id: 'managedProfiles', target: 'nav.profile.managed', advance: 'read', optional: true,
+        permissions: [StationPermission.MEMBER_GUARDIAN],
+    },
+    {
+        id: 'members', target: 'nav.members', advance: 'read', optional: true,
+        permissions: [StationPermission.MEMBER_MANAGER],
+    },
+    {
+        id: 'attendance', target: 'nav.attendance', advance: 'read', optional: true,
+        modules: [StationModule.ATTENDANCE], permissions: [StationPermission.ATTENDANCE_MANAGER],
+    },
+    {
+        id: 'eventManagement', target: 'nav.events', advance: 'read', optional: true,
+        modules: [StationModule.EVENTS], permissions: [StationPermission.EVENT_MANAGER],
+    },
+    {
+        id: 'federation', target: 'nav.federation', advance: 'read', optional: true,
+        permissions: [StationPermission.STATION_FEDERATION],
+    },
+    {
+        id: 'station', target: 'nav.manage', advance: 'read', optional: true,
+        permissions: [StationPermission.STATION_ADMINISTRATOR],
+    },
+    {id: 'helpCenter', advance: 'read'},
+]
 
 /**
  * The steps of every task that has any, by the key the backend gives it.
@@ -44,6 +114,7 @@ export interface OnboardingStep {
  * browser. Those show their text and are ticked off, with nothing to point at.
  */
 export const ONBOARDING_FLOWS: Record<string, OnboardingStep[]> = {
+    'member.tour': TOUR,
     'member.profile': [
         {target: 'nav.profile', route: 'profile', advance: 'route'},
         {target: 'profile.fields', advance: 'read'},
@@ -165,7 +236,23 @@ export const ONBOARDING_FLOWS: Record<string, OnboardingStep[]> = {
     ],
 }
 
-/** The steps of a task, or an empty list for one that happens outside Ember. */
-export function flowFor(taskKey: string): OnboardingStep[] {
-    return ONBOARDING_FLOWS[taskKey] ?? []
+/**
+ * The steps of a task, or an empty list for one that happens outside Ember.
+ *
+ * @param reader who walks it; with one, the steps about switched-off modules or rights the reader
+ *               does not hold are left out
+ */
+export function flowFor(taskKey: string, reader?: StepReader): OnboardingStep[] {
+    const steps = ONBOARDING_FLOWS[taskKey] ?? []
+    return reader ? steps.filter(step => shownTo(step, reader)) : steps
+}
+
+function shownTo(step: OnboardingStep, reader: StepReader): boolean {
+    if (step.modules && !step.modules.some(reader.runs)) return false
+    return !step.permissions || step.permissions.some(reader.can)
+}
+
+/** The words of a step, by its name where it has one and by its place otherwise. */
+export function stepTextKey(taskKey: string, step: OnboardingStep, index: number): string {
+    return `onboarding.steps.${taskKey}.${step.id ?? index}`
 }

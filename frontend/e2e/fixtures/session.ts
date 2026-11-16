@@ -61,21 +61,18 @@ export async function csrfOf(context: BrowserContext): Promise<string | null> {
 
 /**
  * A browser context carrying the session, with what the application keeps in the browser after a
- * sign-in already planted: the consent, the station, and the introductory tour marked as seen where
- * the story asks for that.
+ * sign-in already planted: the consent and the station.
  */
 export async function browserContextWith(
     browser: Browser,
     session: DemoSession,
     stationId?: string,
-    tourSeen = false,
 ): Promise<BrowserContext> {
     const context = await browser.newContext()
     await context.addCookies(session.cookies)
-    await context.addInitScript(([station, seen]) => {
+    await context.addInitScript(station => {
         if (station) window.localStorage.setItem('station_id', station)
         window.localStorage.setItem('storage_consent', 'accepted')
-        if (seen) window.localStorage.setItem('onboarding_tour_completed', 'true')
-    }, [stationId ?? '', tourSeen ? 'yes' : ''])
+    }, stationId ?? '')
     return context
 }

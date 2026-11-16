@@ -42,7 +42,7 @@ export type LaidOutField = Pick<MergedField, 'id' | 'name'> & Partial<Pick<Merge
   readonly?: boolean
   /** Set on a cluster field the cluster keeps to itself, which nobody at the station may write. */
   readonlyAtStation?: boolean
-  /** The yes/no question of the same owner this one is only shown behind, while it is answered yes. */
+  /** The question of the same owner this one is only shown behind: a yes/no answered yes, or a choice or text answered. */
   shownIfFieldId?: number | null
   /** The group of the same owner this one belongs to, whose name may stand above it. */
   fieldSet?: FieldSetLabel | null
@@ -114,9 +114,9 @@ function descriptionOf(field: LaidOutField): string {
 </script>
 
 <template>
-  <div class="grid grid-cols-6 gap-x-4 gap-y-3 items-start">
+  <div class="grid grid-cols-12 gap-x-4 gap-y-3 items-start">
     <template v-for="(field, index) in shown" :key="`${field.origin ?? 'STATION'}-${field.id}`">
-      <div v-if="setHeadingBefore(shown, index)" class="col-span-6 pt-2 first:pt-0" data-testid="field-set-heading">
+      <div v-if="setHeadingBefore(shown, index)" class="col-span-12 pt-2 first:pt-0" data-testid="field-set-heading">
         <SubHeader class="text-sm">{{ setHeadingBefore(shown, index) }}</SubHeader>
       </div>
       <div v-if="isSection(field)" :class="spanClass(field)" class="pt-2 first:pt-0">

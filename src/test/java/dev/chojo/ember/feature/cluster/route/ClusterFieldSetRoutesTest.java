@@ -149,6 +149,6 @@ class ClusterFieldSetRoutesTest {
 
         verify(fields, times(2)).requireSetAllowed(CLUSTER_ID, 4);
         verify(fields, times(2)).joinSet(CLUSTER_ID, 9, 4);
-        verify(fields, times(2)).dependOn(CLUSTER_ID, 9, 8);
+        verify(fields, times(2)).dependOn(CLUSTER_ID, 9, 8, 4);
     }
 }

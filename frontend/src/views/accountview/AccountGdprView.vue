@@ -17,7 +17,6 @@ import ErrorButton from '@/components/button/ErrorButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import {session as sessionApi, managedMembers as managedMembersApi} from '@/api'
-import {useOnboardingTour} from '@/composables/useOnboardingTour'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {presentFile} from '@/util/documentFile'
@@ -26,7 +25,6 @@ import StorageConsentSection from '@/views/stationview/profile/settingsview/Stor
 
 const {t} = useI18n()
 const router = useRouter()
-const {startTour} = useOnboardingTour()
 const {isGuardian} = useSession()
 
 interface ManagedMemberInfo { id: number; name: string }
@@ -78,7 +76,6 @@ onMounted(async () => {
         @export-own="exportOwnData"
         @export-member="exportManagedMemberData"
         @show-delete-modal="showDeleteAccountModal = true"
-        @restart-tour="startTour()"
       />
 
       <Modal v-model="showDeleteAccountModal">

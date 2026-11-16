@@ -41,8 +41,8 @@ const memberNames = computed(() =>
 </script>
 
 <template>
-  <div class="grid grid-cols-6 gap-4">
-    <div v-if="canEditEvent" class="col-span-6">
+  <div class="grid grid-cols-12 gap-4">
+    <div v-if="canEditEvent" class="col-span-12">
       <DetailLabel>{{ t('events.template') }}</DetailLabel>
       <p class="text-sm">{{ templateName }}</p>
     </div>

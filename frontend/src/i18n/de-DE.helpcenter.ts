@@ -207,13 +207,13 @@ export default {
             whatIs: 'Was ist das?',
             whatIsText: 'Das ist der letzte Schritt. Hier schließt du die Einrichtung ab, und die Checkliste auf der Übersicht verschwindet.',
             howTo: 'Wie benutze ich das?',
-            howToStep1: 'Klicke auf „Geführte Tour starten", wenn du dir Ember erklären lassen willst.',
+            howToStep1: 'Klicke auf „Erste Schritte beginnen", wenn du dir Ember zeigen lassen willst.',
             howToStep2: 'Oder klicke auf „Zur Übersicht", um sofort loszulegen.',
             exampleTitle: 'So sieht die Seite aus',
             exampleText: 'Ein kurzer Glückwunsch und zwei Schaltflächen in der Mitte.',
             missingTitle: 'Wenn noch etwas fehlt',
             missingText: 'Sind Pflicht-Schritte offen, erscheint ein roter Hinweis und der Assistent bringt dich zum ersten fehlenden Schritt zurück. Ist der E-Mail-Versand nicht eingerichtet, siehst du dazu nur einen blauen Hinweis - abschließen kannst du trotzdem.',
-            tip: 'Die geführte Tour dauert nur ein paar Minuten und zeigt dir, wo alles liegt. Du kannst sie jederzeit abbrechen.',
+            tip: 'Der erste Schritt ist ein kurzer Rundgang durch die Bereiche deiner Wache. Du kannst ihn jederzeit unterbrechen und später auf der Startseite fortsetzen.',
         },
         scanShared: {
             title: 'Barcode scannen',
@@ -1141,9 +1141,10 @@ volumes:
             registrations: 'Meine Anmeldungen - Termine, zu denen du dich angemeldet hast, mit ihrem Status (bestätigt, ausstehend, abgelehnt).',
             profileIncomplete: 'Profil unvollständig - Wenn Pflichtfelder in deinem Profil fehlen, wirst du hier daran erinnert.',
             onboardingTitle: 'Deine ersten Schritte',
-            onboardingText: 'Nach der Einführungstour steht auf der Startseite eine Liste mit Dingen, die du einmal '
-                + 'erledigen solltest: Profil ausfüllen, Benachrichtigungen einstellen, auf einen Termin antworten. '
-                + 'Sie verschwindet, sobald nichts mehr offen ist.',
+            onboardingText: 'Auf der Startseite steht eine Liste mit Dingen, die du einmal erledigen solltest: '
+                + 'Ember kennenlernen, Profil ausfüllen, Benachrichtigungen einstellen, auf einen Termin antworten. '
+                + 'Der Rundgang „Ember kennenlernen" zeigt dir die Bereiche, die an deiner Wache eingeschaltet '
+                + 'sind und die du öffnen darfst. Die Liste verschwindet, sobald nichts mehr offen ist.',
             onboardingGuide: 'Klickst du auf „Los geht’s", zeigt Ember dir Schritt für Schritt, wo du klicken musst. '
                 + 'Die Seite bleibt dabei ganz normal bedienbar, und wenn du zwischendurch woanders hingehst, geht '
                 + 'nichts verloren: Das kleine Symbol unten rechts holt den Hinweis zurück.',
@@ -1159,6 +1160,10 @@ volumes:
                 + 'nicht zurück, wenn die Sache später doch erledigt wird.',
             onboardingShared: 'Aufgaben der Wache und der Instanz teilen sich alle, die sie verwalten. Was einer '
                 + 'erledigt, ist für alle erledigt, und daneben steht, wer es war.',
+            onboardingOtherStations: 'Bist du auf mehreren Wachen, fragt Ember die Schritte, die zeigen, wie Ember '
+                + 'funktioniert, nur einmal: Was du auf einer Wache erledigt oder übersprungen hast, gilt auch auf '
+                + 'den anderen. Die Profilfragen, die Benachrichtigungen und den Kalender stellst du auf jeder Wache '
+                + 'selbst ein.',
             teamManagerExtra: 'Zusätzlich für Team & Verwalter',
             teamManagerExtraText: 'Als Teammitglied oder Verwalter siehst du zusätzlich:',
             managedRegistrations: 'Anmeldungen anderer Mitglieder - Du siehst auch Anmeldungen von Mitgliedern, die du verwaltest.',
@@ -1852,26 +1857,36 @@ volumes:
                 + 'Postleitzahl und Ort in die nächste.',
             setsTogether: 'Die Felder einer Gruppe werden immer gemeinsam gestellt: Stellst du eines davon einer '
                 + 'Zielgruppe, bekommt sie alle, und nimmst du eines weg, gehen alle. Im Formular stehen sie '
-                + 'zusammen in der Reihenfolge der Gruppe; verschiebst du eines, wandert die ganze Gruppe mit. '
+                + 'zusammen. Verschiebst du ein Feld innerhalb der Gruppe, bekommt die Gruppe diese Reihenfolge, '
+                + 'auch in den Formularen der anderen Zielgruppen. Ziehst du ein Feld aus der Gruppe heraus, '
+                + 'bleibt die Gruppe trotzdem zusammen: Sie steht dort, wo jetzt ihr vorderstes Feld steht, in der '
+                + 'neuen Reihenfolge, auch in den anderen Formularen. Eine ganze Gruppe verschiebst du also am '
+                + 'besten an ihrem ersten Feld. '
                 + 'Pflicht, Breite und Änderbarkeit bleiben je Feld einstellbar. In der Feldliste und in der '
                 + 'Formularvorschau stehen die Felder einer Gruppe eingerahmt unter ihrem Namen, und wählst du ein '
-                + 'Feld einer Gruppe aus, gelten die Zielgruppen für die ganze Gruppe.',
+                + 'Feld einer Gruppe aus, gelten die Zielgruppen für die ganze Gruppe. Zum Auswählen für eine '
+                + 'gemeinsame Zielgruppe hat in der Feldliste die Gruppe ein Kästchen in ihrer Kopfzeile, ihre '
+                + 'einzelnen Felder haben keines: Ein Haken dort wählt alle Felder der Gruppe aus.',
             setsHeading: 'Mit „Name als Überschrift" steht der Name der Gruppe im Formular über ihren Feldern, '
                 + 'ohne dass du eine eigene Überschrift anlegen musst. Löst du eine Gruppe auf, bleiben ihre '
                 + 'Felder samt Antworten erhalten.',
-            shownIfTitle: 'Felder, die nur bei Ja erscheinen',
-            shownIfText: 'Unter „Nur anzeigen, wenn" verbindest du ein Feld mit einer Ja/Nein-Frage. Das Feld '
-                + 'erscheint im Profil erst, wenn die Ja/Nein-Frage mit Ja beantwortet ist, und ist nur dann '
-                + 'Pflicht. So fragt das Profil nach dem JuLeiCa-Ablaufdatum nur, wenn jemand eine JuLeiCa hat. '
-                + 'Wird die Frage wieder auf Nein gesetzt, bleibt die Antwort gespeichert und ist nur ausgeblendet.',
+            shownIfTitle: 'Felder, die erst nach einer Antwort erscheinen',
+            shownIfText: 'Unter „Nur anzeigen, wenn" verbindest du ein Feld mit einer Ja/Nein-, Auswahl- oder '
+                + 'Textfrage. Das Feld erscheint im Profil erst, wenn die Ja/Nein-Frage mit Ja beantwortet ist '
+                + 'oder in der Auswahl oder dem Text etwas steht, und ist nur dann Pflicht. So fragt das Profil '
+                + 'nach dem JuLeiCa-Ablaufdatum nur, wenn jemand eine JuLeiCa hat, und nach dem Ablauf des '
+                + 'Führerscheins erst, wenn eine Klasse gewählt ist. '
+                + 'Wird die Frage wieder auf Nein gesetzt oder geleert, bleibt die Antwort gespeichert und ist nur ausgeblendet.',
             shownIfScope: 'Das gilt nur, wenn jemand beide Felder gestellt bekommt. Wer nur das abhängige Feld '
                 + 'bekommt, sieht es immer, mit seiner üblichen Pflicht-Einstellung.',
-            shownIfRules: 'Ein Feld kann nur von einer Ja/Nein-Frage desselben Profils abhängen, und eine Frage, '
-                + 'von der andere abhängen, kann selbst nicht abhängen. Löschst du eine Ja/Nein-Frage, von der '
+            shownIfRules: 'Ein Feld kann nur von einer Ja/Nein-, Auswahl- oder Textfrage desselben Profils '
+                + 'abhängen, und eine Frage, von der andere abhängen, kann selbst nicht abhängen. Steht ein Feld '
+                + 'in einer Feldgruppe, kann es nur von einer Frage derselben Gruppe abhängen. Löschst du eine '
+                + 'solche Frage, von der '
                 + 'andere Felder abhängen, nennt Ember diese Felder, und „Bedingungen entfernen und löschen" nimmt '
                 + 'ihre Bedingung mit heraus. Bei einem anderen Typ geschieht das beim Speichern. Danach '
                 + 'erscheinen sie immer, ihre Antworten bleiben erhalten. Die '
-                + 'Vorlagen JuLeiCa und Leistungsspange legen die Verbindung gleich mit an.',
+                + 'Vorlagen JuLeiCa, Leistungsspange und Führerschein legen die Verbindung gleich mit an.',
             title: 'Mitglieder-Konfiguration',
             subtitle: 'Profilfelder für Mitglieder einrichten.',
             whatIs: 'Was sind Profilfelder?',
@@ -1921,7 +1936,8 @@ volumes:
             typeSection: 'Überschrift - Kein Feld, sondern eine Zwischenüberschrift. Sie wird nach '
                 + 'nichts gefragt und steht in keinem Export.',
             layoutTitle: 'Felder anordnen',
-            layoutText: 'Jedes Feld hat eine Breite: ganze, halbe oder Drittel-Zeile. Schmale Felder '
+            layoutText: 'Jedes Feld hat eine Breite, die du mit einem Schieberegler einstellst: ein Viertel, ein '
+                + 'Drittel, die Hälfte, zwei Drittel, drei Viertel oder die ganze Zeile. Schmale Felder '
                 + 'stehen nebeneinander, solange eine Zeile sie fasst, sonst rutschen sie in die '
                 + 'nächste. Auf schmalen Bildschirmen steht ohnehin jedes Feld für sich. Zusammen '
                 + 'mit Überschriften wird aus einer langen Liste eine gegliederte Maske.',
@@ -3377,6 +3393,8 @@ volumes:
             linksText: 'Wurde eine Serie ab einem Termin als neue Serie weitergeführt oder ein einzelner Termin aus ihr gelöst, steht das oben auf der Seite: welcher Termin fortgeführt wird, als was die Serie weitergeht und welcher Tag ein eigener Termin geworden ist. Ein Klick auf den Namen öffnet den anderen Termin.',
             answeringTitle: 'An- und abmelden, auch für mehrere',
             answeringText: 'Wer nur für sich selbst antwortet, drückt auf Anmelden oder Abmelden. Wer für mehrere antwortet, etwa für sich und die eigenen Kinder, bekommt zusätzlich Für alle anmelden: dort wird angehakt, für wen die Antwort gilt. Stellt der Termin Fragen, bekommt jede angehakte Person eine eigene Kachel, denn die Antworten gehören der einzelnen Person.',
+            copyTitle: 'Termin kopieren',
+            copyText: 'Wer Termine anlegen darf, findet unter „Aktionen" den Eintrag „Kopieren". Er öffnet einen neuen Termin mit allem, was dieser Termin einstellt, bereit für ein neues Datum. Anmeldungen, Anwesenheit und Kommentare kommen nicht mit.',
             changingTitle: 'Antwort ändern',
             changingText: 'Solange die Anmeldung läuft, könnt ihr eure Antwort jederzeit ändern. Danach kann das nur noch, wer den Termin betreut, weil bis dahin mit der Liste geplant wurde. Wer sich erst abmeldet und später doch teilnimmt, meldet sich neu an: einen einmal freigegebenen Platz behält niemand.',
             laterQuestionTitle: 'Nachträglich gestellte Fragen',
@@ -3612,7 +3630,7 @@ volumes:
             fieldValueTitle: 'Standardwert',
             fieldValueText: 'Unter jedem Feld kannst du einen Standardwert hinterlegen. Er steht schon im Formular, sobald jemand einen Termin aus der Vorlage erstellt, und lässt sich dort jederzeit überschreiben. Felder, die nach einem Mitglied fragen, bekommen keinen Standardwert.',
             fieldOrderTitle: 'Reihenfolge und Breite',
-            fieldOrderText: 'Die Pfeile an einem Feld verschieben es nach oben oder unten; in dieser Reihenfolge wird später gefragt. Mit „Breite" bestimmst du, ob ein Feld eine ganze, eine halbe oder eine drittel Zeile einnimmt. Die Vorschau unter der Liste zeigt, wie das Formular dadurch aussieht.',
+            fieldOrderText: 'Die Pfeile an einem Feld verschieben es nach oben oder unten; in dieser Reihenfolge wird später gefragt. Mit dem Schieberegler „Breite" bestimmst du, ob ein Feld ein Viertel, ein Drittel, die Hälfte, zwei Drittel, drei Viertel oder die ganze Zeile einnimmt. Die Vorschau unter der Liste zeigt, wie das Formular dadurch aussieht.',
             backTitle: 'Zurück zur Liste',
             backText: 'Der Pfeil links oben bringt dich zur Vorlagenliste zurück. Ungespeicherte Änderungen gehen dabei verloren.',
             tip: 'Fülle nur aus, was wirklich immer gleich ist. Alles andere trägst du beim einzelnen Termin ein.',
@@ -5961,6 +5979,9 @@ volumes:
             loadTemplateRulesText: 'Auch die Anmelderegeln kommen mit: Mindestanzahl, Tage vorher und Anmeldefrist. Die Frist steht in der Vorlage als Zeit vor dem Beginn. Sobald du den Beginn einträgst, rechnet das Formular die Frist aus und passt sie an, wenn du den Beginn änderst. Änderst du die Frist selbst, bleibt sie, wie du sie eingetragen hast.',
             loadTemplateShareText: 'Feld-Vorbelegungen und die Freigabe für Partnerwachen kommen ebenfalls mit. Die Freigabe übernimmt das Formular nur, wenn du Termine föderieren darfst, und nur für Partnerwachen, mit denen deine Wache gerade aktiv verbunden ist. Sonst steht ein Hinweis beim Schalter „Mit Partnerwachen teilen“ am Ende des Formulars.',
             loadTemplateFilesText: 'Die Dateien der Vorlage hängen an einem neuen Termin, sobald du ihn speicherst. Bis dahin zeigt das Formular, welche Dateien das sind. Wendest du die Vorlage auf einen schon gespeicherten Termin an, werden ihre Dateien sofort angehängt.',
+            copyTitle: 'Einen Termin kopieren',
+            copyText: 'Über „Kopieren" auf der Terminseite oder in der Terminliste öffnet sich dieses Formular mit allem, was der kopierte Termin einstellt: Felder, Fragen, Zielgruppen, Anmeldung, Erinnerungen, Freigabe und mitzubringende Dokumente. Ein Hinweis oben nennt das Original und führt zu ihm zurück. Dateien und Materialbedarf kommen beim Speichern mit. Anmeldungen, Antworten, Anwesenheit, Kommentare und Notizen bleiben beim Original, ebenso Werte von Feldern, die Personen nennen.',
+            copyDatesText: 'Ein einmaliger Termin startet ohne Datum, damit die Kopie nicht aus Versehen auf dem Tag des Originals landet. Gib zuerst den Beginn ein, das Ende folgt mit der Dauer des Originals. Eine Terminreihe behält Wiederholung, Uhrzeiten und Ende und beginnt am nächsten passenden Tag ab heute. Ein Ende, das schon vorbei ist, entfällt; trag dann ein neues ein. Ein Anmeldeschluss bleibt so viele Stunden vor dem Beginn wie beim Original.',
             tip: 'Wiederkehrende Termine werden automatisch während Pausen/Ferien ausgeblendet.',
         },
         attendanceConfigEdit: {
@@ -5998,8 +6019,8 @@ volumes:
                 + 'Nachbereitung, nicht die Summe. Jede neue Anwesenheitsliste übernimmt die Regeln, bereits angelegte Listen '
                 + 'behalten ihre. Wird eine Gruppe oder ein Tag einer Regel gelöscht, gilt die Regel für niemanden mehr, bis du '
                 + 'neu festlegst, für wen sie gilt.',
-            widthText: 'Mit „Breite“ in der Karte eines Feldes legst du fest, ob es eine ganze, eine halbe oder eine drittel '
-                + 'Zeile einnimmt. Schmale Felder stehen nebeneinander, solange eine Zeile sie fasst. Die Vorschau unter der '
+            widthText: 'Mit dem Schieberegler „Breite“ in der Karte eines Feldes legst du fest, ob es ein Viertel, ein '
+                + 'Drittel, die Hälfte, zwei Drittel, drei Viertel oder die ganze Zeile einnimmt. Schmale Felder stehen nebeneinander, solange eine Zeile sie fasst. Die Vorschau unter der '
                 + 'Liste zeigt, wie die Sitzung dadurch aussieht; dort lässt sich ein Feld auch an der rechten Kante breiter '
                 + 'oder schmaler ziehen.',
             tip: 'Die Reihenfolge der Felder änderst du mit den Pfeilen an jeder Karte, am Rechner zusätzlich durch Ziehen am '

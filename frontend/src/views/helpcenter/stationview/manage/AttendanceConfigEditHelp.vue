@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {ref} from 'vue'
 import {FieldType} from '@/api/generated/schema'
 import AttendanceFieldLine from '@/views/stationview/manage/attendanceconfigedit/AttendanceFieldLine.vue'
 import {blankDraft, type AttendanceFieldDraft} from '@/views/stationview/manage/attendanceconfigedit/attendanceFieldDraft'
@@ -19,6 +20,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
+import WidthField from '@/components/profilefields/WidthField.vue'
+import {FieldWidths} from '@/components/profilefields/fieldLayout'
 import UserTypesEditor from '@/views/stationview/manage/attendanceconfigedit/UserTypesEditor.vue'
 import TimeRulesEditor from '@/components/attendance/timerules/TimeRulesEditor.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
@@ -43,6 +46,9 @@ const sampleRules = [draftOf({
 })]
 
 /** Three fields of a sheet as their cards show them, each with its type and the width it is drawn at. */
+/** A width to try the slider on, as a field's opened settings offer it. */
+const sampleWidth = ref<string>(FieldWidths.HALF)
+
 const sampleFields: AttendanceFieldDraft[] = [
   {...blankDraft(), name: t('helpCenter.exampleFields.remark'), fieldType: FieldType.TEXT},
   {...blankDraft(), name: t('helpCenter.exampleFields.rank'), fieldType: FieldType.CHOICE, width: 'half'},
@@ -133,6 +139,9 @@ const sampleFields: AttendanceFieldDraft[] = [
             :available-groups="[]"
             disabled
         />
+        <div class="sm:w-72">
+          <WidthField v-model="sampleWidth"/>
+        </div>
       </div>
       <PrimaryButton disabled>{{ t('attendanceConfig.saveFields') }}</PrimaryButton>
     </NeutralContainer>

@@ -43,6 +43,7 @@ const emit = defineEmits<{
   add: []
   select: [field: EditableField]
   'toggle-checked': [field: EditableField]
+  'toggle-set-checked': [set: FieldSet]
   'assign-checked': [target: AssignmentTarget]
   'clear-checked': []
   edit: [field: EditableField]
@@ -94,6 +95,7 @@ const {t} = useI18n()
         :checked-ids="props.checkedIds"
         @select="(f: EditableField) => emit('select', f)"
         @toggle-checked="(f: EditableField) => emit('toggle-checked', f)"
+        @toggle-set-checked="(s: FieldSet) => emit('toggle-set-checked', s)"
         @delete="(f: EditableField) => emit('delete', f)"
         @edit="(f: EditableField) => emit('edit', f)"
         @toggle-config="(f: EditableField, k: FieldSwitchName, v: boolean) => emit('toggle-config', f, k, v)"

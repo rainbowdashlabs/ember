@@ -23,7 +23,6 @@ const emit = defineEmits<{
   exportOwn: []
   exportMember: [memberId: number]
   showDeleteModal: []
-  restartTour: []
 }>()
 
 const {t} = useI18n()
@@ -60,12 +59,4 @@ const {t} = useI18n()
       {{ t('userSettings.deleteAccount') }}
     </ErrorButton>
   </ErrorContainer>
-
-  <NeutralContainer class="space-y-2">
-    <SubHeader>{{ t('tour.restartButton') }}</SubHeader>
-    <p class="text-sm text-(--text-muted)">{{ t('tour.restartHint') }}</p>
-    <SecondaryButton :icon="['fas', 'rotate']" @click="emit('restartTour')">
-      {{ t('tour.restartButton') }}
-    </SecondaryButton>
-  </NeutralContainer>
 </template>

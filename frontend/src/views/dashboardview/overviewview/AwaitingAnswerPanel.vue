@@ -112,7 +112,7 @@ defineExpose({reload: loadData})
         >
           <div class="min-w-0">
             <p class="truncate text-sm font-medium">
-              <font-awesome-icon :icon="['fas', 'graduation-cap']" class="mr-1 h-3 w-3"/>{{ entry.name }}
+              <font-awesome-icon :icon="['fas', 'layer-group']" class="mr-1 h-3 w-3"/>{{ entry.name }}
             </p>
             <p class="text-xs text-(--text-muted)">{{ entry.members.map(m => m.name).join(', ') }}</p>
           </div>

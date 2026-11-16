@@ -353,7 +353,7 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
                 null, teamGroupId, null, null, null, true, false, false, null, null, null, false, null);
     }
 
-    /** A size chosen from the usual ones, starting from M, that has to be answered. */
+    /** A size chosen from the usual ones, starting from M, that has to be answered and says what it is for. */
     private static EventQuestionSettings sizeQuestion() {
         return new EventQuestionSettings(
                 List.of("XS", "S", "M", "L", "XL"),
@@ -368,7 +368,7 @@ public class DemoEventGroupSeeder implements DemoPerStationSeeder {
                 null,
                 null,
                 false,
-                null);
+                "Für das T-Shirt, das alle Teilnehmenden zur Abnahme bekommen.");
     }
 
     private static int setId(List<EventGroupSet> sets, String name) {

@@ -24,11 +24,6 @@ export function onboardingState() {
         activeStep: useState('onboardingState.activeStep', () => 0),
         /** Set while the reader has waved the guide away for this visit. */
         guideDismissed: useState('onboardingState.guideDismissed', () => false),
-        /**
-         * Set the moment the introduction tour ends, so the task tour can take over without a reload
-         * and without sending the reader back to the dashboard first.
-         */
-        handoverPending: useState('onboardingState.handoverPending', () => false),
     }
 }
 

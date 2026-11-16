@@ -860,19 +860,19 @@ public enum MemberRefusal implements Refusal {
     PROFILE_DEPENDENCY_ON_ITSELF(
             242, HttpStatus.BAD_REQUEST, "A question cannot depend on itself, so nothing was saved"),
 
-    /** A question made to depend on one that is not a yes/no question, named after it. */
-    PROFILE_DEPENDENCY_NOT_YES_NO(
+    /** A question made to depend on one that cannot hold the condition, named after it. */
+    PROFILE_DEPENDENCY_NOT_A_CONDITION(
             243,
             HttpStatus.BAD_REQUEST,
-            "A question can only depend on a question answered with yes or no, so nothing was saved"),
+            "A question can only depend on a question answered with yes or no, a choice or a text, so nothing was saved"),
 
-    /** A dependency that would chain: the yes/no question depends on another, or others depend on this one. */
+    /** A dependency that would chain: the question depended on depends on another, or others depend on this one. */
     PROFILE_DEPENDENCY_CHAIN(
             244,
             HttpStatus.BAD_REQUEST,
             "Dependencies cannot be chained: a question others depend on cannot depend on one itself, so nothing was saved"),
 
-    /** A yes/no question deleted or turned into another type while others depend on it, naming them. */
+    /** A condition question deleted or turned into a type that cannot be one while others depend on it, naming them. */
     PROFILE_DEPENDENCY_STILL_USED(
             245, HttpStatus.CONFLICT, "Other questions depend on this question, so it was not deleted or changed"),
 
@@ -880,7 +880,13 @@ public enum MemberRefusal implements Refusal {
     PROFILE_FIELD_SET_NOT_HERE(246, HttpStatus.NOT_FOUND, "That group of fields is not here any more"),
 
     /** A bundle of questions written down without a name. */
-    PROFILE_FIELD_SET_NEEDS_A_NAME(247, HttpStatus.BAD_REQUEST, "A group of fields needs a name, so nothing was saved");
+    PROFILE_FIELD_SET_NEEDS_A_NAME(247, HttpStatus.BAD_REQUEST, "A group of fields needs a name, so nothing was saved"),
+
+    /** A question in a group made to depend on one outside it, or moved away from those depending on it, naming the other. */
+    PROFILE_DEPENDENCY_OUTSIDE_GROUP(
+            248,
+            HttpStatus.BAD_REQUEST,
+            "A question in a group can only depend on a question of the same group, so nothing was saved");
 
     private final Definition definition;
 

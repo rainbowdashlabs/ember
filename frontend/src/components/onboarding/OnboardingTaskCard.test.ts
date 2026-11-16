@@ -29,6 +29,7 @@ function task(overrides: Partial<OnboardingTaskView> = {}): OnboardingTaskView {
         confirmable: false,
         actorName: null,
         changedAt: null,
+        elsewhere: false,
         ...overrides,
     }
 }
@@ -90,5 +91,13 @@ describe('OnboardingTaskCard', () => {
         ])
 
         expect(wrapper.text()).toContain('Wieder aufnehmen')
+    })
+
+    it('says when a task was passed over on another station', async () => {
+        const wrapper = await mountCard([
+            task({id: 'member.bookmark', key: 'member.bookmark', state: 'SKIPPED', elsewhere: true}),
+        ])
+
+        expect(wrapper.find('[data-testid="onboarding-task-elsewhere"]').text()).toBe('auf einer anderen Wache')
     })
 })
