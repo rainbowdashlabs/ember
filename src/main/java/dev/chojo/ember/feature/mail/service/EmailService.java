@@ -825,6 +825,22 @@ public class EmailService implements TaskSource {
                 "waitlist-other-dates", email, name, accessToken, stationName, locale, stationId, details);
     }
 
+    /**
+     * Reminds somebody once a week of an invitation they have not answered, with the dates that are
+     * still ahead. It reads like the invitation and links to the same page.
+     */
+    public void sendWaitlistInvitationReminderEmail(
+            String email,
+            String name,
+            String accessToken,
+            String stationName,
+            String locale,
+            @Nullable Integer stationId,
+            WaitlistInvitationDetails details) {
+        sendWaitlistDatesEmail(
+                "waitlist-invitation-reminder", email, name, accessToken, stationName, locale, stationId, details);
+    }
+
     private void sendWaitlistDatesEmail(
             String template,
             String email,

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.equipment.service;
+package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -18,7 +18,7 @@ import java.time.ZoneOffset;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-class EquipmentOccurrenceWindowsTest {
+class OccurrenceWindowsTest {
 
     private static final LocalDate DAY = LocalDate.of(2026, 6, 6);
 
@@ -64,8 +64,8 @@ class EquipmentOccurrenceWindowsTest {
     void anOccurrenceTakesTheClockTimeOfTheSeries() {
         var recurring = event(at(DAY, 19, 30), at(DAY, 21, 0), StationEvent.EventType.RECURRING);
         LocalDate later = DAY.plusWeeks(3);
-        assertEquals(at(later, 19, 30), EquipmentOccurrenceWindows.startOf(recurring, later, ZoneOffset.UTC));
-        assertEquals(at(later, 21, 0), EquipmentOccurrenceWindows.endOf(recurring, later, ZoneOffset.UTC));
+        assertEquals(at(later, 19, 30), OccurrenceWindows.startOf(recurring, later, ZoneOffset.UTC));
+        assertEquals(at(later, 21, 0), OccurrenceWindows.endOf(recurring, later, ZoneOffset.UTC));
     }
 
     /**
@@ -79,31 +79,28 @@ class EquipmentOccurrenceWindowsTest {
                 Instant.parse("2026-06-06T19:00:00Z"),
                 StationEvent.EventType.RECURRING);
         LocalDate winter = LocalDate.of(2026, 12, 5);
-        assertEquals(
-                Instant.parse("2026-12-05T18:30:00Z"),
-                EquipmentOccurrenceWindows.startOf(summerEvening, winter, BERLIN));
-        assertEquals(
-                Instant.parse("2026-12-05T20:00:00Z"), EquipmentOccurrenceWindows.endOf(summerEvening, winter, BERLIN));
+        assertEquals(Instant.parse("2026-12-05T18:30:00Z"), OccurrenceWindows.startOf(summerEvening, winter, BERLIN));
+        assertEquals(Instant.parse("2026-12-05T20:00:00Z"), OccurrenceWindows.endOf(summerEvening, winter, BERLIN));
     }
 
     @Test
     void anOccurrenceRunningPastMidnightEndsTheFollowingDay() {
         var late = event(at(DAY, 22, 0), at(DAY, 2, 0), StationEvent.EventType.RECURRING);
-        assertEquals(at(DAY.plusDays(1), 2, 0), EquipmentOccurrenceWindows.endOf(late, DAY, ZoneOffset.UTC));
+        assertEquals(at(DAY.plusDays(1), 2, 0), OccurrenceWindows.endOf(late, DAY, ZoneOffset.UTC));
     }
 
     @Test
     void anAppointmentWithoutTimesFallsBackToTheStartOfTheDay() {
         var vague = event(null, null, StationEvent.EventType.RECURRING);
-        assertEquals(at(DAY, 0, 0), EquipmentOccurrenceWindows.startOf(vague, DAY, ZoneOffset.UTC));
-        assertEquals(at(DAY, 0, 0), EquipmentOccurrenceWindows.endOf(vague, DAY, ZoneOffset.UTC));
-        assertNull(EquipmentOccurrenceWindows.singleDateOf(vague, ZoneOffset.UTC));
+        assertEquals(at(DAY, 0, 0), OccurrenceWindows.startOf(vague, DAY, ZoneOffset.UTC));
+        assertEquals(at(DAY, 0, 0), OccurrenceWindows.endOf(vague, DAY, ZoneOffset.UTC));
+        assertNull(OccurrenceWindows.singleDateOf(vague, ZoneOffset.UTC));
     }
 
     @Test
     void anAppointmentThatHappensOnceKnowsItsDay() {
         var once = event(at(DAY, 9, 0), at(DAY, 17, 0), StationEvent.EventType.ONE_TIME);
-        assertEquals(DAY, EquipmentOccurrenceWindows.singleDateOf(once, ZoneOffset.UTC));
+        assertEquals(DAY, OccurrenceWindows.singleDateOf(once, ZoneOffset.UTC));
     }
 
     /** Half past midnight in Berlin is the evening before in UTC, and the day is the station's. */
@@ -113,6 +110,6 @@ class EquipmentOccurrenceWindowsTest {
                 Instant.parse("2026-06-05T22:30:00Z"),
                 Instant.parse("2026-06-06T01:00:00Z"),
                 StationEvent.EventType.ONE_TIME);
-        assertEquals(DAY, EquipmentOccurrenceWindows.singleDateOf(justAfterMidnight, BERLIN));
+        assertEquals(DAY, OccurrenceWindows.singleDateOf(justAfterMidnight, BERLIN));
     }
 }

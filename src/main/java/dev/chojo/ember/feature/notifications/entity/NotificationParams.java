@@ -421,6 +421,9 @@ public sealed interface NotificationParams {
      */
     record WaitlistTrialEnded(String childName, String listName) implements NotificationParams {}
 
+    /** An open invitation whose offered dates have all begun without an answer. */
+    record WaitlistInvitationDatesGone(String childName, String listName) implements NotificationParams {}
+
     record StorageWarning(int usedPercent, String usedFormatted, String quotaFormatted) implements NotificationParams {}
 
     /**

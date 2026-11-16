@@ -1,0 +1,29 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hallo {{ name }},</h2>
+      <p><strong>{{ stationName }}</strong> hat dich eingeladen, einmal vorbeizukommen und uns kennenzulernen, und wir haben noch keine Antwort von dir.</p>
+      {% if message %}
+      <ul class="notification-list">
+        <li class="notification-item"><p class="message" style="white-space:pre-line">{{ message }}</p></li>
+      </ul>
+      {% endif %}
+      {% if appointments | length > 1 %}
+      <p>Diese Termine sind noch offen. Such dir einfach den aus, der dir am besten passt:</p>
+      {% else %}
+      <p>Dieser Termin ist noch offen:</p>
+      {% endif %}
+      {% for appointment in appointments %}
+      <ul class="notification-list">
+        <li class="notification-item">
+          <strong>{{ appointment.appointmentName }}</strong>
+          {% if appointment.appointmentDate %}<br>Datum: {{ appointment.appointmentDate }}{% endif %}
+          {% if appointment.appointmentTime %}<br>Uhrzeit: {{ appointment.appointmentTime }}{% endif %}
+          {% if appointment.arrivalTime %}<br>Bitte sei schon um {{ appointment.arrivalTime }} da, damit wir dich in Ruhe begrüßen können.{% endif %}
+          {% if appointment.location %}<br>Wo: {{ appointment.location }}{% endif %}
+        </li>
+      </ul>
+      {% endfor %}
+      <p>Sag uns bitte über die folgende Seite Bescheid. Dort kannst du auch sagen, dass {% if appointments | length > 1 %}keiner der Termine{% else %}der Termin nicht{% endif %} passt oder dass du kein Interesse mehr hast:</p>
+      <div class="btn-wrap"><a class="btn" href="{{ url }}">Einladung beantworten</a></div>
+      <p class="hint">Wir erinnern dich einmal pro Woche, bis du geantwortet hast oder kein Termin mehr offen ist. Bis du zum ersten Mal da warst, bist du weiterhin nur auf der Warteliste.</p>
+{% endblock %}

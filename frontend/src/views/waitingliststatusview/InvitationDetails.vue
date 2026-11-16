@@ -16,6 +16,9 @@ import type {WaitingListPublicInvitation} from '@/api/generated/schema'
  * The page is the invitation rather than a window into the station, and an answer given without
  * knowing the occasion is not an answer worth collecting. "None of these suit" in particular is
  * about dates that have to be on the screen.
+ *
+ * While the invitation is open, only dates still ahead are listed, and with none left the page says
+ * that the station sends new ones. Once answered, every date is listed again.
  */
 const props = defineProps<{invitation: WaitingListPublicInvitation}>()
 
@@ -25,7 +28,10 @@ const {t} = useI18n()
 <template>
   <NeutralContainer class="space-y-3" data-testid="waitlist-invitation">
     <SectionHeader class="text-lg font-semibold">{{ t('waitingList.publicStatus.invitationTitle') }}</SectionHeader>
-    <p class="text-sm">
+    <p v-if="props.invitation.noDatesLeft" class="text-sm" data-testid="waitlist-invitation-no-dates">
+      {{ t('waitingList.publicStatus.invitationNoDatesLeft') }}
+    </p>
+    <p v-else class="text-sm">
       {{ props.invitation.appointments.length > 1
         ? t('waitingList.publicStatus.invitationIntroSeveral')
         : t('waitingList.publicStatus.invitationIntro') }}

@@ -122,9 +122,27 @@ public class EventOccurrenceService {
 
         BiFunction<StationEvent, LocalDate, Optional<LocalDate>> next =
                 query.registrationOpen() ? (event, day) -> nextOpenDate(event, day, last, calendar) : calendar::next;
+        if (query.notBegun()) next = notBegun(next, calendar, Instant.now());
         var walk = new Walk(next, day -> day.plusDays(1), day -> !day.isAfter(last), Comparator.naturalOrder());
         return withEventGroups(
                 stationId, page(walk.from(first, events, query.offset() + query.limit(), calendar), query));
+    }
+
+    /**
+     * Narrows a walk to the dates that have not begun yet: a date whose start has passed is stepped
+     * over to the next one the walk finds.
+     */
+    private static BiFunction<StationEvent, LocalDate, Optional<LocalDate>> notBegun(
+            BiFunction<StationEvent, LocalDate, Optional<LocalDate>> next, StationCalendar calendar, Instant now) {
+        return (event, day) -> {
+            var candidate = next.apply(event, day);
+            while (candidate.isPresent()
+                    && !OccurrenceWindows.startOf(event, candidate.get(), calendar.zone())
+                            .isAfter(now)) {
+                candidate = next.apply(event, candidate.get().plusDays(1));
+            }
+            return candidate;
+        };
     }
 
     /**
@@ -376,6 +394,8 @@ public class EventOccurrenceService {
      *                             ends
      * @param limit                how many entries the page holds
      * @param offset               how many entries to pass over before the page begins
+     * @param notBegun             whether the upcoming list leaves out the dates of today that have
+     *                             already begun; the other listings do not read it
      */
     public record OccurrenceQuery(
             @Nullable Integer categoryId,
@@ -385,7 +405,22 @@ public class EventOccurrenceService {
             @Nullable LocalDate from,
             @Nullable LocalDate to,
             int limit,
-            int offset) {}
+            int offset,
+            boolean notBegun) {
+
+        /** A query that keeps the dates of today which have already begun. */
+        public OccurrenceQuery(
+                @Nullable Integer categoryId,
+                @Nullable Boolean requiresRegistration,
+                boolean registrationOpen,
+                @Nullable String search,
+                @Nullable LocalDate from,
+                @Nullable LocalDate to,
+                int limit,
+                int offset) {
+            this(categoryId, requiresRegistration, registrationOpen, search, from, to, limit, offset, false);
+        }
+    }
 
     /**
      * What a page of appointments was asked for, which is a listing plus the two splits a page of

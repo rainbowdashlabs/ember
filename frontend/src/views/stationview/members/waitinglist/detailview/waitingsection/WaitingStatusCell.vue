@@ -9,7 +9,10 @@ import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vu
 import WaitingListAnswerBadge from '@/components/badge/WaitingListAnswerBadge.vue'
 import type { WaitingListEntryWithScore } from '@/api/generated/schema'
 
-/** Where somebody on the list stands: their status, their answer to an invitation, and whether they are still too young. */
+/**
+ * Where somebody on the list stands: their status, their answer to an invitation or that its dates ran
+ * out unanswered, and whether they are still too young.
+ */
 defineProps<{
   item: WaitingListEntryWithScore
 }>()
@@ -21,6 +24,11 @@ const { t } = useI18n()
   <span class="whitespace-nowrap">
     <WaitingListStatusBadge :status="item.entry.status" />
     <WaitingListAnswerBadge v-if="item.entry.answer" :answer="item.entry.answer.answer" class="ml-1" />
+    <span v-else-if="item.entry.invitationDatesGoneAt" :title="t('waitingList.noDatesLeftHint')"
+          class="ml-1 rounded bg-warning/15 px-1.5 py-0.5 text-xs font-medium text-warning"
+          data-testid="waitlist-no-dates-left">
+      {{ t('waitingList.noDatesLeft') }}
+    </span>
     <span v-if="item.belowJoinAge" :title="t('waitingList.belowJoinAgeHint')"
           class="ml-1 rounded bg-warning/15 px-1.5 py-0.5 text-xs font-medium text-warning">
       {{ t('waitingList.belowJoinAge') }}

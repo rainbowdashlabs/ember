@@ -92,4 +92,6 @@ export default {
     'W-069': 'Diesem Eintrag können so, wie er gerade steht, keine anderen Termine angeboten werden, es wurde nichts geändert',
     'W-070': 'Die Nachricht ist länger als 2000 Zeichen, es wurde nichts geändert',
     'W-071': ENTRY_NOT_HERE,
+    'W-072': 'Dieser Termin hat schon begonnen, es wurde nichts gespeichert',
+    'W-073': 'Einer der Termine hat schon begonnen, es wurde nichts geändert',
 }

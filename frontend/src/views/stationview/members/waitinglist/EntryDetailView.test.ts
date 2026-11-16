@@ -62,6 +62,8 @@ function entryIn(status: WaitingListEntryStatus): WaitingListEntryWithScore {
             invitationRound: 0,
             invitation: null,
             trialMessage: '',
+            invitationMailedAt: null,
+            invitationDatesGoneAt: null,
             memberId: status === WaitingListEntryStatus.JOINED ? 12 : null,
             createdAt: '2026-01-01T08:00:00Z',
             confirmedAt: '2026-01-01T08:00:00Z',

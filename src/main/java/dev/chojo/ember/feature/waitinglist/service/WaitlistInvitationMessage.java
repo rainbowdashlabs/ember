@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.events.service.OccurrenceWindows;
 import dev.chojo.ember.feature.mail.entity.WaitlistInvitationDetails;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.question.FieldType;
@@ -21,6 +22,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -115,6 +117,34 @@ public class WaitlistInvitationMessage {
     }
 
     /**
+     * Reminds the family of an invitation they have not answered, naming only the dates still ahead.
+     *
+     * @param now the moment that decides which dates have begun
+     * @return whether a reminder went out, false when no date is left to remind of
+     */
+    public boolean sendReminder(
+            WaitingListEntry entry,
+            List<WaitingListEntryGuardian> guardians,
+            Station station,
+            WaitingListInvitation invitation,
+            Instant now) {
+        var details = describeUpcoming(station, invitation, now);
+        if (details.appointments().isEmpty()) return false;
+        String language = StationFormat.languageOf(station);
+        for (var recipient : recipients(entry, guardians)) {
+            emailService.sendWaitlistInvitationReminderEmail(
+                    recipient.email(),
+                    recipient.name(),
+                    entry.accessToken(),
+                    station.name(),
+                    language,
+                    station.id(),
+                    details);
+        }
+        return true;
+    }
+
+    /**
      * Tells everybody on the entry who left an address that the trial has begun.
      *
      * @param message what the station wrote to them, empty for nothing
@@ -176,6 +206,39 @@ public class WaitlistInvitationMessage {
                 .findFirst()
                 .map(WaitlistInvitationDetails.Appointment::summary)
                 .orElse("");
+    }
+
+    /**
+     * The offered dates whose appointment has not begun yet, in the order they are offered.
+     *
+     * <p>A date is over once its appointment has started, not only once its day has: an evening drill
+     * that is already running cannot be the one somebody comes along to for the first time. The start
+     * is the appointment's time of day on the offered date, in the zone the station keeps its times
+     * in. A date whose appointment has since been deleted is not upcoming either.
+     *
+     * @param now the moment that decides what has begun
+     */
+    public List<WaitingListInvitation.OfferedDate> upcoming(
+            Station station, WaitingListInvitation invitation, Instant now) {
+        ZoneId zone = StationFormat.timezoneOf(station);
+        return invitation.options().stream()
+                .filter(option -> eventRepository
+                        .findById(option.eventId())
+                        .map(event -> now.isBefore(OccurrenceWindows.startOf(event, option.date(), zone)))
+                        .orElse(false))
+                .toList();
+    }
+
+    /**
+     * The invitation as it still stands for somebody answering it now: the same note, and only the
+     * dates that have not begun.
+     *
+     * @param now the moment that decides what has begun
+     */
+    public WaitlistInvitationDetails describeUpcoming(
+            Station station, @Nullable WaitingListInvitation invitation, Instant now) {
+        if (invitation == null) return WaitlistInvitationDetails.NONE;
+        return describe(station, new WaitingListInvitation(invitation.message(), upcoming(station, invitation, now)));
     }
 
     /**

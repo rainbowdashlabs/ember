@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-package dev.chojo.ember.feature.equipment.service;
+package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import org.jspecify.annotations.Nullable;
@@ -14,21 +14,21 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 
 /**
- * When an occurrence of an appointment starts and ends, and how long the gear it needs is away.
+ * When an occurrence of an appointment starts and ends.
  *
  * <p>An appointment carries the clock time of its first date and repeats that clock time onto every
  * date it falls on, so one occurrence is that date combined with the times read off the start and the
  * end. The reading is done on the station's clock, the one the calendar, the attendance sheets and the
- * identity of a sign-up read their days on, so a claim holds its window on the date the sign-ups are
- * keyed to. Read in UTC, a series configured in summer claimed its gear an hour early all winter.
+ * identity of a sign-up read their days on. Read in UTC, a series configured in summer claimed its
+ * gear an hour early all winter, and would have closed an invitation's date an hour early too.
  *
- * <p>A window is instants rather than days on purpose. Lead and trail are "Friday evening to Monday
- * morning", and on days alone a claim running to Monday morning and one starting Monday afternoon
- * would collide over a Monday neither of them wants.
+ * <p>The answers are instants rather than days on purpose: something running to Monday morning and
+ * something starting Monday afternoon would otherwise collide over a Monday neither of them wants, as
+ * gear held from Friday evening to Monday morning did.
  */
-public final class EquipmentOccurrenceWindows {
+public final class OccurrenceWindows {
 
-    private EquipmentOccurrenceWindows() {}
+    private OccurrenceWindows() {}
 
     /**
      * When one occurrence of an appointment begins.

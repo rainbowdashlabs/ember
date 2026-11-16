@@ -16,6 +16,8 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
+
 /**
  * What the open web reaches of a station's waiting lists: the station a public address names, the
  * lists it put in public, and the appointment an invitation link is about.
@@ -84,11 +86,20 @@ public class PublicWaitingListService {
     }
 
     /**
-     * The appointment an invitation is for, written exactly as the mail wrote it.
+     * The dates an invitation offers, written exactly as the mail wrote them.
+     *
+     * <p>While it is open, dates whose appointment has begun are left out, so nobody is offered one they
+     * can no longer come to. Once it is answered every date stays, because the answer names one of
+     * them and the family has to see which, also after that evening has passed.
+     *
+     * @param onlyUpcoming whether begun dates are left out
      */
-    public WaitlistInvitationDetails invitationDetails(int stationId, WaitingListInvitation invitation) {
+    public WaitlistInvitationDetails invitationDetails(
+            int stationId, WaitingListInvitation invitation, boolean onlyUpcoming) {
         var station =
                 stations.findById(stationId).orElseThrow(WaitingListRefusal.STATION_NOT_HERE_BEHIND_INVITATION::raise);
-        return invitationMessage.describe(station, invitation);
+        return onlyUpcoming
+                ? invitationMessage.describeUpcoming(station, invitation, Instant.now())
+                : invitationMessage.describe(station, invitation);
     }
 }

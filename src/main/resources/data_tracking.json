@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:0459a3b614875120d5ed24513cb4491933d07a383139c5716b6d0f4e25387b36",
-  "generatedAt": "2026-11-15T21:18:19Z",
+  "schemaHash": "sha256:3c63b3638507f157fb6e3b7cdf32fb30ade9af03c67978064814f861d77baad0",
+  "generatedAt": "2026-11-16T15:45:46Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -33414,7 +33414,7 @@
     "waiting_list_entry": {
       "feature": "waitinglist",
       "scope": "STATION",
-      "tableHash": "sha256:ec26127ac5cf9764d5801dc7cb13a18fa4122e0a30fc3d1c64f8cb9e6996f148",
+      "tableHash": "sha256:1f3e978cb92856afb380f99f7c383ee34a94d8f0fa6e0158f8f55937b75c5a5c",
       "columns": [
         {
           "name": "id",
@@ -33597,6 +33597,20 @@
           "nullable": false,
           "verified": true,
           "description": "What the station wrote to the family when the trial began, empty when it wrote nothing. Shown on the page behind the entry link for as long as the trial runs, so a list that sends no mail still delivers it."
+        },
+        {
+          "name": "invitation_mailed_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the family was last sent the current invitation: the invitation, other dates or a weekly reminder. Set for every new invitation, also on a list that sends no mail. NULL while there is no invitation."
+        },
+        {
+          "name": "invitation_dates_gone_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the station was told that no offered date of the current invitation is left. NULL until then; other dates clear it."
         }
       ],
       "foreignKeys": [

@@ -3883,6 +3883,8 @@ volumes:
             invitationDate: 'Der Termin passt mir nicht, bei mehreren Terminen: Keiner der Termine passt. Interesse besteht weiter, und mit „Andere Termine anbieten" schickst du neue.',
             invitationNo: 'Kein Interesse: die Person möchte nicht mehr gefragt werden.',
             invitationStays: 'Die Antwort steht als Kennzeichen am Eintrag, und der Eintrag bleibt im Abschnitt „Wartend & Eingeladen" stehen. Auch eine Absage verschwindet also nicht aus dem Blick.',
+            invitationReminder: 'Bleibt eine Einladung unbeantwortet, erinnert Ember die Familie einmal pro Woche daran, gezählt ab der letzten Mail dazu. Die Erinnerung nennt nur Termine, die noch nicht begonnen haben. Sie endet mit jeder Antwort und sobald kein Termin mehr offen ist; andere Termine starten sie neu. Listen ohne Mailversand erinnern nicht und melden auch nicht, wenn keine Termine mehr offen sind.',
+            invitationDatesGone: 'Ein Termin, der schon begonnen hat, wird auf der Antwortseite nicht mehr angeboten und kann nicht mehr zugesagt werden. Sind alle angebotenen Termine vorbei, ohne dass geantwortet wurde, bekommt ihr eine Benachrichtigung, und der Eintrag zeigt „Keine Termine mehr offen“. Dann schickst du andere Termine oder setzt den Eintrag zurück auf die Warteliste.',
             messagesTitle: 'Der Familie schreiben',
             messagesText: 'Auch ihr könnt bei diesen drei Schritten eine Nachricht mitschicken. Der Dialog zeigt vorher, an welche Adressen sie geht:',
             messagesOtherDates: 'Andere Termine anbieten: ersetzt die bisherigen Termine in einem Schritt, der Eintrag bleibt eingeladen. Die Antwort auf die alten Termine verfällt, und die Familie bekommt die neuen per E-Mail und auf der Seite des Eintrags.',
