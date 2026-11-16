@@ -15,6 +15,7 @@ import DateTimeInput from '@/components/input/datetime/DateTimeInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
+import HintIcon from '@/components/typography/HintIcon.vue'
 import RestrictionsField from '@/components/input/RestrictionsField.vue'
 import type {RestrictionSelection} from '@/api/types'
 import EventFieldList from './EventFieldList.vue'
@@ -188,10 +189,12 @@ const labelId = useId()
 
       <template v-if="requiresRegistration">
         <div class="flex items-center justify-between">
-          <span :id="`${labelId}-confirmation`" class="text-sm font-medium">{{ t('events.requiresConfirmation') }}</span>
+          <span class="flex items-center gap-1">
+            <span :id="`${labelId}-confirmation`" class="text-sm font-medium">{{ t('events.requiresConfirmation') }}</span>
+            <HintIcon :text="t('events.requiresConfirmationHint')"/>
+          </span>
           <ToggleInput v-model="requiresConfirmation" :aria-labelledby="`${labelId}-confirmation`"/>
         </div>
-        <p class="text-xs text-(--text-muted)">{{ t('events.requiresConfirmationHint') }}</p>
 
         <div class="flex items-center justify-between">
           <span :id="`${labelId}-deadline`" class="text-sm font-medium">{{ t('events.hasDeadline') }}</span>
@@ -206,7 +209,6 @@ const labelId = useId()
         <div class="space-y-1">
           <FieldLabel>{{ t('events.registrationLimit') }}</FieldLabel>
           <NumberInput v-model="registrationLimit" :placeholder="t('events.registrationLimitHint')"/>
-          <p class="text-xs text-(--text-muted)">{{ t('events.registrationLimitHint') }}</p>
         </div>
 
         <div class="space-y-1">
@@ -215,15 +217,19 @@ const labelId = useId()
         </div>
 
         <div v-if="minRegistrations && minRegistrations > 0" class="space-y-1">
-          <FieldLabel>{{ t('events.thresholdDays') }}</FieldLabel>
+          <div class="flex items-center gap-1">
+            <FieldLabel>{{ t('events.thresholdDays') }}</FieldLabel>
+            <HintIcon :text="t('events.thresholdDaysHint')"/>
+          </div>
           <NumberInput v-model="thresholdDays" :placeholder="t('events.thresholdDaysPlaceholder')"/>
-          <p class="text-xs text-(--text-muted)">{{ t('events.thresholdDaysHint') }}</p>
         </div>
 
         <div v-if="eventType !== undefined && eventType !== 'ONE_TIME'" class="space-y-1">
-          <FieldLabel>{{ t('events.registrationCloseDays') }}</FieldLabel>
-          <NumberInput v-model="registrationCloseDays" :placeholder="t('events.registrationCloseDaysHint')"/>
-          <p class="text-xs text-(--text-muted)">{{ t('events.registrationCloseDaysHint') }}</p>
+          <div class="flex items-center gap-1">
+            <FieldLabel>{{ t('events.registrationCloseDays') }}</FieldLabel>
+            <HintIcon :text="t('events.registrationCloseDaysHint')"/>
+          </div>
+          <NumberInput v-model="registrationCloseDays"/>
         </div>
       </template>
     </template>

@@ -75,4 +75,18 @@ describe('EventFormPanel repeat line', () => {
         expect(template).toBeLessThan(fields)
         expect(fields).toBeLessThan(description)
     })
+
+    it('keeps the explanations of the sign-up settings behind hint icons', () => {
+        const wrapper = panel('RECURRING', {
+            requiresRegistration: true, requiresConfirmation: false, hasDeadline: false, registrationDeadline: '',
+            minRegistrations: 2,
+        })
+
+        const paragraphs = wrapper.findAll('p').map(paragraph => paragraph.text())
+
+        expect(wrapper.find('input[placeholder="Leer = unbegrenzt"]').exists()).toBe(true)
+        expect(paragraphs.some(text => text.includes('Leer = unbegrenzt'))).toBe(false)
+        expect(paragraphs.some(text => text.includes('von einem Verwalter bestätigt'))).toBe(false)
+        expect(wrapper.findAll('[data-testid="hint-icon"]').length).toBeGreaterThanOrEqual(3)
+    })
 })
