@@ -663,7 +663,7 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         assertEquals(1, clusterProfileFieldService.findAssignments(check.id()).size(), "the group is asked as one");
 
         clusterProfileFieldService.reorder(
-                clusterId, ProfileFieldScope.MEMBER, List.of(flag.id(), loose.id(), check.id()));
+                clusterId, ProfileFieldScope.MEMBER, List.of(check.id(), loose.id(), flag.id()));
         List<Integer> form = clusterProfileFieldService.findAssignmentsByCluster(clusterId).stream()
                 .sorted(Comparator.comparingInt(ClusterProfileFieldAssignment::position))
                 .map(ClusterProfileFieldAssignment::fieldId)
@@ -684,6 +684,53 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
                                 RefusalResponse.class,
                                 () -> clusterProfileFieldService.requireSetAllowed(clusterId, set.id()))
                         .refusal());
+    }
+
+    /**
+     * A question of an association's group dragged within the group stays where it was dropped, the group
+     * takes that order, and the group's other forms follow it.
+     */
+    @Test
+    void aDragWithinAnAssociationsGroupIsTheGroupsNewOrder() {
+        int clusterId = freshCluster();
+        var loose = clusterProfileFieldService.create(
+                clusterId, "Allein", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null, true, false, null);
+        var first = clusterProfileFieldService.create(
+                clusterId, "Erste", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null, true, false, null);
+        var second = clusterProfileFieldService.create(
+                clusterId, "Zweite", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null, true, false, null);
+        clusterProfileFieldService.assignToRole(clusterId, loose.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        var set = clusterProfileFieldService.createSet(clusterId, "Gruppe", false);
+        clusterProfileFieldService.joinSet(clusterId, first.id(), set.id());
+        clusterProfileFieldService.joinSet(clusterId, second.id(), set.id());
+        clusterProfileFieldService.assignToRole(clusterId, first.id(), ProfileFieldScope.MEMBER, 5, null, null, null);
+        clusterProfileFieldService.assignToRole(clusterId, first.id(), ProfileFieldScope.TEAM, 0, null, null, null);
+
+        clusterProfileFieldService.reorder(
+                clusterId, ProfileFieldScope.MEMBER, List.of(loose.id(), second.id(), first.id()));
+
+        assertEquals(List.of(loose.id(), second.id(), first.id()), formOf(clusterId, ProfileFieldScope.MEMBER));
+        assertEquals(
+                List.of(second.id(), first.id()),
+                clusterProfileFieldService.findByCluster(clusterId).stream()
+                        .filter(field -> field.fieldSetId() != null)
+                        .sorted(Comparator.comparingInt(ClusterProfileField::setPosition))
+                        .map(ClusterProfileField::id)
+                        .toList(),
+                "the group takes the order");
+        assertEquals(
+                List.of(second.id(), first.id()),
+                formOf(clusterId, ProfileFieldScope.TEAM),
+                "and its other forms follow");
+    }
+
+    /** One audience's form of a cluster, in the order it stands. */
+    private List<Integer> formOf(int clusterId, ProfileFieldScope role) {
+        return clusterProfileFieldService.findAssignmentsByCluster(clusterId).stream()
+                .filter(assignment -> assignment.role() == role)
+                .sorted(Comparator.comparingInt(ClusterProfileFieldAssignment::position))
+                .map(ClusterProfileFieldAssignment::fieldId)
+                .toList();
     }
 
     /**

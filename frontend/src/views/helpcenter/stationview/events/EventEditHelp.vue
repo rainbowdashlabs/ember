@@ -70,6 +70,11 @@ const groupTemplates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exa
       </NeutralContainer>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.eventEdit.copyTitle')">
+      <p>{{ t('helpCenter.eventEdit.copyText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.copyDatesText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.eventEdit.generalTitle')">
       <p>{{ t('helpCenter.eventEdit.generalText') }}</p>
       <NeutralContainer class="space-y-4 mt-3">

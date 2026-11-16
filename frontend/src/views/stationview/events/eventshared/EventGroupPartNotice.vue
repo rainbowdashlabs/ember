@@ -37,7 +37,7 @@ const {t} = useI18n()
         <p>{{ t('eventGroups.partOf', {eventGroup: eventGroup.eventGroupName}) }} <EventGroupPartBadge :event-group="eventGroup"/></p>
         <p>{{ message }}</p>
       </div>
-      <SecondaryButton :icon="['fas', 'graduation-cap']" :to="eventGroupLink">
+      <SecondaryButton :icon="['fas', 'layer-group']" :to="eventGroupLink">
         {{ t('eventGroups.openEventGroup') }}
       </SecondaryButton>
     </div>

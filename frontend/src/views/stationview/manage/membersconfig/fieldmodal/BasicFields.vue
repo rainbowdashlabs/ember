@@ -4,11 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import LabelledField from '@/components/input/LabelledField.vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import FieldTypePicker from '@/components/input/FieldTypePicker.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
-import MutedText from '@/components/typography/MutedText.vue'
 import type {FieldType} from '@/api/generated/schema'
 import {useFieldsCapabilities} from '@/composables/useFieldsConfig'
 
@@ -49,13 +49,15 @@ const capabilities = useFieldsCapabilities()
       <FieldTypePicker v-model="fieldType" :types="capabilities.types" :unavailable="props.unavailable"
                        data-testid="field-type"/>
     </div>
-    <div v-if="props.named" class="space-y-1">
-      <FieldLabel>{{ t('membersConfig.fieldDescription') }}</FieldLabel>
-      <TextInput
-          v-model="description"
-          data-testid="field-description"
-          :placeholder="t('membersConfig.fieldDescriptionPlaceholder')"/>
-      <MutedText class="text-xs">{{ t('membersConfig.fieldDescriptionHint') }}</MutedText>
-    </div>
+    <LabelledField v-if="props.named" :label="t('membersConfig.fieldDescription')"
+                   :help="t('membersConfig.fieldDescriptionHint')" help-as-hint>
+      <template #default="{describedBy}">
+        <TextInput
+            v-model="description"
+            data-testid="field-description"
+            :aria-describedby="describedBy"
+            :placeholder="t('membersConfig.fieldDescriptionPlaceholder')"/>
+      </template>
+    </LabelledField>
   </div>
 </template>

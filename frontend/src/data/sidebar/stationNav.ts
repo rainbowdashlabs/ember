@@ -44,6 +44,13 @@ function runs(module: StationModule): Condition {
 /** Whether messages are on for the instance; an administrator can turn them off for everybody. */
 const messagesOn: Condition = ({session}) => session.sessionInfo.value?.messagesEnabled !== false
 
+function either(first: Condition, second: Condition): Condition {
+    return context => first(context) || second(context)
+}
+
+/** Absences are read by appointments and by attendance; with both switched off nothing reads them. */
+const readsAbsences: Condition = either(runs(StationModule.EVENTS), runs(StationModule.ATTENDANCE))
+
 function both(first: Condition, second: Condition): Condition {
     return context => first(context) && second(context)
 }
@@ -144,7 +151,7 @@ export const STATION_NAV: Entry[] = [
         ],
     },
     {
-        kind: 'group', key: 'dashboard', label: 'sidebar.dashboard', icon: 'gauge',
+        kind: 'group', key: 'dashboard', label: 'sidebar.dashboard', icon: 'gauge', onboarding: 'nav.dashboard',
         badge: ({counts}) => counts.notifications,
         children: [
             {kind: 'page', key: 'dashboard-overview', label: 'sidebar.home', icon: 'house', to: '/station/dashboard/overview', badge: ({counts}) => counts.notifications},
@@ -152,12 +159,12 @@ export const STATION_NAV: Entry[] = [
         ],
     },
     {kind: 'page', key: 'station-requirements', label: 'sidebar.requirements', icon: 'clipboard-check', to: '/station/requirements', badge: ({counts}) => counts.requirements, visible: ({counts}) => counts.requirements > 0},
-    {kind: 'page', key: 'news-list', label: 'sidebar.news', icon: 'newspaper', to: '/station/news', visible: runs(StationModule.NEWS)},
+    {kind: 'page', key: 'news-list', label: 'sidebar.news', icon: 'newspaper', to: '/station/news', onboarding: 'nav.news', visible: runs(StationModule.NEWS)},
     {
         kind: 'group', key: 'profile-section', label: 'sidebar.profile', icon: 'user', onboarding: 'nav.profile',
         children: [
             {kind: 'page', key: 'profile', label: 'sidebar.myProfile', icon: 'user', to: '/station/profile', onboarding: 'nav.profile'},
-            {kind: 'page', key: 'profile-absences', label: 'sidebar.absences', icon: 'calendar-days', to: '/station/profile/absences', onboarding: 'nav.profile.absences'},
+            {kind: 'page', key: 'profile-absences', label: 'sidebar.absences', icon: 'calendar-days', to: '/station/profile/absences', onboarding: 'nav.profile.absences', visible: readsAbsences},
             {kind: 'page', key: 'profile-managed', label: 'sidebar.managedProfiles', icon: 'users', to: '/station/profile/managed', onboarding: 'nav.profile.managed', visible: ({session}) => session.isGuardian()},
             {kind: 'page', key: 'profile-notifications', label: 'sidebar.notifications', icon: 'bell', to: '/station/profile/settings/notifications', onboarding: 'nav.profile.notifications'},
         ],
@@ -204,7 +211,7 @@ export const STATION_NAV: Entry[] = [
         ],
     },
     {
-        kind: 'group', key: 'inventory', label: 'sidebar.inventory', icon: 'boxes-stacked', prefix: ['/station/inventory'],
+        kind: 'group', key: 'inventory', label: 'sidebar.inventory', icon: 'boxes-stacked', prefix: ['/station/inventory'], onboarding: 'nav.inventory',
         visible: runs(StationModule.INVENTORY),
         badge: ({counts, session}) =>
             (session.isModuleEnabled(StationModule.INVENTORY_MOVEMENTS) ? counts.openMovements : 0)
@@ -238,7 +245,7 @@ export const STATION_NAV: Entry[] = [
                 children: [
                     {kind: 'page', key: 'inventory-borrowed', label: 'sidebar.inventoryBorrowed', icon: 'hand-holding', to: '/station/inventory/borrowed', visible: can(StationPermission.INVENTORY_READ)},
                     {
-                        kind: 'page', key: 'inventory-lending', label: 'sidebar.inventoryLending', icon: 'handshake', to: '/station/inventory/lending',
+                        kind: 'page', key: 'inventory-lending', label: 'sidebar.inventoryLending', icon: 'handshake', to: '/station/inventory/lending', onboarding: 'nav.inventory.lending',
                         badge: ({counts}) => counts.lendingRequests,
                         visible: canAny(StationPermission.INVENTORY_LENDING_REQUEST, StationPermission.INVENTORY_LENDING_MANAGER),
                     },
@@ -248,7 +255,7 @@ export const STATION_NAV: Entry[] = [
         ],
     },
     {
-        kind: 'group', key: 'attendance', label: 'sidebar.attendance', icon: 'clipboard-user', prefix: ['/station/attendance'],
+        kind: 'group', key: 'attendance', label: 'sidebar.attendance', icon: 'clipboard-user', prefix: ['/station/attendance'], onboarding: 'nav.attendance',
         visible: context => context.session.hasAnyAttendancePermission() && runs(StationModule.ATTENDANCE)(context),
         children: [
             {kind: 'page', key: 'attendance-new', label: 'sidebar.newAttendance', icon: 'clipboard-user', to: '/station/attendance/new', visible: can(StationPermission.ATTENDANCE_EDIT)},
@@ -270,7 +277,7 @@ export const STATION_NAV: Entry[] = [
         ],
     },
     {
-        kind: 'group', key: 'forms', label: 'sidebar.forms', icon: 'square-poll-vertical', visible: runs(StationModule.FORMS),
+        kind: 'group', key: 'forms', label: 'sidebar.forms', icon: 'square-poll-vertical', onboarding: 'nav.forms', visible: runs(StationModule.FORMS),
         children: [
             {kind: 'page', key: 'forms-list', label: 'sidebar.formsList', icon: 'square-poll-vertical', to: '/station/forms'},
             {kind: 'page', key: 'forms-create', label: 'sidebar.formsCreate', icon: 'plus', to: '/station/forms/create', visible: can(StationPermission.POLL_CREATE)},

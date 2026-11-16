@@ -16,7 +16,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import SetupLayout from '@/views/stationview/setup/SetupLayout.vue'
 import {useSession} from '@/composables/useSession'
 import {useSetupStatus} from '@/composables/useSetupStatus'
-import {useOnboardingTour} from '@/composables/useOnboardingTour'
+import {useOnboardingTasks} from '@/composables/useOnboardingTasks'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {stepRouteName, type WizardStepId} from '@/views/stationview/setup/steps'
 
@@ -24,7 +24,7 @@ const {t} = useI18n()
 const router = useRouter()
 const {load: loadSession} = useSession()
 const {load, markComplete, completedAt, optionalSteps} = useSetupStatus()
-const {startTour} = useOnboardingTour()
+const {load: loadFirstSteps, startNext: startFirstSteps} = useOnboardingTasks()
 
 const error = ref('')
 
@@ -62,11 +62,13 @@ async function goDashboard() {
     await router.push('/station/dashboard/overview')
 }
 
-async function takeTour() {
+/** Finishes the setup and begins the reader's first steps, the first of which walks the station's areas. */
+async function beginFirstSteps() {
     const ok = await finalizeSetup()
     if (!ok) return
     await router.push('/station/dashboard/overview')
-    setTimeout(() => startTour(), 200)
+    await loadFirstSteps('MEMBER')
+    startFirstSteps('MEMBER')
 }
 
 const mailIncomplete = computed(
@@ -83,7 +85,7 @@ const mailIncomplete = computed(
         <p>{{ t('setup.steps.finish.body') }}</p>
         <Alert v-if="mailIncomplete" variant="info">{{ t('setup.steps.finish.mailReminder') }}</Alert>
         <ButtonRow align="center" class="pt-4">
-          <PrimaryButton @click="takeTour">{{ t('setup.steps.finish.takeTour') }}</PrimaryButton>
+          <PrimaryButton @click="beginFirstSteps">{{ t('setup.steps.finish.firstSteps') }}</PrimaryButton>
           <SecondaryButton @click="goDashboard">{{ t('setup.steps.finish.goDashboard') }}</SecondaryButton>
         </ButtonRow>
       </template>

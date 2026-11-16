@@ -17,7 +17,9 @@ import {
     FieldType, type AssignmentRequest, type FieldSet, type FieldSetRequest, type MemberGroup,
     type ProfileFieldAssignment, type ProfileFieldScope, type StationGroupResponse,
 } from '@/api/generated/schema'
-import {asAsked, keepSetsTogether, membersOfSet} from '@/util/profileFields'
+import {
+    asAsked, isConditionType, keepSetsTogether, membersOfSet, placeForm, regroupForms, reorderedSets, withSetOrders,
+} from '@/util/profileFields'
 import {moveWithin} from '@/util/reorder'
 import {describeFailure, FailureKind} from '@/util/failure'
 
@@ -369,8 +371,8 @@ export function useFieldsConfig(port: FieldsPort) {
     const dateFields = computed(() =>
         questions.value.filter(f => DATE_FIELD_TYPES.includes(f.fieldType ?? '')))
 
-    /** The yes/no questions of this owner, which another question can be shown behind. */
-    const booleanFields = computed(() => questions.value.filter(f => f.fieldType === FieldType.BOOLEAN))
+    /** The questions of this owner another question can be shown behind: yes/no, choice and text. */
+    const conditionFields = computed(() => questions.value.filter(f => isConditionType(f.fieldType)))
 
     /**
      * The names of the questions shown only under this one, read from every question of the owner and
@@ -569,27 +571,30 @@ export function useFieldsConfig(port: FieldsPort) {
     })
 
     /**
-     * Reorders one audience's form, which leaves every other form where it was.
+     * Reorders one audience's form, which leaves every other form where it was unless a question moved
+     * within its group: the group then takes the dragged order, and every form asking it follows.
      *
-     * <p>The new order is written into the list held here before the request goes, and nothing is
+     * <p>The new order is written into the lists held here before the request goes, and nothing is
      * loaded again when it succeeds. Reloading put the whole screen back through its loading state,
      * which unmounts the panels and drops the reader at the top of the page: one drag near the
      * bottom of a long form and they had to find their place again. The server is told the same
-     * order it is being shown, so there is nothing to fetch back; a refusal puts the old order back
-     * and says so.
+     * order it is being shown and works out the groups the same way, so there is nothing to fetch
+     * back; a refusal puts the old order back and says so.
      */
     async function onReorder(role: ProfileFieldScope, fromIndex: number, toIndex: number) {
         const ordered = keepSetsTogether(
             moveWithin(formFor(role), fromIndex, toIndex).map(entry => entry.field.id), allFields.value)
-        const before = allAssignments.value
-        allAssignments.value = allAssignments.value.map(assignment =>
-            assignment.targetKind === 'ROLE' && assignment.role === role && ordered.includes(assignment.fieldId)
-                ? {...assignment, position: ordered.indexOf(assignment.fieldId) + 1}
-                : assignment)
+        const setOrders = reorderedSets(ordered, allFields.value)
+        const fieldsBefore = allFields.value
+        const assignmentsBefore = allAssignments.value
+        allFields.value = withSetOrders(allFields.value, setOrders)
+        const placed = placeForm(allAssignments.value, role, ordered)
+        allAssignments.value = setOrders.size > 0 ? regroupForms(placed, allFields.value) : placed
         try {
             await port.reorder(role, ordered)
         } catch (e) {
-            allAssignments.value = before
+            allFields.value = fieldsBefore
+            allAssignments.value = assignmentsBefore
             record(e)
         }
     }
@@ -609,10 +614,21 @@ export function useFieldsConfig(port: FieldsPort) {
      * whole group is ticked or unticked with it.
      */
     function toggleChecked(fieldId: number) {
-        const together = membersOfSetOf(fieldId)
+        tickAll(membersOfSetOf(fieldId), !checkedIds.value.has(fieldId))
+    }
+
+    /**
+     * Ticks every question of a group, which is what the group's own box does, or unticks them all where
+     * every one of them is ticked already.
+     */
+    function toggleSetChecked(setId: number) {
+        const members = idsInSet(setId)
+        tickAll(members, !members.every(id => checkedIds.value.has(id)))
+    }
+
+    function tickAll(fieldIds: readonly number[], tick: boolean) {
         const next = new Set(checkedIds.value)
-        const tick = !next.has(fieldId)
-        for (const id of together) {
+        for (const id of fieldIds) {
             if (tick) next.add(id)
             else next.delete(id)
         }
@@ -622,7 +638,11 @@ export function useFieldsConfig(port: FieldsPort) {
     /** The question and every other question of its group, or the question alone. */
     function membersOfSetOf(fieldId: number): number[] {
         const setId = allFields.value.find(f => f.id === fieldId)?.fieldSetId
-        if (setId == null) return [fieldId]
+        return setId == null ? [fieldId] : idsInSet(setId)
+    }
+
+    /** Every question of a group, by id. */
+    function idsInSet(setId: number): number[] {
         return allFields.value.filter(f => f.fieldSetId === setId).map(f => f.id)
     }
 
@@ -808,7 +828,7 @@ export function useFieldsConfig(port: FieldsPort) {
         previewFields,
         formFor,
         dateFields,
-        booleanFields,
+        conditionFields,
         dependentsOf,
         birthDateField,
         genderField,
@@ -837,6 +857,7 @@ export function useFieldsConfig(port: FieldsPort) {
         setPreviewWidth,
         checkedIds,
         toggleChecked,
+        toggleSetChecked,
         toggleAllChecked,
         clearChecked,
         assignCheckedTo,

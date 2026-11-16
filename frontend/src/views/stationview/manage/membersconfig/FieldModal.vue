@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {isConditionType} from '@/util/profileFields'
 import {computed, onMounted, ref, shallowRef, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
@@ -50,15 +51,15 @@ const modelValue = defineModel<boolean>({required: true})
 const props = defineProps<{
   field: EditableField | null
   dateFields: EditableField[]
-  /** The owner's yes/no questions, which this one can be shown behind. */
-  booleanFields: EditableField[]
+  /** The owner's yes/no, choice and text questions, which this one can be shown behind. */
+  conditionFields: EditableField[]
   /** The owner's groups of fields, which this one can join. */
   sets: FieldSet[]
   /** The field that already is the station's birth date, if any. */
   birthDateField: EditableField | null
   /** The field that already is the owner's gender, if any. */
   genderField: EditableField | null
-  /** The questions shown only under this one, by name, which lose that condition if it stops being yes/no. */
+  /** The questions shown only under this one, by name, which lose that condition if it becomes a type nothing can be shown behind. */
   dependents: string[]
 }>()
 
@@ -78,10 +79,10 @@ const emit = defineEmits<{
 
 const fieldName = ref('')
 const fieldType = ref<FieldType>(FieldType.TEXT)
-/** Whether saving would turn a yes/no question others are shown under into another type. */
+/** Whether saving would turn a question others are shown under into a type nothing can be shown behind. */
 const dropsDependents = computed(() =>
-  props.field?.fieldType === FieldType.BOOLEAN
-  && fieldType.value !== FieldType.BOOLEAN
+  isConditionType(props.field?.fieldType)
+  && !isConditionType(fieldType.value)
   && props.dependents.length > 0)
 const fieldDescription = ref('')
 const fieldRequired = ref(false)
@@ -228,7 +229,7 @@ function submit() {
 
 <template>
   <Modal v-model="modelValue">
-    <div class="space-y-4">
+    <div class="space-y-4 pr-3" data-testid="field-modal-body">
       <SubHeader>{{ field ? t('membersConfig.editField') : t('membersConfig.addField') }}</SubHeader>
       <BasicFields v-model:name="fieldName" v-model:field-type="fieldType"
                    v-model:description="fieldDescription"
@@ -250,7 +251,8 @@ function submit() {
           v-model:keep-on-archive="fieldKeepOnArchive"
           :calculated="isCalculated"
         />
-        <ShownIfField v-model="fieldShownIf" :boolean-fields="booleanFields" :field-id="field?.id ?? null"/>
+        <ShownIfField v-model="fieldShownIf" :condition-fields="conditionFields" :field-id="field?.id ?? null"
+                      :set-id="fieldSetId"/>
         <WidthField v-model="fieldWidth"/>
       </template>
       <WidthField v-if="isSpacer" v-model="fieldWidth"/>

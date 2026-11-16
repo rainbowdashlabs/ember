@@ -271,6 +271,7 @@ const {failure: restoreFailure, run: restoreDate} = useAsyncAction(async () => {
     <EventDetailHeader
         :event="event"
         :can-manage-events="canManageEvents"
+        :can-create-events="hasPermission(StationPermission.EVENT_EDIT)"
         :can-write-news="hasPermission(StationPermission.NEWS_EDIT)"
         :effective-date="effectiveDate"
         :date-cancelled="!!cancellation"

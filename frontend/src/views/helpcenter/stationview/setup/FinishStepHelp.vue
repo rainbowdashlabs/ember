@@ -35,7 +35,7 @@ const {t} = useI18n()
           <p>{{ t('setup.steps.finish.body') }}</p>
           <Alert variant="info">{{ t('setup.steps.finish.mailReminder') }}</Alert>
           <ButtonRow pair align="center" class="pt-4">
-            <PrimaryButton>{{ t('setup.steps.finish.takeTour') }}</PrimaryButton>
+            <PrimaryButton>{{ t('setup.steps.finish.firstSteps') }}</PrimaryButton>
             <SecondaryButton>{{ t('setup.steps.finish.goDashboard') }}</SecondaryButton>
           </ButtonRow>
         </div>

@@ -52,6 +52,16 @@ export function useEventFieldDefaults() {
     if (m.size !== defaults.value.size) defaults.value = m
   }
 
+  /**
+   * Drops the values typed in by hand for these fields, keeping the ones taken from the appointment
+   * itself. What a copy does to the fields that name people, since a copy puts nobody in charge.
+   */
+  function forgetValuesOf(fieldIds: number[]) {
+    const forgotten = new Set(fieldIds)
+    const m = new Map([...defaults.value].filter(([fieldId, entry]) => !(forgotten.has(fieldId) && entry.source === 'VALUE')))
+    if (m.size !== defaults.value.size) defaults.value = m
+  }
+
   /** Replaces the values with the ones an owner holds, as the server sends them. */
   function fromEntries(entries: EventFieldDefault[]) {
     defaults.value = new Map(entries.map(entry => [entry.fieldId, {source: entry.source, value: entry.value ?? ''}]))
@@ -95,5 +105,5 @@ export function useEventFieldDefaults() {
     'update:fieldDefaultValue': setValue,
   }
 
-  return {props, handlers, defaults, setSource, setValue, keepOnly, fromEntries, toEntries, load, takeFrom, save}
+  return {props, handlers, defaults, setSource, setValue, keepOnly, forgetValuesOf, fromEntries, toEntries, load, takeFrom, save}
 }

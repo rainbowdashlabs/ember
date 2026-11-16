@@ -45,6 +45,7 @@ const props = defineProps<{
 defineEmits<{
   addEvent: []
   editEvent: [event: EventSummary]
+  copyEvent: [event: EventSummary]
   deleteEvent: [event: EventSummary]
   addBreak: []
   editBreak: [entry: EventBreak]
@@ -78,6 +79,7 @@ const emptyMessage = computed(() => props.isPast ? t('events.noPastEvents') : t(
           :templates="templates"
           :overview-fields="overviewFields"
           @edit="event => $emit('editEvent', event)"
+          @copy="event => $emit('copyEvent', event)"
           @remove="event => $emit('deleteEvent', event)"
           @load-more="$emit('loadMoreDates')"
       />
@@ -90,6 +92,7 @@ const emptyMessage = computed(() => props.isPast ? t('events.noPastEvents') : t(
           :templates="templates"
           :overview-fields="overviewFields"
           @edit="event => $emit('editEvent', event)"
+          @copy="event => $emit('copyEvent', event)"
           @remove="event => $emit('deleteEvent', event)"
           @load-more="$emit('loadMoreSeries')"
       />

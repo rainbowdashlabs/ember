@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import MutedText from '@/components/typography/MutedText.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import DesktopHeaderRow from './fieldtable/DesktopHeaderRow.vue'
 import DesktopFieldRow from './fieldtable/DesktopFieldRow.vue'
 import MobileFieldCard from './fieldtable/MobileFieldCard.vue'
@@ -54,6 +55,7 @@ const tiled = computed(() => width.value === null
 const emit = defineEmits<{
   select: [field: EditableField]
   toggleChecked: [field: EditableField]
+  toggleSetChecked: [set: FieldSet]
   edit: [field: EditableField]
   delete: [field: EditableField]
   toggleConfig: [field: EditableField, key: FieldSwitchName, value: boolean]
@@ -114,6 +116,7 @@ function rowProps(field: EditableField) {
     audiences: audiencesOf(field),
     selected: field.id === props.selectedId,
     checked: props.checkedIds.has(field.id),
+    checkable: field.fieldSetId == null || !props.sets?.some(set => set.id === field.fieldSetId),
     typeLabel: typeLabel(field.fieldType ?? ''),
     shownIfName: shownIfNameOf(field),
   }
@@ -131,6 +134,13 @@ const rowEvents = {
   setWritability: (f: EditableField, level: WritabilityName) => emit('setWritability', f, level),
 }
 
+/** How many of a group's questions are ticked: all of them, some, or none. */
+function tickedIn(block: Block): 'all' | 'some' | 'none' {
+  const ticked = block.fields.filter(field => props.checkedIds.has(field.id)).length
+  if (ticked === 0) return 'none'
+  return ticked === block.fields.length ? 'all' : 'some'
+}
+
 /** The name of the yes/no question a question is only shown behind, or nothing. */
 function shownIfNameOf(field: EditableField): string | undefined {
   if (field.shownIfFieldId == null) return undefined
@@ -145,6 +155,12 @@ function shownIfNameOf(field: EditableField): string | undefined {
       <div v-if="block.set" class="my-2 rounded-theme border-l-4 border-secondary bg-secondary/5"
            :data-testid="`field-table-set-${block.set.name}`">
         <div class="flex items-center gap-2 px-3 pt-2 pb-1 text-xs font-semibold">
+          <CheckboxInput
+              :model-value="tickedIn(block) === 'all'"
+              :indeterminate="tickedIn(block) === 'some'"
+              :aria-label="t('membersConfig.batch.toggleSet', {name: block.set.name})"
+              :data-testid="`field-set-check-${block.set.name}`"
+              @click.prevent="emit('toggleSetChecked', block.set)"/>
           <font-awesome-icon :icon="['fas', 'layer-group']" class="h-3 w-3"/>
           <span>{{ block.set.name }}</span>
           <MutedText>{{ t('membersConfig.sets.fieldCount', {n: block.fields.length}) }}</MutedText>

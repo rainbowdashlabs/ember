@@ -259,15 +259,6 @@
       }
     },
     {
-      "key": "onboarding_tour_completed",
-      "necessity": "COMFORT",
-      "retention": "UNTIL_CLEARED",
-      "purpose": {
-        "de": "Ob Sie die Einführungstour abgeschlossen haben, damit sie nicht erneut startet.",
-        "en": "Whether you completed the introductory tour, so that it does not start again."
-      }
-    },
-    {
       "key": "eventsUpcoming.viewMode",
       "necessity": "COMFORT",
       "retention": "UNTIL_CLEARED",

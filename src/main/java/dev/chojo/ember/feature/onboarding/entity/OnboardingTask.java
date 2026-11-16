@@ -12,18 +12,29 @@ import org.jspecify.annotations.Nullable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
- * Everything Ember asks somebody to do after the introduction tour, in the order it asks.
+ * Everything Ember asks somebody to do as their first steps, in the order it asks.
  *
  * <p>A derived task reads its answer from the data and cannot be ticked off by hand, so it comes
  * back on its own when the thing behind it is undone. A task that is not derived is one Ember cannot
  * see, such as a bookmark, or a decision whose outcome is indistinguishable from the default.
  *
- * <p>A task naming a module is offered only where that module is on, and one naming an audience only
- * to the readers that audience covers. Nothing here can point at a page its reader cannot open.
+ * <p>A task naming modules is offered only where at least one of them is on, and one naming an
+ * audience only to the readers that audience covers. Nothing here can point at a page its reader
+ * cannot open.
+ *
+ * <p>A task that teaches how Ember works is the same on every station, so somebody who settled it on
+ * one station of this instance is not asked again on the next. A task about the station's own data
+ * or settings is asked on every station.
  */
 public enum OnboardingTask {
+    /**
+     * A walk past the areas of the station that are on for the reader. It comes first because it
+     * says where the later tasks happen.
+     */
+    TOUR("member.tour", OnboardingLevel.MEMBER, false),
     /**
      * Read rather than derived, although the profile is a thing Ember can look at. The task asks
      * somebody to go and check what is written about them, and a profile that happens to be complete
@@ -40,7 +51,14 @@ public enum OnboardingTask {
      */
     EVENT_ANSWER("member.eventAnswer", OnboardingLevel.MEMBER, false, StationModule.EVENTS),
     CALENDAR_FEED("member.calendar", OnboardingLevel.MEMBER, true, StationModule.EVENTS),
-    ABSENCE("member.absence", OnboardingLevel.MEMBER, false),
+    /** Absences are read by appointments and by attendance, so the task stays while either runs. */
+    ABSENCE(
+            "member.absence",
+            OnboardingLevel.MEMBER,
+            false,
+            Audience.EVERYONE,
+            StationModule.EVENTS,
+            StationModule.ATTENDANCE),
     BOOKMARK("member.bookmark", OnboardingLevel.MEMBER, false),
     WIKI("member.wiki", OnboardingLevel.MEMBER, false, StationModule.KNOWLEDGE_BASE),
     QUIZ("member.quiz", OnboardingLevel.MEMBER, false, Audience.except(StationUserType.GUARDIAN), StationModule.QUIZ),
@@ -103,7 +121,7 @@ public enum OnboardingTask {
     private final String key;
     private final OnboardingLevel level;
     private final boolean derived;
-    private final @Nullable StationModule module;
+    private final Set<StationModule> modules;
     private final Audience audience;
 
     OnboardingTask(String key, OnboardingLevel level, boolean derived) {
@@ -124,15 +142,15 @@ public enum OnboardingTask {
         this.level = level;
         this.derived = derived;
         this.audience = audience;
-        this.module = null;
+        this.modules = Set.of();
     }
 
-    OnboardingTask(String key, OnboardingLevel level, boolean derived, Audience audience, StationModule module) {
+    OnboardingTask(String key, OnboardingLevel level, boolean derived, Audience audience, StationModule... modules) {
         this.key = key;
         this.level = level;
         this.derived = derived;
         this.audience = audience;
-        this.module = module;
+        this.modules = Set.of(modules);
     }
 
     /** The stable name this task is stored and translated under. */
@@ -149,8 +167,23 @@ public enum OnboardingTask {
         return derived;
     }
 
-    public Optional<StationModule> module() {
-        return Optional.ofNullable(module);
+    /**
+     * Whether this task is offered on a station with these modules switched off: always when it
+     * names none, otherwise while at least one of its modules runs.
+     */
+    public boolean runsWith(Set<StationModule> disabled) {
+        return modules.isEmpty() || modules.stream().anyMatch(module -> !module.isOffIn(disabled));
+    }
+
+    /**
+     * Whether settling this task on one station of the instance settles it on the others. Only the
+     * tasks that teach how Ember works do: they read the same everywhere.
+     */
+    public boolean carriesAcrossStations() {
+        return switch (this) {
+            case TOUR, EVENT_ANSWER, ABSENCE, BOOKMARK, WIKI, QUIZ -> true;
+            default -> false;
+        };
     }
 
     /** Whether this task is asked of the given user type at all. */

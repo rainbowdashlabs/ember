@@ -10,7 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import MutedText from '@/components/typography/MutedText.vue'
+import HintIcon from '@/components/typography/HintIcon.vue'
 import AudienceRow from './audiences/AudienceRow.vue'
 import AddAudience from './audiences/AddAudience.vue'
 import type {EditableField, AssignmentTarget} from '@/api/profileFields'
@@ -49,7 +49,10 @@ const {t} = useI18n()
 
 <template>
   <NeutralContainer class="space-y-4" data-testid="audiences-panel">
-    <SectionHeader>{{ t('membersConfig.audiences.title') }}</SectionHeader>
+    <div class="flex items-center gap-1">
+      <SectionHeader>{{ t('membersConfig.audiences.title') }}</SectionHeader>
+      <HintIcon v-if="field && !fieldSet" :text="t('membersConfig.audiences.hint', {name: field.name})"/>
+    </div>
 
     <EmptyState v-if="!field" compact>{{ t('membersConfig.audiences.selectAQuestion') }}</EmptyState>
 
@@ -61,7 +64,6 @@ const {t} = useI18n()
         </p>
         <p>{{ t('membersConfig.audiences.setHint', {names: memberNames}) }}</p>
       </InfoContainer>
-      <MutedText v-else tag="p" size="sm">{{ t('membersConfig.audiences.hint', {name: field.name}) }}</MutedText>
 
       <EmptyState v-if="audiences.length === 0" compact>
         {{ t('membersConfig.audiences.noneYet') }}
