@@ -388,6 +388,10 @@ test.describe('Instance administration', () => {
     /**
      * How long the link in a setup mail lasts was configurable only in the file on the server, so an
      * operator without shell access could not answer an invitation that had gone stale.
+     *
+     * The save may first be refused for a fresh confirmation. The fixture gives it only before the
+     * story's next step, so the story waits on the button, and reads the page again only once a save
+     * went through.
      */
     test('the life of a setup link is set from the browser', async ({adminPage: page}) => {
         await page.goto('/admin/settings/security/tokens')
@@ -396,9 +400,10 @@ test.describe('Instance administration', () => {
         await expect(days).not.toHaveValue('')
         await days.fill('14')
         const saved = page.waitForResponse(answer =>
-            answer.url().includes('/admin/config/auth/tokens') && answer.request().method() === 'PUT')
+            answer.url().includes('/admin/config/auth/tokens') && answer.request().method() === 'PUT' && answer.ok())
         await page.getByRole('button', {name: 'Speichern'}).first().click()
-        expect((await saved).ok(), 'the setting was stored before the page is read again').toBeTruthy()
+        await expect(page.getByRole('button', {name: 'Speichern'}).first(), 'the save has finished').toBeEnabled()
+        await saved
 
         await page.reload()
         await expect(page.getByTestId('setup-token-days')).toHaveValue('14')
