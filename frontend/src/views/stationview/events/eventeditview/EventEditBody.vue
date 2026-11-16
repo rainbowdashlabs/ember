@@ -194,20 +194,22 @@ function override(field: AppointmentField) {
         @override="overrideSetting"
     />
 
+    <RegistrationFieldsEditor v-if="requiresRegistration && !props.eventGroupPart" v-model="registrationFields" :all-members="props.allMembers"
+                              compact/>
+
+    <slot/>
+
     <FederationCard
         v-if="!props.eventGroupPart"
         v-model:shared="federationShared"
         v-model:scope="federationScope"
         v-model:partner-ids="federationPartnerIds"
         v-model:places="federationPlaces"
+        compact
         :partners="props.partners"
         :can-federate="props.canFederate"
         :note="props.federationNote"
     />
-
-    <RegistrationFieldsEditor v-if="requiresRegistration && !props.eventGroupPart" v-model="registrationFields" :all-members="props.allMembers"/>
-
-    <slot/>
 
     <ButtonRow pair align="end" data-testid="event-form-actions">
       <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>

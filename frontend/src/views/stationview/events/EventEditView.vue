@@ -437,6 +437,7 @@ const bodyHandlers = {
       >
         <DocumentRequirementsEditor
             v-model="documentRequirements.chosen.value"
+            compact
             :offered-count="documentRequirements.offeredCount.value"
         />
 
@@ -445,6 +446,7 @@ const bodyHandlers = {
         <AttachmentsCard
             v-if="isEdit"
             v-model:attachments="attachments.attachments.value"
+            compact
             :station-uid="stationUid"
             :failure="attachments.failure.value"
             @add="attachments.add"

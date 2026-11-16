@@ -3493,6 +3493,7 @@ export default {
         attachments: {
             title: 'Dateien',
             hint: 'Dateien aus der Mediathek, die zu diesem Termin gehören: Laufzettel, Formulare, Pläne.',
+            savedRightAway: 'Änderungen an den Dateien gelten sofort, nicht erst mit Speichern.',
             add: 'Datei anhängen',
             empty: 'Noch keine Dateien angehängt.',
             labelPlaceholder: 'Anzeigename (optional)',
@@ -3505,6 +3506,7 @@ export default {
         documents: {
             title: 'Mitzubringende Dokumente',
             hint: 'Vorlagen für Termine, die alle angemeldeten Teilnehmenden ausgefüllt mit ihren Daten herunterladen, ausdrucken und unterschrieben mitbringen.',
+            hintSigning: 'Vorlagen, die alle Angemeldeten ausgefüllt mitbringen. Ist das Modul Dokumente aktiv, lassen sie sich auch direkt in der App unterschreiben.',
             add: 'Dokument hinzufügen',
             remove: 'Dokument entfernen',
             archived: 'Archiviert',

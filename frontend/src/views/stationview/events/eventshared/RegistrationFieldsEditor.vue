@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import HintedSubHeader from '@/components/typography/HintedSubHeader.vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -25,6 +26,8 @@ const fields = defineModel<RegistrationFieldDefinition[]>({required: true})
 defineProps<{
   /** Whom a question naming a member may start from. */
   allMembers?: MemberLike[]
+  /** What the questions are for behind a hint icon by the heading. */
+  compact?: boolean
 }>()
 
 const {t} = useI18n()
@@ -49,7 +52,10 @@ function replace(index: number, field: RegistrationFieldDefinition) {
 
 <template>
   <NeutralContainer class="space-y-4" data-testid="registration-question-list">
-    <div>
+    <HintedSubHeader v-if="compact" :hint="t('events.registrationFields.sectionHint')">
+      {{ t('events.registrationFields.sectionTitle') }}
+    </HintedSubHeader>
+    <div v-else>
       <SubHeader>{{ t('events.registrationFields.sectionTitle') }}</SubHeader>
       <MutedText tag="p" size="sm">{{ t('events.registrationFields.sectionHint') }}</MutedText>
     </div>

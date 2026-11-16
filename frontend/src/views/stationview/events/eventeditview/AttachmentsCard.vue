@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
+import HintedSubHeader from '@/components/typography/HintedSubHeader.vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -20,12 +22,14 @@ import type {Failure} from '@/util/failure'
 
 const attachments = defineModel<EventAttachment[]>('attachments', {required: true})
 
-defineProps<{
+const props = defineProps<{
   stationUid: string
   /** What went wrong the last time something was written, or null while everything has landed. */
   failure?: Failure | null
   /** What the files are for, where the owner is not an event: an event template says so in its own words. */
   hint?: string
+  /** The explanations behind a hint icon by the heading, which also says that changes here save at once. */
+  compact?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -36,6 +40,13 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+
+/** Everything the section explains, in one hint: what the files are for, that they save at once, and who sees them. */
+const compactHint = computed(() => [
+  props.hint ?? t('events.attachments.hint'),
+  t('events.attachments.savedRightAway'),
+  t('events.attachments.internalHint'),
+].join(' '))
 
 /**
  * Writes the switch and only then hands the row on to be saved.
@@ -53,7 +64,8 @@ function keepBack(attachment: EventAttachment, internal: boolean) {
 <template>
   <NeutralContainer class="space-y-3" data-testid="event-attachments">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-      <div>
+      <HintedSubHeader v-if="compact" :hint="compactHint">{{ t('events.attachments.title') }}</HintedSubHeader>
+      <div v-else>
         <SubHeader>{{ t('events.attachments.title') }}</SubHeader>
         <p class="text-xs text-(--text-muted)">{{ hint ?? t('events.attachments.hint') }}</p>
       </div>
@@ -64,7 +76,7 @@ function keepBack(attachment: EventAttachment, internal: boolean) {
       />
     </div>
 
-    <p class="text-xs text-(--text-muted)">{{ t('events.attachments.internalHint') }}</p>
+    <p v-if="!compact" class="text-xs text-(--text-muted)">{{ t('events.attachments.internalHint') }}</p>
 
     <FailureAlert :failure="failure" data-testid="event-attachment-failure"/>
 

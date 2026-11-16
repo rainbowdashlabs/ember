@@ -100,4 +100,19 @@ describe('EventEditBody', () => {
         expect(defaults).toBeGreaterThan(fields)
         expect(defaults).toBeLessThan(description)
     })
+
+    it('asks about sharing with partner stations last, after the documents and files', () => {
+        const wrapper = shallowMount(EventEditBody, {
+            props,
+            slots: {default: () => h('div', {'data-testid': 'added'})},
+            global: {
+                ...i18n.global,
+                stubs: {...i18n.global.stubs, NeutralContainer: false, BaseContainer: false},
+            },
+        })
+        const html = wrapper.html()
+
+        expect(html.indexOf('data-testid="added"')).toBeLessThan(html.indexOf('federation-card-stub'))
+        expect(wrapper.findComponent({name: 'FederationCard'}).attributes('compact')).toBeDefined()
+    })
 })
