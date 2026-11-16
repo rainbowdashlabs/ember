@@ -3745,6 +3745,8 @@ export default {
         restrictToRolesHint: 'Wer sich anmelden darf. Ohne Auswahl alle. Wer nicht dazugehört, sieht den Termin '
             + 'weiterhin im Kalender und kann ihn nur nicht beantworten.',
         restrictVisibility: 'Sichtbarkeit einschränken',
+        restrictedRegistration: 'Anmeldung nur für',
+        restrictedVisibility: 'Sichtbar nur für',
         restrictVisibilityHint: 'Wer überhaupt von diesem Termin erfahren darf. Ohne Auswahl alle. Für alle '
             + 'anderen taucht er nirgends auf, weder im Kalender noch in einer Benachrichtigung. Ein so '
             + 'eingeschränkter Termin kann weder öffentlich stehen noch mit Partnerwachen geteilt werden.',

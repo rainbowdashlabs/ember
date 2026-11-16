@@ -89,4 +89,33 @@ describe('EventFormPanel repeat line', () => {
         expect(paragraphs.some(text => text.includes('von einem Verwalter bestätigt'))).toBe(false)
         expect(wrapper.findAll('[data-testid="hint-icon"]').length).toBeGreaterThanOrEqual(3)
     })
+
+    it('offers the restrictions as buttons and shows a picker only once one is added', async () => {
+        const wrapper = panel('ONE_TIME', {groups: [], tags: []})
+        expect(wrapper.find('[data-testid="restriction-registration"]').exists()).toBe(false)
+
+        await wrapper.get('[data-testid="restrict-registration"]').trigger('click')
+
+        expect(wrapper.find('[data-testid="restriction-registration"]').exists()).toBe(true)
+        expect(wrapper.find('[data-testid="restrict-registration"]').exists()).toBe(false)
+        expect(wrapper.find('[data-testid="restrict-visibility"]').exists()).toBe(true)
+    })
+
+    it('shows a restriction that names somebody straight away and clears it on removal', async () => {
+        const wrapper = panel('ONE_TIME', {groups: [], tags: [], viewRestriction: {...NO_RESTRICTION, groupIds: [4]}})
+        expect(wrapper.find('[data-testid="restriction-visibility"]').exists()).toBe(true)
+
+        await wrapper.get('[data-testid="restriction-visibility"] [data-testid="restriction-remove"]').trigger('click')
+
+        expect(wrapper.emitted('update:viewRestriction')?.at(-1)?.[0]).toMatchObject({groupIds: [], userTypes: []})
+    })
+
+    it('keeps a restriction open while its selection is emptied to pick another', async () => {
+        const wrapper = panel('ONE_TIME', {groups: [], tags: [], viewRestriction: {...NO_RESTRICTION, groupIds: [4]}})
+
+        await wrapper.setProps({viewRestriction: NO_RESTRICTION})
+
+        expect(wrapper.find('[data-testid="restriction-visibility"]').exists()).toBe(true)
+        expect(wrapper.find('[data-testid="restrict-visibility"]').exists()).toBe(false)
+    })
 })

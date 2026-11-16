@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, useId} from 'vue'
+import {computed, ref, useId, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -16,7 +16,10 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
 import HintIcon from '@/components/typography/HintIcon.vue'
-import RestrictionsField from '@/components/input/RestrictionsField.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
+import {emptyRestriction, namesSomebody} from '@/components/input/restriction'
+import RestrictionRow from './RestrictionRow.vue'
 import type {RestrictionSelection} from '@/api/types'
 import EventFieldList from './EventFieldList.vue'
 import RepeatEndField from './RepeatEndField.vue'
@@ -92,6 +95,32 @@ const recurring = computed(() => eventType.value !== undefined && eventType.valu
 /** Switches between a single appointment and a weekly series, the rhythm a series starts with. */
 function setRecurring(repeats: boolean) {
   eventType.value = repeats ? EventType.RECURRING : EventType.ONE_TIME
+}
+
+/**
+ * Whether a restriction shows its picker. It does once its button was pressed, and on its own as soon
+ * as it names somebody, so an appointment loaded or filled from a template shows what limits it.
+ * Once shown it stays until it is taken away, also while its selection is emptied to pick another.
+ */
+const restrictsRegistration = ref(false)
+const restrictsVisibility = ref(false)
+
+watch(() => namesSomebody(restriction.value), named => {
+  if (named) restrictsRegistration.value = true
+}, {immediate: true})
+watch(() => namesSomebody(viewRestriction.value), named => {
+  if (named) restrictsVisibility.value = true
+}, {immediate: true})
+
+/** Takes a restriction away again, which opens the appointment to everybody on that count. */
+function liftRestriction(which: 'registration' | 'visibility') {
+  if (which === 'registration') {
+    restrictsRegistration.value = false
+    restriction.value = emptyRestriction()
+  } else {
+    restrictsVisibility.value = false
+    viewRestriction.value = emptyRestriction()
+  }
 }
 
 const {t} = useI18n()
@@ -238,21 +267,36 @@ const labelId = useId()
       <hr class="border-(--border)"/>
       <SubHeader>{{ t('events.restrictions') }}</SubHeader>
 
-      <FieldLabel>{{ t('events.restrictToRoles') }}</FieldLabel>
-      <p class="text-xs text-(--text-muted)">{{ t('events.restrictToRolesHint') }}</p>
-      <RestrictionsField
+      <RestrictionRow
+          v-if="restrictsRegistration"
           v-model="restriction"
+          :label="t('events.restrictedRegistration')"
+          :hint="t('events.restrictToRolesHint')"
           :groups="groups"
           :tags="tags"
+          data-testid="restriction-registration"
+          @remove="liftRestriction('registration')"
       />
-
-      <FieldLabel>{{ t('events.restrictVisibility') }}</FieldLabel>
-      <p class="text-xs text-(--text-muted)">{{ t('events.restrictVisibilityHint') }}</p>
-      <RestrictionsField
+      <RestrictionRow
+          v-if="restrictsVisibility"
           v-model="viewRestriction"
+          :label="t('events.restrictedVisibility')"
+          :hint="t('events.restrictVisibilityHint')"
           :groups="groups"
           :tags="tags"
+          data-testid="restriction-visibility"
+          @remove="liftRestriction('visibility')"
       />
+      <ButtonRow v-if="!restrictsRegistration || !restrictsVisibility">
+        <SecondaryButton v-if="!restrictsRegistration" :icon="['fas', 'plus']" data-testid="restrict-registration"
+                         @click="restrictsRegistration = true">
+          {{ t('events.restrictToRoles') }}
+        </SecondaryButton>
+        <SecondaryButton v-if="!restrictsVisibility" :icon="['fas', 'plus']" data-testid="restrict-visibility"
+                         @click="restrictsVisibility = true">
+          {{ t('events.restrictVisibility') }}
+        </SecondaryButton>
+      </ButtonRow>
     </template>
   </div>
 </template>
