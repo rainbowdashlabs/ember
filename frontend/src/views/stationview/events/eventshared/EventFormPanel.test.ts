@@ -63,4 +63,16 @@ describe('EventFormPanel repeat line', () => {
     it('leaves the repeat line out for a part of an event group', () => {
         expect(panel('ONE_TIME', {eventGroupPart: true}).find('[data-testid="event-type-toggle"]').exists()).toBe(false)
     })
+
+    it('puts category and attendance template, then the fields, then the description', () => {
+        const html = panel('ONE_TIME').html()
+
+        const template = html.indexOf('event-attendance-template')
+        const fields = html.indexOf('event-field-list-stub')
+        const description = html.indexOf('markdown-editor-stub')
+
+        expect(template).toBeGreaterThan(-1)
+        expect(template).toBeLessThan(fields)
+        expect(fields).toBeLessThan(description)
+    })
 })

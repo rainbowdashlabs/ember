@@ -138,11 +138,6 @@ const labelId = useId()
       />
     </template>
 
-    <div class="space-y-1">
-      <FieldLabel>{{ t('events.description') }}</FieldLabel>
-      <MarkdownEditor v-model="description" :placeholder="t('events.descriptionPlaceholder')"/>
-    </div>
-
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div class="space-y-1">
         <FieldLabel>{{ t('events.category') }}</FieldLabel>
@@ -160,7 +155,26 @@ const labelId = useId()
       </div>
     </div>
 
-    <slot name="after-schedule" />
+    <EventFieldList
+        v-model:fields="fields"
+        :attendance-fields="attendanceFields"
+        :show-value="showValue"
+        :all-members="allMembers"
+        :groups="groups"
+        :group-members="groupMembers"
+        :tags="tags"
+        :tag-members="tagMembers"
+        :recurring="isRecurringEvent(eventType)"
+    />
+
+    <slot name="after-fields"/>
+
+    <div class="space-y-1">
+      <FieldLabel>{{ t('events.description') }}</FieldLabel>
+      <MarkdownEditor v-model="description" :placeholder="t('events.descriptionPlaceholder')"/>
+    </div>
+
+    <slot name="after-description"/>
 
     <template v-if="requiresRegistration !== undefined && !eventGroupPart">
       <hr class="border-(--border)"/>
@@ -233,18 +247,5 @@ const labelId = useId()
           :tags="tags"
       />
     </template>
-
-    <hr class="border-(--border)"/>
-    <EventFieldList
-        v-model:fields="fields"
-        :attendance-fields="attendanceFields"
-        :show-value="showValue"
-        :all-members="allMembers"
-        :groups="groups"
-        :group-members="groupMembers"
-        :tags="tags"
-        :tag-members="tagMembers"
-        :recurring="isRecurringEvent(eventType)"
-    />
   </div>
 </template>

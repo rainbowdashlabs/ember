@@ -164,14 +164,24 @@ function override(field: AppointmentField) {
         :all-members="props.allMembers"
         :group-members="props.groupMembers"
         :event-group-part="props.eventGroupPart"
-    />
+    >
+      <template #after-fields>
+        <InheritedFieldsCard
+            v-if="props.eventGroupPart"
+            :inherited="props.inheritedFields ?? []"
+            :own="fields"
+            @override="override"
+        />
 
-    <InheritedFieldsCard
-        v-if="props.eventGroupPart"
-        :inherited="props.inheritedFields ?? []"
-        :own="fields"
-        @override="override"
-    />
+        <FieldDefaultsCard
+            v-if="props.currentTemplateFields.length > 0"
+            :fields="props.currentTemplateFields"
+            :defaults="props.fieldDefaults"
+            @update:source="(fieldId, source) => emit('update:fieldDefaultSource', fieldId, source)"
+            @update:value="(fieldId, value) => emit('update:fieldDefaultValue', fieldId, value)"
+        />
+      </template>
+    </EventFormCard>
 
     <InheritedSettingsCard
         v-if="props.eventGroupPart && props.inheritedSettings"
@@ -193,14 +203,6 @@ function override(field: AppointmentField) {
         :partners="props.partners"
         :can-federate="props.canFederate"
         :note="props.federationNote"
-    />
-
-    <FieldDefaultsCard
-        v-if="props.currentTemplateFields.length > 0"
-        :fields="props.currentTemplateFields"
-        :defaults="props.fieldDefaults"
-        @update:source="(fieldId, source) => emit('update:fieldDefaultSource', fieldId, source)"
-        @update:value="(fieldId, value) => emit('update:fieldDefaultValue', fieldId, value)"
     />
 
     <RegistrationFieldsEditor v-if="requiresRegistration && !props.eventGroupPart" v-model="registrationFields" :all-members="props.allMembers"/>

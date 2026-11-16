@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 /** @vitest-environment happy-dom */
-import {shallowMount} from '@vue/test-utils'
+import {mount, shallowMount} from '@vue/test-utils'
 import {h} from 'vue'
 import {describe, expect, it} from 'vitest'
 import EventEditBody from './EventEditBody.vue'
@@ -73,5 +73,31 @@ describe('EventEditBody', () => {
         expect(actions).not.toBeNull()
         expect(added!.compareDocumentPosition(actions!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
         expect(sheet.lastElementChild).toBe(actions)
+    })
+
+    it('shows the template\'s field defaults with the fields, before the description', () => {
+        const wrapper = mount(EventEditBody, {
+            props: {...props, currentTemplateFields: [{id: 1, name: 'Fahrzeug', fieldType: 'TEXT', config: {}} as never]},
+            global: {
+                ...i18n.global,
+                stubs: {
+                    ...i18n.global.stubs,
+                    EventFieldList: true,
+                    MarkdownEditor: true,
+                    FieldDefaultsCard: true,
+                    FederationCard: true,
+                    RestrictionsField: true,
+                    EventReminderEditor: true,
+                },
+            },
+        })
+        const html = wrapper.html()
+
+        const fields = html.indexOf('event-field-list-stub')
+        const defaults = html.indexOf('field-defaults-card-stub')
+        const description = html.indexOf('markdown-editor-stub')
+
+        expect(defaults).toBeGreaterThan(fields)
+        expect(defaults).toBeLessThan(description)
     })
 })
