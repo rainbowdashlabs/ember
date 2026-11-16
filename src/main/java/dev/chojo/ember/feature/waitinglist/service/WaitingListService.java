@@ -648,6 +648,9 @@ public class WaitingListService implements TaskSource {
      * manager starting the trial or withdrawing between the first look and the write would otherwise
      * leave a trial carrying fresh dates, and a mail offering them.
      *
+     * <p>Every offered date must still lie ahead: a family cannot come along to an appointment that is
+     * already running, and its answer page would not even show it.
+     *
      * @param expected the status the step starts from
      * @param alongside the step's own change, written in the same transaction
      * @return the entry as it was before the write, with its list and station
@@ -658,6 +661,13 @@ public class WaitingListService implements TaskSource {
                 repository.findEntryById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
         var list = repository.findById(entry.listId()).orElseThrow();
         var station = stationRepository.findById(list.stationId()).orElseThrow();
+        if (invitation != null
+                && invitationMessage
+                                .upcoming(station, invitation, Instant.now())
+                                .size()
+                        < invitation.options().size()) {
+            throw WaitingListRefusal.WAITING_LIST_INVITE_DATE_PASSED.raise();
+        }
 
         Transactions.run(() -> {
             var current = repository

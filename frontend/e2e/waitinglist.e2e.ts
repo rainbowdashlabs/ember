@@ -233,7 +233,7 @@ test.describe('Waiting lists', () => {
         expect(created.ok(), `the entry was written down (${await created.text()})`).toBeTruthy()
         const entry = await created.json()
 
-        const coming = await page.request.get('/api/v1/events/upcoming?limit=2', {headers})
+        const coming = await page.request.get('/api/v1/events/upcoming?limit=2&notBegun=true', {headers})
         const occurrences = await coming.json()
         expect(occurrences.length, 'the seed has two dates coming up to offer').toBeGreaterThanOrEqual(2)
         const invited = await page.request.post(`/api/v1/waiting-lists/${list}/entries/${entry.id}/invite`, {
@@ -278,7 +278,7 @@ test.describe('Waiting lists', () => {
         expect(created.ok(), `the entry was written down (${await created.text()})`).toBeTruthy()
         const entry = await created.json()
 
-        const coming = await page.request.get('/api/v1/events/upcoming?limit=1', {headers})
+        const coming = await page.request.get('/api/v1/events/upcoming?limit=1&notBegun=true', {headers})
         const [occurrence] = await coming.json()
         const invited = await page.request.post(`/api/v1/waiting-lists/${list}/entries/${entry.id}/invite`, {
             headers,
@@ -333,7 +333,7 @@ test.describe('Waiting lists', () => {
         expect(created.ok(), `the entry was written down (${await created.text()})`).toBeTruthy()
         const entryId = (await created.json()).id
 
-        const coming = await page.request.get('/api/v1/events/upcoming?limit=1', {headers})
+        const coming = await page.request.get('/api/v1/events/upcoming?limit=1&notBegun=true', {headers})
         const [occurrence] = await coming.json()
         expect(occurrence, 'the seed has something coming up to invite to').toBeTruthy()
         const invited = await page.request.post(`/api/v1/waiting-lists/${list}/entries/${entryId}/invite`, {

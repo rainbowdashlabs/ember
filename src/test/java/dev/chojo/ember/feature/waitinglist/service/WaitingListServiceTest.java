@@ -78,6 +78,16 @@ class WaitingListServiceTest extends RepositoryTestBase {
         return service.inviteEntry(entryId, null);
     }
 
+    /**
+     * An invitation as it was sent some time ago, so it may hold dates that have begun since. Inviting
+     * to such a date today is refused, so the dates are written straight onto the invited entry.
+     */
+    private static WaitingListEntry invitedEarlier(int entryId, WaitingListInvitation invitation) {
+        invite(entryId);
+        waitingListRepo.updateInvitation(entryId, invitation);
+        return service.findEntryById(entryId).orElseThrow();
+    }
+
     private static StationEvent appointment(String name) {
         return eventRepo.create(
                 station.id(),
@@ -852,7 +862,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     void comingToADateThatHasBegunIsRefused() {
         var event = appointment("Vorbei");
         var entry = service.createEntry(listId, "Neu", "Vorbei", guardians("", "vorbei@test.com"), Map.of(), "");
-        var invited = service.inviteEntry(
+        var invited = invitedEarlier(
                 entry.id(),
                 new WaitingListInvitation(
                         "",
@@ -2178,7 +2188,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         for (int i = 0; i < dates.length; i++) {
             options.add(new WaitingListInvitation.OfferedDate(i, event.id(), dates[i], null));
         }
-        return service.inviteEntry(entry.id(), new WaitingListInvitation("", options));
+        return invitedEarlier(entry.id(), new WaitingListInvitation("", options));
     }
 
     private void verifyReminders(String email, int times) {
@@ -2298,7 +2308,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
         assertNotNull(service.findEntryById(invited.id()).orElseThrow().invitationDatesGoneAt());
 
         var event = appointment("Wieder vorbei");
-        service.reofferEntry(invited.id(), new WaitingListInvitation(event.id(), LocalDate.of(2021, 5, 12), null));
+        waitingListRepo.updateInvitation(
+                invited.id(), new WaitingListInvitation(event.id(), LocalDate.of(2021, 5, 12), null));
         service.reportInvitationsWithoutDates(currentList(), Instant.now());
         assertEquals(2, datesGone.size(), "other dates that ran out too are reported again");
     }
@@ -2338,6 +2349,35 @@ class WaitingListServiceTest extends RepositoryTestBase {
         invitedTo("Leise", "leise-leer@test.com", LocalDate.of(2020, 5, 12));
         service.reportInvitationsWithoutDates(currentList(), Instant.now());
         assertEquals(List.of(), datesGone, "not for a list that writes to nobody");
+    }
+
+    /**
+     * Nobody is invited to a date that has already begun, neither at first nor with other dates: the
+     * family could not come along, and its answer page would not even show the date.
+     */
+    @Test
+    void aDateThatHasBegunCannotBeOffered() {
+        var event = appointment("Schon vorbei");
+        var entry = service.createEntry(listId, "Neu", "Zu spaet", guardians("", "zu-spaet@test.com"), Map.of(), "");
+        var past = new WaitingListInvitation(event.id(), LocalDate.of(2020, 5, 12), null);
+
+        var refused = assertThrows(RefusalResponse.class, () -> service.inviteEntry(entry.id(), past));
+        assertEquals(WaitingListRefusal.WAITING_LIST_INVITE_DATE_PASSED, refused.refusal());
+        assertEquals(
+                WaitingListEntryStatus.WAITING,
+                service.findEntryById(entry.id()).orElseThrow().status());
+
+        service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2099, 5, 12), null));
+        var other = assertThrows(RefusalResponse.class, () -> service.reofferEntry(entry.id(), past));
+        assertEquals(WaitingListRefusal.WAITING_LIST_INVITE_DATE_PASSED, other.refusal());
+        assertEquals(
+                LocalDate.of(2099, 5, 12),
+                service.findEntryById(entry.id())
+                        .orElseThrow()
+                        .invitation()
+                        .options()
+                        .getFirst()
+                        .date());
     }
 
     /** A list that writes to nobody reminds nobody. */

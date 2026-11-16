@@ -26,6 +26,8 @@ const props = defineProps<{
   testid: string
   /** Whether only appointments people sign up for may be picked. */
   requiresRegistration?: boolean
+  /** Whether the dates of today that have already begun are left out. */
+  notBegun?: boolean
   /** What the chip should read for an occurrence picked before this screen was opened. */
   selectedDisplay?: string | null
   disabled?: boolean
@@ -51,6 +53,7 @@ const key = computed({
 async function search(query: string): Promise<UpcomingEventOccurrence[]> {
   return listUpcomingOccurrences({
     requiresRegistration: props.requiresRegistration ? true : undefined,
+    notBegun: props.notBegun ? true : undefined,
     search: query || undefined,
     limit: 10,
   })

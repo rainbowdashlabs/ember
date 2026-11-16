@@ -21378,6 +21378,12 @@
             "type" : "boolean"
           }
         }, {
+          "name" : "notBegun",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
           "name" : "search",
           "in" : "query",
           "schema" : {

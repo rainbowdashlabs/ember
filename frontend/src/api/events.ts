@@ -126,6 +126,8 @@ export interface OccurrenceParams {
     requiresRegistration?: boolean
     /** Upcoming list only: keep just the dates that can still be signed up for. */
     registrationOpen?: boolean
+    /** Upcoming list only: leave out the dates of today that have already begun. */
+    notBegun?: boolean
     search?: string
     from?: string
     to?: string

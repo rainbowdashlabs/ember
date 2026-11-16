@@ -48,7 +48,7 @@ People who share a station can write to each other directly, in groups, and in c
 - **Questions inside a group can be moved again.** Moving a profile question within its group had no effect, and the question jumped back to its old place. The new order is now kept on every form that asks the group.
 - **Switching modules at the same time undid each other.** When two managers switched different modules within moments, the second change could switch the first one back. Each switch now changes only its own module.
 - **Clearer date and time fields on phones.** On phones, a date with a time opened a calendar followed by a clock that did not say what it was for, which read as the end being asked for when only the start was changed. The day and the time now have a field of their own, each with one picker.
-- **Past dates could still be accepted.** The answer page of an invitation still offered dates that had already begun, and they could be accepted. Only dates still ahead are offered now.
+- **Past dates could still be accepted.** The answer page of an invitation still offered dates that had already begun, and they could be accepted. Only dates still ahead are offered now, and an invitation can no longer name a date that has begun.
 
 ## v26.24.2
 

@@ -29917,6 +29917,7 @@ export interface paths {
                     categoryId?: number;
                     from?: string;
                     limit?: number;
+                    notBegun?: boolean;
                     offset?: number;
                     registrationOpen?: boolean;
                     requiresRegistration?: boolean;
