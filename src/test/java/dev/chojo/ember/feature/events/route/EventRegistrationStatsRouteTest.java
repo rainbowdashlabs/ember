@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.service.EventMemberTableService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
+import dev.chojo.ember.feature.events.service.EventSignUpGuards;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.events.service.RegistrationAnswerReminder;
 import dev.chojo.ember.feature.events.service.RegistrationRowLookups;
@@ -114,7 +115,8 @@ class EventRegistrationStatsRouteTest {
                 mock(MemberTableRenderer.class),
                 mock(StationService.class),
                 mock(OccurrenceCalendar.class),
-                visibility);
+                visibility,
+                new EventSignUpGuards(mock(GuardianPolicy.class)));
     }
 
     private void askForTheRanking(String query) {

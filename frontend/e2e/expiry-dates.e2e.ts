@@ -5,6 +5,7 @@
  */
 import type {APIRequestContext, Page} from '@playwright/test'
 import {test, expect, apiHeaders} from './fixtures/auth'
+import {stationDay} from './fixtures/stationDay'
 
 /**
  * A date that runs out: the first aid course, the licence, the certificate for youth work.
@@ -16,11 +17,13 @@ import {test, expect, apiHeaders} from './fixtures/auth'
 
 const EVERY_KIND = ['MEMBER', 'TEAM', 'GUARDIAN', 'MANAGER']
 
-/** A day this many days from today, as a date field stores it. */
+/**
+ * A day this many days from today on the station's calendar, as a date field stores it. The runner
+ * keeps UTC, which between ten and midnight UTC is still the day before at the station, so a date
+ * counted on the runner's calendar came out a day short at night.
+ */
 function inDays(days: number): string {
-    const day = new Date()
-    day.setDate(day.getDate() + days)
-    return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`
+    return stationDay(new Date(Date.now() + days * 86_400_000))
 }
 
 /** An expiry date asked of every kind of member, so whoever the story reads is asked it. */

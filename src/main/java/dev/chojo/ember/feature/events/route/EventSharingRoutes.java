@@ -15,6 +15,8 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventRegistrationService;
+import dev.chojo.ember.feature.events.service.EventSharingGuards;
 import dev.chojo.ember.feature.events.service.FederatedRegistrantService;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
@@ -48,17 +50,23 @@ public class EventSharingRoutes implements Routes {
     private final EventFederationService eventFederationService;
     private final FederatedRegistrantService registrants;
     private final EventRequirementService requirements;
+    private final EventRegistrationService registrationService;
+    private final EventSharingGuards sharingGuards;
 
     @Inject
     public EventSharingRoutes(
             EventCrudService crudService,
             EventFederationService eventFederationService,
             FederatedRegistrantService registrants,
-            EventRequirementService requirements) {
+            EventRequirementService requirements,
+            EventRegistrationService registrationService,
+            EventSharingGuards sharingGuards) {
         this.crudService = crudService;
         this.eventFederationService = eventFederationService;
         this.registrants = registrants;
         this.requirements = requirements;
+        this.registrationService = registrationService;
+        this.sharingGuards = sharingGuards;
     }
 
     @Override
@@ -123,6 +131,7 @@ public class EventSharingRoutes implements Routes {
     private void setFederationShare(Context ctx) {
         int id = pathInt(ctx, "id");
         var event = requireOwnedOrNotFound(ctx, id, crudService::findById, StationEvent::stationId);
+        sharingGuards.requireSharedOnItsOwn(id);
         if (event.restricted()) {
             throw EventRefusal.RESTRICTED_EVENT_NOT_SHARED.raise();
         }
@@ -141,6 +150,7 @@ public class EventSharingRoutes implements Routes {
     private void removeFederationShare(Context ctx) {
         int id = pathInt(ctx, "id");
         requireOwnedOrNotFound(ctx, id, crudService::findById, StationEvent::stationId);
+        sharingGuards.requireSharedOnItsOwn(id);
         eventFederationService.removeShare(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
@@ -190,6 +200,7 @@ public class EventSharingRoutes implements Routes {
                 .findRegistrationById(id)
                 .orElseThrow(EventRefusal.PARTNER_REGISTRATION_NOT_HERE_ON_DECISION::raise);
         requireOwnedOrNotFound(ctx, reg.eventId(), crudService::findById, StationEvent::stationId);
+        registrationService.requireOwnSignUp(reg.eventId());
 
         var places = eventFederationService.partnerPlaces(reg.eventId(), reg.partnerId());
         if (places.partnerConfirms()) {
@@ -270,6 +281,7 @@ public class EventSharingRoutes implements Routes {
         int eventId = pathInt(ctx, "id");
         int partnerId = pathInt(ctx, "partnerId");
         requireOwnedOrNotFound(ctx, eventId, crudService::findById, StationEvent::stationId);
+        sharingGuards.requireSharedOnItsOwn(eventId);
         var req = ctx.bodyAsClass(SetPartnerPlacesRequest.class);
         Integer slotBudget = req.slotBudget();
         if (slotBudget != null && slotBudget < 0) {

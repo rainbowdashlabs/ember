@@ -38,10 +38,14 @@ function eventChangedKey(params: Record<string, string>): string {
 }
 
 /**
- * The sentence a cancellation is worded by: one date called off for too few registrations, one date
- * called off by a manager, or the whole appointment.
+ * The sentence a cancellation is worded by: a whole event group, called off for too few sign-ups or by
+ * a manager, one date called off for too few registrations, one date called off by a manager, or the
+ * whole appointment.
  */
 function eventCancelledKey(localeKey: string, params: Record<string, string>): string {
+    if (params.eventGroup === 'true') {
+        return params.cause === 'THRESHOLD' ? 'notification.eventGroupCancelledTooFew' : 'notification.eventGroupCancelled'
+    }
     if (params.cause === 'THRESHOLD') return 'notification.eventDateCancelledTooFew'
     if (params.eventDate) return 'notification.eventDateCancelled'
     return localeKey

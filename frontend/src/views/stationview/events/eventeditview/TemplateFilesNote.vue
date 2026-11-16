@@ -18,6 +18,8 @@ import type {EventAttachment} from '@/api/generated/schema'
  */
 defineProps<{
   files: EventAttachment[]
+  /** When the files are attached, where that is not the saving of an appointment. */
+  hint?: string
 }>()
 
 const {t} = useI18n()
@@ -26,7 +28,7 @@ const {t} = useI18n()
 <template>
   <NeutralContainer class="space-y-2" data-testid="template-files-note">
     <SubHeader>{{ t('events.attachments.title') }}</SubHeader>
-    <p class="text-xs text-(--text-muted)">{{ t('events.attachments.fromTemplate') }}</p>
+    <p class="text-xs text-(--text-muted)">{{ hint ?? t('events.attachments.fromTemplate') }}</p>
     <ul class="list-disc pl-5 text-sm">
       <li v-for="file in files" :key="file.id">{{ file.label || file.fileName }}</li>
     </ul>

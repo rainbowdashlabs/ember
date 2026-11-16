@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import DownloadButton from '@/components/button/DownloadButton.vue'
 import BareButton from '@/components/button/BareButton.vue'
@@ -16,8 +17,8 @@ import FileThumbnail from '@/components/documents/FileThumbnail.vue'
 import FilePreviewModal from '@/components/documents/FilePreviewModal.vue'
 import {formatSize} from '@/util/format'
 import {downloadAuthed} from '@/util/downloadAuthed'
-import {events} from '@/api'
 import type {EventAttachment} from '@/api/generated/schema'
+import type {AttachmentReader} from './attachmentReaders'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**
@@ -28,7 +29,8 @@ import {describeFailure, type Failure} from '@/util/failure'
  * marked as such for the people who do get it, so nobody hands the room a sheet meant for the crew.
  */
 const props = defineProps<{
-  eventId: number
+  /** Whose files these are: an appointment's, its event group's among them, or an event group's. */
+  reader: AttachmentReader
 }>()
 
 const {t} = useI18n()
@@ -46,7 +48,7 @@ const failure = ref<Failure | null>(null)
 async function load() {
   failure.value = null
   try {
-    attachments.value = await events.listEventAttachments(props.eventId)
+    attachments.value = await props.reader.list()
   } catch (e) {
     failure.value = {...describeFailure(e, t), message: t('events.attachments.loadFailed')}
   }
@@ -54,7 +56,7 @@ async function load() {
 
 /** Shown by its label, saved under its own file name, which is the half that carries the type. */
 function download(attachment: EventAttachment) {
-  return downloadAuthed(events.eventAttachmentUrl(props.eventId, attachment.id), attachment.fileName)
+  return downloadAuthed(props.reader.fileUrl(attachment.id), attachment.fileName)
 }
 
 const previewed = ref<EventAttachment | null>(null)
@@ -65,7 +67,7 @@ function nameOf(attachment: EventAttachment): string {
 }
 
 onMounted(load)
-watch(() => props.eventId, load)
+watch(() => props.reader, load)
 </script>
 
 <template>
@@ -89,7 +91,7 @@ watch(() => props.eventId, load)
           @click="previewed = attachment"
       >
         <FileThumbnail
-            :url="events.eventAttachmentPictureUrl(eventId, attachment.id, 192)"
+            :url="reader.pictureUrl(attachment.id, 192)"
             :mime-type="attachment.mimeType"
             :alt="nameOf(attachment)"
         />
@@ -98,13 +100,16 @@ watch(() => props.eventId, load)
         <InfoBadge v-if="attachment.internal" data-testid="event-attachment-internal-badge">
           {{ t('events.attachments.internal') }}
         </InfoBadge>
+        <SecondaryBadge v-if="attachment.fromEventGroup && reader.showsEventGroupFiles" data-testid="event-attachment-group-badge">
+          {{ t('eventGroups.fromEventGroup') }}
+        </SecondaryBadge>
       </BareButton>
       <DownloadButton class="ms-auto" data-testid="event-attachment-download" @click="download(attachment)"/>
     </div>
 
     <FilePreviewModal
         v-if="previewed"
-        :source="events.eventAttachmentUrl(eventId, previewed.id)"
+        :source="reader.fileUrl(previewed.id)"
         :title="nameOf(previewed)"
         :mime-type="previewed.mimeType"
         @close="previewed = null"

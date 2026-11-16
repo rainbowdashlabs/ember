@@ -49,6 +49,12 @@ function both(first: Condition, second: Condition): Condition {
 }
 
 /**
+ * Whoever opens the station chats: they sit in the station's management, so this also opens that
+ * section for somebody who holds no other right in it.
+ */
+const managesChats = both(messagesOn, can(StationPermission.MESSAGE_CHAT_MANAGE))
+
+/**
  * The media library is shared by everything that authors content, so any one of the three content
  * permissions opens it. Members without one still reach it through an editor, where they see what
  * they uploaded themselves.
@@ -182,12 +188,8 @@ export const STATION_NAV: Entry[] = [
         ],
     },
     {
-        kind: 'group', key: 'station-messages', label: 'sidebar.stationChats', icon: 'comments', prefix: ['/station/messages'],
+        kind: 'page', key: 'message-reports', label: 'sidebar.messageReports', icon: 'flag', to: '/station/messages/reports',
         visible: both(messagesOn, can(StationPermission.MESSAGE_CHAT_MANAGE)),
-        children: [
-            {kind: 'page', key: 'message-station-chats', label: 'sidebar.stationChats', icon: 'comments', to: '/station/messages/chats', visible: can(StationPermission.MESSAGE_CHAT_MANAGE)},
-            {kind: 'page', key: 'message-reports', label: 'sidebar.messageReports', icon: 'flag', to: '/station/messages/reports', visible: can(StationPermission.MESSAGE_CHAT_MANAGE)},
-        ],
     },
     {
         kind: 'group', key: 'documents', label: 'sidebar.documents', icon: 'file', visible: runs(StationModule.DOCUMENTS),
@@ -314,12 +316,13 @@ export const STATION_NAV: Entry[] = [
     },
     {
         kind: 'group', key: 'manage', label: 'sidebar.manage', icon: 'gears', prefix: ['/station/manage'], onboarding: 'nav.manage',
-        visible: ({session}) => session.isManager(),
+        visible: context => context.session.isManager() || managesChats(context),
         children: [
             {kind: 'page', key: 'station-manage', label: 'sidebar.general', icon: 'sliders', to: '/station/manage', onboarding: 'nav.manage', visible: can(StationPermission.STATION_GENERAL)},
             {kind: 'page', key: 'station-theme', label: 'sidebar.stationTheme', icon: 'palette', to: '/station/manage/theme', visible: can(StationPermission.STATION_LOOK_AND_FEEL)},
             {kind: 'page', key: 'station-mailing', label: 'sidebar.stationMailing', icon: 'envelope', to: '/station/manage/mailing', onboarding: 'nav.manage.mailing', visible: can(StationPermission.STATION_MAIL)},
             {kind: 'page', key: 'station-mail-import', label: 'sidebar.stationMailImport', icon: 'envelope-open-text', to: '/station/manage/mail-import', visible: both(can(StationPermission.STATION_MAIL), runs(StationModule.DOCUMENTS))},
+            {kind: 'page', key: 'station-chats', label: 'sidebar.stationChats', icon: 'comments', to: '/station/manage/chats', visible: managesChats},
             {kind: 'page', key: 'station-modules', label: 'sidebar.stationModules', icon: 'puzzle-piece', to: '/station/manage/modules', visible: can(StationPermission.STATION_MODULES)},
             {kind: 'page', key: 'station-manage-cluster', label: 'sidebar.stationCluster', icon: 'sitemap', to: '/station/manage/cluster', visible: can(StationPermission.STATION_GENERAL)},
             {kind: 'page', key: 'station-import', label: 'sidebar.stationImport', icon: 'file-import', to: '/station/manage/import', visible: can(StationPermission.STATION_IMPORT_EXPORT)},

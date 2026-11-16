@@ -35,6 +35,7 @@ import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
+import dev.chojo.ember.feature.events.service.EventSignUpGuards;
 import dev.chojo.ember.feature.events.service.EventTemplateRestrictionService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
@@ -200,6 +201,24 @@ class EventRouteLookupsTest {
     }
 
     @Test
+    void aPartOfAnEventGroupTakesNoQuestionsOfItsOwn() {
+        when(crudService.isEventGroupPart(9)).thenReturn(true);
+        var reminder = mock(RegistrationAnswerReminder.class);
+        var harness = RouteHarness.serving(registrationRoutes(reminder));
+        var request = body("""
+                {"fields": [{"name": "Shirt", "fieldType": "TEXT", "config": null, "overview": true}]}""");
+
+        harness.run((server, client) -> assertEquals(
+                EventRefusal.EVENT_GROUP_PART_QUESTIONS_FROM_EVENT_GROUP,
+                refusalOf(client.put(
+                        PREFIX + "/events/9/registration-fields",
+                        request,
+                        harness.as(TestSessions.member(STATION_ID, StationPermission.EVENT_EDIT))))));
+
+        verify(reminder, never()).replaceQuestions(eq(9), any());
+    }
+
+    @Test
     void aRegistrationTableOfAStationThatIsGoneIsRefusedByName() {
         when(stationService.findById(STATION_ID)).thenReturn(Optional.empty());
         var harness = RouteHarness.serving(registrationRoutes(mock(RegistrationAnswerReminder.class)));
@@ -269,6 +288,7 @@ class EventRouteLookupsTest {
                 mock(MemberTableRenderer.class),
                 stationService,
                 mock(OccurrenceCalendar.class),
-                visibility);
+                visibility,
+                new EventSignUpGuards(mock(GuardianPolicy.class)));
     }
 }

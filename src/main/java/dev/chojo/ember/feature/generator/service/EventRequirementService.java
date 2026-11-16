@@ -9,7 +9,10 @@ import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventRequirementsChanged;
+import dev.chojo.ember.feature.events.entity.EventGroupPart;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.generator.entity.RequiredTemplate;
 import dev.chojo.ember.feature.generator.repository.EventRequirementRepository;
 import dev.chojo.ember.owner.Owner;
@@ -18,6 +21,7 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 
@@ -39,6 +43,11 @@ import java.util.Objects;
  * so the participants already registered are asked for a document added later, and what is still open on one
  * taken off goes. Changing an appointment template only affects the appointments made from it afterwards, so
  * nobody is told.
+ *
+ * <p>An event group asks every part for its documents, read live: a part shows the event group's documents
+ * first and its own after them, and a part's own list never holds one the event group asks for, so a part
+ * cannot take one of the event group's off. Changing the event group's list is told for every part, as a
+ * change of the part's own list would be.
  */
 @Singleton
 public class EventRequirementService {
@@ -52,6 +61,8 @@ public class EventRequirementService {
     private final MemberNeutralTemplates neutral;
     private final EventFederationRepository shares;
     private final DomainEventBus eventBus;
+    private final EventGroupRepository eventGroups;
+    private final EventGroupPartnerRepository groupShares;
 
     @Inject
     public EventRequirementService(
@@ -59,12 +70,16 @@ public class EventRequirementService {
             DocumentTemplateService templates,
             MemberNeutralTemplates neutral,
             EventFederationRepository shares,
-            DomainEventBus eventBus) {
+            DomainEventBus eventBus,
+            EventGroupRepository eventGroups,
+            EventGroupPartnerRepository groupShares) {
         this.requirements = requirements;
         this.templates = templates;
         this.neutral = neutral;
         this.shares = shares;
         this.eventBus = eventBus;
+        this.eventGroups = eventGroups;
+        this.groupShares = groupShares;
     }
 
     /**
@@ -77,6 +92,30 @@ public class EventRequirementService {
                 .filter(required -> !required.archived())
                 .flatMap(required -> templates.find(required.templateId()).stream())
                 .forEach(neutral::requireSignableByPartners);
+    }
+
+    /**
+     * Refuses to share an event group one of whose own documents to bring partners could not sign
+     * alike. Its parts are checked on their own, each with what it asks for itself.
+     *
+     * @param eventGroupId the event group, already checked to be the station's
+     */
+    public void requireEventGroupShareable(int eventGroupId) {
+        requirements.forEventGroup(eventGroupId).stream()
+                .filter(required -> !required.archived())
+                .flatMap(required -> templates.find(required.templateId()).stream())
+                .forEach(neutral::requireSignableByPartners);
+    }
+
+    /**
+     * Refuses to take an appointment into an event group shared with partners where one of its own
+     * documents to bring is one partners could not sign alike, since joining shares it as well.
+     *
+     * @param eventGroupId the event group it joins
+     * @param eventId      the appointment, already checked to be the station's
+     */
+    public void requireJoinable(int eventGroupId, int eventId) {
+        if (groupShares.findShare(eventGroupId).isPresent()) requireShareable(eventId);
     }
 
     /**
@@ -118,15 +157,63 @@ public class EventRequirementService {
      */
     public List<RequiredTemplate> setForEvent(Owner.Station owner, int eventId, List<Integer> templateIds) {
         var before = requirements.forEvent(eventId);
-        var checked = checked(owner, templateIds, before);
+        var fromEventGroup = before.stream()
+                .filter(RequiredTemplate::fromEventGroup)
+                .map(RequiredTemplate::templateId)
+                .toList();
+        var own =
+                templateIds.stream().filter(id -> !fromEventGroup.contains(id)).toList();
+        var checked = checked(owner, own, before);
         if (shares.findShareByEvent(eventId).isPresent()) {
             checked.forEach(templateId ->
                     neutral.requireSignableByPartners(templates.requireUsable(owner.stationId(), templateId)));
         }
         requirements.replaceForEvent(eventId, checked);
         log.info("Appointment {} asks for {} document(s)", eventId, checked.size());
-        announceChange(owner, eventId, before, checked);
-        return requirements.forEvent(eventId);
+        var after = requirements.forEvent(eventId);
+        announceChange(owner, eventId, before, idsOf(after));
+        return after;
+    }
+
+    /**
+     * @param eventGroupId the event group, already checked to be the station's
+     * @return what it asks every part to bring, in its order
+     */
+    public List<RequiredTemplate> forEventGroup(int eventGroupId) {
+        return requirements.forEventGroup(eventGroupId);
+    }
+
+    /**
+     * Sets what an event group asks every part to bring, and tells the station what each part asks
+     * for now that it did not, and the other way round. Where the event group or one of its parts is
+     * shared with partners, every document has to be one partners can sign alike.
+     *
+     * @param owner        the station
+     * @param eventGroupId the event group, already checked to be the station's
+     * @param templateIds  the templates in their order
+     * @return what it asks for now
+     */
+    public List<RequiredTemplate> setForEventGroup(Owner.Station owner, int eventGroupId, List<Integer> templateIds) {
+        var checked = checked(owner, templateIds, requirements.forEventGroup(eventGroupId));
+        var parts = eventGroups.findParts(eventGroupId).stream()
+                .map(EventGroupPart::eventId)
+                .toList();
+        boolean shared = groupShares.findShare(eventGroupId).isPresent()
+                || parts.stream().anyMatch(part -> shares.findShareByEvent(part).isPresent());
+        if (shared) {
+            checked.forEach(templateId ->
+                    neutral.requireSignableByPartners(templates.requireUsable(owner.stationId(), templateId)));
+        }
+        var before = new HashMap<Integer, List<RequiredTemplate>>();
+        parts.forEach(part -> before.put(part, requirements.forEvent(part)));
+        requirements.replaceForEventGroup(eventGroupId, checked);
+        log.info("Event group {} asks for {} document(s)", eventGroupId, checked.size());
+        parts.forEach(part -> announceChange(owner, part, before.get(part), idsOf(requirements.forEvent(part))));
+        return requirements.forEventGroup(eventGroupId);
+    }
+
+    private static List<Integer> idsOf(List<RequiredTemplate> required) {
+        return required.stream().map(RequiredTemplate::templateId).toList();
     }
 
     /** Tells the station which documents the appointment asks for now that it did not, and the other way round. */

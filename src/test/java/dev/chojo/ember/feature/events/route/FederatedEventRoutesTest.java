@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.EventSignUpGuards;
 import dev.chojo.ember.feature.events.service.PartnerAppointmentSignatures;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
@@ -101,7 +102,8 @@ class FederatedEventRoutesTest {
     }
 
     private FederatedEventRoutes routes(PartnerAppointmentSignatures signatures) {
-        return new FederatedEventRoutes(events, federation, members, lookup, guardians, signatures);
+        return new FederatedEventRoutes(
+                events, federation, members, lookup, guardians, signatures, new EventSignUpGuards(guardians));
     }
 
     private Consumer<Request.Builder> registrar() {

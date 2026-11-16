@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.BatchRow;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.IntervalType;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -53,7 +54,8 @@ class BatchEventServiceTest extends RepositoryTestBase {
                 memberEligibility,
                 eventRepo,
                 attendanceRepo,
-                eventFieldRegistrationService);
+                eventFieldRegistrationService,
+                new EventGroupRepository());
         batchService = new BatchEventService(
                 eventServices.crud(),
                 eventServices.restriction(),

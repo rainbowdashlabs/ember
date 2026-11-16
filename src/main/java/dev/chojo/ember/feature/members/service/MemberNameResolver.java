@@ -219,6 +219,15 @@ public class MemberNameResolver {
     }
 
     /**
+     * Forgets how every member is shown beside their name (group color and tag), keeping the names
+     * themselves. The cache expires on access, so without this a color changed today would be shown
+     * as it was for as long as somebody kept looking at the member.
+     */
+    public void forgetDisplays() {
+        displayCache.invalidateAll();
+    }
+
+    /**
      * Forgets every name, for a database whose members were all thrown away: their numbers start again
      * after a wipe, and a name kept against a number would be read for whoever holds it next.
      */

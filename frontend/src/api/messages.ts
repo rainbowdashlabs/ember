@@ -11,10 +11,10 @@ import type {
     ConversationSummaryResponse,
     MessagePersonResponse,
     MessagesStatus,
-    OpenStationChatRequest,
     ReachablePersonResponse,
     ReportedMessageResponse,
     SharedMemberCard,
+    StationChatRequest,
     StationChatResponse,
     StationDigest,
 } from './generated/schema'
@@ -166,17 +166,16 @@ export async function listStationChats(): Promise<StationChatResponse[]> {
     return res.data
 }
 
-export async function openStationChat(request: OpenStationChatRequest): Promise<StationChatResponse> {
+/** Opens a chat of the chosen station for the audience asked for; naming nobody is the whole station. */
+export async function openStationChat(request: StationChatRequest): Promise<StationChatResponse> {
     const res = await client.post<StationChatResponse>('/messages/station-chats', request)
     return res.data
 }
 
-export async function renameStationChat(uid: string, name: string): Promise<void> {
-    await client.put(`${stationChatPath(uid)}/name`, {name})
-}
-
-export async function setStationChatGuardians(uid: string, includeGuardians: boolean): Promise<void> {
-    await client.put(`${stationChatPath(uid)}/guardians`, {includeGuardians})
+/** Changes a station chat's name, audience and guardians at once, also while it is closed. */
+export async function updateStationChat(uid: string, request: StationChatRequest): Promise<StationChatResponse> {
+    const res = await client.put<StationChatResponse>(stationChatPath(uid), request)
+    return res.data
 }
 
 export async function closeStationChat(uid: string): Promise<void> {

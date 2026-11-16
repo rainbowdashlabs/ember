@@ -25,6 +25,14 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class EventRequirementRepository {
     private static final String EVENT = "event_id";
     private static final String EVENT_TEMPLATE = "event_template_id";
+    private static final String EVENT_GROUP = "event_group_id";
+
+    /** The templates the event group of the appointment {@code :id} asks for, as {@code gr}. */
+    private static final String GROUP_OF_EVENT = """
+            event_document_requirement gr
+                     JOIN event_group_set gs ON gs.event_group_id = gr.event_group_id
+                     JOIN station_event ge ON ge.event_group_set_id = gs.id
+            WHERE ge.id = :id""";
 
     /**
      * When the template {@code t} was last generated from. Appointments ask only for templates of their
@@ -34,11 +42,37 @@ public class EventRequirementRepository {
             (SELECT max(g.generated_at) FROM document_generation g WHERE g.template_id = t.id) AS last_used_at""";
 
     /**
+     * What an appointment asks for as it takes effect: for a part of an event group the event group's
+     * documents first, then the part's own ones the event group does not ask for already.
+     *
      * @param eventId the appointment
      * @return the templates it asks for, in their order
      */
     public List<RequiredTemplate> forEvent(int eventId) {
-        return required(EVENT, eventId);
+        return query("""
+                WITH chosen AS (SELECT gr.template_id, 0 AS rank, gr.position, gr.id, TRUE AS from_event_group
+                                FROM %1$s
+                                UNION ALL
+                                SELECT r.template_id, 1, r.position, r.id, FALSE
+                                FROM event_document_requirement r
+                                WHERE r.event_id = :id
+                                  AND r.template_id NOT IN (SELECT gr.template_id FROM %1$s))
+                SELECT t.id AS template_id, t.name, t.kind, t.version, t.archived_at IS NOT NULL AS archived,
+                       c.from_event_group, %2$s
+                FROM chosen c
+                         JOIN document_template t ON t.id = c.template_id
+                ORDER BY c.rank, c.position, c.id;""", GROUP_OF_EVENT, LAST_USED)
+                .single(call().bind("id", eventId))
+                .map(RequiredTemplate.map())
+                .all();
+    }
+
+    /**
+     * @param groupId the event group
+     * @return the templates it asks every part for, in their order
+     */
+    public List<RequiredTemplate> forEventGroup(int groupId) {
+        return required(EVENT_GROUP, groupId);
     }
 
     /**
@@ -50,11 +84,12 @@ public class EventRequirementRepository {
     }
 
     /**
-     * @param owner the column naming what asks for the documents, one of the two constants
+     * @param owner the column naming what asks for the documents, one of the constants
      */
     private static List<RequiredTemplate> required(String owner, int ownerId) {
         return query("""
-                SELECT t.id AS template_id, t.name, t.kind, t.version, t.archived_at IS NOT NULL AS archived, %s
+                SELECT t.id AS template_id, t.name, t.kind, t.version, t.archived_at IS NOT NULL AS archived,
+                       FALSE AS from_event_group, %s
                 FROM event_document_requirement r
                          JOIN document_template t ON t.id = r.template_id
                 WHERE r.%s = :id
@@ -75,6 +110,16 @@ public class EventRequirementRepository {
     }
 
     /**
+     * Replaces what an event group asks every part for.
+     *
+     * @param groupId     the event group
+     * @param templateIds the templates, in their order
+     */
+    public void replaceForEventGroup(int groupId, List<Integer> templateIds) {
+        replace(EVENT_GROUP, groupId, templateIds);
+    }
+
+    /**
      * Replaces what an appointment template hands to the appointments made from it.
      *
      * @param eventTemplateId the appointment template
@@ -85,7 +130,7 @@ public class EventRequirementRepository {
     }
 
     /**
-     * @param owner the column naming what asks for the documents, one of the two constants
+     * @param owner the column naming what asks for the documents, one of the constants
      */
     private static void replace(String owner, int ownerId, List<Integer> templateIds) {
         query("DELETE FROM event_document_requirement WHERE %s = :id;", owner)

@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.SelfRegistration;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.members.entity.TagVisibility;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -49,7 +50,8 @@ class EventFieldSelfRegistrationStateTest extends RepositoryTestBase {
                 memberEligibility,
                 eventRepo,
                 attendanceRepo,
-                eventFieldRegistrationService);
+                eventFieldRegistrationService,
+                new EventGroupRepository());
         stationId = stationRepo.create("SelfReg State Station").id();
         inside = stationMemberRepo
                 .create(

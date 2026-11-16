@@ -5,12 +5,14 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import {registrationAudienceNote} from './registrationAudience'
+import {registrationAudienceNote, viewAudienceNote} from './registrationAudience'
 import type {AllEventRestrictions} from '@/api/events'
 import {TagVisibility, type MemberGroup, type RestrictionAudience, type UserTag} from '@/api/generated/schema'
 
 const t = (key: string, arg?: number | Record<string, unknown>) => {
     switch (key) {
+        case 'eventsUpcoming.viewAudience':
+            return `Sichtbar nur für: ${(arg as Record<string, unknown>).audience}`
         case 'eventsUpcoming.registrationAudience':
             return `Anmeldung nur für: ${(arg as Record<string, unknown>).audience}`
         case 'eventsUpcoming.audienceMemberOne':
@@ -79,5 +81,23 @@ describe('registrationAudienceNote', () => {
         const r = restrictions({groupIds: [99]})
         expect(registrationAudienceNote(r, 7, groups, tags, t))
             .toBe('Anmeldung nur für: #99')
+    })
+})
+
+/** A kept appointment says whom it is kept for, also where the same people may answer it. */
+describe('viewAudienceNote', () => {
+    it('names whom a kept appointment is for, even where the same people answer it', () => {
+        expect(viewAudienceNote(restrictions({groupIds: [1]}, {groupIds: [1]}), 7, groups, tags, t))
+            .toBe('Sichtbar nur für: Jugend')
+    })
+
+    it('joins the kinds by the audience mode', () => {
+        expect(viewAudienceNote(restrictions({}, {groupIds: [1, 2], tagIds: [5], mode: 'OR'}), 7, groups, tags, t))
+            .toBe('Sichtbar nur für: Jugend oder Aktive oder Bootsführer')
+    })
+
+    it('says nothing for an appointment everybody sees', () => {
+        expect(viewAudienceNote(restrictions({groupIds: [1]}), 7, groups, tags, t)).toBeNull()
+        expect(viewAudienceNote({}, 7, groups, tags, t)).toBeNull()
     })
 })

@@ -66,7 +66,7 @@ export function exampleConversations(t: Translate): ConversationSummaryResponse[
         },
         {
             uid: '00000000-0000-0000-0000-0000000000c3', kind: 'STATION', name: t('helpCenter.messages.example.stationChatName'), others: [], muted: false, unread: 1,
-            station: {stationUid: '00000000-0000-0000-0000-0000000000d1', stationName: t('helpCenter.messages.example.stationName'), audience: 'STATION', includeGuardians: false, closed: false},
+            station: {stationUid: '00000000-0000-0000-0000-0000000000d1', stationName: t('helpCenter.messages.example.stationName'), includeGuardians: false, closed: false},
             lastActivityAt: new Date(Date.now() - 26 * 3_600_000).toISOString(),
             newest: {id: 12, author: tom, text: t('helpCenter.messages.example.stationLine'), systemKind: null, subject: null, deleted: false, createdAt: new Date().toISOString(), removedByStation: false},
         },

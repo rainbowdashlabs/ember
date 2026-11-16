@@ -179,6 +179,14 @@ public class AttendanceRepository {
             query("UPDATE station_event SET template_id = NULL WHERE template_id = :id;")
                     .single(call().bind("id", id))
                     .update();
+            query("UPDATE event_group SET template_id = NULL WHERE template_id = :id;")
+                    .single(call().bind("id", id))
+                    .update();
+            query("""
+                    DELETE FROM event_group_field_default d
+                    USING attendance_template_field f
+                    WHERE f.id = d.field_id
+                      AND f.template_id = :id;""").single(call().bind("id", id)).delete();
             query("""
                     DELETE FROM event_template_field_default d
                     USING event_template t

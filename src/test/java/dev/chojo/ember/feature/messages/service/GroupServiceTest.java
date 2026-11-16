@@ -63,6 +63,7 @@ class GroupServiceTest extends MessageTestBase {
         assertEquals("Jugend", detail.conversation().name());
         assertEquals(owner.id(), detail.conversation().ownerAccountId());
         assertEquals(3, detail.members().size());
+        assertTrue(detail.stationPeople().isEmpty(), "a group belongs to no station, so it colors nobody");
     }
 
     @Test

@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -41,11 +42,11 @@ public class EventReminderChecker implements TaskSource {
     private final EventReminderRepository reminderRepository;
     private final EventRegistrationRepository registrationRepository;
     private final Notifier notifier;
-    private final MemberNameResolver memberNameResolver;
     private final EventRestrictionService restrictionService;
     private final StationReadOnlyGuard readOnlyGuard;
     private final OccurrenceCalendar occurrenceCalendar;
     private final EventAudience audience;
+    private final ClosingWarnings closingWarnings;
 
     @Inject
     public EventReminderChecker(
@@ -62,14 +63,12 @@ public class EventReminderChecker implements TaskSource {
         this.reminderRepository = reminderRepository;
         this.registrationRepository = registrationRepository;
         this.notifier = notifier;
-        this.memberNameResolver = memberNameResolver;
         this.restrictionService = restrictionService;
         this.readOnlyGuard = readOnlyGuard;
         this.occurrenceCalendar = occurrenceCalendar;
         this.audience = audience;
+        this.closingWarnings = new ClosingWarnings(notifier, memberNameResolver, readOnlyGuard);
     }
-
-    private static final int[] CLOSING_WARNINGS = {3, 1};
 
     /**
      * One sweep: what has to be warned about, and what has to be reminded of.
@@ -89,7 +88,7 @@ public class EventReminderChecker implements TaskSource {
                 if (!readOnlyGuard.isWritable(event.stationId())) continue;
                 var calendar = calendars.computeIfAbsent(event.stationId(), occurrenceCalendar::forStation);
                 LocalDate today = calendar.today();
-                var reminderDays = reminderRepository.findDays(event.id());
+                var reminderDays = reminderRepository.findEffectiveDays(event.id());
                 var occurrences = computeOccurrences(event, today, reminderDays, calendar);
 
                 for (var occurrence : occurrences) {
@@ -140,56 +139,40 @@ public class EventReminderChecker implements TaskSource {
     }
 
     /**
-     * Warns whoever still owes an answer that registration is about to close.
+     * Warns whoever still owes an answer that registration for an appointment is about to close.
      *
-     * <p>Three days out and one day out, each sent once per event: the sweep runs every half hour, and a
-     * warning that arrived every half hour would be worse than none.
-     *
-     * <p>Only people the event is actually open to are warned. Eligibility is asked without any
-     * permissions, so nobody is reminded merely because they could override the restriction: somebody the
-     * event is closed to has nothing to answer.
-     *
-     * <p>The warning goes to everyone who could answer, which is the member and whoever looks after them.
-     * A household where a guardian and two children are all still unanswered therefore hears three times,
-     * once about each person, because the guardian has to know which of them it is about.
+     * <p>Eligibility is asked without any permissions, so nobody is reminded merely because they could
+     * override the restriction: somebody the appointment is closed to has nothing to answer.
      */
     private void warnAboutClosingRegistrations() {
-        for (int daysBefore : CLOSING_WARNINGS) {
-            for (var event : eventRepository.findEventsClosingIn(daysBefore)) {
-                if (!readOnlyGuard.isWritable(event.stationId())) continue;
-
-                int warned = 0;
-                for (int memberId :
-                        registrationRepository.findUnansweredMemberIds(event.eventId(), event.stationId())) {
-                    if (!restrictionService.canRegister(event.eventId(), memberId, Set.of())) continue;
-                    warned += warnAbout(event, memberId, daysBefore) ? 1 : 0;
-                }
-                reminderRepository.markDeadlineWarningSent(event.eventId(), daysBefore);
-                log.info(
-                        "Warned {} member(s) that registration for '{}' (id={}) closes in {} day(s)",
-                        warned,
-                        event.name(),
-                        event.eventId(),
-                        daysBefore);
+        closingWarnings.warn(new ClosingWarnings.Closable() {
+            @Override
+            public List<ClosingWarnings.Closing> closingIn(int daysBefore) {
+                return eventRepository.findEventsClosingIn(daysBefore).stream()
+                        .map(event -> new ClosingWarnings.Closing(event.eventId(), event.stationId(), event.name()))
+                        .toList();
             }
-        }
-    }
 
-    /**
-     * Tells one member, and everyone who answers for them, that their answer is still missing.
-     *
-     * @return whether anybody was told
-     */
-    private boolean warnAbout(EventRepository.ClosingEvent event, int memberId, int daysBefore) {
-        int told = notifier.notify(
-                StationAudience.household(List.of(memberId)),
-                NotificationType.REGISTRATION_CLOSING,
-                NotificationData.of(
-                        new NotificationParams.RegistrationClosing(
-                                event.name(), daysBefore, memberNameResolver.called(memberId)),
-                        NotificationLinks.event(event.eventId())),
-                Delivery.EVERY_TIME);
-        return told > 0;
+            @Override
+            public List<Integer> unansweredMemberIds(ClosingWarnings.Closing closing) {
+                return registrationRepository.findUnansweredMemberIds(closing.id(), closing.stationId());
+            }
+
+            @Override
+            public boolean meantFor(ClosingWarnings.Closing closing, int memberId) {
+                return restrictionService.canRegister(closing.id(), memberId, Set.of());
+            }
+
+            @Override
+            public void markWarned(int id, int daysBefore) {
+                reminderRepository.markDeadlineWarningSent(id, daysBefore);
+            }
+
+            @Override
+            public NotificationLink linkTo(int id) {
+                return NotificationLinks.event(id);
+            }
+        });
     }
 
     @Override

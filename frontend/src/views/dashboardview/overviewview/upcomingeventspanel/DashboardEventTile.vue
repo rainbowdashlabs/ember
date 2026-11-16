@@ -7,7 +7,6 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {RouteLocationRaw} from 'vue-router'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
@@ -56,7 +55,7 @@ const canDecline = computed(() => props.openCount > 0
 
 <template>
   <RowLink :to="to">
-    <NeutralContainer class="py-2 px-3 cursor-pointer hover:bg-(--bg-accent)">
+    <EventGroupTile class="py-2 px-3 cursor-pointer hover:bg-(--bg-accent)" :event-group="event.eventGroup">
       <div class="flex items-start justify-between gap-2">
         <div class="min-w-0">
           <div class="flex items-center gap-2 min-w-0">
@@ -98,6 +97,6 @@ const canDecline = computed(() => props.openCount > 0
           <RegistrationStatusBadge :status="answer.registration.status"/>
         </span>
       </div>
-    </NeutralContainer>
+    </EventGroupTile>
   </RowLink>
 </template>

@@ -11,7 +11,10 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import {stationTemplateSource} from '@/api/documentTemplates'
 import type {RequiredTemplate} from '@/api/generated/schema'
 
-/** One document an appointment asks for: a small picture of it, its name, and a button taking it off. */
+/**
+ * One document an appointment asks for: a small picture of it, its name, and a button taking it off. One
+ * the event group of a part asks for is marked as the event group's and cannot be taken off here.
+ */
 defineProps<{
   template: RequiredTemplate
 }>()
@@ -31,6 +34,9 @@ const {t} = useI18n()
                    mime-type="application/pdf" :alt="template.name" anchor-top/>
     <span class="flex-1">{{ template.name }}</span>
     <SecondaryBadge v-if="template.archived">{{ t('events.documents.archived') }}</SecondaryBadge>
-    <IconButton :icon="['fas', 'xmark']" :label="t('events.documents.remove')" @click="emit('remove')"/>
+    <SecondaryBadge v-if="template.fromEventGroup" data-testid="document-requirement-from-group">
+      {{ t('eventGroups.fromEventGroup') }}
+    </SecondaryBadge>
+    <IconButton v-else :icon="['fas', 'xmark']" :label="t('events.documents.remove')" @click="emit('remove')"/>
   </li>
 </template>

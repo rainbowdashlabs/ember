@@ -10,10 +10,12 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import type {
+    AppointmentField,
     AttendanceTemplate,
     AttendanceTemplateField,
     EventCategory,
     EventFieldEntry,
+    EventGroupSettings,
     EventTemplate,
     MemberGroup,
     PartnerResponse,
@@ -26,12 +28,11 @@ import EventEditHeader from './EventEditHeader.vue'
 import EventFormCard from './EventFormCard.vue'
 import FederationCard from './FederationCard.vue'
 import FieldDefaultsCard from './FieldDefaultsCard.vue'
+import InheritedFieldsCard from './InheritedFieldsCard.vue'
+import InheritedSettingsCard, {type InheritedSetting} from './InheritedSettingsCard.vue'
+import {entryOf} from '../eventshared/eventQuestions'
 import RegistrationFieldsEditor from '../eventshared/RegistrationFieldsEditor.vue'
-
-interface FieldDefaultEntry {
-  source: string
-  value: string
-}
+import type {FieldDefaultValue} from './useEventFieldDefaults'
 
 const props = defineProps<{
   isEdit: boolean
@@ -46,10 +47,16 @@ const props = defineProps<{
   allMembers: MemberLike[]
   groupMembers: Map<number, MemberLike[]>
   currentTemplateFields: AttendanceTemplateField[]
-  fieldDefaults: Map<number, FieldDefaultEntry>
+  fieldDefaults: Map<number, FieldDefaultValue>
   partners: PartnerResponse[]
   /** What the share card says about an applied template's share it could not take over as it was. */
   federationNote?: string
+  /** Whether the appointment is a part of an event group, which owns its sign-up, audiences and sharing. */
+  eventGroupPart?: boolean
+  /** The fields the appointment takes over from its event group. */
+  inheritedFields?: AppointmentField[]
+  /** The date settings the appointment takes over from its event group. */
+  inheritedSettings?: EventGroupSettings | null
 }>()
 
 const emit = defineEmits<{
@@ -92,6 +99,29 @@ const federationPlaces = defineModel<Record<number, {decides: boolean; budget: n
 const {t} = useI18n()
 
 const canSubmit = computed(() => !props.saving && !!name.value && !!startTime.value && !!endTime.value)
+
+/**
+ * Copies a date setting of the event group into the appointment's own, which then replaces it here.
+ * Taking over the attendance template takes its pre-fills along, since they belong to that template.
+ */
+function overrideSetting(setting: InheritedSetting) {
+  const inherited = props.inheritedSettings
+  if (!inherited) return
+  if (setting === 'category' && inherited.categoryId != null) categoryId.value = String(inherited.categoryId)
+  if (setting === 'reminders') reminders.value = [...inherited.reminderDays]
+  if (setting === 'template' && inherited.templateId != null) {
+    templateId.value = String(inherited.templateId)
+    for (const entry of inherited.fieldDefaults) {
+      emit('update:fieldDefaultSource', entry.fieldId, entry.source)
+      emit('update:fieldDefaultValue', entry.fieldId, entry.value ?? '')
+    }
+  }
+}
+
+/** Copies a field of the event group into the appointment's own fields, which then replaces it here. */
+function override(field: AppointmentField) {
+  fields.value = [...fields.value, entryOf(field)]
+}
 </script>
 
 <template>
@@ -131,9 +161,29 @@ const canSubmit = computed(() => !props.saving && !!name.value && !!startTime.va
       :tags="props.tags"
       :all-members="props.allMembers"
       :group-members="props.groupMembers"
+      :event-group-part="props.eventGroupPart"
+  />
+
+  <InheritedFieldsCard
+      v-if="props.eventGroupPart"
+      :inherited="props.inheritedFields ?? []"
+      :own="fields"
+      @override="override"
+  />
+
+  <InheritedSettingsCard
+      v-if="props.eventGroupPart && props.inheritedSettings"
+      :settings="props.inheritedSettings"
+      :categories="props.categories"
+      :templates="props.templates"
+      :own-category-id="categoryId"
+      :own-template-id="templateId"
+      :own-reminders="reminders"
+      @override="overrideSetting"
   />
 
   <FederationCard
+      v-if="!props.eventGroupPart"
       v-model:shared="federationShared"
       v-model:scope="federationScope"
       v-model:partner-ids="federationPartnerIds"
@@ -151,7 +201,7 @@ const canSubmit = computed(() => !props.saving && !!name.value && !!startTime.va
       @update:value="(fieldId, value) => emit('update:fieldDefaultValue', fieldId, value)"
   />
 
-  <RegistrationFieldsEditor v-if="requiresRegistration" v-model="registrationFields" :all-members="props.allMembers"/>
+  <RegistrationFieldsEditor v-if="requiresRegistration && !props.eventGroupPart" v-model="registrationFields" :all-members="props.allMembers"/>
 
   <ButtonRow pair align="end">
     <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>

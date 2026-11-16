@@ -139,8 +139,11 @@ class EventAttachmentServiceTest extends RepositoryTestBase {
     void anInternalFileIsRefusedToWhoeverTheListKeepsItFrom() {
         int internal = attachInternal();
 
-        assertTrue(service.findReadable(internal, CREW).isPresent());
-        assertEquals(Optional.empty(), service.findReadable(internal, ROOM), "asking by id says no more than the list");
+        assertTrue(service.findReadableOn(event.id(), internal, CREW).isPresent());
+        assertEquals(
+                Optional.empty(),
+                service.findReadableOn(event.id(), internal, ROOM),
+                "asking by id says no more than the list");
     }
 
     /** What leaves the station carries the open files and never what the event keeps back. */

@@ -5,27 +5,28 @@
  */
 package dev.chojo.ember.feature.messages.service;
 
-import dev.chojo.ember.api.refusal.Refusal;
-import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.messages.entity.MessageEvent;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import org.junit.jupiter.api.function.Executable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * The people message tests write between: stations, accounts and memberships on the test
  * database, each with a name of its own so classes never meet, and the message services on top.
  */
 public abstract class MessageTestBase extends RepositoryTestBase {
+
+    /** The member identity factory the test database is set up with, for fixtures outside a test. */
+    static MemberIdentityFactory identities() {
+        return memberIdentityFactory;
+    }
+
     private static final AtomicInteger SEQUENCE = new AtomicInteger();
 
     /** A station of its own. */
@@ -56,11 +57,6 @@ public abstract class MessageTestBase extends RepositoryTestBase {
     /** Makes one member the guardian of another. */
     protected static void guard(StationMember guardian, StationMember child) {
         stationMemberRepo.addManager(guardian.id(), child.id());
-    }
-
-    /** Asserts that the action is refused with exactly this refusal. */
-    protected static void assertRefused(Refusal expected, Executable action) {
-        assertEquals(expected, assertThrows(RefusalResponse.class, action).refusal());
     }
 
     /** A stream that keeps what it is sent. */

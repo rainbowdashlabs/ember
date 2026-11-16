@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.signing.service;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
-import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.documents.repository.SealedVersionRepository;
@@ -81,7 +80,6 @@ import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.api.io.TempDir;
 import org.postgresql.util.PSQLException;
 
@@ -2033,10 +2031,6 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
 
     private static String email() {
         return "signing-" + NAMES.incrementAndGet() + "-" + System.nanoTime() + "@test.com";
-    }
-
-    private static void assertRefused(Refusal refusal, Executable call) {
-        assertEquals(refusal, assertThrows(RefusalResponse.class, call).refusal());
     }
 
     private static void assertGuarded(String sql) {

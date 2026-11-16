@@ -269,8 +269,22 @@ public class RemoteEventRoutes implements Routes {
             LocalDate from,
             @Nullable LocalDate until) {}
 
+    /**
+     * A comment one of the partner's members writes on a shared appointment or event group.
+     *
+     * @param remoteMemberUid the member, by the id their own station gave them
+     * @param displayName     the name to show for them
+     * @param parentId        the comment answered, or null for a new thread
+     * @param content         the comment
+     * @param eventDate       the date of the appointment the comment is about, or null for the whole
+     *                        appointment and always for an event group
+     */
     public record RemoteCommentRequest(
-            UUID remoteMemberUid, String displayName, Integer parentId, String content, String eventDate) {}
+            UUID remoteMemberUid,
+            String displayName,
+            @Nullable Integer parentId,
+            String content,
+            @Nullable String eventDate) {}
 
     public record RemoteCommentUpdateRequest(UUID remoteMemberUid, String content) {}
 

@@ -120,7 +120,7 @@ class EventRegistrationFieldServiceTest extends RepositoryTestBase {
             Integer max,
             boolean managersOnly) {
         return new EventQuestionSettings(
-                options, null, null, null, null, false, false, required, defaultValue, min, max, managersOnly);
+                options, null, null, null, null, false, false, required, defaultValue, min, max, managersOnly, null);
     }
 
     private static int fieldId(String name) {

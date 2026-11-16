@@ -10,7 +10,6 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.messages.entity.ChatAudience;
 import dev.chojo.ember.feature.messages.entity.Conversation;
 import dev.chojo.ember.feature.messages.entity.StationDigest;
 import dev.chojo.ember.feature.messages.repository.ConversationRepository;
@@ -166,8 +165,7 @@ class MessageDigestMailTest extends MessageTestBase {
 
     @Test
     void stationChatsGiveMentionsByDefaultAndEverythingOnRequest() {
-        Conversation chat =
-                services.stationChats().open(station.id(), mia.id(), "Alle", ChatAudience.STATION, null, null, false);
+        Conversation chat = services.stationChats().open(station.id(), mia.id(), "Alle", null, false);
         services.messages().send(anna.id(), chat.uid(), "Allgemeines", null);
         services.messages().send(anna.id(), chat.uid(), "Frage an @[account/%s:Ben Muster]".formatted(ben.uid()), null);
         services.settings().update(mia.id(), null, StationDigest.ALL);
@@ -218,8 +216,7 @@ class MessageDigestMailTest extends MessageTestBase {
 
     @Test
     void aStationChatSomebodyWasTakenOutOfSendsThemNothing() {
-        Conversation chat =
-                services.stationChats().open(station.id(), mia.id(), "Alle", ChatAudience.STATION, null, null, false);
+        Conversation chat = services.stationChats().open(station.id(), mia.id(), "Alle", null, false);
         services.settings().update(ben.id(), null, StationDigest.ALL);
         stationMemberRepo.setFormer(member(ben).id(), true);
         services.membership().reconcile(station.id());

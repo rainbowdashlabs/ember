@@ -116,7 +116,18 @@ class EventTemplateCarriedRoutesTest {
 
     private static EventAttachment attachmentOf(int id, int templateId) {
         return new EventAttachment(
-                id, templateId, 5, null, false, 0, Instant.EPOCH, "plan.pdf", "application/pdf", 10, "0".repeat(64));
+                id,
+                templateId,
+                5,
+                null,
+                false,
+                0,
+                Instant.EPOCH,
+                "plan.pdf",
+                "application/pdf",
+                10,
+                "0".repeat(64),
+                false);
     }
 
     @Test

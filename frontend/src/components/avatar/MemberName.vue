@@ -7,7 +7,7 @@
 import UserAvatar from './UserAvatar.vue'
 import MemberCardTrigger from './MemberCardTrigger.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
-import DisplayTagBadge from '@/components/badge/DisplayTagBadge.vue'
+import ColoredName from './ColoredName.vue'
 import BareButton from '@/components/button/BareButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {PersonIdentity} from '@/util/personIdentity'
@@ -64,11 +64,12 @@ const opensCard = computed(() =>
     </BareButton>
     <UserAvatar v-else :identity="identity" :name="displayName" :size="size"/>
     <span class="inline-flex min-w-0 flex-col">
-      <span class="inline-flex min-w-0 items-center gap-1.5">
-        <span data-testid="member-name" class="truncate" :style="identity?.nameColor ? { color: identity.nameColor } : {}"><slot>{{ displayName }}</slot></span>
-        <DisplayTagBadge v-if="identity?.displayTag" :tag="identity.displayTag"/>
-        <StationBadge v-if="isExternal && identity?.name" :station-name="identity?.stationName ?? ''" />
-      </span>
+      <ColoredName :name-color="identity?.nameColor" :display-tag="identity?.displayTag">
+        <slot>{{ displayName }}</slot>
+        <template #after>
+          <StationBadge v-if="isExternal && identity?.name" :station-name="identity?.stationName ?? ''" />
+        </template>
+      </ColoredName>
       <MutedText v-if="detail" data-testid="member-detail" class="truncate font-normal">{{ detail }}</MutedText>
     </span>
   </MemberCardTrigger>

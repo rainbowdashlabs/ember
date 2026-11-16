@@ -18,9 +18,11 @@ import dev.chojo.ember.feature.equipment.service.EquipmentReleaseService;
 import dev.chojo.ember.feature.events.entity.PickerEvent;
 import dev.chojo.ember.feature.events.entity.PickerMode;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -37,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Owns the lifecycle of station events: lookups, creation, updates and deletion, including the
@@ -51,6 +54,10 @@ public class EventCrudService {
     private final EquipmentReleaseService equipmentRelease;
     private final RestrictionService restrictionService;
     private final AttendanceTemplateGuards attendanceTemplateGuards;
+    private final EventGroupRepository eventGroups;
+    private EventGroupPartDeparture departure = EventGroupPartDeparture.NONE;
+
+    private static final Runnable NOTHING_MORE = () -> {};
 
     @Inject
     public EventCrudService(
@@ -58,12 +65,14 @@ public class EventCrudService {
             DomainEventBus eventBus,
             EquipmentReleaseService equipmentRelease,
             RestrictionService restrictionService,
-            AttendanceTemplateGuards attendanceTemplateGuards) {
+            AttendanceTemplateGuards attendanceTemplateGuards,
+            EventGroupRepository eventGroups) {
         this.eventRepository = eventRepository;
         this.eventBus = eventBus;
         this.equipmentRelease = equipmentRelease;
         this.restrictionService = restrictionService;
         this.attendanceTemplateGuards = attendanceTemplateGuards;
+        this.eventGroups = eventGroups;
     }
 
     /**
@@ -294,6 +303,9 @@ public class EventCrudService {
     /**
      * Updates a station event and returns the refreshed entity if the update was successful.
      *
+     * <p>A part of an event group keeps the sign-up the event group gives it: its sign-up settings, limit and
+     * minimum are left as they are whatever is sent, and it stays a one-time appointment.
+     *
      * @param id                   the event ID
      * @param name                 the new event name
      * @param description          the new description
@@ -328,33 +340,55 @@ public class EventCrudService {
             @Nullable Integer registrationCloseDays) {
         requireUsableSpan(startTime, endTime, EventRefusal.EVENT_ENDS_BEFORE_IT_STARTS_ON_CHANGE);
         attendanceTemplateGuards.requireOpenForNewWork(templateId);
-        var before = eventRepository.findById(id).orElse(null);
-        if (eventRepository.update(
-                id,
-                name,
-                description,
-                eventType,
-                dayOfWeek,
-                startTime,
-                endTime,
-                templateId,
-                requiresRegistration,
-                registrationDeadline,
-                requiresConfirmation,
-                categoryId,
-                isPublic,
-                registrationLimit,
-                minRegistrations,
-                thresholdDays,
-                registrationCloseDays)) {
+        var stored = new AtomicReference<StationEvent>();
+        boolean updated = Transactions.call(() -> {
+            eventRepository.lockForSignUp(id);
+            var before = eventRepository.findById(id).orElse(null);
+            stored.set(before);
+            boolean part = before != null && eventRepository.isEventGroupPart(id);
+            if (part && eventType != StationEvent.EventType.ONE_TIME) {
+                throw EventRefusal.EVENT_GROUP_PART_STAYS_ONE_TIME.raise();
+            }
+            return eventRepository.update(
+                    id,
+                    name,
+                    description,
+                    eventType,
+                    dayOfWeek,
+                    startTime,
+                    endTime,
+                    templateId,
+                    part ? before.requiresRegistration() : requiresRegistration,
+                    part ? before.registrationDeadline() : registrationDeadline,
+                    part ? before.requiresConfirmation() : requiresConfirmation,
+                    categoryId,
+                    isPublic,
+                    part ? before.registrationLimit() : registrationLimit,
+                    part ? before.minRegistrations() : minRegistrations,
+                    part ? before.thresholdDays() : thresholdDays,
+                    part ? before.registrationCloseDays() : registrationCloseDays);
+        });
+        if (updated) {
             log.info("Updated event {}", id);
             var after = eventRepository.findById(id);
+            var before = stored.get();
             after.filter(event -> before != null)
                     .ifPresent(event -> eventBus.publish(new EventChanged(event.stationId(), before, event)));
             return after;
         }
         log.warn("Cannot update event: event {} not found", id);
         return Optional.empty();
+    }
+
+    /**
+     * Whether an appointment is a part of an event group, whose sign-up, audiences and sharing the event group
+     * decides.
+     *
+     * @param id the appointment
+     * @return true for a part
+     */
+    public boolean isEventGroupPart(int id) {
+        return eventRepository.isEventGroupPart(id);
     }
 
     /**
@@ -418,7 +452,8 @@ public class EventCrudService {
     }
 
     /**
-     * Deletes a station event by ID.
+     * Deletes a station event by ID. Where it was a part of an event group whose set asked for every
+     * one of its parts, the set asks for all it still holds afterwards.
      *
      * @param id the event ID
      * @return true if the event was deleted
@@ -430,13 +465,48 @@ public class EventCrudService {
             return false;
         }
         equipmentRelease.release(id, event.stationId());
-        if (eventRepository.delete(id)) {
+        var afterLeaving = deleteKeepingSetMinimum(id);
+        if (afterLeaving != null) {
+            afterLeaving.run();
             log.info("Deleted event {} for station {}", id, event.stationId());
             eventBus.publish(new EventDeleted(event.stationId(), id, event.name()));
             return true;
         }
         log.warn("Failed to delete event {}", id);
         return false;
+    }
+
+    /**
+     * Deletes an appointment in one transaction with the minimum of the event group set it was a part
+     * of, under the event group's lock (taken before the appointment's row, the order adding a part
+     * takes), so a minimum changed at the same moment cannot end up asking for a part that is gone. A part
+     * leaving its event group this way lets go of the event group's documents on it, as one taken out does.
+     *
+     * @return what to run once the appointment is gone, or null where it was not deleted
+     */
+    private @Nullable Runnable deleteKeepingSetMinimum(int id) {
+        return Transactions.call(() -> {
+            var part = eventGroups.findPart(id);
+            if (part.isEmpty()) return eventRepository.delete(id) ? NOTHING_MORE : null;
+            eventGroups.lockEventGroup(part.get().eventGroupId());
+            var locked = eventGroups.findPart(id);
+            Runnable leaving = locked.map(left -> departure.leaving(left.eventGroupId(), id))
+                    .orElse(NOTHING_MORE);
+            if (!eventRepository.delete(id)) return null;
+            locked.ifPresent(left -> eventGroups.capMinimum(left.setId()));
+            return leaving;
+        });
+    }
+
+    /**
+     * Who is told when a part leaves its event group by being deleted, for the documents the event group
+     * asks for. Without it, nothing else happens.
+     *
+     * @param departure what runs as a part leaves
+     */
+    @Inject
+    public void tellOnDeparture(EventGroupPartDeparture departure) {
+        this.departure = departure;
     }
 
     /**

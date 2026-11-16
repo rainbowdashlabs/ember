@@ -7,6 +7,9 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import TextInput from '@/components/input/text/TextInput.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import type {EventFieldEntry} from '@/api/generated/schema'
 import {emptySettings} from './eventQuestions'
 
@@ -22,6 +25,13 @@ const settings = computed(() => question.value.config ?? emptySettings())
 </script>
 
 <template>
+  <div class="space-y-1">
+    <FieldLabel>{{ t('events.registrationFields.description') }}</FieldLabel>
+    <TextInput :model-value="settings.description ?? ''" data-testid="registration-question-description"
+               :placeholder="t('events.registrationFields.descriptionPlaceholder')"
+               @update:model-value="description => question = {...question, config: {...settings, description: String(description ?? '') || undefined}}"/>
+    <MutedText tag="p" class="text-xs">{{ t('events.registrationFields.descriptionHint') }}</MutedText>
+  </div>
   <div class="flex flex-wrap gap-6">
     <label class="flex items-center gap-2 text-sm">
       <ToggleInput :model-value="question.overview ?? false"

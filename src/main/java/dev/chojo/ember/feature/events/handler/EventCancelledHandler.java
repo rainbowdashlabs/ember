@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.events.handler;
 
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.EventCancelled;
+import dev.chojo.ember.feature.events.entity.EventGroup;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
@@ -34,15 +36,18 @@ public class EventCancelledHandler implements DomainEventHandler<EventCancelled>
     private final Notifier notifier;
     private final EventRegistrationRepository registrationRepository;
     private final OccurrenceCalendar occurrenceCalendar;
+    private final EventGroupRepository eventGroupRepository;
 
     @Inject
     public EventCancelledHandler(
             Notifier notifier,
             EventRegistrationRepository registrationRepository,
-            OccurrenceCalendar occurrenceCalendar) {
+            OccurrenceCalendar occurrenceCalendar,
+            EventGroupRepository eventGroupRepository) {
         this.notifier = notifier;
         this.registrationRepository = registrationRepository;
         this.occurrenceCalendar = occurrenceCalendar;
+        this.eventGroupRepository = eventGroupRepository;
     }
 
     @Override
@@ -52,6 +57,7 @@ public class EventCancelledHandler implements DomainEventHandler<EventCancelled>
 
     @Override
     public void handle(EventCancelled event) {
+        if (partOfCancelledEventGroup(event.eventId())) return;
         var placeHolders = placeHolders(event);
         if (placeHolders.isEmpty()) return;
         LocalDate eventDate = event.eventDate();
@@ -66,6 +72,15 @@ public class EventCancelledHandler implements DomainEventHandler<EventCancelled>
                                 event.eventName(), event.reason(), event.eventDate(), event.cause()),
                         link),
                 Delivery.EVERY_TIME);
+    }
+
+    /** A part of an event group called off as a whole, whose people the event group tells once. */
+    private boolean partOfCancelledEventGroup(int eventId) {
+        return eventGroupRepository
+                .findPart(eventId)
+                .flatMap(part -> eventGroupRepository.findById(part.eventGroupId()))
+                .map(EventGroup::cancelled)
+                .orElse(false);
     }
 
     private List<Integer> placeHolders(EventCancelled event) {

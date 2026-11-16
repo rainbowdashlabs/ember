@@ -103,7 +103,8 @@ class RegistrationAnswerReminderTest extends RepositoryTestBase {
         return new RegistrationFieldDraft(
                 name,
                 FieldType.TEXT,
-                new EventQuestionSettings(null, null, null, null, null, false, false, true, null, null, null, false),
+                new EventQuestionSettings(
+                        null, null, null, null, null, false, false, true, null, null, null, false, null),
                 true);
     }
 
@@ -111,7 +112,8 @@ class RegistrationAnswerReminderTest extends RepositoryTestBase {
         return new RegistrationFieldDraft(
                 name,
                 FieldType.TEXT,
-                new EventQuestionSettings(null, null, null, null, null, false, false, false, null, null, null, false),
+                new EventQuestionSettings(
+                        null, null, null, null, null, false, false, false, null, null, null, false, null),
                 true);
     }
 

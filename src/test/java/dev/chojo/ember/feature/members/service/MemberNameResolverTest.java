@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -14,6 +15,7 @@ import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -36,6 +38,7 @@ class MemberNameResolverTest {
     private FederationRepository federationRepository;
     private StationRepository stationRepository;
     private MemberNameResolver resolver;
+    private MemberGroupService groupService;
 
     @BeforeEach
     void setup() {
@@ -50,8 +53,36 @@ class MemberNameResolverTest {
                 eventFederationRepository,
                 federationRepository,
                 stationRepository,
-                mock(MemberGroupService.class),
+                groupService = mock(MemberGroupService.class),
                 mock(UserTagService.class));
+    }
+
+    /**
+     * A group's new color reaches the names once the shown look is forgotten, and not before: the
+     * cache expires on access, so a name looked at often would otherwise keep the old color.
+     */
+    @Test
+    void aChangedGroupColorShowsOnceTheDisplaysAreForgotten() {
+        var member = new StationMember(
+                7, 1, UUID.randomUUID(), null, false, null, "Max Mustermann", StationUserType.MEMBER, null);
+        var station = mock(Station.class);
+        when(station.id()).thenReturn(1);
+        when(station.name()).thenReturn("Wache");
+        UUID stationUid = UUID.randomUUID();
+        when(stationRepository.findHereByUid(stationUid)).thenReturn(Optional.of(station));
+        when(memberService.resolveId(1, member.uid())).thenReturn(Optional.of(7));
+        when(memberService.findById(7)).thenReturn(Optional.of(member));
+        when(groupService.findGroupsForMember(7))
+                .thenReturn(List.of(new MemberGroup(3, 1, "Betreuer", "#0000ff", 0, null, List.of())));
+        var identity = new MemberIdentity(stationUid, member.uid());
+        assertEquals("#0000ff", resolver.enrichDisplay(identity).nameColor());
+
+        when(groupService.findGroupsForMember(7))
+                .thenReturn(List.of(new MemberGroup(3, 1, "Betreuer", "#ff0000", 0, null, List.of())));
+        assertEquals("#0000ff", resolver.enrichDisplay(identity).nameColor(), "still kept until forgotten");
+
+        resolver.forgetDisplays();
+        assertEquals("#ff0000", resolver.enrichDisplay(identity).nameColor());
     }
 
     @Test

@@ -26,7 +26,8 @@ import org.jspecify.annotations.Nullable;
 @JsonSubTypes({
     @JsonSubTypes.Type(value = RefusalDetail.TextDetail.class, name = "TEXT"),
     @JsonSubTypes.Type(value = RefusalDetail.CountDetail.class, name = "COUNT"),
-    @JsonSubTypes.Type(value = RefusalDetail.RoomDetail.class, name = "ROOM")
+    @JsonSubTypes.Type(value = RefusalDetail.RoomDetail.class, name = "ROOM"),
+    @JsonSubTypes.Type(value = RefusalDetail.RangeDetail.class, name = "RANGE")
 })
 public sealed interface RefusalDetail {
 
@@ -73,6 +74,17 @@ public sealed interface RefusalDetail {
     }
 
     /**
+     * The numbers a value may take, from the lowest to the highest or without an upper end.
+     *
+     * @param min the lowest allowed
+     * @param max the highest allowed, or {@code null} where there is none
+     * @return the detail
+     */
+    static RefusalDetail range(long min, @Nullable Long max) {
+        return new RangeDetail(min, max);
+    }
+
+    /**
      * The detail in English, as it is appended to the refusal's own sentence for the log and for a
      * reader whose screen has no sentence of its own for the code.
      *
@@ -116,6 +128,19 @@ public sealed interface RefusalDetail {
         @Override
         public String inEnglish() {
             return "%s free of %s".formatted(SizeParser.formatBytes(freeBytes), SizeParser.formatBytes(totalBytes));
+        }
+    }
+
+    /**
+     * The numbers a value may take.
+     *
+     * @param min the lowest allowed
+     * @param max the highest allowed, or {@code null} where there is no upper end
+     */
+    record RangeDetail(long min, @Nullable Long max) implements RefusalDetail {
+        @Override
+        public String inEnglish() {
+            return max == null ? "at least %d".formatted(min) : "%d to %d".formatted(min, max);
         }
     }
 

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
@@ -20,7 +21,8 @@ import NumberInput from '@/components/input/number/NumberInput.vue'
 import RepeatEndField from '@/views/stationview/events/eventshared/RepeatEndField.vue'
 import RegistrationFieldsEditor from '@/views/stationview/events/eventshared/RegistrationFieldsEditor.vue'
 import {emptySettings} from '@/views/stationview/events/eventshared/eventQuestions'
-import type {RegistrationFieldDefinition} from '@/api/generated/schema'
+import InheritedSettingsCard from '@/views/stationview/events/eventeditview/InheritedSettingsCard.vue'
+import type {AttendanceTemplate, EventCategory, EventGroupSettings, RegistrationFieldDefinition} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -31,6 +33,19 @@ const SHIRT_SIZE: RegistrationFieldDefinition[] = [{
   config: {...emptySettings(), options: ['S', 'M', 'L', 'XL'], required: true, defaultValue: 'M'},
   overview: true,
 }]
+
+/** What an example event group hands down: a category, an attendance sheet with one pre-fill and two reminders. */
+const GROUP_SETTINGS: EventGroupSettings = {
+  templateId: 4,
+  categoryId: 1,
+  reminderDays: [7, 1],
+  fieldDefaults: [{eventId: 3, fieldId: 9, source: 'EVENT_NAME', value: null}],
+}
+const groupCategories = computed(() => [
+  {id: 1, name: t('helpCenter.eventEdit.exampleGroupCategory')},
+  {id: 2, name: t('helpCenter.eventEdit.examplePartCategory')},
+] as EventCategory[])
+const groupTemplates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exampleGroupTemplate')}] as AttendanceTemplate[])
 </script>
 
 <template>
@@ -140,6 +155,7 @@ const SHIRT_SIZE: RegistrationFieldDefinition[] = [{
       <p>{{ t('helpCenter.eventEdit.registrationFieldsText') }}</p>
       <p>{{ t('helpCenter.eventEdit.registrationFieldsDefaults') }}</p>
       <p>{{ t('helpCenter.eventEdit.registrationFieldsOverview') }}</p>
+      <p>{{ t('helpCenter.eventEdit.registrationFieldsDescription') }}</p>
 
       <RegistrationFieldsEditor :model-value="SHIRT_SIZE" class="mt-3"/>
     </HelpSection>
@@ -196,6 +212,21 @@ const SHIRT_SIZE: RegistrationFieldDefinition[] = [{
       <HelpTip>{{ t('helpCenter.eventEdit.saveTip') }}</HelpTip>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.eventEdit.inheritedSettingsTitle')">
+      <p>{{ t('helpCenter.eventEdit.inheritedSettingsText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.inheritedFilesText') }}</p>
+      <InheritedSettingsCard
+          class="mt-3"
+          :settings="GROUP_SETTINGS"
+          :categories="groupCategories"
+          :templates="groupTemplates"
+          own-category-id="2"
+          own-template-id=""
+          :own-reminders="[]"
+      />
+    </HelpSection>
+
+    <HelpTip>{{ t('helpCenter.eventEdit.eventGroupPart') }}</HelpTip>
     <HelpTip>{{ t('helpCenter.eventEdit.tip') }}</HelpTip>
   </HelpArticle>
 </template>

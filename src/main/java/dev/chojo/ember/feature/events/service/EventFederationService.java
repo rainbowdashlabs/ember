@@ -20,7 +20,6 @@ import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.CommentResponseMapper;
 import dev.chojo.ember.feature.comment.service.CommentService;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
-import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
 import dev.chojo.ember.feature.events.entity.EventField;
@@ -29,6 +28,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -92,6 +92,9 @@ public class EventFederationService implements FederationServer {
     private final MediaLibraryService media;
     private final Api apiConfig;
 
+    private final EventGroupRepository eventGroupRepository;
+    private final EventRegistrationService registrationService;
+
     @Inject
     public EventFederationService(
             EventFederationRepository federationRepository,
@@ -108,7 +111,9 @@ public class EventFederationService implements FederationServer {
             EventFieldService fieldService,
             OccurrenceCalendar occurrenceCalendar,
             MediaLibraryService media,
-            Api apiConfig) {
+            Api apiConfig,
+            EventGroupRepository eventGroupRepository,
+            EventRegistrationService registrationService) {
         this.federationRepository = federationRepository;
         this.federationService = federationService;
         this.transport = transport;
@@ -124,6 +129,8 @@ public class EventFederationService implements FederationServer {
         this.occurrenceCalendar = occurrenceCalendar;
         this.media = media;
         this.apiConfig = apiConfig;
+        this.eventGroupRepository = eventGroupRepository;
+        this.registrationService = registrationService;
     }
 
     /**
@@ -210,6 +217,7 @@ public class EventFederationService implements FederationServer {
             int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
         var event =
                 crudService.findById(eventId).orElseThrow(EventRefusal.EVENT_NOT_HERE_FOR_PARTNER_REGISTRATION::raise);
+        registrationService.requireOwnSignUp(eventId);
         requireOpenForRegistration(event, eventDate);
         boolean somebodyChooses = event.requiresConfirmation()
                 || federationRepository.findPartnerPlaces(eventId, partnerId).partnerConfirms();
@@ -438,8 +446,8 @@ public class EventFederationService implements FederationServer {
     /**
      * What a partner has and may have on one date.
      *
-     * @param taken  how many places are filled
-     * @param budget how many it may fill, or {@code null} for no cap
+     * @param taken            how many places are filled
+     * @param budget           how many it may fill, or {@code null} for no cap
      * @param decidedByPartner whether the partner decides rather than this station
      */
     public record PartnerPlaceCount(int taken, @Nullable Integer budget, boolean decidedByPartner) {}
@@ -566,10 +574,11 @@ public class EventFederationService implements FederationServer {
      * @return each shared appointment as a partner may see it
      */
     public List<SharedEvent> serveEvents(ServingPartner partner) {
+        var eventGroups = eventGroupRepository.findPartSummaries(partner.servingStationId());
         return sharedWith(partner).stream()
                 .map(crudService::findById)
                 .flatMap(Optional::stream)
-                .map(SharedEvent::of)
+                .map(event -> SharedEvent.of(event).withEventGroup(eventGroups.get(event.id())))
                 .toList();
     }
 
@@ -592,7 +601,10 @@ public class EventFederationService implements FederationServer {
                 .toList();
         var places = partnerPlaces(eventId, partner.partnerId());
         return new RemoteEventRoutes.RemoteEventDetail(
-                SharedEvent.of(event),
+                SharedEvent.of(event)
+                        .withEventGroup(eventGroupRepository
+                                .findPartSummaries(partner.servingStationId())
+                                .get(eventId)),
                 fields,
                 places.partnerConfirms() ? new RemoteEventRoutes.RemotePlaces(places.slotBudget(), true) : null);
     }
@@ -627,8 +639,7 @@ public class EventFederationService implements FederationServer {
             ServingPartner partner, int eventId, int attachmentId) {
         requireShared(partner, eventId);
         var attachment = attachmentService
-                .find(AppointmentOwner.EVENT, attachmentId)
-                .filter(found -> found.eventId() == eventId)
+                .findOn(eventId, attachmentId)
                 .filter(found -> !found.internal())
                 .orElseThrow(EventRefusal.SHARED_EVENT_FILE_NOT_HERE::raise);
         EventAttachmentService.requireSizeToTravel(attachment.fileSize(), apiConfig.maxUploadSizeBytes());
@@ -656,6 +667,7 @@ public class EventFederationService implements FederationServer {
     private void serveWithdrawal(
             ServingPartner partner, int eventId, RemoteEventRoutes.RemoteRegistrationRequest request) {
         requireShared(partner, eventId);
+        registrationService.requireOwnSignUp(eventId);
         withdrawRegistration(eventId, partner.partnerId(), request.remoteMemberId(), request.eventDate());
     }
 
@@ -669,6 +681,7 @@ public class EventFederationService implements FederationServer {
     private void serveUndoWithdrawal(
             ServingPartner partner, int eventId, RemoteEventRoutes.RemoteRegistrationRequest request) {
         requireShared(partner, eventId);
+        registrationService.requireOwnSignUp(eventId);
         if (!undoWithdrawal(eventId, partner.partnerId(), request.remoteMemberId(), request.eventDate())) {
             throw EventRefusal.PARTNER_WITHDRAWAL_NO_LONGER_UNDONE.raise();
         }
@@ -684,6 +697,7 @@ public class EventFederationService implements FederationServer {
     private void serveConfirmOwn(
             ServingPartner partner, int eventId, RemoteEventRoutes.RemoteRegistrationRequest request) {
         requireShared(partner, eventId);
+        registrationService.requireOwnSignUp(eventId);
         if (!partnerPlaces(eventId, partner.partnerId()).partnerConfirms()) {
             throw EventRefusal.PARTNER_DOES_NOT_CONFIRM_ITS_OWN.raise();
         }
@@ -750,7 +764,7 @@ public class EventFederationService implements FederationServer {
      * Reads the optional occurrence date a comment is scoped to. Older peers omit the field
      * entirely, which keeps the comment attached to the whole event rather than one date.
      */
-    private static @Nullable LocalDate commentDay(String eventDate) {
+    private static @Nullable LocalDate commentDay(@Nullable String eventDate) {
         if (eventDate == null || eventDate.isBlank()) return null;
         try {
             return LocalDate.parse(eventDate);

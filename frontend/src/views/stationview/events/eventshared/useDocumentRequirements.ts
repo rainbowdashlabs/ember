@@ -42,7 +42,12 @@ export function useDocumentRequirements() {
         chosen.value = await appointmentDocuments.setRequirements(owner, chosen.value.map(template => template.templateId))
     }
 
-    return {offeredCount, chosen, load, takeFrom, save}
+    /** Replaces the chosen documents, for an editor that hands its list in rather than binding it. */
+    function choose(templates: RequiredTemplate[]) {
+        chosen.value = templates
+    }
+
+    return {offeredCount, chosen, load, takeFrom, save, choose}
 }
 
 /**
@@ -59,6 +64,7 @@ export function asRequired(template: DocumentTemplateSummary): RequiredTemplate 
         version: template.version,
         archived: false,
         lastUsedAt: template.lastUsedAt ?? null,
+        fromEventGroup: false,
     }
 }
 

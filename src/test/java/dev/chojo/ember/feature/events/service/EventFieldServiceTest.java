@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -43,7 +44,8 @@ class EventFieldServiceTest extends RepositoryTestBase {
                 memberEligibility,
                 eventRepo,
                 attendanceRepo,
-                eventFieldRegistrationService);
+                eventFieldRegistrationService,
+                new EventGroupRepository());
         station = stationRepo.create("EventFieldServiceStation");
 
         Instant start = Instant.now().plus(1, ChronoUnit.DAYS);

@@ -6,7 +6,6 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
@@ -76,7 +75,7 @@ const detailRoute = computed(() => ({
 </script>
 
 <template>
-  <NeutralContainer class="space-y-2" data-testid="federated-event">
+  <EventGroupTile class="space-y-2" :event-group="fed.event.eventGroup" data-testid="federated-event">
     <RowLink :to="detailRoute">
       <div class="cursor-pointer">
         <div class="flex items-center justify-between flex-wrap gap-2">
@@ -92,7 +91,7 @@ const detailRoute = computed(() => ({
     </RowLink>
 
     <EventRegistrationActions
-        v-if="fed.event.requiresRegistration"
+        v-if="fed.event.requiresRegistration && !fed.event.eventGroup"
         :people="eligibleMembers"
         :answers="answers"
         :requires-registration="true"
@@ -102,5 +101,5 @@ const detailRoute = computed(() => ({
         @register="people => emit('register', fed, people)"
         @withdraw="uid => emit('withdraw', fed, uid)"
     />
-  </NeutralContainer>
+  </EventGroupTile>
 </template>

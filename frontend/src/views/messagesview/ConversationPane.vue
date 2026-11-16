@@ -164,8 +164,12 @@ function jumpTo(messageId: number) {
   document.getElementById(`message-${messageId}`)?.scrollIntoView({behavior: 'smooth', block: 'center'})
 }
 
+const stationPeople = computed(() => Object.fromEntries((detail.value?.members ?? [])
+  .flatMap(member => member.member ? [[member.uid, member.member] as const] : [])))
+
 const actions = computed<MessageActions>(() => ({
   readerUid: readerUid.value,
+  stationPeople: stationPeople.value,
   blocked: blocked.value,
   closed: closed.value,
   reply: message => { editing.value = null; replyTo.value = message },

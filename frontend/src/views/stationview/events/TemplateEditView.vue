@@ -39,7 +39,7 @@ import {
 import {attendance, events, memberGroups as memberGroupsApi, userTags as userTagsApi} from '@/api'
 import {eventTypeNamed} from './eventeditview/eventFormState'
 import {modelBindings} from './eventeditview/modelBindings'
-import {asSaved} from './eventshared/eventQuestions'
+import {asSaved, namedEntries} from './eventshared/eventQuestions'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure} from '@/util/failure'
@@ -230,7 +230,7 @@ async function save() {
     })
     await events.setTemplateRegistrationFields(
         templateId.value,
-        registrationFields.value.filter(f => f.name?.trim()).map(asSaved),
+        namedEntries(registrationFields.value),
     )
     await documentRequirements.save({kind: 'event-templates', id: templateId.value})
   } catch (e) {

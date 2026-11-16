@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
-import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.documents.repository.SealedVersionRepository;
 import dev.chojo.ember.feature.federation.FederationTestTransport;
@@ -42,7 +41,6 @@ import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -68,7 +66,6 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -511,10 +508,6 @@ class PartnerAuthoritiesTest extends RepositoryTestBase {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-    }
-
-    private static void assertRefused(DocumentRefusal refusal, Executable call) {
-        assertEquals(refusal, assertThrows(RefusalResponse.class, call).refusal());
     }
 
     /**

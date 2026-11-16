@@ -24,7 +24,6 @@ import eu.europa.esig.dss.validation.reports.Reports;
 import io.javalin.http.UploadedFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -223,10 +222,6 @@ class SealVerifierTest extends RepositoryTestBase {
                 slots,
                 queueTime,
                 maxWaiting);
-    }
-
-    private static void assertRefused(DocumentRefusal refusal, Executable call) {
-        assertEquals(refusal, assertThrows(RefusalResponse.class, call).refusal());
     }
 
     private static Set<String> names(Enum<?>[] values) {

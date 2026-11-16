@@ -1,0 +1,478 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.feature.events.service;
+
+import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.feature.events.entity.AppointmentField;
+import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
+import dev.chojo.ember.feature.events.entity.EventFieldDraft;
+import dev.chojo.ember.feature.events.entity.EventGroup;
+import dev.chojo.ember.feature.events.entity.EventGroupContent;
+import dev.chojo.ember.feature.events.entity.EventGroupDetails;
+import dev.chojo.ember.feature.events.entity.EventGroupSet;
+import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
+import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRepository;
+import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
+import dev.chojo.ember.feature.events.repository.PartnerEventGroupSignupRepository;
+import dev.chojo.ember.feature.federation.FederationTestTransport;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
+import dev.chojo.ember.feature.federation.service.FederationHttpClient;
+import dev.chojo.ember.feature.federation.transport.ServingPartner;
+import dev.chojo.ember.feature.generator.service.EventRequirementService;
+import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.entity.StationAudience;
+import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestFederationServices;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static dev.chojo.ember.repository.EventGroupFixtures.part;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+/**
+ * A Jugendflamme event group of station A shared with station B on the same instance: B's members sign
+ * up through A's rules, and A decides and calls off as it does for its own.
+ */
+class EventGroupPartnerServiceTest extends RepositoryTestBase {
+    private static Station holder;
+    private static Station partner;
+    private static StationMember mara;
+    private static StationMember ben;
+    private static StationMember lea;
+    private static int partnerOfHolder;
+    private static final List<Integer> accounts = new ArrayList<>();
+
+    private final EventGroupRepository eventGroupRepo = new EventGroupRepository();
+    private final EventGroupPartnerRepository partnerRepo = new EventGroupPartnerRepository();
+    private final EventFederationRepository federationRegistrations = new EventFederationRepository();
+    private final PartnerEventGroupSignupRepository signedUp = new PartnerEventGroupSignupRepository();
+    private EventGroupService eventGroups;
+    private EventGroupRegistrationService signUps;
+    private EventGroupPartnerService partners;
+    private PartnerEventGroupService partnerSide;
+    private Notifier notifier;
+    private EventGroup eventGroup;
+    private int sat1;
+    private int sun1;
+    private int sat2;
+    private int test;
+
+    @BeforeAll
+    static void setup() {
+        holder = stationRepo.create("Event group Holder Station");
+        partner = stationRepo.create("Event group Partner Station");
+        var federationService = TestFederationServices.of(new FederationRepository(), stationRepo);
+        var keyPair = federationService.generateKeyPair();
+        federationService.acceptInvite(
+                holder.id(), partner.id(), federationService.encodePublicKey(keyPair), null, null);
+        partnerOfHolder = new FederationRepository()
+                .findPartnerByStationAndRemoteUid(holder.id(), partner.uid())
+                .orElseThrow()
+                .id();
+        var account = accountRepo.create("mara@partner-group.test", "Mara", "Partner");
+        accounts.add(account.id());
+        mara = stationMemberRepo.create(partner.id(), account.id());
+        var second = accountRepo.create("ben@partner-group.test", "Ben", "Partner");
+        accounts.add(second.id());
+        ben = stationMemberRepo.create(partner.id(), second.id());
+        var local = accountRepo.create("lea@holder-group.test", "Lea", "Holder");
+        accounts.add(local.id());
+        lea = stationMemberRepo.create(holder.id(), local.id());
+    }
+
+    @AfterAll
+    static void cleanup() {
+        stationRepo.delete(holder.id());
+        stationRepo.delete(partner.id());
+        accounts.forEach(accountRepo::delete);
+    }
+
+    @BeforeEach
+    void wire() {
+        var federationRepo = new FederationRepository();
+        var questions = new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility);
+        eventGroups = newEventGroupService();
+        signUps = new EventGroupRegistrationService(
+                eventGroupRepo,
+                new EventGroupRegistrationRepository(),
+                eventRegistrationRepo,
+                newEventServices(new DomainEventBus(Set.of())).registration(),
+                mock(DomainEventBus.class),
+                memberNameResolver,
+                questions,
+                newEventGroupSignUpRules());
+        var httpClient = mock(FederationHttpClient.class);
+        when(httpClient.canSign(anyInt())).thenReturn(true);
+        var transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
+        partners = new EventGroupPartnerService(
+                eventGroups,
+                newEventGroupSignUpRules(),
+                partnerRepo,
+                federationRegistrations,
+                mock(EventRequirementService.class),
+                mock(FederatedRegistrantService.class),
+                federationRepo,
+                transport.transport());
+        notifier = mock(Notifier.class);
+        partnerSide = new PartnerEventGroupService(
+                transport.transport(),
+                new FederationEntityResolver(federationRepo),
+                signedUp,
+                stationMemberRepo,
+                notifier);
+        transport.serve(new EventGroupPartnerServer(partners, eventGroups, signUps), partnerSide);
+        eventGroup = jugendflamme(null);
+    }
+
+    private EventGroup jugendflamme(Integer limit) {
+        var created = eventGroups.create(
+                holder.id(),
+                new EventGroupDetails(
+                        "Jugendflamme 1", null, limit, Instant.now().plus(Duration.ofDays(5)), false, null),
+                List.of(new EventGroupSetDraft(null, "Übung", 2), new EventGroupSetDraft(null, "Prüfung", 1)),
+                RestrictionAudience.empty(),
+                RestrictionAudience.empty(),
+                null);
+        var sets = eventGroups.findSets(created.id()).stream()
+                .collect(Collectors.toMap(EventGroupSet::name, EventGroupSet::id));
+        sat1 = part(created, sets.get("Übung"), 20).id();
+        sun1 = part(created, sets.get("Übung"), 21).id();
+        sat2 = part(created, sets.get("Übung"), 27).id();
+        test = part(created, sets.get("Prüfung"), 28).id();
+        partners.share(holder.id(), created.id(), ShareScope.ALL_PARTNERS, List.of());
+        return created;
+    }
+
+    private Set<Integer> heldParts() {
+        var signUp =
+                partnerRepo.find(eventGroup.id(), partnerOfHolder, mara.uid()).orElseThrow();
+        return partnerRepo.findLinked(signUp.id()).stream()
+                .map(EventFederationRegistration::eventId)
+                .collect(Collectors.toSet());
+    }
+
+    @Test
+    void sharingAnEventGroupSharesEveryPartAndTheOnesAddedLater() {
+        var shared = new EventFederationRepository().findSharedEventIds(partnerOfHolder, holder.id());
+        assertTrue(shared.containsAll(List.of(sat1, sun1, sat2, test)));
+
+        var later = part(
+                        eventGroup,
+                        eventGroups.findSets(eventGroup.id()).getFirst().id(),
+                        30)
+                .id();
+
+        assertTrue(new EventFederationRepository()
+                .findSharedEventIds(partnerOfHolder, holder.id())
+                .contains(later));
+        assertEquals(eventGroup.id(), partners.requireSharedWith(servedByHolder(), eventGroup.id()));
+    }
+
+    @Test
+    void anEventGroupSharedWithAllPartnersReachesThePartner() {
+        assertTrue(partnerRepo.isSharedWith(eventGroup.id(), partnerOfHolder, holder.id()));
+        assertEquals(eventGroup.id(), partners.requireSharedWith(servedByHolder(), eventGroup.id()));
+    }
+
+    @Test
+    void anEventGroupSharedWithTheNamedPartnerReachesIt() {
+        partners.share(holder.id(), eventGroup.id(), ShareScope.SPECIFIC, List.of(partnerOfHolder));
+
+        assertEquals(eventGroup.id(), partners.requireSharedWith(servedByHolder(), eventGroup.id()));
+    }
+
+    @Test
+    void anEventGroupSharedWithOtherPartnersOrNobodyDoesNotReachThePartner() {
+        partners.share(holder.id(), eventGroup.id(), ShareScope.SPECIFIC, List.of());
+        assertFalse(partnerRepo.isSharedWith(eventGroup.id(), partnerOfHolder, holder.id()));
+        assertRefused(
+                EventRefusal.EVENT_GROUP_NOT_HERE, () -> partners.requireSharedWith(servedByHolder(), eventGroup.id()));
+
+        partners.unshare(holder.id(), eventGroup.id());
+        assertRefused(
+                EventRefusal.EVENT_GROUP_NOT_HERE, () -> partners.requireSharedWith(servedByHolder(), eventGroup.id()));
+    }
+
+    @Test
+    void anEventGroupOfAnotherStationDoesNotReachThePartner() {
+        var partnerRow = new FederationRepository()
+                .findPartnerByStationAndRemoteUid(partner.id(), holder.uid())
+                .orElseThrow();
+
+        assertRefused(
+                EventRefusal.EVENT_GROUP_NOT_HERE,
+                () -> partners.requireSharedWith(new ServingPartner(partnerRow, holder.uid()), eventGroup.id()));
+    }
+
+    @Test
+    void aSharedEventGroupWhoseViewIsRestrictedLaterDoesNotReachThePartner() {
+        var restricted = new RestrictionAudience(
+                List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), RestrictionMode.AND);
+        eventGroups.setAudiences(holder.id(), eventGroup.id(), RestrictionAudience.empty(), restricted);
+
+        assertFalse(partnerRepo.isSharedWith(eventGroup.id(), partnerOfHolder, holder.id()));
+        assertRefused(
+                EventRefusal.EVENT_GROUP_NOT_HERE, () -> partners.requireSharedWith(servedByHolder(), eventGroup.id()));
+    }
+
+    private static ServingPartner servedByHolder() {
+        var row = new FederationRepository()
+                .findPartnerByStationAndRemoteUid(holder.id(), partner.uid())
+                .orElseThrow();
+        return new ServingPartner(row, partner.uid());
+    }
+
+    @Test
+    void aPartnerMemberSignsUpThroughTheSameRules() {
+        assertRefused(
+                EventRefusal.EVENT_GROUP_CHOICE_SHORT,
+                () -> partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, test)));
+
+        var standing = partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+
+        assertEquals(RegistrationStatus.ACCEPTED, standing.status());
+        assertEquals(Set.of(sat1, sun1, test), heldParts());
+        assertTrue(signedUp.signedUp(mara.id(), holder.uid(), eventGroup.id()));
+        assertEquals(1, signUps.holding(eventGroup.id()));
+        var view = partnerSide.eventGroup(partner.id(), holder.uid(), eventGroup.id(), Map.of(mara.uid(), mara.id()));
+        assertEquals(List.of(sat1, sun1, test), view.standings().getFirst().parts());
+        assertEquals(4, view.parts().size());
+    }
+
+    @Test
+    void aFullEventGroupRefusesAPartnerMemberAsWell() {
+        eventGroup = jugendflamme(1);
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+
+        assertRefused(
+                EventRefusal.EVENT_GROUP_FULL,
+                () -> partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), ben, Set.of(sat1, sun1, test)));
+    }
+
+    @Test
+    void partsAreChangedAndTheSignUpWithdrawn() {
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+
+        partnerSide.changeParts(partner.id(), holder.uid(), eventGroup.id(), mara.uid(), Set.of(sun1, sat2, test));
+        assertEquals(Set.of(sun1, sat2, test), heldParts());
+
+        partnerSide.withdraw(partner.id(), holder.uid(), eventGroup.id(), mara);
+        assertEquals(Set.of(), heldParts());
+        assertEquals(
+                RegistrationStatus.WITHDRAWN,
+                partnerRepo
+                        .find(eventGroup.id(), partnerOfHolder, mara.uid())
+                        .orElseThrow()
+                        .status());
+        assertTrue(federationRegistrations.findRegistrations(sat2, null).stream()
+                .allMatch(registration -> registration.status() == RegistrationStatus.WITHDRAWN));
+        assertFalse(signedUp.signedUp(mara.id(), holder.uid(), eventGroup.id()));
+        assertEquals(0, signUps.holding(eventGroup.id()));
+    }
+
+    @Test
+    void theHolderDecidesAPartnerSignUpWithEveryPart() {
+        eventGroups.update(
+                holder.id(),
+                eventGroup.id(),
+                new EventGroupDetails(
+                        "Jugendflamme 1", null, null, Instant.now().plus(Duration.ofDays(5)), true, null));
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        var signUp =
+                partnerRepo.find(eventGroup.id(), partnerOfHolder, mara.uid()).orElseThrow();
+        assertEquals(RegistrationStatus.PENDING, signUp.status());
+
+        partners.decide(holder.id(), eventGroup.id(), signUp.id(), RegistrationStatus.ACCEPTED);
+
+        assertTrue(partnerRepo.findLinked(signUp.id()).stream()
+                .allMatch(registration -> registration.status() == RegistrationStatus.ACCEPTED));
+        assertEquals(1, partners.signUps(holder.id(), eventGroup.id()).size());
+    }
+
+    @Test
+    void callingTheEventGroupOffTellsThePartnerMembersItSignedUp() {
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+
+        partners.tellCancelled(eventGroup.id(), eventGroup.details().name(), "Unwetter");
+
+        verify(notifier).notify(any(), eq(NotificationType.EVENT_CANCELLED), any(), any());
+    }
+
+    @Test
+    void aSharedEventGroupWhoseAudienceNamesAnybodyIsNotShared() {
+        var restricted = new RestrictionAudience(
+                List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), RestrictionMode.AND);
+        eventGroups.setAudiences(holder.id(), eventGroup.id(), RestrictionAudience.empty(), restricted);
+
+        assertRefused(
+                EventRefusal.RESTRICTED_EVENT_NOT_SHARED,
+                () -> partners.share(holder.id(), eventGroup.id(), ShareScope.ALL_PARTNERS, List.of()));
+    }
+
+    @Test
+    void theShareReadsBackWithItsNamedPartnersUntilItEnds() {
+        partners.share(holder.id(), eventGroup.id(), ShareScope.SPECIFIC, List.of(partnerOfHolder));
+
+        var share = partners.findShare(holder.id(), eventGroup.id()).orElseThrow();
+        assertEquals(ShareScope.SPECIFIC, share.scope());
+        assertEquals(List.of(partnerOfHolder), share.partnerIds());
+
+        partners.unshare(holder.id(), eventGroup.id());
+        assertTrue(partners.findShare(holder.id(), eventGroup.id()).isEmpty());
+    }
+
+    @Test
+    void anEventGroupNotSharedWithThePartnerIsNotThere() {
+        partners.share(holder.id(), eventGroup.id(), ShareScope.SPECIFIC, List.of());
+
+        assertRefused(
+                EventRefusal.EVENT_GROUP_NOT_HERE,
+                () -> partnerSide.eventGroup(
+                        partner.id(), holder.uid(), eventGroup.id(), Map.of(mara.uid(), mara.id())));
+        assertRefused(
+                EventRefusal.EVENT_GROUP_NOT_HERE,
+                () -> partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test)));
+    }
+
+    @Test
+    void aMemberHoldingAPlaceStillWithdrawsAfterTheShareEnded() {
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        partners.unshare(holder.id(), eventGroup.id());
+
+        assertFalse(new EventFederationRepository()
+                .findSharedEventIds(partnerOfHolder, holder.id())
+                .contains(sat1));
+        partnerSide.withdraw(partner.id(), holder.uid(), eventGroup.id(), mara);
+        assertEquals(0, signUps.holding(eventGroup.id()));
+    }
+
+    @Test
+    void theCancelNoticeReachesOnlyMembersThePartnerStationSignedUp() {
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        partnerRepo.signUp(eventGroup.id(), partnerOfHolder, ben.uid(), RegistrationStatus.ACCEPTED);
+
+        partners.tellCancelled(eventGroup.id(), eventGroup.details().name(), null);
+
+        verify(notifier)
+                .notify(
+                        eq(StationAudience.household(List.of(mara.id()))),
+                        eq(NotificationType.EVENT_CANCELLED),
+                        any(),
+                        any());
+    }
+
+    @Test
+    void aPartnerSignUpTakesThePlaceAMemberHereWanted() {
+        eventGroup = jugendflamme(1);
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+
+        assertRefused(
+                EventRefusal.EVENT_GROUP_FULL,
+                () -> signUps.register(
+                        holder.id(), eventGroup.id(), lea.id(), Set.of(sat1, sun1, test), Map.of(), null, false));
+    }
+
+    @Test
+    void aPartLeavingTheEventGroupKeepsThePartnerPlaceAsOneOfItsOwn() {
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, sat2, test));
+
+        eventGroups.removePart(holder.id(), eventGroup.id(), sat2);
+
+        assertEquals(Set.of(sat1, sun1, test), heldParts());
+        assertTrue(federationRegistrations.findRegistrations(sat2, null).stream()
+                .anyMatch(registration -> registration.status() == RegistrationStatus.ACCEPTED));
+    }
+
+    @Test
+    void aPartnerSeesOnlyTheGroupFieldsMeantForOutsideReaders() {
+        eventGroups.save(
+                holder.id(),
+                eventGroup.id(),
+                new EventGroupDetails(
+                        eventGroup.details().name(),
+                        null,
+                        null,
+                        eventGroup.details().registrationDeadline(),
+                        false,
+                        null),
+                null,
+                null,
+                null,
+                new EventGroupContent(
+                        null,
+                        List.of(
+                                new EventFieldDraft(
+                                        null,
+                                        "Ort",
+                                        FieldType.LOCATION,
+                                        EventQuestionSettings.empty(),
+                                        "Gerätehaus",
+                                        true,
+                                        null,
+                                        true),
+                                new EventFieldDraft(
+                                        null,
+                                        "Notfallnummer",
+                                        FieldType.TEXT,
+                                        EventQuestionSettings.empty(),
+                                        "0171",
+                                        false,
+                                        null,
+                                        false))));
+
+        var view = partnerSide.eventGroup(partner.id(), holder.uid(), eventGroup.id(), Map.of(mara.uid(), mara.id()));
+
+        assertEquals(
+                List.of("Ort"),
+                view.fields().stream().map(AppointmentField::name).toList());
+    }
+
+    @Test
+    void aPartnerMemberHasToChooseTheRequiredParts() {
+        eventGroups.setRequired(holder.id(), eventGroup.id(), sat1, true);
+
+        assertRefused(
+                EventRefusal.EVENT_GROUP_CHOICE_SHORT,
+                () -> partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sun1, sat2, test)));
+
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        var view = partnerSide.eventGroup(partner.id(), holder.uid(), eventGroup.id(), Map.of(mara.uid(), mara.id()));
+        assertTrue(view.parts().stream().anyMatch(part -> part.eventId() == sat1 && part.required()));
+    }
+}

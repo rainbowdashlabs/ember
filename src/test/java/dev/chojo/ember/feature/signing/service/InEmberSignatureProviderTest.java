@@ -8,7 +8,6 @@ package dev.chojo.ember.feature.signing.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
-import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
@@ -43,7 +42,6 @@ import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
@@ -62,8 +60,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -608,9 +604,5 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
 
     private static byte[] decode(String base64Url) {
         return Base64.getUrlDecoder().decode(base64Url);
-    }
-
-    private static void assertRefused(DocumentRefusal refusal, Executable call) {
-        assertSame(refusal, assertThrows(RefusalResponse.class, call).refusal());
     }
 }
