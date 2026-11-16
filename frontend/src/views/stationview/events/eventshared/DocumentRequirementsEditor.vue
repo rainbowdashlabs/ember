@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import HintedSubHeader from '@/components/typography/HintedSubHeader.vue'
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -28,14 +29,20 @@ import {asRequired} from './useDocumentRequirements'
  */
 const chosen = defineModel<RequiredTemplate[]>({required: true})
 
-defineProps<{
+const props = defineProps<{
   /** How many templates for appointments the station offers. */
   offeredCount: number
   /** What the documents are for, where the owner is not an appointment: an event group says so in its own words. */
   hint?: string
+  /** The explanation behind a hint icon by the heading, saying that the documents can be signed in the app. */
+  compact?: boolean
 }>()
 
 const {t} = useI18n()
+
+/** The hint by the heading in compact form: what the documents are for, and that they can be signed in the app. */
+const compactHint = computed(() =>
+    (props.hint ? `${props.hint} ${t('events.documents.signInApp')}` : t('events.documents.hintSigning')))
 const {isModuleEnabled, hasPermission} = useSession()
 
 const shown = computed(() => isModuleEnabled(StationModule.DOCUMENTS) || chosen.value.length > 0)
@@ -54,8 +61,11 @@ function remove(templateId: number) {
 
 <template>
   <NeutralContainer v-if="shown" class="space-y-3" data-testid="document-requirements">
-    <SubHeader>{{ t('events.documents.title') }}</SubHeader>
-    <MutedText size="sm" tag="p">{{ hint ?? t('events.documents.hint') }}</MutedText>
+    <HintedSubHeader v-if="compact" :hint="compactHint">{{ t('events.documents.title') }}</HintedSubHeader>
+    <template v-else>
+      <SubHeader>{{ t('events.documents.title') }}</SubHeader>
+      <MutedText size="sm" tag="p">{{ hint ?? t('events.documents.hint') }}</MutedText>
+    </template>
     <MutedText v-if="offeredCount === 0" size="sm" tag="p" data-testid="document-requirements-none">
       {{ t('events.documents.noneOffered') }}
       <NuxtLink v-if="mayWriteTemplates" :to="{name: 'documents-templates'}">{{ t('events.documents.toTemplates') }}</NuxtLink>

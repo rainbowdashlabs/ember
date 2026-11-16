@@ -44,15 +44,17 @@ public final class StorageContainers {
     /** The S3 region. */
     public static final String REGION = "us-east-1";
 
-    private static final GenericContainer<?> SFTP = new GenericContainer<>(
-                    "atmoz/sftp:latest@sha256:0960390462a4441dbb63698d7c185b76a41ffcee7b78ff4adf275f3e66f9c475")
+    private static final GenericContainer<?> SFTP = new GenericContainer<>(image(
+                    "EMBER_SFTP_IMAGE",
+                    "atmoz/sftp:latest@sha256:0960390462a4441dbb63698d7c185b76a41ffcee7b78ff4adf275f3e66f9c475"))
             .withExposedPorts(22)
             .withCommand(USER + ":" + PASSWORD + ":1001:1001:share")
             .waitingFor(Wait.forListeningPort())
             .withStartupAttempts(4);
 
-    private static final GenericContainer<?> SMB = new GenericContainer<>(
-                    "dperson/samba:latest@sha256:66088b78a19810dd1457a8f39340e95e663c728083efa5fe7dc0d40b2478e869")
+    private static final GenericContainer<?> SMB = new GenericContainer<>(image(
+                    "EMBER_SMB_IMAGE",
+                    "dperson/samba:latest@sha256:66088b78a19810dd1457a8f39340e95e663c728083efa5fe7dc0d40b2478e869"))
             .withExposedPorts(445)
             .withCommand("-p", "-w", "WORKGROUP", "-u", USER + ";" + PASSWORD, "-s", SHARE + ";/tmp;yes;no;no;" + USER)
             .waitingFor(Wait.forListeningPort())
@@ -66,6 +68,22 @@ public final class StorageContainers {
             .withStartupAttempts(4);
 
     private StorageContainers() {}
+
+    /**
+     * The image a container runs: the one the variable names, or the pinned one.
+     *
+     * <p>CI loads the images from a cached archive, which keeps an image but not the digest it is pinned
+     * by, so a container asking for the digest would pull it again. There the variable names the tag
+     * the archive saved it under, the same variable the compose file reads.
+     *
+     * @param variable the environment variable that may name another image
+     * @param pinned   the image pinned by its digest
+     * @return the image to run
+     */
+    private static String image(String variable, String pinned) {
+        String named = System.getenv(variable);
+        return named == null || named.isBlank() ? pinned : named;
+    }
 
     /** The SFTP server, started. */
     public static GenericContainer<?> sftp() {

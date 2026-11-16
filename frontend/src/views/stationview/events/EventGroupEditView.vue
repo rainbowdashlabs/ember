@@ -13,14 +13,15 @@ import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import RestrictionsField from '@/components/input/RestrictionsField.vue'
+import HintedSubHeader from '@/components/typography/HintedSubHeader.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EventGroupSetsEditor from './eventgroupeditview/EventGroupSetsEditor.vue'
-import EventGroupDetailsForm from './eventgroupeditview/EventGroupDetailsForm.vue'
+import EventGroupAboutSection from './eventgroupeditview/EventGroupAboutSection.vue'
+import EventGroupSignUpFields from './eventgroupeditview/EventGroupSignUpFields.vue'
+import AudienceRestrictions from './eventshared/AudienceRestrictions.vue'
 import StartingAppointmentNotice from './eventgroupeditview/StartingAppointmentNotice.vue'
 import type {SetRow} from './eventgroupeditview/eventGroupSetRow'
 import EventGroupPartsEditor from './eventgroupeditview/EventGroupPartsEditor.vue'
@@ -28,8 +29,6 @@ import EventGroupShareCard from './eventgroupeditview/EventGroupShareCard.vue'
 import {useEventFederationShare} from './eventeditview/useEventFederationShare'
 import {eventGroupFederationPort, templateFieldDefaultsPort} from './eventeditview/eventOwnerPorts'
 import EventGroupQuestionsCard from './eventgroupeditview/EventGroupQuestionsCard.vue'
-import EventGroupFieldsCard from './eventgroupeditview/EventGroupFieldsCard.vue'
-import EventGroupDateSettingsSection from './eventgroupeditview/EventGroupDateSettingsSection.vue'
 import EventGroupFilesSection from './eventgroupeditview/EventGroupFilesSection.vue'
 import {useDocumentRequirements} from './eventshared/useDocumentRequirements'
 import type {RequirementOwner} from '@/api/appointmentDocuments'
@@ -298,36 +297,42 @@ async function save() {
     <AsyncSection :loading="loading" :failure="failure">
       <div class="space-y-6">
         <StartingAppointmentNotice v-if="startingAppointment" :name="startingAppointment.name" @drop="dropStartingAppointment"/>
-        <EventGroupTemplateStart v-if="eventGroupId == null" v-bind="fromTemplate.props.value" @apply="applyTemplate"/>
-        <EventGroupDetailsForm v-model="details" :event-group-id="eventGroupId"/>
 
-        <NeutralContainer class="space-y-3">
-          <SectionHeader>{{ t('eventGroups.sets') }}</SectionHeader>
-          <MutedText tag="p" size="sm">{{ t('eventGroups.setsHint') }}</MutedText>
-          <EventGroupSetsEditor v-model="sets" :part-counts="partCounts" :stored-minimums="storedMinimums"/>
+        <NeutralContainer sheet data-testid="event-group-form">
+          <EventGroupTemplateStart v-if="eventGroupId == null" v-bind="fromTemplate.props.value" compact @apply="applyTemplate"/>
+
+          <EventGroupAboutSection
+              v-model:details="details" v-model:fields="fields" :event-group-id="eventGroupId" :settings="dateSettings"
+              :members="members" :groups="groups" :group-members="groupMembers" :tags="tags"
+          />
+
+          <EventGroupSignUpFields v-model="details"/>
+
+          <div class="space-y-3">
+            <HintedSubHeader :hint="t('eventGroups.setsHint')">{{ t('eventGroups.sets') }}</HintedSubHeader>
+            <EventGroupSetsEditor v-model="sets" :part-counts="partCounts" :stored-minimums="storedMinimums"/>
+          </div>
+
+          <div class="space-y-3">
+            <HintedSubHeader :hint="t('eventGroups.audienceHint')">{{ t('eventGroups.audiences') }}</HintedSubHeader>
+            <AudienceRestrictions
+                v-model:registration="registration" v-model:visibility="view" :groups="groups" :tags="tags"
+                :registration-hint="t('eventGroups.registerAudienceHint')" :visibility-hint="t('eventGroups.viewAudienceHint')"
+            />
+          </div>
+
+          <EventGroupQuestionsCard v-model="questions" compact/>
+          <EventGroupFilesSection :event-group-id="eventGroupId" :requirements="requirements" compact/>
+          <EventGroupShareCard v-if="detail" :federation-share="federationShare" :can-federate="canFederate" compact/>
+
+          <div class="space-y-3">
+            <FailureAlert v-if="saveFailure" :failure="saveFailure"/>
+            <ButtonRow pair align="end">
+              <SecondaryButton :to="cancelTarget">{{ t('common.cancel') }}</SecondaryButton>
+              <SaveButton :action="save" :disabled="saving" data-testid="event-group-save"/>
+            </ButtonRow>
+          </div>
         </NeutralContainer>
-
-        <NeutralContainer class="space-y-3">
-          <SectionHeader>{{ t('eventGroups.audiences') }}</SectionHeader>
-          <MutedText tag="p" size="sm">{{ t('eventGroups.audienceHint') }}</MutedText>
-          <FieldLabel>{{ t('eventGroups.registerAudience') }}</FieldLabel>
-          <RestrictionsField v-model="registration" :groups="groups" :tags="tags"/>
-          <FieldLabel>{{ t('eventGroups.viewAudience') }}</FieldLabel>
-          <RestrictionsField v-model="view" :groups="groups" :tags="tags"/>
-        </NeutralContainer>
-
-        <EventGroupDateSettingsSection :settings="dateSettings"/>
-        <EventGroupFilesSection :event-group-id="eventGroupId" :requirements="requirements"/>
-        <EventGroupFieldsCard v-model="fields" :all-members="members" :groups="groups" :group-members="groupMembers" :tags="tags"/>
-        <EventGroupQuestionsCard v-model="questions"/>
-
-        <EventGroupShareCard v-if="detail" :federation-share="federationShare" :can-federate="canFederate"/>
-
-        <FailureAlert v-if="saveFailure" :failure="saveFailure"/>
-        <ButtonRow pair align="end">
-          <SecondaryButton :to="cancelTarget">{{ t('common.cancel') }}</SecondaryButton>
-          <SaveButton :action="save" :disabled="saving" data-testid="event-group-save"/>
-        </ButtonRow>
 
         <NeutralContainer class="space-y-3">
           <SectionHeader>{{ t('eventGroups.parts') }}</SectionHeader>

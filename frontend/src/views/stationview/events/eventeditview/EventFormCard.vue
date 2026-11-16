@@ -89,8 +89,11 @@ const reminders = defineModel<number[]>('reminders', {required: true})
         show-schedule
         show-value
     >
-      <template #after-schedule>
-        <EventReminderEditor v-model="reminders"/>
+      <template #after-fields>
+        <slot name="after-fields"/>
+      </template>
+      <template #after-description>
+        <EventReminderEditor v-model="reminders" compact/>
       </template>
     </EventFormPanel>
   </NeutralContainer>

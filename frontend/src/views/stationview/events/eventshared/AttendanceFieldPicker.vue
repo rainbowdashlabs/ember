@@ -30,6 +30,8 @@ const props = defineProps<{
   fields: AttendanceTemplateField[]
   /** The sheet fields the appointment's questions already fill in. */
   takenIds: number[]
+  /** Only the buttons, to stand in a line with the other ways of adding a field. */
+  inline?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -44,7 +46,28 @@ const available = computed(() => props.fields.filter(field => !taken.value.has(f
 </script>
 
 <template>
-  <NeutralContainer v-if="available.length > 0" class="space-y-2">
+  <template v-if="inline">
+    <SecondaryButton
+        v-for="field in available"
+        :key="field.id"
+        class="!py-1 !px-2 !text-xs"
+        :data-testid="`take-attendance-field-${field.id}`"
+        :title="`${t('eventFields.fromAttendance')} ${field.name}`"
+        @click="emit('take', field)"
+    >
+      + {{ field.name }}
+    </SecondaryButton>
+    <SecondaryButton
+        v-if="available.length > 1"
+        :icon="['fas', 'plus']"
+        class="!py-1 !px-2 !text-xs"
+        data-testid="take-all-attendance-fields"
+        @click="emit('takeAll')"
+    >
+      {{ t('eventFields.takeAllFromAttendanceSheet') }}
+    </SecondaryButton>
+  </template>
+  <NeutralContainer v-else-if="available.length > 0" class="space-y-2">
     <div class="flex items-center justify-between gap-2 flex-wrap">
       <MutedText size="sm">{{ t('eventFields.fromAttendance') }}</MutedText>
       <SecondaryButton

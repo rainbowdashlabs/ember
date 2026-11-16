@@ -68,4 +68,11 @@ describe('DateTimeInput', () => {
 
         expect(day.attributes('min')).toBe('2026-11-16')
     })
+
+    it('reads its own label out before each half', () => {
+        const {day, time} = fields(mount(DateTimeInput, {props: {modelValue: '', label: 'Beginn'}}))
+
+        expect(day.attributes('aria-label')).toBe('Beginn, Datum')
+        expect(time.attributes('aria-label')).toBe('Beginn, Uhrzeit')
+    })
 })

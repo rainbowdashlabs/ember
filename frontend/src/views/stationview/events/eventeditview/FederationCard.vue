@@ -11,6 +11,8 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FederationSharePicker from '@/components/input/FederationSharePicker.vue'
 import PartnerPlacesRow from '@/views/stationview/events/eventeditview/federationcard/PartnerPlacesRow.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import HintIcon from '@/components/typography/HintIcon.vue'
+import HintedSubHeader from '@/components/typography/HintedSubHeader.vue'
 import {ShareScope, type PartnerResponse} from '@/api/generated/schema'
 
 const props = defineProps<{
@@ -20,6 +22,8 @@ const props = defineProps<{
   hint?: string
   /** A note on the share as it was taken over from a template, shown above the picker. */
   note?: string
+  /** Without a heading: the switch says what it does, and the explanation sits behind a hint icon. */
+  compact?: boolean
 }>()
 
 const shared = defineModel<boolean>('shared', {required: true})
@@ -56,21 +60,32 @@ const {t} = useI18n()
 
 <template>
   <NeutralContainer class="space-y-2">
-    <SubHeader>{{ t('events.federation') }}</SubHeader>
-    <p class="text-xs text-(--text-muted)">{{ hint ?? t('events.federationShareHint') }}</p>
+    <template v-if="!compact">
+      <SubHeader>{{ t('events.federation') }}</SubHeader>
+      <p class="text-xs text-(--text-muted)">{{ hint ?? t('events.federationShareHint') }}</p>
+    </template>
     <p v-if="note" class="text-xs text-(--text-muted)" data-testid="federation-template-note">{{ note }}</p>
-    <FederationSharePicker
-        v-model:shared="shared"
-        v-model:scope="scope"
-        v-model:partner-ids="partnerIds"
-        :partners="partners"
-        :disabled="!canFederate"
-        :no-permission-hint="t('events.federationNoPermission')"
-    />
+    <div class="flex items-start gap-1">
+      <FederationSharePicker
+          v-model:shared="shared"
+          v-model:scope="scope"
+          v-model:partner-ids="partnerIds"
+          class="grow"
+          :partners="partners"
+          :disabled="!canFederate"
+          :no-permission-hint="t('events.federationNoPermission')"
+      />
+      <HintIcon v-if="compact" class="mt-1" :text="hint ?? t('events.federationShareHint')"/>
+    </div>
 
     <template v-if="sharedWith.length > 0">
-      <SubHeader class="pt-2">{{ t('events.partnerPlacesTitle') }}</SubHeader>
-      <MutedText tag="p" size="sm">{{ t('events.partnerPlacesHint') }}</MutedText>
+      <HintedSubHeader v-if="compact" class="pt-2" :hint="t('events.partnerPlacesHint')">
+        {{ t('events.partnerPlacesTitle') }}
+      </HintedSubHeader>
+      <template v-else>
+        <SubHeader class="pt-2">{{ t('events.partnerPlacesTitle') }}</SubHeader>
+        <MutedText tag="p" size="sm">{{ t('events.partnerPlacesHint') }}</MutedText>
+      </template>
       <div class="space-y-3">
         <PartnerPlacesRow
             v-for="entry in sharedWith"

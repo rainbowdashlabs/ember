@@ -22,6 +22,8 @@ import {useSession} from '@/composables/useSession'
 const props = defineProps<{
   eventGroupId: number | null
   requirements: ReturnType<typeof useDocumentRequirements>
+  /** Inside the event group's form: explanations behind hint icons, no heading where the control names itself. */
+  compact?: boolean
 }>()
 
 const {t} = useI18n()
@@ -44,6 +46,7 @@ function choose(chosen: RequiredTemplate[]) {
       :model-value="props.requirements.chosen.value"
       :offered-count="props.requirements.offeredCount.value"
       :hint="t('eventGroups.documentsHint')"
+      :compact="props.compact"
       @update:model-value="choose"
   />
   <AttachmentsCard
@@ -52,6 +55,7 @@ function choose(chosen: RequiredTemplate[]) {
       :station-uid="stationUid"
       :failure="attachments.failure.value"
       :hint="t('eventGroups.attachmentsHint')"
+      :compact="props.compact"
       @add="attachments.add"
       @save="attachments.save"
       @remove="attachments.remove"

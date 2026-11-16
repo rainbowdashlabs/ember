@@ -12,6 +12,8 @@ import type {useEventFederationShare} from '../eventeditview/useEventFederationS
 defineProps<{
   federationShare: ReturnType<typeof useEventFederationShare>
   canFederate: boolean
+  /** Inside the event group's form: explanations behind hint icons, no heading where the control names itself. */
+  compact?: boolean
 }>()
 
 const {t} = useI18n()
@@ -25,6 +27,7 @@ const {t} = useI18n()
       :partners="federationShare.partners.value"
       :can-federate="canFederate"
       :hint="t('eventGroups.federationHint')"
+      :compact="compact"
       @update:shared="federationShare.handlers['update:federationShared']"
       @update:scope="federationShare.handlers['update:federationScope']"
       @update:partner-ids="federationShare.handlers['update:federationPartnerIds']"

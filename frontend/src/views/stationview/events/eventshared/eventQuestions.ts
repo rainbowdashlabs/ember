@@ -117,3 +117,34 @@ export function entryOf(field: AppointmentField): EventFieldEntry {
 export function namedEntries<T extends EventQuestionDraft>(fields: T[]): T[] {
     return fields.filter(field => field.name?.trim()).map(asSaved)
 }
+
+/**
+ * Whether an organiser's question offers its answer where it is edited.
+ *
+ * <p>A question needs a name before it can be answered. One that names a member can only be answered
+ * where the members are known: the template editor knows the questions but not who is in the station,
+ * and a person is not something a template should answer with anyway.
+ *
+ * @param question    the question
+ * @param showValue   whether the editor shows answers at all
+ * @param knowsMembers whether the members of the station are known here
+ */
+export function offersFieldValue(question: EventQuestionDraft, showValue: boolean, knowsMembers: boolean): boolean {
+    return showValue
+        && (question.name ?? '').trim() !== ''
+        && (!namesMembers(question.fieldType) || knowsMembers)
+}
+
+/** A field nearly every appointment has, added with one click. */
+export interface QuickField {
+    name: string
+    overview: boolean
+    isPublic: boolean
+}
+
+/** The fields offered for one-click adding, in the order they are offered. */
+export const QUICK_FIELDS: readonly QuickField[] = [
+    {name: 'Ort', overview: true, isPublic: true},
+    {name: 'Treffpunkt', overview: true, isPublic: true},
+    {name: 'Thema', overview: true, isPublic: false},
+]

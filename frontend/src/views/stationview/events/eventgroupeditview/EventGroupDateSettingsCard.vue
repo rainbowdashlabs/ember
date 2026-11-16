@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import HintIcon from '@/components/typography/HintIcon.vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -26,6 +27,12 @@ const props = defineProps<{
   /** The fields of the chosen attendance template, which the pre-fills are for. */
   templateFields: AttendanceTemplateField[]
   fieldDefaults: Map<number, FieldDefaultValue>
+  /**
+   * Inside the event group's form: the hint behind an icon by the category, category and template in
+   * one row with whatever the form puts beside them, then what the form puts after that row before the
+   * template's pre-fills, and the reminders left to the form, which asks for them further down.
+   */
+  compact?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -42,12 +49,18 @@ const {t} = useI18n()
 
 <template>
   <NeutralContainer class="space-y-4" data-testid="event-group-date-settings">
-    <SectionHeader>{{ t('eventGroups.dateSettings') }}</SectionHeader>
-    <MutedText tag="p" size="sm">{{ t('eventGroups.dateSettingsHint') }}</MutedText>
+    <template v-if="!compact">
+      <SectionHeader>{{ t('eventGroups.dateSettings') }}</SectionHeader>
+      <MutedText tag="p" size="sm">{{ t('eventGroups.dateSettingsHint') }}</MutedText>
+    </template>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div class="grid grid-cols-1 gap-3" :class="compact ? 'sm:grid-cols-3' : 'sm:grid-cols-2'">
       <div class="space-y-1">
-        <FieldLabel>{{ t('events.category') }}</FieldLabel>
+        <div v-if="compact" class="flex items-center gap-1">
+          <FieldLabel>{{ t('events.category') }}</FieldLabel>
+          <HintIcon :text="t('eventGroups.dateSettingsHint')"/>
+        </div>
+        <FieldLabel v-else>{{ t('events.category') }}</FieldLabel>
         <SelectInput v-model="categoryId" class="w-full" data-testid="event-group-category">
           <option value="">-</option>
           <option v-for="cat in props.categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
@@ -60,7 +73,10 @@ const {t} = useI18n()
           <option v-for="tpl in props.templates" :key="tpl.id" :value="String(tpl.id)">{{ tpl.name }}</option>
         </SelectInput>
       </div>
+      <slot name="row-end"/>
     </div>
+
+    <slot name="after-row"/>
 
     <FieldDefaultsCard
         v-if="templateId && props.templateFields.length > 0"
@@ -71,6 +87,6 @@ const {t} = useI18n()
         @update:value="(fieldId, value) => emit('update:fieldDefaultValue', fieldId, value)"
     />
 
-    <EventReminderEditor v-model="reminders"/>
+    <EventReminderEditor v-if="!compact" v-model="reminders"/>
   </NeutralContainer>
 </template>

@@ -26,12 +26,14 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 - **Feldgruppen werden als Ganzes ausgewählt.** In der Liste der Profilfragen hat eine Feldgruppe ein Kästchen in ihrer Kopfzeile, das alle ihre Fragen auswählt, und die Fragen darin haben keines. Die Erklärungen auf der Seite der Mitglieder-Konfiguration stehen hinter Info-Symbolen.
 - **Unlesbare Anfragen nennen ihr Feld.** Kann der Server einen Wert nicht lesen, den eine Seite geschickt hat, nennt die Meldung jetzt das Feld, an dem er hängen blieb.
 - **Das Ende wandert mit dem Beginn.** Wird der Beginn eines Termins, eines Anwesenheitsbogens, eines Formulars oder eines Tests geändert, verschiebt sich das Ende um denselben Betrag, und die Dauer bleibt gleich. Ein Termin an einem anderen Tag braucht kein zweites geändertes Ende mehr.
+- **Der Wochentag folgt dem Beginn.** Ein wiederkehrender Termin übernimmt den Wochentag seines Beginns, bis ein anderer Wochentag gewählt wird.
 
 ### Änderungen
 
 - **Die Einführungstour gehört zu den ersten Schritten.** Die Leiste unten auf der Startseite ist weg. Der Rundgang durch die wichtigsten Bereiche ist jetzt der erste der ersten Schritte, zeigt nur eingeschaltete Bereiche und wird pro Person statt pro Browser gemerkt.
 - **Bedingungen bleiben in ihrer Gruppe.** Eine Frage in einer Feldgruppe kann nur hinter einer Frage derselben Gruppe stehen. Hängt eine bestehende Frage von einer außerhalb ihrer Gruppe ab, zeigt ihr Editor das an, und sie braucht bei der nächsten Änderung eine neue Bedingung.
 - **Geteilte Termine brauchen auf beiden Seiten diese Version.** Zwischen einer Wache auf dieser Version und einer Partnerwache auf einer älteren auf einem anderen Server funktionieren geteilte Termine, die Anmeldung dazu und ihre Kommentare nicht. Sobald beide 26.25.0 betreiben, geht es wieder.
+- **Ein aufgeräumtes Terminformular.** Termine und Terminreihen werden in einem Formular angelegt und bearbeitet, in der Reihenfolge des Ausfüllens, mit Speichern am Ende und Erklärungen hinter einem Info-Symbol. Felder von Terminen und Anwesenheitsvorlagen stehen in einer Zeile, ihre Einstellungen hinter einem Knopf.
 
 ### Fehlerbehebungen
 

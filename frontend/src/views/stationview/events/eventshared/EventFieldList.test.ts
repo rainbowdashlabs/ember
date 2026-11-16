@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {describe, expect, it} from 'vitest'
+import {defineComponent, h, reactive} from 'vue'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import EventFieldList from './EventFieldList.vue'
 import type {EventFieldEntry} from '@/api/generated/schema'
@@ -54,5 +55,48 @@ describe('EventFieldList', () => {
         const list = await mountSuspended(EventFieldList, {props: {fields, showValue: true}})
 
         expect(list.find('[data-testid="event-field-value"]').exists()).toBe(false)
+    })
+
+    it('draws one line per field in compact form, with the ways to add one below the list', async () => {
+        const list = await mountSuspended(EventFieldList, {props: {fields: twoFields(), compact: true}})
+
+        expect(list.findAll('[data-testid="question-row"]')).toHaveLength(2)
+        expect(list.find('[data-testid="question-name"]').exists()).toBe(false)
+
+        const html = list.html()
+        expect(html.indexOf('event-field-list')).toBeLessThan(html.indexOf('event-field-add-line'))
+    })
+
+    it('keeps a field\'s opened settings with it when a field before it is removed', async () => {
+        const fields: EventFieldEntry[] = [...twoFields(), {name: '', fieldType: 'TEXT', config: plain, value: '', overview: false, attendanceFieldId: null}]
+        const list = await mountSuspended(EventFieldList, {props: {fields, compact: true}})
+        expect(list.findAll('[data-testid="question-name"]')).toHaveLength(1)
+
+        await list.findAll('[data-testid="question-row-remove"]')[0]!.trigger('click')
+        await list.setProps({fields: list.emitted('update:fields')!.at(-1)![0] as EventFieldEntry[]})
+
+        expect(list.findAll('[data-testid="question-name"]')).toHaveLength(1)
+        expect(list.findAll('[data-testid="question-row-name"]').map(n => (n.element as HTMLInputElement).value)).toEqual(['Treffpunkt'])
+    })
+
+    it('keeps a line in place while it is typed into on a page holding the fields reactively', async () => {
+        const state = reactive({fields: [...twoFields(), {name: '', fieldType: 'TEXT', config: plain, value: '', overview: false, attendanceFieldId: null}] as EventFieldEntry[]})
+        const Page = defineComponent({
+            setup: () => () => h(EventFieldList, {
+                fields: state.fields,
+                compact: true,
+                'onUpdate:fields': (next: EventFieldEntry[]) => { state.fields = next },
+            }),
+        })
+        const page = await mountSuspended(Page)
+
+        const closedName = page.findAll('[data-testid="question-row-name"]')[0]!
+        const before = closedName.element
+        await closedName.setValue('Ortschaft')
+        expect(page.findAll('[data-testid="question-row-name"]')[0]!.element).toBe(before)
+
+        await page.get('[data-testid="question-name"]').setValue('N')
+        expect(page.find('[data-testid="question-name"]').exists()).toBe(true)
+        expect(state.fields.map(field => field.name)).toEqual(['Ortschaft', 'Treffpunkt', 'N'])
     })
 })

@@ -199,7 +199,7 @@ test.describe('Event templates', () => {
         const taken = await take.getAttribute('data-testid')
         await take.click()
 
-        await expect(page.getByTestId('event-field-list').getByTestId('question-name').last()).toHaveValue(offered)
+        await expect(page.getByTestId('event-field-list').getByTestId('question-row-name').last()).toHaveValue(offered)
         await expect(page.locator(`[data-testid="${taken}"]`),
             'a field already taken is not offered again').toHaveCount(0)
     })
