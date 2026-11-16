@@ -49,6 +49,7 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 - **Gleichzeitig geschaltete Module hoben sich auf.** Schalteten zwei Verwaltende kurz nacheinander verschiedene Module um, konnte die zweite Änderung die erste zurückdrehen. Jetzt ändert jeder Schalter nur sein eigenes Modul.
 - **Klarere Datums- und Zeitfelder auf dem Handy.** Auf dem Handy öffnete ein Datum mit Uhrzeit erst einen Kalender und dann eine unbeschriftete Uhr, die wie eine Abfrage des Endes wirkte. Tag und Uhrzeit haben jetzt je ein eigenes Feld mit einer eigenen Auswahl.
 - **Vergangene Termine konnten noch zugesagt werden.** Die Antwortseite einer Einladung bot auch Termine an, die schon begonnen hatten, und sie ließen sich zusagen. Jetzt stehen dort nur noch Termine, die noch bevorstehen, und eine Einladung kann keinen begonnenen Termin mehr nennen.
+- **Angebotene Termine stehen in einem Block.** In der Einladung von der Warteliste und in der Mail mit anderen Terminen stand jede Zeile eines Termins in einem eigenen Kasten, sodass Name, Tag, Uhrzeit und Ort wie einzelne Termine wirkten. Jeder angebotene Termin steht jetzt in einem Kasten.
 
 ## v26.24.2
 

@@ -14,11 +14,13 @@
       {% endif %}
       {% for appointment in appointments %}
       <ul class="notification-list">
-        <li class="notification-item"><strong>{{ appointment.appointmentName }}</strong></li>
-        {% if appointment.appointmentDate %}<li class="notification-item">Date: {{ appointment.appointmentDate }}</li>{% endif %}
-        {% if appointment.appointmentTime %}<li class="notification-item">Time: {{ appointment.appointmentTime }}</li>{% endif %}
-        {% if appointment.arrivalTime %}<li class="notification-item">Please be there by {{ appointment.arrivalTime }} so we can welcome you properly.</li>{% endif %}
-        {% if appointment.location %}<li class="notification-item">Where: {{ appointment.location }}</li>{% endif %}
+        <li class="notification-item">
+          <strong>{{ appointment.appointmentName }}</strong>
+          {% if appointment.appointmentDate %}<br>Date: {{ appointment.appointmentDate }}{% endif %}
+          {% if appointment.appointmentTime %}<br>Time: {{ appointment.appointmentTime }}{% endif %}
+          {% if appointment.arrivalTime %}<br>Please be there by {{ appointment.arrivalTime }} so we can welcome you properly.{% endif %}
+          {% if appointment.location %}<br>Where: {{ appointment.location }}{% endif %}
+        </li>
       </ul>
       {% endfor %}
       {% if appointments | length > 1 %}

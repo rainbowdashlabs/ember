@@ -123,6 +123,52 @@ class MailTemplateRendererTest {
                 .contains(one));
     }
 
+    /**
+     * Each date a waiting-list mail offers stands in one box with its name, day, time, arrival and
+     * place, rather than one box per line, which left the reader to work out which lines belonged
+     * together.
+     */
+    @ParameterizedTest(name = "{0}/{1}")
+    @CsvSource({
+        "de, waitlist-invitation.html",
+        "de, waitlist-other-dates.html",
+        "en, waitlist-invitation.html",
+        "en, waitlist-other-dates.html"
+    })
+    void eachOfferedDateStandsInOneBox(String locale, String name) {
+        var vars = new HashMap<String, Object>(VARS);
+        vars.put("message", "");
+        vars.put(
+                "appointments",
+                List.of(
+                        Map.of(
+                                "appointmentName", "Dienstabend",
+                                "appointmentDate", "12.05.2026",
+                                "appointmentTime", "18:00 - 20:00",
+                                "arrivalTime", "17:45",
+                                "location", "Feuerwache"),
+                        Map.of(
+                                "appointmentName", "Übung",
+                                "appointmentDate", "19.05.2026",
+                                "appointmentTime", "18:00 - 20:00",
+                                "arrivalTime", "",
+                                "location", "")));
+
+        String rendered = renderer.render(name, locale, vars);
+
+        var boxes = Pattern.compile("(?s)<li class=\"notification-item\">(.*?)</li>")
+                .matcher(rendered)
+                .results()
+                .map(match -> match.group(1))
+                .toList();
+        assertEquals(2, boxes.size(), "one box per offered date");
+        assertTrue(boxes.get(0).contains("Dienstabend")
+                && boxes.get(0).contains("12.05.2026")
+                && boxes.get(0).contains("17:45")
+                && boxes.get(0).contains("Feuerwache"));
+        assertTrue(boxes.get(1).contains("Übung") && boxes.get(1).contains("19.05.2026"));
+    }
+
     @Test
     void renderEscapesUserSuppliedHtmlByDefault() {
         var vars = new HashMap<>(VARS);
