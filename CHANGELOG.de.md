@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.25.1
+
+Gemeldete Chatnachrichten stehen jetzt unter Monitoring.
+
+### Änderungen
+
+- **Gemeldete Nachrichten unter Monitoring.** Die Seite mit gemeldeten Chatnachrichten ist vom eigenen Eintrag in der Seitenleiste in den Bereich Monitoring gewandert. Wer die Chats der Wache betreut, sieht sie dort ohne die übrigen Zahlen der Wache.
+
 ## v26.25.0
 
 Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die die Wache für beliebige ihrer Leute eröffnet, etwa eine Gruppe samt ihren Betreuern. Ein einzelner Termin einer Serie oder eine Serie ab einem Termin lässt sich für sich ändern, und beim Speichern können die Betroffenen benachrichtigt werden. Terminreihen wie die Jugendflamme fassen Termine in Blöcke, nehmen eine Anmeldung für alle Termine an und lassen sich mit Partnerwachen teilen. Geteilte Termine mit einer Partnerwache auf einem anderen Server brauchen auf beiden Seiten diese Version.

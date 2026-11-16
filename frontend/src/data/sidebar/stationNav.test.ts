@@ -169,15 +169,26 @@ describe('STATION_NAV', () => {
             expect(managePages(nav(manager))).toEqual(['/station/manage/chats'])
         })
 
-        it('leave the reported messages where they were', () => {
-            expect(section(nav(manager), 'message-reports')).toBeDefined()
+        function monitoringPages(nodes: NavNode[]) {
+            const monitoring = section(nodes, 'station-monitoring')
+            return monitoring ? navPages([monitoring]).map(page => page.to) : []
+        }
+
+        it('put the reported messages under monitoring, without the station figures for a chat manager', () => {
+            expect(monitoringPages(nav(manager))).toEqual(['/station/messages/reports'])
+            expect(section(nav(manager), 'message-reports'), 'no longer a page of its own').toBeUndefined()
+        })
+
+        it('keep the station figures beside the reports for an administrator', () => {
+            expect(monitoringPages(nav([StationPermission.STATION_ADMINISTRATOR, ...manager])))
+                .toEqual(expect.arrayContaining(['/station/monitoring/traffic', '/station/messages/reports']))
         })
 
         it('are gone once the instance turned messages off', () => {
             const off = resolveNav(STATION_NAV, readerWith(manager, undefined, false), key => key)
 
             expect(managePages(off)).toEqual([])
-            expect(section(off, 'message-reports')).toBeUndefined()
+            expect(monitoringPages(off)).toEqual([])
         })
 
         it('stand among the other management pages for a station manager', () => {
