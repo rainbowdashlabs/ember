@@ -114,9 +114,9 @@ function descriptionOf(field: LaidOutField): string {
 </script>
 
 <template>
-  <div class="grid grid-cols-6 gap-x-4 gap-y-3 items-start">
+  <div class="grid grid-cols-12 gap-x-4 gap-y-3 items-start">
     <template v-for="(field, index) in shown" :key="`${field.origin ?? 'STATION'}-${field.id}`">
-      <div v-if="setHeadingBefore(shown, index)" class="col-span-6 pt-2 first:pt-0" data-testid="field-set-heading">
+      <div v-if="setHeadingBefore(shown, index)" class="col-span-12 pt-2 first:pt-0" data-testid="field-set-heading">
         <SubHeader class="text-sm">{{ setHeadingBefore(shown, index) }}</SubHeader>
       </div>
       <div v-if="isSection(field)" :class="spanClass(field)" class="pt-2 first:pt-0">

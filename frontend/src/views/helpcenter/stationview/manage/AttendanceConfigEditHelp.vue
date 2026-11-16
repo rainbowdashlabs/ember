@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
@@ -17,6 +18,8 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
+import WidthField from '@/components/profilefields/WidthField.vue'
+import {FieldWidths} from '@/components/profilefields/fieldLayout'
 import UserTypesEditor from '@/views/stationview/manage/attendanceconfigedit/UserTypesEditor.vue'
 import TimeRulesEditor from '@/components/attendance/timerules/TimeRulesEditor.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
@@ -41,11 +44,11 @@ const sampleRules = [draftOf({
 })]
 
 /** Three fields of a sheet as their cards show them, each with its type and the width it is drawn at. */
-const sampleFields = [
-  {name: t('helpCenter.exampleFields.remark'), type: 'TEXT', width: 'Full'},
-  {name: t('helpCenter.exampleFields.rank'), type: 'CHOICE', width: 'Half'},
-  {name: t('helpCenter.exampleFields.arrival'), type: 'TIME', width: 'Half'},
-]
+const sampleFields = ref([
+  {name: t('helpCenter.exampleFields.remark'), type: 'TEXT', width: FieldWidths.FULL as string},
+  {name: t('helpCenter.exampleFields.rank'), type: 'CHOICE', width: FieldWidths.HALF as string},
+  {name: t('helpCenter.exampleFields.arrival'), type: 'TIME', width: FieldWidths.HALF as string},
+])
 </script>
 
 <template>
@@ -137,11 +140,8 @@ const sampleFields = [
             </div>
             <DeleteButton class="justify-self-end" disabled/>
           </div>
-          <div class="w-40 space-y-1">
-            <FieldLabel>{{ t('membersConfig.fieldWidth') }}</FieldLabel>
-            <SelectInput :model-value="sample.width" disabled>
-              <option :value="sample.width">{{ t(`membersConfig.width${sample.width}`) }}</option>
-            </SelectInput>
+          <div class="sm:w-72">
+            <WidthField v-model="sample.width"/>
           </div>
         </div>
       </div>

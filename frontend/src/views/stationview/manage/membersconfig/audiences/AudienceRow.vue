@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
-import {FieldWidths, type FieldWidthName} from '@/components/profilefields/fieldLayout'
+import {asFieldWidth, FIELD_WIDTHS} from '@/components/profilefields/fieldLayout'
 import {widthLabel} from '@/components/profilefields/fieldWidths'
 import type {EditableField} from '@/api/profileFields'
 import {isWrittenType} from '@/util/questions'
@@ -37,14 +37,14 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const widths: FieldWidthName[] = [FieldWidths.FULL, FieldWidths.HALF, FieldWidths.THIRD]
+const widths = [...FIELD_WIDTHS].reverse()
 
 /** Whether anybody writes the answer, without which expecting or locking it means nothing. */
 const written = computed(() => isWrittenType(props.field.fieldType))
 
 /** The question's own width, named so the entry that follows it reads as what it falls back to. */
 const inheritedWidth = computed(() => t('membersConfig.audiences.inherit', {
-    value: widthLabel(t, (props.field.width ?? FieldWidths.FULL) as FieldWidthName),
+    value: widthLabel(t, asFieldWidth(props.field.width)),
 }))
 
 const inheritedRequired = computed(() => t('membersConfig.audiences.inherit', {

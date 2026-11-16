@@ -1929,7 +1929,8 @@ volumes:
             typeSection: 'Überschrift - Kein Feld, sondern eine Zwischenüberschrift. Sie wird nach '
                 + 'nichts gefragt und steht in keinem Export.',
             layoutTitle: 'Felder anordnen',
-            layoutText: 'Jedes Feld hat eine Breite: ganze, halbe oder Drittel-Zeile. Schmale Felder '
+            layoutText: 'Jedes Feld hat eine Breite, die du mit einem Schieberegler einstellst: ein Viertel, ein '
+                + 'Drittel, die Hälfte, zwei Drittel, drei Viertel oder die ganze Zeile. Schmale Felder '
                 + 'stehen nebeneinander, solange eine Zeile sie fasst, sonst rutschen sie in die '
                 + 'nächste. Auf schmalen Bildschirmen steht ohnehin jedes Feld für sich. Zusammen '
                 + 'mit Überschriften wird aus einer langen Liste eine gegliederte Maske.',
@@ -3619,7 +3620,7 @@ volumes:
             fieldValueTitle: 'Standardwert',
             fieldValueText: 'Unter jedem Feld kannst du einen Standardwert hinterlegen. Er steht schon im Formular, sobald jemand einen Termin aus der Vorlage erstellt, und lässt sich dort jederzeit überschreiben. Felder, die nach einem Mitglied fragen, bekommen keinen Standardwert.',
             fieldOrderTitle: 'Reihenfolge und Breite',
-            fieldOrderText: 'Die Pfeile an einem Feld verschieben es nach oben oder unten; in dieser Reihenfolge wird später gefragt. Mit „Breite" bestimmst du, ob ein Feld eine ganze, eine halbe oder eine drittel Zeile einnimmt. Die Vorschau unter der Liste zeigt, wie das Formular dadurch aussieht.',
+            fieldOrderText: 'Die Pfeile an einem Feld verschieben es nach oben oder unten; in dieser Reihenfolge wird später gefragt. Mit dem Schieberegler „Breite" bestimmst du, ob ein Feld ein Viertel, ein Drittel, die Hälfte, zwei Drittel, drei Viertel oder die ganze Zeile einnimmt. Die Vorschau unter der Liste zeigt, wie das Formular dadurch aussieht.',
             backTitle: 'Zurück zur Liste',
             backText: 'Der Pfeil links oben bringt dich zur Vorlagenliste zurück. Ungespeicherte Änderungen gehen dabei verloren.',
             tip: 'Fülle nur aus, was wirklich immer gleich ist. Alles andere trägst du beim einzelnen Termin ein.',
@@ -5999,8 +6000,8 @@ volumes:
                 + 'Nachbereitung, nicht die Summe. Jede neue Anwesenheitsliste übernimmt die Regeln, bereits angelegte Listen '
                 + 'behalten ihre. Wird eine Gruppe oder ein Tag einer Regel gelöscht, gilt die Regel für niemanden mehr, bis du '
                 + 'neu festlegst, für wen sie gilt.',
-            widthText: 'Mit „Breite“ in der Karte eines Feldes legst du fest, ob es eine ganze, eine halbe oder eine drittel '
-                + 'Zeile einnimmt. Schmale Felder stehen nebeneinander, solange eine Zeile sie fasst. Die Vorschau unter der '
+            widthText: 'Mit dem Schieberegler „Breite“ in der Karte eines Feldes legst du fest, ob es ein Viertel, ein '
+                + 'Drittel, die Hälfte, zwei Drittel, drei Viertel oder die ganze Zeile einnimmt. Schmale Felder stehen nebeneinander, solange eine Zeile sie fasst. Die Vorschau unter der '
                 + 'Liste zeigt, wie die Sitzung dadurch aussieht; dort lässt sich ein Feld auch an der rechten Kante breiter '
                 + 'oder schmaler ziehen.',
             tip: 'Die Reihenfolge der Felder änderst du mit den Pfeilen an jeder Karte, am Rechner zusätzlich durch Ziehen am '

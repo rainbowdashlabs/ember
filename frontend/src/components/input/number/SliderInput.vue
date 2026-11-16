@@ -19,12 +19,15 @@ const props = withDefaults(defineProps<{
    * the slider carries it with `-value` appended.
    */
   id?: string
+  /** What a screen reader says for the value where the number alone means nothing, such as a width. */
+  valueText?: string
 }>(), {
   min: 0,
   max: 100,
   step: 1,
   showInput: false,
   id: undefined,
+  valueText: undefined,
 })
 
 const generatedId = useId()
@@ -40,6 +43,7 @@ const percentage = computed(() =>
     <input
         :id="sliderId"
         v-model.number="model"
+        :aria-valuetext="valueText"
         :disabled="disabled"
         :max="max"
         :min="min"
