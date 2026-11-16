@@ -51,6 +51,7 @@ function buildSettings() {
   return {
     stationRegistrationEnabled: registrationEnabled.value,
     messagesEnabled: messagesEnabled.value,
+    pushEnabled: null,
     instanceDefaultTheme: instanceDefaultTheme.value,
     instanceDefaultFeel: instanceDefaultFeel.value,
     instanceLockFeel: instanceLockFeel.value,

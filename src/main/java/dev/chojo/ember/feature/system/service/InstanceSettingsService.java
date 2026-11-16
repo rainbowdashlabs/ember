@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.station.entity.ThemeFeel;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -31,6 +32,7 @@ import java.util.List;
 public class InstanceSettingsService {
     private static final String STATION_REGISTRATION_ENABLED = "station_registration_enabled";
     private static final String MESSAGES_ENABLED = "messages_enabled";
+    private static final String PUSH_ENABLED = "push_enabled";
     private static final String FORCE_PRIDE_FLAG = "force_pride_flag";
 
     private final ApplicationSettingRepository settings;
@@ -71,6 +73,11 @@ public class InstanceSettingsService {
         return settings.getBoolean(MESSAGES_ENABLED, true);
     }
 
+    /** Whether this instance sends push messages to the browsers that allowed them. On unless switched off. */
+    public boolean pushEnabled() {
+        return settings.getBoolean(PUSH_ENABLED, true);
+    }
+
     /**
      * The look every visitor starts from, before any station or account chose one.
      */
@@ -85,6 +92,7 @@ public class InstanceSettingsService {
         return new ApplicationSettings(
                 stationRegistrationEnabled(),
                 messagesEnabled(),
+                pushEnabled(),
                 theming.defaultTheme(),
                 theming.defaultFeel().name(),
                 theming.lockFeel(),
@@ -112,6 +120,7 @@ public class InstanceSettingsService {
         changes.apply(() -> after.applyTo(theming), () -> before.applyTo(theming));
         settings.setBoolean(STATION_REGISTRATION_ENABLED, request.stationRegistrationEnabled());
         settings.setBoolean(MESSAGES_ENABLED, request.messagesEnabled());
+        if (request.pushEnabled() != null) settings.setBoolean(PUSH_ENABLED, request.pushEnabled());
         settings.setBoolean(FORCE_PRIDE_FLAG, request.forcePrideFlag());
         if (changesMailLocale) {
             settings.set(ApplicationSettingRepository.DEFAULT_MAIL_LOCALE, mailLocale);
@@ -158,12 +167,15 @@ public class InstanceSettingsService {
      * @param messagesEnabled      whether people on this instance can use messages at all
      * @param defaultMailLocale    the language system mails use for accounts with no station to
      *                             take one from
+     * @param pushEnabled          whether push messages go out; left out by a client that does not
+     *                             know the switch yet, which keeps it as it is
      * @param availableMailLocales the languages this instance holds mail templates for; read-only,
      *                             so the client can offer exactly what will work
      */
     public record ApplicationSettings(
             boolean stationRegistrationEnabled,
             boolean messagesEnabled,
+            @Nullable Boolean pushEnabled,
             String instanceDefaultTheme,
             String instanceDefaultFeel,
             boolean instanceLockFeel,

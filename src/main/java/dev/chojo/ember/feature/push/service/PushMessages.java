@@ -1,0 +1,73 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.feature.push.service;
+
+import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.notifications.service.NotificationText;
+import dev.chojo.ember.feature.push.repository.PushOutboxRepository;
+import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * What a queued push says, written when it goes out rather than when it was queued, so it is in the
+ * language and with the text that hold at that moment.
+ */
+@Singleton
+public class PushMessages {
+    private static final String SECTION = "push";
+
+    private final NotificationText text;
+    private final ApplicationSettingRepository settings;
+    private final Api api;
+
+    @Inject
+    public PushMessages(NotificationText text, ApplicationSettingRepository settings, Api api) {
+        this.text = text;
+        this.settings = settings;
+        this.api = api;
+    }
+
+    /**
+     * The push a queued row stands for.
+     *
+     * @return the push, empty when what it was about is gone and there is nothing left to say
+     */
+    public Optional<PushMessage> render(PushOutboxRepository.Due due) {
+        if ("TEST".equals(due.kind())) {
+            String locale = instanceLocale();
+            return Optional.of(new PushMessage(
+                    text.resolveLocalized(locale, SECTION, "testTitle", null),
+                    text.resolveLocalized(locale, SECTION, "testBody", null),
+                    api.baseUrl(),
+                    "test",
+                    PushMessage.DEFAULT_TTL));
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * The one push that stands in for several the rate limit held back.
+     *
+     * @param count how many it stands for
+     */
+    public PushMessage summary(int count) {
+        String locale = instanceLocale();
+        return new PushMessage(
+                text.resolveLocalized(locale, SECTION, "summaryTitle", null),
+                text.resolveLocalized(locale, SECTION, "summaryBody", Map.of("count", String.valueOf(count))),
+                api.baseUrl(),
+                "summary",
+                PushMessage.DEFAULT_TTL);
+    }
+
+    private String instanceLocale() {
+        return text.resolveLocale(settings.defaultMailLocale());
+    }
+}

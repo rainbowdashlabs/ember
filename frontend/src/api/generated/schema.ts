@@ -57440,6 +57440,174 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/push/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The key a browser subscribes to push messages with, and whether push is on */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PushKey"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/push/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The account's browsers that receive push messages */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PushDevice"][];
+                    };
+                };
+            };
+        };
+        /** Register or refresh this browser for push messages */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SubscribeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PushDevice"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/push/subscriptions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Forget one of the account's browsers */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/push/subscriptions/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a test push to one of the account's browsers */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/quiz/answers/{id}/grade": {
         parameters: {
             query?: never;
@@ -69072,6 +69240,7 @@ export interface components {
             instanceDefaultTheme: string;
             instanceLockFeel: boolean;
             messagesEnabled: boolean;
+            pushEnabled: boolean | null;
             stationRegistrationEnabled: boolean;
         };
         /** @enum {string} */
@@ -77569,6 +77738,18 @@ export interface components {
             id: number;
             name: string;
         };
+        PushDevice: {
+            createdAt: components["schemas"]["Instant"];
+            current: boolean;
+            /** Format: int32 */
+            id: number;
+            label: string;
+            lastSuccessAt: components["schemas"]["Instant"] | null;
+        };
+        PushKey: {
+            enabled: boolean;
+            publicKey: string;
+        };
         QuestionAnswerCount: {
             /** Format: int32 */
             answers: number;
@@ -80228,6 +80409,12 @@ export interface components {
         StringValue: {
             value: string;
         };
+        SubscribeRequest: {
+            auth?: string | null;
+            endpoint?: string | null;
+            label?: string | null;
+            p256dh?: string | null;
+        };
         SuggestedAnswer: {
             question: components["schemas"]["TemplateQuestion"];
             suggestion: string;
@@ -82845,6 +83032,8 @@ export type PublicVisibilityResponse = components['schemas']['PublicVisibilityRe
 export type PublicWaitlistFormResponse = components['schemas']['PublicWaitlistFormResponse'];
 export type PublicWaitlistRegistrationRequest = components['schemas']['PublicWaitlistRegistrationRequest'];
 export type PublicWaitlistSummary = components['schemas']['PublicWaitlistSummary'];
+export type PushDevice = components['schemas']['PushDevice'];
+export type PushKey = components['schemas']['PushKey'];
 export type QuestionAnswerCount = components['schemas']['QuestionAnswerCount'];
 export type QuestionBranch = components['schemas']['QuestionBranch'];
 export type QuestionColumn = components['schemas']['QuestionColumn'];
@@ -83211,6 +83400,7 @@ export type StorageQuotaPreset = components['schemas']['StorageQuotaPreset'];
 export type StoredProblem = components['schemas']['StoredProblem'];
 export type Strategy = components['schemas']['Strategy'];
 export type StringValue = components['schemas']['StringValue'];
+export type SubscribeRequest = components['schemas']['SubscribeRequest'];
 export type SuggestedAnswer = components['schemas']['SuggestedAnswer'];
 export type Suggestion = components['schemas']['Suggestion'];
 export type Summary = components['schemas']['Summary'];

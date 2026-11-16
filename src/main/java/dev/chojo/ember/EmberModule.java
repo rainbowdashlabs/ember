@@ -342,6 +342,10 @@ import dev.chojo.ember.feature.protocol.route.RemoteTestProtocolRoutes;
 import dev.chojo.ember.feature.protocol.route.TestProtocolExaminerRoutes;
 import dev.chojo.ember.feature.protocol.route.TestProtocolRoutes;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
+import dev.chojo.ember.feature.push.route.PushRoutes;
+import dev.chojo.ember.feature.push.service.OutboundPushTransport;
+import dev.chojo.ember.feature.push.service.PushSender;
+import dev.chojo.ember.feature.push.service.PushTransport;
 import dev.chojo.ember.feature.question.MemberEligibility;
 import dev.chojo.ember.feature.quiz.route.AccountAiCredentialRoutes;
 import dev.chojo.ember.feature.quiz.route.AiRoutes;
@@ -547,6 +551,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(AssociationLinkRoutes.class);
         routesBinder.addBinding().to(SessionRoutes.class);
         routesBinder.addBinding().to(AccountSessionRoutes.class);
+        routesBinder.addBinding().to(PushRoutes.class);
         routesBinder.addBinding().to(AccountPreferenceRoutes.class);
         routesBinder.addBinding().to(AvatarRoutes.class);
         routesBinder.addBinding().to(AccountDataRoutes.class);
@@ -579,6 +584,7 @@ public class EmberModule extends AbstractModule {
         bind(MemberEligibility.class).to(StationMemberEligibility.class);
         bind(CellDescriptions.PageAddressing.class).to(StationPageAddressing.class);
         bind(SignatureProvider.class).to(InEmberSignatureProvider.class);
+        bind(PushTransport.class).to(OutboundPushTransport.class);
         bind(IssuerSigning.class).to(IssuedLetterSigner.class);
         bind(DocumentStatements.class).to(TemplateDocumentStatements.class);
         bind(RequirementSignatures.class).to(RequirementSignatureStates.class);
@@ -954,6 +960,7 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(EmailService.class);
         taskSources.addBinding().to(MailWebhookService.class);
         taskSources.addBinding().to(NotificationDigest.class);
+        taskSources.addBinding().to(PushSender.class);
         taskSources.addBinding().to(MailImportPoller.class);
         taskSources.addBinding().to(AuthCleanupSweeper.class);
         taskSources.addBinding().to(ProblemReportSweeper.class);
