@@ -12393,6 +12393,8 @@ export default {
             + 'Mitglieder der Partnerwachen können sie dann sehen und sich dafür anmelden.',
     },
     eventFields: {
+        openSettings: 'Einstellungen öffnen',
+        closeSettings: 'Einstellungen schließen',
         name: 'Feldname',
         namePlaceholder: 'z.B. Treffpunkt',
         overview: 'Übersicht',
@@ -12412,6 +12414,7 @@ export default {
         attendanceLink: 'Anwesenheitsfeld',
         fromAttendance: 'Aus der Anwesenheitsvorlage übernehmen:',
         takeAllFromAttendance: 'Alle übernehmen',
+        takeAllFromAttendanceSheet: 'Alle aus der Anwesenheitsvorlage',
         value: 'Wert',
         defaultValue: 'Standardwert',
         public: 'Öffentlich',

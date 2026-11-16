@@ -4,12 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
+import {computed, toRaw} from 'vue'
 import {useI18n} from 'vue-i18n'
-import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import EventFieldRow from './EventFieldRow.vue'
+import EventFieldAddButtons from './EventFieldAddButtons.vue'
 import EventQuestionEditor from './EventQuestionEditor.vue'
 import AttendanceFieldPicker from './AttendanceFieldPicker.vue'
 import DragList from '@/components/input/DragList.vue'
@@ -23,7 +24,7 @@ import type {
   MemberGroup,
   UserTag,
 } from '@/api/generated/schema'
-import {blankQuestion, emptySettings} from './eventQuestions'
+import {blankQuestion, emptySettings, type QuickField} from './eventQuestions'
 import type {MemberLike} from '@/components/input/select/memberOption'
 
 const fields = defineModel<EventFieldEntry[]>('fields', {required: true})
@@ -41,19 +42,15 @@ const props = defineProps<{
   recurring?: boolean
   /** The kinds offered where fewer than an appointment's apply, such as on an event group. */
   offeredTypes?: readonly FieldType[]
+  /** One line per field with its settings behind a button, and the ways to add one below the list. */
+  compact?: boolean
 }>()
 
 const {t} = useI18n()
 
-const quickFields = [
-  {name: 'Ort', overview: true, isPublic: true},
-  {name: 'Treffpunkt', overview: true, isPublic: true},
-  {name: 'Thema', overview: true, isPublic: false},
-]
-
 const existingNames = computed(() => new Set(fields.value.map(f => (f.name ?? '').toLowerCase())))
 
-function addQuickField(qf: typeof quickFields[number]) {
+function addQuickField(qf: QuickField) {
   fields.value = [...fields.value, {...blankQuestion(), name: qf.name, overview: qf.overview, isPublic: qf.isPublic}]
 }
 
@@ -101,7 +98,29 @@ function removeField(index: number) {
   fields.value = updated
 }
 
+/**
+ * A key per field that stays with it while it is edited, moved or a field before it is removed.
+ *
+ * <p>Every change hands back a new copy of the field, so the copy inherits the key of the one it
+ * replaces. The keys are kept by the plain object, since the list hands out reactive copies of it. A line keyed by its place instead kept its opened settings at that place, and showed
+ * them on whatever field moved there.
+ */
+const keys = new WeakMap<EventFieldEntry, number>()
+let nextKey = 0
+
+function keyOf(field: EventFieldEntry): number {
+  const raw = toRaw(field)
+  let key = keys.get(raw)
+  if (key === undefined) {
+    key = nextKey++
+    keys.set(raw, key)
+  }
+  return key
+}
+
 function updateField(index: number, field: EventFieldEntry) {
+  const replaced = fields.value[index]
+  if (replaced) keys.set(toRaw(field), keyOf(replaced))
   const updated = [...fields.value]
   updated[index] = field
   fields.value = updated
@@ -136,23 +155,12 @@ function resizeField(shown: PreviewField, width: FieldWidthName) {
 <template>
   <div class="flex items-center justify-between">
     <SubHeader>{{ t('events.eventFields') }}</SubHeader>
-    <ButtonRow align="end">
-      <SecondaryButton
-          v-for="qf in quickFields"
-          :key="qf.name"
-          :disabled="existingNames.has(qf.name.toLowerCase())"
-          class="!py-1 !px-2 !text-xs"
-          @click="addQuickField(qf)"
-      >
-        + {{ qf.name }}
-      </SecondaryButton>
-      <SecondaryButton :icon="['fas', 'plus']" @click="addField">
-        {{ t('eventFields.addField') }}
-      </SecondaryButton>
+    <ButtonRow v-if="!compact" align="end">
+      <EventFieldAddButtons :existing-names="existingNames" @add="addField" @add-quick="addQuickField"/>
     </ButtonRow>
   </div>
   <AttendanceFieldPicker
-      v-if="attendanceFields && attendanceFields.length > 0"
+      v-if="!compact && attendanceFields && attendanceFields.length > 0"
       :fields="attendanceFields"
       :taken-ids="takenAttendanceIds"
       @take="takeAttendanceField"
@@ -163,10 +171,27 @@ function resizeField(shown: PreviewField, width: FieldWidthName) {
     {{ t('events.noFields') }}
   </MutedText>
 
-  <div data-testid="event-field-list">
-    <DragList :items="fields" :key-fn="(_, index) => index" @reorder="moveField">
+  <div data-testid="event-field-list" :class="compact ? 'space-y-2' : ''">
+    <DragList :items="fields" :key-fn="keyOf" @reorder="moveField">
     <template #default="{index}">
+      <EventFieldRow
+          v-if="compact"
+          :offered-types="offeredTypes"
+          :model-value="fields[index]!"
+          :attendance-fields="attendanceFields"
+          :show-value="showValue"
+          :value-label="valueLabel"
+          :all-members="allMembers"
+          :groups="groups"
+          :group-members="groupMembers"
+          :tags="tags"
+          :tag-members="tagMembers"
+          :recurring="recurring"
+          @update:model-value="updateField(index, $event)"
+          @remove="removeField(index)"
+      />
       <EventQuestionEditor
+          v-else
           mode="organiser"
           :offered-types="offeredTypes"
           :model-value="fields[index]!"
@@ -187,4 +212,16 @@ function resizeField(shown: PreviewField, width: FieldWidthName) {
   </div>
 
   <FieldLayoutPreview :fields="previewFields" :hint="t('events.fieldsPreviewHint')" @reorder="moveField" @resize="resizeField"/>
+
+  <div v-if="compact" class="flex flex-wrap items-center gap-2" data-testid="event-field-add-line">
+    <EventFieldAddButtons :existing-names="existingNames" @add="addField" @add-quick="addQuickField"/>
+    <AttendanceFieldPicker
+        v-if="attendanceFields && attendanceFields.length > 0"
+        :fields="attendanceFields"
+        :taken-ids="takenAttendanceIds"
+        inline
+        @take="takeAttendanceField"
+        @take-all="takeAllAttendanceFields"
+    />
+  </div>
 </template>

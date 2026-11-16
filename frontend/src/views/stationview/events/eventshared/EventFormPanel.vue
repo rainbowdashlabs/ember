@@ -157,6 +157,7 @@ const labelId = useId()
 
     <EventFieldList
         v-model:fields="fields"
+        compact
         :attendance-fields="attendanceFields"
         :show-value="showValue"
         :all-members="allMembers"
