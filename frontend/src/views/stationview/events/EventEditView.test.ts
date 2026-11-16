@@ -109,7 +109,7 @@ function file(id: number, fileName: string, label: string | null = null, interna
 
 async function applyTemplateInEditor() {
     const wrapper = mount(EventEditView, {
-        global: {stubs: {ViewContent: {template: '<div><slot/></div>'}, EventEditBody: true, DocumentRequirementsEditor: true}},
+        global: {renderStubDefaultSlot: true, stubs: {ViewContent: {template: '<div><slot/></div>'}, EventEditBody: true, DocumentRequirementsEditor: true}},
     })
     await flushPromises()
     wrapper.findComponent(EventEditBody).vm.$emit('apply-template', '31')
@@ -280,7 +280,7 @@ describe('EventEditView of a part of an event group', () => {
 
     it('edits the part\'s own template and category and shows the group\'s beside them', async () => {
         const wrapper = mount(EventEditView, {
-            global: {stubs: {ViewContent: {template: '<div><slot/></div>'}, EventEditBody: true, DocumentRequirementsEditor: true}},
+            global: {renderStubDefaultSlot: true, stubs: {ViewContent: {template: '<div><slot/></div>'}, EventEditBody: true, DocumentRequirementsEditor: true}},
         })
         await flushPromises()
 
@@ -293,7 +293,7 @@ describe('EventEditView of a part of an event group', () => {
 
     it('reads the own fields for editing and the group fields as the group stores them', async () => {
         const wrapper = mount(EventEditView, {
-            global: {stubs: {ViewContent: {template: '<div><slot/></div>'}, EventEditBody: true, DocumentRequirementsEditor: true}},
+            global: {renderStubDefaultSlot: true, stubs: {ViewContent: {template: '<div><slot/></div>'}, EventEditBody: true, DocumentRequirementsEditor: true}},
         })
         await flushPromises()
 
