@@ -1159,6 +1159,10 @@ volumes:
                 + 'nicht zurück, wenn die Sache später doch erledigt wird.',
             onboardingShared: 'Aufgaben der Wache und der Instanz teilen sich alle, die sie verwalten. Was einer '
                 + 'erledigt, ist für alle erledigt, und daneben steht, wer es war.',
+            onboardingOtherStations: 'Bist du auf mehreren Wachen, fragt Ember die Schritte, die zeigen, wie Ember '
+                + 'funktioniert, nur einmal: Was du auf einer Wache erledigt oder übersprungen hast, gilt auch auf '
+                + 'den anderen. Die Profilfragen, die Benachrichtigungen und den Kalender stellst du auf jeder Wache '
+                + 'selbst ein.',
             teamManagerExtra: 'Zusätzlich für Team & Verwalter',
             teamManagerExtraText: 'Als Teammitglied oder Verwalter siehst du zusätzlich:',
             managedRegistrations: 'Anmeldungen anderer Mitglieder - Du siehst auch Anmeldungen von Mitgliedern, die du verwaltest.',

@@ -275,9 +275,99 @@ class OnboardingServiceTest {
 
     @Test
     void takingATaskUpAgainDropsWhatWasSaidAboutIt() {
+        service.mark(OnboardingLevel.MEMBER, "member.profile", OnboardingTaskState.OPEN, MEMBER, 1);
+
+        verify(markRepository).clearForMember(MEMBER, "member.profile");
+    }
+
+    /** Otherwise the mark on the other station would settle it again the moment the local one is gone. */
+    @Test
+    void takingACarriedTaskUpAgainDropsItOnEveryStation() {
         service.mark(OnboardingLevel.MEMBER, "member.absence", OnboardingTaskState.OPEN, MEMBER, 1);
 
-        verify(markRepository).clearForMember(MEMBER, "member.absence");
+        verify(markRepository).clearForEveryMembershipOf(MEMBER, "member.absence");
+        verify(markRepository, never()).clearForMember(anyInt(), eq("member.absence"));
+    }
+
+    @Test
+    void whatWasLearntOnAnotherStationIsNotAskedAgain() {
+        when(markRepository.findByOtherMembershipsOf(MEMBER))
+                .thenReturn(List.of(
+                        new OnboardingMark("member.bookmark", "CONFIRMED", Instant.now(), null),
+                        new OnboardingMark("member.absence", "SKIPPED", Instant.now(), null),
+                        new OnboardingMark("member.profile", "CONFIRMED", Instant.now(), null)));
+
+        var status = service.forMember(member(MEMBER, StationUserType.MEMBER), StationUserType.MEMBER);
+
+        var bookmark = taskOf(status, "member.bookmark");
+        assertEquals(OnboardingTaskState.DONE, bookmark.state());
+        assertTrue(bookmark.elsewhere());
+        assertEquals(OnboardingTaskState.SKIPPED, stateOf(status, "member.absence"));
+        assertEquals(OnboardingTaskState.OPEN, stateOf(status, "member.profile"));
+        assertFalse(taskOf(status, "member.profile").elsewhere());
+    }
+
+    @Test
+    void whatWasThrownAwayOnAnotherStationIsNotListedHere() {
+        when(markRepository.findByOtherMembershipsOf(MEMBER))
+                .thenReturn(List.of(new OnboardingMark("member.wiki", "DISMISSED", Instant.now(), null)));
+
+        var status = service.forMember(member(MEMBER, StationUserType.MEMBER), StationUserType.MEMBER);
+
+        assertFalse(keysOf(status).contains("member.wiki"));
+        assertTrue(keysOf(status).contains("member.profile"));
+    }
+
+    /** What a guardian set up for a child on one station says nothing about a child on another. */
+    @Test
+    void aGuardiansTasksForAChildAreNotTakenFromAnotherStation() {
+        when(memberRepository.findManaged(MEMBER)).thenReturn(List.of(member(CHILD, StationUserType.MEMBER)));
+        when(accountRepository.findById(CHILD)).thenReturn(Optional.of(account(CHILD, "child-1@managed.local")));
+        when(markRepository.findByOtherMembershipsOf(MEMBER))
+                .thenReturn(List.of(new OnboardingMark("guardian.profile:" + CHILD, "CONFIRMED", Instant.now(), null)));
+
+        var profile = taskOf(
+                service.forMember(member(MEMBER, StationUserType.GUARDIAN), StationUserType.GUARDIAN),
+                "guardian.profile");
+
+        assertEquals(OnboardingTaskState.OPEN, profile.state());
+        assertFalse(profile.elsewhere());
+    }
+
+    @Test
+    void whatWasSaidHereOutweighsAnotherStation() {
+        when(markRepository.findByMember(MEMBER))
+                .thenReturn(List.of(new OnboardingMark("member.bookmark", "SKIPPED", Instant.now(), null)));
+        when(markRepository.findByOtherMembershipsOf(MEMBER))
+                .thenReturn(List.of(new OnboardingMark("member.bookmark", "CONFIRMED", Instant.now(), null)));
+
+        var bookmark = taskOf(
+                service.forMember(member(MEMBER, StationUserType.MEMBER), StationUserType.MEMBER), "member.bookmark");
+
+        assertEquals(OnboardingTaskState.SKIPPED, bookmark.state());
+        assertFalse(bookmark.elsewhere());
+    }
+
+    @Test
+    void aTaskLearntElsewhereStillNeedsItsModuleHere() {
+        when(stationService.findEffectiveDisabledModules(STATION)).thenReturn(EnumSet.of(StationModule.QUIZ));
+        when(markRepository.findByOtherMembershipsOf(MEMBER))
+                .thenReturn(List.of(new OnboardingMark("member.quiz", "CONFIRMED", Instant.now(), null)));
+
+        assertFalse(keysOf(service.forMember(member(MEMBER, StationUserType.MEMBER), StationUserType.MEMBER))
+                .contains("member.quiz"));
+    }
+
+    @Test
+    void absencesAreAskedAboutWhileAppointmentsOrAttendanceRun() {
+        when(stationService.findEffectiveDisabledModules(STATION)).thenReturn(EnumSet.of(StationModule.EVENTS));
+        assertTrue(keysOf(service.forMember(member(MEMBER, StationUserType.MEMBER), StationUserType.MEMBER))
+                .contains("member.absence"));
+
+        when(stationService.findEffectiveDisabledModules(STATION))
+                .thenReturn(EnumSet.of(StationModule.EVENTS, StationModule.ATTENDANCE));
+        assertFalse(keysOf(service.forMember(member(MEMBER, StationUserType.MEMBER), StationUserType.MEMBER))
+                .contains("member.absence"));
     }
 
     @Test
@@ -355,6 +445,17 @@ class OnboardingServiceTest {
     }
 
     @Test
+    void aStationIsNotAskedAboutASwitchedOffModule() {
+        when(setupService.getStatus(STATION)).thenReturn(new SetupService.SetupStatus(null, List.of(), List.of()));
+        when(stationService.findEffectiveDisabledModules(STATION)).thenReturn(EnumSet.of(StationModule.EVENTS));
+
+        var tasks = keysOf(service.forStation(STATION));
+
+        assertFalse(tasks.contains("station.firstEvent"));
+        assertTrue(tasks.contains("station.kbSeed"));
+    }
+
+    @Test
     void aStationTaskNamesWhoSettledIt() {
         when(setupService.getStatus(STATION)).thenReturn(new SetupService.SetupStatus(null, List.of(), List.of()));
         when(markRepository.findByStation(STATION))
@@ -418,6 +519,13 @@ class OnboardingServiceTest {
 
     private static List<String> keysOf(OnboardingStatus status) {
         return status.tasks().stream().map(OnboardingTaskView::key).toList();
+    }
+
+    private static OnboardingTaskView taskOf(OnboardingStatus status, String key) {
+        return status.tasks().stream()
+                .filter(task -> task.key().equals(key))
+                .findFirst()
+                .orElseThrow();
     }
 
     private static OnboardingTaskState stateOf(OnboardingStatus status, String key) {

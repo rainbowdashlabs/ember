@@ -44,6 +44,13 @@ function runs(module: StationModule): Condition {
 /** Whether messages are on for the instance; an administrator can turn them off for everybody. */
 const messagesOn: Condition = ({session}) => session.sessionInfo.value?.messagesEnabled !== false
 
+function either(first: Condition, second: Condition): Condition {
+    return context => first(context) || second(context)
+}
+
+/** Absences are read by appointments and by attendance; with both switched off nothing reads them. */
+const readsAbsences: Condition = either(runs(StationModule.EVENTS), runs(StationModule.ATTENDANCE))
+
 function both(first: Condition, second: Condition): Condition {
     return context => first(context) && second(context)
 }
@@ -157,7 +164,7 @@ export const STATION_NAV: Entry[] = [
         kind: 'group', key: 'profile-section', label: 'sidebar.profile', icon: 'user', onboarding: 'nav.profile',
         children: [
             {kind: 'page', key: 'profile', label: 'sidebar.myProfile', icon: 'user', to: '/station/profile', onboarding: 'nav.profile'},
-            {kind: 'page', key: 'profile-absences', label: 'sidebar.absences', icon: 'calendar-days', to: '/station/profile/absences', onboarding: 'nav.profile.absences'},
+            {kind: 'page', key: 'profile-absences', label: 'sidebar.absences', icon: 'calendar-days', to: '/station/profile/absences', onboarding: 'nav.profile.absences', visible: readsAbsences},
             {kind: 'page', key: 'profile-managed', label: 'sidebar.managedProfiles', icon: 'users', to: '/station/profile/managed', onboarding: 'nav.profile.managed', visible: ({session}) => session.isGuardian()},
             {kind: 'page', key: 'profile-notifications', label: 'sidebar.notifications', icon: 'bell', to: '/station/profile/settings/notifications', onboarding: 'nav.profile.notifications'},
         ],

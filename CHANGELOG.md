@@ -19,6 +19,7 @@ People who share a station can write to each other directly, in groups, and in c
 - **Switched-off modules are gone everywhere.** Notifications, permissions and requirements of a switched-off module take no effect until it is back, and nothing is deleted. Partner stations and the public see nothing of it either, also where only the association denies it.
 - **Batch appointments entered one by one.** Besides a schedule and an imported file, appointments can be written down row by row, each with its date, times and an optional title.
 - **Registration questions can carry a description.** Like a profile field, a question asked when signing up for an appointment or an event group can carry a short explanation, shown under the question while answering.
+- **First steps remember what is known already.** On joining a further station, first steps that teach how the application works and were already done or skipped on another station are not asked again. Steps that belong to the station, such as its profile questions and notifications, stay.
 - **Unreadable requests name their field.** Where the server cannot read a value a page sent, the message now names the field it stopped at.
 
 ### Changes

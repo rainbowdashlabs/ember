@@ -9995,6 +9995,7 @@ export default {
             skippedTitle: 'Übersprungen',
             skippedHint: 'Verworfene Aufgaben verschwinden dauerhaft und kommen nicht zurück.',
             settledBy: 'von {name}',
+            settledElsewhere: 'auf einer anderen Wache',
             MEMBER: {
                 title: 'Deine ersten Schritte',
                 hint: 'Ich zeige dir, wo alles liegt. Du klickst selbst, dann kennst du den Weg beim nächsten Mal.',

@@ -184,4 +184,24 @@ describe('STATION_NAV', () => {
             expect(managePages(nav([StationPermission.STATION_GENERAL, ...manager]))).toContain('/station/manage/chats')
         })
     })
+    describe('absences', () => {
+        function absencesShown(modules: string[]) {
+            const profile = section(nav([], modules), 'profile-section')
+            return navPages([profile!]).some(page => page.to === '/station/profile/absences')
+        }
+
+        it('are there while appointments or attendance run', () => {
+            const withoutEvents = Object.values(StationModule).filter(module => module !== StationModule.EVENTS)
+
+            expect(absencesShown(Object.values(StationModule))).toBe(true)
+            expect(absencesShown(withoutEvents)).toBe(true)
+        })
+
+        it('are gone once neither appointments nor attendance run', () => {
+            const neither = Object.values(StationModule)
+                .filter(module => module !== StationModule.EVENTS && module !== StationModule.ATTENDANCE)
+
+            expect(absencesShown(neither)).toBe(false)
+        })
+    })
 })

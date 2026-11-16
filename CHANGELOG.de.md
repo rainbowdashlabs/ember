@@ -19,6 +19,7 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 - **Abgeschaltete Module sind überall weg.** Benachrichtigungen, Berechtigungen und Pflichten eines abgeschalteten Moduls wirken nicht mehr, bis es wieder an ist, und gelöscht wird nichts. Auch Partnerwachen und die Öffentlichkeit sehen nichts mehr davon, auch wenn nur der Verband es verwehrt.
 - **Mehrere Termine einzeln eintragen.** Neben Zeitplan und Datei-Import lassen sich Termine Zeile für Zeile eintragen, jeder mit Datum, Uhrzeiten und auf Wunsch einem eigenen Titel.
 - **Fragen bei der Anmeldung können eine Erklärung tragen.** Wie ein Profilfeld kann eine Frage bei der Anmeldung zu einem Termin oder einer Terminreihe eine kurze Erklärung tragen, die beim Antworten unter der Frage steht.
+- **Erste Schritte merken sich, was schon bekannt ist.** Beim Beitritt zu einer weiteren Wache werden erste Schritte, die die Bedienung zeigen und auf einer anderen Wache schon erledigt oder übersprungen wurden, nicht noch einmal gefragt. Schritte, die zur Wache gehören, etwa ihre Profilfragen und Benachrichtigungen, bleiben.
 - **Unlesbare Anfragen nennen ihr Feld.** Kann der Server einen Wert nicht lesen, den eine Seite geschickt hat, nennt die Meldung jetzt das Feld, an dem er hängen blieb.
 
 ### Änderungen
