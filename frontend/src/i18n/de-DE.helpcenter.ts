@@ -1856,7 +1856,11 @@ volumes:
                 + 'Postleitzahl und Ort in die nächste.',
             setsTogether: 'Die Felder einer Gruppe werden immer gemeinsam gestellt: Stellst du eines davon einer '
                 + 'Zielgruppe, bekommt sie alle, und nimmst du eines weg, gehen alle. Im Formular stehen sie '
-                + 'zusammen in der Reihenfolge der Gruppe; verschiebst du eines, wandert die ganze Gruppe mit. '
+                + 'zusammen. Verschiebst du ein Feld innerhalb der Gruppe, bekommt die Gruppe diese Reihenfolge, '
+                + 'auch in den Formularen der anderen Zielgruppen. Ziehst du ein Feld aus der Gruppe heraus, '
+                + 'bleibt die Gruppe trotzdem zusammen: Sie steht dort, wo jetzt ihr vorderstes Feld steht, in der '
+                + 'neuen Reihenfolge, auch in den anderen Formularen. Eine ganze Gruppe verschiebst du also am '
+                + 'besten an ihrem ersten Feld. '
                 + 'Pflicht, Breite und Änderbarkeit bleiben je Feld einstellbar. In der Feldliste und in der '
                 + 'Formularvorschau stehen die Felder einer Gruppe eingerahmt unter ihrem Namen, und wählst du ein '
                 + 'Feld einer Gruppe aus, gelten die Zielgruppen für die ganze Gruppe.',

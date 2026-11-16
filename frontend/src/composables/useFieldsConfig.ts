@@ -17,7 +17,9 @@ import {
     FieldType, type AssignmentRequest, type FieldSet, type FieldSetRequest, type MemberGroup,
     type ProfileFieldAssignment, type ProfileFieldScope, type StationGroupResponse,
 } from '@/api/generated/schema'
-import {asAsked, keepSetsTogether, membersOfSet} from '@/util/profileFields'
+import {
+    asAsked, keepSetsTogether, membersOfSet, placeForm, regroupForms, reorderedSets, withSetOrders,
+} from '@/util/profileFields'
 import {moveWithin} from '@/util/reorder'
 import {describeFailure, FailureKind} from '@/util/failure'
 
@@ -569,27 +571,30 @@ export function useFieldsConfig(port: FieldsPort) {
     })
 
     /**
-     * Reorders one audience's form, which leaves every other form where it was.
+     * Reorders one audience's form, which leaves every other form where it was unless a question moved
+     * within its group: the group then takes the dragged order, and every form asking it follows.
      *
-     * <p>The new order is written into the list held here before the request goes, and nothing is
+     * <p>The new order is written into the lists held here before the request goes, and nothing is
      * loaded again when it succeeds. Reloading put the whole screen back through its loading state,
      * which unmounts the panels and drops the reader at the top of the page: one drag near the
      * bottom of a long form and they had to find their place again. The server is told the same
-     * order it is being shown, so there is nothing to fetch back; a refusal puts the old order back
-     * and says so.
+     * order it is being shown and works out the groups the same way, so there is nothing to fetch
+     * back; a refusal puts the old order back and says so.
      */
     async function onReorder(role: ProfileFieldScope, fromIndex: number, toIndex: number) {
         const ordered = keepSetsTogether(
             moveWithin(formFor(role), fromIndex, toIndex).map(entry => entry.field.id), allFields.value)
-        const before = allAssignments.value
-        allAssignments.value = allAssignments.value.map(assignment =>
-            assignment.targetKind === 'ROLE' && assignment.role === role && ordered.includes(assignment.fieldId)
-                ? {...assignment, position: ordered.indexOf(assignment.fieldId) + 1}
-                : assignment)
+        const setOrders = reorderedSets(ordered, allFields.value)
+        const fieldsBefore = allFields.value
+        const assignmentsBefore = allAssignments.value
+        allFields.value = withSetOrders(allFields.value, setOrders)
+        const placed = placeForm(allAssignments.value, role, ordered)
+        allAssignments.value = setOrders.size > 0 ? regroupForms(placed, allFields.value) : placed
         try {
             await port.reorder(role, ordered)
         } catch (e) {
-            allAssignments.value = before
+            allFields.value = fieldsBefore
+            allAssignments.value = assignmentsBefore
             record(e)
         }
     }

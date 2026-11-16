@@ -496,7 +496,9 @@ public class ClusterProfileFieldService {
     }
 
     /**
-     * Puts one audience's form in the given order, in one write.
+     * Puts one audience's form in the given order, in one transaction. A bundle whose questions arrive in a
+     * new order takes that order, and every form asking the bundle follows it; questions of a bundle that
+     * arrive apart are pulled together where the first of them stands.
      *
      * @param clusterId the cluster whose questions these are
      * @param role      the audience whose form is being ordered
@@ -504,8 +506,12 @@ public class ClusterProfileFieldService {
      */
     public void reorder(int clusterId, ProfileFieldScope role, List<Integer> fieldIds) {
         requireCluster(clusterId);
-        int moved = fieldRepository.applyOrder(
-                clusterId, role, FieldSets.keepTogether(fieldIds, sets.placements(clusterId)));
+        int moved = FieldSets.reorderForm(
+                clusterId,
+                fieldIds,
+                sets,
+                ordered -> fieldRepository.applyOrder(clusterId, role, ordered),
+                () -> keepSetsTogether(clusterId));
         log.info("Cluster questions reordered: cluster={}, role={}, fields={}", clusterId, role, moved);
     }
 

@@ -31,6 +31,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.util.Comparator;
 import java.util.List;
 
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -455,7 +456,7 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
                     form.indexOf(city.id()),
                     "and the bundle stands together in its own order");
 
-            service.reorder(station.id(), ProfileFieldScope.TEAM, List.of(city.id(), loose.id(), street.id()));
+            service.reorder(station.id(), ProfileFieldScope.TEAM, List.of(street.id(), loose.id(), city.id()));
             List<ProfileFieldService.MergedField> reordered =
                     service.findMergedFields(station.id(), ProfileFieldScope.TEAM);
             assertEquals(
@@ -478,6 +479,82 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
             service.delete(city.id());
             service.delete(loose.id());
         }
+    }
+
+    /**
+     * A form put in a new order is the authority for its bundles too. A question dragged within its bundle
+     * stays where it was dropped, the bundle takes that order, and every other form asking the bundle
+     * follows. A bundle dragged as a whole keeps its order, and questions of a bundle that arrive apart are
+     * pulled together in the order they arrived.
+     */
+    @Test
+    @Order(22)
+    void aDragWithinABundleIsTheBundlesNewOrder() {
+        var loose = ask("Loose by the address", FieldType.TEXT, "{}", ProfileFieldScope.TEAM, 0);
+        var street = service.create(
+                station.id(), "Straße Ordnung", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
+        var city = service.create(
+                station.id(), "Ort Ordnung", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
+        var zip = service.create(
+                station.id(), "PLZ Ordnung", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
+        var address = service.createSet(station.id(), "Adresse Ordnung", false);
+        List<Integer> mine = List.of(loose.id(), street.id(), city.id(), zip.id());
+        try {
+            service.joinSet(street.id(), address.id());
+            service.joinSet(city.id(), address.id());
+            service.joinSet(zip.id(), address.id());
+            service.assignToRole(street.id(), ProfileFieldScope.TEAM, 5, null, null, null);
+            service.assignToRole(street.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+
+            service.reorder(
+                    station.id(), ProfileFieldScope.TEAM, List.of(loose.id(), zip.id(), street.id(), city.id()));
+            assertEquals(
+                    List.of(loose.id(), zip.id(), street.id(), city.id()),
+                    formOf(ProfileFieldScope.TEAM, mine),
+                    "a question dragged within its bundle stays where it was dropped");
+            assertEquals(List.of(zip.id(), street.id(), city.id()), bundleOrder(mine), "the bundle takes the order");
+            assertEquals(
+                    List.of(zip.id(), street.id(), city.id()),
+                    formOf(ProfileFieldScope.MEMBER, mine),
+                    "and every other form asking it follows");
+
+            service.reorder(
+                    station.id(), ProfileFieldScope.TEAM, List.of(zip.id(), street.id(), city.id(), loose.id()));
+            assertEquals(
+                    List.of(zip.id(), street.id(), city.id(), loose.id()),
+                    formOf(ProfileFieldScope.TEAM, mine),
+                    "a bundle dragged as a whole moves as a whole");
+            assertEquals(List.of(zip.id(), street.id(), city.id()), bundleOrder(mine), "and keeps its order");
+
+            service.reorder(
+                    station.id(), ProfileFieldScope.TEAM, List.of(city.id(), loose.id(), zip.id(), street.id()));
+            assertEquals(
+                    List.of(city.id(), zip.id(), street.id(), loose.id()),
+                    formOf(ProfileFieldScope.TEAM, mine),
+                    "questions of a bundle arriving apart are pulled together in the order they arrived");
+            assertEquals(List.of(city.id(), zip.id(), street.id()), bundleOrder(mine));
+        } finally {
+            service.dissolveSet(station.id(), address.id());
+            mine.forEach(service::delete);
+        }
+    }
+
+    /** The given questions in the order one audience's form puts them. */
+    private static List<Integer> formOf(ProfileFieldScope role, List<Integer> fieldIds) {
+        return service.findMergedFields(station.id(), role).stream()
+                .map(ProfileFieldService.MergedField::id)
+                .filter(fieldIds::contains)
+                .toList();
+    }
+
+    /** The given questions that are bundled, in their bundle's order. */
+    private static List<Integer> bundleOrder(List<Integer> fieldIds) {
+        return fieldIds.stream()
+                .map(id -> service.findById(id).orElseThrow())
+                .filter(field -> field.fieldSetId() != null)
+                .sorted(Comparator.comparingInt(ProfileField::setPosition))
+                .map(ProfileField::id)
+                .toList();
     }
 
     /** A bundle of another station is not one a question can join, and a bundle needs a name. */

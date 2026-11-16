@@ -422,18 +422,24 @@ public class ProfileFieldService {
     }
 
     /**
-     * Puts one audience's form in the given order, in one write.
+     * Puts one audience's form in the given order, in one transaction.
      *
      * <p>The order belongs to the audience rather than to the field, so reordering one form leaves every
-     * other alone.
+     * other alone. The exception is a bundle whose questions arrive in a new order: the bundle takes that
+     * order, and every form asking the bundle follows it. Questions of a bundle that arrive apart are pulled
+     * together where the first of them stands.
      *
      * @param stationId the station whose fields these are
      * @param role      the audience whose form is being ordered
      * @param fieldIds  the fields in the order they should stand
      */
     public void reorder(int stationId, ProfileFieldScope role, List<Integer> fieldIds) {
-        int moved = profileFieldRepository.applyOrder(
-                stationId, role, FieldSets.keepTogether(fieldIds, sets.placements(stationId)));
+        int moved = FieldSets.reorderForm(
+                stationId,
+                fieldIds,
+                sets,
+                ordered -> profileFieldRepository.applyOrder(stationId, role, ordered),
+                () -> keepSetsTogether(stationId));
         log.info("Profile fields reordered: station={}, role={}, fields={}", stationId, role, moved);
     }
 
