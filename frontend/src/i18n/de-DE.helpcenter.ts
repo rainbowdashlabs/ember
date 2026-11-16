@@ -207,13 +207,13 @@ export default {
             whatIs: 'Was ist das?',
             whatIsText: 'Das ist der letzte Schritt. Hier schließt du die Einrichtung ab, und die Checkliste auf der Übersicht verschwindet.',
             howTo: 'Wie benutze ich das?',
-            howToStep1: 'Klicke auf „Geführte Tour starten", wenn du dir Ember erklären lassen willst.',
+            howToStep1: 'Klicke auf „Erste Schritte beginnen", wenn du dir Ember zeigen lassen willst.',
             howToStep2: 'Oder klicke auf „Zur Übersicht", um sofort loszulegen.',
             exampleTitle: 'So sieht die Seite aus',
             exampleText: 'Ein kurzer Glückwunsch und zwei Schaltflächen in der Mitte.',
             missingTitle: 'Wenn noch etwas fehlt',
             missingText: 'Sind Pflicht-Schritte offen, erscheint ein roter Hinweis und der Assistent bringt dich zum ersten fehlenden Schritt zurück. Ist der E-Mail-Versand nicht eingerichtet, siehst du dazu nur einen blauen Hinweis - abschließen kannst du trotzdem.',
-            tip: 'Die geführte Tour dauert nur ein paar Minuten und zeigt dir, wo alles liegt. Du kannst sie jederzeit abbrechen.',
+            tip: 'Der erste Schritt ist ein kurzer Rundgang durch die Bereiche deiner Wache. Du kannst ihn jederzeit unterbrechen und später auf der Startseite fortsetzen.',
         },
         scanShared: {
             title: 'Barcode scannen',
@@ -1141,9 +1141,10 @@ volumes:
             registrations: 'Meine Anmeldungen - Termine, zu denen du dich angemeldet hast, mit ihrem Status (bestätigt, ausstehend, abgelehnt).',
             profileIncomplete: 'Profil unvollständig - Wenn Pflichtfelder in deinem Profil fehlen, wirst du hier daran erinnert.',
             onboardingTitle: 'Deine ersten Schritte',
-            onboardingText: 'Nach der Einführungstour steht auf der Startseite eine Liste mit Dingen, die du einmal '
-                + 'erledigen solltest: Profil ausfüllen, Benachrichtigungen einstellen, auf einen Termin antworten. '
-                + 'Sie verschwindet, sobald nichts mehr offen ist.',
+            onboardingText: 'Auf der Startseite steht eine Liste mit Dingen, die du einmal erledigen solltest: '
+                + 'Ember kennenlernen, Profil ausfüllen, Benachrichtigungen einstellen, auf einen Termin antworten. '
+                + 'Der Rundgang „Ember kennenlernen" zeigt dir die Bereiche, die an deiner Wache eingeschaltet '
+                + 'sind und die du öffnen darfst. Die Liste verschwindet, sobald nichts mehr offen ist.',
             onboardingGuide: 'Klickst du auf „Los geht’s", zeigt Ember dir Schritt für Schritt, wo du klicken musst. '
                 + 'Die Seite bleibt dabei ganz normal bedienbar, und wenn du zwischendurch woanders hingehst, geht '
                 + 'nichts verloren: Das kleine Symbol unten rechts holt den Hinweis zurück.',

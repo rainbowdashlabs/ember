@@ -137,6 +137,18 @@ class OnboardingServiceTest {
         assertTrue(tasks.contains("member.quiz"));
     }
 
+    /** The walk past the station's areas says where everything else happens, so it comes first. */
+    @Test
+    void theWalkPastTheAreasComesFirstAndIsKnownOnEveryStation() {
+        when(markRepository.findByOtherMembershipsOf(MEMBER))
+                .thenReturn(List.of(new OnboardingMark("member.tour", "CONFIRMED", Instant.now(), null)));
+
+        var status = service.forMember(member(MEMBER, StationUserType.MEMBER), StationUserType.MEMBER);
+
+        assertEquals("member.tour", status.tasks().getFirst().key());
+        assertEquals(OnboardingTaskState.DONE, stateOf(status, "member.tour"));
+    }
+
     @Test
     void aSwitchedOffModuleIsNeverAskedAbout() {
         when(stationService.findEffectiveDisabledModules(STATION)).thenReturn(EnumSet.of(StationModule.QUIZ));

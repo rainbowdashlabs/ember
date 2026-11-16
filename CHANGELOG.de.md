@@ -26,6 +26,7 @@ Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die d
 
 ### Änderungen
 
+- **Die Einführungstour gehört zu den ersten Schritten.** Die Leiste unten auf der Startseite ist weg. Der Rundgang durch die wichtigsten Bereiche ist jetzt der erste der ersten Schritte, zeigt nur eingeschaltete Bereiche und wird pro Person statt pro Browser gemerkt.
 - **Geteilte Termine brauchen auf beiden Seiten diese Version.** Zwischen einer Wache auf dieser Version und einer Partnerwache auf einer älteren auf einem anderen Server funktionieren geteilte Termine, die Anmeldung dazu und ihre Kommentare nicht. Sobald beide 26.25.0 betreiben, geht es wieder.
 
 ### Fehlerbehebungen

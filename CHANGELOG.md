@@ -26,6 +26,7 @@ People who share a station can write to each other directly, in groups, and in c
 
 ### Changes
 
+- **The introduction tour is part of the first steps.** The bar at the bottom of the dashboard is gone. The walk past the main areas is now the first of the first steps, shows only areas that are switched on, and is remembered per person instead of per browser.
 - **Shared appointments need this version on both sides.** Between a station on this version and a partner station on an older one on another server, shared appointments, signing up for them and their comments stop working. They work again once both run 26.25.0.
 
 ### Fixes

@@ -6,6 +6,7 @@
 import {computed, onBeforeUnmount, onMounted, ref, watch} from 'vue'
 import {useRoute} from 'vue-router'
 import {flowFor, type OnboardingStep} from '@/util/onboardingFlows'
+import {useSession} from '@/composables/useSession'
 import {onboardingState} from '@/util/onboardingState'
 
 export interface TargetBox {
@@ -126,7 +127,9 @@ export function useOnboardingGuide() {
      */
     const behindMenu = ref(false)
 
-    const steps = computed<OnboardingStep[]>(() => (activeTaskKey.value ? flowFor(activeTaskKey.value) : []))
+    const {hasPermission, isModuleEnabled} = useSession()
+    const reader = {runs: isModuleEnabled, can: hasPermission}
+    const steps = computed<OnboardingStep[]>(() => (activeTaskKey.value ? flowFor(activeTaskKey.value, reader) : []))
     const step = computed<OnboardingStep | null>(() => steps.value[activeStep.value] ?? null)
     const onStepRoute = computed(() => !step.value?.route || route.name === step.value.route)
     const finished = computed(() => steps.value.length > 0 && activeStep.value >= steps.value.length)

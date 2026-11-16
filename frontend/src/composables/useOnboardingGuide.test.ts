@@ -8,11 +8,22 @@ import {defineComponent, nextTick} from 'vue'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {useOnboardingGuide} from './useOnboardingGuide'
 import {clearActiveTask, onboardingState, type OnboardingState} from '@/util/onboardingState'
+import {StationModule, StationPermission} from '@/api/generated/schema'
 
 /** The tour's state, taken once the Nuxt instance of the test is up. */
 function tour(): OnboardingState {
     return onboardingState()
 }
+
+/** The station the reader is on: the modules switched off there and the rights they hold. */
+const reader = {off: new Set<string>(), rights: new Set<string>()}
+
+vi.mock('@/composables/useSession', () => ({
+    useSession: () => ({
+        isModuleEnabled: (module: string) => !reader.off.has(module),
+        hasPermission: (permission: string) => reader.rights.has(permission),
+    }),
+}))
 
 vi.mock('vue-router', async (original) => ({
     ...await original<typeof import('vue-router')>(),
@@ -208,5 +219,32 @@ describe('the walk on a width where the navigation slides away', () => {
 
         expect(guide.behindMenu.value).toBe(false)
         expect(guide.box.value?.left).toBe(0)
+    })
+})
+
+describe('the walk past the areas', () => {
+    afterEach(() => {
+        reader.off.clear()
+        reader.rights.clear()
+    })
+
+    it('leaves out the areas the station switched off', () => {
+        reader.off.add(StationModule.NEWS)
+        reader.off.add(StationModule.INVENTORY)
+        tour().activeTaskKey.value = 'member.tour'
+
+        const ids = guideOn().steps.value.map(step => step.id)
+
+        expect(ids).not.toContain('news')
+        expect(ids).not.toContain('inventory')
+        expect(ids).toContain('events')
+    })
+
+    it('shows a management area only to whoever holds its right', () => {
+        tour().activeTaskKey.value = 'member.tour'
+        expect(guideOn().steps.value.map(step => step.id)).not.toContain('members')
+
+        reader.rights.add(StationPermission.MEMBER_MANAGER)
+        expect(guideOn().steps.value.map(step => step.id)).toContain('members')
     })
 })

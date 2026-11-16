@@ -15,7 +15,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Everything Ember asks somebody to do after the introduction tour, in the order it asks.
+ * Everything Ember asks somebody to do as their first steps, in the order it asks.
  *
  * <p>A derived task reads its answer from the data and cannot be ticked off by hand, so it comes
  * back on its own when the thing behind it is undone. A task that is not derived is one Ember cannot
@@ -30,6 +30,11 @@ import java.util.Set;
  * or settings is asked on every station.
  */
 public enum OnboardingTask {
+    /**
+     * A walk past the areas of the station that are on for the reader. It comes first because it
+     * says where the later tasks happen.
+     */
+    TOUR("member.tour", OnboardingLevel.MEMBER, false),
     /**
      * Read rather than derived, although the profile is a thing Ember can look at. The task asks
      * somebody to go and check what is written about them, and a profile that happens to be complete
@@ -176,7 +181,7 @@ public enum OnboardingTask {
      */
     public boolean carriesAcrossStations() {
         return switch (this) {
-            case EVENT_ANSWER, ABSENCE, BOOKMARK, WIKI, QUIZ -> true;
+            case TOUR, EVENT_ANSWER, ABSENCE, BOOKMARK, WIKI, QUIZ -> true;
             default -> false;
         };
     }
