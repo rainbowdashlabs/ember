@@ -8,11 +8,20 @@
 # It never fails the caller: whatever could not be fetched, the images may already be on the machine
 # and the stack is what decides whether it can start. Anything genuinely missing is reported by the
 # `up` that follows, where it belongs.
+#
+# With E2E_PULL_MISSING_ONLY set, as in CI, it asks the registry only for images this machine does not
+# hold yet: there the images come from a cached archive, and a pull of an image already loaded still
+# counts against the registry's limits.
 set -uo pipefail
 
 compose_file="$(cd "$(dirname "$0")" && pwd)/compose.dev.yaml"
 attempts=4
 delay=5
+
+if [ -n "${E2E_PULL_MISSING_ONLY:-}" ]; then
+    bash "$(dirname "$0")/../scripts/ci-images.sh" pull-missing || true
+    exit 0
+fi
 
 for attempt in $(seq 1 "$attempts"); do
     if docker compose -f "$compose_file" --profile e2e pull --ignore-buildable --quiet; then

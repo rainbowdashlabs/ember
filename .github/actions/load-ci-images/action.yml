@@ -1,0 +1,18 @@
+name: Load the CI images
+description: >-
+  Loads the container images the end-to-end stack and the backend tests start from the archive the
+  prepare-images job cached for this run, so this job asks no registry for them. Without the archive,
+  as when the cache was evicted, it carries on and the images are pulled as they are needed.
+inputs:
+  key:
+    description: The cache key the prepare-images job reported.
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache/restore@v6
+      with:
+        path: ~/ci-images.tar
+        key: ${{ inputs.key }}
+    - shell: bash
+      run: ./toolchain.sh ci-images load ~/ci-images.tar

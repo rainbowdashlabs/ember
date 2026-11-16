@@ -18,6 +18,36 @@ env:
   TYPST_VERSION: 0.15.1
 
 jobs:
+  # The images the end-to-end stack and the backend tests start, pulled once and cached, so the jobs
+  # that start them load them from the cache instead of each asking the registry. The key changes with
+  # the list of images and with the month, so a tag that moves upstream is picked up within a month.
+  prepare-images:
+    runs-on: ubuntu-latest
+    name: Prepare Container Images
+    outputs:
+      key: ${{ steps.key.outputs.key }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Name the cache entry
+        id: key
+        run: echo "key=$(./toolchain.sh ci-images key)" >> "$GITHUB_OUTPUT"
+      - name: Look for the cached images
+        id: cache
+        uses: actions/cache@v6
+        with:
+          path: ~/ci-images.tar
+          key: ${{ steps.key.outputs.key }}
+          lookup-only: true
+      - name: Log in to Docker Hub
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/docker-hub-login
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          token: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Pull the images once
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: ./toolchain.sh ci-images save ~/ci-images.tar
+
   verify-build-backend:
     runs-on: ubuntu-latest
     name: Verify Backend Build
@@ -58,6 +88,11 @@ jobs:
     # far above anything a slow run has taken, on purpose: a run that is merely slow should finish
     # and go green rather than turn red and need starting again by hand.
     timeout-minutes: 30
+    needs: prepare-images
+    env:
+      # Ryuk only removes the test containers of a run that died, and the runner is thrown away with
+      # them anyway. Left on, it is one more image every suite pulls from Docker Hub.
+      TESTCONTAINERS_RYUK_DISABLED: "true"
     strategy:
       fail-fast: false
       matrix:
@@ -129,6 +164,10 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           token: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Load the container images
+        uses: ./.github/actions/load-ci-images
+        with:
+          key: ${{ needs.prepare-images.outputs.key }}
       - name: Run the tests
         timeout-minutes: 25
         run: ./toolchain.sh be-suite ${{ matrix.suite }} --build-cache
@@ -250,11 +289,12 @@ jobs:
     runs-on: ubuntu-latest
     # Divided by area, so a red job names where to look. Each brings up a stack of its own.
     name: Verify Frontend End-to-End (${{ matrix.group }})
-    needs: [ verify-build-frontend, verify-build-backend ]
+    needs: [ verify-build-frontend, verify-build-backend, prepare-images ]
     timeout-minutes: 20
     env:
       E2E_PREBUILT: "1"
       E2E_PREBUILT_READY: "1"
+      E2E_PULL_MISSING_ONLY: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -293,6 +333,10 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           token: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Load the container images
+        uses: ./.github/actions/load-ci-images
+        with:
+          key: ${{ needs.prepare-images.outputs.key }}
       # The suite brings up its own stack - a database and a backend of its own, and the built server
       # in front of them - because that is what it is configured against. Starting another backend
       # here would only occupy a port nothing asks for.
