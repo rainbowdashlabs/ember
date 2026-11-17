@@ -68969,6 +68969,8 @@ export interface components {
             isCurrent: boolean;
             lastUsedAt: components["schemas"]["Instant"];
             location: string | null;
+            /** Format: int32 */
+            pushDeviceId: number | null;
             userAgent: string | null;
         };
         /** @enum {string} */

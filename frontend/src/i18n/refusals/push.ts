@@ -3,7 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-
 /** What the refusals of push messages say in German, keyed by their `PS-` code. */
 export default {
     'PS-001': 'Push-Benachrichtigungen sind auf dieser Instanz ausgeschaltet',

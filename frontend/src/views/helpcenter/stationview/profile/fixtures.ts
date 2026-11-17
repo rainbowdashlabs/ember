@@ -18,6 +18,7 @@ export function demoSessions(): ActiveSession[] {
     {
       id: 1,
       isCurrent: true,
+      pushDeviceId: 1,
       userAgent: 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0',
       location: 'Berlin',
       createdAt: '2026-06-07T08:15:00Z',
@@ -27,6 +28,7 @@ export function demoSessions(): ActiveSession[] {
     {
       id: 2,
       isCurrent: false,
+      pushDeviceId: null,
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 Version/17.5 Safari/605.1.15',
       location: 'Hamburg',
       createdAt: '2026-06-05T14:30:00Z',
@@ -36,6 +38,7 @@ export function demoSessions(): ActiveSession[] {
     {
       id: 3,
       isCurrent: false,
+      pushDeviceId: null,
       userAgent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/126.0 Mobile Safari/537.36',
       location: null,
       createdAt: '2026-06-01T09:00:00Z',

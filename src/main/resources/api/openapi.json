@@ -53879,9 +53879,13 @@
           },
           "location" : {
             "type" : [ "string", "null" ]
+          },
+          "pushDeviceId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "userAgent", "createdAt", "lastUsedAt", "expiresAt", "isCurrent", "location" ]
+        "required" : [ "id", "userAgent", "createdAt", "lastUsedAt", "expiresAt", "isCurrent", "location", "pushDeviceId" ]
       },
       "Actual" : {
         "type" : "string",

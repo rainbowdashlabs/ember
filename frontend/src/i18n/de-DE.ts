@@ -6444,6 +6444,9 @@ export default {
         messages: 'Nachrichten',
         messagesHint: 'Erlaubt private Unterhaltungen und Wachenchats. Ausgeschaltet verschwinden sie für alle, '
             + 'und die tägliche Mail bleibt aus. Gelöscht wird nichts.',
+        push: 'Push-Benachrichtigungen',
+        pushHint: 'Schickt Benachrichtigungen und Nachrichten als Push an die Geräte, auf denen das jemand erlaubt hat. '
+            + 'Ausgeschaltet geht nichts mehr raus, und was gerade wartete, verfällt. Die angemeldeten Geräte bleiben bestehen.',
         forcePrideFlag: 'Pride-Flagge erzwingen',
         forcePrideFlagHint: 'Zeigt die Regenbogen-Flagge im Logo ganzjährig an. Im Juni und Juli wird sie automatisch angezeigt.',
         mailLocale: 'Sprache für System-E-Mails',
@@ -7630,6 +7633,7 @@ export default {
         columnApp: 'App',
         columnEmail: 'E-Mail',
         columnFeed: 'Feed',
+        columnPush: 'Push',
         notifyNews: 'Neuigkeiten',
         notifyNewsHint: 'Neue Neuigkeiten auf der Pinnwand.',
         notifyComments: 'Kommentare',
@@ -7652,6 +7656,8 @@ export default {
         notifyExpiryHint: 'Wenn ein Ablaufdatum, etwa ein Erste-Hilfe-Kurs, bald abläuft oder abgelaufen ist.',
         sessions: 'Aktive Sitzungen',
         currentSession: 'Aktuell',
+        sessionPush: 'Push',
+        sessionRemovePush: 'Push entfernen',
         lastActive: 'Letzte Aktivität',
         created: 'Erstellt',
         location: 'Standort',
@@ -9635,6 +9641,8 @@ export default {
         mailLabel: 'Benachrichtigungen per E-Mail',
         mailHint: 'Was der Verband dir meldet, kommt zusätzlich gesammelt per E-Mail, in der Sprache des Verbands.',
         mailUnavailable: 'Auf dieser Installation ist kein E-Mail-Versand eingerichtet. Der Schalter wird erst nutzbar, wenn das geschieht.',
+        pushLabel: 'Auch als Push-Benachrichtigung',
+        pushHint: 'Benachrichtigungen des Verbands erscheinen auch auf den Geräten, auf denen du Push-Benachrichtigungen eingeschaltet hast.',
         saved: 'Deine Einstellung wurde gespeichert.',
     },
     questionValue: {
@@ -9709,6 +9717,24 @@ export default {
             MEMBER_LIST_OF_TAG: 'Mehrere Mitglieder mit einem bestimmten Tag.',
             LOCATION: 'Ein Ort, der auch im Kalender und in Einladungen steht.',
         },
+    },
+    pushDevices: {
+        title: 'Push-Benachrichtigungen',
+        hint: 'Benachrichtigungen erscheinen auf diesem Gerät auch dann, wenn Ember geschlossen ist. Welche Arten gepusht werden, legst du unten in der Spalte „Push“ fest.',
+        enable: 'Auf diesem Gerät einschalten',
+        declined: 'Der Browser hat die Erlaubnis nicht bekommen, deshalb ist nichts eingeschaltet.',
+        installFirst: 'Auf iPhone und iPad kommen Push-Benachrichtigungen nur an, wenn Ember auf dem Home-Bildschirm liegt: In Safari auf „Teilen“ tippen, „Zum Home-Bildschirm“ wählen und Ember von dort öffnen. Danach kannst du sie hier einschalten.',
+        unsupported: 'Dieser Browser kann keine Push-Benachrichtigungen empfangen.',
+        blocked: 'Dieser Browser blockiert Benachrichtigungen von Ember. Erlaube sie in den Website-Einstellungen des Browsers (meist über das Schloss neben der Adresse) und lade die Seite neu.',
+        thisDevice: 'Dieses Gerät',
+        unnamed: 'Unbekanntes Gerät',
+        lastReached: 'Zuletzt erreicht: {when}',
+        notReachedYet: 'Noch keine Benachrichtigung zugestellt',
+        test: 'Testen',
+        testSent: 'Test verschickt, er kommt in wenigen Sekunden an.',
+        remove: 'Entfernen',
+        lockScreen: 'Push-Benachrichtigungen zeigen ihren vollen Text, auch auf dem Sperrbildschirm. Wer das nicht möchte, blendet Inhalte auf dem Sperrbildschirm in den Einstellungen des Telefons aus.',
+        signIn: 'Ein Gerät bekommt Push-Benachrichtigungen, solange du dort angemeldet bist. Bei einer kurzen Anmeldung enden sie mit ihr; mit „Auf diesem Gerät angemeldet bleiben“ bleibt sie länger bestehen.',
     },
     notificationSchedule: {
         title: 'Versandzeiten der Benachrichtigungen',
@@ -10097,6 +10123,11 @@ export default {
                     title: 'Benachrichtigungen einstellen',
                     body: 'Du entscheidest für jede Art von Nachricht, ob du sie hier, per E-Mail oder im Feed '
                         + 'bekommst.',
+                },
+                push: {
+                    title: 'Push-Benachrichtigungen einschalten',
+                    body: 'Dann erscheinen Benachrichtigungen auf deinem Handy oder Computer, auch wenn Ember '
+                        + 'geschlossen ist. Kann dein Gerät das nicht, überspringst du diesen Schritt.',
                 },
                 eventAnswer: {
                     title: 'Die zwei Arten von Terminen kennenlernen',

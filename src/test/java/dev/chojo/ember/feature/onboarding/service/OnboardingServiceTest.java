@@ -30,11 +30,14 @@ import dev.chojo.ember.feature.onboarding.entity.OnboardingStatus;
 import dev.chojo.ember.feature.onboarding.entity.OnboardingTaskState;
 import dev.chojo.ember.feature.onboarding.entity.OnboardingTaskView;
 import dev.chojo.ember.feature.onboarding.repository.OnboardingTaskRepository;
+import dev.chojo.ember.feature.push.entity.PushSubscription;
+import dev.chojo.ember.feature.push.repository.PushSubscriptionRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.SetupService;
 import dev.chojo.ember.feature.station.service.StationService;
+import dev.chojo.ember.feature.system.service.InstanceSettingsService;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -64,6 +67,8 @@ import static org.mockito.Mockito.when;
  * guardian cannot do for the child in question, and nothing already done.
  */
 class OnboardingServiceTest {
+    private static final PushSubscriptionRepository pushSubscriptions = mock(PushSubscriptionRepository.class);
+    private static final InstanceSettingsService instanceSettings = mock(InstanceSettingsService.class);
 
     private static final int STATION = 7;
     private static final int MEMBER = 42;
@@ -100,6 +105,7 @@ class OnboardingServiceTest {
         knowledgeBaseRepository = mock(KnowledgeBaseRepository.class);
         eventRepository = mock(EventRepository.class);
 
+        when(instanceSettings.pushEnabled()).thenReturn(true);
         service = new OnboardingService(
                 markRepository,
                 memberRepository,
@@ -116,7 +122,9 @@ class OnboardingServiceTest {
                 mock(StationRepository.class),
                 quizCatalogRepository,
                 knowledgeBaseRepository,
-                eventRepository);
+                eventRepository,
+                pushSubscriptions,
+                instanceSettings);
 
         when(markRepository.findByMember(anyInt())).thenReturn(List.of());
         when(stationService.findEffectiveDisabledModules(STATION)).thenReturn(Set.of());
@@ -191,6 +199,29 @@ class OnboardingServiceTest {
                 stateOf(
                         service.forMember(member(MEMBER, StationUserType.MEMBER), StationUserType.MEMBER),
                         "member.notifications"));
+    }
+
+    /**
+     * Push is settled by a device of the account being registered, and only asked while the
+     * instance sends pushes at all.
+     */
+    @Test
+    void pushIsSettledByARegisteredDeviceAndOnlyAskedWhileItIsOn() {
+        var reader = member(MEMBER, StationUserType.MEMBER);
+        assertEquals(
+                OnboardingTaskState.OPEN, stateOf(service.forMember(reader, StationUserType.MEMBER), "member.push"));
+
+        when(pushSubscriptions.findByAccount(MEMBER))
+                .thenReturn(List.of(new PushSubscription(
+                        1, MEMBER, 1, "https://push.test/x", new byte[65], new byte[16], "", Instant.now(), null, 0)));
+        assertEquals(
+                OnboardingTaskState.DONE, stateOf(service.forMember(reader, StationUserType.MEMBER), "member.push"));
+
+        when(instanceSettings.pushEnabled()).thenReturn(false);
+        assertTrue(service.forMember(reader, StationUserType.MEMBER).tasks().stream()
+                .noneMatch(task -> task.key().equals("member.push")));
+        when(instanceSettings.pushEnabled()).thenReturn(true);
+        when(pushSubscriptions.findByAccount(MEMBER)).thenReturn(List.of());
     }
 
     @Test

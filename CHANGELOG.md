@@ -1,5 +1,14 @@
 # Changelog
 
+## v26.26.0
+
+Notifications and messages can arrive as push notifications on phones and computers, even with Ember closed.
+
+### New Features
+
+- **Push notifications.** Notifications and chat messages can arrive on a phone or computer even with Ember closed, once push is allowed on that device under Profile → Notifications. A new "Push" column chooses which kinds are pushed, and devices can be tested and removed there or in the list of sign-ins.
+- **Push for operators.** Push notifications work without any setup and can be switched off for the whole instance in the administration settings. They are delivered through the push services of the browser makers, and the privacy notice gains a section on them.
+
 ## v26.25.0
 
 People who share a station can write to each other directly, in groups, and in chats the station opens for any of its people, such as a group together with its leaders. One date of a series, or a series from one date on, can be changed on its own, and saving a change can tell the people it concerns. Event groups such as the Jugendflamme group appointments into blocks, take one sign-up for all their dates and can be shared with partner stations. Shared appointments with a partner station on another server need both stations on this version.

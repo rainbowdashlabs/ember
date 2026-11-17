@@ -1,5 +1,14 @@
 # Änderungsprotokoll
 
+## v26.26.0
+
+Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy und auf den Computer, auch wenn Ember geschlossen ist.
+
+### Neue Funktionen
+
+- **Push-Benachrichtigungen.** Benachrichtigungen und Chatnachrichten erscheinen auf Handy oder Computer, auch wenn Ember geschlossen ist, sobald Push auf dem Gerät unter Profil → Benachrichtigungen erlaubt ist. Eine neue Spalte „Push“ legt fest, welche Arten gepusht werden; Geräte lassen sich dort oder in der Liste der Anmeldungen testen und entfernen.
+- **Push für Betreiber.** Push-Benachrichtigungen funktionieren ohne Einrichtung und lassen sich in den Einstellungen der Verwaltung für die ganze Instanz abschalten. Zugestellt wird über die Push-Dienste der Browserhersteller, und die Datenschutzerklärung bekommt einen Abschnitt dazu.
+
 ## v26.25.0
 
 Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die die Wache für beliebige ihrer Leute eröffnet, etwa eine Gruppe samt ihren Betreuern. Ein einzelner Termin einer Serie oder eine Serie ab einem Termin lässt sich für sich ändern, und beim Speichern können die Betroffenen benachrichtigt werden. Terminreihen wie die Jugendflamme fassen Termine in Blöcke, nehmen eine Anmeldung für alle Termine an und lassen sich mit Partnerwachen teilen. Geteilte Termine mit einer Partnerwache auf einem anderen Server brauchen auf beiden Seiten diese Version.

@@ -17,7 +17,9 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The browsers an account receives push messages on, as the account's own settings manage them.
@@ -130,6 +132,19 @@ public class PushService {
         return subscriptions.findByAccount(accountId).stream()
                 .map(s -> device(s, sessionId))
                 .toList();
+    }
+
+    /**
+     * Which of the account's sign-ins receive pushes, so the list of sign-ins can say so.
+     *
+     * @return the device of each sign-in that has one, by sign-in id
+     */
+    public Map<Integer, Integer> deviceBySession(int accountId) {
+        var bySession = new HashMap<Integer, Integer>();
+        for (var subscription : subscriptions.findByAccount(accountId)) {
+            bySession.putIfAbsent(subscription.sessionId(), subscription.id());
+        }
+        return bySession;
     }
 
     /** Forgets one of the account's devices. */
