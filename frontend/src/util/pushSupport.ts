@@ -93,7 +93,7 @@ export async function subscribeBrowser(publicKey: string): Promise<BrowserSubscr
         const answer = await Notification.requestPermission()
         if (answer !== 'granted') return null
     }
-    const registration = await navigator.serviceWorker.ready
+    const registration = await workerRegistration()
     const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: keyBytes(publicKey),
@@ -116,6 +116,16 @@ export async function currentBrowserSubscription(): Promise<BrowserSubscription 
         p256dh: base64url(subscription.getKey('p256dh')),
         auth: base64url(subscription.getKey('auth')),
     }
+}
+
+/**
+ * The service worker that receives pushes, registered here if the page has none yet: the install
+ * plugin registers it once the page has loaded, which a quick press can come before.
+ */
+async function workerRegistration(): Promise<ServiceWorkerRegistration> {
+    const existing = await navigator.serviceWorker.getRegistration()
+    if (!existing) await navigator.serviceWorker.register('/sw.js')
+    return navigator.serviceWorker.ready
 }
 
 /** Ends this browser's subscription, so the push service stops taking pushes for it. */
