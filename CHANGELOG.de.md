@@ -12,6 +12,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 
 ### Verbesserungen
 
+- **Schalter für E-Mails nur bei E-Mail-Versand.** Hat eine Wache weder einen eigenen E-Mail-Versand noch einen, den die Instanz mit ihr teilt, fehlen in den Benachrichtigungseinstellungen der Schalter für E-Mails und die Spalte „E-Mail“. Ein Hinweis sagt dort, dass Benachrichtigungen nicht per E-Mail kommen können.
 - **Adresse der Wache auf der Karte finden.** „Auf der Karte finden“ in den Standort-Einstellungen setzt die Markierung auf die eingetippte Adresse. Ein Hinweis sagt, wenn nur die Straße oder der Ort gefunden wurde, und gespeichert wird erst mit dem Standort.
 - **Absagen eingeklappt.** Auf der Seite der Anmeldungen bleiben die Absagen zu einem Termin geschlossen, bis sie geöffnet werden. Geöffnet zeigen sie, wer wann abgesagt hat, ohne die Rangfolge für Plätze.
 - **Üblicher Port für den Mailserver.** Die Mail-Einstellungen nennen den üblichen Port zur gewählten Verschlüsselung und weisen auf einen Port hin, der nicht dazu passt. Gespeichert wird der Port trotzdem so, wie er eingetragen ist.
