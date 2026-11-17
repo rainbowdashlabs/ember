@@ -991,7 +991,8 @@ public abstract class RepositoryTestBase {
                         new AssociationProfileFields(clusterProfileFieldRepo, stationRepo, clusterRepo, eventBus)),
                 profileFieldChangeRepo,
                 stationMemberRepo,
-                memberPermissionResolver);
+                memberPermissionResolver,
+                eventBus);
     }
 
     /**
