@@ -13,7 +13,7 @@ import {getStatus, updateSettings} from '@/api/messages'
  * guardian has not turned them on never sees the button flash up.
  */
 export function useMessagesStatus() {
-    const status = useState<MessagesStatus>('useMessagesStatus', () => ({available: false, unread: 0, mail: true, stationDigest: 'MENTIONS'}))
+    const status = useState<MessagesStatus>('useMessagesStatus', () => ({available: false, unread: 0, mail: true, stationDigest: 'MENTIONS', push: true}))
 
     /** Reads the status again, keeping the last one where it cannot be read. */
     async function refresh() {

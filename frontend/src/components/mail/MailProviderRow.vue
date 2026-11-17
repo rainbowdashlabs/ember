@@ -16,7 +16,7 @@ import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import MailProviderCredentialFields from '@/components/mail/MailProviderCredentialFields.vue'
 import SmtpEncryptionField from '@/components/mail/SmtpEncryptionField.vue'
-import {needsServerAddress, RELAY_PROVIDER_NAMES} from '@/util/mailProviders'
+import {needsServerAddress, RELAY_PROVIDER_NAMES, reportsDeliveries} from '@/util/mailProviders'
 import type {MailProvider} from '@/api/mailProviders'
 
 /**
@@ -26,7 +26,7 @@ import type {MailProvider} from '@/api/mailProviders'
  * address and an SMTP key, SendGrid only a key and no user at all, a plain server wants host, port
  * and a password. So the credential fields come from a component of their own, which carries each
  * provider's labels and explanations. Only a plain server needs the server fields, and only it
- * shows them.
+ * shows them. A plain server reports no deliveries back, so it has no delivery address to set up.
  */
 const entry = defineModel<MailProvider>({required: true})
 
@@ -117,7 +117,7 @@ const user = computed({
         <FieldLabel>{{ t('mailChain.port') }}</FieldLabel>
         <NumberInput v-model="entry.smtpPort" :min="1" :max="65535" :aria-label="t('mailChain.port')"/>
       </div>
-      <SmtpEncryptionField v-model="entry.smtpEncryption"/>
+      <SmtpEncryptionField v-model="entry.smtpEncryption" :port="entry.smtpPort"/>
       <template v-if="isSmtp">
         <div class="space-y-1">
           <FieldLabel>{{ t('mailChain.user') }}</FieldLabel>
@@ -179,6 +179,6 @@ const user = computed({
     </Alert>
     <p v-else class="text-xs text-(--text-muted)">{{ t('mailChain.testHint') }}</p>
 
-    <slot name="webhook" :provider="entry.provider"/>
+    <slot v-if="reportsDeliveries(entry.provider)" name="webhook" :provider="entry.provider"/>
   </div>
 </template>

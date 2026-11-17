@@ -5,7 +5,8 @@
  */
 import {describe, expect, it} from 'vitest'
 import {StationModule, StationPermission} from '@/api/generated/schema'
-import {flowFor, stepTextKey, type StepReader} from '@/util/onboardingFlows'
+import {flowFor, ONBOARDING_FLOWS, stepTextKey, type StepReader} from '@/util/onboardingFlows'
+import de from '@/i18n/de-DE'
 
 /**
  * The walk past the station's areas shows only what the reader can open: nothing of a switched-off
@@ -52,5 +53,14 @@ describe('the walk past the areas', () => {
 
         expect(stepTextKey('member.tour', steps[2]!, 2)).toBe('onboarding.steps.member.tour.profile')
         expect(stepTextKey('member.profile', flowFor('member.profile')[1]!, 1)).toBe('onboarding.steps.member.profile.1')
+    })
+
+    it('has a text for every step of every task', () => {
+        const missing = Object.entries(ONBOARDING_FLOWS).flatMap(([task, steps]) =>
+            steps.map((step, index) => stepTextKey(task, step, index))
+                .filter(key => typeof key.split('.').reduce<unknown>(
+                    (node, part) => (node as Record<string, unknown> | undefined)?.[part], de) !== 'string'))
+
+        expect(missing).toEqual([])
     })
 })

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -19,6 +20,8 @@ defineProps<{
 const emit = defineEmits<{
   invalidate: [id: number]
   invalidateAll: []
+  /** Stops pushes to the device of a sign-in and keeps the sign-in. */
+  removePush: [session: ActiveSession]
 }>()
 
 const {t} = useI18n()
@@ -122,6 +125,10 @@ function timeAgo(dateStr?: string): string {
               <span class="text-sm font-medium">{{ browserLabel(sess.userAgent) }}</span>
               <span class="text-xs text-(--text-muted)">{{ osLabel(sess.userAgent) }}</span>
               <span v-if="sess.isCurrent" class="text-xs font-semibold text-primary">{{ t('userSettings.currentSession') }}</span>
+              <span v-if="sess.pushDeviceId != null" class="text-xs font-semibold text-(--text-muted)"
+                    data-testid="session-push-badge">
+                <font-awesome-icon :icon="['fas', 'bell']" class="mr-0.5"/>{{ t('userSettings.sessionPush') }}
+              </span>
             </div>
             <p class="text-xs text-(--text-muted)">
               {{ t('userSettings.lastActive') }}: {{ timeAgo(sess.lastUsedAt) }}
@@ -135,7 +142,13 @@ function timeAgo(dateStr?: string): string {
             </p>
           </div>
         </div>
-        <DeleteButton v-if="!sess.isCurrent" @click="emit('invalidate', sess.id)"/>
+        <div class="flex items-center gap-2">
+          <SecondaryButton v-if="sess.pushDeviceId != null" :icon="['fas', 'bell-slash']"
+                           data-testid="session-remove-push" @click="emit('removePush', sess)">
+            {{ t('userSettings.sessionRemovePush') }}
+          </SecondaryButton>
+          <DeleteButton v-if="!sess.isCurrent" @click="emit('invalidate', sess.id)"/>
+        </div>
       </NeutralContainer>
     </div>
   </NeutralContainer>

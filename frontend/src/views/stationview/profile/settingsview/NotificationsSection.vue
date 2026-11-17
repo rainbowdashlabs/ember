@@ -15,6 +15,8 @@ import type {NotificationToggle, NotificationType, SettingsResponse} from '@/api
 
 const props = defineProps<{
   settings: SettingsResponse
+  /** Whether this instance pushes, which is when the push column is shown. */
+  pushAvailable?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -22,6 +24,7 @@ const emit = defineEmits<{
   toggleApp: [type: string]
   toggleEmail: [type: string]
   toggleFeed: [type: string]
+  togglePush: [type: string]
 }>()
 
 const {t} = useI18n()
@@ -60,8 +63,17 @@ const consent = computed(() => {
   return t('userSettings.emailConsent', {provider: names[0] ?? `„${t('userSettings.mailProviderUnknown')}"`})
 })
 
+/**
+ * One column more while push is on, so the toggles stay in line with their headings. On a phone the
+ * name of a type takes a line of its own and the toggles sit below it in equal columns, centred
+ * under their headings, since four toggles beside a name leave the name no room.
+ */
+const columns = computed(() => props.pushAvailable
+  ? 'grid-cols-4 justify-items-center sm:grid-cols-[1fr_auto_auto_auto_auto] sm:justify-items-stretch'
+  : 'grid-cols-3 justify-items-center sm:grid-cols-[1fr_auto_auto_auto] sm:justify-items-stretch')
+
 function getToggle(type: string): NotificationToggle {
-  return props.settings.notifications?.[type] ?? {app: true, email: false, feed: true}
+  return props.settings.notifications?.[type] ?? {app: true, email: true, feed: true, push: true}
 }
 </script>
 
@@ -91,16 +103,17 @@ function getToggle(type: string): NotificationToggle {
     <SubHeader class="text-sm">{{ t('userSettings.notifications') }}</SubHeader>
     <p class="text-xs text-(--text-muted)">{{ t('userSettings.notificationsHint') }}</p>
 
-    <div class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center text-xs font-semibold text-(--text-muted) border-b border-(--border) pb-2">
-      <span/>
+    <div :class="columns" class="grid gap-x-4 items-center text-xs font-semibold text-(--text-muted) border-b border-(--border) pb-2">
+      <span class="hidden sm:block"/>
       <span class="w-12 text-center">{{ t('userSettings.columnApp') }}</span>
       <span class="w-12 text-center">{{ t('userSettings.columnEmail') }}</span>
       <span class="w-12 text-center">{{ t('userSettings.columnFeed') }}</span>
+      <span v-if="pushAvailable" class="w-12 text-center">{{ t('userSettings.columnPush') }}</span>
     </div>
 
     <div v-for="row in notifyRows" :key="row.type"
-         class="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center py-1">
-      <div>
+         :class="columns" class="grid gap-x-4 gap-y-1 items-center py-1">
+      <div class="col-span-full justify-self-stretch sm:col-span-1 min-w-0 break-words">
         <span class="text-sm font-medium">{{ t(`userSettings.${row.label}`) }}</span>
         <p class="text-xs text-(--text-muted)">{{ t(`userSettings.${row.hint}`) }}</p>
       </div>
@@ -113,6 +126,11 @@ function getToggle(type: string): NotificationToggle {
       </div>
       <div class="w-12 flex justify-center">
         <ToggleInput :model-value="getToggle(row.type).feed" @update:model-value="emit('toggleFeed', row.type)"/>
+      </div>
+      <div v-if="pushAvailable" class="w-12 flex justify-center">
+        <ToggleInput :model-value="getToggle(row.type).push !== false" :disabled="!getToggle(row.type).app"
+                     :data-testid="`push-toggle-${row.type}`"
+                     @update:model-value="emit('togglePush', row.type)"/>
       </div>
     </div>
   </NeutralContainer>

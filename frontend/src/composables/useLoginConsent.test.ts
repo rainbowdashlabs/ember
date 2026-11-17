@@ -5,10 +5,13 @@
  */
 /** @vitest-environment happy-dom */
 import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {session} from '@/api'
 import {useLoginConsent} from './useLoginConsent'
 
+const setNeedsReconsent = vi.hoisted(() => vi.fn())
+
 vi.mock('@/composables/useConsentGuard', () => ({
-  useConsentGuard: () => ({setNeedsReconsent: vi.fn()}),
+  useConsentGuard: () => ({setNeedsReconsent}),
 }))
 
 vi.mock('@/api', () => ({
@@ -22,6 +25,14 @@ vi.mock('@/api', () => ({
       legacyPrivacyVersion: 'p-legacy',
       legacyTosVersion: 't',
     })),
+    getConsentStatus: vi.fn(async () => ({
+      consented: true,
+      current: false,
+      currentConsentVersion: 'c-new',
+      currentPrivacyVersion: 'p-new',
+      currentTosVersion: 't',
+    })),
+    recordConsent: vi.fn(async () => undefined),
   },
 }))
 
@@ -39,7 +50,10 @@ async function gateAfterLoading() {
 }
 
 describe('useLoginConsent', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => {
+    localStorage.clear()
+    vi.clearAllMocks()
+  })
 
   it('keeps a consent given under the current versions', async () => {
     acceptedUnder('c-new', 'p-new')
@@ -59,5 +73,27 @@ describe('useLoginConsent', () => {
   it('asks again for a consent given to an earlier privacy policy', async () => {
     acceptedUnder('c-new', 'p-older')
     expect(await gateAfterLoading()).toBeNull()
+  })
+
+  it('records an agreement given just before signing in for an account that agreed to older texts', async () => {
+    const legal = useLoginConsent()
+    await legal.loadConsentText()
+    legal.acceptCurrentVersions()
+
+    await legal.recordAfterLogin()
+
+    expect(session.recordConsent).toHaveBeenCalledWith({consentVersion: 'c-new', privacyVersion: 'p-new', tosVersion: 't'})
+    expect(setNeedsReconsent).not.toHaveBeenCalled()
+  })
+
+  it('asks an account that agreed to older texts again when nothing was agreed to before signing in', async () => {
+    acceptedUnder('c-new', 'p-new')
+    const legal = useLoginConsent()
+    await legal.loadConsentText()
+
+    await legal.recordAfterLogin()
+
+    expect(session.recordConsent).not.toHaveBeenCalled()
+    expect(setNeedsReconsent).toHaveBeenCalledWith(true)
   })
 })

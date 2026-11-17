@@ -58,7 +58,7 @@ class InstanceSettingsServiceTest {
     }
 
     private static ApplicationSettings request(String theme, String feel, String mailLocale) {
-        return new ApplicationSettings(false, false, theme, feel, true, true, mailLocale, List.of());
+        return new ApplicationSettings(false, false, null, theme, feel, true, true, mailLocale, List.of());
     }
 
     @Test

@@ -41,6 +41,11 @@ function exampleFeedUrl(format: string): string {
 
     <NotificationsSection :settings="DEMO_SETTINGS"/>
 
+    <HelpSection :title="t('helpCenter.notifications.pushTitle')">
+      <p>{{ t('helpCenter.notifications.pushText') }}</p>
+      <p>{{ t('helpCenter.notifications.pushRemove') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.notifications.feedsTitle')">
       <p>{{ t('helpCenter.notifications.feedsText') }}</p>
     </HelpSection>

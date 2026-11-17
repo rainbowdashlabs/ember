@@ -37,6 +37,7 @@ export function useLoginConsent() {
   const consentVersion = ref('')
   const privacyVersion = ref('')
   const tosVersion = ref('')
+  let answeredHere = false
 
   const showPrivacyPolicy = ref(false)
   const privacyPolicyHtml = ref('')
@@ -107,6 +108,7 @@ export function useLoginConsent() {
       tos: tosVersion.value,
     }, scopes.value)
     consent.value = 'accepted'
+    answeredHere = true
   }
 
   function deny() {
@@ -124,7 +126,9 @@ export function useLoginConsent() {
 
   /**
    * Records consent against the account after login. An account that consented to older versions
-   * is flagged for re-consent rather than silently updated.
+   * is flagged for re-consent rather than silently updated, unless the current versions were agreed
+   * to on this page just before signing in: that agreement is the account's, and asking for it again
+   * straight away would only repeat the question.
    */
   async function recordAfterLogin() {
     try {
@@ -134,7 +138,9 @@ export function useLoginConsent() {
         privacy: status.currentPrivacyVersion,
         tos: status.currentTosVersion,
       }
-      if (!status.consented) {
+      const agreedJustNow = answeredHere && consentVersion.value === status.currentConsentVersion
+        && privacyVersion.value === status.currentPrivacyVersion && tosVersion.value === status.currentTosVersion
+      if (!status.consented || (!status.current && agreedJustNow)) {
         await session.recordConsent({
           consentVersion: consentVersion.value || status.currentConsentVersion,
           privacyVersion: privacyVersion.value || status.currentPrivacyVersion,

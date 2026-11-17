@@ -66,6 +66,11 @@ export default defineConfig({
     use: {
         baseURL: baseUrl,
         /**
+         * Ember's service worker answers downloads itself, and Playwright cancels a download a
+         * worker answers. The stories that need the worker, the push ones, allow it for themselves.
+         */
+        serviceWorkers: 'block',
+        /**
          * A bound on one action, which Playwright leaves off by default.
          *
          * <p>Without it a click whose target keeps moving out from under it is retried for as long

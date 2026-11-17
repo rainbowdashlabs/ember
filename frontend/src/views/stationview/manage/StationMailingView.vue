@@ -17,6 +17,8 @@ import MailWebhookPanel from '@/components/mail/MailWebhookPanel.vue'
 import MailProviderFreeTiers from '@/components/mail/MailProviderFreeTiers.vue'
 import NotificationSchedulePanel from './stationmailingview/NotificationSchedulePanel.vue'
 import InstanceMailStandingPanel from './stationmailingview/InstanceMailStandingPanel.vue'
+import MailReplyToField from './stationmailingview/MailReplyToField.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import {
   clearStationProviders,
   getStationMailDashboard,
@@ -137,6 +139,9 @@ async function test(position: number, recipient: string) {
     <div class="space-y-6">
       <FailureAlert :failure="failure"/>
       <Alert v-if="success" variant="success">{{ success }}</Alert>
+      <NeutralContainer data-testid="mail-reply-to">
+        <MailReplyToField/>
+      </NeutralContainer>
       <MailProviderChain
           v-model:providers="providers"
           :save="saveProviders"

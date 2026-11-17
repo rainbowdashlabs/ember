@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref} from 'vue'
+import {onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -17,6 +17,7 @@ import {useClusterNotificationCount} from '@/composables/useClusterNotificationC
 import {clusterInbox} from '@/api/notifications'
 import NotificationInbox from '@/components/notifications/NotificationInbox.vue'
 import ClusterMailSwitch from './clusternotificationsview/ClusterMailSwitch.vue'
+import {getPushKey} from '@/api/push'
 
 const {t} = useI18n()
 const {refresh: refreshUnreadNotifications} = useClusterNotificationCount()
@@ -39,6 +40,28 @@ async function toggleMail() {
     return updated
   })
 }
+
+/** Whether this instance pushes; without it the push switch stays hidden. */
+const pushAvailable = ref(false)
+
+onMounted(async () => {
+  try {
+    pushAvailable.value = (await getPushKey()).enabled
+  } catch {
+    pushAvailable.value = false
+  }
+})
+
+async function togglePush() {
+  if (!settings.value) return
+  saved.value = false
+  const wanted = !settings.value.pushEnabled
+  await runWith(async () => {
+    const updated = await clusters.updatePushSetting(wanted)
+    saved.value = true
+    return updated
+  })
+}
 </script>
 
 <template>
@@ -48,7 +71,8 @@ async function toggleMail() {
       <FailureAlert :failure="failure"/>
       <Alert v-if="saved" variant="success">{{ t('clusterNotifications.saved') }}</Alert>
       <NotificationInbox :api="clusterInbox" @changed="refreshUnreadNotifications"/>
-      <ClusterMailSwitch v-if="!loading && settings" :settings="settings" @toggle="toggleMail"/>
+      <ClusterMailSwitch v-if="!loading && settings" :settings="settings" :push-available="pushAvailable"
+                         @toggle="toggleMail" @toggle-push="togglePush"/>
     </div>
   </ViewContent>
 </template>

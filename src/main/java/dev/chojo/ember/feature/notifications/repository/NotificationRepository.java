@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.DigestGroup;
 import dev.chojo.ember.feature.notifications.entity.DigestItem;
 import dev.chojo.ember.feature.notifications.entity.HiddenNotifications;
+import dev.chojo.ember.feature.notifications.entity.LinkHome;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -24,11 +25,13 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
+import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING;
 import static dev.chojo.ember.util.sql.SqlSupport.count;
 
 /**
@@ -48,22 +51,48 @@ public class NotificationRepository {
      * column and that statement filled in. A reader with the same notification still unread is
      * skipped for {@link Delivery#ONCE_WHILE_UNREAD}, also when two requests write at once, through
      * the partial unique index on the reader column and the dedup key.
+     *
+     * <p>In the same statement, every notification written is queued as a push to each device its
+     * reader's account allowed push on, where the reader wants this type pushed (the third
+     * placeholder joins reader to account and says so) and whose sign-in is still valid.
+     * Notification and push are written together, so a restart in between cannot lose the push.
      */
     private static final String INSERT_FOR_READERS = """
-            WITH wanted(reader_id) AS (%2$s)
-            INSERT INTO notification (%1$s, type, data, dedup_key)
-            SELECT w.reader_id, :type, :data::JSONB,
-                   CASE WHEN :once THEN md5(:type::TEXT || :data::JSONB::TEXT) END
-            FROM wanted w
-            WHERE w.reader_id <> ALL(:excluded::INT[])
-              AND NOT (:once AND exists (
-                    SELECT 1 FROM notification waiting
-                    WHERE waiting.%1$s = w.reader_id AND waiting.acknowledged_at IS NULL
-                      AND waiting.type = :type AND waiting.data = :data::JSONB))
-            ON CONFLICT (%1$s, dedup_key)
-                WHERE acknowledged_at IS NULL AND dedup_key IS NOT NULL AND %1$s IS NOT NULL
-                DO NOTHING
-            RETURNING %1$s;""";
+            WITH wanted(reader_id) AS (%2$s),
+            written AS (
+                INSERT INTO notification (%1$s, type, data, dedup_key)
+                SELECT w.reader_id, :type, :data::JSONB,
+                       CASE WHEN :once THEN md5(:type::TEXT || :data::JSONB::TEXT) END
+                FROM wanted w
+                WHERE w.reader_id <> ALL(:excluded::INT[])
+                  AND NOT (:once AND exists (
+                        SELECT 1 FROM notification waiting
+                        WHERE waiting.%1$s = w.reader_id AND waiting.acknowledged_at IS NULL
+                          AND waiting.type = :type AND waiting.data = :data::JSONB))
+                ON CONFLICT (%1$s, dedup_key)
+                    WHERE acknowledged_at IS NULL AND dedup_key IS NOT NULL AND %1$s IS NOT NULL
+                    DO NOTHING
+                RETURNING id, %1$s AS reader_id),
+            pushed AS (
+                INSERT INTO push_outbox (subscription_id, kind, notification_id)
+                SELECT device.id, 'NOTIFICATION', written.id
+                FROM written
+                %3$s
+                JOIN push_subscription device ON device.account_id = reader.account_id
+                JOIN account_session signed_in ON signed_in.id = device.session_id AND signed_in.expires_at > now()
+                RETURNING 1)
+            SELECT reader_id FROM written;""";
+
+    /** Joins a station member reading a notification to their account, where they want its type pushed. */
+    private static final String STATION_PUSH = """
+            JOIN station_member reader ON reader.id = written.reader_id
+            AND NOT exists (
+                SELECT 1 FROM user_notification_settings s
+                WHERE s.member_id = reader.id AND s.notification_type = :type AND NOT s.push_enabled)""";
+
+    /** Joins a cluster member reading a notification to their account, where they want pushes. */
+    private static final String CLUSTER_PUSH = """
+            JOIN cluster_member reader ON reader.id = written.reader_id AND reader.push_enabled""";
 
     private static final String STATION_READERS = """
             SELECT sm.id
@@ -95,6 +124,43 @@ public class NotificationRepository {
                      OR (type = 'COMMENT_MENTION' AND data->'link'->>'route' = ANY(:hidden_routes::TEXT[])))""";
 
     private static final String CLUSTER_READERS = "SELECT cm.id FROM cluster_member cm WHERE cm.id = ANY(:ids::INT[])";
+
+    /**
+     * A notification as a push writes it: in the language of the station or association it belongs
+     * to, with links that land there.
+     *
+     * @param notification the notification
+     * @param locale       the station's language, for an association its home station's
+     * @param home         where its links lead
+     */
+    public record PushNotification(Notification notification, String locale, LinkHome home) {}
+
+    /**
+     * A notification still unread, for its push. One already read in Ember is not pushed after the fact.
+     *
+     * @param id the notification
+     * @return the notification with its language and home, empty when it is gone or read
+     */
+    public Optional<PushNotification> findUnreadForPush(int id) {
+        return query("""
+                SELECT n.id, n.member_id, n.cluster_member_id, n.type, n.data, n.created_at, n.acknowledged_at,
+                       coalesce(st.locale, home.locale) AS locale,
+                       CASE WHEN n.member_id IS NOT NULL THEN 'STATION' ELSE 'CLUSTER' END AS kind,
+                       coalesce(st.uid, c.uid) AS home_uid
+                FROM notification n
+                LEFT JOIN station_member sm ON sm.id = n.member_id
+                LEFT JOIN station st ON st.id = sm.station_id
+                LEFT JOIN cluster_member cm ON cm.id = n.cluster_member_id
+                LEFT JOIN cluster c ON c.id = cm.cluster_id
+                LEFT JOIN station home ON home.id = c.home_station_id
+                WHERE n.id = :id AND n.acknowledged_at IS NULL;""")
+                .single(call().bind("id", id))
+                .map(row -> new PushNotification(
+                        Notification.map().map(row),
+                        row.getString("locale"),
+                        new LinkHome(row.getEnum("kind", DigestGroup.Kind.class), row.get("home_uid", UUID_STRING))))
+                .first();
+    }
 
     /**
      * Retrieves the unacknowledged notifications of a reader that are not hidden, newest first.
@@ -282,7 +348,7 @@ public class NotificationRepository {
                        coalesce(n.member_id, n.cluster_member_id) AS recipient_id,
                        coalesce(sm.account_id, cm.account_id) AS account_id,
                        CASE WHEN n.member_id IS NOT NULL
-                            THEN coalesce(us.email_enabled, FALSE) AND coalesce(uns.email_enabled, FALSE)
+                            THEN coalesce(us.email_enabled, TRUE) AND coalesce(uns.email_enabled, TRUE)
                             ELSE cm.email_enabled END AS mail_wanted,
                        ARRAY(
                            SELECT lower(ga.email)
@@ -395,7 +461,11 @@ public class NotificationRepository {
                 .bind("type", type)
                 .bind("data", data.toJson())
                 .bind("once", delivery == Delivery.ONCE_WHILE_UNREAD);
-        return insertFor(Feed.STATION_COLUMN, STATION_READERS, PermissionHolderSql.bind(call, audience.permissions()));
+        return insertFor(
+                Feed.STATION_COLUMN,
+                STATION_READERS,
+                STATION_PUSH,
+                PermissionHolderSql.bind(call, audience.permissions()));
     }
 
     /**
@@ -420,6 +490,7 @@ public class NotificationRepository {
         return insertFor(
                 Feed.CLUSTER_COLUMN,
                 CLUSTER_READERS,
+                CLUSTER_PUSH,
                 call().bind("ids", List.copyOf(clusterMemberIds), PostgreSqlTypes.INTEGER)
                         .bind("excluded", List.copyOf(excluded), PostgreSqlTypes.INTEGER)
                         .bind("type", type)
@@ -427,8 +498,8 @@ public class NotificationRepository {
                         .bind("once", delivery == Delivery.ONCE_WHILE_UNREAD));
     }
 
-    private static int insertFor(String column, String readers, Call call) {
-        return query(INSERT_FOR_READERS, column, readers)
+    private static int insertFor(String column, String readers, String push, Call call) {
+        return query(INSERT_FOR_READERS, column, readers, push)
                 .single(call)
                 .map(row -> row.getInt(1))
                 .all()
