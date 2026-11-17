@@ -1,5 +1,17 @@
 # Änderungsprotokoll
 
+## v26.26.0
+
+Auf der Seite der Anmeldungen bleiben Absagen eingeklappt, damit nur sichtbar ist, was eine Entscheidung braucht.
+
+### Verbesserungen
+
+- **Absagen eingeklappt.** Auf der Seite der Anmeldungen bleiben die Absagen zu einem Termin geschlossen, bis sie geöffnet werden. Geöffnet zeigen sie, wer wann abgesagt hat, ohne die Rangfolge für Plätze.
+
+### Fehlerbehebungen
+
+- **Anmeldezahlen bei kommenden Terminen verrutschten.** In manchen Fällen standen die Anmeldezahlen eines Termins mit einer langen Zeile in der Beschreibung unter dem Text statt daneben. Die Beschreibung bricht jetzt um, sodass die Zahlen daneben bleiben, wo Platz ist.
+
 ## v26.25.0
 
 Wer eine Wache teilt, kann sich direkt, in Gruppen und in Chats schreiben, die die Wache für beliebige ihrer Leute eröffnet, etwa eine Gruppe samt ihren Betreuern. Ein einzelner Termin einer Serie oder eine Serie ab einem Termin lässt sich für sich ändern, und beim Speichern können die Betroffenen benachrichtigt werden. Terminreihen wie die Jugendflamme fassen Termine in Blöcke, nehmen eine Anmeldung für alle Termine an und lassen sich mit Partnerwachen teilen. Geteilte Termine mit einer Partnerwache auf einem anderen Server brauchen auf beiden Seiten diese Version.

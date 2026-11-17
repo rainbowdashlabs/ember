@@ -22,6 +22,7 @@ function registration(id: number, name: string, agreementWithdrawnAt: string | n
         eventName: null,
         answersMissing: false,
         placeGivenUp: false,
+        statusChangedAt: '2026-10-01T10:00:00Z',
         fromField: false,
         fieldName: null,
         agreementWithdrawnAt,

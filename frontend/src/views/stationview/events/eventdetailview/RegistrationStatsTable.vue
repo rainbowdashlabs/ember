@@ -16,11 +16,18 @@ import RecordTable from '@/components/table/RecordTable.vue'
 import type {EventRegistrationField, RegistrationResponse, RegistrationStatsResponse} from '@/api/generated/schema'
 import {useDataTable} from '@/composables/useDataTable'
 import RegistrationStatsMember from './registrationstatstable/RegistrationStatsMember.vue'
-import {registrationStatsColumns, SCORE_KEY, type RankedRegistration} from './registrationstatstable/registrationStatsColumns'
+import {
+  declinedColumns,
+  DECLINED_AT_KEY,
+  registrationStatsColumns,
+  SCORE_KEY,
+  type RankedRegistration,
+} from './registrationstatstable/registrationStatsColumns'
 
 /**
  * The sign-ups ranked by how strong a claim each member has to a place: the highest score first,
- * which a reader may resort or filter by any column.
+ * which a reader may resort or filter by any column. Declined answers show only who declined and
+ * when, latest first.
  */
 const props = defineProps<{
   fields?: EventRegistrationField[]
@@ -29,6 +36,7 @@ const props = defineProps<{
   showActions?: boolean
   /** Whether the reader may put an answer right, which is whoever runs the appointment. */
   canEditAnswers?: boolean
+  declined?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -47,11 +55,11 @@ const rows = computed<RankedRegistration[]>(() => props.registrations.map(regist
 })))
 
 const table = useDataTable<RankedRegistration>({
-  id: 'registration-stats',
+  id: props.declined ? 'registration-declined' : 'registration-stats',
   rows,
-  columns: computed(() => registrationStatsColumns(t)),
+  columns: computed(() => props.declined ? declinedColumns(t) : registrationStatsColumns(t)),
   rowKey: row => row.registration.id,
-  sort: {key: SCORE_KEY, direction: 'desc'},
+  sort: {key: props.declined ? DECLINED_AT_KEY : SCORE_KEY, direction: 'desc'},
 })
 
 /** The colour the ranking is read by: the ones with the strongest claim to a place stand out. */

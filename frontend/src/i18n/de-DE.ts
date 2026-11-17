@@ -3391,6 +3391,7 @@ export default {
         acceptedCol: 'Bestätigt',
         deniedCol: 'Abgelehnt',
         registeredAt: 'Angemeldet am',
+        declinedAt: 'Abgesagt am',
         groupPending: 'Ausstehend',
         groupAccepted: 'Bestätigt',
         groupDenied: 'Abgelehnt',

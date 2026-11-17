@@ -299,7 +299,8 @@ public class EventRegistrationRoutes implements Routes {
                 r.fromField(),
                 r.fromField() ? lookups.namingField(r) : null,
                 r.agreementWithdrawnAt(),
-                r.gaveUpPlace());
+                r.gaveUpPlace(),
+                r.statusChangedAt());
     }
 
     /**
@@ -1036,7 +1037,9 @@ public class EventRegistrationRoutes implements Routes {
              * Whether the member gave up a place they held or asked for, which is an answer they gave
              * and is shown as one, where any other withdrawal leaves no answer at all.
              */
-            boolean placeGivenUp) {}
+            boolean placeGivenUp,
+            /** When the registration got its current status, such as when the member declined. */
+            Instant statusChangedAt) {}
 
     public record EventRegisterRequest(String eventDate, Integer memberId, List<EventRegistrationFieldValue> fields) {}
 

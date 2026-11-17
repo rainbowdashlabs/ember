@@ -1,5 +1,17 @@
 # Changelog
 
+## v26.26.0
+
+The registrations page keeps declined answers folded away, so only what needs a decision is in view.
+
+### Improvements
+
+- **Declined answers folded away.** On the registrations page, the declined answers of a date stay closed until opened. Opened, they show who declined and when, without the place ranking.
+
+### Fixes
+
+- **Badges of upcoming appointments wandered.** In some cases an appointment with a long description line showed its registration counts below the text instead of beside it. The description now wraps, so the counts stay beside it wherever there is room.
+
 ## v26.25.0
 
 People who share a station can write to each other directly, in groups, and in chats the station opens for any of its people, such as a group together with its leaders. One date of a series, or a series from one date on, can be changed on its own, and saving a change can tell the people it concerns. Event groups such as the Jugendflamme group appointments into blocks, take one sign-up for all their dates and can be shared with partner stations. Shared appointments with a partner station on another server need both stations on this version.

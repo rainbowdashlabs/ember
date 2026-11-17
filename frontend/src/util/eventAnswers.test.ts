@@ -46,6 +46,7 @@ function registration(id: number, status: RegistrationStatus, answers: Record<nu
     eventName: null,
     answersMissing: false,
     placeGivenUp: false,
+    statusChangedAt: '2026-08-01T10:00:00Z',
     fromField: false,
     fieldName: null,
     agreementWithdrawnAt: null,

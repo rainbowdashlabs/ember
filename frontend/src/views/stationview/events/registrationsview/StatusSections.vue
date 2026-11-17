@@ -59,6 +59,8 @@ const {t} = useI18n()
           :title="t('eventsRegistrations.groupDeclined')"
           :registrations="byStatus.DECLINED"
           :stats="stats"
+          collapsed
+          declined
       />
     </template>
   </div>
