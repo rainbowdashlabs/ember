@@ -183,6 +183,59 @@ class PushRepositoryTest extends RepositoryTestBase {
                 .isEmpty());
     }
 
+    /** A push left for later is not handed out before its time, and counts the try it took. */
+    @Test
+    void aPushLeftForLaterWaitsForItsTime() {
+        var subscription = subscriptions.register(
+                anna.id(), signIn(anna.id(), inADay()), "https://push.test/later", new byte[] {1}, new byte[] {2}, "");
+        outbox.enqueueTest(subscription.id());
+        var push = mine(outbox.claimDue(500, Duration.ofMinutes(10)), subscription.id())
+                .getFirst();
+
+        outbox.retryLater(push.id(), Instant.now().plus(Duration.ofHours(1)));
+        assertTrue(mine(outbox.claimDue(500, Duration.ofMinutes(10)), subscription.id())
+                .isEmpty());
+
+        outbox.retryLater(push.id(), Instant.now().minus(Duration.ofSeconds(1)));
+        var again = mine(outbox.claimDue(500, Duration.ofMinutes(10)), subscription.id());
+        assertEquals(1, again.size());
+        assertEquals(2, again.getFirst().attempts(), "each try left for later counts");
+    }
+
+    /** A push given up on is gone, and switching push off empties whatever still waits. */
+    @Test
+    void pushesGivenUpOrWaitingWhilePushIsOffAreGone() {
+        var subscription = subscriptions.register(
+                anna.id(), signIn(anna.id(), inADay()), "https://push.test/gone", new byte[] {1}, new byte[] {2}, "");
+        outbox.enqueueTest(subscription.id());
+        var push = mine(outbox.claimDue(500, Duration.ofMinutes(10)), subscription.id())
+                .getFirst();
+        outbox.drop(push.id());
+        outbox.retryLater(push.id(), Instant.now().minus(Duration.ofSeconds(1)));
+        assertTrue(mine(outbox.claimDue(500, Duration.ofMinutes(10)), subscription.id())
+                .isEmpty());
+
+        outbox.enqueueTest(subscription.id());
+        outbox.dropWaiting();
+        assertTrue(mine(outbox.claimDue(500, Duration.ofMinutes(10)), subscription.id())
+                .isEmpty());
+    }
+
+    /** An account that switched message pushes off has none queued for its browsers. */
+    @Test
+    void noMessagePushIsQueuedForAnAccountThatSwitchedThemOff() {
+        var subscription = subscriptions.register(
+                anna.id(), signIn(anna.id(), inADay()), "https://push.test/quiet", new byte[] {1}, new byte[] {2}, "");
+        query("UPDATE account SET messages_push = FALSE WHERE id = :id;")
+                .single(call().bind("id", anna.id()))
+                .update();
+
+        outbox.enqueueMessage(Integer.MAX_VALUE, List.of(anna.id()));
+
+        assertTrue(mine(outbox.claimDue(500, Duration.ofMinutes(10)), subscription.id())
+                .isEmpty());
+    }
+
     @Test
     void anAccountKeepsOnlyItsNewestBrowsers() {
         int session = signIn(anna.id(), inADay());
