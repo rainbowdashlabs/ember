@@ -118,8 +118,14 @@ final class MemberRuleSql {
         var operator = Objects.requireNonNull(check.operator(), "a check names its operator");
         var value = check.valueOrEmpty();
         return switch (subject) {
-            case GROUP -> membership("member_group_entry", "group_id", check.groupId(), operator);
-            case TAG -> membership("user_tag_entry", "tag_id", check.tagId(), operator);
+            case GROUP -> {
+                Integer group = check.groupId();
+                yield group == null ? "FALSE" : membership("member_group_entry", "group_id", group, operator);
+            }
+            case TAG -> {
+                Integer tag = check.tagId();
+                yield tag == null ? "FALSE" : membership("user_tag_entry", "tag_id", tag, operator);
+            }
             case USER_TYPE -> userType(operator, value);
             case MEMBER_SINCE -> memberSince(operator, value, reference(check));
             case AGE -> age(check, operator, value);
@@ -127,12 +133,9 @@ final class MemberRuleSql {
         };
     }
 
-    private String membership(String table, String column, @Nullable Integer id, RuleOperator operator) {
+    private String membership(String table, String column, int id, RuleOperator operator) {
         String exists = "EXISTS (SELECT 1 FROM %s e WHERE e.member_id = sm.id AND e.%s = %s)"
-                .formatted(
-                        table,
-                        column,
-                        integer(Objects.requireNonNull(id, "a membership check names its group or tag")));
+                .formatted(table, column, integer(id));
         return operator == RuleOperator.NOT_IN ? "NOT " + exists : exists;
     }
 
