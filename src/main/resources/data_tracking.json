@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:3c63b3638507f157fb6e3b7cdf32fb30ade9af03c67978064814f861d77baad0",
-  "generatedAt": "2026-11-16T15:45:46Z",
+  "schemaHash": "sha256:254257f5e300ccb3d2bcaa8fd139309eb53a56eb1f72d98ce8de7e39ff8eda47",
+  "generatedAt": "2026-11-17T11:58:14Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -22574,6 +22574,184 @@
         ]
       },
       "description": "Member-manages-member relationships (e.g. legal guardian manages a minor)."
+    },
+    "member_rule_node": {
+      "feature": "members",
+      "scope": "STATION",
+      "tableHash": "sha256:e87227517136abb99567d9348295ded781939896f675f0f7d5846f28339c0b14",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station the rule belongs to."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "On the root node of a group's rule: the group the rule fills. NULL on every other node. Deleted with the group."
+        },
+        {
+          "name": "tag_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "On the root node of a tag's rule: the tag the rule fills. NULL on every other node. Deleted with the tag."
+        },
+        {
+          "name": "parent_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The block this node sits in. NULL on the root."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The order of the node among the children of its block."
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "ALL (every child holds), ANY (at least one child holds), NONE (no child holds) or CHECK (a single check)."
+        },
+        {
+          "name": "subject",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "On a check: what it looks at (GROUP, TAG, USER_TYPE, MEMBER_SINCE, AGE, FIELD, CLUSTER_FIELD). NULL on a block."
+        },
+        {
+          "name": "operator",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "On a check: how it compares, for example IN, ONE_OF, AT_LEAST, IS_NO, EMPTY or EXPIRES_WITHIN. NULL on a block."
+        },
+        {
+          "name": "field_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The station profile field a field check or an age check reads. A field in use by a rule cannot be deleted."
+        },
+        {
+          "name": "cluster_field_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The association profile field a field check or an age check reads. Emptied when the association deletes the field; such a check then matches nobody."
+        },
+        {
+          "name": "ref_group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The group a group check asks about. A group in use by a rule cannot be deleted."
+        },
+        {
+          "name": "ref_tag_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The tag a tag check asks about. A tag in use by a rule cannot be deleted."
+        },
+        {
+          "name": "value",
+          "type": "jsonb",
+          "nullable": true,
+          "verified": true,
+          "description": "What a check compares with: answers, user types, expiry states, a number or range, a text, a date or a duration. NULL where the operator needs nothing."
+        },
+        {
+          "name": "reference_date",
+          "type": "date",
+          "nullable": true,
+          "verified": true,
+          "description": "The day a date-relative check counts from, such as an age on a fixed date. NULL means the current day."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "cluster_field_id",
+          "refTable": "cluster_profile_field",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "field_id",
+          "refTable": "profile_field",
+          "refColumn": "id",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "column": "group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "parent_id",
+          "refTable": "member_rule_node",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "ref_group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "column": "ref_tag_id",
+          "refTable": "user_tag",
+          "refColumn": "id",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "tag_id",
+          "refTable": "user_tag",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "ignoredColumns": [
+          "station_id",
+          "cluster_field_id"
+        ]
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Rule structure of a group or tag, not per-member entry"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Rule structure of a group or tag, not per-member entry"
+      },
+      "description": "One node of the rule a dynamic group or tag takes its members from: a block joining its children, or a check on member data. The root names the group or tag; a group or tag with a root is kept by its rule and refuses hand edits."
     },
     "member_table_preset": {
       "tableHash": "sha256:127a8cbce3775be7aa1ad8c60cca1b9e46f5bee5cfb8318793dfa2ca0c52b367",
