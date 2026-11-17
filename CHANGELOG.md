@@ -2,12 +2,13 @@
 
 ## v26.26.0
 
-Notifications and messages can arrive as push notifications on phones and computers, even with Ember closed. The mail settings name the port a mail server usually expects and how often the instance sends notifications.
+Notifications and messages can arrive as push notifications on phones and computers, even with Ember closed. Groups and tags can fill themselves from rules over profile answers, age and membership, such as everybody whose JuLeiCa runs out within ten months.
 
 ### New Features
 
 - **Push notifications.** Notifications and chat messages can arrive on a phone or computer even with Ember closed, once push is allowed on that device under Profile → Notifications. A new "Push" column chooses which kinds are pushed, and devices can be tested and removed there or in the list of sign-ins.
 - **Push for operators.** Push notifications work without any setup and can be switched off for the whole instance in the administration settings. They are delivered through the push services of the browser makers, and the privacy notice gains a section on them.
+- **Groups and tags filled by rules.** A group or tag can take its members from a rule of checks on profile answers, age, membership and other groups or tags. Members join and leave on their own as answers change and dates come closer, and a preview shows whom a rule takes in before it is saved.
 
 ### Improvements
 
