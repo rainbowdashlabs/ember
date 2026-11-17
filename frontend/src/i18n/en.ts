@@ -404,6 +404,21 @@ export default {
     dashboard: {
         registrationNotOpen: 'Only for part of the station',
     },
+    geocoding: {
+        findOnMap: 'Find on map',
+        hintStreet: 'The pin sits on the street, not the building. Drag it to the exact spot.',
+        hintAreaStation: 'Only the town was found. Drag the pin to the station.',
+        hintNotFound: 'The address was not found. Place the pin by clicking the map.',
+        hintAreaPlace: 'Only the town was found. Drag the pin to the right spot.',
+        hintPlaceNotFound: 'The place was not found. Place the pin by clicking the map.',
+    },
+    places: {
+        onMap: 'On the map',
+        title: '{place} on the map',
+        hint: 'The pin applies to every appointment naming this place. The text in the field stays as it is.',
+        mapOf: 'Map: {place}',
+        openInOsm: 'Open in OpenStreetMap',
+    },
     files: {
         noPreview: 'There is no preview for this kind of file. Download it to look at it.',
     },

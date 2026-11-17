@@ -21,6 +21,7 @@ import {useMapsConfig} from '@/composables/useMapsConfig'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 import {describeFailure} from '@/util/failure'
+import {GeocodingProvider} from '@/api/generated/schema'
 import type {
   AdminMapsConfig,
   CacheStats,
@@ -42,9 +43,8 @@ const tiles = ref<MapsTilesConfig>({
   maxZoom: 19,
 })
 const geocoding = ref<MapsGeocodingConfig>({
-  provider: 'NONE',
-  apiKey: '',
-  contactEmail: '',
+  provider: GeocodingProvider.NONE,
+  baseUrl: '',
 })
 const tileCacheMaxMb = ref(500)
 const cacheStats = ref<CacheStats | null>(null)

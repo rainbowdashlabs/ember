@@ -12,6 +12,8 @@ import CompactQuestionRow from '@/components/input/questionsettings/CompactQuest
 import {fieldTypeLabel} from '@/api/fieldTypes'
 import EventFieldMarks from './EventFieldMarks.vue'
 import EventFieldValueInput from './EventFieldValueInput.vue'
+import PlacePinModal from './PlacePinModal.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EventQuestionEditor from './EventQuestionEditor.vue'
 import {offersFieldValue} from './eventQuestions'
 
@@ -52,6 +54,12 @@ const valueName = computed(() =>
 const attendanceName = computed(() =>
     props.attendanceFields?.find(candidate => candidate.id === field.value.attendanceFieldId)?.name)
 
+const placeOpen = ref(false)
+
+/** A place field with a text can have its pin found and corrected on the map. */
+const pinsPlace = computed(() =>
+    offersValue.value && fieldType.value === FieldType.LOCATION && (field.value.value ?? '').trim() !== '')
+
 function update(patch: Partial<EventFieldEntry>) {
   field.value = {...field.value, ...patch}
 }
@@ -81,6 +89,17 @@ function update(patch: Partial<EventFieldEntry>) {
             data-testid="event-field-row-value"
             @update:model-value="value => update({value})"
         />
+        <SecondaryButton
+            v-if="pinsPlace"
+            :icon="['fas', 'map-location-dot']"
+            compact
+            class="mt-1"
+            data-testid="event-field-row-place"
+            @click="placeOpen = true"
+        >
+          {{ t('places.onMap') }}
+        </SecondaryButton>
+        <PlacePinModal v-if="pinsPlace && placeOpen" v-model="placeOpen" :text="(field.value ?? '').trim()"/>
       </div>
     </template>
     <template #marks>

@@ -7,23 +7,34 @@ package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.api.refusal.StationRefusal;
+import dev.chojo.ember.feature.maps.entity.GeocodePrecision;
+import dev.chojo.ember.feature.maps.entity.GeocodeQuery;
+import dev.chojo.ember.feature.maps.entity.GeocodeResult;
+import dev.chojo.ember.feature.maps.service.GeocodingService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class StationLocationServiceTest extends RepositoryTestBase {
 
+    private static final GeocodingService geocoding = mock(GeocodingService.class);
     private static StationLocationService service;
     private static Station station;
 
     @BeforeAll
     static void init() {
-        service = new StationLocationService(stationRepo);
+        service = new StationLocationService(stationRepo, geocoding);
         station = stationRepo.create("Loc Test");
     }
 
@@ -194,5 +205,29 @@ class StationLocationServiceTest extends RepositoryTestBase {
         assertEquals(station.id(), results.getFirst().stationId());
         assertTrue(results.getFirst().distanceKm() > 400);
         assertTrue(results.getFirst().distanceKm() < 600);
+    }
+
+    @Test
+    void anUnsavedAddressIsLookedUpAsTyped() {
+        var pin = new GeocodeResult(52.5, 13.4, GeocodePrecision.STREET);
+        when(geocoding.locate(GeocodeQuery.address("Hauptstr. 1", "12345", "Musterstadt", "DE")))
+                .thenReturn(Optional.of(pin));
+        var found =
+                service.locate(new StationLocationService.AddressSearch("Hauptstr. 1", "12345", "Musterstadt", " DE "));
+        assertEquals(Optional.of(pin), found);
+    }
+
+    @Test
+    void anAddressLookupIsHeldToTheSavingRules() {
+        var unasked = mock(GeocodingService.class);
+        var checked = new StationLocationService(stationRepo, unasked);
+        var refusal = assertThrows(
+                RefusalResponse.class,
+                () -> checked.locate(new StationLocationService.AddressSearch(null, null, "Berlin", "Deutschland")));
+        assertEquals(StationRefusal.STATION_COUNTRY_NOT_A_CODE, refusal.refusal());
+        assertThrows(
+                RefusalResponse.class,
+                () -> checked.locate(new StationLocationService.AddressSearch("x".repeat(201), null, null, null)));
+        verify(unasked, never()).locate(any());
     }
 }
