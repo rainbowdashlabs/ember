@@ -24219,6 +24219,52 @@
         }
       }
     },
+    "/api/v1/events/{id}/places" : {
+      "get" : {
+        "summary" : "The pins of an appointment's place fields",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StationPlace"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "date",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
     "/api/v1/events/{id}/reminders" : {
       "get" : {
         "summary" : "List the days before an event its reminders go out",
@@ -51014,6 +51060,73 @@
         }
       }
     },
+    "/api/v1/station/location/geocode" : {
+      "post" : {
+        "summary" : "Find where the station's address lies",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GeocodeAnswer"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too Many Requests",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "Service Unavailable",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AddressSearch"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/station/mail-import/log" : {
       "get" : {
         "summary" : "What became of each attachment the mailboxes read",
@@ -52138,6 +52251,134 @@
                     "$ref" : "#/components/schemas/FeedUseResponse"
                   }
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/station/places" : {
+      "get" : {
+        "summary" : "The stored pin of a place text",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PlaceAnswer"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "text",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Store the pin of a place text",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationPlace"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PlaceDraft"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/station/places/geocode" : {
+      "post" : {
+        "summary" : "Find where a place text lies",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GeocodeAnswer"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too Many Requests",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "Service Unavailable",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PlaceSearch"
               }
             }
           }
@@ -54332,6 +54573,23 @@
           },
           "label" : {
             "type" : "string"
+          }
+        }
+      },
+      "AddressSearch" : {
+        "type" : "object",
+        "properties" : {
+          "addressLine" : {
+            "type" : [ "string", "null" ]
+          },
+          "postalCode" : {
+            "type" : [ "string", "null" ]
+          },
+          "city" : {
+            "type" : [ "string", "null" ]
+          },
+          "country" : {
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -68170,9 +68428,41 @@
         },
         "required" : [ "questions", "done" ]
       },
+      "GeocodeAnswer" : {
+        "type" : "object",
+        "properties" : {
+          "match" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/GeocodeResult"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "match" ]
+      },
+      "GeocodePrecision" : {
+        "type" : "string",
+        "enum" : [ "EXACT", "STREET", "AREA" ]
+      },
+      "GeocodeResult" : {
+        "type" : "object",
+        "properties" : {
+          "latitude" : {
+            "type" : "number"
+          },
+          "longitude" : {
+            "type" : "number"
+          },
+          "precision" : {
+            "$ref" : "#/components/schemas/GeocodePrecision"
+          }
+        },
+        "required" : [ "latitude", "longitude", "precision" ]
+      },
       "GeocodingProvider" : {
         "type" : "string",
-        "enum" : [ "NONE", "NOMINATIM", "LOCATIONIQ", "GEOAPIFY" ]
+        "enum" : [ "NONE", "PHOTON" ]
       },
       "GradingScope" : {
         "type" : "object",
@@ -72957,14 +73247,11 @@
           "provider" : {
             "$ref" : "#/components/schemas/GeocodingProvider"
           },
-          "apiKey" : {
-            "type" : "string"
-          },
-          "contactEmail" : {
-            "type" : "string"
+          "baseUrl" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "provider", "apiKey", "contactEmail" ]
+        "required" : [ "provider", "baseUrl" ]
       },
       "MapsTilesConfig" : {
         "type" : "object",
@@ -77554,6 +77841,48 @@
         },
         "required" : [ "pageUid", "title", "slug", "updatedAt" ]
       },
+      "PlaceAnswer" : {
+        "type" : "object",
+        "properties" : {
+          "place" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/StationPlace"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "place" ]
+      },
+      "PlaceDraft" : {
+        "type" : "object",
+        "properties" : {
+          "text" : {
+            "type" : [ "string", "null" ]
+          },
+          "latitude" : {
+            "type" : [ "number", "null" ]
+          },
+          "longitude" : {
+            "type" : [ "number", "null" ]
+          },
+          "precision" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/GeocodePrecision"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
+      },
+      "PlaceSearch" : {
+        "type" : "object",
+        "properties" : {
+          "text" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
       "Placeholder" : {
         "type" : "object",
         "properties" : {
@@ -79335,6 +79664,12 @@
               "$ref" : "#/components/schemas/AppointmentField"
             }
           },
+          "places" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StationPlace"
+            }
+          },
           "cancelled" : {
             "type" : "boolean"
           },
@@ -79345,7 +79680,7 @@
             }
           }
         },
-        "required" : [ "id", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "category", "publicFields", "cancelled", "cancelledDates" ]
+        "required" : [ "id", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "category", "publicFields", "places", "cancelled", "cancelledDates" ]
       },
       "PublicEventResponse" : {
         "type" : "object",
@@ -79615,9 +79950,12 @@
           "maxZoom" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "geocoding" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "provider", "urlTemplate", "attribution", "minZoom", "maxZoom" ]
+        "required" : [ "provider", "urlTemplate", "attribution", "minZoom", "maxZoom", "geocoding" ]
       },
       "PublicModeResponse" : {
         "type" : "object",
@@ -81627,9 +81965,12 @@
           },
           "placeGivenUp" : {
             "type" : "boolean"
+          },
+          "statusChangedAt" : {
+            "$ref" : "#/components/schemas/Instant"
           }
         },
-        "required" : [ "id", "eventId", "memberId", "memberName", "memberIdentity", "eventDate", "status", "createdAt", "createdByName", "fields", "eventName", "answersMissing", "fromField", "fieldName", "agreementWithdrawnAt", "placeGivenUp" ]
+        "required" : [ "id", "eventId", "memberId", "memberName", "memberIdentity", "eventDate", "status", "createdAt", "createdByName", "fields", "eventName", "answersMissing", "fromField", "fieldName", "agreementWithdrawnAt", "placeGivenUp", "statusChangedAt" ]
       },
       "RegistrationStatsResponse" : {
         "type" : "object",
@@ -87345,6 +87686,31 @@
           }
         },
         "required" : [ "stationUid", "name", "city", "country", "logoUrl", "selectable" ]
+      },
+      "StationPlace" : {
+        "type" : "object",
+        "properties" : {
+          "text" : {
+            "type" : "string"
+          },
+          "latitude" : {
+            "type" : "number"
+          },
+          "longitude" : {
+            "type" : "number"
+          },
+          "precision" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/GeocodePrecision"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "updatedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "text", "latitude", "longitude", "precision", "updatedAt" ]
       },
       "StationPoolUse" : {
         "type" : "object",

@@ -2,26 +2,31 @@
 
 ## v26.26.0
 
-Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy und auf den Computer, auch wenn Ember geschlossen ist. Gruppen und Tags füllen sich auf Wunsch selbst nach Regeln über Profilantworten, Alter und Mitgliedschaft, etwa mit allen, deren JuLeiCa in den nächsten zehn Monaten abläuft.
+Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy und auf den Computer, auch wenn Ember geschlossen ist. Orte, die Termine nennen, etwa der Treffpunkt, können eine Markierung tragen, und die Terminseite zeigt sie auf einer kleinen Karte. Gruppen und Tags füllen sich auf Wunsch selbst nach Regeln über Profilantworten, Alter und Mitgliedschaft, etwa mit allen, deren JuLeiCa in den nächsten zehn Monaten abläuft.
 
 ### Neue Funktionen
 
+- **Orte von Terminen auf der Karte.** „Ort“ und „Treffpunkt“ legen jetzt Ortsfelder an, und „Auf der Karte“ neben einem Ort öffnet eine Karte, auf der seine Markierung gefunden oder korrigiert wird. Die Markierung gilt für jeden Termin, der denselben Ort nennt, und die Terminseite zeigt sie auf einer kleinen Karte mit einem Link zu OpenStreetMap.
 - **Push-Benachrichtigungen.** Benachrichtigungen und Chatnachrichten erscheinen auf Handy oder Computer, auch wenn Ember geschlossen ist, sobald Push auf dem Gerät unter Profil → Benachrichtigungen erlaubt ist. Eine neue Spalte „Push“ legt fest, welche Arten gepusht werden; Geräte lassen sich dort oder in der Liste der Anmeldungen testen und entfernen.
 - **Push für Betreiber.** Push-Benachrichtigungen funktionieren ohne Einrichtung und lassen sich in den Einstellungen der Verwaltung für die ganze Instanz abschalten. Zugestellt wird über die Push-Dienste der Browserhersteller, und die Datenschutzerklärung bekommt einen Abschnitt dazu.
 - **Gruppen und Tags nach Regel.** Eine Gruppe oder ein Tag kann die Mitglieder aus einer Regel nehmen, die Profilantworten, Alter, Mitgliedschaft und andere Gruppen oder Tags prüft. Mitglieder kommen und gehen von selbst, wenn sich Antworten ändern oder ein Datum näher rückt, und eine Vorschau zeigt vor dem Speichern, wen eine Regel aufnimmt.
 
 ### Verbesserungen
 
+- **Adresse der Wache auf der Karte finden.** „Auf der Karte finden“ in den Standort-Einstellungen setzt die Markierung auf die eingetippte Adresse. Ein Hinweis sagt, wenn nur die Straße oder der Ort gefunden wurde, und gespeichert wird erst mit dem Standort.
+- **Absagen eingeklappt.** Auf der Seite der Anmeldungen bleiben die Absagen zu einem Termin geschlossen, bis sie geöffnet werden. Geöffnet zeigen sie, wer wann abgesagt hat, ohne die Rangfolge für Plätze.
 - **Üblicher Port für den Mailserver.** Die Mail-Einstellungen nennen den üblichen Port zur gewählten Verschlüsselung und weisen auf einen Port hin, der nicht dazu passt. Gespeichert wird der Port trotzdem so, wie er eingetragen ist.
 - **Versandabstand der Instanz sichtbar.** Überlässt eine Wache die Versandzeiten der Benachrichtigungen der Instanz, steht jetzt dabei, wie oft die Instanz sie verschickt.
 
 ### Änderungen
 
+- **Photon schlägt Adressen nach.** Unter Verwaltung → Karten gibt es Photon als einzige Adresssuche, mit dem öffentlichen Server, solange keine eigene Serveradresse eingetragen ist. Nominatim, LocationIQ und Geoapify entfallen; eine Instanz, die einen davon gewählt hatte, hat keine Adresssuche, bis Photon gewählt wird.
 - **Benachrichtigungen per E-Mail sind von Anfang an an.** Jedes Mitglied bekommt Benachrichtigungen per E-Mail, sobald die Wache oder die Instanz E-Mails versenden kann, und zwar für jede Art. Wer das nicht möchte, schaltet es unter Profil → Benachrichtigungen ab, auch wer es vor dieser Version schon abgeschaltet hatte.
 - **Antwortadresse oben in den Mail-Einstellungen.** Die Antwortadresse steht nicht mehr im Kasten zu den Mailanbietern der Instanz, sondern ganz oben auf der Seite, weil sie für alle Mails der Wache gilt.
 
 ### Fehlerbehebungen
 
+- **Anmeldezahlen bei kommenden Terminen verrutschten.** In manchen Fällen standen die Anmeldezahlen eines Termins mit einer langen Zeile in der Beschreibung unter dem Text statt daneben. Die Beschreibung bricht jetzt um, sodass die Zahlen daneben bleiben, wo Platz ist.
 - **Zustimmung nach Änderungen doppelt abgefragt.** Nach einer Änderung der Datenschutzerklärung oder der Nutzungsbedingungen galt die Zustimmung auf der Anmeldeseite nicht für das Konto, sodass dieselbe Frage direkt nach der Anmeldung noch einmal kam. Eine Zustimmung vor der Anmeldung gilt jetzt auch für das Konto.
 - **Installieren wurde nicht immer angeboten.** In manchen Fällen startete der Hintergrundteil von Ember nicht, sodass der Browser die Installation nicht anbot und gespeicherte Dateien sich im Browser öffnen konnten. Er startet jetzt mit jeder Seite.
 - **Rückmeldeadresse beim eigenen Mailserver.** Die Mail-Einstellungen boten auch für einen eigenen Mailserver eine Adresse für Zustellrückmeldungen an, obwohl er keine schickt. Dort wird sie nicht mehr angezeigt.

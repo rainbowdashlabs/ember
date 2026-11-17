@@ -249,4 +249,7 @@ export default {
     'E-220': 'Eine Mindestzahl braucht mindestens eine Anmeldung und die Tage vor dem ersten Termin, bis zu denen sie erreicht sein muss, nichts wurde gespeichert',
     'E-221': 'Diese Kategorie gibt es hier nicht mehr',
     'E-222': 'Den Termin, der kopiert werden soll, gibt es hier nicht mehr, nichts wurde gespeichert',
+    'E-223': 'Nenne zuerst den Ort',
+    'E-224': 'Der Name des Ortes ist zu lang, nichts wurde gespeichert',
+    'E-225': 'Dieser Punkt liegt nicht auf der Karte, nichts wurde gespeichert',
 }

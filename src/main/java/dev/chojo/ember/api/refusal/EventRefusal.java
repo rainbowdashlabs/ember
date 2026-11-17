@@ -838,7 +838,16 @@ public enum EventRefusal implements Refusal {
      * caller may not see.
      */
     EVENT_TO_COPY_NOT_HERE(
-            222, HttpStatus.NOT_FOUND, "The appointment to copy is not here any more, nothing was saved");
+            222, HttpStatus.NOT_FOUND, "The appointment to copy is not here any more, nothing was saved"),
+
+    /** A place pinned or looked up without saying which place. */
+    PLACE_TEXT_MISSING(223, HttpStatus.BAD_REQUEST, "Name the place first"),
+
+    /** A place pinned or looked up under a name longer than a place may have to carry a pin. */
+    PLACE_TEXT_TOO_LONG(224, HttpStatus.BAD_REQUEST, "The name of the place is too long, nothing was saved"),
+
+    /** A place pinned at a point that does not lie on the map, or without saying where. */
+    PLACE_OFF_THE_MAP(225, HttpStatus.BAD_REQUEST, "That point does not lie on the map, nothing was saved");
 
     private final Definition definition;
 

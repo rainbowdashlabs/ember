@@ -26534,6 +26534,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/places": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The pins of an appointment's place fields */
+        get: {
+            parameters: {
+                query?: {
+                    date?: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationPlace"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/reminders": {
         parameters: {
             query?: never;
@@ -65322,6 +65371,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/station/location/geocode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Find where the station's address lies */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AddressSearch"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GeocodeAnswer"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/station/mail-import/log": {
         parameters: {
             query?: never;
@@ -66929,6 +67054,153 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/places": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The stored pin of a place text */
+        get: {
+            parameters: {
+                query: {
+                    text: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlaceAnswer"];
+                    };
+                };
+            };
+        };
+        /** Store the pin of a place text */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PlaceDraft"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationPlace"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/places/geocode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Find where a place text lies */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PlaceSearch"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GeocodeAnswer"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -69438,6 +69710,12 @@ export interface components {
             label?: string;
             mapUrl?: string;
             postalCode?: string;
+        };
+        AddressSearch: {
+            addressLine?: string | null;
+            city?: string | null;
+            country?: string | null;
+            postalCode?: string | null;
         };
         AdminMapsConfig: {
             geocoding: components["schemas"]["MapsGeocodingConfig"];
@@ -74095,8 +74373,18 @@ export interface components {
             done: boolean;
             questions: components["schemas"]["GeneratedQuestionWithMeta"][];
         };
+        GeocodeAnswer: {
+            match: components["schemas"]["GeocodeResult"] | null;
+        };
         /** @enum {string} */
-        GeocodingProvider: "NONE" | "NOMINATIM" | "LOCATIONIQ" | "GEOAPIFY";
+        GeocodePrecision: "EXACT" | "STREET" | "AREA";
+        GeocodeResult: {
+            latitude: number;
+            longitude: number;
+            precision: components["schemas"]["GeocodePrecision"];
+        };
+        /** @enum {string} */
+        GeocodingProvider: "NONE" | "PHOTON";
         GradingScope: {
             mayGrade: boolean;
             restricted: boolean;
@@ -75848,8 +76136,7 @@ export interface components {
             zoom?: number;
         };
         MapsGeocodingConfig: {
-            apiKey: string;
-            contactEmail: string;
+            baseUrl: string | null;
             provider: components["schemas"]["GeocodingProvider"];
         };
         MapsTilesConfig: {
@@ -77408,6 +77695,15 @@ export interface components {
             title: string;
             updatedAt: components["schemas"]["Instant"];
         };
+        PlaceAnswer: {
+            place: components["schemas"]["StationPlace"] | null;
+        };
+        PlaceDraft: {
+            latitude?: number | null;
+            longitude?: number | null;
+            precision?: components["schemas"]["GeocodePrecision"] | null;
+            text?: string | null;
+        };
         Placeholder: {
             category: components["schemas"]["PlaceholderCategory"];
             dateKind: components["schemas"]["DateKind"] | null;
@@ -77439,6 +77735,9 @@ export interface components {
             name: string;
             /** Format: uuid */
             stationUid: string;
+        };
+        PlaceSearch: {
+            text?: string | null;
         };
         PlannedLanding: {
             certain: boolean;
@@ -78005,6 +78304,7 @@ export interface components {
             /** Format: int32 */
             id: number;
             name: string;
+            places: components["schemas"]["StationPlace"][];
             publicFields: components["schemas"]["AppointmentField"][];
             startTime: components["schemas"]["Instant"];
         };
@@ -78092,6 +78392,7 @@ export interface components {
         };
         PublicMapsConfig: {
             attribution: string | null;
+            geocoding: boolean;
             /** Format: int32 */
             maxZoom: number;
             /** Format: int32 */
@@ -78794,6 +79095,7 @@ export interface components {
             memberName: string;
             placeGivenUp: boolean;
             status: components["schemas"]["RegistrationStatus"];
+            statusChangedAt: components["schemas"]["Instant"];
         };
         RegistrationStatsResponse: {
             /** Format: int32 */
@@ -80697,6 +80999,13 @@ export interface components {
             selectable: boolean;
             stationUid: string;
         };
+        StationPlace: {
+            latitude: number;
+            longitude: number;
+            precision: components["schemas"]["GeocodePrecision"] | null;
+            text: string;
+            updatedAt: components["schemas"]["Instant"];
+        };
         StationPoolUse: {
             /** Format: int32 */
             instancePosition: number;
@@ -82357,6 +82666,7 @@ export type AddMembersRequest = components['schemas']['AddMembersRequest'];
 export type AddMembersResponse = components['schemas']['AddMembersResponse'];
 export type AddPeerRequest = components['schemas']['AddPeerRequest'];
 export type AddressCardConfig = components['schemas']['AddressCardConfig'];
+export type AddressSearch = components['schemas']['AddressSearch'];
 export type AdminMapsConfig = components['schemas']['AdminMapsConfig'];
 export type AdminOverview = components['schemas']['AdminOverview'];
 export type AdminStationSummary = components['schemas']['AdminStationSummary'];
@@ -82995,6 +83305,9 @@ export type GenerateQuestionsRequest = components['schemas']['GenerateQuestionsR
 export type GenerationJobResponse = components['schemas']['GenerationJobResponse'];
 export type GenerationJobSummary = components['schemas']['GenerationJobSummary'];
 export type GenerationPollResponse = components['schemas']['GenerationPollResponse'];
+export type GeocodeAnswer = components['schemas']['GeocodeAnswer'];
+export type GeocodePrecision = components['schemas']['GeocodePrecision'];
+export type GeocodeResult = components['schemas']['GeocodeResult'];
 export type GeocodingProvider = components['schemas']['GeocodingProvider'];
 export type GradingScope = components['schemas']['GradingScope'];
 export type GrantRequest = components['schemas']['GrantRequest'];
@@ -83460,11 +83773,14 @@ export type PermissionNode = components['schemas']['PermissionNode'];
 export type PermissionsByMember = components['schemas']['PermissionsByMember'];
 export type PickerEvent = components['schemas']['PickerEvent'];
 export type PickerPage = components['schemas']['PickerPage'];
+export type PlaceAnswer = components['schemas']['PlaceAnswer'];
+export type PlaceDraft = components['schemas']['PlaceDraft'];
 export type Placeholder = components['schemas']['Placeholder'];
 export type PlaceholderCatalogueResponse = components['schemas']['PlaceholderCatalogueResponse'];
 export type PlaceholderCategory = components['schemas']['PlaceholderCategory'];
 export type PlaceholderValues = components['schemas']['PlaceholderValues'];
 export type PlacementResponse = components['schemas']['PlacementResponse'];
+export type PlaceSearch = components['schemas']['PlaceSearch'];
 export type PlannedLanding = components['schemas']['PlannedLanding'];
 export type PlannedStep = components['schemas']['PlannedStep'];
 export type PoliciesResponse = components['schemas']['PoliciesResponse'];
@@ -83897,6 +84213,7 @@ export type StationPage = components['schemas']['StationPage'];
 export type StationPermission = components['schemas']['StationPermission'];
 export type StationPermissionsRequest = components['schemas']['StationPermissionsRequest'];
 export type StationPickerResult = components['schemas']['StationPickerResult'];
+export type StationPlace = components['schemas']['StationPlace'];
 export type StationPoolUse = components['schemas']['StationPoolUse'];
 export type StationRegistrationStatus = components['schemas']['StationRegistrationStatus'];
 export type StationRequest = components['schemas']['StationRequest'];
@@ -84643,11 +84960,15 @@ export const GalleryAspectMode = {
     SQUARE: "SQUARE",
 } as const;
 
+export const GeocodePrecision = {
+    AREA: "AREA",
+    EXACT: "EXACT",
+    STREET: "STREET",
+} as const;
+
 export const GeocodingProvider = {
-    GEOAPIFY: "GEOAPIFY",
-    LOCATIONIQ: "LOCATIONIQ",
-    NOMINATIM: "NOMINATIM",
     NONE: "NONE",
+    PHOTON: "PHOTON",
 } as const;
 
 export const GuardianCondition = {

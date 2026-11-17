@@ -32,6 +32,7 @@ import dev.chojo.ember.feature.events.service.EventFieldRegistrationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventMemberTableService;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService;
+import dev.chojo.ember.feature.events.service.EventPlaceService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
@@ -242,7 +243,8 @@ class EventRouteLookupsTest {
                 mock(EventCategoryService.class),
                 mock(EventFieldService.class),
                 mock(OccurrenceCalendar.class),
-                stationService));
+                stationService,
+                mock(EventPlaceService.class)));
 
         harness.run((server, client) -> {
             assertEquals(
@@ -267,7 +269,8 @@ class EventRouteLookupsTest {
                 mock(EventCategoryService.class),
                 mock(EventFieldService.class),
                 mock(OccurrenceCalendar.class),
-                stationService));
+                stationService,
+                mock(EventPlaceService.class)));
 
         assertEquals(
                 EventRefusal.PUBLIC_CALENDAR_SWITCHED_OFF,

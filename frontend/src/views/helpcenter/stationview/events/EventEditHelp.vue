@@ -118,6 +118,10 @@ const groupTemplates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exa
       <p>{{ t('helpCenter.eventEdit.fieldsLineText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.eventEdit.placeTitle')">
+      <p>{{ t('helpCenter.eventEdit.placeText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.eventEdit.fieldDefaultsTitle')">
       <p>{{ t('helpCenter.eventEdit.fieldDefaultsText') }}</p>
     </HelpSection>

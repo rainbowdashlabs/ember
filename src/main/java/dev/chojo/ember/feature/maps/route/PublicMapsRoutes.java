@@ -10,6 +10,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.api.refusal.MapRefusal;
 import dev.chojo.ember.feature.maps.entity.MapTileProvider;
+import dev.chojo.ember.feature.maps.service.GeocodingService;
 import dev.chojo.ember.feature.maps.service.MapTileCacheService;
 import dev.chojo.ember.feature.maps.service.MapTileRateLimiter;
 import dev.chojo.ember.feature.maps.service.MapsConfigService;
@@ -42,13 +43,18 @@ public class PublicMapsRoutes implements Routes {
     private final MapsConfigService configService;
     private final MapTileCacheService cacheService;
     private final MapTileRateLimiter rateLimiter;
+    private final GeocodingService geocoding;
 
     @Inject
     public PublicMapsRoutes(
-            MapsConfigService configService, MapTileCacheService cacheService, MapTileRateLimiter rateLimiter) {
+            MapsConfigService configService,
+            MapTileCacheService cacheService,
+            MapTileRateLimiter rateLimiter,
+            GeocodingService geocoding) {
         this.configService = configService;
         this.cacheService = cacheService;
         this.rateLimiter = rateLimiter;
+        this.geocoding = geocoding;
     }
 
     private static int parseInt(String value, String fieldName) {
@@ -83,7 +89,12 @@ public class PublicMapsRoutes implements Routes {
         }
         ctx.header("Cache-Control", "public, max-age=60");
         ctx.json(new PublicMapsConfig(
-                tiles.provider(), urlTemplate, tiles.resolvedAttribution(), tiles.minZoom(), tiles.maxZoom()));
+                tiles.provider(),
+                urlTemplate,
+                tiles.resolvedAttribution(),
+                tiles.minZoom(),
+                tiles.maxZoom(),
+                geocoding.enabled()));
     }
 
     /**
@@ -127,11 +138,14 @@ public class PublicMapsRoutes implements Routes {
 
     /**
      * Public-facing tile config - never includes the API key. Frontend reads only this.
+     *
+     * @param geocoding whether addresses can be looked up, so the "Find on map" buttons are offered
      */
     public record PublicMapsConfig(
             MapTileProvider provider,
             @Nullable String urlTemplate,
             @Nullable String attribution,
             int minZoom,
-            int maxZoom) {}
+            int maxZoom,
+            boolean geocoding) {}
 }

@@ -4,16 +4,18 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {configOf, spanForWidth} from '@/components/profilefields/fieldLayout'
 import DetailLabel from '@/components/typography/DetailLabel.vue'
 import QuestionValueDisplay from '@/components/display/QuestionValueDisplay.vue'
 import PerDateFieldValue from './PerDateFieldValue.vue'
-import type {AppointmentField} from '@/api/generated/schema'
+import PlaceMap from '@/components/map/PlaceMap.vue'
+import {FieldType, type AppointmentField, type StationPlace} from '@/api/generated/schema'
 import SelfRegistrationToggle from '../eventshared/SelfRegistrationToggle.vue'
 import type {MemberLike} from '@/components/input/select/memberOption'
-import {events} from '@/api'
+import {events, places} from '@/api'
+import {normalisePlace} from '@/util/placeText'
 
 const props = defineProps<{
   eventId: number
@@ -38,6 +40,33 @@ const {t} = useI18n()
 const memberNames = computed(() =>
     new Map(props.allMembers.map(m => [m.id, m.name ?? m.email ?? `#${m.id}`] as const)))
 
+const pins = ref<StationPlace[]>([])
+
+/** The key of every place field's text, so a reload happens only when a place changes. */
+const placeKeys = computed(() => props.fields
+    .filter(field => field.fieldType === FieldType.LOCATION && field.value.trim() !== '')
+    .map(field => normalisePlace(field.value))
+    .join('|'))
+
+let pinRequest = 0
+
+/** Loads the pins of the date on screen; an answer for a date the reader has already left is dropped. */
+watch(() => [props.eventId, props.effectiveDate, placeKeys.value] as const, async ([eventId, date, keys]) => {
+  const request = ++pinRequest
+  if (!keys) {
+    pins.value = []
+    return
+  }
+  const loaded = await places.eventPlaces(eventId, date).catch(() => [])
+  if (request === pinRequest) pins.value = loaded
+}, {immediate: true})
+
+/** The pin of a place field as a list of at most one, empty where its text has none or it is no place field. */
+function pinsOf(field: AppointmentField): StationPlace[] {
+  if (field.fieldType !== FieldType.LOCATION) return []
+  const key = normalisePlace(field.value)
+  return pins.value.filter(pin => normalisePlace(pin.text) === key).slice(0, 1)
+}
 </script>
 
 <template>
@@ -51,6 +80,14 @@ const memberNames = computed(() =>
       <p class="text-sm">
         <QuestionValueDisplay :field-type="field.fieldType" :member-names="memberNames" :value="field.value"/>
       </p>
+      <PlaceMap
+          v-for="pin in pinsOf(field)"
+          :key="pin.text"
+          :latitude="pin.latitude"
+          :longitude="pin.longitude"
+          :label="field.value"
+          class="mt-2"
+      />
       <SelfRegistrationToggle
           :field="field"
           :current-member-id="currentMemberId"
