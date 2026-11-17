@@ -11,6 +11,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 
 ### Verbesserungen
 
+- **Absagen eingeklappt.** Auf der Seite der Anmeldungen bleiben die Absagen zu einem Termin geschlossen, bis sie geöffnet werden. Geöffnet zeigen sie, wer wann abgesagt hat, ohne die Rangfolge für Plätze.
 - **Üblicher Port für den Mailserver.** Die Mail-Einstellungen nennen den üblichen Port zur gewählten Verschlüsselung und weisen auf einen Port hin, der nicht dazu passt. Gespeichert wird der Port trotzdem so, wie er eingetragen ist.
 - **Versandabstand der Instanz sichtbar.** Überlässt eine Wache die Versandzeiten der Benachrichtigungen der Instanz, steht jetzt dabei, wie oft die Instanz sie verschickt.
 
@@ -21,6 +22,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 
 ### Fehlerbehebungen
 
+- **Anmeldezahlen bei kommenden Terminen verrutschten.** In manchen Fällen standen die Anmeldezahlen eines Termins mit einer langen Zeile in der Beschreibung unter dem Text statt daneben. Die Beschreibung bricht jetzt um, sodass die Zahlen daneben bleiben, wo Platz ist.
 - **Zustimmung nach Änderungen doppelt abgefragt.** Nach einer Änderung der Datenschutzerklärung oder der Nutzungsbedingungen galt die Zustimmung auf der Anmeldeseite nicht für das Konto, sodass dieselbe Frage direkt nach der Anmeldung noch einmal kam. Eine Zustimmung vor der Anmeldung gilt jetzt auch für das Konto.
 - **Installieren wurde nicht immer angeboten.** In manchen Fällen startete der Hintergrundteil von Ember nicht, sodass der Browser die Installation nicht anbot und gespeicherte Dateien sich im Browser öffnen konnten. Er startet jetzt mit jeder Seite.
 - **Rückmeldeadresse beim eigenen Mailserver.** Die Mail-Einstellungen boten auch für einen eigenen Mailserver eine Adresse für Zustellrückmeldungen an, obwohl er keine schickt. Dort wird sie nicht mehr angezeigt.
