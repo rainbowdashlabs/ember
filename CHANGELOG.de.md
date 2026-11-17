@@ -9,6 +9,10 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Push-Benachrichtigungen.** Benachrichtigungen und Chatnachrichten erscheinen auf Handy oder Computer, auch wenn Ember geschlossen ist, sobald Push auf dem Gerät unter Profil → Benachrichtigungen erlaubt ist. Eine neue Spalte „Push“ legt fest, welche Arten gepusht werden; Geräte lassen sich dort oder in der Liste der Anmeldungen testen und entfernen.
 - **Push für Betreiber.** Push-Benachrichtigungen funktionieren ohne Einrichtung und lassen sich in den Einstellungen der Verwaltung für die ganze Instanz abschalten. Zugestellt wird über die Push-Dienste der Browserhersteller, und die Datenschutzerklärung bekommt einen Abschnitt dazu.
 
+### Änderungen
+
+- **Benachrichtigungen per E-Mail sind von Anfang an an.** Jedes Mitglied bekommt Benachrichtigungen per E-Mail, sobald die Wache oder die Instanz E-Mails versenden kann, und zwar für jede Art. Wer das nicht möchte, schaltet es unter Profil → Benachrichtigungen ab, auch wer es vor dieser Version schon abgeschaltet hatte.
+
 ### Fehlerbehebungen
 
 - **Zustimmung nach Änderungen doppelt abgefragt.** Nach einer Änderung der Datenschutzerklärung oder der Nutzungsbedingungen galt die Zustimmung auf der Anmeldeseite nicht für das Konto, sodass dieselbe Frage direkt nach der Anmeldung noch einmal kam. Eine Zustimmung vor der Anmeldung gilt jetzt auch für das Konto.

@@ -126,7 +126,7 @@ public class NotificationSettingsRepository {
 
     /**
      * Checks whether email digest notifications are enabled for a member and type.
-     * Defaults to {@code false} if no setting exists.
+     * Defaults to {@code true} if no setting exists, as mail is on until switched off.
      *
      * @param memberId the member ID
      * @param type     the notification type
@@ -139,6 +139,6 @@ public class NotificationSettingsRepository {
                 .single(call().bind("member_id", memberId).bind("type", type))
                 .map(row -> row.getBoolean("email_enabled"))
                 .first()
-                .orElse(false);
+                .orElse(true);
     }
 }

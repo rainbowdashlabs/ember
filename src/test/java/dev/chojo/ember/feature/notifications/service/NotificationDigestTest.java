@@ -142,7 +142,7 @@ class NotificationDigestTest extends RepositoryTestBase {
 
     /**
      * A cluster's mail is written in its home station's language, goes out through the instance's
-     * chain, and reaches only the people who switched their mail on.
+     * chain, and reaches only the people who left their mail on.
      */
     @Test
     void aClusterWritesInItsHomeLanguageAndOnlyToWhoAskedForMail() {
@@ -161,8 +161,8 @@ class NotificationDigestTest extends RepositoryTestBase {
                 clusterRepo,
                 email,
                 new NotificationVisibility(new ModuleAvailability(stationRepo, clusterRepo), stationMemberRepo));
-        assertFalse(preferences.clusterMailOf(wantsMail.id()).emailEnabled(), "mail is off until asked for");
-        assertTrue(preferences.setClusterMail(wantsMail.id(), true, null).emailEnabled());
+        assertTrue(preferences.clusterMailOf(wantsMail.id()).emailEnabled(), "mail is on until switched off");
+        assertFalse(preferences.setClusterMail(noMail.id(), false, null).emailEnabled());
         assertTrue(preferences.clusterMailOf(wantsMail.id()).mailAvailable());
         notificationRepo.insertForCluster(
                 List.of(wantsMail.id(), noMail.id()),
@@ -218,17 +218,31 @@ class NotificationDigestTest extends RepositoryTestBase {
         assertTrue(waiting(reader).isEmpty(), "both are marked, mailed or not");
     }
 
-    /** A member who has not switched mail on is not mailed, and their notification is not tried again. */
+    /** A member who switched mail off is not mailed, and their notification is not tried again. */
     @Test
     void aMemberWithoutMailIsNotWrittenToButMarked() {
         var station = station("Wache Still", "de-DE", "Europe/Berlin");
         var quiet = member(station, "quiet@test.com");
+        userSettingsRepo.updateEmailEnabled(quiet.id(), false);
         notify(quiet, NotificationType.NEW_NEWS, news("Ruhe"));
 
         digest.sweep(Instant.now());
 
         verify(email, never()).queueStationEmail(anyInt(), anyString(), anyString(), anyString());
         assertTrue(waiting(quiet).isEmpty());
+    }
+
+    /** A member who never chose anything about mail is mailed, as mail is on until switched off. */
+    @Test
+    void aMemberWhoNeverChoseIsMailed() {
+        var station = station("Wache Standard", "de-DE", "Europe/Berlin");
+        var untouched = member(station, "standard@test.com");
+        notify(untouched, NotificationType.NEW_NEWS, news("Von Anfang an"));
+
+        digest.sweep(Instant.now());
+
+        verify(email, times(1)).queueStationEmail(eq(station.id()), eq("standard@test.com"), anyString(), anyString());
+        assertTrue(waiting(untouched).isEmpty());
     }
 
     /** What arrives between two of a station's times waits for the next one, unmailed and unmarked. */

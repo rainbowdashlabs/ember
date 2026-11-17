@@ -9,6 +9,10 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Push notifications.** Notifications and chat messages can arrive on a phone or computer even with Ember closed, once push is allowed on that device under Profile → Notifications. A new "Push" column chooses which kinds are pushed, and devices can be tested and removed there or in the list of sign-ins.
 - **Push for operators.** Push notifications work without any setup and can be switched off for the whole instance in the administration settings. They are delivered through the push services of the browser makers, and the privacy notice gains a section on them.
 
+### Changes
+
+- **Mail notifications are on by default.** Every member gets notifications by mail as soon as the station or the instance can send mail, for every kind of notification. Members who do not want them switch mail off under Profile → Notifications, including those who had switched it off before this release.
+
 ### Fixes
 
 - **Consent asked twice after a policy update.** After the privacy policy or the terms changed, agreeing on the sign-in page did not count for the account, so the same question came again right after signing in. Agreeing before signing in now covers the account.

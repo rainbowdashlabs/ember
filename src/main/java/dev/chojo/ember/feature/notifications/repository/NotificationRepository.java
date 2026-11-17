@@ -348,7 +348,7 @@ public class NotificationRepository {
                        coalesce(n.member_id, n.cluster_member_id) AS recipient_id,
                        coalesce(sm.account_id, cm.account_id) AS account_id,
                        CASE WHEN n.member_id IS NOT NULL
-                            THEN coalesce(us.email_enabled, FALSE) AND coalesce(uns.email_enabled, FALSE)
+                            THEN coalesce(us.email_enabled, TRUE) AND coalesce(uns.email_enabled, TRUE)
                             ELSE cm.email_enabled END AS mail_wanted,
                        ARRAY(
                            SELECT lower(ga.email)

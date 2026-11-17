@@ -84,8 +84,8 @@ class NotificationSettingsRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(6)
     void isEmailEnabled() {
-        assertFalse(notificationSettingsRepo.isEmailEnabled(member.id(), NotificationType.NEW_NEWS));
-        assertFalse(notificationSettingsRepo.isEmailEnabled(member.id(), NotificationType.NEW_EVENT));
+        assertFalse(notificationSettingsRepo.isEmailEnabled(member.id(), NotificationType.NEW_NEWS), "switched off");
+        assertTrue(notificationSettingsRepo.isEmailEnabled(member.id(), NotificationType.NEW_EVENT), "never chosen");
     }
 
     @Test

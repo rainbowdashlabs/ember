@@ -144,7 +144,7 @@ public class UserSettingsRoutes implements Routes {
             if (!offered.contains(type)) continue;
             var setting = notifSettings.get(type);
             boolean app = setting == null || setting.appEnabled();
-            boolean email = setting != null && setting.emailEnabled();
+            boolean email = setting == null || setting.emailEnabled();
             boolean feed = setting == null || setting.feedEnabled();
             boolean push = setting == null || setting.pushEnabled();
             responseMap.put(type, new NotificationToggle(app, email, feed, push));

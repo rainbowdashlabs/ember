@@ -120,3 +120,21 @@ ALTER TABLE ember_schema.account
 
 COMMENT ON COLUMN ember_schema.account.messages_push IS
     'Whether new messages in the account''s conversations are pushed to the devices it allowed push on.';
+
+ALTER TABLE ember_schema.user_settings
+    ALTER COLUMN email_enabled SET DEFAULT TRUE;
+UPDATE ember_schema.user_settings SET email_enabled = TRUE WHERE NOT email_enabled;
+
+COMMENT ON COLUMN ember_schema.user_settings.email_enabled IS
+    'Whether this membership gets notifications by mail at all. On unless switched off, which takes effect once the station or the instance can send mail.';
+
+ALTER TABLE ember_schema.user_notification_settings
+    ALTER COLUMN email_enabled SET DEFAULT TRUE;
+UPDATE ember_schema.user_notification_settings SET email_enabled = TRUE WHERE NOT email_enabled;
+
+ALTER TABLE ember_schema.cluster_member
+    ALTER COLUMN email_enabled SET DEFAULT TRUE;
+UPDATE ember_schema.cluster_member SET email_enabled = TRUE WHERE NOT email_enabled;
+
+COMMENT ON COLUMN ember_schema.cluster_member.email_enabled IS
+    'Whether this person gets the association''s gathered notifications by mail. On unless switched off, the same as a station membership''s mail setting.';
