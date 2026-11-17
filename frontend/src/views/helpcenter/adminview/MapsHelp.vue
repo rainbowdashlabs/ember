@@ -29,6 +29,10 @@ const {t} = useI18n()
       ]"/>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.adminMaps.geocodingTitle')">
+      <p>{{ t('helpCenter.adminMaps.geocodingText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.adminMaps.cacheTitle')">
       <p>{{ t('helpCenter.adminMaps.cacheText') }}</p>
     </HelpSection>

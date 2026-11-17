@@ -6,7 +6,9 @@
 import client from './client'
 import {uploadFile} from './upload'
 import type {
+    AddressSearch,
     DeleteRequestResponse,
+    GeocodeAnswer,
     LocationUpdate,
     LocationView,
     MailTestResponse,
@@ -109,6 +111,12 @@ export async function getStationLocation(): Promise<LocationView> {
 /** Saves the station's address and position; a part left out is cleared. */
 export async function updateStationLocation(data: LocationUpdate): Promise<LocationView> {
     const res = await client.put<LocationView>('/station/location', data)
+    return res.data
+}
+
+/** Looks the typed, unsaved address up on the map; nothing is stored. */
+export async function geocodeStationAddress(search: AddressSearch): Promise<GeocodeAnswer> {
+    const res = await client.post<GeocodeAnswer>('/station/location/geocode', search)
     return res.data
 }
 

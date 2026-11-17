@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref, watch} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -17,9 +17,13 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import LocationPicker from '@/components/map/LocationPicker.vue'
 import GeolocateButton from '@/components/map/GeolocateButton.vue'
+import GeocodeHint from '@/components/map/GeocodeHint.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {stationManage} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {useGeocode} from '@/composables/useGeocode'
+import {useMapsConfig} from '@/composables/useMapsConfig'
 import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
 const emit = defineEmits<{
@@ -88,6 +92,7 @@ async function save() {
     country.value = saved.country ?? ''
     latitude.value = saved.latitude ?? null
     longitude.value = saved.longitude ?? null
+    resetFind()
     emit('success', t('geolocation.saved'))
   } catch (err) {
     const described = describeFailure(err, t)
@@ -105,12 +110,45 @@ const {running: clearing, failure: clearFailure, run: runClear} = useAsyncAction
   country.value = ''
   latitude.value = null
   longitude.value = null
+  resetFind()
   emit('success', t('geolocation.cleared'))
 })
 
 async function clear() {
   await runClear()
   if (clearFailure.value) emit('error', clearFailure.value)
+}
+
+const {config: mapsConfig, load: loadMapsConfig} = useMapsConfig()
+
+onMounted(() => {
+  loadMapsConfig().catch(() => undefined)
+})
+
+/** Offered only where the operator chose an address search; without one the pin is placed by hand. */
+const canFind = computed(() => mapsConfig.value?.geocoding === true)
+const hasAddress = computed(() => [addressLine.value, postalCode.value, city.value].some(part => part.trim() !== ''))
+
+const {running: finding, failure: findFailure, outcome: findOutcome, find, reset: resetFind} = useGeocode(() => stationManage.geocodeStationAddress({
+  addressLine: addressLine.value || null,
+  postalCode: postalCode.value || null,
+  city: city.value || null,
+  country: country.value || null,
+}))
+
+/**
+ * Moves the pin to the typed address, the way "use my position" does. Nothing is saved: the pin
+ * only lands in the form, and the save button stays the one way to keep it.
+ */
+async function findOnMap() {
+  localError.value = ''
+  const match = await find()
+  if (findFailure.value) {
+    localError.value = findFailure.value.message
+    emit('error', findFailure.value)
+    return
+  }
+  if (match) await picker.value?.setCoordinates(match.latitude, match.longitude)
 }
 
 async function onLocated(lat: number, lng: number) {
@@ -163,6 +201,17 @@ function onGeolocateError(message: string) {
         </div>
       </div>
 
+      <div v-if="canFind">
+        <SecondaryButton
+            :icon="['fas', 'map-location-dot']"
+            :disabled="finding || !hasAddress"
+            data-testid="find-on-map"
+            @click="findOnMap"
+        >
+          {{ t('geocoding.findOnMap') }}
+        </SecondaryButton>
+      </div>
+
       <p class="text-sm text-(--text-muted)">{{ t('geolocation.pickHint') }}</p>
 
       <LocationPicker
@@ -175,8 +224,10 @@ function onGeolocateError(message: string) {
         </template>
       </LocationPicker>
 
+      <GeocodeHint :outcome="findOutcome"/>
+
       <div class="flex flex-wrap gap-2 justify-end pt-2 border-t border-bg-light-accent dark:border-bg-dark-accent">
-        <DeleteButton :disabled="clearing" @click="clear">
+        <DeleteButton :disabled="clearing" data-testid="location-clear" @click="clear">
           {{ t('geolocation.clear') }}
         </DeleteButton>
         <SaveButton :action="save"/>

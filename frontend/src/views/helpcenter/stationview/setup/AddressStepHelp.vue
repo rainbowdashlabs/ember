@@ -15,6 +15,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import WizardFrame from './setuphelp/WizardFrame.vue'
 
 const {t} = useI18n()
@@ -31,6 +32,7 @@ const noop = () => undefined
     <HelpSection :title="t('helpCenter.setupAddress.howTo')">
       <p>{{ t('helpCenter.setupAddress.howToStep1') }}</p>
       <p>{{ t('helpCenter.setupAddress.howToStep2') }}</p>
+      <p>{{ t('helpCenter.setupAddress.howToFind') }}</p>
       <p>{{ t('helpCenter.setupAddress.howToStep3') }}</p>
     </HelpSection>
 
@@ -59,6 +61,9 @@ const noop = () => undefined
                 <option value="DE">{{ t('helpCenter.sample.stations.germany') }}</option>
               </SelectInput>
             </div>
+          </div>
+          <div>
+            <SecondaryButton :icon="['fas', 'map-location-dot']">{{ t('geocoding.findOnMap') }}</SecondaryButton>
           </div>
           <p class="text-sm text-(--text-muted)">{{ t('geolocation.pickHint') }}</p>
           <div class="flex flex-wrap gap-2 justify-end pt-2 border-t border-(--border)">
