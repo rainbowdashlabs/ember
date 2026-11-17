@@ -17,6 +17,8 @@ const {t} = useI18n()
 defineProps<{
   registrationEnabled: boolean
   messagesEnabled: boolean
+  /** Whether push messages go out to the browsers that allowed them. */
+  pushEnabled: boolean
   availableMailLocales: string[]
 }>()
 
@@ -26,6 +28,7 @@ const defaultMailLocale = defineModel<string>('defaultMailLocale', {required: tr
 const emit = defineEmits<{
   'toggle-registration': [value: boolean]
   'toggle-messages': [value: boolean]
+  'toggle-push': [value: boolean]
   'save-pride': []
   'save-mail-locale': []
 }>()
@@ -68,6 +71,16 @@ function localeLabel(locale: string): string {
       <ToggleInput data-testid="admin-messages-toggle" :model-value="messagesEnabled"
                    :aria-label="t('adminSettings.messages')"
                    @update:model-value="(v: boolean) => emit('toggle-messages', v)"/>
+    </div>
+
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="font-medium">{{ t('adminSettings.push') }}</div>
+        <div class="text-sm text-(--text-muted)">{{ t('adminSettings.pushHint') }}</div>
+      </div>
+      <ToggleInput data-testid="admin-push-toggle" :model-value="pushEnabled"
+                   :aria-label="t('adminSettings.push')"
+                   @update:model-value="(v: boolean) => emit('toggle-push', v)"/>
     </div>
 
     <div class="flex items-center justify-between">

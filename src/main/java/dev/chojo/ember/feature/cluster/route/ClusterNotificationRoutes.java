@@ -28,6 +28,7 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
@@ -133,13 +134,13 @@ public class ClusterNotificationRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/cluster/notifications/settings",
             methods = HttpMethod.PUT,
-            summary = "Switch the caller's mail for the association's notifications on or off",
+            summary = "Switch the caller's mail or pushes for the association's notifications on or off",
             tags = {"Cluster"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ClusterMailRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ClusterMail.class)))
     private void updateSettings(Context ctx) {
         var request = ctx.bodyAsClass(ClusterMailRequest.class);
-        ctx.json(preferences.setClusterMail(clusterMemberId(ctx), request.emailEnabled()));
+        ctx.json(preferences.setClusterMail(clusterMemberId(ctx), request.emailEnabled(), request.pushEnabled()));
     }
 
     private static Recipient requireClusterMember(Context ctx) {
@@ -155,7 +156,9 @@ public class ClusterNotificationRoutes implements Routes {
     /**
      * The caller's choice.
      *
-     * @param emailEnabled whether they want the association's notifications by mail
+     * @param emailEnabled whether they want the association's notifications by mail, left out to keep
+     * @param pushEnabled  whether they want them pushed to their devices, left out to keep
      */
-    public record ClusterMailRequest(boolean emailEnabled) {}
+    public record ClusterMailRequest(
+            @Nullable Boolean emailEnabled, @Nullable Boolean pushEnabled) {}
 }

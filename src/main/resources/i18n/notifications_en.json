@@ -408,5 +408,11 @@
     "notification.signatureWithdrawn": "{withdrawnByName} withdrew the signature on {documentTitle} for {memberName}",
     "notification.partnerSignatureWithdrawn": "A signature on {documentTitle} was withdrawn at {stationName}",
     "notification.partnerSignatureWithdrawn.NAMED": "The signature on {documentTitle} for {memberName} was withdrawn at {stationName}"
+  },
+  "push": {
+    "testTitle": "Push notifications are set up",
+    "testBody": "This is how notifications from Ember look on this device.",
+    "summaryTitle": "New notifications in Ember",
+    "summaryBody": "{count} new notifications are waiting for you in Ember."
   }
 }

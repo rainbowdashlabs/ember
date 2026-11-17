@@ -10,11 +10,13 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import {userSettings} from '@/api'
-import type {SettingsResponse} from '@/api/generated/schema'
+import type {PushKey, SettingsResponse} from '@/api/generated/schema'
 import {useConfigPanel} from '@/composables/useConfigPanel'
-import {ref} from 'vue'
+import {onMounted, ref} from 'vue'
 import NotificationsSection from './settingsview/NotificationsSection.vue'
 import FeedSection from './settingsview/FeedSection.vue'
+import PushDeviceCard from './settingsview/PushDeviceCard.vue'
+import {getPushKey} from '@/api/push'
 
 const {t} = useI18n()
 
@@ -24,6 +26,17 @@ const {config: settings, loading, failure, runWith} = useConfigPanel<SettingsRes
 })
 
 const saved = ref(false)
+
+/** The installation's push key, and whether it pushes at all; without it the push card and column stay hidden. */
+const push = ref<PushKey | null>(null)
+
+onMounted(async () => {
+  try {
+    push.value = await getPushKey()
+  } catch {
+    push.value = null
+  }
+})
 
 async function save() {
   if (!settings.value) return
@@ -47,22 +60,29 @@ function toggleEmailEnabled() {
 
 function toggleApp(type: string) {
   if (!settings.value) return
-  const current = settings.value.notifications?.[type] ?? {app: true, email: false, feed: true}
-  settings.value.notifications[type] = {app: !current.app, email: current.email, feed: current.feed}
+  const current = settings.value.notifications?.[type] ?? {app: true, email: true, feed: true, push: true}
+  settings.value.notifications[type] = {app: !current.app, email: current.email, feed: current.feed, push: current.push}
   save()
 }
 
 function toggleEmail(type: string) {
   if (!settings.value) return
-  const current = settings.value.notifications?.[type] ?? {app: true, email: false, feed: true}
-  settings.value.notifications[type] = {app: current.app, email: !current.email, feed: current.feed}
+  const current = settings.value.notifications?.[type] ?? {app: true, email: true, feed: true, push: true}
+  settings.value.notifications[type] = {app: current.app, email: !current.email, feed: current.feed, push: current.push}
+  save()
+}
+
+function togglePush(type: string) {
+  if (!settings.value) return
+  const current = settings.value.notifications?.[type] ?? {app: true, email: true, feed: true, push: true}
+  settings.value.notifications[type] = {app: current.app, email: current.email, feed: current.feed, push: !(current.push ?? true)}
   save()
 }
 
 function toggleFeed(type: string) {
   if (!settings.value) return
-  const current = settings.value.notifications?.[type] ?? {app: true, email: false, feed: true}
-  settings.value.notifications[type] = {app: current.app, email: current.email, feed: !current.feed}
+  const current = settings.value.notifications?.[type] ?? {app: true, email: true, feed: true, push: true}
+  settings.value.notifications[type] = {app: current.app, email: current.email, feed: !current.feed, push: current.push}
   save()
 }
 </script>
@@ -78,12 +98,16 @@ function toggleFeed(type: string) {
       <Alert v-if="saved" variant="success">{{ t('userSettings.saved') }}</Alert>
 
       <template v-if="!loading && settings">
+        <PushDeviceCard v-if="push?.enabled" :public-key="push.publicKey"/>
+
         <NotificationsSection
           :settings="settings"
+          :push-available="push?.enabled === true"
           @toggle-email-enabled="toggleEmailEnabled"
           @toggle-app="toggleApp"
           @toggle-email="toggleEmail"
           @toggle-feed="toggleFeed"
+          @toggle-push="togglePush"
         />
 
         <FeedSection />

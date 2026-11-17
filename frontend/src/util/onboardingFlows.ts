@@ -123,6 +123,11 @@ export const ONBOARDING_FLOWS: Record<string, OnboardingStep[]> = {
         {target: 'nav.profile.notifications', route: 'profile-notifications', advance: 'route'},
         {target: 'notifications.matrix', advance: 'click'},
     ],
+    'member.push': [
+        {target: 'nav.profile.notifications', route: 'profile-notifications', advance: 'route'},
+        {target: 'push.card', advance: 'read'},
+        {target: 'push.enable', advance: 'click', optional: true},
+    ],
     'member.eventAnswer': [
         {target: 'nav.events.upcoming', route: 'events-upcoming', advance: 'route'},
         {target: 'events.item.registration', advance: 'read'},

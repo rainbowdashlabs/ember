@@ -408,5 +408,11 @@
     "notification.signatureWithdrawn": "{withdrawnByName} hat die Unterschrift unter {documentTitle} für {memberName} widerrufen",
     "notification.partnerSignatureWithdrawn": "Bei {stationName} wurde eine Unterschrift unter {documentTitle} widerrufen",
     "notification.partnerSignatureWithdrawn.NAMED": "Bei {stationName} wurde die Unterschrift unter {documentTitle} für {memberName} widerrufen"
+  },
+  "push": {
+    "testTitle": "Push-Benachrichtigungen sind eingerichtet",
+    "testBody": "So sehen Benachrichtigungen aus Ember auf diesem Gerät aus.",
+    "summaryTitle": "Neue Benachrichtigungen in Ember",
+    "summaryBody": "{count} neue Benachrichtigungen warten in Ember auf dich."
   }
 }

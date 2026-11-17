@@ -14,7 +14,6 @@ import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.messages.entity.Conversation;
 import dev.chojo.ember.feature.messages.entity.DigestMessage;
 import dev.chojo.ember.feature.messages.entity.Membership;
-import dev.chojo.ember.feature.messages.entity.Person;
 import dev.chojo.ember.feature.messages.entity.StationRef;
 import dev.chojo.ember.feature.messages.entity.StationScope;
 import dev.chojo.ember.feature.messages.repository.ConversationRepository;
@@ -27,7 +26,6 @@ import dev.chojo.ember.lifecycle.ScheduledTask;
 import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -202,7 +200,12 @@ public class MessageDigestMail implements TaskSource {
                 .map(conversation -> section(
                         conversation,
                         byConversation.get(conversation.id()),
-                        titleOf(conversation, accountId, stations, members.getOrDefault(conversation.id(), List.of())),
+                        ConversationTitles.titleOf(
+                                conversation,
+                                accountId,
+                                stations,
+                                members.getOrDefault(conversation.id(), List.of()),
+                                () -> conversations.everyMember(conversation.id())),
                         baseUrl))
                 .collect(Collectors.joining());
         int count = byConversation.values().stream()
@@ -236,45 +239,11 @@ public class MessageDigestMail implements TaskSource {
                 .append(")</p>");
         quoted.stream().map(DigestMessage::message).forEach(message -> html.append(
                         "<p style=\"margin:0 0 4px;border-left:3px solid #FF6421;padding-left:12px;white-space:pre-line\">")
-                .append(escape(nameOf(message.author())))
+                .append(escape(ConversationTitles.nameOf(message.author())))
                 .append(": ")
                 .append(escape(MessageTexts.shortened(MessageTexts.plain(message.content()), QUOTE_LENGTH)))
                 .append("</p>"));
         return html.append("</div>").toString();
-    }
-
-    /**
-     * What a conversation is called in the mail: a station chat by its name and station, a group by
-     * its name or the first names of the others, a direct conversation by the other person. Where
-     * nobody else takes part any more, the people who ever did name it.
-     */
-    private String titleOf(
-            Conversation conversation, int readerId, Map<Integer, StationRef> stations, List<Membership> members) {
-        StationScope scope = conversation.station();
-        String name = conversation.name();
-        if (scope != null) {
-            StationRef station = stations.get(scope.stationId());
-            String chat = Objects.requireNonNullElse(name, "");
-            return station == null ? chat : chat + " (" + station.name() + ")";
-        }
-        if (name != null) return name;
-        List<Person> others = othersIn(members, readerId);
-        if (others.isEmpty()) others = othersIn(conversations.everyMember(conversation.id()), readerId);
-        if (others.isEmpty()) return "?";
-        if (conversation.isDirect()) return nameOf(others.getFirst());
-        return others.stream().map(Person::firstName).collect(Collectors.joining(", "));
-    }
-
-    private static List<Person> othersIn(List<Membership> members, int readerId) {
-        return members.stream()
-                .filter(member -> member.accountId() != readerId)
-                .map(Membership::person)
-                .toList();
-    }
-
-    private static String nameOf(@Nullable Person person) {
-        if (person == null) return "?";
-        return (person.firstName() + " " + person.lastName()).strip();
     }
 
     private static String escape(String text) {

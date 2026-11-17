@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.repository.NotificationSettingsRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,12 +49,13 @@ public class NotificationPreferences {
     }
 
     /**
-     * A cluster member's mail setting.
+     * A cluster member's delivery settings for the association's notifications.
      *
      * @param emailEnabled  whether they asked for the association's notifications by mail
      * @param mailAvailable whether this installation can send mail at all
+     * @param pushEnabled   whether they are also pushed to the member's devices
      */
-    public record ClusterMail(boolean emailEnabled, boolean mailAvailable) {}
+    public record ClusterMail(boolean emailEnabled, boolean mailAvailable, boolean pushEnabled) {}
 
     /**
      * A station member's choices per type. A type without an entry keeps the defaults.
@@ -94,18 +96,23 @@ public class NotificationPreferences {
      * @return their setting
      */
     public ClusterMail clusterMailOf(int clusterMemberId) {
-        return new ClusterMail(clusterRepository.isEmailEnabled(clusterMemberId), emailService.canInstanceSend());
+        return new ClusterMail(
+                clusterRepository.isEmailEnabled(clusterMemberId),
+                emailService.canInstanceSend(),
+                clusterRepository.isPushEnabled(clusterMemberId));
     }
 
     /**
-     * Switches a cluster member's mail on or off.
+     * Switches a cluster member's mail or pushes on or off; what a request leaves out stays as it is.
      *
      * @param clusterMemberId the cluster member
-     * @param enabled         whether they want the association's notifications by mail
+     * @param email           whether they want the association's notifications by mail, null to keep
+     * @param push            whether they want them pushed, null to keep
      * @return their setting afterwards
      */
-    public ClusterMail setClusterMail(int clusterMemberId, boolean enabled) {
-        clusterRepository.setEmailEnabled(clusterMemberId, enabled);
+    public ClusterMail setClusterMail(int clusterMemberId, @Nullable Boolean email, @Nullable Boolean push) {
+        if (email != null) clusterRepository.setEmailEnabled(clusterMemberId, email);
+        if (push != null) clusterRepository.setPushEnabled(clusterMemberId, push);
         return clusterMailOf(clusterMemberId);
     }
 }

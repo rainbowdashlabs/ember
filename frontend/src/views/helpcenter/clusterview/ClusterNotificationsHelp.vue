@@ -48,7 +48,7 @@ const demoInbox: NotificationInboxApi = {
 
     <HelpSection :title="t('helpCenter.clusterNotifications.howTo')">
       <p>{{ t('helpCenter.clusterNotifications.howToText') }}</p>
-      <ClusterMailSwitch :settings="{emailEnabled: true, mailAvailable: true}"/>
+      <ClusterMailSwitch :settings="{emailEnabled: true, mailAvailable: true, pushEnabled: true}"/>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.clusterNotifications.whenTitle')">

@@ -38,6 +38,7 @@ public class MessageService {
     private final MessageGuards guards;
     private final MessageViews views;
     private final MessageSignals signals;
+    private final MessagePushes pushes;
     private final MessageModeration moderation;
 
     @Inject
@@ -47,8 +48,10 @@ public class MessageService {
             MessageGuards guards,
             MessageViews views,
             MessageSignals signals,
-            MessageModeration moderation) {
+            MessageModeration moderation,
+            MessagePushes pushes) {
         this.moderation = moderation;
+        this.pushes = pushes;
         this.conversations = conversations;
         this.messages = messages;
         this.guards = guards;
@@ -100,7 +103,8 @@ public class MessageService {
 
     /**
      * Writes a message. A direct conversation either side had put away comes back to both, and the
-     * writer has read everything up to their own message.
+     * writer has read everything up to their own message. The others are told, and pushed to where
+     * they want it.
      *
      * @param accountId       the writer
      * @param conversationUid the conversation
@@ -129,6 +133,7 @@ public class MessageService {
             return written;
         });
         tell(participation, id);
+        pushes.queue(participation.conversation(), accountId, id);
         return one(accountId, conversationUid, id);
     }
 
