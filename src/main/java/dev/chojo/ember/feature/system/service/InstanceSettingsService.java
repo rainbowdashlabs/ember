@@ -120,7 +120,8 @@ public class InstanceSettingsService {
         changes.apply(() -> after.applyTo(theming), () -> before.applyTo(theming));
         settings.setBoolean(STATION_REGISTRATION_ENABLED, request.stationRegistrationEnabled());
         settings.setBoolean(MESSAGES_ENABLED, request.messagesEnabled());
-        if (request.pushEnabled() != null) settings.setBoolean(PUSH_ENABLED, request.pushEnabled());
+        Boolean pushEnabled = request.pushEnabled();
+        if (pushEnabled != null) settings.setBoolean(PUSH_ENABLED, pushEnabled);
         settings.setBoolean(FORCE_PRIDE_FLAG, request.forcePrideFlag());
         if (changesMailLocale) {
             settings.set(ApplicationSettingRepository.DEFAULT_MAIL_LOCALE, mailLocale);

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "schemaHash": "sha256:1da77beb9e21cd013ee9aff3f169fa3af4f467d800504f5fbca3e2011cbc6ae1",
-  "generatedAt": "2026-11-17T00:30:16Z",
+  "generatedAt": "2026-11-17T11:14:02Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -5376,7 +5376,7 @@
           "type": "bool",
           "nullable": false,
           "verified": true,
-          "description": "Whether this person wants the association's gathered notifications by mail. Off until they switch it on, the same as a station membership's mail setting."
+          "description": "Whether this person gets the association's gathered notifications by mail. On unless switched off, the same as a station membership's mail setting."
         },
         {
           "name": "push_enabled",
@@ -33341,7 +33341,7 @@
           "type": "bool",
           "nullable": false,
           "verified": true,
-          "description": "Whether email notifications are enabled."
+          "description": "Whether this membership gets notifications by mail at all. On unless switched off, which takes effect once the station or the instance can send mail."
         },
         {
           "name": "theme",

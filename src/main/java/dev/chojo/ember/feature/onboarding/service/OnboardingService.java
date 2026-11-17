@@ -283,9 +283,11 @@ public class OnboardingService {
         return switch (task) {
             case NOTIFICATIONS ->
                 !notificationSettingsRepository.findByMember(member.id()).isEmpty();
-            case PUSH ->
-                member.accountId() != null
-                        && !pushSubscriptions.findByAccount(member.accountId()).isEmpty();
+            case PUSH -> {
+                Integer accountId = member.accountId();
+                yield accountId != null
+                        && !pushSubscriptions.findByAccount(accountId).isEmpty();
+            }
             case CALENDAR_FEED ->
                 feedTokenRepository
                         .findByMember(member.id())

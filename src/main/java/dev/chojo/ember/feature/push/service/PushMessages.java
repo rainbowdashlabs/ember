@@ -71,15 +71,17 @@ public class PushMessages {
                     "test",
                     PushMessage.DEFAULT_TTL));
         }
-        if ("MESSAGE".equals(due.kind()) && due.messageId() != null) {
+        Integer messageId = due.messageId();
+        if ("MESSAGE".equals(due.kind()) && messageId != null) {
             return messagePushes
-                    .forReader(due.messageId(), readerAccountId)
+                    .forReader(messageId, readerAccountId)
                     .map(found -> new PushMessage(
                             found.title(), found.body(), found.url(), found.topicKey(), PushMessage.DEFAULT_TTL));
         }
-        if (due.notificationId() == null) return Optional.empty();
+        Integer notificationId = due.notificationId();
+        if (notificationId == null) return Optional.empty();
         return notifications
-                .findUnreadForPush(due.notificationId())
+                .findUnreadForPush(notificationId)
                 .filter(this::shown)
                 .map(this::notification);
     }

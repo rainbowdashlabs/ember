@@ -108,7 +108,8 @@ public class UserSettingsRoutes implements Routes {
                 var type = entry.getKey();
                 var toggle = entry.getValue();
                 var before = stored.get(type);
-                boolean push = toggle.push() != null ? toggle.push() : before == null || before.pushEnabled();
+                Boolean asked = toggle.push();
+                boolean push = asked != null ? asked : before == null || before.pushEnabled();
                 notifMap.put(
                         type,
                         new NotificationSetting(memberId, type, toggle.app(), toggle.email(), toggle.feed(), push));
