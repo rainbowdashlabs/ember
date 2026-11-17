@@ -50685,6 +50685,73 @@
         }
       }
     },
+    "/api/v1/station/location/geocode" : {
+      "post" : {
+        "summary" : "Find where the station's address lies",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GeocodeAnswer"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too Many Requests",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "503" : {
+            "description" : "Service Unavailable",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AddressSearch"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/station/mail-import/log" : {
       "get" : {
         "summary" : "What became of each attachment the mailboxes read",
@@ -53844,6 +53911,23 @@
           },
           "label" : {
             "type" : "string"
+          }
+        }
+      },
+      "AddressSearch" : {
+        "type" : "object",
+        "properties" : {
+          "addressLine" : {
+            "type" : [ "string", "null" ]
+          },
+          "postalCode" : {
+            "type" : [ "string", "null" ]
+          },
+          "city" : {
+            "type" : [ "string", "null" ]
+          },
+          "country" : {
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -67669,6 +67753,38 @@
         },
         "required" : [ "questions", "done" ]
       },
+      "GeocodeAnswer" : {
+        "type" : "object",
+        "properties" : {
+          "match" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/GeocodeResult"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "match" ]
+      },
+      "GeocodePrecision" : {
+        "type" : "string",
+        "enum" : [ "EXACT", "STREET", "AREA" ]
+      },
+      "GeocodeResult" : {
+        "type" : "object",
+        "properties" : {
+          "latitude" : {
+            "type" : "number"
+          },
+          "longitude" : {
+            "type" : "number"
+          },
+          "precision" : {
+            "$ref" : "#/components/schemas/GeocodePrecision"
+          }
+        },
+        "required" : [ "latitude", "longitude", "precision" ]
+      },
       "GeocodingProvider" : {
         "type" : "string",
         "enum" : [ "NONE", "PHOTON" ]
@@ -79081,9 +79197,12 @@
           "maxZoom" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "geocoding" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "provider", "urlTemplate", "attribution", "minZoom", "maxZoom" ]
+        "required" : [ "provider", "urlTemplate", "attribution", "minZoom", "maxZoom", "geocoding" ]
       },
       "PublicModeResponse" : {
         "type" : "object",

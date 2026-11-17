@@ -26,4 +26,5 @@ export default {
     'MP-013': 'Die Adresssuche braucht eine vollständige Webadresse, es wurde nichts gespeichert',
     'MP-014': 'Das Nachschlagen von Adressen ist auf dieser Instanz ausgeschaltet',
     'MP-015': 'Die Adresssuche hat nicht geantwortet. Setze die Markierung von Hand auf die Karte',
+    'MP-016': TOO_MANY_ATTEMPTS,
 }

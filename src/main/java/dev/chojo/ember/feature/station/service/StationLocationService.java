@@ -7,6 +7,9 @@ package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.StationRefusal;
+import dev.chojo.ember.feature.maps.entity.GeocodeQuery;
+import dev.chojo.ember.feature.maps.entity.GeocodeResult;
+import dev.chojo.ember.feature.maps.service.GeocodingService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -16,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
@@ -34,10 +38,12 @@ public class StationLocationService {
     private static final double EARTH_KM = 6371.0;
 
     private final StationRepository repository;
+    private final GeocodingService geocoding;
 
     @Inject
-    public StationLocationService(StationRepository repository) {
+    public StationLocationService(StationRepository repository, GeocodingService geocoding) {
         this.repository = repository;
+        this.geocoding = geocoding;
     }
 
     /**
@@ -67,14 +73,22 @@ public class StationLocationService {
         if (longitude != null && (longitude.compareTo(LON_MIN) < 0 || longitude.compareTo(LON_MAX) > 0)) {
             throw StationRefusal.STATION_LONGITUDE_OUT_OF_RANGE.raise();
         }
+        validateAddress(update.addressLine(), update.postalCode(), update.city(), country);
+    }
+
+    private static void validateAddress(
+            @Nullable String addressLine,
+            @Nullable String postalCode,
+            @Nullable String city,
+            @Nullable String country) {
         if (country != null
                 && !country.isBlank()
                 && !COUNTRY_RX.matcher(country.trim()).matches()) {
             throw StationRefusal.STATION_COUNTRY_NOT_A_CODE.raise();
         }
-        rejectIfTooLong(StationRefusal.STATION_ADDRESS_LINE_TOO_LONG, update.addressLine());
-        rejectIfTooLong(StationRefusal.STATION_POSTAL_CODE_TOO_LONG, update.postalCode());
-        rejectIfTooLong(StationRefusal.STATION_CITY_TOO_LONG, update.city());
+        rejectIfTooLong(StationRefusal.STATION_ADDRESS_LINE_TOO_LONG, addressLine);
+        rejectIfTooLong(StationRefusal.STATION_POSTAL_CODE_TOO_LONG, postalCode);
+        rejectIfTooLong(StationRefusal.STATION_CITY_TOO_LONG, city);
     }
 
     private static void rejectIfTooLong(Refusal refusal, @Nullable String value) {
@@ -123,6 +137,20 @@ public class StationLocationService {
     }
 
     /**
+     * Looks up where an address lies, as typed and not yet saved. The address is held to the same
+     * rules as a saved one, so a country that is not a two-letter code is refused here rather than
+     * sent to the address search. Nothing is stored.
+     *
+     * @param search the address fields as the form holds them
+     * @return where the address search put the pin, or empty when it found nothing
+     */
+    public Optional<GeocodeResult> locate(AddressSearch search) {
+        validateAddress(search.addressLine(), search.postalCode(), search.city(), search.country());
+        return geocoding.locate(GeocodeQuery.address(
+                search.addressLine(), search.postalCode(), search.city(), trimToNull(search.country())));
+    }
+
+    /**
      * Convenience: clear every column in one call. Used by the "Standort entfernen" button.
      */
     public void clear(int stationId) {
@@ -151,6 +179,22 @@ public class StationLocationService {
             @Nullable String country,
             @Nullable BigDecimal latitude,
             @Nullable BigDecimal longitude) {}
+
+    /**
+     * Request payload for {@code POST /station/location/geocode}: the address fields as typed.
+     */
+    public record AddressSearch(
+            @Nullable String addressLine,
+            @Nullable String postalCode,
+            @Nullable String city,
+            @Nullable String country) {}
+
+    /**
+     * Response payload of an address lookup.
+     *
+     * @param match where the pin goes, or null when the address search found nothing
+     */
+    public record GeocodeAnswer(@Nullable GeocodeResult match) {}
 
     /**
      * Request payload for {@code PUT /station/location}.

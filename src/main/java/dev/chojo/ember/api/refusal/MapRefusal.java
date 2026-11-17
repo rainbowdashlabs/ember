@@ -66,7 +66,10 @@ public enum MapRefusal implements Refusal {
 
     /** An address lookup the address search did not answer in time or answered with something unreadable. */
     GEOCODING_NOT_ANSWERING(
-            15, HttpStatus.SERVICE_UNAVAILABLE, "The address search did not answer. Place the pin on the map by hand");
+            15, HttpStatus.SERVICE_UNAVAILABLE, "The address search did not answer. Place the pin on the map by hand"),
+
+    /** Addresses looked up faster than one person may look them up. */
+    GEOCODING_TOO_OFTEN(16, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS);
 
     private final Definition definition;
 

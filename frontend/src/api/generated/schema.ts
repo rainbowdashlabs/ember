@@ -64875,6 +64875,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/station/location/geocode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Find where the station's address lies */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AddressSearch"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GeocodeAnswer"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/station/mail-import/log": {
         parameters: {
             query?: never;
@@ -68827,6 +68903,12 @@ export interface components {
             label?: string;
             mapUrl?: string;
             postalCode?: string;
+        };
+        AddressSearch: {
+            addressLine?: string | null;
+            city?: string | null;
+            country?: string | null;
+            postalCode?: string | null;
         };
         AdminMapsConfig: {
             geocoding: components["schemas"]["MapsGeocodingConfig"];
@@ -73479,6 +73561,16 @@ export interface components {
             done: boolean;
             questions: components["schemas"]["GeneratedQuestionWithMeta"][];
         };
+        GeocodeAnswer: {
+            match: components["schemas"]["GeocodeResult"] | null;
+        };
+        /** @enum {string} */
+        GeocodePrecision: "EXACT" | "STREET" | "AREA";
+        GeocodeResult: {
+            latitude: number;
+            longitude: number;
+            precision: components["schemas"]["GeocodePrecision"];
+        };
         /** @enum {string} */
         GeocodingProvider: "NONE" | "PHOTON";
         GradingScope: {
@@ -77466,6 +77558,7 @@ export interface components {
         };
         PublicMapsConfig: {
             attribution: string | null;
+            geocoding: boolean;
             /** Format: int32 */
             maxZoom: number;
             /** Format: int32 */
@@ -81645,6 +81738,7 @@ export type AddMembersRequest = components['schemas']['AddMembersRequest'];
 export type AddMembersResponse = components['schemas']['AddMembersResponse'];
 export type AddPeerRequest = components['schemas']['AddPeerRequest'];
 export type AddressCardConfig = components['schemas']['AddressCardConfig'];
+export type AddressSearch = components['schemas']['AddressSearch'];
 export type AdminMapsConfig = components['schemas']['AdminMapsConfig'];
 export type AdminOverview = components['schemas']['AdminOverview'];
 export type AdminStationSummary = components['schemas']['AdminStationSummary'];
@@ -82282,6 +82376,9 @@ export type GenerateQuestionsRequest = components['schemas']['GenerateQuestionsR
 export type GenerationJobResponse = components['schemas']['GenerationJobResponse'];
 export type GenerationJobSummary = components['schemas']['GenerationJobSummary'];
 export type GenerationPollResponse = components['schemas']['GenerationPollResponse'];
+export type GeocodeAnswer = components['schemas']['GeocodeAnswer'];
+export type GeocodePrecision = components['schemas']['GeocodePrecision'];
+export type GeocodeResult = components['schemas']['GeocodeResult'];
 export type GeocodingProvider = components['schemas']['GeocodingProvider'];
 export type GradingScope = components['schemas']['GradingScope'];
 export type GrantRequest = components['schemas']['GrantRequest'];
@@ -83904,6 +84001,12 @@ export const FormVisibility = {
 export const GalleryAspectMode = {
     PRESERVE: "PRESERVE",
     SQUARE: "SQUARE",
+} as const;
+
+export const GeocodePrecision = {
+    AREA: "AREA",
+    EXACT: "EXACT",
+    STREET: "STREET",
 } as const;
 
 export const GeocodingProvider = {

@@ -396,6 +396,7 @@ import dev.chojo.ember.feature.station.route.FirstStationRoutes;
 import dev.chojo.ember.feature.station.route.PublicStationRoutes;
 import dev.chojo.ember.feature.station.route.SetupRoutes;
 import dev.chojo.ember.feature.station.route.StationApplicationRoutes;
+import dev.chojo.ember.feature.station.route.StationLocationLookupRoutes;
 import dev.chojo.ember.feature.station.route.StationManageRoutes;
 import dev.chojo.ember.feature.station.route.StationRoutes;
 import dev.chojo.ember.feature.station.service.ManagerReminderTask;
@@ -596,6 +597,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(MemberGroupSetRoutes.class);
         routesBinder.addBinding().to(RegistrationCodeRoutes.class);
         routesBinder.addBinding().to(StationManageRoutes.class);
+        routesBinder.addBinding().to(StationLocationLookupRoutes.class);
         routesBinder.addBinding().to(SetupRoutes.class);
         routesBinder.addBinding().to(EquipmentNeedRoutes.class);
         routesBinder.addBinding().to(EquipmentBrowseRoutes.class);
