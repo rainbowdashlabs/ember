@@ -10281,6 +10281,12 @@ export default {
                     0: 'Deine Benachrichtigungen liegen hier.',
                     1: 'Stell für jede Zeile ein, wo du sie haben willst: hier, per E-Mail oder im Feed.',
                 },
+                push: {
+                    0: 'Push-Benachrichtigungen schaltest du bei deinen Benachrichtigungen ein.',
+                    1: 'Hier steht, ob dieses Gerät Push-Benachrichtigungen bekommen kann und was du dafür tun musst.',
+                    2: 'Ein Klick, und der Browser fragt einmal nach der Erlaubnis. Danach kommen Benachrichtigungen '
+                        + 'auch dann an, wenn Ember geschlossen ist.',
+                },
                 eventAnswer: {
                     0: 'Hier stehen alle kommenden Termine.',
                     1: 'Zu manchen Terminen meldest du dich an. Dort ist der Platz erst deiner, wenn du '

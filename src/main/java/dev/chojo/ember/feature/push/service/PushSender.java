@@ -161,7 +161,7 @@ public class PushSender implements TaskSource {
 
     private void sendHeldBack(PushSubscription browser, PushOutboxRepository.Due first, List<Long> rows, Instant now) {
         if (rows.size() > 1) {
-            deliver(browser, first, rows, messages.summary(rows.size()), now);
+            deliver(browser, first, rows, messages.summary(rows.size(), browser.accountId()), now);
             return;
         }
         sendOne(browser, first, now);

@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.messages.service.MessagePushes;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
@@ -59,7 +60,8 @@ class NotificationPushTest extends RepositoryTestBase {
     private final PushOutboxRepository outbox = new PushOutboxRepository();
     private final PushMessages messages = new PushMessages(
             new NotificationText(),
-            applicationSettingRepo,
+            new MailLocaleService(accountRepo, applicationSettingRepo),
+            accountRepo,
             notificationRepo,
             new NotificationVisibility(new ModuleAvailability(stationRepo, clusterRepo), stationMemberRepo),
             mock(MessagePushes.class),
@@ -106,6 +108,19 @@ class NotificationPushTest extends RepositoryTestBase {
         assertTrue(message.body().contains("Dienstplan Dezember"), message.body());
         assertTrue(message.url().contains("read="), "a tap marks it read: " + message.url());
         assertTrue(message.url().contains(station.uid().toString()), "and lands on its station: " + message.url());
+    }
+
+    /** A test push is written in the language of the reader's station, as their mail is. */
+    @Test
+    void aTestPushSpeaksTheReadersLanguage() {
+        query("UPDATE station SET locale = 'de' WHERE id = :id;")
+                .single(call().bind("id", station.id()))
+                .update();
+        var test = new PushOutboxRepository.Due(1, device, "TEST", null, null, 0, false);
+
+        assertEquals(
+                "Push-Benachrichtigungen sind eingerichtet",
+                messages.render(test, account.id()).orElseThrow().title());
     }
 
     @Test

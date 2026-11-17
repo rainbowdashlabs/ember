@@ -6,13 +6,14 @@
 package dev.chojo.ember.feature.push.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.messages.service.MessagePushes;
 import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.notifications.service.NotificationVisibility;
 import dev.chojo.ember.feature.push.repository.PushOutboxRepository;
-import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -28,7 +29,8 @@ public class PushMessages {
     private static final String SECTION = "push";
 
     private final NotificationText text;
-    private final ApplicationSettingRepository settings;
+    private final MailLocaleService locales;
+    private final AccountRepository accounts;
     private final NotificationRepository notifications;
     private final NotificationVisibility visibility;
     private final MessagePushes messagePushes;
@@ -37,13 +39,15 @@ public class PushMessages {
     @Inject
     public PushMessages(
             NotificationText text,
-            ApplicationSettingRepository settings,
+            MailLocaleService locales,
+            AccountRepository accounts,
             NotificationRepository notifications,
             NotificationVisibility visibility,
             MessagePushes messagePushes,
             Api api) {
         this.text = text;
-        this.settings = settings;
+        this.locales = locales;
+        this.accounts = accounts;
         this.notifications = notifications;
         this.visibility = visibility;
         this.messagePushes = messagePushes;
@@ -53,12 +57,13 @@ public class PushMessages {
     /**
      * The push a queued row stands for.
      *
-     * @param readerAccountId the account whose device it goes to, which a message push is written for
+     * @param readerAccountId the account whose device it goes to: a test is written in its language, a
+     *     message push for it
      * @return the push, empty when what it was about is gone and there is nothing left to say
      */
     public Optional<PushMessage> render(PushOutboxRepository.Due due, int readerAccountId) {
         if ("TEST".equals(due.kind())) {
-            String locale = instanceLocale();
+            String locale = localeOf(readerAccountId);
             return Optional.of(new PushMessage(
                     text.resolveLocalized(locale, SECTION, "testTitle", null),
                     text.resolveLocalized(locale, SECTION, "testBody", null),
@@ -117,10 +122,11 @@ public class PushMessages {
     /**
      * The one push that stands in for several the rate limit held back.
      *
-     * @param count how many it stands for
+     * @param count           how many it stands for
+     * @param readerAccountId the account whose device it goes to, whose language it is written in
      */
-    public PushMessage summary(int count) {
-        String locale = instanceLocale();
+    public PushMessage summary(int count, int readerAccountId) {
+        String locale = localeOf(readerAccountId);
         return new PushMessage(
                 text.resolveLocalized(locale, SECTION, "summaryTitle", null),
                 text.resolveLocalized(locale, SECTION, "summaryBody", Map.of("count", String.valueOf(count))),
@@ -129,7 +135,12 @@ public class PushMessages {
                 PushMessage.DEFAULT_TTL);
     }
 
-    private String instanceLocale() {
-        return text.resolveLocale(settings.defaultMailLocale());
+    /**
+     * The language the reader is written to in: that of a station they belong to, otherwise the one
+     * their mail is written in.
+     */
+    private String localeOf(int readerAccountId) {
+        return text.resolveLocale(
+                accounts.findMembershipLanguage(readerAccountId).orElseGet(() -> locales.forAccount(readerAccountId)));
     }
 }

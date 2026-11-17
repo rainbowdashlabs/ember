@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.push.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.messages.service.MessagePushes;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.notifications.service.NotificationVisibility;
@@ -70,7 +71,8 @@ class PushSenderTest extends RepositoryTestBase {
                 subscriptions,
                 new PushMessages(
                         new NotificationText(),
-                        applicationSettingRepo,
+                        new MailLocaleService(accountRepo, applicationSettingRepo),
+                        accountRepo,
                         notificationRepo,
                         mock(NotificationVisibility.class),
                         mock(MessagePushes.class),
