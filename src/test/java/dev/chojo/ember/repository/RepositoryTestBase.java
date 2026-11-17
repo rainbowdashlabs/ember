@@ -176,6 +176,7 @@ import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
+import dev.chojo.ember.feature.members.repository.MemberRuleRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.RegistrationCodeRepository;
@@ -357,6 +358,7 @@ public abstract class RepositoryTestBase {
 
     protected static ClusterItemHandoverService clusterItemHandoverService;
     protected static MemberGroupRepository memberGroupRepo;
+    protected static MemberRuleRepository memberRuleRepo;
     protected static ProfileFieldRepository profileFieldRepo;
     protected static DocumentRepository memberDocumentRepo;
     protected static MailRuleRepository mailRuleRepo;
@@ -683,6 +685,7 @@ public abstract class RepositoryTestBase {
                 new DomainEventBus(Set.of()),
                 newDocumentIntake());
         memberGroupRepo = new MemberGroupRepository();
+        memberRuleRepo = new MemberRuleRepository();
         profileFieldRepo = new ProfileFieldRepository();
         memberDocumentRepo = new DocumentRepository();
         mailRuleRepo = new MailRuleRepository();
