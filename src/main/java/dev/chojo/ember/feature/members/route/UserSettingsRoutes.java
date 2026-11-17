@@ -101,21 +101,7 @@ public class UserSettingsRoutes implements Routes {
                     request.feel() != null ? request.feel() : current.feel());
         }
 
-        var notifMap = new EnumMap<NotificationType, NotificationSetting>(NotificationType.class);
-        if (request.notifications() != null) {
-            var stored = preferences.settingsOf(memberId);
-            for (var entry : request.notifications().entrySet()) {
-                var type = entry.getKey();
-                var toggle = entry.getValue();
-                var before = stored.get(type);
-                Boolean asked = toggle.push();
-                boolean push = asked != null ? asked : before == null || before.pushEnabled();
-                notifMap.put(
-                        type,
-                        new NotificationSetting(memberId, type, toggle.app(), toggle.email(), toggle.feed(), push));
-            }
-        }
-        preferences.updateSettings(memberId, notifMap);
+        preferences.updateSettings(memberId, requestedSettings(memberId, request.notifications()));
 
         var notifSettings = preferences.settingsOf(memberId);
         var finalSettings = settingsService.findOrCreate(memberId);
@@ -126,6 +112,27 @@ public class UserSettingsRoutes implements Routes {
                 finalSettings.feel(),
                 notifSettings,
                 session.stationId()));
+    }
+
+    /**
+     * The per-type choices a save names, as settings to store. A toggle that leaves push out keeps
+     * what is stored for it, so a client that does not know push yet cannot switch it off.
+     */
+    private Map<NotificationType, NotificationSetting> requestedSettings(
+            int memberId, @Nullable Map<NotificationType, NotificationToggle> requested) {
+        var notifMap = new EnumMap<NotificationType, NotificationSetting>(NotificationType.class);
+        if (requested == null) return notifMap;
+        var stored = preferences.settingsOf(memberId);
+        for (var entry : requested.entrySet()) {
+            var type = entry.getKey();
+            var toggle = entry.getValue();
+            var before = stored.get(type);
+            Boolean asked = toggle.push();
+            boolean push = asked != null ? asked : before == null || before.pushEnabled();
+            notifMap.put(
+                    type, new NotificationSetting(memberId, type, toggle.app(), toggle.email(), toggle.feed(), push));
+        }
+        return notifMap;
     }
 
     private SettingsResponse toResponse(

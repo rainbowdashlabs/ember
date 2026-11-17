@@ -16,6 +16,8 @@ import {test, expect} from './fixtures/auth'
  * granted, so the permission is stood in for too. Whether a push then arrives on a device is checked by hand.
  */
 test.describe('Push notifications', () => {
+    test.use({serviceWorkers: 'allow'})
+
     test.beforeEach(async ({memberPage: page}) => {
         await page.context().grantPermissions(['notifications'])
         await page.addInitScript(() => {
