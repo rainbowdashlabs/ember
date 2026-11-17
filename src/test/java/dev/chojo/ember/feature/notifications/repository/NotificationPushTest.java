@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
+import dev.chojo.ember.feature.messages.service.MessagePushes;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
@@ -42,6 +43,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 /**
  * A notification written for somebody is queued as a push to their devices in the same statement,
@@ -60,6 +62,7 @@ class NotificationPushTest extends RepositoryTestBase {
             applicationSettingRepo,
             notificationRepo,
             new NotificationVisibility(new ModuleAvailability(stationRepo, clusterRepo), stationMemberRepo),
+            mock(MessagePushes.class),
             new Api());
     private Station station;
     private Account account;
@@ -99,7 +102,7 @@ class NotificationPushTest extends RepositoryTestBase {
         assertEquals(1, queued.size());
         assertEquals("NOTIFICATION", queued.getFirst().kind());
 
-        var message = messages.render(queued.getFirst()).orElseThrow();
+        var message = messages.render(queued.getFirst(), account.id()).orElseThrow();
         assertTrue(message.body().contains("Dienstplan Dezember"), message.body());
         assertTrue(message.url().contains("read="), "a tap marks it read: " + message.url());
         assertTrue(message.url().contains(station.uid().toString()), "and lands on its station: " + message.url());
@@ -125,7 +128,7 @@ class NotificationPushTest extends RepositoryTestBase {
                 .single(call().bind("id", queued.getFirst().notificationId()))
                 .update();
 
-        assertTrue(messages.render(queued.getFirst()).isEmpty());
+        assertTrue(messages.render(queued.getFirst(), account.id()).isEmpty());
     }
 
     /** A notification of a module the station switched off is kept but never shown, so it is not pushed. */
@@ -135,7 +138,7 @@ class NotificationPushTest extends RepositoryTestBase {
         notificationRepo.insertForStation(
                 StationAudience.member(memberId), NotificationType.NEW_NEWS, NEWS, Delivery.EVERY_TIME);
 
-        assertTrue(messages.render(queued().getFirst()).isEmpty());
+        assertTrue(messages.render(queued().getFirst(), account.id()).isEmpty());
     }
 
     /** The person acting is left out, and so are their devices. */

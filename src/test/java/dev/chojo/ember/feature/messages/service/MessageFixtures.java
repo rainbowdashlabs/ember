@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.messages.service;
 
+import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
@@ -22,6 +23,7 @@ import dev.chojo.ember.feature.messages.repository.MessageRepository;
 import dev.chojo.ember.feature.messages.repository.ReactionRepository;
 import dev.chojo.ember.feature.messages.repository.StationChatRepository;
 import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.push.service.PushService;
 import dev.chojo.ember.feature.restriction.repository.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -95,7 +97,21 @@ public record MessageFixtures(
                 new ConversationService(
                         conversationRepo, messageRepo, guards, signals, stationChatRepo, MessageTestBase.identities()),
                 new GroupService(conversationRepo, messageRepo, guards, signals),
-                new MessageService(conversationRepo, messageRepo, guards, views, signals, moderation),
+                new MessageService(
+                        conversationRepo,
+                        messageRepo,
+                        guards,
+                        views,
+                        signals,
+                        moderation,
+                        new MessagePushes(
+                                conversationRepo,
+                                messageRepo,
+                                stationChatRepo,
+                                signals,
+                                mock(PushService.class),
+                                instance,
+                                new Api())),
                 new ReactionService(new ReactionRepository(), guards, views, signals),
                 new BlockService(blockRepo, peopleRepo, guards),
                 new MessageSettingsService(

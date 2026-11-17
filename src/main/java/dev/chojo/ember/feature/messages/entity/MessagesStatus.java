@@ -12,5 +12,6 @@ package dev.chojo.ember.feature.messages.entity;
  * @param unread    how many messages wait unread, muted conversations left out
  * @param mail          whether the reader is sent the daily mail about messages left unread
  * @param stationDigest what that mail takes from station chats: mentions of the reader, or everything
+ * @param push          whether new messages are pushed to the reader's devices
  */
-public record MessagesStatus(boolean available, int unread, boolean mail, StationDigest stationDigest) {}
+public record MessagesStatus(boolean available, int unread, boolean mail, StationDigest stationDigest, boolean push) {}

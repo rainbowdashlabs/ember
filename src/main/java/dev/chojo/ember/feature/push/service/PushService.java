@@ -147,6 +147,18 @@ public class PushService {
         return bySession;
     }
 
+    /**
+     * Queues a new message as a push to the devices of the given accounts, those that want messages
+     * pushed and are still signed in there. Nothing while the instance has push switched off.
+     *
+     * @param messageId the message
+     * @param accountIds who should get it
+     */
+    public void queueMessage(int messageId, List<Integer> accountIds) {
+        if (accountIds.isEmpty() || !instance.pushEnabled()) return;
+        outbox.enqueueMessage(messageId, accountIds);
+    }
+
     /** Forgets one of the account's devices. */
     public void forget(int accountId, int id) {
         if (!subscriptions.deleteOwn(id, accountId)) throw PushRefusal.DEVICE_NOT_HERE.raise();

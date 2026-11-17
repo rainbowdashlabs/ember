@@ -168,7 +168,7 @@ public class PushSender implements TaskSource {
     }
 
     private void sendOne(PushSubscription browser, PushOutboxRepository.Due push, Instant now) {
-        var message = messages.render(push);
+        var message = messages.render(push, browser.accountId());
         if (message.isEmpty()) {
             outbox.drop(push.id());
             return;

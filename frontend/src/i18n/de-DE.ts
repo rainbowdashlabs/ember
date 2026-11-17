@@ -9733,7 +9733,9 @@ export default {
         test: 'Testen',
         testSent: 'Test verschickt, er kommt in wenigen Sekunden an.',
         remove: 'Entfernen',
-        lockScreen: 'Push-Benachrichtigungen zeigen ihren vollen Text, auch auf dem Sperrbildschirm. Wer das nicht möchte, blendet Inhalte auf dem Sperrbildschirm in den Einstellungen des Telefons aus.',
+        messages: 'Nachrichten per Push',
+        messagesHint: 'Neue Nachrichten in deinen Unterhaltungen kommen als Push, außer in stummgeschalteten und solange du Ember offen hast.',
+        lockScreen: 'Push-Benachrichtigungen zeigen ihren vollen Text, bei Nachrichten auch, wer was schreibt, und das auch auf dem Sperrbildschirm. Wer das nicht möchte, blendet Inhalte auf dem Sperrbildschirm in den Einstellungen des Telefons aus.',
         signIn: 'Ein Gerät bekommt Push-Benachrichtigungen, solange du dort angemeldet bist. Bei einer kurzen Anmeldung enden sie mit ihr; mit „Auf diesem Gerät angemeldet bleiben“ bleibt sie länger bestehen.',
     },
     notificationSchedule: {

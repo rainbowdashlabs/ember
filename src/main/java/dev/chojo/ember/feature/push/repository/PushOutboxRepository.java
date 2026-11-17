@@ -33,8 +33,9 @@ public class PushOutboxRepository {
      *
      * @param id             the row
      * @param subscriptionId the browser it goes to
-     * @param kind           {@code TEST} or {@code NOTIFICATION}
+     * @param kind           {@code TEST}, {@code NOTIFICATION} or {@code MESSAGE}
      * @param notificationId the notification it is about, for {@code NOTIFICATION}
+     * @param messageId      the message it is about, for {@code MESSAGE}
      * @param attempts       how often sending was tried before
      * @param deferred       whether the rate limit held it back
      */
@@ -43,6 +44,7 @@ public class PushOutboxRepository {
             int subscriptionId,
             String kind,
             @Nullable Integer notificationId,
+            @Nullable Integer messageId,
             int attempts,
             boolean deferred) {}
 
@@ -50,6 +52,22 @@ public class PushOutboxRepository {
     public void enqueueTest(int subscriptionId) {
         query("INSERT INTO push_outbox (subscription_id, kind) VALUES (:subscription_id, 'TEST');")
                 .single(call().bind("subscription_id", subscriptionId))
+                .insert();
+    }
+
+    /**
+     * Queues a message as a push to each device of these accounts, where the account wants messages
+     * pushed and the device's sign-in is still valid.
+     */
+    public void enqueueMessage(int messageId, List<Integer> accountIds) {
+        query("""
+                        INSERT INTO push_outbox (subscription_id, kind, message_id)
+                        SELECT device.id, 'MESSAGE', :message_id
+                        FROM push_subscription device
+                        JOIN account reader ON reader.id = device.account_id AND reader.messages_push
+                        JOIN account_session signed_in ON signed_in.id = device.session_id AND signed_in.expires_at > now()
+                        WHERE device.account_id = ANY(:accounts);""")
+                .single(call().bind("message_id", messageId).bind("accounts", accountIds, PostgreSqlTypes.INTEGER))
                 .insert();
     }
 
@@ -75,13 +93,14 @@ public class PushOutboxRepository {
                             ORDER BY due.next_attempt_at
                             LIMIT :limit
                             FOR UPDATE OF due SKIP LOCKED)
-                        RETURNING o.id, o.subscription_id, o.kind, o.notification_id, o.attempts, o.deferred;""")
+                        RETURNING o.id, o.subscription_id, o.kind, o.notification_id, o.message_id, o.attempts, o.deferred;""")
                 .single(call().bind("limit", limit).bind("lease", (double) lease.toSeconds()))
                 .map(row -> new Due(
                         row.getLong("id"),
                         row.getInt("subscription_id"),
                         row.getString("kind"),
                         row.getObject("notification_id", Integer.class),
+                        row.getObject("message_id", Integer.class),
                         row.getInt("attempts"),
                         row.getBoolean("deferred")))
                 .all();

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.push.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.messages.service.MessagePushes;
 import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
@@ -30,6 +31,7 @@ public class PushMessages {
     private final ApplicationSettingRepository settings;
     private final NotificationRepository notifications;
     private final NotificationVisibility visibility;
+    private final MessagePushes messagePushes;
     private final Api api;
 
     @Inject
@@ -38,20 +40,23 @@ public class PushMessages {
             ApplicationSettingRepository settings,
             NotificationRepository notifications,
             NotificationVisibility visibility,
+            MessagePushes messagePushes,
             Api api) {
         this.text = text;
         this.settings = settings;
         this.notifications = notifications;
         this.visibility = visibility;
+        this.messagePushes = messagePushes;
         this.api = api;
     }
 
     /**
      * The push a queued row stands for.
      *
+     * @param readerAccountId the account whose device it goes to, which a message push is written for
      * @return the push, empty when what it was about is gone and there is nothing left to say
      */
-    public Optional<PushMessage> render(PushOutboxRepository.Due due) {
+    public Optional<PushMessage> render(PushOutboxRepository.Due due, int readerAccountId) {
         if ("TEST".equals(due.kind())) {
             String locale = instanceLocale();
             return Optional.of(new PushMessage(
@@ -60,6 +65,12 @@ public class PushMessages {
                     api.baseUrl(),
                     "test",
                     PushMessage.DEFAULT_TTL));
+        }
+        if ("MESSAGE".equals(due.kind()) && due.messageId() != null) {
+            return messagePushes
+                    .forReader(due.messageId(), readerAccountId)
+                    .map(found -> new PushMessage(
+                            found.title(), found.body(), found.url(), found.topicKey(), PushMessage.DEFAULT_TTL));
         }
         if (due.notificationId() == null) return Optional.empty();
         return notifications

@@ -66,26 +66,30 @@ CREATE TABLE ember_schema.push_outbox
 (
     id              BIGSERIAL PRIMARY KEY,
     subscription_id INTEGER     NOT NULL REFERENCES ember_schema.push_subscription (id) ON DELETE CASCADE,
-    kind            TEXT        NOT NULL CHECK (kind IN ('TEST', 'NOTIFICATION')),
+    kind            TEXT        NOT NULL CHECK (kind IN ('TEST', 'NOTIFICATION', 'MESSAGE')),
     notification_id INTEGER     NULL REFERENCES ember_schema.notification (id) ON DELETE CASCADE,
+    message_id      INTEGER     NULL REFERENCES ember_schema.message (id) ON DELETE CASCADE,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     attempts        INTEGER     NOT NULL DEFAULT 0,
     next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     deferred        BOOLEAN     NOT NULL DEFAULT FALSE,
     sent_at         TIMESTAMPTZ NULL,
-    CONSTRAINT push_outbox_names_its_notification CHECK ((kind = 'NOTIFICATION') = (notification_id IS NOT NULL))
+    CONSTRAINT push_outbox_names_its_notification CHECK ((kind = 'NOTIFICATION') = (notification_id IS NOT NULL)),
+    CONSTRAINT push_outbox_names_its_message CHECK ((kind = 'MESSAGE') = (message_id IS NOT NULL))
 );
 
 CREATE INDEX idx_push_outbox_due ON ember_schema.push_outbox (next_attempt_at) WHERE sent_at IS NULL;
 CREATE INDEX idx_push_outbox_sent ON ember_schema.push_outbox (subscription_id, sent_at) WHERE sent_at IS NOT NULL;
 CREATE INDEX idx_push_outbox_notification ON ember_schema.push_outbox (notification_id);
+CREATE INDEX idx_push_outbox_message ON ember_schema.push_outbox (message_id);
 
 COMMENT ON TABLE ember_schema.push_outbox IS
     'Pushes waiting to go out, and those sent within the last hour for the rate limit.';
 COMMENT ON COLUMN ember_schema.push_outbox.id IS 'Primary key.';
 COMMENT ON COLUMN ember_schema.push_outbox.subscription_id IS 'The browser the push goes to.';
-COMMENT ON COLUMN ember_schema.push_outbox.kind IS 'What the push is about: a test the owner asked for, or a notification.';
+COMMENT ON COLUMN ember_schema.push_outbox.kind IS 'What the push is about: a test the owner asked for, a notification or a message.';
 COMMENT ON COLUMN ember_schema.push_outbox.notification_id IS 'The notification the push is about, for kind NOTIFICATION.';
+COMMENT ON COLUMN ember_schema.push_outbox.message_id IS 'The message the push is about, for kind MESSAGE.';
 COMMENT ON COLUMN ember_schema.push_outbox.created_at IS 'When the push was queued.';
 COMMENT ON COLUMN ember_schema.push_outbox.attempts IS 'How often sending was tried and the push service asked to wait.';
 COMMENT ON COLUMN ember_schema.push_outbox.next_attempt_at IS 'When the push is due, or tried again.';
@@ -107,3 +111,12 @@ ALTER TABLE ember_schema.cluster_member
 
 COMMENT ON COLUMN ember_schema.cluster_member.push_enabled IS
     'Whether the association''s notifications are also pushed to the devices the member''s account allowed push on.';
+
+-- Whether new messages in the account's conversations are pushed to its devices. On by default,
+-- like the daily message mail; muted conversations stay quiet either way.
+
+ALTER TABLE ember_schema.account
+    ADD COLUMN messages_push BOOLEAN NOT NULL DEFAULT TRUE;
+
+COMMENT ON COLUMN ember_schema.account.messages_push IS
+    'Whether new messages in the account''s conversations are pushed to the devices it allowed push on.';

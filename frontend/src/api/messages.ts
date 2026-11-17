@@ -41,8 +41,8 @@ export async function getStatus(): Promise<MessagesStatus> {
     return res.data
 }
 
-/** Changes the daily mail: whether it comes, and what it takes from station chats. Left out stays as it is. */
-export async function updateSettings(settings: {mail?: boolean, stationDigest?: StationDigest}): Promise<MessagesStatus> {
+/** Changes the daily mail (whether it comes, what it takes from station chats) and message pushes. Left out stays as it is. */
+export async function updateSettings(settings: {mail?: boolean, stationDigest?: StationDigest, push?: boolean}): Promise<MessagesStatus> {
     const res = await client.put<MessagesStatus>('/messages/settings', settings)
     return res.data
 }

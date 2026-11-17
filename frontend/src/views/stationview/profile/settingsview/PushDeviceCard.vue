@@ -14,7 +14,9 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {listPushDevices, registerPushDevice, removePushDevice, testPushDevice} from '@/api/push'
-import type {PushDevice} from '@/api/generated/schema'
+import {getStatus as getMessagesStatus, updateSettings as updateMessageSettings} from '@/api/messages'
+import type {MessagesStatus, PushDevice} from '@/api/generated/schema'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import {currentBrowserSubscription, deviceLabel, pushState, subscribeBrowser, unsubscribeBrowser, type PushState} from '@/util/pushSupport'
 import {describeFailure, type Failure} from '@/util/failure'
 import {formatDateTime} from '@/util/format'
@@ -42,6 +44,15 @@ const declined = ref(false)
 const failure = ref<Failure | null>(null)
 
 const thisDevice = computed(() => devices.value.find(device => device.current) ?? null)
+
+/** The reader's messages, whose pushes are one switch for the whole account; absent where messages are not theirs. */
+const messages = ref<MessagesStatus | null>(null)
+
+function toggleMessages(value: boolean) {
+  return guarded(async () => {
+    messages.value = await updateMessageSettings({push: value})
+  })
+}
 
 async function guarded(action: () => Promise<void>) {
   busy.value = true
@@ -107,6 +118,9 @@ onMounted(() => {
     await loadDevices()
     await renewSilently()
   })
+  getMessagesStatus()
+      .then(status => { messages.value = status.available ? status : null })
+      .catch(() => { messages.value = null })
 })
 </script>
 
@@ -160,6 +174,15 @@ onMounted(() => {
         </ButtonRow>
       </li>
     </ul>
+
+    <div v-if="messages" class="flex items-center justify-between gap-4 border-t border-(--border) pt-2">
+      <div>
+        <p class="text-sm font-medium">{{ t('pushDevices.messages') }}</p>
+        <p class="text-xs text-(--text-muted)">{{ t('pushDevices.messagesHint') }}</p>
+      </div>
+      <ToggleInput :model-value="messages.push" :aria-label="t('pushDevices.messages')" :disabled="busy"
+                   data-testid="push-messages-toggle" @update:model-value="toggleMessages"/>
+    </div>
 
     <p class="text-xs text-(--text-muted)">{{ t('pushDevices.lockScreen') }}</p>
     <p class="text-xs text-(--text-muted)">{{ t('pushDevices.signIn') }}</p>

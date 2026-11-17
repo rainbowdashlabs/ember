@@ -75869,11 +75869,13 @@ export interface components {
         };
         MessageSettingsRequest: {
             mail?: boolean | null;
+            push?: boolean | null;
             stationDigest?: components["schemas"]["StationDigest"] | null;
         };
         MessagesStatus: {
             available: boolean;
             mail: boolean;
+            push: boolean;
             stationDigest: components["schemas"]["StationDigest"];
             /** Format: int32 */
             unread: number;

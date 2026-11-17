@@ -7,6 +7,7 @@ import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import PushDeviceCard from './PushDeviceCard.vue'
+import type ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 
 const api = vi.hoisted(() => ({
     listPushDevices: vi.fn(),
@@ -22,7 +23,13 @@ const browser = vi.hoisted(() => ({
     deviceLabel: () => 'Firefox auf Android',
 }))
 
+const messages = vi.hoisted(() => ({
+    getStatus: vi.fn(),
+    updateSettings: vi.fn(),
+}))
+
 vi.mock('@/api/push', () => api)
+vi.mock('@/api/messages', () => messages)
 vi.mock('@/util/pushSupport', () => browser)
 
 const THIS_DEVICE = {id: 4, label: 'Firefox auf Android', createdAt: '2026-11-17T08:00:00Z', lastSuccessAt: null, current: true}
@@ -42,6 +49,7 @@ describe('PushDeviceCard', () => {
         vi.clearAllMocks()
         browser.pushState.mockReturnValue('ask')
         api.listPushDevices.mockResolvedValue([])
+        messages.getStatus.mockResolvedValue({available: true, unread: 0, mail: true, stationDigest: 'MENTIONS', push: true})
     })
 
     it('registers this device after the press and lists it', async () => {
@@ -101,5 +109,17 @@ describe('PushDeviceCard', () => {
         expect(browser.subscribeBrowser).not.toHaveBeenCalled()
         expect(api.registerPushDevice).toHaveBeenCalledWith(
             {endpoint: 'https://push.example/b', p256dh: 'p', auth: 'a', label: 'Firefox auf Android'})
+    })
+
+    it('switches message pushes for the whole account, and hides the switch without messages', async () => {
+        messages.updateSettings.mockResolvedValue({available: true, unread: 0, mail: true, stationDigest: 'MENTIONS', push: false})
+        const wrapper = await card()
+
+        wrapper.findComponent<typeof ToggleInput>('[data-testid="push-messages-toggle"]').vm.$emit('update:modelValue', false)
+        await flushPromises()
+        expect(messages.updateSettings).toHaveBeenCalledWith({push: false})
+
+        messages.getStatus.mockResolvedValue({available: false, unread: 0, mail: true, stationDigest: 'MENTIONS', push: true})
+        expect((await card()).find('[data-testid="push-messages-toggle"]').exists()).toBe(false)
     })
 })

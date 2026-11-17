@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "schemaHash": "sha256:5f1f9b32d965091b326b2930057ff67eacf6e9b4fe0154a561a0f29c29274eb4",
-  "generatedAt": "2026-11-16T23:24:46Z",
+  "schemaHash": "sha256:1da77beb9e21cd013ee9aff3f169fa3af4f467d800504f5fbca3e2011cbc6ae1",
+  "generatedAt": "2026-11-17T00:30:16Z",
   "tables": {
     "account": {
       "feature": "account",
       "scope": "USER",
-      "tableHash": "sha256:67b4a01946a4b94b835f1b438cc4567613667fb87ce3f970bf925ef1513a6491",
+      "tableHash": "sha256:5fdbe21262a1017e2cb75787bf8f5560fdbd00783e437133c3d5bbf86741af84",
       "columns": [
         {
           "name": "id",
@@ -152,6 +152,13 @@
           "nullable": true,
           "verified": true,
           "description": "When the newest message the account's last daily mail about messages took was written; only messages written after it go into the next one. NULL before the first mail."
+        },
+        {
+          "name": "messages_push",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether new messages in the account's conversations are pushed to the devices it allowed push on."
         }
       ],
       "foreignKeys": [
@@ -26801,7 +26808,7 @@
     "push_outbox": {
       "feature": "push",
       "scope": "USER",
-      "tableHash": "sha256:8463e48f8693daeca5334b4be0afeb20e40a60658e7ff2f36a90b35382f3c898",
+      "tableHash": "sha256:b229850404703812a6d33c4d54fc3e446f882a16ea0c41c589021941e6abf43a",
       "columns": [
         {
           "name": "id",
@@ -26822,7 +26829,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "What the push is about: a test the owner asked for, or a notification."
+          "description": "What the push is about: a test the owner asked for, a notification or a message."
         },
         {
           "name": "notification_id",
@@ -26830,6 +26837,13 @@
           "nullable": true,
           "verified": true,
           "description": "The notification the push is about, for kind NOTIFICATION."
+        },
+        {
+          "name": "message_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The message the push is about, for kind MESSAGE."
         },
         {
           "name": "created_at",
@@ -26868,6 +26882,12 @@
         }
       ],
       "foreignKeys": [
+        {
+          "column": "message_id",
+          "refTable": "message",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
         {
           "column": "notification_id",
           "refTable": "notification",

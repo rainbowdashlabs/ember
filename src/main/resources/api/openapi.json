@@ -73947,6 +73947,9 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "push" : {
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -73965,9 +73968,12 @@
           },
           "stationDigest" : {
             "$ref" : "#/components/schemas/StationDigest"
+          },
+          "push" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "available", "unread", "mail", "stationDigest" ]
+        "required" : [ "available", "unread", "mail", "stationDigest", "push" ]
       },
       "MetricsBatch" : {
         "type" : "object",
