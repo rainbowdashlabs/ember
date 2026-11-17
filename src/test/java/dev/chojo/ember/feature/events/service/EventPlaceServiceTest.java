@@ -87,7 +87,7 @@ class EventPlaceServiceTest extends RepositoryTestBase {
     void aPinNeedsAShortNameAndAPointOnTheMap() {
         assertEquals(
                 EventRefusal.PLACE_TEXT_MISSING,
-                refusalOf(() -> service.save(stationId, new PlaceDraft(" ", 1.0, 1.0, null)))
+                refusalOf(() -> service.save(stationId, new PlaceDraft(" \u00a0", 1.0, 1.0, null)))
                         .refusal());
         assertEquals(
                 EventRefusal.PLACE_TEXT_TOO_LONG,

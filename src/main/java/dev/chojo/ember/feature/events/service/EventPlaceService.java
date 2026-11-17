@@ -57,8 +57,8 @@ public class EventPlaceService {
     }
 
     private static String requirePlaceText(@Nullable String text) {
-        String trimmed = text == null ? "" : text.trim();
-        if (trimmed.isEmpty()) throw EventRefusal.PLACE_TEXT_MISSING.raise();
+        String trimmed = text == null ? "" : text.strip();
+        if (GeocodeQuery.normalise(trimmed).isEmpty()) throw EventRefusal.PLACE_TEXT_MISSING.raise();
         if (trimmed.length() > MAX_TEXT_LENGTH) throw EventRefusal.PLACE_TEXT_TOO_LONG.raise();
         return trimmed;
     }

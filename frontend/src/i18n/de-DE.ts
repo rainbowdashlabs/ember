@@ -6059,6 +6059,15 @@ export default {
         hintStreet: 'Die Markierung steht auf der Straße, nicht am Gebäude. Ziehe sie an die genaue Stelle.',
         hintAreaStation: 'Nur der Ort wurde gefunden. Ziehe die Markierung auf die Wache.',
         hintNotFound: 'Die Adresse wurde nicht gefunden. Setze die Markierung mit einem Klick auf die Karte.',
+        hintAreaPlace: 'Nur der Ort wurde gefunden. Ziehe die Markierung an die richtige Stelle.',
+        hintPlaceNotFound: 'Der Ort wurde nicht gefunden. Setze die Markierung mit einem Klick auf die Karte.',
+    },
+    places: {
+        onMap: 'Auf der Karte',
+        title: '{place} auf der Karte',
+        hint: 'Die Markierung gilt für jeden Termin, der diesen Ort nennt. Der Text im Feld bleibt, wie er ist.',
+        mapOf: 'Karte: {place}',
+        openInOsm: 'In OpenStreetMap öffnen',
     },
     lendingDistance: {
         distanceKm: '{distance} km entfernt',

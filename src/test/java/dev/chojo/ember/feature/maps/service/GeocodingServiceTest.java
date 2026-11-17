@@ -236,4 +236,9 @@ class GeocodingServiceTest {
         assertEquals(GeocodePrecision.AREA, GeocodePrecision.ofPhotonType("locality"));
         assertEquals(GeocodePrecision.AREA, GeocodePrecision.ofPhotonType(null));
     }
+
+    @Test
+    void aNoBreakSpaceIsWhitespaceLikeAnyOther() {
+        assertEquals("altes gerätehaus", GeocodeQuery.normalise("\u00a0Altes\u00a0\u2009 Gerätehaus\u00a0"));
+    }
 }

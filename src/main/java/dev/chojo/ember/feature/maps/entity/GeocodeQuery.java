@@ -30,7 +30,7 @@ public record GeocodeQuery(
         @Nullable Double biasLatitude,
         @Nullable Double biasLongitude) {
 
-    private static final Pattern WHITESPACE = Pattern.compile("\\s+");
+    private static final Pattern WHITESPACE = Pattern.compile("\\s+", Pattern.UNICODE_CHARACTER_CLASS);
 
     /**
      * A search for a postal address, written the way Photon reads it best:
@@ -53,12 +53,13 @@ public record GeocodeQuery(
 
     /**
      * The text as it is compared: trimmed, in lower case, every run of whitespace made one space.
+     * Whitespace means every Unicode space, a no-break space included, the same as the browser's.
      *
      * @param text the text as typed
      * @return its normal form
      */
     public static String normalise(String text) {
-        return WHITESPACE.matcher(text.trim()).replaceAll(" ").toLowerCase(Locale.ROOT);
+        return WHITESPACE.matcher(text).replaceAll(" ").strip().toLowerCase(Locale.ROOT);
     }
 
     private static String joined(String separator, @Nullable String... parts) {
@@ -75,7 +76,7 @@ public record GeocodeQuery(
      * @return true when the text holds nothing but whitespace
      */
     public boolean isBlank() {
-        return text.isBlank();
+        return normalise(text).isEmpty();
     }
 
     /**

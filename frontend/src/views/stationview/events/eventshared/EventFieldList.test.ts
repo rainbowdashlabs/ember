@@ -99,4 +99,20 @@ describe('EventFieldList', () => {
         expect(page.find('[data-testid="question-name"]').exists()).toBe(true)
         expect(state.fields.map(field => field.name)).toEqual(['Ortschaft', 'Treffpunkt', 'N'])
     })
+
+    it('adds the place and meeting point quick fields as place fields, the topic as text', async () => {
+        const list = await mountSuspended(EventFieldList, {props: {fields: []}})
+
+        for (const name of ['Ort', 'Treffpunkt', 'Thema']) {
+            const button = list.findAll('button').find(candidate => candidate.text() === `+ ${name}`)
+            await button!.trigger('click')
+        }
+
+        const handedBack = list.emitted('update:fields')?.at(-1)?.[0] as EventFieldEntry[]
+        expect(handedBack.map(field => [field.name, field.fieldType])).toEqual([
+            ['Ort', 'LOCATION'],
+            ['Treffpunkt', 'LOCATION'],
+            ['Thema', 'TEXT'],
+        ])
+    })
 })

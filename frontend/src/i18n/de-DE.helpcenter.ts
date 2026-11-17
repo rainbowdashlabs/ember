@@ -3393,6 +3393,8 @@ volumes:
         },
         eventDetail: {
             eventGroupPart: 'Gehört ein Termin zu einer Terminreihe, steht seine Seite in einem Rahmen in der Farbe der Terminreihe. Der Balken oben nennt die Terminreihe, den Teil und ihre Tage und führt zur Terminreihe. Angemeldet wird dann bei der Terminreihe, nicht am Termin.',
+            placesTitle: 'Orte auf der Karte',
+            placesText: 'Hat ein Ortsfeld eine Markierung, steht unter dem Ort eine kleine Karte. Der Link darunter öffnet dieselbe Stelle in OpenStreetMap, etwa für den Weg dorthin.',
             linksTitle: 'Fortgeführte und herausgelöste Termine',
             linksText: 'Wurde eine Serie ab einem Termin als neue Serie weitergeführt oder ein einzelner Termin aus ihr gelöst, steht das oben auf der Seite: welcher Termin fortgeführt wird, als was die Serie weitergeht und welcher Tag ein eigener Termin geworden ist. Ein Klick auf den Namen öffnet den anderen Termin.',
             answeringTitle: 'An- und abmelden, auch für mehrere',
@@ -5978,6 +5980,8 @@ volumes:
             fieldsTitle: 'Eigene Felder',
             fieldsText: 'Eigene Felder kannst du für viele Datenarten anlegen - Text, Zahl, Datum, Ort, Auswahl, sowie Mitglieder. Mitgliederfelder können auf eine Gruppe, einen Benutzertyp oder ein Tag eingeschränkt werden.',
             fieldsLineText: 'Jedes Feld steht in einer Zeile mit Name, Wert und Typ. Das Auge zeigt das Feld in der Übersicht, die Weltkugel macht es öffentlich, und die Kette zeigt, dass es ein Feld der Anwesenheit ausfüllt. Der Pfeil neben dem Papierkorb öffnet die übrigen Einstellungen.',
+            placeTitle: 'Orte auf der Karte',
+            placeText: '„Ort" und „Treffpunkt" legen Ortsfelder an. Steht in einem Ortsfeld ein Text, öffnet „Auf der Karte" eine Karte dazu. Gibt es für den Text noch keine Markierung und hat die Instanz eine Adresssuche, sucht die Karte ihn in der Nähe der Wache; sonst setzt du die Markierung mit einem Klick. Gespeichert wird die Markierung für den Text, so dass jeder Termin, der denselben Ort nennt, sie zeigt. Der Text im Feld bleibt dabei, wie er ist.',
             selfRegistrationTitle: 'Selbsteintragung für Mitgliederfelder',
             selfRegistrationText: 'Wenn du „Selbsteintragung erlauben" für ein Mitgliederfeld aktivierst, können sich passende Mitglieder selbst eintragen - auch ohne die Berechtigung zum Bearbeiten des Termins. Ist das Feld auf eine Gruppe, einen Mitgliedstyp oder einen Tag beschränkt, sehen nur Mitglieder darin den Knopf „Eintragen". Nach dem Anmeldeschluss steht dort „Eintragung geschlossen", wer schon eingetragen ist, kann sich aber weiter austragen. Bei Einzelfeldern bleibt der Platz beim ersten Mitglied, das ihn nimmt; nur diese Person kann den Platz wieder freigeben. Listenfelder erlauben mehrere Eintragungen.',
             loadTemplateTitle: 'Vorlage laden',
