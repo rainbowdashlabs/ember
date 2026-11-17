@@ -9,7 +9,6 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import dev.chojo.ember.api.refusal.MapRefusal;
-import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.maps.entity.MapTileProvider;
 import dev.chojo.ember.feature.maps.entity.MapsTilesConfig;
@@ -120,10 +119,6 @@ public class MapTileCacheService {
                 .replace("{y}", Integer.toString(y))
                 .replace("{k}", tiles.apiKey() == null ? "" : tiles.apiKey())
                 .replace("{apiKey}", tiles.apiKey() == null ? "" : tiles.apiKey());
-    }
-
-    private static String userAgent() {
-        return "Ember/" + FederationContractVersions.current().core() + " (https://github.com/RainbowDashLabs/ember)";
     }
 
     /**
@@ -331,7 +326,7 @@ public class MapTileCacheService {
         return HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .timeout(UPSTREAM_TIMEOUT)
-                .header("User-Agent", userAgent())
+                .header("User-Agent", MapsUserAgent.value())
                 .GET()
                 .build();
     }

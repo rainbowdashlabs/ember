@@ -388,7 +388,7 @@ public class EventStructureRoutes implements Routes {
      * one occurrence asks about that occurrence, because a question answered per date has no answer
      * anywhere else.
      */
-    private static @Nullable LocalDate askedDate(Context ctx) {
+    static @Nullable LocalDate askedDate(Context ctx) {
         String date = ctx.queryParam("date");
         if (date == null || date.isBlank()) return null;
         try {

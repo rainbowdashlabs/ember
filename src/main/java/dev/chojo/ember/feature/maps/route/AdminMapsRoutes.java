@@ -9,7 +9,6 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.api.refusal.MapRefusal;
-import dev.chojo.ember.feature.maps.entity.GeocodingProvider;
 import dev.chojo.ember.feature.maps.entity.MapTileProvider;
 import dev.chojo.ember.feature.maps.entity.MapsGeocodingConfig;
 import dev.chojo.ember.feature.maps.entity.MapsTilesConfig;
@@ -140,7 +139,7 @@ public class AdminMapsRoutes implements Routes {
 
         public AdminMapsConfig {
             if (tiles == null) tiles = MapsTilesConfig.DEFAULT;
-            if (geocoding == null) geocoding = new MapsGeocodingConfig(GeocodingProvider.NONE, "", "");
+            if (geocoding == null) geocoding = MapsGeocodingConfig.DEFAULT;
         }
     }
 

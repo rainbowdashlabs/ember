@@ -12,8 +12,12 @@ import dev.chojo.ember.feature.maps.entity.MapsTilesConfig;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.URI;
+import java.net.URISyntaxException;
 
 /**
  * Reads/writes the instance-wide maps configuration. Defaults to OSM raw tiles and no
@@ -56,6 +60,19 @@ public class MapsConfigService {
         }
     }
 
+    private static void requireUsableServer(@Nullable String baseUrl) {
+        if (baseUrl == null || baseUrl.isBlank()) return;
+        try {
+            var uri = new URI(baseUrl.trim());
+            String scheme = uri.getScheme();
+            boolean web = "http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme);
+            if (web && uri.getHost() != null && uri.getQuery() == null && uri.getFragment() == null) return;
+        } catch (URISyntaxException e) {
+            throw MapRefusal.MAP_GEOCODING_ADDRESS_NOT_USABLE.raise();
+        }
+        throw MapRefusal.MAP_GEOCODING_ADDRESS_NOT_USABLE.raise();
+    }
+
     public MapsTilesConfig tilesConfig() {
         return settings.get(KEY_TILES).map(MapsTilesConfig::parse).orElse(MapsTilesConfig.DEFAULT);
     }
@@ -79,10 +96,15 @@ public class MapsConfigService {
         log.info("Updated maps tiles config: provider {}", config.provider());
     }
 
+    /**
+     * Persists a new address search setting. Refuses a setting without a provider and a server
+     * address that is neither blank nor an {@code http} or {@code https} address with a host.
+     */
     public void updateGeocodingConfig(MapsGeocodingConfig config) {
         if (config == null || config.provider() == null) {
             throw MapRefusal.MAP_GEOCODING_PROVIDER_MISSING.raise();
         }
+        requireUsableServer(config.baseUrl());
         settings.set(KEY_GEOCODING, config.toJson());
         log.info("Updated maps geocoding config: provider {}", config.provider());
     }
