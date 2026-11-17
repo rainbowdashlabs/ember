@@ -153,7 +153,7 @@ class MemberGroupingRoutesTest {
                     refusalOf(client.get(PREFIX + "/station-members/8/tags", harness.as(session))));
         });
 
-        verify(tags).setMembers(5, List.of());
+        verify(tags).setMembers(eq(5), eq(List.of()), any());
         verify(tags).findTagsForMember(7);
     }
 }

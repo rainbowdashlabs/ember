@@ -51,7 +51,8 @@ class StationAudienceEventsTest extends RepositoryTestBase {
     void settingTheMembersOfATagSaysSo() {
         var tag = userTagRepo.create(station.id(), "Atemschutz");
 
-        new UserTagService(userTagRepo, memberGroupRepo, bus).setMembers(tag.id(), List.of(member.id()));
+        new UserTagService(userTagRepo, memberGroupRepo, memberRuleRepo, newGroupMemberships(), bus)
+                .setMembers(tag.id(), List.of(member.id()), signedIn(member));
 
         verify(bus).publish(StationAudienceChanged.at(station.id()));
     }
@@ -60,7 +61,7 @@ class StationAudienceEventsTest extends RepositoryTestBase {
     void deletingATagSaysSo() {
         var tag = userTagRepo.create(station.id(), "Atemschutz");
 
-        new UserTagService(userTagRepo, memberGroupRepo, bus).delete(tag.id());
+        new UserTagService(userTagRepo, memberGroupRepo, memberRuleRepo, newGroupMemberships(), bus).delete(tag.id());
 
         verify(bus).publish(StationAudienceChanged.at(station.id()));
     }
@@ -69,7 +70,12 @@ class StationAudienceEventsTest extends RepositoryTestBase {
     void puttingSomebodyIntoAGroupOnTheirOwnSaysSo() {
         var group = memberGroupRepo.create(station.id(), "Jugend");
         var memberships = new GroupMembershipService(
-                memberGroupRepo, stationMemberRepo, mock(StepUpGuard.class), () -> mock(MemberNameResolver.class), bus);
+                memberGroupRepo,
+                stationMemberRepo,
+                memberRuleRepo,
+                mock(StepUpGuard.class),
+                () -> mock(MemberNameResolver.class),
+                bus);
 
         memberships.joinAutomatically(group.id(), member.id());
         memberships.leaveAutomatically(group.id(), member.id());
@@ -80,8 +86,8 @@ class StationAudienceEventsTest extends RepositoryTestBase {
     @Test
     void deletingAGroupSaysSo() {
         var group = memberGroupRepo.create(station.id(), "Jugend");
-        var groups =
-                new MemberGroupService(memberGroupRepo, stationMemberRepo, userTagRepo, newGroupMemberships(), bus);
+        var groups = new MemberGroupService(
+                memberGroupRepo, stationMemberRepo, userTagRepo, memberRuleRepo, newGroupMemberships(), bus);
 
         groups.delete(group, mock(UserSession.class));
 
@@ -169,7 +175,12 @@ class StationAudienceEventsTest extends RepositoryTestBase {
 
     private GroupMembershipService membershipsOnBus() {
         return new GroupMembershipService(
-                memberGroupRepo, stationMemberRepo, mock(StepUpGuard.class), () -> mock(MemberNameResolver.class), bus);
+                memberGroupRepo,
+                stationMemberRepo,
+                memberRuleRepo,
+                mock(StepUpGuard.class),
+                () -> mock(MemberNameResolver.class),
+                bus);
     }
 
     private StationMemberService memberService() {

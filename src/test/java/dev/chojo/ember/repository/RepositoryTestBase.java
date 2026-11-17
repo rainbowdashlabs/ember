@@ -828,7 +828,8 @@ public abstract class RepositoryTestBase {
         var fedRepo = new FederationRepository();
         var memberSvc = newStationMemberService(accountRepo, null);
         var groupSvc = newMemberGroupService();
-        var tagSvc = new UserTagService(userTagRepo, memberGroupRepo, new DomainEventBus(Set.of()));
+        var tagSvc = new UserTagService(
+                userTagRepo, memberGroupRepo, memberRuleRepo, newGroupMemberships(), new DomainEventBus(Set.of()));
         memberNameResolver =
                 new MemberNameResolver(memberSvc, accountRepo, eventFedRepo, fedRepo, stationRepo, groupSvc, tagSvc);
         memberIdentityFactory = new MemberIdentityFactory(stationRepo, memberLookupService, memberNameResolver);
@@ -1010,7 +1011,8 @@ public abstract class RepositoryTestBase {
                 memberGroupRepo,
                 core,
                 new GenderFields(core, stationRepo),
-                new StationFieldSetRepository());
+                new StationFieldSetRepository(),
+                memberRuleRepo);
     }
 
     /**
@@ -1133,7 +1135,12 @@ public abstract class RepositoryTestBase {
                 boardRepo,
                 memberService,
                 newMemberGroupService(),
-                new UserTagService(userTagRepo, memberGroupRepo, new DomainEventBus(Set.of())),
+                new UserTagService(
+                        userTagRepo,
+                        memberGroupRepo,
+                        memberRuleRepo,
+                        newGroupMemberships(),
+                        new DomainEventBus(Set.of())),
                 privateTags);
         var tickets = new BoardTicketService(
                 boardTicketRepo,
@@ -1294,6 +1301,7 @@ public abstract class RepositoryTestBase {
         return new GroupMembershipService(
                 memberGroupRepo,
                 stationMemberRepo,
+                memberRuleRepo,
                 mock(StepUpGuard.class),
                 () -> mock(MemberNameResolver.class),
                 new DomainEventBus(Set.of()));
@@ -1305,7 +1313,12 @@ public abstract class RepositoryTestBase {
      */
     protected static MemberGroupService newMemberGroupService() {
         return new MemberGroupService(
-                memberGroupRepo, stationMemberRepo, userTagRepo, newGroupMemberships(), new DomainEventBus(Set.of()));
+                memberGroupRepo,
+                stationMemberRepo,
+                userTagRepo,
+                memberRuleRepo,
+                newGroupMemberships(),
+                new DomainEventBus(Set.of()));
     }
 
     /**

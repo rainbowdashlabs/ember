@@ -219,7 +219,7 @@ public class UserTagRoutes implements Routes {
         requireVisibleTag(ctx, tagId);
         var request = ctx.bodyAsClass(TagSetMembersRequest.class);
         List<Integer> memberIds = request.memberIds() != null ? request.memberIds() : List.of();
-        tagService.setMembers(tagId, memberIds);
+        tagService.setMembers(tagId, memberIds, StationSession.from(ctx).user());
         ctx.json(tagService.findMembers(tagId).stream().map(memberViews::named).toList());
     }
 

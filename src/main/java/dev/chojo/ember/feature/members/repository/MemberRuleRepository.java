@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.members.entity.RuleNode;
 import dev.chojo.ember.feature.members.entity.RuleNodeKind;
 import dev.chojo.ember.feature.members.entity.RuleOperator;
 import dev.chojo.ember.feature.members.entity.RuleOwner;
+import dev.chojo.ember.feature.members.entity.RuleOwners;
 import dev.chojo.ember.feature.members.entity.RuleSubject;
 import dev.chojo.ember.feature.members.entity.RuleValue;
 import dev.chojo.ember.util.sql.Transactions;
@@ -21,13 +22,16 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -159,6 +163,119 @@ public class MemberRuleRepository {
         joined.sort(Comparator.naturalOrder());
         left.sort(Comparator.naturalOrder());
         return new RuleChange(owner, List.copyOf(joined), List.copyOf(left));
+    }
+
+    /**
+     * The groups and tags of a station that take their members from a rule.
+     *
+     * @param stationId the station
+     */
+    public RuleOwners owners(int stationId) {
+        var groups = new ArrayList<Integer>();
+        var tags = new ArrayList<Integer>();
+        query("""
+                SELECT group_id, tag_id FROM member_rule_node
+                WHERE station_id = :station_id AND parent_id IS NULL
+                ORDER BY group_id, tag_id;""")
+                .single(call().bind("station_id", stationId))
+                .map(row -> {
+                    var group = row.getObject("group_id", Integer.class);
+                    var tag = row.getObject("tag_id", Integer.class);
+                    if (group != null) groups.add(group);
+                    if (tag != null) tags.add(tag);
+                    return true;
+                })
+                .all();
+        return new RuleOwners(List.copyOf(groups), List.copyOf(tags));
+    }
+
+    /**
+     * Whether a group or tag takes its members from a rule.
+     *
+     * @param owner the group or tag
+     */
+    public boolean hasRule(RuleOwner owner) {
+        return query(
+                        "SELECT EXISTS (SELECT 1 FROM member_rule_node WHERE %s = :owner_id) AS ruled;",
+                        ownerColumn(owner))
+                .single(call().bind("owner_id", owner.id()))
+                .map(row -> row.getBoolean("ruled"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
+     * Which of the given groups or tags take their members from a rule.
+     *
+     * @param kind whether the ids name groups or tags
+     * @param ids  the groups or tags asked about
+     */
+    public Set<Integer> ruled(RuleOwner.Kind kind, Collection<Integer> ids) {
+        if (ids.isEmpty()) return Set.of();
+        String column = kind == RuleOwner.Kind.GROUP ? "group_id" : "tag_id";
+        return new HashSet<>(query("SELECT %1$s AS owner_id FROM member_rule_node WHERE %1$s = ANY(:ids);", column)
+                .single(call().bind("ids", List.copyOf(ids), PostgreSqlTypes.INTEGER))
+                .map(row -> row.getInt("owner_id"))
+                .all());
+    }
+
+    /**
+     * The names of the groups and tags whose rules ask about a station field, a group or a tag, leaving out the
+     * rule of that group or tag itself.
+     *
+     * @param column    which reference is meant: {@code field_id}, {@code ref_group_id} or {@code ref_tag_id}
+     * @param ownColumn the condition on the root that leaves the thing's own rule out
+     * @param id        the field, group or tag
+     */
+    private List<String> askedAboutBy(String column, String ownColumn, int id) {
+        return query("""
+                WITH RECURSIVE up AS (SELECT n.id, n.parent_id, n.group_id, n.tag_id
+                                      FROM member_rule_node n WHERE n.%s = :id
+                                      UNION
+                                      SELECT p.id, p.parent_id, p.group_id, p.tag_id
+                                      FROM member_rule_node p JOIN up ON p.id = up.parent_id)
+                SELECT DISTINCT coalesce(g.name, t.name) AS name
+                FROM up
+                         LEFT JOIN member_group g ON g.id = up.group_id
+                         LEFT JOIN user_tag t ON t.id = up.tag_id
+                WHERE up.parent_id IS NULL
+                  AND %s
+                ORDER BY name;""", column, ownColumn)
+                .single(call().bind("id", id))
+                .map(row -> row.getString("name"))
+                .all();
+    }
+
+    /** The names of the groups and tags whose rules read a station field. */
+    public List<String> askingAboutField(int fieldId) {
+        return askedAboutBy("field_id", "TRUE", fieldId);
+    }
+
+    /** The names of the groups and tags whose rules ask about a group. */
+    public List<String> askingAboutGroup(int groupId) {
+        return askedAboutBy("ref_group_id", "up.group_id IS DISTINCT FROM :id", groupId);
+    }
+
+    /** The names of the groups and tags whose rules ask about a tag. */
+    public List<String> askingAboutTag(int tagId) {
+        return askedAboutBy("ref_tag_id", "up.tag_id IS DISTINCT FROM :id", tagId);
+    }
+
+    /**
+     * Hands the rule of a group or tag over to another one, as when a group becomes a tag.
+     *
+     * @param from the group or tag the rule fills now
+     * @param to   the group or tag it is to fill
+     */
+    public void moveRule(RuleOwner from, RuleOwner to) {
+        query("""
+                UPDATE member_rule_node
+                SET group_id = :group_id, tag_id = :tag_id
+                WHERE %s = :from_id;""", ownerColumn(from))
+                .single(call().bind("group_id", to.kind() == RuleOwner.Kind.GROUP ? to.id() : null)
+                        .bind("tag_id", to.kind() == RuleOwner.Kind.TAG ? to.id() : null)
+                        .bind("from_id", from.id()))
+                .update();
     }
 
     private void insert(int stationId, RuleOwner owner, @Nullable Integer parentId, int position, RuleNode node) {

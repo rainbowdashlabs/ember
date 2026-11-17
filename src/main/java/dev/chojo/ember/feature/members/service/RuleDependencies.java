@@ -39,6 +39,35 @@ public final class RuleDependencies {
     }
 
     /**
+     * The groups and tags whose rules ask about the given one, directly or through other rules, so their members
+     * follow when its members change.
+     *
+     * @param changed the group or tag whose members change
+     * @param rules   every rule of the station
+     */
+    public static Set<RuleOwner> dependents(RuleOwner changed, Map<RuleOwner, RuleNode> rules) {
+        var reached = new LinkedHashSet<RuleOwner>();
+        var waiting = new ArrayList<RuleOwner>(List.of(changed));
+        while (!waiting.isEmpty()) {
+            var current = waiting.removeLast();
+            for (var entry : rules.entrySet()) {
+                var owner = entry.getKey();
+                if (owner.equals(changed) || reached.contains(owner)) continue;
+                if (!asksAbout(entry.getValue(), current)) continue;
+                reached.add(owner);
+                waiting.add(owner);
+            }
+        }
+        return reached;
+    }
+
+    /** Whether a rule asks about a group or tag, whether that one is kept by a rule or by hand. */
+    private static boolean asksAbout(RuleNode rule, RuleOwner owner) {
+        var ids = owner.kind() == RuleOwner.Kind.GROUP ? rule.referencedGroups() : rule.referencedTags();
+        return ids.contains(owner.id());
+    }
+
+    /**
      * Every rule in an order in which a rule comes after the rules it asks about, leaving out the rules that stand
      * in a circle and every rule that asks about one of them.
      *

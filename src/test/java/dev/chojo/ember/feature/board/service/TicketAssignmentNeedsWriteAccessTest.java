@@ -62,7 +62,8 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
     static void setup() {
         var memberService = newStationMemberService(null, null);
         var groupService = newMemberGroupService();
-        var tagService = new UserTagService(userTagRepo, memberGroupRepo, new DomainEventBus(Set.of()));
+        var tagService = new UserTagService(
+                userTagRepo, memberGroupRepo, memberRuleRepo, newGroupMemberships(), new DomainEventBus(Set.of()));
         boardService = new BoardService(boardRepo, memberService, groupService, tagService, privateTags);
 
         var backend = localStorage();
@@ -240,9 +241,10 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
         assertTrue(boardService.findMembersWhoMayEdit(byType, station.id()).contains(writer.id()));
 
         int byTag = boardService.create(station.id(), "Tag Board", "", "TAG").id();
-        var tagService = new UserTagService(userTagRepo, memberGroupRepo, new DomainEventBus(Set.of()));
+        var tagService = new UserTagService(
+                userTagRepo, memberGroupRepo, memberRuleRepo, newGroupMemberships(), new DomainEventBus(Set.of()));
         var tag = tagService.create(station.id(), "Assignment Tag");
-        tagService.setMembers(tag.id(), List.of(outsider.id()));
+        tagService.setMembers(tag.id(), List.of(outsider.id()), signedIn(outsider));
         boardService.setEditAccess(byTag, List.of(), List.of(), List.of(tag.id()));
 
         var allowed = boardService.findMembersWhoMayEdit(byTag, station.id());

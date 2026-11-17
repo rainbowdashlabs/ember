@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.entity.AssignedProfileField;
@@ -26,6 +27,7 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileWriter;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
+import dev.chojo.ember.feature.members.repository.MemberRuleRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationFieldSetRepository;
@@ -66,6 +68,7 @@ public class ProfileFieldService {
     private final ProfileFieldCore core;
     private final GenderFields genders;
     private final StationFieldSetRepository sets;
+    private final MemberRuleRepository ruleRepository;
 
     @Inject
     public ProfileFieldService(
@@ -76,7 +79,8 @@ public class ProfileFieldService {
             MemberGroupRepository memberGroupRepository,
             ProfileFieldCore core,
             GenderFields genders,
-            StationFieldSetRepository sets) {
+            StationFieldSetRepository sets,
+            MemberRuleRepository ruleRepository) {
         this.profileFieldRepository = profileFieldRepository;
         this.changeRepository = changeRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -85,6 +89,7 @@ public class ProfileFieldService {
         this.core = core;
         this.genders = genders;
         this.sets = sets;
+        this.ruleRepository = ruleRepository;
     }
 
     /** The station's bundles of questions, by name. */
@@ -674,9 +679,14 @@ public class ProfileFieldService {
     /**
      * Deletes a question and its answers.
      *
-     * @throws RefusalResponse {@link MemberRefusal#PROFILE_DEPENDENCY_STILL_USED} while others depend on it
+     * @throws RefusalResponse {@link MemberRefusal#PROFILE_DEPENDENCY_STILL_USED} while others depend on it,
+     *         {@link MemberRefusal#USED_BY_A_RULE} naming the groups and tags whose rules read it
      */
     public boolean delete(int id) {
+        List<String> askers = ruleRepository.askingAboutField(id);
+        if (!askers.isEmpty()) {
+            throw MemberRefusal.USED_BY_A_RULE.raise(RefusalDetail.text(String.join(", ", askers)));
+        }
         profileFieldRepository
                 .findById(id)
                 .ifPresent(

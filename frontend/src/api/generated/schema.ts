@@ -35852,6 +35852,177 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/groups/{id}/rule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The rule a group takes its members from, if any */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberRuleResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Save the rule a group takes its members from; the group is filled by it from then on */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MemberRuleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberRuleResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Remove a group's rule; it keeps its members and is kept by hand from then on */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/groups/{id}/rule/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Who a rule would put into a group today, without saving it */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MemberRuleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RulePreview"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inventories": {
         parameters: {
             query?: never;
@@ -43998,6 +44169,78 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/member-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The groups and tags of the station that take their members from a rule */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuleOwners"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/member-rules/operators": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The operators a check of a group or tag rule can use, per subject and field type */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuleOperatorOption"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -67515,6 +67758,168 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tags/{id}/rule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The rule a tag takes its members from, if any */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberRuleResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Save the rule a tag takes its members from; the tag is filled by it from then on */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MemberRuleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberRuleResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Remove a tag's rule; it keeps its members and is kept by hand from then on */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tags/{id}/rule/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Who a rule would put into a tag today, without saving it */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MemberRuleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RulePreview"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/trials": {
         parameters: {
             query?: never;
@@ -72488,6 +72893,8 @@ export interface components {
         };
         /** @enum {string} */
         Expected: "ITS_OWN" | "THE_CLUSTERS" | "INSTANCE_DEFAULT" | "WHEREVER_IT_IS";
+        /** @enum {string} */
+        ExpiryState: "VALID" | "EXPIRING" | "EXPIRED" | "EMPTY";
         ExportColumnRequest: {
             fieldName?: string;
             key?: string;
@@ -75545,6 +75952,12 @@ export interface components {
             unassigned: {
                 [key: string]: components["schemas"]["InventoryItem"][];
             };
+        };
+        MemberRuleRequest: {
+            rule?: components["schemas"]["RuleNode"];
+        };
+        MemberRuleResponse: {
+            rule: components["schemas"]["RuleNode"] | null;
         };
         MemberSearchResult: {
             avatarUrl: string | null;
@@ -78665,6 +79078,48 @@ export interface components {
             /** Format: int64 */
             totalBytes: number;
         };
+        RuleMember: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+        };
+        /** @enum {string} */
+        RuleNeed: "NOTHING" | "ANSWERS" | "USER_TYPES" | "STATES" | "NUMBER" | "NUMBER_RANGE" | "TEXT" | "DATE" | "DURATION" | "YEARS" | "YEARS_RANGE";
+        RuleNode: {
+            children: components["schemas"]["RuleNode"][];
+            /** Format: int32 */
+            clusterFieldId: number | null;
+            /** Format: int32 */
+            fieldId: number | null;
+            /** Format: int32 */
+            groupId: number | null;
+            kind: components["schemas"]["RuleNodeKind"];
+            operator: components["schemas"]["RuleOperator"] | null;
+            referenceDate: components["schemas"]["LocalDate"] | null;
+            subject: components["schemas"]["RuleSubject"] | null;
+            /** Format: int32 */
+            tagId: number | null;
+            value: components["schemas"]["RuleValue"] | null;
+        };
+        /** @enum {string} */
+        RuleNodeKind: "ALL" | "ANY" | "NONE" | "CHECK";
+        /** @enum {string} */
+        RuleOperator: "IN" | "NOT_IN" | "ONE_OF" | "NONE_OF" | "AT_LEAST" | "LESS_THAN" | "BETWEEN" | "IS_YES" | "IS_NO" | "IS_NOT_YES" | "EMPTY" | "NOT_EMPTY" | "EQUALS" | "CONTAINS" | "EQ" | "LT" | "LE" | "GT" | "GE" | "BEFORE" | "ON_OR_AFTER" | "WITHIN_NEXT" | "WITHIN_LAST" | "EXPIRES_WITHIN" | "EXPIRED" | "STATE_IN";
+        RuleOperatorOption: {
+            fieldType: components["schemas"]["FieldType"] | null;
+            need: components["schemas"]["RuleNeed"];
+            operator: components["schemas"]["RuleOperator"];
+            subject: components["schemas"]["RuleSubject"];
+        };
+        RuleOwners: {
+            groupIds: number[];
+            tagIds: number[];
+        };
+        RulePreview: {
+            joining: components["schemas"]["RuleMember"][];
+            leaving: components["schemas"]["RuleMember"][];
+            matching: components["schemas"]["RuleMember"][];
+        };
         RuleRequest: {
             acceptedTypes?: string[];
             action?: components["schemas"]["MailRuleAction"];
@@ -78708,6 +79163,24 @@ export interface components {
             subjectFilter: string | null;
             tags: string[];
             titleSource: components["schemas"]["MailTitleSource"];
+        };
+        /** @enum {string} */
+        RuleSubject: "GROUP" | "TAG" | "USER_TYPE" | "MEMBER_SINCE" | "AGE" | "FIELD" | "CLUSTER_FIELD";
+        /** @enum {string} */
+        RuleUnit: "DAYS" | "MONTHS" | "YEARS";
+        RuleValue: {
+            /** Format: int32 */
+            amount: number | null;
+            /** Format: int32 */
+            amountTo: number | null;
+            answers: string[] | null;
+            date: components["schemas"]["LocalDate"] | null;
+            number: number | null;
+            numberTo: number | null;
+            states: components["schemas"]["ExpiryState"][] | null;
+            text: string | null;
+            unit: components["schemas"]["RuleUnit"] | null;
+            userTypes: components["schemas"]["StationUserType"][] | null;
         };
         RunDetailResponse: {
             members: components["schemas"]["RunMemberWithProgress"][];
@@ -82138,6 +82611,7 @@ export type EventType = components['schemas']['EventType'];
 export type EvidenceSummary = components['schemas']['EvidenceSummary'];
 export type ExaminerCandidate = components['schemas']['ExaminerCandidate'];
 export type Expected = components['schemas']['Expected'];
+export type ExpiryState = components['schemas']['ExpiryState'];
 export type ExportColumnRequest = components['schemas']['ExportColumnRequest'];
 export type ExportMovementsRequest = components['schemas']['ExportMovementsRequest'];
 export type ExternalLinkCardConfig = components['schemas']['ExternalLinkCardConfig'];
@@ -82561,6 +83035,8 @@ export type MemberProfileValueResponse = components['schemas']['MemberProfileVal
 export type MemberReceiptRequest = components['schemas']['MemberReceiptRequest'];
 export type MemberRequirement = components['schemas']['MemberRequirement'];
 export type MemberRequirements = components['schemas']['MemberRequirements'];
+export type MemberRuleRequest = components['schemas']['MemberRuleRequest'];
+export type MemberRuleResponse = components['schemas']['MemberRuleResponse'];
 export type MemberSearchResult = components['schemas']['MemberSearchResult'];
 export type MemberSpotlightConfig = components['schemas']['MemberSpotlightConfig'];
 export type MemberStatus = components['schemas']['MemberStatus'];
@@ -82994,8 +83470,19 @@ export type RevocationReason = components['schemas']['RevocationReason'];
 export type RevocationStatus = components['schemas']['RevocationStatus'];
 export type RichMember = components['schemas']['RichMember'];
 export type RoomDetail = components['schemas']['RoomDetail'];
+export type RuleMember = components['schemas']['RuleMember'];
+export type RuleNeed = components['schemas']['RuleNeed'];
+export type RuleNode = components['schemas']['RuleNode'];
+export type RuleNodeKind = components['schemas']['RuleNodeKind'];
+export type RuleOperator = components['schemas']['RuleOperator'];
+export type RuleOperatorOption = components['schemas']['RuleOperatorOption'];
+export type RuleOwners = components['schemas']['RuleOwners'];
+export type RulePreview = components['schemas']['RulePreview'];
 export type RuleRequest = components['schemas']['RuleRequest'];
 export type RuleResponse = components['schemas']['RuleResponse'];
+export type RuleSubject = components['schemas']['RuleSubject'];
+export type RuleUnit = components['schemas']['RuleUnit'];
+export type RuleValue = components['schemas']['RuleValue'];
 export type RunDetailResponse = components['schemas']['RunDetailResponse'];
 export type RunExaminers = components['schemas']['RunExaminers'];
 export type RunMemberWithProgress = components['schemas']['RunMemberWithProgress'];
@@ -83759,6 +84246,13 @@ export const Expected = {
     ITS_OWN: "ITS_OWN",
     THE_CLUSTERS: "THE_CLUSTERS",
     WHEREVER_IT_IS: "WHEREVER_IT_IS",
+} as const;
+
+export const ExpiryState = {
+    EMPTY: "EMPTY",
+    EXPIRED: "EXPIRED",
+    EXPIRING: "EXPIRING",
+    VALID: "VALID",
 } as const;
 
 export const ExternalLinkImageDisplay = {
@@ -84600,6 +85094,72 @@ export const RevocationStatus = {
     GOOD: "GOOD",
     REVOKED: "REVOKED",
     UNKNOWN: "UNKNOWN",
+} as const;
+
+export const RuleNeed = {
+    ANSWERS: "ANSWERS",
+    DATE: "DATE",
+    DURATION: "DURATION",
+    NOTHING: "NOTHING",
+    NUMBER: "NUMBER",
+    NUMBER_RANGE: "NUMBER_RANGE",
+    STATES: "STATES",
+    TEXT: "TEXT",
+    USER_TYPES: "USER_TYPES",
+    YEARS: "YEARS",
+    YEARS_RANGE: "YEARS_RANGE",
+} as const;
+
+export const RuleNodeKind = {
+    ALL: "ALL",
+    ANY: "ANY",
+    CHECK: "CHECK",
+    NONE: "NONE",
+} as const;
+
+export const RuleOperator = {
+    AT_LEAST: "AT_LEAST",
+    BEFORE: "BEFORE",
+    BETWEEN: "BETWEEN",
+    CONTAINS: "CONTAINS",
+    EMPTY: "EMPTY",
+    EQ: "EQ",
+    EQUALS: "EQUALS",
+    EXPIRED: "EXPIRED",
+    EXPIRES_WITHIN: "EXPIRES_WITHIN",
+    GE: "GE",
+    GT: "GT",
+    IN: "IN",
+    IS_NO: "IS_NO",
+    IS_NOT_YES: "IS_NOT_YES",
+    IS_YES: "IS_YES",
+    LE: "LE",
+    LESS_THAN: "LESS_THAN",
+    LT: "LT",
+    NONE_OF: "NONE_OF",
+    NOT_EMPTY: "NOT_EMPTY",
+    NOT_IN: "NOT_IN",
+    ONE_OF: "ONE_OF",
+    ON_OR_AFTER: "ON_OR_AFTER",
+    STATE_IN: "STATE_IN",
+    WITHIN_LAST: "WITHIN_LAST",
+    WITHIN_NEXT: "WITHIN_NEXT",
+} as const;
+
+export const RuleSubject = {
+    AGE: "AGE",
+    CLUSTER_FIELD: "CLUSTER_FIELD",
+    FIELD: "FIELD",
+    GROUP: "GROUP",
+    MEMBER_SINCE: "MEMBER_SINCE",
+    TAG: "TAG",
+    USER_TYPE: "USER_TYPE",
+} as const;
+
+export const RuleUnit = {
+    DAYS: "DAYS",
+    MONTHS: "MONTHS",
+    YEARS: "YEARS",
 } as const;
 
 export const RunStatus = {

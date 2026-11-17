@@ -701,8 +701,8 @@ public class MemberImportService {
 
     /**
      * Puts an imported member into the group their row names, creating the group where the station
-     * has none by that name. A group that does not take them, because of its binding or its set, is
-     * left out with a warning on the row rather than failing the import.
+     * has none by that name. A group that does not take them, because of its binding or its set, or that
+     * takes its members from a rule, is left out with a warning on the row rather than failing the import.
      *
      * @return {@code true} where the member is in the group afterwards
      */

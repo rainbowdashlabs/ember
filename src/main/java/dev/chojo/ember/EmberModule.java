@@ -281,6 +281,7 @@ import dev.chojo.ember.feature.members.route.MemberGroupRoutes;
 import dev.chojo.ember.feature.members.route.MemberGroupSetRoutes;
 import dev.chojo.ember.feature.members.route.MemberImportRoutes;
 import dev.chojo.ember.feature.members.route.MemberRoutes;
+import dev.chojo.ember.feature.members.route.MemberRuleRoutes;
 import dev.chojo.ember.feature.members.route.MemberTableRoutes;
 import dev.chojo.ember.feature.members.route.NameChangeRoutes;
 import dev.chojo.ember.feature.members.route.ProfileFieldChangeRoutes;
@@ -657,6 +658,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(FederatedInventoryTagRoutes.class);
         routesBinder.addBinding().to(RemoteInventoryTagRoutes.class);
         routesBinder.addBinding().to(UserTagRoutes.class);
+        routesBinder.addBinding().to(MemberRuleRoutes.class);
         routesBinder.addBinding().to(NotificationRoutes.class);
         routesBinder.addBinding().to(FormRoutes.class);
         routesBinder.addBinding().to(PublicFormRoutes.class);

@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.members.entity.RuleChange;
 import dev.chojo.ember.feature.members.entity.RuleNode;
 import dev.chojo.ember.feature.members.entity.RuleOperator;
 import dev.chojo.ember.feature.members.entity.RuleOwner;
+import dev.chojo.ember.feature.members.entity.RuleOwners;
 import dev.chojo.ember.feature.members.entity.RuleUnit;
 import dev.chojo.ember.feature.members.entity.RuleValue;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -29,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -143,6 +145,45 @@ class MemberRuleStorageTest extends RepositoryTestBase {
 
         assertEquals(Map.of(group, forGroup, tag, forTag), memberRuleRepo.findByStation(station.id()));
         assertTrue(memberRuleRepo.stationsWithRules().contains(station.id()));
+    }
+
+    @Test
+    void theRuleKeptGroupsAndTagsOfAStationAreNamed() {
+        memberRuleRepo.replace(station.id(), group, RuleNode.all());
+        memberRuleRepo.replace(station.id(), tag, RuleNode.any());
+
+        assertEquals(new RuleOwners(List.of(group.id()), List.of(tag.id())), memberRuleRepo.owners(station.id()));
+        assertTrue(memberRuleRepo.hasRule(group));
+        assertEquals(Set.of(group.id()), memberRuleRepo.ruled(RuleOwner.Kind.GROUP, List.of(group.id(), 999_999)));
+        assertEquals(Set.of(), memberRuleRepo.ruled(RuleOwner.Kind.TAG, List.of()));
+    }
+
+    /** A field, group or tag asked about by a rule names that rule's group or tag, never its own. */
+    @Test
+    void whatARuleAsksAboutNamesItsOwner() {
+        var other = memberGroupRepo.create(station.id(), "Andere").id();
+        memberRuleRepo.replace(
+                station.id(),
+                group,
+                RuleNode.all(
+                        RuleNode.any(RuleNode.group(RuleOperator.IN, other)),
+                        RuleNode.tag(RuleOperator.IN, tag.id()),
+                        RuleNode.field(field, RuleOperator.EMPTY, RuleValue.empty())));
+
+        assertEquals(List.of("Jugend"), memberRuleRepo.askingAboutGroup(other));
+        assertEquals(List.of("Jugend"), memberRuleRepo.askingAboutTag(tag.id()));
+        assertEquals(List.of("Jugend"), memberRuleRepo.askingAboutField(field));
+        assertEquals(List.of(), memberRuleRepo.askingAboutGroup(group.id()));
+    }
+
+    @Test
+    void aRuleMovesFromAGroupToATag() {
+        memberRuleRepo.replace(station.id(), group, RuleNode.all());
+
+        memberRuleRepo.moveRule(group, tag);
+
+        assertFalse(memberRuleRepo.hasRule(group));
+        assertEquals(Optional.of(RuleNode.all()), memberRuleRepo.find(tag));
     }
 
     @Test

@@ -92,7 +92,12 @@ class TicketCommentBehaviourTest extends RepositoryTestBase {
                 boardRepo,
                 memberService,
                 newMemberGroupService(),
-                new UserTagService(userTagRepo, memberGroupRepo, new DomainEventBus(Set.of())),
+                new UserTagService(
+                        userTagRepo,
+                        memberGroupRepo,
+                        memberRuleRepo,
+                        newGroupMemberships(),
+                        new DomainEventBus(Set.of())),
                 privateTags);
         var backend = localStorage();
         tickets = new BoardTicketService(

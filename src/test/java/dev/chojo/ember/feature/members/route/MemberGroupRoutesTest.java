@@ -61,10 +61,20 @@ class MemberGroupRoutesTest extends RepositoryTestBase {
     void freshStations() {
         stepUp = mock(StepUpGuard.class);
         var memberships = new GroupMembershipService(
-                memberGroupRepo, stationMemberRepo, stepUp, () -> memberNameResolver, new DomainEventBus(Set.of()));
+                memberGroupRepo,
+                stationMemberRepo,
+                memberRuleRepo,
+                stepUp,
+                () -> memberNameResolver,
+                new DomainEventBus(Set.of()));
         var groupRoutes = new MemberGroupRoutes(
                 new MemberGroupService(
-                        memberGroupRepo, stationMemberRepo, userTagRepo, memberships, new DomainEventBus(Set.of())),
+                        memberGroupRepo,
+                        stationMemberRepo,
+                        userTagRepo,
+                        memberRuleRepo,
+                        memberships,
+                        new DomainEventBus(Set.of())),
                 memberships,
                 newStationMemberService(accountRepo, mock(AuthService.class)),
                 new MemberViewService(
