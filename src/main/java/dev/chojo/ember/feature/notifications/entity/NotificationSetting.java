@@ -15,13 +15,16 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
  * @param notificationType the notification category
  * @param appEnabled       whether in-app notifications are enabled
  * @param emailEnabled     whether email digest notifications are enabled
+ * @param feedEnabled      whether it appears in the member's calendar feed
+ * @param pushEnabled      whether it is also pushed to the devices the member's account allowed push on
  */
 public record NotificationSetting(
         int memberId,
         NotificationType notificationType,
         boolean appEnabled,
         boolean emailEnabled,
-        boolean feedEnabled) {
+        boolean feedEnabled,
+        boolean pushEnabled) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -31,6 +34,7 @@ public record NotificationSetting(
                 row.getEnum("notification_type", NotificationType.class),
                 row.getBoolean("app_enabled"),
                 row.getBoolean("email_enabled"),
-                row.getBoolean("feed_enabled"));
+                row.getBoolean("feed_enabled"),
+                row.getBoolean("push_enabled"));
     }
 }

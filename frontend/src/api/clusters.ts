@@ -83,6 +83,12 @@ export async function updateMailSettings(emailEnabled: boolean): Promise<Cluster
     return res.data
 }
 
+/** Whether the association's notifications are also pushed to the caller's devices. */
+export async function updatePushSetting(pushEnabled: boolean): Promise<ClusterMail> {
+    const res = await client.put<ClusterMail>('/cluster/notifications/settings', {pushEnabled})
+    return res.data
+}
+
 export async function deleteCluster(uid: string): Promise<void> {
     await client.delete(`/clusters/${uid}`)
 }

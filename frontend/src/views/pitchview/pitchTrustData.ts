@@ -19,15 +19,15 @@ function hoursAgo(hours: number): string {
 const SESSIONS: ActiveSession[] = [
     {
         id: 1, userAgent: 'Firefox 141 · Linux', location: 'Musterstadt',
-        createdAt: hoursAgo(3), lastUsedAt: hoursAgo(0), expiresAt: hoursAgo(-24 * 30), isCurrent: true,
+        createdAt: hoursAgo(3), lastUsedAt: hoursAgo(0), expiresAt: hoursAgo(-24 * 30), isCurrent: true, pushDeviceId: 1,
     },
     {
         id: 2, userAgent: 'Safari · iPhone', location: 'Musterstadt',
-        createdAt: hoursAgo(72), lastUsedAt: hoursAgo(14), expiresAt: hoursAgo(-24 * 27), isCurrent: false,
+        createdAt: hoursAgo(72), lastUsedAt: hoursAgo(14), expiresAt: hoursAgo(-24 * 27), isCurrent: false, pushDeviceId: null,
     },
     {
         id: 3, userAgent: 'Chrome · Windows', location: 'Talbach',
-        createdAt: hoursAgo(24 * 9), lastUsedAt: hoursAgo(24 * 4), expiresAt: hoursAgo(-24 * 21), isCurrent: false,
+        createdAt: hoursAgo(24 * 9), lastUsedAt: hoursAgo(24 * 4), expiresAt: hoursAgo(-24 * 21), isCurrent: false, pushDeviceId: null,
     },
 ]
 

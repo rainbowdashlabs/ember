@@ -12,7 +12,7 @@ import deDE from '@/i18n/de-DE'
 import type {MessagesStatus, StationDigest} from '@/api/generated/schema'
 import MessagesSettingsModal from './MessagesSettingsModal.vue'
 
-const status = ref<MessagesStatus>({available: true, unread: 0, mail: true, stationDigest: 'MENTIONS'})
+const status = ref<MessagesStatus>({available: true, unread: 0, mail: true, stationDigest: 'MENTIONS', push: true})
 const setStationDigest = vi.fn(async (digest: StationDigest) => { status.value = {...status.value, stationDigest: digest} })
 
 vi.mock('@/composables/useMessagesStatus', () => ({

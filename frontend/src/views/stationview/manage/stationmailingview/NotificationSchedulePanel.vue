@@ -72,6 +72,18 @@ const askingTooOften = computed(() => {
     return floorMinutes.value > 60
 })
 
+/**
+ * What the installation does for a station that leaves the times to it, so "as the instance says"
+ * names what the instance says: gathered mail at most every so many hours or minutes, or none.
+ */
+const operatorSchedule = computed(() => {
+    const minutes = floorMinutes.value
+    if (minutes <= 0) return t('notificationSchedule.operatorOff')
+    if (minutes === 60) return t('notificationSchedule.operatorEveryHour')
+    if (minutes % 60 === 0) return t('notificationSchedule.operatorEveryHours', {n: minutes / 60})
+    return t('notificationSchedule.operatorEveryMinutes', {n: minutes})
+})
+
 function addTime() {
     times.value = [...times.value, '07:00']
 }
@@ -113,6 +125,10 @@ async function save() {
         <option value="hourly">{{ t('notificationSchedule.modeHourly') }}</option>
       </SelectInput>
     </div>
+
+    <MutedText v-if="mode === 'operator'" tag="p" size="sm" data-testid="notification-schedule-operator">
+      {{ operatorSchedule }}
+    </MutedText>
 
     <div v-if="mode === 'times'" class="space-y-2">
       <FieldLabel>{{ t('notificationSchedule.times') }}</FieldLabel>

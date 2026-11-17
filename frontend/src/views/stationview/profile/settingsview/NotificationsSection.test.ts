@@ -26,8 +26,8 @@ describe('NotificationsSection', () => {
         mailConfigured: true,
         mailProviders: [{type: 'SMTP', name: 'Beispiel Mail GmbH', url: ''}],
         notifications: {
-            NEW_NEWS: {app: true, email: false, feed: true},
-            EXPIRY_REMINDER: {app: true, email: false, feed: true},
+            NEW_NEWS: {app: true, email: false, feed: true, push: true},
+            EXPIRY_REMINDER: {app: true, email: false, feed: true, push: true},
         },
     }
 
@@ -65,5 +65,23 @@ describe('NotificationsSection', () => {
         expect(view.find('ol a').attributes('href')).toBe('https://wache.example/privacy')
         expect(view.text()).toContain('„Wache Mail", „Brevo"')
         expect(view.text()).not.toContain('Unbekannt')
+    })
+
+    it('shows the push column only while the instance pushes, and asks for a type shown in Ember', async () => {
+        expect(mount(NotificationsSection, {props: {settings}}).find('[data-testid="push-toggle-NEW_NEWS"]').exists())
+            .toBe(false)
+
+        const view = mount(NotificationsSection, {
+            props: {
+                pushAvailable: true,
+                settings: {...settings, notifications: {...settings.notifications, EXPIRY_REMINDER: {app: false, email: false, feed: true, push: true}}},
+            },
+        })
+        const news = view.get('[data-testid="push-toggle-NEW_NEWS"]')
+        news.findComponent(ToggleInput).vm.$emit('update:modelValue', false)
+
+        expect(view.emitted('togglePush')?.[0]).toEqual(['NEW_NEWS'])
+        expect(view.get('[data-testid="push-toggle-EXPIRY_REMINDER"]').findComponent(ToggleInput).props('disabled'),
+            'nothing to push where Ember shows nothing').toBe(true)
     })
 })

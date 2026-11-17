@@ -65,7 +65,7 @@ class NotificationPreferencesTest extends RepositoryTestBase {
                 member.id(),
                 Map.of(
                         NotificationType.NEW_NEWS,
-                        new NotificationSetting(member.id(), NotificationType.NEW_NEWS, true, false, false)));
+                        new NotificationSetting(member.id(), NotificationType.NEW_NEWS, true, false, false, true)));
 
         var stored = preferences.settingsOf(member.id()).get(NotificationType.NEW_NEWS);
         assertTrue(stored.appEnabled());
@@ -79,7 +79,7 @@ class NotificationPreferencesTest extends RepositoryTestBase {
                 member.id(),
                 Map.of(
                         NotificationType.NEW_EVENT,
-                        new NotificationSetting(member.id(), NotificationType.NEW_EVENT, false, true, false)));
+                        new NotificationSetting(member.id(), NotificationType.NEW_EVENT, false, true, false, true)));
 
         var stored = preferences.settingsOf(member.id());
         assertFalse(stored.get(NotificationType.NEW_EVENT).appEnabled());

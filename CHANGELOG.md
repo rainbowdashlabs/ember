@@ -2,19 +2,31 @@
 
 ## v26.26.0
 
-Places named by appointments, such as the meeting point, can carry a pin, and the appointment page shows them on a small map. The station address can be found on the map from the location settings.
+Notifications and messages can arrive as push notifications on phones and computers, even with Ember closed. Places named by appointments, such as the meeting point, can carry a pin, and the appointment page shows them on a small map. Mail notifications are on for every member as soon as mail can be sent.
 
 ### New Features
 
 - **Appointment places on a map.** "Location" and "Meeting point" now add place fields, and "On the map" next to a place opens a map to find or correct its pin. The pin applies to every appointment naming the same place, and the appointment page shows it on a small map with a link to OpenStreetMap.
+- **Push notifications.** Notifications and chat messages can arrive on a phone or computer even with Ember closed, once push is allowed on that device under Profile → Notifications. A new "Push" column chooses which kinds are pushed, and devices can be tested and removed there or in the list of sign-ins.
+- **Push for operators.** Push notifications work without any setup and can be switched off for the whole instance in the administration settings. They are delivered through the push services of the browser makers, and the privacy notice gains a section on them.
 
 ### Improvements
 
 - **Finding the station address on the map.** "Find on map" in the station location settings moves the pin to the typed address. A hint says when only the street or the town was found, and nothing is saved until the location is saved.
+- **Usual port shown for the mail server.** The mail settings name the usual port for the chosen encryption and point out a port that does not fit. The port is still saved as entered.
+- **Instance send interval made visible.** When a station leaves the notification send times to the instance, the settings say how often the instance sends them.
 
 ### Changes
 
 - **Photon looks up addresses.** Admin → Maps offers Photon as the only address search, using the public server unless the address of a self-hosted server is entered. Nominatim, LocationIQ and Geoapify are removed, and an instance that had one of them selected has no address search until Photon is chosen.
+- **Mail notifications are on by default.** Every member gets notifications by mail as soon as the station or the instance can send mail, for every kind of notification. Members who do not want them switch mail off under Profile → Notifications, including those who had switched it off before this release.
+- **Reply address at the top of the mail settings.** The reply address moved out of the box about the instance's mail providers to the top of the page, since it applies to all of a station's mail.
+
+### Fixes
+
+- **Consent asked twice after a policy update.** After the privacy policy or the terms changed, agreeing on the sign-in page did not count for the account, so the same question came again right after signing in. Agreeing before signing in now covers the account.
+- **Installing Ember was not always offered.** In some cases the part of Ember that runs in the background was never started, so the browser did not offer to install Ember and saved files could open in the browser instead. It now starts with every page.
+- **Delivery address shown for own mail servers.** The mail settings offered a delivery report address for a station's own mail server, which sends no such reports. It is no longer shown there.
 
 ## v26.25.1
 
