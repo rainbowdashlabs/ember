@@ -111,6 +111,7 @@
     "profile",
     "public",
     "public.ssr",
+    "push",
     "seal-verification",
     "session-cookie",
     "sidebar-permissions",

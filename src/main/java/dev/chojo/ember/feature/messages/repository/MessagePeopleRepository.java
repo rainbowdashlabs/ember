@@ -210,6 +210,34 @@ public class MessagePeopleRepository {
     }
 
     /**
+     * Whether new messages are pushed to the account's devices.
+     *
+     * @param accountId the account
+     * @return its choice, {@code false} for an account that does not exist
+     */
+    public boolean pushWanted(int accountId) {
+        return query("""
+                SELECT messages_push FROM account WHERE id = :account_id;""")
+                .single(call().bind("account_id", accountId))
+                .map(row -> row.getBoolean("messages_push"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
+     * Switches pushing new messages to the account's devices on or off.
+     *
+     * @param accountId the account
+     * @param wanted    whether it wants them pushed
+     */
+    public void setPushWanted(int accountId, boolean wanted) {
+        query("""
+                UPDATE account SET messages_push = :wanted WHERE id = :account_id;""")
+                .single(call().bind("account_id", accountId).bind("wanted", wanted))
+                .update();
+    }
+
+    /**
      * Turns the mail about unread messages on or off for an account.
      *
      * @param accountId the account

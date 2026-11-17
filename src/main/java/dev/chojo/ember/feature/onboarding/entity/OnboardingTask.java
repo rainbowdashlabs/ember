@@ -44,6 +44,12 @@ public enum OnboardingTask {
     PROFILE_FIELDS("member.profile", OnboardingLevel.MEMBER, false),
     NOTIFICATIONS("member.notifications", OnboardingLevel.MEMBER, true),
     /**
+     * Done once the account allowed push on any device, which is the account's and therefore the
+     * same on every station; skipped for a device that cannot receive pushes. Only asked while the
+     * instance sends pushes.
+     */
+    PUSH("member.push", OnboardingLevel.MEMBER, true),
+    /**
      * Read rather than derived, because it explains a difference rather than asking for an answer.
      * Deriving it from an answer having been given made the walk end in a sign-up nobody had asked
      * for, and settled the task for anybody who had once answered anything without ever telling them
@@ -181,7 +187,7 @@ public enum OnboardingTask {
      */
     public boolean carriesAcrossStations() {
         return switch (this) {
-            case TOUR, EVENT_ANSWER, ABSENCE, BOOKMARK, WIKI, QUIZ -> true;
+            case TOUR, EVENT_ANSWER, ABSENCE, BOOKMARK, WIKI, QUIZ, PUSH -> true;
             default -> false;
         };
     }

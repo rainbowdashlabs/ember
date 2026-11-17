@@ -77,17 +77,17 @@ test.describe('Station mail providers', () => {
     })
 
     /**
-     * Every entry carries an address of its own, because the address ends in the report format the
-     * provider sends. The one further down is exactly the one nobody would think to ask for until
-     * it is carrying the post.
+     * A relay that reports deliveries carries an address of its own, because the address ends in the
+     * report format the provider sends. The station's own mail server sends no such reports, so it is
+     * offered none, and the relay further down still is.
      */
-    test('every provider is offered its own address for delivery reports', async ({managerPage: page}) => {
+    test('a relay is offered its own address for delivery reports and an own server is not', async ({managerPage: page}) => {
         await page.goto(MAILING)
 
         const addresses = page.getByTestId('mail-webhook-url')
-        await expect(addresses).toHaveCount(2)
+        await expect(addresses).toHaveCount(1)
         await expect(addresses.first()).toContainText('/mail/brevo')
-        await expect(addresses.nth(1)).toContainText('/mail/brevo')
+        await expect(rows(page).nth(1).getByTestId('mail-webhook-url')).toHaveCount(0)
     })
 
     /**

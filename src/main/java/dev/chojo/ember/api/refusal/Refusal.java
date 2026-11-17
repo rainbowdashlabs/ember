@@ -72,6 +72,7 @@ public sealed interface Refusal
                 NewsRefusal,
                 PageRefusal,
                 PasskeyRefusal,
+                PushRefusal,
                 ProcedureRefusal,
                 QuizRefusal,
                 StationRefusal,
@@ -290,6 +291,8 @@ public sealed interface Refusal
         PAGES("P", "pages"),
         /** Passkeys, and registering or using one. */
         PASSKEYS("PK", "passkeys"),
+        /** Push messages to a browser, and the browsers that receive them. */
+        PUSH("PS", "push messages"),
         /** Catalogs, tests and the papers sat on them. */
         QUIZZES("Q", "quizzes"),
         /** Procedures and who they were handed to. */

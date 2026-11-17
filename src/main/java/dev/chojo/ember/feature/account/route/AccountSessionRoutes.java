@@ -15,6 +15,7 @@ import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.account.entity.AccountSession;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.push.service.PushService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -41,12 +42,15 @@ public class AccountSessionRoutes implements Routes {
     private final AuthService authService;
     private final TokenHasher tokenHasher;
     private final SessionCookies sessionCookies;
+    private final PushService push;
 
     @Inject
-    public AccountSessionRoutes(AuthService authService, TokenHasher tokenHasher, SessionCookies sessionCookies) {
+    public AccountSessionRoutes(
+            AuthService authService, TokenHasher tokenHasher, SessionCookies sessionCookies, PushService push) {
         this.authService = authService;
         this.tokenHasher = tokenHasher;
         this.sessionCookies = sessionCookies;
+        this.push = push;
     }
 
     @Override
@@ -71,6 +75,7 @@ public class AccountSessionRoutes implements Routes {
         UserSession session = UserSession.from(ctx);
         String currentHash = SessionCookies.token(ctx).map(tokenHasher::hash).orElse("");
         List<AccountSession> sessions = authService.findSessionsByAccount(session.accountId());
+        var pushDevices = push.deviceBySession(session.accountId());
         List<ActiveSession> result = sessions.stream()
                 .map(s -> new ActiveSession(
                         s.id(),
@@ -79,7 +84,8 @@ public class AccountSessionRoutes implements Routes {
                         s.lastUsedAt(),
                         s.expiresAt(),
                         s.tokenHash().equals(currentHash),
-                        s.location()))
+                        s.location(),
+                        pushDevices.get(s.id())))
                 .toList();
         ctx.json(result);
     }
@@ -125,6 +131,7 @@ public class AccountSessionRoutes implements Routes {
      * @param expiresAt  when the session expires
      * @param isCurrent  whether this is the session making the current request
      * @param location   the client's location
+     * @param pushDeviceId the device registered for push in this sign-in, null where there is none
      */
     public record ActiveSession(
             int id,
@@ -133,5 +140,6 @@ public class AccountSessionRoutes implements Routes {
             Instant lastUsedAt,
             Instant expiresAt,
             boolean isCurrent,
-            @Nullable String location) {}
+            @Nullable String location,
+            @Nullable Integer pushDeviceId) {}
 }

@@ -77,6 +77,10 @@ const takesProtocols: Condition = context => runs(StationModule.TEST_PROTOCOL)(c
     && (can(StationPermission.PROTOCOL_CREATE)(context) || context.session.canTestProtocol())
 
 const runsQuiz = runs(StationModule.QUIZ)
+/** The station's own figures: traffic, insights, feeds and storage. */
+const stationAdmin = can(StationPermission.STATION_ADMINISTRATOR)
+/** Reported chat messages, for whoever looks after the station's chats while messaging is on. */
+const managesChatReports = both(messagesOn, can(StationPermission.MESSAGE_CHAT_MANAGE))
 
 /**
  * Named after the halves it still carries: a station that runs its tests but no quiz should not read
@@ -193,10 +197,6 @@ export const STATION_NAV: Entry[] = [
                 ],
             },
         ],
-    },
-    {
-        kind: 'page', key: 'message-reports', label: 'sidebar.messageReports', icon: 'flag', to: '/station/messages/reports',
-        visible: both(messagesOn, can(StationPermission.MESSAGE_CHAT_MANAGE)),
     },
     {
         kind: 'group', key: 'documents', label: 'sidebar.documents', icon: 'file', visible: runs(StationModule.DOCUMENTS),
@@ -338,12 +338,13 @@ export const STATION_NAV: Entry[] = [
         ],
     },
     {
-        kind: 'group', key: 'station-monitoring', label: 'sidebar.monitoring', icon: 'chart-line', visible: can(StationPermission.STATION_ADMINISTRATOR),
+        kind: 'group', key: 'station-monitoring', label: 'sidebar.monitoring', icon: 'chart-line', visible: either(stationAdmin, managesChatReports),
         children: [
-            {kind: 'page', key: 'station-traffic', label: 'sidebar.stationTraffic', icon: 'tower-broadcast', to: '/station/monitoring/traffic'},
-            {kind: 'page', key: 'station-insights', label: 'sidebar.stationInsights', icon: 'chart-pie', to: '/station/monitoring/insights'},
-            {kind: 'page', key: 'station-feeds', label: 'sidebar.stationFeeds', icon: 'rss', to: '/station/monitoring/feeds'},
-            {kind: 'page', key: 'station-storage', label: 'sidebar.storage', icon: 'hard-drive', to: '/station/monitoring/storage'},
+            {kind: 'page', key: 'station-traffic', label: 'sidebar.stationTraffic', icon: 'tower-broadcast', to: '/station/monitoring/traffic', visible: stationAdmin},
+            {kind: 'page', key: 'station-insights', label: 'sidebar.stationInsights', icon: 'chart-pie', to: '/station/monitoring/insights', visible: stationAdmin},
+            {kind: 'page', key: 'station-feeds', label: 'sidebar.stationFeeds', icon: 'rss', to: '/station/monitoring/feeds', visible: stationAdmin},
+            {kind: 'page', key: 'station-storage', label: 'sidebar.storage', icon: 'hard-drive', to: '/station/monitoring/storage', visible: stationAdmin},
+            {kind: 'page', key: 'message-reports', label: 'sidebar.messageReports', icon: 'flag', to: '/station/messages/reports', visible: managesChatReports},
         ],
     },
     {

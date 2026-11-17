@@ -6351,6 +6351,8 @@ export default {
             STARTTLS: 'STARTTLS (Pflicht)',
             IMPLICIT_TLS: 'SSL/TLS ab Verbindungsaufbau',
             NONE: 'Unverschlüsselt',
+            usualPort: 'Üblicher Port dafür: {port}.',
+            unusualPort: 'Port {port} ist für „{encryption}“ ungewöhnlich, üblich ist {usual}. Prüf die Angabe deines Anbieters. Gespeichert wird trotzdem.',
             noneWarning: 'Ohne Verschlüsselung gehen Passwort und jede Mail lesbar über das Netz. Wähle '
                 + 'das nur für einen Mailserver im eigenen, geschützten Netz, der keine Verschlüsselung kann.',
         },
@@ -6445,6 +6447,9 @@ export default {
         messages: 'Nachrichten',
         messagesHint: 'Erlaubt private Unterhaltungen und Wachenchats. Ausgeschaltet verschwinden sie für alle, '
             + 'und die tägliche Mail bleibt aus. Gelöscht wird nichts.',
+        push: 'Push-Benachrichtigungen',
+        pushHint: 'Schickt Benachrichtigungen und Nachrichten als Push an die Geräte, auf denen das jemand erlaubt hat. '
+            + 'Ausgeschaltet geht nichts mehr raus, und was gerade wartete, verfällt. Die angemeldeten Geräte bleiben bestehen.',
         forcePrideFlag: 'Pride-Flagge erzwingen',
         forcePrideFlagHint: 'Zeigt die Regenbogen-Flagge im Logo ganzjährig an. Im Juni und Juli wird sie automatisch angezeigt.',
         mailLocale: 'Sprache für System-E-Mails',
@@ -7617,9 +7622,9 @@ export default {
         saved: 'Einstellungen gespeichert.',
         emailTitle: 'E-Mail-Versand',
         emailEnabled: 'E-Mail-Benachrichtigungen aktivieren',
-        emailEnabledHint: 'Aktiviere den E-Mail-Versand, um Benachrichtigungen per E-Mail zu erhalten.',
-        emailConsent: 'Mit der Aktivierung stimmst du zu, dass deine E-Mail-Adresse an den Anbieter {provider} weitergegeben wird.',
-        emailConsentMany: 'Mit der Aktivierung stimmst du zu, dass deine E-Mail-Adresse an die Anbieter {providers} weitergegeben wird.',
+        emailEnabledHint: 'Benachrichtigungen kommen zusätzlich per E-Mail. Welche, legst du unten in der Spalte „E-Mail“ fest.',
+        emailConsent: 'Dafür geht deine E-Mail-Adresse an den Anbieter {provider}. Willst du das nicht, schalte den E-Mail-Versand hier ab.',
+        emailConsentMany: 'Dafür geht deine E-Mail-Adresse an die Anbieter {providers}. Willst du das nicht, schalte den E-Mail-Versand hier ab.',
         mailProviderInfo: 'E-Mails werden über den Anbieter „{provider}" versendet.',
         mailProvidersInfo: 'E-Mails werden über diese Anbieter versendet, in dieser Reihenfolge. Fällt einer aus, übernimmt der nächste.',
         mailProviderPrivacy: 'Datenschutzhinweise des Anbieters',
@@ -7631,6 +7636,7 @@ export default {
         columnApp: 'App',
         columnEmail: 'E-Mail',
         columnFeed: 'Feed',
+        columnPush: 'Push',
         notifyNews: 'Neuigkeiten',
         notifyNewsHint: 'Neue Neuigkeiten auf der Pinnwand.',
         notifyComments: 'Kommentare',
@@ -7653,6 +7659,8 @@ export default {
         notifyExpiryHint: 'Wenn ein Ablaufdatum, etwa ein Erste-Hilfe-Kurs, bald abläuft oder abgelaufen ist.',
         sessions: 'Aktive Sitzungen',
         currentSession: 'Aktuell',
+        sessionPush: 'Push',
+        sessionRemovePush: 'Push entfernen',
         lastActive: 'Letzte Aktivität',
         created: 'Erstellt',
         location: 'Standort',
@@ -9636,6 +9644,8 @@ export default {
         mailLabel: 'Benachrichtigungen per E-Mail',
         mailHint: 'Was der Verband dir meldet, kommt zusätzlich gesammelt per E-Mail, in der Sprache des Verbands.',
         mailUnavailable: 'Auf dieser Installation ist kein E-Mail-Versand eingerichtet. Der Schalter wird erst nutzbar, wenn das geschieht.',
+        pushLabel: 'Auch als Push-Benachrichtigung',
+        pushHint: 'Benachrichtigungen des Verbands erscheinen auch auf den Geräten, auf denen du Push-Benachrichtigungen eingeschaltet hast.',
         saved: 'Deine Einstellung wurde gespeichert.',
     },
     questionValue: {
@@ -9711,11 +9721,35 @@ export default {
             LOCATION: 'Ein Ort, der auch im Kalender und in Einladungen steht.',
         },
     },
+    pushDevices: {
+        title: 'Push-Benachrichtigungen',
+        hint: 'Benachrichtigungen erscheinen auf diesem Gerät auch dann, wenn Ember geschlossen ist. Welche Arten gepusht werden, legst du unten in der Spalte „Push“ fest.',
+        enable: 'Auf diesem Gerät einschalten',
+        declined: 'Der Browser hat die Erlaubnis nicht bekommen, deshalb ist nichts eingeschaltet.',
+        installFirst: 'Auf iPhone und iPad kommen Push-Benachrichtigungen nur an, wenn Ember auf dem Home-Bildschirm liegt: In Safari auf „Teilen“ tippen, „Zum Home-Bildschirm“ wählen und Ember von dort öffnen. Danach kannst du sie hier einschalten.',
+        unsupported: 'Dieser Browser kann keine Push-Benachrichtigungen empfangen.',
+        blocked: 'Dieser Browser blockiert Benachrichtigungen von Ember. Erlaube sie in den Website-Einstellungen des Browsers (meist über das Schloss neben der Adresse) und lade die Seite neu.',
+        thisDevice: 'Dieses Gerät',
+        unnamed: 'Unbekanntes Gerät',
+        lastReached: 'Zuletzt erreicht: {when}',
+        notReachedYet: 'Noch keine Benachrichtigung zugestellt',
+        test: 'Testen',
+        testSent: 'Test verschickt, er kommt in wenigen Sekunden an.',
+        remove: 'Entfernen',
+        messages: 'Nachrichten per Push',
+        messagesHint: 'Neue Nachrichten in deinen Unterhaltungen kommen als Push, außer in stummgeschalteten und solange du Ember offen hast.',
+        lockScreen: 'Push-Benachrichtigungen zeigen ihren vollen Text, bei Nachrichten auch, wer was schreibt, und das auch auf dem Sperrbildschirm. Wer das nicht möchte, blendet Inhalte auf dem Sperrbildschirm in den Einstellungen des Telefons aus.',
+        signIn: 'Ein Gerät bekommt Push-Benachrichtigungen, solange du dort angemeldet bist. Bei einer kurzen Anmeldung enden sie mit ihr; mit „Auf diesem Gerät angemeldet bleiben“ bleibt sie länger bestehen.',
+    },
     notificationSchedule: {
         title: 'Versandzeiten der Benachrichtigungen',
         hint: 'Gesammelte Benachrichtigungen gehen zu den hier genannten Zeiten als eine Mail raus, nach der Uhr der Station. Was dazwischen ankommt, wartet auf den nächsten Termin.',
         mode: 'Versand',
         modeOperator: 'Wie von der Instanz vorgegeben',
+        operatorEveryHour: 'Die Instanz verschickt gesammelte Benachrichtigungen höchstens einmal pro Stunde.',
+        operatorEveryHours: 'Die Instanz verschickt gesammelte Benachrichtigungen höchstens alle {n} Stunden.',
+        operatorEveryMinutes: 'Die Instanz verschickt gesammelte Benachrichtigungen höchstens alle {n} Minuten.',
+        operatorOff: 'Die Instanz verschickt derzeit keine gesammelten Benachrichtigungen per Mail.',
         modeTimes: 'Zu festen Uhrzeiten',
         modeHourly: 'Stündlich',
         times: 'Uhrzeiten',
@@ -10099,6 +10133,11 @@ export default {
                     body: 'Du entscheidest für jede Art von Nachricht, ob du sie hier, per E-Mail oder im Feed '
                         + 'bekommst.',
                 },
+                push: {
+                    title: 'Push-Benachrichtigungen einschalten',
+                    body: 'Dann erscheinen Benachrichtigungen auf deinem Handy oder Computer, auch wenn Ember '
+                        + 'geschlossen ist. Kann dein Gerät das nicht, überspringst du diesen Schritt.',
+                },
                 eventAnswer: {
                     title: 'Die zwei Arten von Terminen kennenlernen',
                     body: 'Zu manchen meldest du dich an, bei anderen wirst du erwartet. Antworten musst du '
@@ -10248,6 +10287,12 @@ export default {
                 notifications: {
                     0: 'Deine Benachrichtigungen liegen hier.',
                     1: 'Stell für jede Zeile ein, wo du sie haben willst: hier, per E-Mail oder im Feed.',
+                },
+                push: {
+                    0: 'Push-Benachrichtigungen schaltest du bei deinen Benachrichtigungen ein.',
+                    1: 'Hier steht, ob dieses Gerät Push-Benachrichtigungen bekommen kann und was du dafür tun musst.',
+                    2: 'Ein Klick, und der Browser fragt einmal nach der Erlaubnis. Danach kommen Benachrichtigungen '
+                        + 'auch dann an, wenn Ember geschlossen ist.',
                 },
                 eventAnswer: {
                     0: 'Hier stehen alle kommenden Termine.',

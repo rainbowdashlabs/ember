@@ -12,10 +12,13 @@ import type {ClusterMail} from '@/api/generated/schema'
 
 defineProps<{
   settings: ClusterMail
+  /** Whether this instance pushes, which is when the push switch is shown. */
+  pushAvailable?: boolean
 }>()
 
 const emit = defineEmits<{
   toggle: []
+  togglePush: []
 }>()
 
 const {t} = useI18n()
@@ -37,6 +40,18 @@ const {t} = useI18n()
           :disabled="!settings.mailAvailable"
           :aria-label="t('clusterNotifications.mailLabel')"
           @update:model-value="emit('toggle')"
+      />
+    </div>
+    <div v-if="pushAvailable" class="flex items-center justify-between gap-4">
+      <div>
+        <p class="text-sm font-medium">{{ t('clusterNotifications.pushLabel') }}</p>
+        <p class="text-xs text-(--text-muted)">{{ t('clusterNotifications.pushHint') }}</p>
+      </div>
+      <ToggleInput
+          :model-value="settings.pushEnabled"
+          :aria-label="t('clusterNotifications.pushLabel')"
+          data-testid="cluster-push-toggle"
+          @update:model-value="emit('togglePush')"
       />
     </div>
   </NeutralContainer>

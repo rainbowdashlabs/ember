@@ -27,11 +27,13 @@ import dev.chojo.ember.feature.onboarding.entity.OnboardingTask;
 import dev.chojo.ember.feature.onboarding.entity.OnboardingTaskState;
 import dev.chojo.ember.feature.onboarding.entity.OnboardingTaskView;
 import dev.chojo.ember.feature.onboarding.repository.OnboardingTaskRepository;
+import dev.chojo.ember.feature.push.repository.PushSubscriptionRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizCatalogRepository;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.SetupService;
 import dev.chojo.ember.feature.station.service.StationService;
+import dev.chojo.ember.feature.system.service.InstanceSettingsService;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -77,6 +79,8 @@ public class OnboardingService {
     private final QuizCatalogRepository quizCatalogRepository;
     private final KnowledgeBaseRepository knowledgeBaseRepository;
     private final EventRepository eventRepository;
+    private final PushSubscriptionRepository pushSubscriptions;
+    private final InstanceSettingsService instanceSettings;
 
     @Inject
     public OnboardingService(
@@ -95,7 +99,9 @@ public class OnboardingService {
             StationRepository stationRepository,
             QuizCatalogRepository quizCatalogRepository,
             KnowledgeBaseRepository knowledgeBaseRepository,
-            EventRepository eventRepository) {
+            EventRepository eventRepository,
+            PushSubscriptionRepository pushSubscriptions,
+            InstanceSettingsService instanceSettings) {
         this.markRepository = markRepository;
         this.memberRepository = memberRepository;
         this.accountRepository = accountRepository;
@@ -112,6 +118,8 @@ public class OnboardingService {
         this.quizCatalogRepository = quizCatalogRepository;
         this.knowledgeBaseRepository = knowledgeBaseRepository;
         this.eventRepository = eventRepository;
+        this.pushSubscriptions = pushSubscriptions;
+        this.instanceSettings = instanceSettings;
     }
 
     /**
@@ -275,6 +283,11 @@ public class OnboardingService {
         return switch (task) {
             case NOTIFICATIONS ->
                 !notificationSettingsRepository.findByMember(member.id()).isEmpty();
+            case PUSH -> {
+                Integer accountId = member.accountId();
+                yield accountId != null
+                        && !pushSubscriptions.findByAccount(accountId).isEmpty();
+            }
             case CALENDAR_FEED ->
                 feedTokenRepository
                         .findByMember(member.id())
@@ -336,6 +349,7 @@ public class OnboardingService {
             case QUIZ -> quizCatalogRepository.hasTrainableCatalog(stationId);
             case WIKI -> knowledgeBaseRepository.existsForStation(stationId);
             case EVENT_ANSWER, CALENDAR_FEED, GUARDIAN_EVENT_ANSWER -> eventRepository.existsForStation(stationId);
+            case PUSH -> instanceSettings.pushEnabled();
             default -> true;
         };
     }

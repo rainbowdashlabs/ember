@@ -2,15 +2,38 @@
 
 ## v26.26.0
 
-Auf der Seite der Anmeldungen bleiben Absagen eingeklappt, damit nur sichtbar ist, was eine Entscheidung braucht.
+Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy und auf den Computer, auch wenn Ember geschlossen ist. Die Mail-Einstellungen nennen den Port, den ein Mailserver üblicherweise erwartet, und wie oft die Instanz Benachrichtigungen verschickt.
+
+### Neue Funktionen
+
+- **Push-Benachrichtigungen.** Benachrichtigungen und Chatnachrichten erscheinen auf Handy oder Computer, auch wenn Ember geschlossen ist, sobald Push auf dem Gerät unter Profil → Benachrichtigungen erlaubt ist. Eine neue Spalte „Push“ legt fest, welche Arten gepusht werden; Geräte lassen sich dort oder in der Liste der Anmeldungen testen und entfernen.
+- **Push für Betreiber.** Push-Benachrichtigungen funktionieren ohne Einrichtung und lassen sich in den Einstellungen der Verwaltung für die ganze Instanz abschalten. Zugestellt wird über die Push-Dienste der Browserhersteller, und die Datenschutzerklärung bekommt einen Abschnitt dazu.
 
 ### Verbesserungen
 
 - **Absagen eingeklappt.** Auf der Seite der Anmeldungen bleiben die Absagen zu einem Termin geschlossen, bis sie geöffnet werden. Geöffnet zeigen sie, wer wann abgesagt hat, ohne die Rangfolge für Plätze.
+- **Üblicher Port für den Mailserver.** Die Mail-Einstellungen nennen den üblichen Port zur gewählten Verschlüsselung und weisen auf einen Port hin, der nicht dazu passt. Gespeichert wird der Port trotzdem so, wie er eingetragen ist.
+- **Versandabstand der Instanz sichtbar.** Überlässt eine Wache die Versandzeiten der Benachrichtigungen der Instanz, steht jetzt dabei, wie oft die Instanz sie verschickt.
+
+### Änderungen
+
+- **Benachrichtigungen per E-Mail sind von Anfang an an.** Jedes Mitglied bekommt Benachrichtigungen per E-Mail, sobald die Wache oder die Instanz E-Mails versenden kann, und zwar für jede Art. Wer das nicht möchte, schaltet es unter Profil → Benachrichtigungen ab, auch wer es vor dieser Version schon abgeschaltet hatte.
+- **Antwortadresse oben in den Mail-Einstellungen.** Die Antwortadresse steht nicht mehr im Kasten zu den Mailanbietern der Instanz, sondern ganz oben auf der Seite, weil sie für alle Mails der Wache gilt.
 
 ### Fehlerbehebungen
 
 - **Anmeldezahlen bei kommenden Terminen verrutschten.** In manchen Fällen standen die Anmeldezahlen eines Termins mit einer langen Zeile in der Beschreibung unter dem Text statt daneben. Die Beschreibung bricht jetzt um, sodass die Zahlen daneben bleiben, wo Platz ist.
+- **Zustimmung nach Änderungen doppelt abgefragt.** Nach einer Änderung der Datenschutzerklärung oder der Nutzungsbedingungen galt die Zustimmung auf der Anmeldeseite nicht für das Konto, sodass dieselbe Frage direkt nach der Anmeldung noch einmal kam. Eine Zustimmung vor der Anmeldung gilt jetzt auch für das Konto.
+- **Installieren wurde nicht immer angeboten.** In manchen Fällen startete der Hintergrundteil von Ember nicht, sodass der Browser die Installation nicht anbot und gespeicherte Dateien sich im Browser öffnen konnten. Er startet jetzt mit jeder Seite.
+- **Rückmeldeadresse beim eigenen Mailserver.** Die Mail-Einstellungen boten auch für einen eigenen Mailserver eine Adresse für Zustellrückmeldungen an, obwohl er keine schickt. Dort wird sie nicht mehr angezeigt.
+
+## v26.25.1
+
+Gemeldete Chatnachrichten stehen jetzt unter Monitoring.
+
+### Änderungen
+
+- **Gemeldete Nachrichten unter Monitoring.** Die Seite mit gemeldeten Chatnachrichten ist vom eigenen Eintrag in der Seitenleiste in den Bereich Monitoring gewandert. Wer die Chats der Wache betreut, sieht sie dort ohne die übrigen Zahlen der Wache.
 
 ## v26.25.0
 

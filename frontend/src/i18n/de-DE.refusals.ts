@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import admin from './refusals/admin'
+import push from './refusals/push'
 import federation from './refusals/federation'
 import beacon from './refusals/beacon'
 import equipment from './refusals/equipment'
@@ -69,6 +70,7 @@ import messages from './refusals/messages'
  */
 export default {
     ...admin,
+    ...push,
     ...federation,
     ...beacon,
     ...equipment,

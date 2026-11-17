@@ -14684,7 +14684,7 @@
         }
       },
       "put" : {
-        "summary" : "Switch the caller's mail for the association's notifications on or off",
+        "summary" : "Switch the caller's mail or pushes for the association's notifications on or off",
         "tags" : [ "Cluster" ],
         "responses" : {
           "200" : {
@@ -45141,6 +45141,110 @@
         }
       }
     },
+    "/api/v1/push/key" : {
+      "get" : {
+        "summary" : "The key a browser subscribes to push messages with, and whether push is on",
+        "tags" : [ "Push" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PushKey"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/push/subscriptions" : {
+      "get" : {
+        "summary" : "The account's browsers that receive push messages",
+        "tags" : [ "Push" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PushDevice"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Register or refresh this browser for push messages",
+        "tags" : [ "Push" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PushDevice"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SubscribeRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/push/subscriptions/{id}" : {
+      "delete" : {
+        "summary" : "Forget one of the account's browsers",
+        "tags" : [ "Push" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/push/subscriptions/{id}/test" : {
+      "post" : {
+        "summary" : "Send a test push to one of the account's browsers",
+        "tags" : [ "Push" ],
+        "responses" : {
+          "202" : {
+            "description" : "Accepted"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/quiz/answers/{id}/grade" : {
       "post" : {
         "responses" : {
@@ -53775,9 +53879,13 @@
           },
           "location" : {
             "type" : [ "string", "null" ]
+          },
+          "pushDeviceId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "userAgent", "createdAt", "lastUsedAt", "expiresAt", "isCurrent", "location" ]
+        "required" : [ "id", "userAgent", "createdAt", "lastUsedAt", "expiresAt", "isCurrent", "location", "pushDeviceId" ]
       },
       "Actual" : {
         "type" : "string",
@@ -54519,6 +54627,9 @@
           "messagesEnabled" : {
             "type" : "boolean"
           },
+          "pushEnabled" : {
+            "type" : [ "boolean", "null" ]
+          },
           "instanceDefaultTheme" : {
             "type" : "string"
           },
@@ -54541,7 +54652,7 @@
             }
           }
         },
-        "required" : [ "stationRegistrationEnabled", "messagesEnabled", "instanceDefaultTheme", "instanceDefaultFeel", "instanceLockFeel", "forcePrideFlag", "defaultMailLocale", "availableMailLocales" ]
+        "required" : [ "stationRegistrationEnabled", "messagesEnabled", "pushEnabled", "instanceDefaultTheme", "instanceDefaultFeel", "instanceLockFeel", "forcePrideFlag", "defaultMailLocale", "availableMailLocales" ]
       },
       "ApplicationStatus" : {
         "type" : "string",
@@ -58501,15 +58612,21 @@
           },
           "mailAvailable" : {
             "type" : "boolean"
+          },
+          "pushEnabled" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "emailEnabled", "mailAvailable" ]
+        "required" : [ "emailEnabled", "mailAvailable", "pushEnabled" ]
       },
       "ClusterMailRequest" : {
         "type" : "object",
         "properties" : {
           "emailEnabled" : {
-            "type" : "boolean"
+            "type" : [ "boolean", "null" ]
+          },
+          "pushEnabled" : {
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -73830,6 +73947,9 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "push" : {
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -73848,9 +73968,12 @@
           },
           "stationDigest" : {
             "$ref" : "#/components/schemas/StationDigest"
+          },
+          "push" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "available", "unread", "mail", "stationDigest" ]
+        "required" : [ "available", "unread", "mail", "stationDigest", "push" ]
       },
       "MetricsBatch" : {
         "type" : "object",
@@ -75417,9 +75540,12 @@
           },
           "feed" : {
             "type" : "boolean"
+          },
+          "push" : {
+            "type" : [ "boolean", "null" ]
           }
         },
-        "required" : [ "app", "email", "feed" ]
+        "required" : [ "app", "email", "feed", "push" ]
       },
       "NotificationType" : {
         "type" : "string",
@@ -79358,6 +79484,44 @@
           }
         },
         "required" : [ "id", "name", "description" ]
+      },
+      "PushDevice" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "lastSuccessAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "current" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "label", "createdAt", "lastSuccessAt", "current" ]
+      },
+      "PushKey" : {
+        "type" : "object",
+        "properties" : {
+          "publicKey" : {
+            "type" : "string"
+          },
+          "enabled" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "publicKey", "enabled" ]
       },
       "QuestionAnswerCount" : {
         "type" : "object",
@@ -87148,6 +87312,23 @@
           }
         },
         "required" : [ "value" ]
+      },
+      "SubscribeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "endpoint" : {
+            "type" : [ "string", "null" ]
+          },
+          "p256dh" : {
+            "type" : [ "string", "null" ]
+          },
+          "auth" : {
+            "type" : [ "string", "null" ]
+          },
+          "label" : {
+            "type" : [ "string", "null" ]
+          }
+        }
       },
       "SuggestedAnswer" : {
         "type" : "object",
