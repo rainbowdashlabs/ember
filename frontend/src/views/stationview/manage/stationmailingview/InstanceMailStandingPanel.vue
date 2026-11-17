@@ -11,7 +11,6 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import MailReplyToField from './MailReplyToField.vue'
 import {getOwnInstanceMail} from '@/api/instanceMail'
 import type {InstanceMailStation} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -53,6 +52,5 @@ const {failure} = useAsyncLoader(async (isCurrent) => {
           : t('instanceMail.station.sentOfLimit', {sent: standing.sentToday, limit: standing.dailyLimit}) }}
       </MutedText>
     </template>
-    <MailReplyToField/>
   </NeutralContainer>
 </template>

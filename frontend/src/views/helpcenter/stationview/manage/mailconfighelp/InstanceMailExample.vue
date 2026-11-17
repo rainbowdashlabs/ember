@@ -9,8 +9,6 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import LabelledField from '@/components/input/LabelledField.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
 import MailProviderStanding from '@/components/mail/MailProviderStanding.vue'
 import type {ProviderStanding} from '@/api/generated/schema'
 
@@ -42,9 +40,6 @@ const lent: ProviderStanding = {
     </div>
     <MutedText tag="p" size="sm">{{ t('instanceMail.station.granted', {date: '01.10.2026'}) }}</MutedText>
     <MutedText tag="p" size="sm">{{ t('instanceMail.station.sentOfLimit', {sent: 12, limit: 50}) }}</MutedText>
-    <LabelledField :label="t('instanceMail.station.replyTo')" :help="t('instanceMail.station.replyToHint')" hint>
-      <TextInput model-value="kontakt@jugendfeuerwehr.example" disabled/>
-    </LabelledField>
     <MailProviderStanding :standing="lent"/>
   </NeutralContainer>
 </template>
