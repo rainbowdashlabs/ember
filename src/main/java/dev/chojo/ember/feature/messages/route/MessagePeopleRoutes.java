@@ -114,7 +114,8 @@ public class MessagePeopleRoutes implements Routes {
             })
     private void setMail(Context ctx) {
         var request = ctx.bodyAsClass(MessageSettingsRequest.class);
-        ctx.json(settings.update(UserSession.from(ctx).accountId(), request.mail(), request.stationDigest()));
+        ctx.json(settings.update(
+                UserSession.from(ctx).accountId(), request.mail(), request.stationDigest(), request.push()));
     }
 
     @OpenApi(
@@ -216,9 +217,12 @@ public class MessagePeopleRoutes implements Routes {
     /**
      * @param mail          whether the reader wants the daily mail about messages left unread, absent to leave it
      * @param stationDigest what that mail takes from station chats, absent to leave it
+     * @param push          whether new messages are pushed to the reader's devices, absent to leave it
      */
     public record MessageSettingsRequest(
-            @Nullable Boolean mail, @Nullable StationDigest stationDigest) {}
+            @Nullable Boolean mail,
+            @Nullable StationDigest stationDigest,
+            @Nullable Boolean push) {}
 
     /**
      * @param person the account to block, by its identity

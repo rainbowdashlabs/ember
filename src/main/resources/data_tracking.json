@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "schemaHash": "sha256:3c63b3638507f157fb6e3b7cdf32fb30ade9af03c67978064814f861d77baad0",
-  "generatedAt": "2026-11-16T15:45:46Z",
+  "schemaHash": "sha256:1da77beb9e21cd013ee9aff3f169fa3af4f467d800504f5fbca3e2011cbc6ae1",
+  "generatedAt": "2026-11-17T11:14:02Z",
   "tables": {
     "account": {
       "feature": "account",
       "scope": "USER",
-      "tableHash": "sha256:67b4a01946a4b94b835f1b438cc4567613667fb87ce3f970bf925ef1513a6491",
+      "tableHash": "sha256:5fdbe21262a1017e2cb75787bf8f5560fdbd00783e437133c3d5bbf86741af84",
       "columns": [
         {
           "name": "id",
@@ -152,6 +152,13 @@
           "nullable": true,
           "verified": true,
           "description": "When the newest message the account's last daily mail about messages took was written; only messages written after it go into the next one. NULL before the first mail."
+        },
+        {
+          "name": "messages_push",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether new messages in the account's conversations are pushed to the devices it allowed push on."
         }
       ],
       "foreignKeys": [
@@ -5334,7 +5341,7 @@
     "cluster_member": {
       "feature": "cluster",
       "scope": "CLUSTER",
-      "tableHash": "sha256:5107fac9d3fff11b22ce586a7b1a4ea46693eae8e72632443066438e0e7b2c31",
+      "tableHash": "sha256:68c67b644de5a9c7217ef8dc89b882e120b2f5414d45bbe49e6bbde8835b20eb",
       "columns": [
         {
           "name": "id",
@@ -5369,7 +5376,14 @@
           "type": "bool",
           "nullable": false,
           "verified": true,
-          "description": "Whether this person wants the association's gathered notifications by mail. Off until they switch it on, the same as a station membership's mail setting."
+          "description": "Whether this person gets the association's gathered notifications by mail. On unless switched off, the same as a station membership's mail setting."
+        },
+        {
+          "name": "push_enabled",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the association's notifications are also pushed to the devices the member's account allowed push on."
         }
       ],
       "foreignKeys": [
@@ -26791,6 +26805,286 @@
       },
       "description": "Stored values of profile fields per member."
     },
+    "push_outbox": {
+      "feature": "push",
+      "scope": "USER",
+      "tableHash": "sha256:b229850404703812a6d33c4d54fc3e446f882a16ea0c41c589021941e6abf43a",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int8",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key."
+        },
+        {
+          "name": "subscription_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The browser the push goes to."
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the push is about: a test the owner asked for, a notification or a message."
+        },
+        {
+          "name": "notification_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The notification the push is about, for kind NOTIFICATION."
+        },
+        {
+          "name": "message_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The message the push is about, for kind MESSAGE."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the push was queued."
+        },
+        {
+          "name": "attempts",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "How often sending was tried and the push service asked to wait."
+        },
+        {
+          "name": "next_attempt_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the push is due, or tried again."
+        },
+        {
+          "name": "deferred",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Held back by the rate limit; several held back for one browser go out as one summary."
+        },
+        {
+          "name": "sent_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the push service took it, empty while waiting."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "message_id",
+          "refTable": "message",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "notification_id",
+          "refTable": "notification",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "subscription_id",
+          "refTable": "push_subscription",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "A queue of pushes, gone within a day; nothing to move with a station"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "A queue of pushes, deleted within a day of being queued; what they were about is exported with the notifications"
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "subscription_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on the subscription, which goes with the account"
+          }
+        ]
+      },
+      "description": "Pushes waiting to go out, and those sent within the last hour for the rate limit."
+    },
+    "push_subscription": {
+      "feature": "push",
+      "scope": "USER",
+      "tableHash": "sha256:89a38aa1bf1c60179b2db310a115d75f1bc33e31ef522d512a7063c0111ced16",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key."
+        },
+        {
+          "name": "account_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The account the browser receives pushes for."
+        },
+        {
+          "name": "session_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The sign-in the browser registered in. When it ends, the subscription ends with it."
+        },
+        {
+          "name": "endpoint",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The address of the push service that delivers to this browser, issued by the browser."
+        },
+        {
+          "name": "p256dh",
+          "type": "bytea",
+          "nullable": false,
+          "verified": true,
+          "description": "The browser's public key, 65 bytes, that every push is encrypted for."
+        },
+        {
+          "name": "auth",
+          "type": "bytea",
+          "nullable": false,
+          "verified": true,
+          "description": "The browser's 16-byte secret that goes into every push's encryption."
+        },
+        {
+          "name": "label",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "A short name of the browser and device, such as \"Firefox auf Android\", so the owner recognises it."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the browser was registered."
+        },
+        {
+          "name": "last_success_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When a push last reached the push service."
+        },
+        {
+          "name": "failure_count",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Pushes in a row the push service refused; past a limit the subscription is dropped."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "session_id",
+          "refTable": "account_session",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Account-scoped data, not part of a station export"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "ACCOUNT_ID",
+            "column": "account_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "account_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on account delete"
+          }
+        ]
+      },
+      "description": "Browsers an account allowed push messages on, each bound to the sign-in it was registered in."
+    },
+    "push_vapid_key": {
+      "feature": "push",
+      "scope": "INSTANCE",
+      "tableHash": "sha256:09f69f681d09c726e2e5149e292cf43e0c970554b3d91aa10ef0a8c538cd835a",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int2",
+          "nullable": false,
+          "verified": true,
+          "description": "Always 1: there is exactly one key pair per installation."
+        },
+        {
+          "name": "public_key",
+          "type": "bytea",
+          "nullable": false,
+          "verified": true,
+          "description": "The public key as an uncompressed P-256 point, 65 bytes, handed to browsers when they subscribe."
+        },
+        {
+          "name": "wrapped_private_key",
+          "type": "bytea",
+          "nullable": false,
+          "verified": true,
+          "description": "The private key, wrapped under the at-rest secret like the signing keys. Lost or unreadable, every subscription has to be made again."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the key pair was generated."
+        }
+      ],
+      "foreignKeys": [],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "The key pair belongs to this installation and never moves with a station; browsers subscribe again at the new installation."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Key material of the installation, not personal data."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Key material of the installation, not personal data."
+      },
+      "description": "The one key pair this installation signs its push messages with. Browsers bind their subscriptions to the public key, so replacing it ends every subscription."
+    },
     "quiz_catalog": {
       "feature": "quiz",
       "scope": "STATION",
@@ -32953,7 +33247,7 @@
     "user_notification_settings": {
       "feature": "notifications",
       "scope": "USER",
-      "tableHash": "sha256:716833cdfb8a16ede88a014e34fccf602520715f07a33fe6f6f13bee7d664ec0",
+      "tableHash": "sha256:de10dfd4117b8c72a6389b863226bc5061cd21307312c67fec5f57c8a6638c94",
       "columns": [
         {
           "name": "member_id",
@@ -32989,6 +33283,13 @@
           "nullable": false,
           "verified": true,
           "description": "Whether this type appears in RSS/Atom/iCal feeds."
+        },
+        {
+          "name": "push_enabled",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether this type is also pushed to the devices the member's account allowed push on."
         }
       ],
       "foreignKeys": [
@@ -33040,7 +33341,7 @@
           "type": "bool",
           "nullable": false,
           "verified": true,
-          "description": "Whether email notifications are enabled."
+          "description": "Whether this membership gets notifications by mail at all. On unless switched off, which takes effect once the station or the instance can send mail."
         },
         {
           "name": "theme",

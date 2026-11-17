@@ -422,6 +422,30 @@ public class AccountRepository {
     }
 
     /**
+     * The language of a station the account belongs to now, the one it joined first where there are
+     * several. An account that a station did not create, such as one that registered itself and was
+     * then taken in, still has a station that speaks to it.
+     *
+     * @param accountId the account
+     * @return the short ISO 639 code, empty for an account in no station
+     */
+    public Optional<String> findMembershipLanguage(int accountId) {
+        return query("""
+                SELECT s.locale
+                FROM station_member m
+                JOIN station s ON s.id = m.station_id
+                WHERE m.account_id = :id AND NOT m.former
+                ORDER BY m.id
+                LIMIT 1;""")
+                .single(call().bind("id", accountId))
+                .map(row -> row.getString("locale"))
+                .first()
+                .map(Locale::forLanguageTag)
+                .map(Locale::getLanguage)
+                .filter(s -> !s.isBlank());
+    }
+
+    /**
      * The language of the station {@code accountId} was created from, as a short ISO 639 code
      * (e.g. {@code "de"}). Empty for an account with no known origin - somebody who signed up on
      * their own, the administrator laid down at first start. What to write to those instead is a

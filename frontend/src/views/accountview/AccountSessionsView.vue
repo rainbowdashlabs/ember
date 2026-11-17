@@ -20,6 +20,8 @@ import Modal from '@/components/feedback/Modal.vue'
 import {session as sessionApi} from '@/api'
 import type {ActiveSession} from '@/api/generated/schema'
 import SessionsSection from '@/views/stationview/profile/settingsview/SessionsSection.vue'
+import {removePushDevice} from '@/api/push'
+import {unsubscribeBrowser} from '@/util/pushSupport'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 const {t} = useI18n()
@@ -37,6 +39,19 @@ async function invalidateSession(id: number) {
   try {
     await sessionApi.invalidateSession(id)
     sessions.value = sessions.value.filter(s => s.id !== id)
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+  }
+}
+
+/** Stops pushes to a sign-in's device and keeps the sign-in; on this device the browser lets go of it too. */
+async function removePush(session: ActiveSession) {
+  if (session.pushDeviceId == null) return
+  failure.value = null
+  try {
+    if (session.isCurrent) await unsubscribeBrowser()
+    await removePushDevice(session.pushDeviceId)
+    sessions.value = sessions.value.map(s => s.id === session.id ? {...s, pushDeviceId: null} : s)
   } catch (e) {
     failure.value = describeFailure(e, t)
   }
@@ -64,6 +79,7 @@ async function invalidateAll() {
         <SessionsSection
           :sessions="sessions"
           @invalidate="invalidateSession"
+          @remove-push="removePush"
           @invalidate-all="showInvalidateAllModal = true"
         />
       </template>

@@ -84,7 +84,7 @@ class NotificationSetInsertTest extends RepositoryTestBase {
         stationMemberRepo.setFormer(formerMember.id(), true);
         stationMemberRepo.setFormer(formerGuardian.id(), true);
         stationMemberRepo.setFormer(formerWard.id(), true);
-        notificationSettingsRepo.upsert(optedOut.id(), NotificationType.NEW_NEWS, false, false, true);
+        notificationSettingsRepo.upsert(optedOut.id(), NotificationType.NEW_NEWS, false, false, true, true);
 
         cluster = clusterService.create("Set Insert Cluster", null);
         clusterMemberA = clusterService.addMember(

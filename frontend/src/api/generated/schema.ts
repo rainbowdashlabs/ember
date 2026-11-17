@@ -18731,7 +18731,7 @@ export interface paths {
                 };
             };
         };
-        /** Switch the caller's mail for the association's notifications on or off */
+        /** Switch the caller's mail or pushes for the association's notifications on or off */
         put: {
             parameters: {
                 query?: never;
@@ -57440,6 +57440,174 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/push/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The key a browser subscribes to push messages with, and whether push is on */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PushKey"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/push/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The account's browsers that receive push messages */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PushDevice"][];
+                    };
+                };
+            };
+        };
+        /** Register or refresh this browser for push messages */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SubscribeRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PushDevice"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/push/subscriptions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Forget one of the account's browsers */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/push/subscriptions/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a test push to one of the account's browsers */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/quiz/answers/{id}/grade": {
         parameters: {
             query?: never;
@@ -68801,6 +68969,8 @@ export interface components {
             isCurrent: boolean;
             lastUsedAt: components["schemas"]["Instant"];
             location: string | null;
+            /** Format: int32 */
+            pushDeviceId: number | null;
             userAgent: string | null;
         };
         /** @enum {string} */
@@ -69072,6 +69242,7 @@ export interface components {
             instanceDefaultTheme: string;
             instanceLockFeel: boolean;
             messagesEnabled: boolean;
+            pushEnabled: boolean | null;
             stationRegistrationEnabled: boolean;
         };
         /** @enum {string} */
@@ -70407,9 +70578,11 @@ export interface components {
         ClusterMail: {
             emailEnabled: boolean;
             mailAvailable: boolean;
+            pushEnabled: boolean;
         };
         ClusterMailRequest: {
-            emailEnabled?: boolean;
+            emailEnabled?: boolean | null;
+            pushEnabled?: boolean | null;
         };
         ClusterMemberDetailResponse: {
             direct: string[];
@@ -75696,11 +75869,13 @@ export interface components {
         };
         MessageSettingsRequest: {
             mail?: boolean | null;
+            push?: boolean | null;
             stationDigest?: components["schemas"]["StationDigest"] | null;
         };
         MessagesStatus: {
             available: boolean;
             mail: boolean;
+            push: boolean;
             stationDigest: components["schemas"]["StationDigest"];
             /** Format: int32 */
             unread: number;
@@ -76229,6 +76404,7 @@ export interface components {
             app: boolean;
             email: boolean;
             feed: boolean;
+            push: boolean | null;
         };
         /** @enum {string} */
         NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_COMMENT" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "EVENT_CHANGED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "PROCEDURE_DOCUMENT_WITHDRAWN" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "WAITLIST_TRIAL_ENDED" | "WAITLIST_INVITATION_DATES_GONE" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED" | "SIGNATURE_REQUESTED" | "SIGNATURE_REMINDER" | "DOCUMENT_SIGNED" | "DOCUMENT_SCAN_REJECTED" | "ACCOUNT_LINK_ACCEPTED" | "ASSOCIATION_LINK_ACCEPTED" | "SIGNATURE_WITHDRAWN" | "PARTNER_SIGNATURE_WITHDRAWN" | "MESSAGE_REPORTED";
@@ -77568,6 +77744,18 @@ export interface components {
             /** Format: int32 */
             id: number;
             name: string;
+        };
+        PushDevice: {
+            createdAt: components["schemas"]["Instant"];
+            current: boolean;
+            /** Format: int32 */
+            id: number;
+            label: string;
+            lastSuccessAt: components["schemas"]["Instant"] | null;
+        };
+        PushKey: {
+            enabled: boolean;
+            publicKey: string;
         };
         QuestionAnswerCount: {
             /** Format: int32 */
@@ -80228,6 +80416,12 @@ export interface components {
         StringValue: {
             value: string;
         };
+        SubscribeRequest: {
+            auth?: string | null;
+            endpoint?: string | null;
+            label?: string | null;
+            p256dh?: string | null;
+        };
         SuggestedAnswer: {
             question: components["schemas"]["TemplateQuestion"];
             suggestion: string;
@@ -82845,6 +83039,8 @@ export type PublicVisibilityResponse = components['schemas']['PublicVisibilityRe
 export type PublicWaitlistFormResponse = components['schemas']['PublicWaitlistFormResponse'];
 export type PublicWaitlistRegistrationRequest = components['schemas']['PublicWaitlistRegistrationRequest'];
 export type PublicWaitlistSummary = components['schemas']['PublicWaitlistSummary'];
+export type PushDevice = components['schemas']['PushDevice'];
+export type PushKey = components['schemas']['PushKey'];
 export type QuestionAnswerCount = components['schemas']['QuestionAnswerCount'];
 export type QuestionBranch = components['schemas']['QuestionBranch'];
 export type QuestionColumn = components['schemas']['QuestionColumn'];
@@ -83211,6 +83407,7 @@ export type StorageQuotaPreset = components['schemas']['StorageQuotaPreset'];
 export type StoredProblem = components['schemas']['StoredProblem'];
 export type Strategy = components['schemas']['Strategy'];
 export type StringValue = components['schemas']['StringValue'];
+export type SubscribeRequest = components['schemas']['SubscribeRequest'];
 export type SuggestedAnswer = components['schemas']['SuggestedAnswer'];
 export type Suggestion = components['schemas']['Suggestion'];
 export type Summary = components['schemas']['Summary'];

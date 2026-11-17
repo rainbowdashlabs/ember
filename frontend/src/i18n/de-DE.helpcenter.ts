@@ -1153,7 +1153,9 @@ volumes:
                 + 'lassen.',
             onboardingInstall: 'Bei der Aufgabe „Ember griffbereit halten" bieten manche Browser an, Ember wie eine '
                 + 'App zu installieren. Dann steht dort ein Knopf dafür bereit, und Ember öffnet sich danach in '
-                + 'einem eigenen Fenster. In allen anderen Browsern legst du dir wie bisher ein Lesezeichen an.',
+                + 'einem eigenen Fenster. In allen anderen Browsern legst du dir wie bisher ein Lesezeichen an. '
+                + 'Auf iPhone und iPad lohnt sich der Weg über „Teilen“ und „Zum Home-Bildschirm“ doppelt: nur so '
+                + 'kommen dort Push-Benachrichtigungen an.',
             onboardingSkip: 'Erledigt ist eine Aufgabe erst, wenn die Sache wirklich getan ist. Wer eine Aufgabe '
                 + 'nicht braucht, überspringt sie und kann sie später wieder aufnehmen. Wer sie gar nicht mehr '
                 + 'sehen will, verwirft sie unter „Übersprungen": dann verschwindet sie dauerhaft und kommt auch '
@@ -1560,6 +1562,9 @@ volumes:
             typesText: 'Die Typen sind Neuigkeiten, Kommentare, Erwähnungen, neue Termine, Kommentare zu Terminen, Anmeldungen, Gruppen, Profil, Beschaffung und Ablaufdaten. „Kommentare zu Terminen" betrifft nur, wer Termine verwaltet: Jeder neue Kommentar, der unter einem Termin eine Unterhaltung beginnt, landet bei dir, auch von Mitgliedern einer Partnerwache. Bist du im Kommentar erwähnt, bekommst du nur die Erwähnung.',
             matrixTitle: 'Benachrichtigungsmatrix',
             matrixText: 'Für jeden Typ kannst du drei Kanäle einzeln aktivieren: App (erscheint auf der Übersicht), E-Mail und Feed. Die Tabelle zeigt jeden Typ mit Schaltern für jeden Kanal. Typen eines Moduls, das deine Wache ausgeschaltet hat, stehen nicht in der Tabelle; deine Einstellung dazu bleibt erhalten.',
+            pushTitle: 'Push-Benachrichtigungen',
+            pushText: 'Mit Push-Benachrichtigungen erscheinen Benachrichtigungen auf deinem Handy oder Computer, auch wenn Ember geschlossen ist. Du schaltest sie oben auf dieser Seite für das Gerät ein, auf dem du gerade bist; der Browser fragt dann einmal nach der Erlaubnis. Die Spalte „Push“ legt fest, welche Arten gepusht werden. Auf iPhone und iPad geht das nur, wenn Ember auf dem Home-Bildschirm liegt. Neue Nachrichten aus deinen Unterhaltungen kommen ebenfalls als Push, außer aus stummgeschalteten und solange du Ember offen hast; das schaltest du auf der Karte mit „Nachrichten per Push“ für dein ganzes Konto.',
+            pushRemove: 'Abschalten kannst du sie hier mit „Entfernen“, in der Liste deiner Anmeldungen mit „Push entfernen“ oder in den Einstellungen des Browsers. Wer sich abmeldet, bekommt auf dem Gerät ebenfalls keine Pushes mehr. Der volle Text erscheint auch auf dem Sperrbildschirm, wenn du das in den Einstellungen deines Telefons nicht ausblendest.',
             feedsTitle: 'Feed-Token',
             feedsText: 'Du kannst einen persönlichen Feed-Token generieren, um deine Benachrichtigungen als iCal-, RSS- oder Atom-Feed zu abonnieren. Kopiere die jeweilige URL in deine Kalender- oder Feed-App.',
             guidesTitle: 'Anleitungen',
@@ -1570,14 +1575,14 @@ volumes:
         },
         feedPhone: {
             title: 'Den Feed aufs Handy holen',
-            subtitle: 'Der einzige Weg, auf dem dich eine Benachrichtigung außerhalb von Ember erreicht. '
+            subtitle: 'Ein Weg, auf dem dich eine Benachrichtigung außerhalb von Ember erreicht, auch ohne Push-Benachrichtigungen. '
                 + 'Ein Weg, einmal zu Ende erzählt: Feeder unter Android, NetNewsWire auf dem iPhone.',
             whyTitle: 'Warum überhaupt eine App',
             whyText: 'Der Feed ist eine Adresse, die deine Benachrichtigungen ausliefert. Eine Reader-App '
                 + 'holt sie regelmäßig ab und zeigt dir, was neu ist, ohne dass du dich in Ember einloggen '
                 + 'musst. Das ist der entscheidende Unterschied: eine Benachrichtigung in der App siehst du '
-                + 'erst, wenn du Ember von dir aus aufmachst. Der Feed ist der Weg, auf dem sie dich '
-                + 'erreicht, ohne dass du daran denken musst.',
+                + 'erst, wenn du Ember von dir aus aufmachst. Neben den Push-Benachrichtigungen ist der Feed '
+                + 'ein Weg, auf dem sie dich erreicht, ohne dass du daran denken musst.',
             urlTitle: 'Zuerst die Adresse holen',
             urlText: 'Geh in Ember auf Einstellungen und dann Benachrichtigungen und erstelle dir dort einen '
                 + 'Feed-Token, falls du noch keinen hast. Kopiere die Atom-Adresse. Schick sie dir selbst, '
@@ -5057,6 +5062,8 @@ volumes:
             subtitle: 'Globale Konfiguration der Plattform.',
             registrationTitle: 'Wachenregistrierung',
             registrationText: 'Hier kannst du festlegen, ob neue Wachen sich selbst registrieren können. Wenn deaktiviert, können nur Admins neue Wachen anlegen.',
+            pushTitle: 'Push-Benachrichtigungen',
+            pushText: 'Hier schaltest du Push-Benachrichtigungen für die ganze Instanz an oder aus. Ausgeschaltet geht kein Push mehr raus, und was gerade auf den Versand wartete, verfällt; die angemeldeten Geräte bleiben bestehen und bekommen wieder Pushes, sobald du es einschaltest. Zugestellt wird über die Push-Dienste der Browserhersteller, eine eigene Einrichtung braucht es nicht.',
             messagesTitle: 'Nachrichten',
             messagesText: 'Hier schaltest du Nachrichten für die ganze Instanz an oder aus. Ausgeschaltet '
                 + 'verschwinden private Unterhaltungen und Wachenchats für alle, der Knopf im Kopf der '

@@ -2,7 +2,12 @@
 
 ## v26.26.0
 
-The mail settings name the port a mail server usually expects and how often the instance sends notifications.
+Notifications and messages can arrive as push notifications on phones and computers, even with Ember closed. The mail settings name the port a mail server usually expects and how often the instance sends notifications.
+
+### New Features
+
+- **Push notifications.** Notifications and chat messages can arrive on a phone or computer even with Ember closed, once push is allowed on that device under Profile → Notifications. A new "Push" column chooses which kinds are pushed, and devices can be tested and removed there or in the list of sign-ins.
+- **Push for operators.** Push notifications work without any setup and can be switched off for the whole instance in the administration settings. They are delivered through the push services of the browser makers, and the privacy notice gains a section on them.
 
 ### Improvements
 
@@ -11,10 +16,13 @@ The mail settings name the port a mail server usually expects and how often the 
 
 ### Changes
 
+- **Mail notifications are on by default.** Every member gets notifications by mail as soon as the station or the instance can send mail, for every kind of notification. Members who do not want them switch mail off under Profile → Notifications, including those who had switched it off before this release.
 - **Reply address at the top of the mail settings.** The reply address moved out of the box about the instance's mail providers to the top of the page, since it applies to all of a station's mail.
 
 ### Fixes
 
+- **Consent asked twice after a policy update.** After the privacy policy or the terms changed, agreeing on the sign-in page did not count for the account, so the same question came again right after signing in. Agreeing before signing in now covers the account.
+- **Installing Ember was not always offered.** In some cases the part of Ember that runs in the background was never started, so the browser did not offer to install Ember and saved files could open in the browser instead. It now starts with every page.
 - **Delivery address shown for own mail servers.** The mail settings offered a delivery report address for a station's own mail server, which sends no such reports. It is no longer shown there.
 
 ## v26.25.1

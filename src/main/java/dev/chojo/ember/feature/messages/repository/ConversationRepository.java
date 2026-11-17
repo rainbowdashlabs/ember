@@ -55,6 +55,50 @@ public class ConversationRepository {
                 WHERE b.blocker_account_id = m.account_id AND b.blocked_account_id = msg.author_account_id)""";
 
     /**
+     * Who a new message is pushed to, by account: everybody taking part who has not muted the
+     * conversation, for whom it counts as unread (so not its writer and not anybody who blocked the
+     * writer), and who can use messages at all.
+     *
+     * @param messageId the message
+     * @return the accounts
+     */
+    public List<Integer> pushReaders(int messageId) {
+        return query("""
+                SELECT m.account_id
+                FROM message msg
+                JOIN conversation_member m ON m.conversation_id = msg.conversation_id
+                JOIN account a ON a.id = m.account_id
+                WHERE msg.id = :message_id AND m.left_at IS NULL AND NOT m.muted
+                  AND %s
+                  AND %s;""", UNREAD, MessagePeopleRepository.USABLE)
+                .single(call().bind("message_id", messageId))
+                .map(row -> row.getInt("account_id"))
+                .all();
+    }
+
+    /**
+     * Whether a message still has something to say to one reader as a push: the conditions of
+     * {@link #pushReaders(int)}, read again when the push goes out, so a mute, a block, a read or a
+     * deleted message in between keeps it quiet.
+     */
+    public boolean stillPushable(int messageId, int readerId) {
+        return query("""
+                SELECT exists (
+                    SELECT 1
+                    FROM message msg
+                    JOIN conversation_member m ON m.conversation_id = msg.conversation_id
+                    JOIN account a ON a.id = m.account_id
+                    WHERE msg.id = :message_id AND m.account_id = :reader_id
+                      AND m.left_at IS NULL AND NOT m.muted
+                      AND %s
+                      AND %s) AS pushable;""", UNREAD, MessagePeopleRepository.USABLE)
+                .single(call().bind("message_id", messageId).bind("reader_id", readerId))
+                .map(row -> row.getBoolean("pushable"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
      * The key that keeps one direct conversation per pair of accounts.
      *
      * @param first  one account
