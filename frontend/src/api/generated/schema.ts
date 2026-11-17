@@ -78646,6 +78646,7 @@ export interface components {
             memberName: string;
             placeGivenUp: boolean;
             status: components["schemas"]["RegistrationStatus"];
+            statusChangedAt: components["schemas"]["Instant"];
         };
         RegistrationStatsResponse: {
             /** Format: int32 */

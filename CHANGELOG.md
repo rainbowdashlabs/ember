@@ -13,6 +13,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 ### Improvements
 
 - **Finding the station address on the map.** "Find on map" in the station location settings moves the pin to the typed address. A hint says when only the street or the town was found, and nothing is saved until the location is saved.
+- **Declined answers folded away.** On the registrations page, the declined answers of a date stay closed until opened. Opened, they show who declined and when, without the place ranking.
 - **Usual port shown for the mail server.** The mail settings name the usual port for the chosen encryption and point out a port that does not fit. The port is still saved as entered.
 - **Instance send interval made visible.** When a station leaves the notification send times to the instance, the settings say how often the instance sends them.
 
@@ -24,6 +25,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 
 ### Fixes
 
+- **Badges of upcoming appointments wandered.** In some cases an appointment with a long description line showed its registration counts below the text instead of beside it. The description now wraps, so the counts stay beside it wherever there is room.
 - **Consent asked twice after a policy update.** After the privacy policy or the terms changed, agreeing on the sign-in page did not count for the account, so the same question came again right after signing in. Agreeing before signing in now covers the account.
 - **Installing Ember was not always offered.** In some cases the part of Ember that runs in the background was never started, so the browser did not offer to install Ember and saved files could open in the browser instead. It now starts with every page.
 - **Delivery address shown for own mail servers.** The mail settings offered a delivery report address for a station's own mail server, which sends no such reports. It is no longer shown there.

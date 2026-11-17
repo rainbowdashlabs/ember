@@ -81560,9 +81560,12 @@
           },
           "placeGivenUp" : {
             "type" : "boolean"
+          },
+          "statusChangedAt" : {
+            "$ref" : "#/components/schemas/Instant"
           }
         },
-        "required" : [ "id", "eventId", "memberId", "memberName", "memberIdentity", "eventDate", "status", "createdAt", "createdByName", "fields", "eventName", "answersMissing", "fromField", "fieldName", "agreementWithdrawnAt", "placeGivenUp" ]
+        "required" : [ "id", "eventId", "memberId", "memberName", "memberIdentity", "eventDate", "status", "createdAt", "createdByName", "fields", "eventName", "answersMissing", "fromField", "fieldName", "agreementWithdrawnAt", "placeGivenUp", "statusChangedAt" ]
       },
       "RegistrationStatsResponse" : {
         "type" : "object",

@@ -77,7 +77,7 @@ const containerClass = computed(() => [
       data-testid="upcoming-event" :data-event="event.id" :data-date="date" :data-cancelled="!!cancellation"
       :event-group="event.eventGroup" :class="containerClass">
     <div class="flex items-center justify-between flex-wrap gap-2">
-      <div>
+      <div class="grow basis-80 min-w-0">
         <EventHeadline
             :name="event.name" :to="detailRoute" :date="date" :end-date="endDate"
             :start-time="event.startTime" :end-time="event.endTime" :format-time="formatTime"
@@ -100,7 +100,7 @@ const containerClass = computed(() => [
           <span v-for="f in overviewFields" :key="f.id" class="text-(--text-muted)"><span class="font-medium">{{ f.name }}:</span> <QuestionValueDisplay :field-type="f.fieldType" :value="f.value"/></span>
         </div>
       </div>
-      <div v-if="registrationSummary.total > 0" class="flex items-center gap-2 text-xs">
+      <div v-if="registrationSummary.total > 0" class="flex shrink-0 items-center gap-2 text-xs">
         <SuccessBadge v-if="registrationSummary.accepted">{{ registrationSummary.accepted }} {{ t('eventsUpcoming.accepted') }}</SuccessBadge>
         <InfoBadge v-if="registrationSummary.pending">{{ registrationSummary.pending }} {{ t('eventsUpcoming.pendingCount') }}</InfoBadge>
         <ErrorBadge v-if="registrationSummary.declined">{{ registrationSummary.declined }} {{ t('eventsUpcoming.declinedCount') }}</ErrorBadge>
