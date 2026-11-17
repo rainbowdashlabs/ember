@@ -30,7 +30,8 @@ abstract class DemoTestBase extends RepositoryTestBase {
                         profileFieldChangeRepo,
                         userTagRepo,
                         stationRepo,
-                        new StationFieldSetRepository())
+                        new StationFieldSetRepository(),
+                        memberRuleRepo)
                 .seed(run);
         return run;
     }

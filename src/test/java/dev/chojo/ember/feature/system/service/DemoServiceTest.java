@@ -419,7 +419,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 profileFieldChangeRepo,
                 userTagRepo,
                 stationRepo,
-                new StationFieldSetRepository());
+                new StationFieldSetRepository(),
+                memberRuleRepo);
         var eventSeeder = new DemoEventSeeder(
                 eventCategoryRepo,
                 eventRegistrationRepo,
