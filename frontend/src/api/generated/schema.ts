@@ -73480,7 +73480,7 @@ export interface components {
             questions: components["schemas"]["GeneratedQuestionWithMeta"][];
         };
         /** @enum {string} */
-        GeocodingProvider: "NONE" | "NOMINATIM" | "LOCATIONIQ" | "GEOAPIFY";
+        GeocodingProvider: "NONE" | "PHOTON";
         GradingScope: {
             mayGrade: boolean;
             restricted: boolean;
@@ -75232,8 +75232,7 @@ export interface components {
             zoom?: number;
         };
         MapsGeocodingConfig: {
-            apiKey: string;
-            contactEmail: string;
+            baseUrl: string | null;
             provider: components["schemas"]["GeocodingProvider"];
         };
         MapsTilesConfig: {
@@ -83908,10 +83907,8 @@ export const GalleryAspectMode = {
 } as const;
 
 export const GeocodingProvider = {
-    GEOAPIFY: "GEOAPIFY",
-    LOCATIONIQ: "LOCATIONIQ",
-    NOMINATIM: "NOMINATIM",
     NONE: "NONE",
+    PHOTON: "PHOTON",
 } as const;
 
 export const GuardianCondition = {

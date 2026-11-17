@@ -23,4 +23,7 @@ export default {
     'MP-010': 'Eine eigene Karte braucht die Adresse, von der ihre Bilder kommen, es wurde nichts gespeichert',
     'MP-011': 'Wähle, wer Adressen nachschlägt, es wurde nichts gespeichert',
     'MP-012': 'Der Kartenzwischenspeicher muss zwischen 0 und 10000 MB groß sein, es wurde nichts gespeichert',
+    'MP-013': 'Die Adresssuche braucht eine vollständige Webadresse, es wurde nichts gespeichert',
+    'MP-014': 'Das Nachschlagen von Adressen ist auf dieser Instanz ausgeschaltet',
+    'MP-015': 'Die Adresssuche hat nicht geantwortet. Setze die Markierung von Hand auf die Karte',
 }

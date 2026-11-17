@@ -67671,7 +67671,7 @@
       },
       "GeocodingProvider" : {
         "type" : "string",
-        "enum" : [ "NONE", "NOMINATIM", "LOCATIONIQ", "GEOAPIFY" ]
+        "enum" : [ "NONE", "PHOTON" ]
       },
       "GradingScope" : {
         "type" : "object",
@@ -72456,14 +72456,11 @@
           "provider" : {
             "$ref" : "#/components/schemas/GeocodingProvider"
           },
-          "apiKey" : {
-            "type" : "string"
-          },
-          "contactEmail" : {
-            "type" : "string"
+          "baseUrl" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "provider", "apiKey", "contactEmail" ]
+        "required" : [ "provider", "baseUrl" ]
       },
       "MapsTilesConfig" : {
         "type" : "object",

@@ -55,7 +55,18 @@ public enum MapRefusal implements Refusal {
 
     /** A map cache size below nothing or above what an instance may keep. */
     MAP_TILE_CACHE_SIZE_OUT_OF_RANGE(
-            12, HttpStatus.BAD_REQUEST, "The map cache has to be between 0 and 10000 MB, so nothing was saved");
+            12, HttpStatus.BAD_REQUEST, "The map cache has to be between 0 and 10000 MB, so nothing was saved"),
+
+    /** An address search server named by something that is not a web address. */
+    MAP_GEOCODING_ADDRESS_NOT_USABLE(
+            13, HttpStatus.BAD_REQUEST, "The address search needs a complete web address, so nothing was saved"),
+
+    /** An address looked up on an instance whose operator has not chosen anybody to look addresses up. */
+    GEOCODING_SWITCHED_OFF(14, HttpStatus.CONFLICT, "Looking up addresses is switched off on this instance"),
+
+    /** An address lookup the address search did not answer in time or answered with something unreadable. */
+    GEOCODING_NOT_ANSWERING(
+            15, HttpStatus.SERVICE_UNAVAILABLE, "The address search did not answer. Place the pin on the map by hand");
 
     private final Definition definition;
 
