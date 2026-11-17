@@ -1,5 +1,22 @@
 # Changelog
 
+## v26.26.0
+
+The mail settings name the port a mail server usually expects and how often the instance sends notifications.
+
+### Improvements
+
+- **Usual port shown for the mail server.** The mail settings name the usual port for the chosen encryption and point out a port that does not fit. The port is still saved as entered.
+- **Instance send interval made visible.** When a station leaves the notification send times to the instance, the settings say how often the instance sends them.
+
+### Changes
+
+- **Reply address at the top of the mail settings.** The reply address moved out of the box about the instance's mail providers to the top of the page, since it applies to all of a station's mail.
+
+### Fixes
+
+- **Delivery address shown for own mail servers.** The mail settings offered a delivery report address for a station's own mail server, which sends no such reports. It is no longer shown there.
+
 ## v26.25.2
 
 The backend image protects x86 servers against the Java4Shell vulnerability.

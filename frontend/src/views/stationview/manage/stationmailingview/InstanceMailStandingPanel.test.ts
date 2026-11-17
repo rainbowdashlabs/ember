@@ -7,14 +7,10 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises, mount} from '@vue/test-utils'
 import InstanceMailStandingPanel from './InstanceMailStandingPanel.vue'
-import SaveButton from '@/components/button/SaveButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
 import type {InstanceMailStation} from '@/api/generated/schema'
 
 const api = vi.hoisted(() => ({
     getOwnInstanceMail: vi.fn(),
-    getStationReplyTo: vi.fn(),
-    saveStationReplyTo: vi.fn(),
 }))
 
 vi.mock('@/api/instanceMail', () => api)
@@ -27,12 +23,11 @@ function standing(granted: boolean, dailyLimit: number | null): InstanceMailStat
 }
 
 /**
- * What a station sees of the instance carrying its mail, and where replies to its mail go.
+ * What a station sees of the instance carrying its mail.
  */
 describe('InstanceMailStandingPanel', () => {
     beforeEach(() => {
         vi.clearAllMocks()
-        api.getStationReplyTo.mockResolvedValue({replyTo: 'kontakt@nord.test'})
     })
 
     it('shows the grant with today\'s use against the station\'s own limit', async () => {
@@ -59,18 +54,5 @@ describe('InstanceMailStandingPanel', () => {
 
         expect(view.find('[data-testid="instance-mail-not-granted"]').text()).toContain('Verwaltung der Instanz')
         expect(view.find('[data-testid="instance-mail-use"]').exists()).toBe(false)
-    })
-
-    it('saves the reply address as typed, without the spaces around it', async () => {
-        api.getOwnInstanceMail.mockResolvedValue(standing(false, null))
-        api.saveStationReplyTo.mockResolvedValue({replyTo: 'neu@nord.test'})
-        const view = mount(InstanceMailStandingPanel)
-        await flushPromises()
-
-        expect(view.findComponent(TextInput).props('modelValue')).toBe('kontakt@nord.test')
-        view.findComponent(TextInput).vm.$emit('update:modelValue', ' neu@nord.test ')
-        await view.findComponent(SaveButton).props('action')()
-
-        expect(api.saveStationReplyTo).toHaveBeenCalledWith('neu@nord.test')
     })
 })
