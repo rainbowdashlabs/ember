@@ -50,6 +50,16 @@ describe('GroupRulesFields', () => {
 
     expect(view.emitted('update:setId')).toEqual([[null], [10]])
   })
+  it('closes the set choice of a group a rule fills and says why', () => {
+    const view = mount(GroupRulesFields, {
+      props: {sets: [{id: 10, stationId: 's', name: 'Stufen'}], setId: null, userTypes: [], kept: true},
+      global: {plugins: [createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': deDE, en: {}}})]},
+    })
+
+    expect(view.find('select').attributes('disabled')).toBeDefined()
+    expect(view.text()).toContain(deDE.memberRules.notInASet)
+  })
+
   it('names the members who would no longer fit, while the types are chosen', () => {
     const view = fields(null, ['TEAM'], [createMember({name: 'Lena Lang'})])
 

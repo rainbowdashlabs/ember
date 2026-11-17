@@ -12,6 +12,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.RuleField;
 import dev.chojo.ember.feature.members.entity.RuleNode;
 import dev.chojo.ember.feature.members.entity.RuleOperatorOption;
 import dev.chojo.ember.feature.members.entity.RuleOwner;
@@ -84,6 +85,7 @@ public class MemberRuleRoutes implements Routes {
                 StationPermission.MEMBER_MANAGE_TAGS);
 
         routes.get(prefix + "/member-rules", this::owners, StationPermission.USER);
+        routes.get(prefix + "/member-rules/fields", this::fields, StationPermission.MEMBER_READ);
         routes.get(prefix + "/groups/{id}/rule", this::getGroupRule, StationPermission.MEMBER_MANAGE_GROUP);
         routes.put(prefix + "/groups/{id}/rule", this::saveGroupRule, StationPermission.MEMBER_MANAGE_GROUP);
         routes.delete(prefix + "/groups/{id}/rule", this::removeGroupRule, StationPermission.MEMBER_MANAGE_GROUP);
@@ -130,6 +132,16 @@ public class MemberRuleRoutes implements Routes {
 
     private void respondPreview(Context ctx, RuleOwner owner) {
         ctx.json(ruleEdits.preview(StationSession.from(ctx), owner, ruleOf(ctx)));
+    }
+
+    @OpenApi(
+            path = "/api/v1/member-rules/fields",
+            methods = HttpMethod.GET,
+            summary = "The fields a check of a group or tag rule can read, the station's and its association's",
+            tags = {"Member Rules"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RuleField[].class)))
+    private void fields(Context ctx) {
+        ctx.json(ruleEdits.fields(StationSession.from(ctx).stationId()));
     }
 
     @OpenApi(

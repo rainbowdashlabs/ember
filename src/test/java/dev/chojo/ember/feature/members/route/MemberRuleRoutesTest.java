@@ -11,7 +11,9 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.RuleField;
 import dev.chojo.ember.feature.members.entity.RuleMember;
 import dev.chojo.ember.feature.members.entity.RuleNode;
 import dev.chojo.ember.feature.members.entity.RuleOperator;
@@ -25,6 +27,7 @@ import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberRuleEditService;
 import dev.chojo.ember.feature.members.service.PrivateTags;
 import dev.chojo.ember.feature.members.service.UserTagService;
+import dev.chojo.ember.feature.question.FieldType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -94,6 +97,26 @@ class MemberRuleRoutesTest {
                     PREFIX + "/member-rules", harness.as(TestSessions.member(STATION_ID, StationPermission.USER))));
             assertEquals(4, owners.path("groupIds").get(0).asInt());
             assertEquals(5, owners.path("tagIds").get(0).asInt());
+        });
+    }
+
+    @Test
+    void theReadableFieldsTakeTheRightToReadMembers() {
+        when(edits.fields(STATION_ID))
+                .thenReturn(List.of(new RuleField(FieldOrigin.STATION, 12, "JuLeiCa", FieldType.BOOLEAN, List.of())));
+
+        harness.run((server, client) -> {
+            var reader = TestSessions.member(STATION_ID, StationPermission.MEMBER_READ);
+            assertEquals(
+                    "JuLeiCa",
+                    json(client.get(PREFIX + "/member-rules/fields", harness.as(reader)))
+                            .get(0)
+                            .path("name")
+                            .asString());
+            assertEquals(
+                    403,
+                    client.get(PREFIX + "/member-rules/fields", harness.as(groupManager()))
+                            .code());
         });
     }
 

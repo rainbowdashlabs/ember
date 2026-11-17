@@ -12,6 +12,7 @@ import EditButton from '@/components/button/EditButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ColorDot from '@/components/display/ColorDot.vue'
+import RuleKeptMark from '@/components/display/RuleKeptMark.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -28,6 +29,8 @@ const props = defineProps<{
   canConvertToTag: boolean
   /** The sets the groups can belong to, where the owner keeps any; a group in one shows its name. */
   sets?: MemberGroupSet[]
+  /** The groups that take their members from a rule, which carry the rule mark. */
+  ruled?: ReadonlySet<number>
 }>()
 
 const emit = defineEmits<{
@@ -70,6 +73,7 @@ function boundTo(group: GroupRow): string {
         <span class="flex items-center gap-2 flex-wrap">
           <ColorDot v-if="group.color" :color="group.color"/>
           <span class="font-medium">{{ group.name }}</span>
+          <RuleKeptMark v-if="ruled?.has(group.id)" class="text-(--text-muted)"/>
           <InfoBadge v-if="setName(group)">{{ setName(group) }}</InfoBadge>
           <SecondaryBadge v-if="group.userTypes?.length">{{ boundTo(group) }}</SecondaryBadge>
         </span>

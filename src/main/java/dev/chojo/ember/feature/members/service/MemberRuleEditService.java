@@ -11,7 +11,9 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.feature.cluster.service.ClusterProfileFieldService;
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
+import dev.chojo.ember.feature.members.entity.RuleField;
 import dev.chojo.ember.feature.members.entity.RuleMember;
 import dev.chojo.ember.feature.members.entity.RuleNode;
 import dev.chojo.ember.feature.members.entity.RuleNodeKind;
@@ -133,6 +135,35 @@ public class MemberRuleEditService {
         return new RuleOwners(
                 owners.groupIds(),
                 owners.tagIds().stream().filter(id -> !hidden.contains(id)).toList());
+    }
+
+    /**
+     * The fields a check of a rule at a station can read: its own, then its association's, each in their order,
+     * leaving out those no check reads.
+     *
+     * @param stationId the station
+     */
+    public List<RuleField> fields(int stationId) {
+        var fields = new ArrayList<RuleField>();
+        for (var field : fieldRepository.findByStation(stationId)) {
+            if (RuleOperators.readable(field.fieldType())) {
+                fields.add(
+                        RuleField.of(FieldOrigin.STATION, field.id(), field.name(), field.fieldType(), field.config()));
+            }
+        }
+        Integer clusterId = stationRepository
+                .findById(stationId)
+                .map(station -> station.clusterId())
+                .orElse(null);
+        if (clusterId != null) {
+            for (var field : clusterFields.get().findByCluster(clusterId)) {
+                if (RuleOperators.readable(field.fieldType())) {
+                    fields.add(RuleField.of(
+                            FieldOrigin.CLUSTER, field.id(), field.name(), field.fieldType(), field.config()));
+                }
+            }
+        }
+        return List.copyOf(fields);
     }
 
     /**

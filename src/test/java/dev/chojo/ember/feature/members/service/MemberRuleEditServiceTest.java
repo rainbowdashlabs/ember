@@ -12,7 +12,9 @@ import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
+import dev.chojo.ember.feature.members.entity.RuleField;
 import dev.chojo.ember.feature.members.entity.RuleMember;
 import dev.chojo.ember.feature.members.entity.RuleNode;
 import dev.chojo.ember.feature.members.entity.RuleNodeKind;
@@ -37,6 +39,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -393,6 +396,25 @@ class MemberRuleEditServiceTest extends RepositoryTestBase {
         assertTrue(edits.remove(group));
         assertFalse(edits.remove(group));
         assertEquals(1, memberGroupRepo.findMembers(group.id()).size());
+    }
+
+    /** The fields a rule can read are the station's and its association's, without those no check reads. */
+    @Test
+    void theReadableFieldsComeFromStationAndAssociation() {
+        field(station.id(), "Abschnitt", FieldType.SECTION);
+
+        var fields = edits.fields(station.id());
+
+        assertEquals(
+                Set.of(
+                        new RuleField(FieldOrigin.STATION, juleica, "JuLeiCa", FieldType.BOOLEAN, List.of()),
+                        new RuleField(FieldOrigin.STATION, birth, "Geburtsdatum", FieldType.BIRTH_DATE, List.of())),
+                Set.copyOf(fields.subList(0, 2)));
+        assertEquals(
+                new RuleField(FieldOrigin.CLUSTER, clusterField, "Verband", FieldType.DATE, List.of()), fields.get(2));
+        assertEquals(3, fields.size());
+        stationRepo.setCluster(station.id(), null);
+        assertEquals(2, edits.fields(station.id()).size());
     }
 
     @Test

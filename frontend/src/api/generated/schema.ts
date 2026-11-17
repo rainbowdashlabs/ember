@@ -44211,6 +44211,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/member-rules/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The fields a check of a group or tag rule can read, the station's and its association's */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RuleField"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/member-rules/operators": {
         parameters: {
             query?: never;
@@ -79078,6 +79114,14 @@ export interface components {
             /** Format: int64 */
             totalBytes: number;
         };
+        RuleField: {
+            fieldType: components["schemas"]["FieldType"];
+            /** Format: int32 */
+            id: number;
+            name: string;
+            options: string[];
+            origin: components["schemas"]["FieldOrigin"];
+        };
         RuleMember: {
             /** Format: int32 */
             id: number;
@@ -83470,6 +83514,7 @@ export type RevocationReason = components['schemas']['RevocationReason'];
 export type RevocationStatus = components['schemas']['RevocationStatus'];
 export type RichMember = components['schemas']['RichMember'];
 export type RoomDetail = components['schemas']['RoomDetail'];
+export type RuleField = components['schemas']['RuleField'];
 export type RuleMember = components['schemas']['RuleMember'];
 export type RuleNeed = components['schemas']['RuleNeed'];
 export type RuleNode = components['schemas']['RuleNode'];
