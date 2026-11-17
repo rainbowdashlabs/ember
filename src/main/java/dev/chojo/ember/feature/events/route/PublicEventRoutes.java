@@ -17,7 +17,9 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
+import dev.chojo.ember.feature.events.service.EventPlaceService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
+import dev.chojo.ember.feature.maps.entity.StationPlace;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.service.StationService;
@@ -61,6 +63,7 @@ public class PublicEventRoutes implements Routes {
     private final EventFieldService eventFieldService;
     private final OccurrenceCalendar occurrenceCalendar;
     private final StationService stationService;
+    private final EventPlaceService placeService;
 
     @Inject
     public PublicEventRoutes(
@@ -68,12 +71,14 @@ public class PublicEventRoutes implements Routes {
             EventCategoryService categoryService,
             EventFieldService eventFieldService,
             OccurrenceCalendar occurrenceCalendar,
-            StationService stationService) {
+            StationService stationService,
+            EventPlaceService placeService) {
         this.crudService = crudService;
         this.categoryService = categoryService;
         this.eventFieldService = eventFieldService;
         this.occurrenceCalendar = occurrenceCalendar;
         this.stationService = stationService;
+        this.placeService = placeService;
     }
 
     @Override
@@ -205,6 +210,7 @@ public class PublicEventRoutes implements Routes {
                 event.endTime(),
                 event.categoryId() != null ? categoryMap.getOrDefault(event.categoryId(), null) : null,
                 fields,
+                placeService.pinsOf(station.id(), fields),
                 stationCalendar.cancelledAltogether(event),
                 cancelledDatesAhead(event, stationCalendar)));
     }
@@ -357,6 +363,7 @@ public class PublicEventRoutes implements Routes {
     /**
      * An appointment as its public page shows it.
      *
+     * @param places         the pins of its public place fields that have one
      * @param cancelled      whether it is off as a whole: a series called off, or a one-time
      *                       appointment whose date was
      * @param cancelledDates the dates of a series from today on that were called off one by one
@@ -371,6 +378,7 @@ public class PublicEventRoutes implements Routes {
             Instant endTime,
             @Nullable EventCategory category,
             List<AppointmentField> publicFields,
+            List<StationPlace> places,
             boolean cancelled,
             List<LocalDate> cancelledDates) {}
 }

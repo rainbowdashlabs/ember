@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:3c63b3638507f157fb6e3b7cdf32fb30ade9af03c67978064814f861d77baad0",
-  "generatedAt": "2026-11-16T15:45:46Z",
+  "schemaHash": "sha256:4528625c440dc96fdd20d5128fe4e23f07de8abdfab343de2a128c07ce9059c4",
+  "generatedAt": "2026-11-17T11:39:10Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -31358,6 +31358,83 @@
         "status": "IGNORED",
         "reason": "Permission catalog, seeded by migrations"
       }
+    },
+    "station_place": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:fed37b27dc6aea970306784f5aeef09cb3b9166f7cdf04385d272798e408f8a7",
+      "columns": [
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station the place belongs to. Deleting the station deletes its places."
+        },
+        {
+          "name": "place_key",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The place text in its normal form: trimmed, in lower case, every run of whitespace made one space. Appointments find their pin by it."
+        },
+        {
+          "name": "place_text",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The place text as it was last saved, for display."
+        },
+        {
+          "name": "latitude",
+          "type": "numeric",
+          "nullable": false,
+          "verified": true,
+          "description": "WGS-84 latitude of the pin in degrees, [-90, 90]."
+        },
+        {
+          "name": "longitude",
+          "type": "numeric",
+          "nullable": false,
+          "verified": true,
+          "description": "WGS-84 longitude of the pin in degrees, [-180, 180]."
+        },
+        {
+          "name": "precision",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "How closely the address search matched when it placed the pin: EXACT, STREET or AREA. NULL when the pin was placed or moved by hand."
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the pin was last saved."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "The pins of the places its appointments name belong to the station and move with it."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Place data of the station, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Place data of the station, not per-member"
+      },
+      "description": "Map pins for the place texts a station's appointments name, one per station and place text. Rows no appointment names any more are harmless and stay."
     },
     "station_provider_secret": {
       "feature": "mail",

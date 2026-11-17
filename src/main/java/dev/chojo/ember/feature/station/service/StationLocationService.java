@@ -190,13 +190,6 @@ public class StationLocationService {
             @Nullable String country) {}
 
     /**
-     * Response payload of an address lookup.
-     *
-     * @param match where the pin goes, or null when the address search found nothing
-     */
-    public record GeocodeAnswer(@Nullable GeocodeResult match) {}
-
-    /**
      * Request payload for {@code PUT /station/location}.
      */
     public record LocationUpdate(
