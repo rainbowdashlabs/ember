@@ -11,6 +11,8 @@ Notifications and messages can arrive as push notifications on phones and comput
 
 ### Fixes
 
+- **Consent asked twice after a policy update.** After the privacy policy or the terms changed, agreeing on the sign-in page did not count for the account, so the same question came again right after signing in. Agreeing before signing in now covers the account.
+
 - **Installing Ember was not always offered.** In some cases the part of Ember that runs in the background was never started, so the browser did not offer to install Ember and saved files could open in the browser instead. It now starts with every page.
 
 ## v26.25.0
