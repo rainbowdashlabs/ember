@@ -1,5 +1,21 @@
 # Changelog
 
+## v26.26.0
+
+Places named by appointments, such as the meeting point, can carry a pin, and the appointment page shows them on a small map. The station address can be found on the map from the location settings.
+
+### New Features
+
+- **Appointment places on a map.** "Location" and "Meeting point" now add place fields, and "On the map" next to a place opens a map to find or correct its pin. The pin applies to every appointment naming the same place, and the appointment page shows it on a small map with a link to OpenStreetMap.
+
+### Improvements
+
+- **Finding the station address on the map.** "Find on map" in the station location settings moves the pin to the typed address. A hint says when only the street or the town was found, and nothing is saved until the location is saved.
+
+### Changes
+
+- **Photon looks up addresses.** Admin → Maps offers Photon as the only address search, using the public server unless the address of a self-hosted server is entered. Nominatim, LocationIQ and Geoapify are removed, and an instance that had one of them selected has no address search until Photon is chosen.
+
 ## v26.25.1
 
 Reported chat messages are found under Monitoring.

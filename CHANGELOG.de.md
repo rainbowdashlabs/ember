@@ -1,5 +1,21 @@
 # Änderungsprotokoll
 
+## v26.26.0
+
+Orte, die Termine nennen, etwa der Treffpunkt, können eine Markierung tragen, und die Terminseite zeigt sie auf einer kleinen Karte. Die Adresse der Wache lässt sich in den Standort-Einstellungen auf der Karte finden.
+
+### Neue Funktionen
+
+- **Orte von Terminen auf der Karte.** „Ort“ und „Treffpunkt“ legen jetzt Ortsfelder an, und „Auf der Karte“ neben einem Ort öffnet eine Karte, auf der seine Markierung gefunden oder korrigiert wird. Die Markierung gilt für jeden Termin, der denselben Ort nennt, und die Terminseite zeigt sie auf einer kleinen Karte mit einem Link zu OpenStreetMap.
+
+### Verbesserungen
+
+- **Adresse der Wache auf der Karte finden.** „Auf der Karte finden“ in den Standort-Einstellungen setzt die Markierung auf die eingetippte Adresse. Ein Hinweis sagt, wenn nur die Straße oder der Ort gefunden wurde, und gespeichert wird erst mit dem Standort.
+
+### Änderungen
+
+- **Photon schlägt Adressen nach.** Unter Verwaltung → Karten gibt es Photon als einzige Adresssuche, mit dem öffentlichen Server, solange keine eigene Serveradresse eingetragen ist. Nominatim, LocationIQ und Geoapify entfallen; eine Instanz, die einen davon gewählt hatte, hat keine Adresssuche, bis Photon gewählt wird.
+
 ## v26.25.1
 
 Gemeldete Chatnachrichten stehen jetzt unter Monitoring.
