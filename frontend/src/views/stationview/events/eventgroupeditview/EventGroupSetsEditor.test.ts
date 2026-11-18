@@ -20,46 +20,66 @@ function minimumInput(editor: ReturnType<typeof mountEditor>) {
 /** A set asks for none to all of its parts, and one without parts yet takes any minimum. */
 describe('EventGroupSetsEditor', () => {
   it('keeps the minimum of a set with parts between none and all of them', async () => {
-    const editor = mountEditor([{id: 1, name: 'Übung', minimum: 2}], {1: 3})
+    const editor = mountEditor([{id: 1, name: 'Übung', minimum: 2, maximum: null}], {1: 3})
     const input = minimumInput(editor)
 
     await input.setValue('7')
-    expect(editor.emitted('update:modelValue')!.at(-1)![0]).toEqual([{id: 1, name: 'Übung', minimum: 3}])
+    expect(editor.emitted('update:modelValue')!.at(-1)![0]).toEqual([{id: 1, name: 'Übung', minimum: 3, maximum: null}])
 
     await input.setValue('-2')
-    expect(editor.emitted('update:modelValue')!.at(-1)![0]).toEqual([{id: 1, name: 'Übung', minimum: 0}])
+    expect(editor.emitted('update:modelValue')!.at(-1)![0]).toEqual([{id: 1, name: 'Übung', minimum: 0, maximum: null}])
     expect(editor.get('[data-testid="event-group-set-hint-0"]').text()).toBe('Termine im Block: 3')
   })
 
   it('lets a set without parts ask for any minimum, which counts once parts come', async () => {
-    const editor = mountEditor([{id: null, name: 'Prüfung', minimum: 1}], {})
+    const editor = mountEditor([{id: null, name: 'Prüfung', minimum: 1, maximum: null}], {})
     const input = minimumInput(editor)
 
     await input.setValue('4')
-    expect(editor.emitted('update:modelValue')!.at(-1)![0]).toEqual([{id: null, name: 'Prüfung', minimum: 4}])
+    expect(editor.emitted('update:modelValue')!.at(-1)![0]).toEqual([{id: null, name: 'Prüfung', minimum: 4, maximum: null}])
     expect(editor.get('[data-testid="event-group-set-hint-0"]').text()).toBe('gilt, sobald der Block Termine hat')
   })
 
   it('shows the number the set holds once a typed one past the bound is left', async () => {
-    const editor = mountEditor([{id: 1, name: 'Übung', minimum: 3}], {1: 3})
+    const editor = mountEditor([{id: 1, name: 'Übung', minimum: 3, maximum: null}], {1: 3})
     const input = minimumInput(editor)
 
     await input.setValue('7')
     await input.trigger('focusout')
 
-    expect(editor.emitted('update:modelValue')!.at(-1)![0]).toEqual([{id: 1, name: 'Übung', minimum: 3}])
+    expect(editor.emitted('update:modelValue')!.at(-1)![0]).toEqual([{id: 1, name: 'Übung', minimum: 3, maximum: null}])
     expect((input.element as HTMLInputElement).value).toBe('3')
   })
 
   it('lets a set still filling up keep the minimum it was saved with, but not a new one above its parts', async () => {
-    const editor = mountEditor([{id: 1, name: 'Übung', minimum: 3}], {1: 1}, {1: 3})
+    const editor = mountEditor([{id: 1, name: 'Übung', minimum: 3, maximum: null}], {1: 1}, {1: 3})
     const input = minimumInput(editor)
     expect(editor.get('[data-testid="event-group-set-hint-0"]').text()).toBe('Termine im Block: 1, die Zahl gilt, sobald es 3 sind')
 
     await input.setValue('2')
-    expect(editor.emitted('update:modelValue')!.at(-1)![0]).toEqual([{id: 1, name: 'Übung', minimum: 1}])
+    expect(editor.emitted('update:modelValue')!.at(-1)![0]).toEqual([{id: 1, name: 'Übung', minimum: 1, maximum: null}])
 
     await input.setValue('3')
-    expect(editor.emitted('update:modelValue')!.at(-1)![0]).toEqual([{id: 1, name: 'Übung', minimum: 3}])
+    expect(editor.emitted('update:modelValue')!.at(-1)![0]).toEqual([{id: 1, name: 'Übung', minimum: 3, maximum: null}])
+  })
+
+  /** A maximum is empty for none, at least 1 and at least the minimum, and a minimum past it takes it along. */
+  it('keeps the maximum at least the minimum and raises it with the minimum', async () => {
+    const editor = mountEditor([{id: 1, name: 'Kurs', minimum: 1, maximum: null}], {1: 3})
+    const maximum = editor.get('input[data-testid="event-group-set-maximum-0"]')
+
+    await maximum.setValue('1')
+    expect(editor.emitted('update:modelValue')!.at(-1)![0]).toEqual([{id: 1, name: 'Kurs', minimum: 1, maximum: 1}])
+
+    await editor.setProps({modelValue: [{id: 1, name: 'Kurs', minimum: 2, maximum: null}]})
+    await maximum.setValue('1')
+    expect(editor.emitted('update:modelValue')!.at(-1)![0]).toEqual([{id: 1, name: 'Kurs', minimum: 2, maximum: 2}])
+
+    await maximum.setValue('')
+    expect(editor.emitted('update:modelValue')!.at(-1)![0]).toEqual([{id: 1, name: 'Kurs', minimum: 2, maximum: null}])
+
+    await editor.setProps({modelValue: [{id: 1, name: 'Kurs', minimum: 1, maximum: 1}]})
+    await minimumInput(editor).setValue('2')
+    expect(editor.emitted('update:modelValue')!.at(-1)![0]).toEqual([{id: 1, name: 'Kurs', minimum: 2, maximum: 2}])
   })
 })

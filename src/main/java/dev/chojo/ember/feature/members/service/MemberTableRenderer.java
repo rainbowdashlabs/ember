@@ -121,6 +121,7 @@ public class MemberTableRenderer {
                     case "DENIED" -> english ? "Turned down" : "Abgelehnt";
                     case "DECLINED" -> english ? "Declined" : "Abgemeldet";
                     case "WITHDRAWN" -> english ? "Withdrawn" : "Zurückgezogen";
+                    case "QUEUED" -> english ? "Waiting list" : "Nachrückliste";
                     default -> value;
                 };
             case "memberType" ->

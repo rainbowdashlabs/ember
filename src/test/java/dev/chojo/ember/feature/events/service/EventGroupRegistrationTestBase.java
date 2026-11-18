@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
@@ -109,7 +110,9 @@ abstract class EventGroupRegistrationTestBase extends RepositoryTestBase {
                 bus,
                 memberNameResolver,
                 questions,
-                newEventGroupSignUpRules());
+                newEventGroupSignUpRules(),
+                newEventGroupQueue(registrations, bus),
+                new RegistrationQueueRepository());
         zone = occurrenceCalendar.zoneOf(station.id());
         eventGroup = jugendflamme(null, false, Instant.now().plus(Duration.ofDays(5)));
     }

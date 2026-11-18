@@ -103,8 +103,7 @@ public record EventRegistration(
      * one the system wrote because the date went away, which carries no previous status.
      */
     public boolean gaveUpPlace() {
-        return status == RegistrationStatus.WITHDRAWN
-                && (previousStatus == RegistrationStatus.PENDING || previousStatus == RegistrationStatus.ACCEPTED);
+        return status == RegistrationStatus.WITHDRAWN && previousStatus != null && previousStatus.standing();
     }
 
     /**

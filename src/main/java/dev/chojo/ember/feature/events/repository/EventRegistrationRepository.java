@@ -42,7 +42,7 @@ public class EventRegistrationRepository {
      * ({@link #withdrawOnDates}) carries no previous status at all.
      */
     private static final String GIVEN_ANSWER =
-            "(er.status <> 'WITHDRAWN' OR er.previous_status IN ('PENDING', 'ACCEPTED'))";
+            "(er.status <> 'WITHDRAWN' OR er.previous_status IN ('PENDING', 'ACCEPTED', 'QUEUED'))";
 
     private static final String COLUMNS =
             "id, event_id, member_id, event_date, status, created_at, created_by, status_changed_at, previous_status, from_field, "
@@ -290,16 +290,21 @@ public class EventRegistrationRepository {
     }
 
     /**
-     * Returns registration counts by status for all events of a station on their relevant dates.
+     * Returns registration counts by status for all events of a station on their relevant dates, partner
+     * stations' members included, so places read the same here as on the appointment.
      */
     public List<RegistrationCount> findCountsByStation(int stationId) {
         return query("""
-                SELECT er.event_id, er.event_date, er.status, count(*) AS count
-                FROM event_registration er
-                JOIN station_event se ON se.id = er.event_id
+                SELECT r.event_id, r.event_date, r.status, count(*) AS count
+                FROM (SELECT er.event_id, er.event_date, er.status
+                      FROM event_registration er
+                      UNION ALL
+                      SELECT fr.event_id, fr.event_date, fr.status
+                      FROM event_federation_registration fr) r
+                JOIN station_event se ON se.id = r.event_id
                 WHERE se.station_id = :station_id
-                GROUP BY er.event_id, er.event_date, er.status
-                ORDER BY er.event_id, er.event_date;""")
+                GROUP BY r.event_id, r.event_date, r.status
+                ORDER BY r.event_id, r.event_date;""")
                 .single(call().bind("station_id", stationId))
                 .map(row -> new RegistrationCount(
                         row.getInt("event_id"),
@@ -331,12 +336,17 @@ public class EventRegistrationRepository {
     }
 
     /**
-     * Aggregates the accept/deny history of everyone registered for an event, over the last
-     * {@code months} months and optionally narrowed to one category, so the registration screen
-     * can rank members by how often they were turned down.
+     * The accept/deny history of members at a station over the last {@code :months} months, optionally
+     * narrowed to the category {@code :category_id}, one row per member the given condition picks.
+     * Both the registration statistics and the order of waiting lists kept by fairness read it, so
+     * the two never disagree about anybody's history.
+     *
+     * @param station the condition picking the station, over {@code se}
+     * @param members the condition picking the members, over {@code er}
+     * @return the query
      */
-    public List<MemberRegistrationStats> findStatsByEvent(int eventId, @Nullable Integer categoryId, int months) {
-        return query("""
+    private static String statsQuery(String station, String members) {
+        return """
                 SELECT
                     er.member_id,
                     count(*)                                               AS registered,
@@ -348,19 +358,45 @@ public class EventRegistrationRepository {
                     event_registration er
                         JOIN station_event se
                         ON se.id = er.event_id
-                WHERE se.station_id = (
-                    SELECT station_id
-                    FROM station_event
-                    WHERE id = :event_id
-                                      )
+                WHERE %s
                   AND ( :category_id IS NULL OR %s = :category_id )
                   AND er.event_date >= ( current_date - make_interval(months => :months) )
-                  AND er.member_id IN (
-                    SELECT member_id
-                    FROM event_registration
-                    WHERE event_id = :event_id
-                                      )
-                GROUP BY er.member_id;""", RefusalSql.NOT_COMING, EventGroupInheritance.category("se"))
+                  AND %s
+                GROUP BY er.member_id;""".formatted(RefusalSql.NOT_COMING, station, EventGroupInheritance.category("se"), members);
+    }
+
+    /**
+     * Aggregates one member's accept/deny history at a station over the last {@code months} months,
+     * optionally narrowed to one category, the same way {@link #findStatsByEvent} does for everyone
+     * registered for an event.
+     *
+     * @param stationId  the station whose appointments count
+     * @param categoryId the category, or null for every appointment
+     * @param memberId   the member
+     * @param months     how many months back count
+     * @return the history, all zero where there is none
+     */
+    public MemberRegistrationStats findStatsOfMember(
+            int stationId, @Nullable Integer categoryId, int memberId, int months) {
+        return query(statsQuery("se.station_id = :station_id", "er.member_id = :member_id"))
+                .single(call().bind("station_id", stationId)
+                        .bind("member_id", memberId)
+                        .bind("category_id", categoryId)
+                        .bind("months", months))
+                .map(MemberRegistrationStats.map())
+                .first()
+                .orElseGet(() -> new MemberRegistrationStats(memberId, 0, 0, 0, 0, null));
+    }
+
+    /**
+     * Aggregates the accept/deny history of everyone registered for an event, over the last
+     * {@code months} months and optionally narrowed to one category, so the registration screen
+     * can rank members by how often they were turned down.
+     */
+    public List<MemberRegistrationStats> findStatsByEvent(int eventId, @Nullable Integer categoryId, int months) {
+        return query(statsQuery(
+                        "se.station_id = (SELECT station_id FROM station_event WHERE id = :event_id)",
+                        "er.member_id IN (SELECT member_id FROM event_registration WHERE event_id = :event_id)"))
                 .single(call().bind("event_id", eventId)
                         .bind("category_id", categoryId)
                         .bind("months", months))
@@ -417,6 +453,29 @@ public class EventRegistrationRepository {
     }
 
     /**
+     * Puts a withdrawal back under another status than the one given up, for as long as it may be put
+     * back: a seat given up by mistake that somebody else took meanwhile comes back as a place on the
+     * waiting list.
+     *
+     * @param id     the registration
+     * @param status the status it comes back with
+     * @param window how long a withdrawal can be put back
+     * @return whether it was put back
+     */
+    public boolean restoreAs(int id, RegistrationStatus status, Duration window) {
+        return query("""
+                UPDATE event_registration
+                SET status = :status, previous_status = NULL, status_changed_at = now()
+                WHERE id = :id
+                  AND status = 'WITHDRAWN'
+                  AND previous_status IS NOT NULL
+                  AND status_changed_at > now() - CAST(:window AS INTERVAL);""")
+                .single(call().bind("id", id).bind("status", status).bind("window", window.toSeconds() + " seconds"))
+                .update()
+                .changed();
+    }
+
+    /**
      * Puts an answer back to what was held before it, for as long as it may still be taken back.
      *
      * <p>The window is in the statement rather than read first and checked after, so two presses
@@ -462,8 +521,10 @@ public class EventRegistrationRepository {
     /**
      * Withdraws every place still held on dates an appointment no longer falls on.
      *
-     * <p>Pending and confirmed places are withdrawn, whoever gave them, a question of the appointment
-     * included; a refusal or a denial already says the member is not coming and stays as it is. The
+     * <p>Pending, confirmed and waiting places are withdrawn, whoever gave them, a question of the
+     * appointment included, and whoever waited leaves the waiting list with it, partners' members
+     * waiting on it too; a refusal or a denial already
+     * says the member is not coming and stays as it is. The
      * rows are kept and marked rather than removed, so whoever runs the appointment can still see who
      * had been down for the day. Nothing is remembered to put back: the member did not give the place
      * up, the day went away, so there is no answer an undo could restore.
@@ -475,6 +536,11 @@ public class EventRegistrationRepository {
     public List<EventRegistration> withdrawOnDates(int eventId, Collection<LocalDate> dates) {
         if (dates.isEmpty()) return List.of();
         return query("""
+                WITH partners_waiting AS (UPDATE event_federation_registration
+                                          SET status = 'WITHDRAWN', previous_status = NULL, status_changed_at = now()
+                                          WHERE event_id = :event_id
+                                            AND event_date = ANY(:dates)
+                                            AND status = 'QUEUED')
                 UPDATE event_registration
                 SET status            = 'WITHDRAWN',
                     previous_status   = NULL,
@@ -482,7 +548,7 @@ public class EventRegistrationRepository {
                     from_field        = FALSE
                 WHERE event_id = :event_id
                   AND event_date = ANY(:dates)
-                  AND status IN ('PENDING', 'ACCEPTED')
+                  AND status IN ('PENDING', 'ACCEPTED', 'QUEUED')
                 RETURNING %s;""", COLUMNS)
                 .single(call().bind("event_id", eventId).bind("dates", List.copyOf(dates), PostgreSqlTypes.DATE))
                 .map(EventRegistration.map())
@@ -494,7 +560,8 @@ public class EventRegistrationRepository {
      * on, since they are for the same occasion.
      *
      * <p>A member who already has a row on the new day keeps that one, and their row on the old day
-     * stays behind.
+     * stays behind. Whoever waited on the old day waits on the new one, behind those already waiting
+     * there.
      *
      * @param eventId the appointment
      * @param from    the day it fell on
@@ -503,18 +570,28 @@ public class EventRegistrationRepository {
      */
     public int moveDate(int eventId, LocalDate from, LocalDate to) {
         return query("""
-                UPDATE event_registration er
-                SET event_date = :to
-                WHERE er.event_id = :event_id
-                  AND er.event_date = :from
-                  AND NOT EXISTS (SELECT 1
-                                  FROM event_registration taken
-                                  WHERE taken.event_id = er.event_id
-                                    AND taken.member_id = er.member_id
-                                    AND taken.event_date = :to);""")
+                WITH moved AS (UPDATE event_registration er
+                               SET event_date = :to
+                               WHERE er.event_id = :event_id
+                                 AND er.event_date = :from
+                                 AND NOT EXISTS (SELECT 1
+                                                 FROM event_registration taken
+                                                 WHERE taken.event_id = er.event_id
+                                                   AND taken.member_id = er.member_id
+                                                   AND taken.event_date = :to)
+                               RETURNING er.id),
+                     waiting AS (UPDATE registration_queue rq
+                                 SET event_date = :to,
+                                     position   = rq.position + (SELECT coalesce(max(t.position), 0)
+                                                                 FROM registration_queue t
+                                                                 WHERE t.event_id = :event_id
+                                                                   AND t.event_date = :to)
+                                 WHERE rq.registration_id IN (SELECT id FROM moved))
+                SELECT count(*) AS moved FROM moved;""")
                 .single(call().bind("event_id", eventId).bind("from", from).bind("to", to))
-                .update()
-                .rows();
+                .map(row -> row.getInt("moved"))
+                .first()
+                .orElse(0);
     }
 
     /**
@@ -534,7 +611,7 @@ public class EventRegistrationRepository {
                         WHERE event_id = :event_id
                           AND event_date = :event_date
                           AND member_id = :member_id
-                          AND status IN ('PENDING', 'ACCEPTED');""")
+                          AND status IN ('PENDING', 'ACCEPTED', 'QUEUED');""")
                 .single(call().bind("event_id", eventId)
                         .bind("event_date", eventDate)
                         .bind("member_id", memberId)
@@ -574,6 +651,39 @@ public class EventRegistrationRepository {
      */
     public boolean delete(int id) {
         return SqlSupport.deleteById("event_registration", id);
+    }
+
+    /**
+     * A member's registration for one date of an appointment.
+     *
+     * @param eventId   the appointment
+     * @param memberId  the member
+     * @param eventDate the date
+     * @return the registration, or empty where there is none
+     */
+    public Optional<EventRegistration> findOne(int eventId, int memberId, LocalDate eventDate) {
+        return query("""
+                        SELECT %s FROM event_registration
+                        WHERE event_id = :event_id AND member_id = :member_id AND event_date = :event_date;""", COLUMNS)
+                .single(call().bind("event_id", eventId)
+                        .bind("member_id", memberId)
+                        .bind("event_date", eventDate))
+                .map(EventRegistration.map())
+                .first();
+    }
+
+    /**
+     * Makes a place a question of the appointment holds the member's own, keeping its status: they
+     * signed up for it themselves, so the question letting go of them no longer takes it away.
+     *
+     * @param id the registration
+     * @return whether a place held by a question was taken over
+     */
+    public boolean takeOverFromField(int id) {
+        return query("UPDATE event_registration SET from_field = FALSE WHERE id = :id AND from_field;")
+                .single(call().bind("id", id))
+                .update()
+                .changed();
     }
 
     /**
@@ -651,7 +761,48 @@ public class EventRegistrationRepository {
     }
 
     /**
-     * Every date from one day on each member holds a place on, pending or accepted.
+     * Finds the members with a standing sign-up, holding a place or waiting on the waiting list, on any
+     * date of an event from one day on. They are the ones to tell when the event changes or is called
+     * off, since whoever waits may still move up.
+     *
+     * @param eventId the event ID
+     * @param from    the first date that counts
+     * @return the member IDs, each once
+     */
+    public List<Integer> findConcernedMemberIdsFrom(int eventId, LocalDate from) {
+        return query("""
+                SELECT DISTINCT member_id
+                FROM event_registration
+                WHERE event_id = :id
+                  AND event_date >= :from
+                  AND status IN ('PENDING', 'ACCEPTED', 'QUEUED');""")
+                .single(call().bind("id", eventId).bind("from", from))
+                .map(row -> row.getInt("member_id"))
+                .all();
+    }
+
+    /**
+     * Finds the members with a standing sign-up, holding a place or waiting on the waiting list, on one
+     * date of an event.
+     *
+     * @param eventId   the event ID
+     * @param eventDate the date
+     * @return the member IDs, each once
+     */
+    public List<Integer> findConcernedMemberIds(int eventId, LocalDate eventDate) {
+        return query("""
+                SELECT DISTINCT member_id
+                FROM event_registration
+                WHERE event_id = :id
+                  AND event_date = :event_date
+                  AND status IN ('PENDING', 'ACCEPTED', 'QUEUED');""")
+                .single(call().bind("id", eventId).bind("event_date", eventDate))
+                .map(row -> row.getInt("member_id"))
+                .all();
+    }
+
+    /**
+     * Every date from one day on each member holds or waits for a place on.
      *
      * @param eventId the event ID
      * @param from    the first date looked at
@@ -664,7 +815,7 @@ public class EventRegistrationRepository {
                 FROM event_registration
                 WHERE event_id = :id
                   AND event_date >= :from
-                  AND status IN ('PENDING', 'ACCEPTED')
+                  AND status IN ('PENDING', 'ACCEPTED', 'QUEUED')
                 ORDER BY event_date, member_id;""")
                 .single(call().bind("id", eventId).bind("from", from))
                 .map(row -> Map.entry(row.getInt("member_id"), row.getObject("event_date", LocalDate.class)))
@@ -675,7 +826,7 @@ public class EventRegistrationRepository {
     }
 
     /**
-     * The first date from one day on each member holds a place on, pending or accepted.
+     * The first date from one day on each member holds or waits for a place on.
      *
      * @param eventId the event ID
      * @param from    the first date looked at
@@ -688,7 +839,7 @@ public class EventRegistrationRepository {
                 FROM event_registration
                 WHERE event_id = :id
                   AND event_date >= :from
-                  AND status IN ('PENDING', 'ACCEPTED')
+                  AND status IN ('PENDING', 'ACCEPTED', 'QUEUED')
                 GROUP BY member_id
                 ORDER BY first_date, member_id;""")
                 .single(call().bind("id", eventId).bind("from", from))

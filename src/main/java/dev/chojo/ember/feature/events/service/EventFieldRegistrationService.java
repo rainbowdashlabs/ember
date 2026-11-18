@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
+import dev.chojo.ember.event.events.RegistrationPlacesFreed;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -137,6 +138,9 @@ public class EventFieldRegistrationService {
         }
         if (event.requiresRegistration()) {
             goneNames.forEach(memberId -> announceFreedPlace(event, memberId));
+            if (removed > 0) {
+                eventBus.publish(new RegistrationPlacesFreed(event.stationId(), eventId, Set.copyOf(goneDates)));
+            }
         }
     }
 

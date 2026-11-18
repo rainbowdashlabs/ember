@@ -10,6 +10,7 @@ import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {
     RequirementSignatureState,
     RequirementStatus,
+    WhenFull,
     type AppointmentDocuments,
     type EventSummary,
     type ParticipantDocuments,
@@ -51,6 +52,7 @@ const appointment: EventSummary = {
     startTime: '2026-09-04T17:00:00Z',
     endTime: '2026-09-04T19:00:00Z',
     requiresRegistration: true,
+    requiresConfirmation: false,
     registrationDeadline: null,
     categoryId: null,
     templateId: null,
@@ -103,6 +105,25 @@ describe('useEventAnswer', () => {
 
         expect(registerForEvent, 'both were asked for').toHaveBeenCalledTimes(2)
         expect(failure.value, 'and the one that was refused is still said').not.toBeNull()
+    })
+
+    /**
+     * Whoever runs the appointment and signs up somebody of their household on a full date is asked
+     * where that person goes, and the sign-up is sent again with the answer.
+     */
+    it('asks where the sign-up goes on a full date and sends it again with the answer', async () => {
+        const failure = ref<Failure | null>(null)
+        const answer = answerWith(failure)
+        registerForEvent.mockRejectedValueOnce({response: {status: 409, data: {code: 'E-226', error: 'full'}}})
+
+        const signingUp = answer.registerFor(appointment, date, [child])
+        await vi.waitFor(() => expect(answer.fullDateQuestion.value?.kind).toBe('signUp'))
+        answer.answerFullDate(WhenFull.QUEUE)
+        await signingUp
+
+        expect(registerForEvent).toHaveBeenCalledTimes(2)
+        expect(registerForEvent.mock.calls[1]![1]).toEqual(expect.objectContaining({whenFull: WhenFull.QUEUE}))
+        expect(failure.value).toBeNull()
     })
 
     it('says nothing went wrong when the whole household got through', async () => {

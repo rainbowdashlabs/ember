@@ -11,6 +11,9 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import RegistrationsNormalGroup from './registrationshelp/RegistrationsNormalGroup.vue'
 import RegistrationsExpiredGroup from './registrationshelp/RegistrationsExpiredGroup.vue'
+import NeutralContainer from '@/components/container/NeutralContainer.vue'
+import QueueSection from '@/views/stationview/events/eventshared/QueueSection.vue'
+import {SAMPLE_QUEUE} from './eventdetailhelp/sampleQueue'
 
 const {t} = useI18n()
 </script>
@@ -35,6 +38,13 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.eventsRegistrations.fairnessTitle')">
       <p>{{ t('helpCenter.eventsRegistrations.fairnessText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.eventsRegistrations.queueTitle')">
+      <p>{{ t('helpCenter.eventsRegistrations.queueText') }}</p>
+      <NeutralContainer>
+        <QueueSection :entries="SAMPLE_QUEUE" can-manage/>
+      </NeutralContainer>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.eventsRegistrations.deadlineTitle')">

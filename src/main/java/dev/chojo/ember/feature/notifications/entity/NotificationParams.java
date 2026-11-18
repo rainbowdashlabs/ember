@@ -87,11 +87,39 @@ public sealed interface NotificationParams {
      */
     record NewEventsBatch(int count, String eventPreview, LocalDate firstEventDate) implements NotificationParams {}
 
+    /**
+     * A registration for an appointment or an event group changed.
+     *
+     * @param memberName       the member
+     * @param eventName        the appointment or event group
+     * @param status           the new status
+     * @param eventDescription the description, or null
+     * @param queuePosition    the place in line where the registration now waits on the waiting list, or null
+     * @param movedUp          whether a place fell free and the registration moved up from the waiting list
+     * @param shortNotice      whether it moved up less than a day before the start
+     */
     record EventRegistrationStatus(
             String memberName,
             String eventName,
             RegistrationStatus status,
-            @Nullable String eventDescription) implements NotificationParams {}
+            @Nullable String eventDescription,
+            @Nullable Integer queuePosition,
+            boolean movedUp,
+            boolean shortNotice)
+            implements NotificationParams {
+        /**
+         * A change of a registration that is neither a place in line nor a move up.
+         *
+         * @param memberName       the member
+         * @param eventName        the appointment or event group
+         * @param status           the new status
+         * @param eventDescription the description, or null
+         */
+        public EventRegistrationStatus(
+                String memberName, String eventName, RegistrationStatus status, @Nullable String eventDescription) {
+            this(memberName, eventName, status, eventDescription, null, false, false);
+        }
+    }
 
     /** A movement has been raised. Every purpose, not only a swap: the words come from the chain. */
     record MovementRaised(String memberName, String inventoryName, String reason) implements NotificationParams {}

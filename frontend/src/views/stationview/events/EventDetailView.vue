@@ -32,6 +32,7 @@ import EventDetailBody from './eventdetailview/EventDetailBody.vue'
 import EventGroupFrame from './eventshared/EventGroupFrame.vue'
 import EventAnswerDialog from './eventshared/EventAnswerDialog.vue'
 import RegistrationSigningStep from './eventshared/RegistrationSigningStep.vue'
+import FullDateDialog from './eventshared/FullDateDialog.vue'
 import {useEventAnswer} from '@/composables/useEventAnswer'
 import {answerableMembers, type AnswerablePerson} from '@/util/eventAnswers'
 import {formatTime, formatWeekdayDate, stationDayOf} from '@/util/format'
@@ -324,5 +325,6 @@ function onFieldUpdated(field: AppointmentField) {
     />
     <RegistrationSigningStep v-if="answer.signingStep.value" :model-value="true" :step="answer.signingStep.value"
                              @update:model-value="shown => { if (!shown) answer.closeSigningStep() }"/>
+    <FullDateDialog :question="answer.fullDateQuestion.value" @answer="answer.answerFullDate"/>
   </ViewContent>
 </template>

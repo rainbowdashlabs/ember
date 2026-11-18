@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.entity.AppointmentTemplateField;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateFieldData;
 import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
+import dev.chojo.ember.feature.events.entity.QueueOrder;
 import dev.chojo.ember.feature.events.entity.RegistrationTemplateField;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventTemplateRestrictionService;
@@ -293,6 +294,8 @@ public class EventTemplateRoutes implements Routes {
      *
      * @param registrationDeadlineOffsetHours how many hours before the start sign-up closes, or null
      *                                        for no deadline
+     * @param queueOrder                      how the waiting lists of appointments made from it are
+     *                                        ordered, or null for by time
      */
     public record UpdateTemplateRequest(
             String name,
@@ -308,7 +311,8 @@ public class EventTemplateRoutes implements Routes {
             @Nullable Integer registrationLimit,
             @Nullable Integer minRegistrations,
             @Nullable Integer thresholdDays,
-            @Nullable Integer registrationCloseDays) {
+            @Nullable Integer registrationCloseDays,
+            @Nullable QueueOrder queueOrder) {
 
         EventTemplateSettings toSettings() {
             return new EventTemplateSettings(
@@ -325,7 +329,8 @@ public class EventTemplateRoutes implements Routes {
                     registrationLimit,
                     minRegistrations,
                     thresholdDays,
-                    registrationCloseDays);
+                    registrationCloseDays,
+                    queueOrder);
         }
     }
 

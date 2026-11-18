@@ -10,6 +10,10 @@ import {notificationMessage} from './notificationMessage'
 const LABELS: Record<string, string> = {
     'notification.waitlistAnswer.COMING': 'Ich komme',
     'stationManage.moduleLostAndFound': 'Fundbüro',
+    'dashboard.registrationStatus.QUEUED': 'Nachrückliste',
+    'dashboard.registrationStatus.ACCEPTED': 'Bestätigt',
+    'notification.registrationMovedUp': 'Nachgerückt',
+    'notification.registrationShortNotice': 'kurzfristig',
 }
 
 /** Answers a label where one is known and otherwise the key with what it was handed, so a test sees both. */
@@ -56,5 +60,30 @@ describe('notificationMessage', () => {
             params: {childName: 'Mara Seeger', listName: 'Jugendfeuerwehr'},
         })
         expect(message).toBe('notification.waitlistNewEntry {"childName":"Mara Seeger","listName":"Jugendfeuerwehr"}')
+    })
+
+    it('tells whoever waits their place in line', () => {
+        const message = notificationMessage(t, {
+            type: NotificationType.EVENT_REGISTRATION_STATUS,
+            localeKey: 'dashboard.eventRegistrationStatus',
+            params: {memberName: 'Mara', eventName: 'Atemschutz', status: 'QUEUED', queuePosition: '3'},
+        })
+        expect(message).toContain('Nachrückliste (notification.registrationQueuePlace {\\"position\\":\\"3\\"})')
+    })
+
+    it('tells whoever moved up so, plainly at short notice', () => {
+        const moved = notificationMessage(t, {
+            type: NotificationType.EVENT_REGISTRATION_STATUS,
+            localeKey: 'dashboard.eventRegistrationStatus',
+            params: {memberName: 'Mara', eventName: 'Atemschutz', status: 'ACCEPTED', movedUp: 'true', shortNotice: 'true'},
+        })
+        expect(moved).toContain('"status":"Nachgerückt, kurzfristig"')
+
+        const plain = notificationMessage(t, {
+            type: NotificationType.EVENT_REGISTRATION_STATUS,
+            localeKey: 'dashboard.eventRegistrationStatus',
+            params: {memberName: 'Mara', eventName: 'Atemschutz', status: 'ACCEPTED'},
+        })
+        expect(plain).toContain('"status":"Bestätigt"')
     })
 })

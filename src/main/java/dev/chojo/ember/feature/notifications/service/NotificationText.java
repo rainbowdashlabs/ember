@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.notifications.service;
 
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.notifications.entity.DigestGroup;
 import dev.chojo.ember.feature.notifications.entity.LinkHome;
 import dev.chojo.ember.feature.notifications.entity.Notification;
@@ -124,6 +125,36 @@ public class NotificationText {
     }
 
     /**
+     * The status of a registration as a title shows it, with the place in line of somebody waiting and
+     * whether somebody who moved up did so at short notice.
+     */
+    private String registrationStatusLabel(String locale, NotificationParams.EventRegistrationStatus p) {
+        String symbol = statusSymbol(p.movedUp() ? "MOVED_UP" : p.status().name());
+        String words = registrationStatusWords(locale, p);
+        return symbol.isEmpty() ? words : symbol + " " + words;
+    }
+
+    /**
+     * The status of a registration in words, as a push or a mail says it: whoever moved up is told so,
+     * at short notice where the start is less than a day away, and whoever waits their place in line.
+     */
+    private static String registrationStatusWords(String locale, NotificationParams.EventRegistrationStatus p) {
+        var labels = LOCALIZER.get("notifications", locale, "ical");
+        if (p.movedUp()) {
+            String label = labels.getOrDefault("status.MOVED_UP", "MOVED_UP");
+            return p.shortNotice() ? label + ", " + labels.getOrDefault("status.SHORT_NOTICE", "short notice") : label;
+        }
+        String label =
+                labels.getOrDefault("status." + p.status().name(), p.status().name());
+        Integer position = p.queuePosition();
+        if (p.status() != RegistrationStatus.QUEUED || position == null) return label;
+        return label + " ("
+                + labels.getOrDefault("status.QUEUE_PLACE", "place {position}")
+                        .replace("{position}", String.valueOf(position))
+                + ")";
+    }
+
+    /**
      * Resolves a rich, scannable feed-entry title: {@code "{Category}: {entity identifier}"} or
      * a per-type template carrying status, count, etc. Plural-routing uses the same
      * {@code .one}/{@code .other} convention as {@link #resolveMessage}. Falls back to the bare
@@ -170,6 +201,9 @@ public class NotificationText {
         String localeKey = n.type().localeKey();
         var params = new LinkedHashMap<>(n.data().paramsAsMap());
         localizeStatusParam(locale, params);
+        if (n.data().params() instanceof NotificationParams.EventRegistrationStatus p) {
+            params.put("status", registrationStatusWords(locale, p));
+        }
         localizeDateParams(locale, params);
         localizeChangedParts(locale, params);
 
@@ -328,6 +362,8 @@ public class NotificationText {
             case "DENIED", "DECLINED", "REJECTED", "CANCELLED" -> "✗";
             case "PENDING", "REQUESTED", "ANNOUNCED" -> "…";
             case "WITHDRAWN" -> "↶";
+            case "QUEUED" -> "⧗";
+            case "MOVED_UP" -> "✓";
             default -> "";
         };
     }
@@ -493,7 +529,7 @@ public class NotificationText {
     private void augmentTitleParams(String locale, Notification n, Map<String, String> params) {
         var orig = n.data().params();
         if (orig instanceof NotificationParams.EventRegistrationStatus p) {
-            params.put("statusLabel", resolveStatusWithSymbol(locale, p.status().name()));
+            params.put("statusLabel", registrationStatusLabel(locale, p));
         } else if (orig instanceof NotificationParams.LendingStatusChange p) {
             params.put("statusLabel", resolveStatusWithSymbol(locale, p.status().name()));
         }

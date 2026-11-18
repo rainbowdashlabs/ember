@@ -160,7 +160,8 @@ public class RemoteEventGroupRoutes implements Routes {
      * @param cancelled    whether it was called off
      * @param cancelReason why, where it was
      * @param partCount    how many parts it has
-     * @param holding      how many sign-ups hold or wait for a place, of every station
+     * @param holding      how many accepted sign-ups hold a place, of every station
+     * @param queued       how many sign-ups wait on the waiting list, of every station
      */
     public record RemoteEventGroupSummary(
             int id,
@@ -168,7 +169,8 @@ public class RemoteEventGroupRoutes implements Routes {
             boolean cancelled,
             @Nullable String cancelReason,
             int partCount,
-            int holding) {
+            int holding,
+            int queued) {
         /**
          * The event group as the station holding it tells a partner about it.
          *
@@ -182,7 +184,8 @@ public class RemoteEventGroupRoutes implements Routes {
                     summary.cancelled(),
                     summary.cancelReason(),
                     summary.partCount(),
-                    summary.holding());
+                    summary.holding(),
+                    summary.queued());
         }
 
         /**
@@ -191,7 +194,7 @@ public class RemoteEventGroupRoutes implements Routes {
          * @return the summary
          */
         public EventGroupSummary toSummary() {
-            return new EventGroupSummary(id, details, cancelled, cancelReason, partCount, holding);
+            return new EventGroupSummary(id, details, cancelled, cancelReason, partCount, holding, queued);
         }
     }
 

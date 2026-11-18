@@ -14,7 +14,7 @@ import {RegistrationStatus, type EventGroupDetail, type EventGroupSignUp} from '
 import {createIdentity} from '@/test/mocks/factories'
 
 const api = vi.hoisted(() => ({
-    eventGroups: {listSignUps: vi.fn(), decide: vi.fn()},
+    eventGroups: {listSignUps: vi.fn(), listPartnerSignUps: vi.fn(), decide: vi.fn(), queueSignUps: vi.fn(), moveSignUpInQueue: vi.fn()},
     stationMembers: {listCompletions: vi.fn(async () => [])},
 }))
 vi.mock('@/api', () => api)
@@ -26,10 +26,10 @@ function detail(): EventGroupDetail {
     return {
         eventGroup: {
             id: 70,
-            details: {name: 'Jugendflamme 1', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null},
-            cancelled: false, cancelReason: null, partCount: 4, holding: 2,
+            details: {name: 'Jugendflamme 1', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null, partRegistrationLimit: null, queueOrder: null},
+            cancelled: false, cancelReason: null, partCount: 4, holding: 2, queued: 0,
         },
-        sets: [{id: 1, eventGroupId: 70, name: 'Übung', minimum: 2, position: 0}],
+        sets: [{id: 1, eventGroupId: 70, name: 'Übung', minimum: 2, maximum: null, position: 0}],
         parts: [],
         registration: {userTypes: [], groupIds: [], tagIds: [], memberIds: [], mode: 'AND'},
         view: {userTypes: [], groupIds: [], tagIds: [], memberIds: [], mode: 'AND'},
@@ -42,15 +42,16 @@ function detail(): EventGroupDetail {
 function signUp(memberId: number, name: string, status: RegistrationStatus, chosen: number, answersMissing = false): EventGroupSignUp {
     return {
         memberId, member: createIdentity({name}), status, registeredAt: '2026-11-01T10:00:00Z', parts: Array.from({length: chosen}, (_, i) => i + 1),
-        sets: [{setId: 1, name: 'Übung', required: 2, chosen, missingRequired: []}], answers: [], answersMissing, mayRegister: true,
+        sets: [{setId: 1, name: 'Übung', required: 2, chosen, missingRequired: [], maximum: null, tooMany: 0}], answers: [], answersMissing, mayRegister: true,
+        queuePosition: null,
     }
 }
 
 let wrapper: VueWrapper | null = null
 
-async function mountPanel() {
+async function mountPanel(shown: EventGroupDetail = detail()) {
     wrapper = await mountSuspended(EventGroupSignUpsPanel, {
-        props: {detail: detail()},
+        props: {detail: shown},
         global: {stubs: {MemberName: true, EventGroupSignUpExport: true, EventGroupSignUpDialog: true}},
     })
     await flushPromises()
@@ -65,6 +66,7 @@ describe('EventGroupSignUpsPanel', () => {
             signUp(12, 'Ben', RegistrationStatus.PENDING, 1),
             signUp(13, 'Clara', RegistrationStatus.PENDING, 2, true),
         ])
+        api.eventGroups.listPartnerSignUps.mockResolvedValue([])
         api.eventGroups.decide.mockReset()
     })
 
@@ -108,6 +110,59 @@ describe('EventGroupSignUpsPanel', () => {
         await wrapper!.findAll('[data-testid="event-group-sign-up-row"]')[1]!.get('[data-testid="event-group-accept"]').trigger('click')
         await flushPromises()
 
-        expect(api.eventGroups.decide).toHaveBeenCalledWith(70, 12, RegistrationStatus.ACCEPTED)
+        expect(api.eventGroups.decide).toHaveBeenCalledWith(70, 12, RegistrationStatus.ACCEPTED, false)
+    })
+
+    /**
+     * Where places are limited, the waiting list stands above the table in its order, partners'
+     * members among the station's own, and pending sign-ups go onto it one at a time or all at once.
+     */
+    it('lists the waiting list in order and puts pending sign-ups on it', async () => {
+        api.eventGroups.listSignUps.mockResolvedValue([
+            signUp(11, 'Anna', RegistrationStatus.QUEUED, 2),
+            {...signUp(12, 'Ben', RegistrationStatus.PENDING, 1), registeredAt: '2026-11-03T10:00:00Z'},
+            signUp(13, 'Clara', RegistrationStatus.PENDING, 2),
+        ].map(entry => (entry.memberId === 11 ? {...entry, queuePosition: 2} : entry)))
+        api.eventGroups.listPartnerSignUps.mockResolvedValue([{
+            id: 9, member: createIdentity({name: 'Mara'}), status: RegistrationStatus.QUEUED, registeredAt: null,
+            parts: [1], sets: [], queuePosition: 1,
+        }])
+        api.eventGroups.queueSignUps.mockResolvedValue(undefined)
+        const limited = detail()
+        limited.eventGroup.details = {...limited.eventGroup.details, registrationLimit: 10}
+        await mountPanel(limited)
+
+        const rows = wrapper!.findAll('[data-testid^="queue-entry-"]').map(row => row.attributes('data-testid'))
+        expect(rows).toEqual(['queue-entry-partner-9', 'queue-entry-member-11'])
+
+        await wrapper!.get('[data-testid="event-group-queue-all-pending"]').trigger('click')
+        await flushPromises()
+        expect(api.eventGroups.queueSignUps).toHaveBeenLastCalledWith(70, [13, 12])
+
+        await wrapper!.get('[data-testid="event-group-queue-12"]').trigger('click')
+        await flushPromises()
+        expect(api.eventGroups.queueSignUps).toHaveBeenLastCalledWith(70, [12])
+    })
+
+    it('offers no waiting list where nothing limits places', async () => {
+        await mountPanel()
+
+        expect(wrapper!.find('[data-testid="event-group-queue-all-pending"]').exists()).toBe(false)
+        expect(wrapper!.find('[data-testid="event-group-queue-12"]').exists()).toBe(false)
+    })
+
+    /** One pending sign-up goes onto the list from its own row; the bulk button needs at least two. */
+    it('offers only the row button while one sign-up waits for a decision', async () => {
+        api.eventGroups.listSignUps.mockResolvedValue([
+            signUp(11, 'Anna', RegistrationStatus.ACCEPTED, 2),
+            signUp(12, 'Ben', RegistrationStatus.PENDING, 1),
+        ])
+        const limited = detail()
+        limited.eventGroup.details = {...limited.eventGroup.details, partRegistrationLimit: 8}
+        await mountPanel(limited)
+
+        expect(wrapper!.find('[data-testid="event-group-queue-all-pending"]').exists()).toBe(false)
+        expect(wrapper!.find('[data-testid="event-group-queue-12"]').exists()).toBe(true)
+        expect(wrapper!.find('[data-testid="event-group-queue-11"]').exists()).toBe(false)
     })
 })

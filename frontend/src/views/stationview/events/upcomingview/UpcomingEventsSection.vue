@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import type {RegistrationSummary} from './registrationSummary'
 import {useI18n} from 'vue-i18n'
 import type {RouteLocationRaw} from 'vue-router'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -38,7 +39,7 @@ defineProps<{
   managedMembersCount: number
   registering: boolean
   multiDayEndDate: (event: EventSummary, startDate: string) => string | null
-  getRegistrationSummary: (eventId: number, date: string) => { accepted: number; pending: number; declined: number; total: number }
+  getRegistrationSummary: (eventId: number, date: string) => RegistrationSummary
   getEligibleMembers: (eventId: number) => AnswerablePerson[]
   getRestrictionNote: (eventId: number) => string | null
   detailRoute: (event: EventSummary, date: string) => RouteLocationRaw

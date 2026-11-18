@@ -15,7 +15,8 @@ import type {EventGroupDetails} from '@/api/generated/schema'
 
 function detailsOf(color: string, minRegistrations?: number): EventGroupDetails {
   return {name: 'Grundlehrgang', description: null, registrationLimit: null, registrationDeadline: null,
-    requiresConfirmation: false, color: color || null, minRegistrations: minRegistrations ?? null, thresholdDays: null}
+    requiresConfirmation: false, color: color || null, minRegistrations: minRegistrations ?? null, thresholdDays: null,
+    partRegistrationLimit: null, queueOrder: null}
 }
 
 function mountForm(color: string, eventGroupId: number | null, minRegistrations?: number) {
@@ -97,5 +98,30 @@ describe('useEventGroupDetails', () => {
 
     deadline.vm.$emit('update:modelValue', '')
     expect(lastDetails(form).registrationDeadline).toBeNull()
+  })
+})
+
+/** Places per appointment and the waiting list order stand beside the places for people. */
+describe('EventGroupSignUpFields places', () => {
+  it('sets the places per appointment and offers the order once places are limited', async () => {
+    const form = mountSignUp()
+    expect(form.find('[data-testid="queue-order"]').exists()).toBe(false)
+
+    await form.get('input[data-testid="event-group-part-limit"]').setValue('12')
+    expect(lastDetails(form).partRegistrationLimit).toBe(12)
+
+    await form.setProps({modelValue: {...detailsOf(''), partRegistrationLimit: 12}})
+    await form.get('[data-testid="queue-order"] select').setValue('FAIRNESS')
+    expect(lastDetails(form).queueOrder).toBe('FAIRNESS')
+  })
+
+  /** A part with places of its own keeps a waiting list too, so the order is asked for then as well. */
+  it('offers the order where only a part has places of its own', () => {
+    const form = mount(EventGroupSignUpFields, {
+      props: {modelValue: detailsOf(''), parts: [{places: null}, {places: 20}]},
+      global: {stubs: {'font-awesome-icon': true, DateTimeInput: true}},
+    })
+
+    expect(form.find('[data-testid="queue-order"]').exists()).toBe(true)
   })
 })

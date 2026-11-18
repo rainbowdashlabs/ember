@@ -29,6 +29,8 @@ import org.jspecify.annotations.Nullable;
  * @param thresholdDays                   how many days before each date the minimum must be reached, or the
  *                                        date is called off
  * @param registrationCloseDays           how many days before each date sign-up closes, or null for no close
+ * @param queueOrder                      how the waiting lists of appointments made from it are ordered, or
+ *                                        null for by time
  */
 public record EventTemplateSettings(
         String name,
@@ -44,7 +46,44 @@ public record EventTemplateSettings(
         @Nullable Integer registrationLimit,
         @Nullable Integer minRegistrations,
         @Nullable Integer thresholdDays,
-        @Nullable Integer registrationCloseDays) {
+        @Nullable Integer registrationCloseDays,
+        @Nullable QueueOrder queueOrder) {
+
+    /**
+     * Settings that set no waiting list order.
+     */
+    public EventTemplateSettings(
+            String name,
+            @Nullable String title,
+            @Nullable String description,
+            @Nullable Integer categoryId,
+            StationEvent.@Nullable EventType eventType,
+            @Nullable Boolean requiresRegistration,
+            @Nullable Integer registrationDeadlineOffsetHours,
+            @Nullable Boolean requiresConfirmation,
+            @Nullable RestrictionMode restrictionMode,
+            @Nullable Integer attendanceTemplateId,
+            @Nullable Integer registrationLimit,
+            @Nullable Integer minRegistrations,
+            @Nullable Integer thresholdDays,
+            @Nullable Integer registrationCloseDays) {
+        this(
+                name,
+                title,
+                description,
+                categoryId,
+                eventType,
+                requiresRegistration,
+                registrationDeadlineOffsetHours,
+                requiresConfirmation,
+                restrictionMode,
+                attendanceTemplateId,
+                registrationLimit,
+                minRegistrations,
+                thresholdDays,
+                registrationCloseDays,
+                null);
+    }
 
     /**
      * Whether any count or span is below zero, which no appointment could be made with.

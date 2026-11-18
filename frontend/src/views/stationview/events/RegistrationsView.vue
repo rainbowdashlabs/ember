@@ -11,13 +11,18 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import PendingDateCard from './registrationsview/PendingDateCard.vue'
+import FullDateDialog from './eventshared/FullDateDialog.vue'
+import {useQueueActions} from './eventshared/useQueueActions'
 import {events} from '@/api'
-import {
+import type {
   RegistrationStatus,
-  type EventSummary,
-  type RegistrationResponse,
-  type RegistrationStatsResponse,
+  EnrichedFederationRegistration,
+  PartnerPlacesView,
+  EventSummary,
+  RegistrationResponse,
+  RegistrationStatsResponse,
 } from '@/api/generated/schema'
+import {useDatePlaces} from './eventshared/useDatePlaces'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useEventEditDeps} from '@/composables/useEventEditDeps'
 import {formatDateTime} from '@/util/format'
@@ -31,6 +36,8 @@ const allEvents = ref<EventSummary[]>([])
 const expandedKey = ref<string | null>(null)
 const registrationStats = ref<RegistrationStatsResponse[]>([])
 const expandedRegistrations = ref<RegistrationResponse[]>([])
+const expandedPartners = ref<EnrichedFederationRegistration[]>([])
+const expandedPartnerPlaces = ref<PartnerPlacesView[]>([])
 const expandedLoading = ref(false)
 
 type StatusCounts = Record<RegistrationStatus, number>
@@ -45,7 +52,7 @@ interface PendingDate {
 }
 
 function emptyCounts(): StatusCounts {
-  return {PENDING: 0, ACCEPTED: 0, DENIED: 0, DECLINED: 0, WITHDRAWN: 0}
+  return {PENDING: 0, ACCEPTED: 0, DENIED: 0, DECLINED: 0, WITHDRAWN: 0, QUEUED: 0}
 }
 
 /** One block per date of an appointment, so each date of a recurring one is answered on its own. */
@@ -102,6 +109,7 @@ const expandedByStatus = computed(() => {
     DENIED: [],
     DECLINED: [],
     WITHDRAWN: [],
+    QUEUED: [],
   }
   for (const reg of expandedRegistrations.value) {
     groups[reg.status].push(reg)
@@ -110,6 +118,17 @@ const expandedByStatus = computed(() => {
 })
 
 const expandedGroup = computed(() => pendingDates.value.find(g => g.key === expandedKey.value) ?? null)
+
+/**
+ * How the places and the waiting list of the opened date stand, members of the station and partners'
+ * members alike, and which partners decide about their own people.
+ */
+const expanded = useDatePlaces({
+  limit: () => expandedGroup.value?.event.registrationLimit,
+  registrations: () => expandedRegistrations.value,
+  partners: () => expandedPartners.value,
+  partnerPlaces: () => expandedPartnerPlaces.value,
+})
 
 async function toggleExpand(group: PendingDate) {
   if (expandedKey.value === group.key) {
@@ -120,50 +139,39 @@ async function toggleExpand(group: PendingDate) {
   expandedKey.value = group.key
   expandedLoading.value = true
   try {
-    const [stats, regs] = await Promise.all([
+    const [stats, regs, partners, partnerPlaces] = await Promise.all([
       events.getRegistrationStats(group.event.id),
       events.listEventRegistrations(group.event.id, group.date),
+      events.listFederationRegistrations(group.event.id, group.date).catch(() => []),
+      events.getPartnerPlaces(group.event.id).catch(() => []),
     ])
     registrationStats.value = stats
     expandedRegistrations.value = regs
+    expandedPartners.value = partners
+    expandedPartnerPlaces.value = partnerPlaces
   } catch (e) {
     failure.value = describeFailure(e, t)
   }
   finally { expandedLoading.value = false }
 }
 
-async function refreshExpanded(group: PendingDate | null) {
-  if (!group) return
-  try {
-    const [regs, counts] = await Promise.all([
-      events.listEventRegistrations(group.event.id, group.date),
-      events.listRegistrationCounts(),
-    ])
-    expandedRegistrations.value = regs
-    registrationCounts.value = counts
-  } catch (e) {
-    failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
-  }
-}
-
 /**
- * Answers one sign-up, then reads the event back.
- *
- * <p>The two are answered for separately. Reading back is a refresh, and a refusal that was written
- * followed by a refresh that failed used to read as a refusal that was not written: the row was gone
- * from the list and the page said it had not worked.
+ * Reads the opened date back after an action, and with it which sign-ups still wait for a decision.
+ * A failure is left for the caller, which says it as the list being stale.
  */
-async function decide(regId: number, status: RegistrationStatus) {
-  failure.value = null
+async function refreshExpanded() {
   const group = expandedGroup.value
-  try {
-    await events.updateRegistrationStatus(regId, status)
-    pendingRegistrations.value = pendingRegistrations.value.filter(r => r.id !== regId)
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-    return
-  }
-  await refreshExpanded(group)
+  if (!group) return
+  const [regs, partners, counts, pending] = await Promise.all([
+    events.listEventRegistrations(group.event.id, group.date),
+    events.listFederationRegistrations(group.event.id, group.date).catch(() => []),
+    events.listRegistrationCounts(),
+    events.listPendingRegistrations(),
+  ])
+  expandedRegistrations.value = regs
+  expandedPartners.value = partners
+  registrationCounts.value = counts
+  pendingRegistrations.value = pending
 }
 
 const {loading, failure} = useAsyncLoader(async () => {
@@ -175,6 +183,16 @@ const {loading, failure} = useAsyncLoader(async () => {
   pendingRegistrations.value = regs
   allEvents.value = evs
 })
+
+/**
+ * Deciding the sign-ups of the opened date and keeping its waiting list, each followed by reading
+ * the date back.
+ *
+ * <p>The two are answered for separately. Reading back is a refresh, and a refusal that was written
+ * followed by a refresh that failed used to read as a refusal that was not written: the row was gone
+ * from the list and the page said it had not worked.
+ */
+const queueActions = useQueueActions(() => expanded.places.value, refreshExpanded, failure)
 </script>
 
 <template>
@@ -199,13 +217,21 @@ const {loading, failure} = useAsyncLoader(async () => {
               :expanded="expandedKey === group.key"
               :expanded-loading="expandedLoading"
               :expanded-by-status="expandedByStatus"
+              :expanded-queue="expanded.queue.value"
+              :partner-decides="expanded.partnerDecides"
+              :can-queue="!!expanded.places.value"
+              :busy="queueActions.busy.value"
               :registration-stats="registrationStats"
               :format-deadline="formatDateTime"
               @toggle="toggleExpand(group)"
-              @accept="id => decide(id, RegistrationStatus.ACCEPTED)"
-              @deny="id => decide(id, RegistrationStatus.DENIED)"
+              @accept="queueActions.accept"
+              @deny="id => queueActions.deny(id)"
+              @queue="queueActions.queue"
+              @reorder="queueActions.reorder"
+              @move-up="queueActions.moveUp"
           />
         </div>
+        <FullDateDialog :question="queueActions.fullDateQuestion.value" @answer="queueActions.answerFullDate"/>
       </template>
     </div>
   </ViewContent>

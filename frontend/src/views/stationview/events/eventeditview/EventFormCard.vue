@@ -14,6 +14,7 @@ import type {
     EventCategory,
     EventFieldEntry,
     MemberGroup,
+    QueueOrder,
     UserTag,
 } from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
@@ -45,6 +46,7 @@ const requiresConfirmation = defineModel<boolean>('requiresConfirmation', {requi
 const hasDeadline = defineModel<boolean>('hasDeadline', {required: true})
 const registrationDeadline = defineModel<string>('registrationDeadline', {required: true})
 const registrationLimit = defineModel<number | undefined>('registrationLimit')
+const queueOrder = defineModel<QueueOrder>('queueOrder')
 const minRegistrations = defineModel<number | undefined>('minRegistrations')
 const thresholdDays = defineModel<number | undefined>('thresholdDays')
 const registrationCloseDays = defineModel<number | undefined>('registrationCloseDays')
@@ -72,6 +74,7 @@ const reminders = defineModel<number[]>('reminders', {required: true})
         v-model:has-deadline="hasDeadline"
         v-model:registration-deadline="registrationDeadline"
         v-model:registration-limit="registrationLimit"
+        v-model:queue-order="queueOrder"
         v-model:min-registrations="minRegistrations"
         v-model:threshold-days="thresholdDays"
         v-model:registration-close-days="registrationCloseDays"

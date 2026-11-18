@@ -73,6 +73,7 @@ public class IcalEventRenderer {
             case DENIED, DECLINED -> "✗ " + label;
             case PENDING -> "… " + label;
             case WITHDRAWN -> "↶ " + label;
+            case QUEUED -> "⧗ " + label;
         };
     }
 

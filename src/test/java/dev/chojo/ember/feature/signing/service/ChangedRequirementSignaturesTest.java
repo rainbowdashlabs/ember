@@ -39,6 +39,7 @@ import dev.chojo.ember.feature.signing.handler.RequirementChangeSignaturesHandle
 import dev.chojo.ember.feature.signing.repository.IssuerSignatureRepository;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
+import dev.chojo.ember.util.TestEventPlaces;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -170,7 +171,8 @@ class ChangedRequirementSignaturesTest extends GeneratorTestBase {
                 new EventRegistrationFieldRepository(),
                 eventRepo,
                 new DomainEventBus(Set.of(new RegistrationSignaturesHandler(() -> signatures))),
-                memberNameResolver);
+                memberNameResolver,
+                TestEventPlaces.of(eventRegistrationRepo));
     }
 
     @AfterAll

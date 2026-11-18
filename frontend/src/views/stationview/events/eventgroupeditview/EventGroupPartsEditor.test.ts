@@ -25,10 +25,10 @@ vi.mock('@/composables/useSession', () => ({useSession: () => ({stationTimezone:
 const detail: EventGroupDetail = {
   eventGroup: {
     id: 70,
-    details: {name: 'Jugendflamme 1', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null},
-    cancelled: false, cancelReason: null, partCount: 0, holding: 0,
+    details: {name: 'Jugendflamme 1', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null, partRegistrationLimit: null, queueOrder: null},
+    cancelled: false, cancelReason: null, partCount: 0, holding: 0, queued: 0,
   },
-  sets: [{id: 1, eventGroupId: 70, name: 'Übung', minimum: 2, position: 0}, {id: 2, eventGroupId: 70, name: 'Prüfung', minimum: 1, position: 1}],
+  sets: [{id: 1, eventGroupId: 70, name: 'Übung', minimum: 2, maximum: null, position: 0}, {id: 2, eventGroupId: 70, name: 'Prüfung', minimum: 1, maximum: null, position: 1}],
   parts: [],
   registration: {userTypes: [], groupIds: [], tagIds: [], memberIds: [], mode: 'AND'},
   view: {userTypes: [], groupIds: [], tagIds: [], memberIds: [], mode: 'AND'},
@@ -63,7 +63,7 @@ describe('EventGroupPartsEditor', () => {
     const onChanged = vi.fn()
     const withPart: EventGroupDetail = {...detail, parts: [{
       eventId: 11, setId: 1, name: 'Samstag', startTime: '2027-03-06T08:00:00Z', endTime: '2027-03-06T16:00:00Z',
-      calledOff: false, tookPlace: false, required: false,
+      calledOff: false, tookPlace: false, required: false, accepted: 0, places: null,
     }]}
     const editor = mount(EventGroupPartsEditor, {props: {detail: withPart, onChanged}})
     await flushPromises()

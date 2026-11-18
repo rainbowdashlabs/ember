@@ -87,16 +87,20 @@ import dev.chojo.ember.feature.events.repository.EventDetachedDateRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldDefaultRepository;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.events.route.EventVisibility;
 import dev.chojo.ember.feature.events.service.EventBlockReferences;
 import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.events.service.EventCancellationService;
+import dev.chojo.ember.feature.events.service.EventCapacity;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCommentTarget;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -106,6 +110,7 @@ import dev.chojo.ember.feature.events.service.EventFieldService;
 import dev.chojo.ember.feature.events.service.EventGroupCommentTarget;
 import dev.chojo.ember.feature.events.service.EventGroupGuards;
 import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
+import dev.chojo.ember.feature.events.service.EventGroupQueue;
 import dev.chojo.ember.feature.events.service.EventGroupService;
 import dev.chojo.ember.feature.events.service.EventGroupSignUpRules;
 import dev.chojo.ember.feature.events.service.EventOccurrenceService;
@@ -113,6 +118,7 @@ import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventReminderService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
+import dev.chojo.ember.feature.events.service.QueuePlacement;
 import dev.chojo.ember.feature.federation.FederationTestTransport;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
@@ -251,6 +257,7 @@ import dev.chojo.ember.feature.traffic.repository.StationTrafficRepository;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.waitinglist.repository.WaitingListRepository;
 import dev.chojo.ember.lifecycle.TaskScheduler;
+import dev.chojo.ember.util.TestEventPlaces;
 import dev.chojo.ember.util.TestFederationServices;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
 import dev.chojo.ember.util.sql.Transactions;
@@ -1064,9 +1071,35 @@ public abstract class RepositoryTestBase {
      *
      * @return the rules
      */
+
+    /**
+     * The waiting list of event groups, wired to the test database.
+     *
+     * @param registrations the registrations whoever moves up is recorded through
+     * @param bus           where whoever moves up is announced
+     * @return the waiting list
+     */
+    protected static EventGroupQueue newEventGroupQueue(EventRegistrationService registrations, DomainEventBus bus) {
+        var queue = new RegistrationQueueRepository();
+        return new EventGroupQueue(
+                newEventGroupSignUpRules(),
+                new EventGroupRegistrationRepository(),
+                new EventGroupPartnerRepository(),
+                eventRegistrationRepo,
+                queue,
+                new QueuePlacement(queue, eventRegistrationRepo),
+                registrations,
+                bus,
+                memberNameResolver);
+    }
+
     protected static EventGroupSignUpRules newEventGroupSignUpRules() {
         return new EventGroupSignUpRules(
-                newEventGroupService(), new EventGroupRepository(), eventRepo, occurrenceCalendar);
+                newEventGroupService(),
+                new EventGroupRepository(),
+                eventRepo,
+                occurrenceCalendar,
+                new EventCapacity(new RegistrationQueueRepository()));
     }
 
     private static EventGroupCommentTarget eventGroupCommentTarget() {
@@ -1242,7 +1275,8 @@ public abstract class RepositoryTestBase {
                         new EventRegistrationFieldRepository(),
                         eventRepo,
                         eventBus,
-                        memberNameResolver),
+                        memberNameResolver,
+                        TestEventPlaces.of(eventRegistrationRepo)),
                 new EventReminderService(eventReminderRepo),
                 new EquipmentNeedService(
                         equipmentNeedRepo,

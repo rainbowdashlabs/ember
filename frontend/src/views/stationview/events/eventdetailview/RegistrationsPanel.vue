@@ -15,6 +15,8 @@ import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import ErrorButton from '@/components/button/ErrorButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import EditButton from '@/components/button/EditButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
 import MutedText from '@/components/typography/MutedText.vue'
@@ -35,9 +37,11 @@ import {useSession} from '@/composables/useSession'
 import {formatDateTime} from '@/util/format'
 import {answerTotals, saysNotComing} from '@/util/eventAnswers'
 import ConfirmedRegistrationsTable from './ConfirmedRegistrationsTable.vue'
+import {queueableByAge, type StatusGroup} from './registrationGroups'
+import QueueSection from '../eventshared/QueueSection.vue'
+import {placesLabel, type Places} from '@/util/eventPlaces'
+import type {QueueEntry} from '@/util/registrationQueue'
 import WithdrawnAgreementsNotice from './WithdrawnAgreementsNotice.vue'
-
-interface StatusGroup { status: string; entries: RegistrationResponse[] }
 
 const props = defineProps<{
   /** Whether the appointment is a part of an event group, whose sign-ups are decided on the event group. */
@@ -51,6 +55,14 @@ const props = defineProps<{
   registrationFields?: EventRegistrationField[]
   /** The date in view, which is the one a table of who is coming is drawn for. */
   effectiveDate?: string | null
+  /** How the places of the date stand, null where the appointment limits nothing. */
+  places?: Places | null
+  /** Everybody waiting for a place on the date, first in line first, partners' members included. */
+  queue?: QueueEntry[]
+  /** Whether a partner decides about its own people, whose rows on the waiting list then offer nothing. */
+  partnerDecides?: (partnerId: number) => boolean
+  /** Whether an action on the list is under way. */
+  busy?: boolean
 }>()
 
 /**
@@ -113,6 +125,18 @@ const offeredUserTypes = computed(() => userTypesOf(props.unregisteredMembers).t
 
 const summaries = computed(() => (runsEvent.value ? answerTotals(fields.value, props.registrations) : []))
 
+/** Whether the reader decides the sign-ups, which is what the waiting list's order and moving up are for. */
+const decidesSignUps = computed(() => !props.eventGroupPart && hasPermission(StationPermission.EVENT_REGISTRATION))
+
+/**
+ * Whether a sign-up waiting for a decision can be put on the waiting list, which only an appointment
+ * with a participant limit keeps.
+ */
+const canQueue = computed(() => decidesSignUps.value && !!props.places)
+
+/** Every sign-up waiting for a decision that can go on the waiting list, in the order they signed up. */
+const queueablePending = computed(() => queueableByAge(props.pendingRegistrations))
+
 const manualRegisterMemberId = defineModel<string>('manualRegisterMemberId', {default: ''})
 
 const emit = defineEmits<{
@@ -120,6 +144,9 @@ const emit = defineEmits<{
   deny: [registrationId: number]
   editAnswers: [registrationId: number]
   manualRegister: []
+  queue: [registrationIds: number[]]
+  reorder: [entry: QueueEntry, position: number]
+  moveUp: [entry: QueueEntry]
 }>()
 
 /** Picking somebody out of the list puts them on it, which is the only thing this menu is for. */
@@ -137,14 +164,15 @@ const {picked, take} = useMemberPick(memberId => {
 const canEditAnswers = computed(() => runsEvent.value && fields.value.length > 0)
 
 const registrationSummary = computed(() => {
-  let accepted = 0, pending = 0, denied = 0, declined = 0
+  let accepted = 0, pending = 0, denied = 0, declined = 0, queued = 0
   for (const r of props.registrations) {
     if (r.status === RegistrationStatus.ACCEPTED) accepted++
     else if (r.status === RegistrationStatus.PENDING) pending++
     else if (r.status === RegistrationStatus.DENIED) denied++
+    else if (r.status === RegistrationStatus.QUEUED) queued++
     else if (saysNotComing(r, !!props.event.requiresRegistration)) declined++
   }
-  return {accepted, pending, denied, declined}
+  return {accepted, pending, denied, declined, queued}
 })
 
 function statusLabel(status: string): string {
@@ -188,13 +216,29 @@ function statusLabel(status: string): string {
       <ErrorBadge v-if="registrationSummary.denied > 0">
         {{ registrationSummary.denied }} {{ t('eventsRegistrations.deny') }}
       </ErrorBadge>
+      <SecondaryBadge v-if="registrationSummary.queued > 0" data-testid="summary-queued">
+        {{ t('registrationQueue.waitingCount', {count: registrationSummary.queued}) }}
+      </SecondaryBadge>
       <PrimaryBadge v-if="registrationSummary.declined > 0">
         {{ registrationSummary.declined }} {{ t('eventsUpcoming.declinedCount') }}
       </PrimaryBadge>
     </div>
+    <MutedText v-if="places" size="sm" tag="p" data-testid="registrations-places">{{ placesLabel(places, t) }}</MutedText>
 
     <div v-if="pendingRegistrations.length > 0" class="space-y-2">
-      <SubHeader>{{ statusLabel('PENDING') }}</SubHeader>
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <SubHeader>{{ statusLabel('PENDING') }}</SubHeader>
+        <SecondaryButton
+            v-if="canQueue && queueablePending.length > 1"
+            compact
+            :icon="['fas', 'list-ol']"
+            :disabled="busy"
+            data-testid="queue-all-pending"
+            @click="emit('queue', queueablePending)"
+        >
+          {{ t('registrationQueue.putAllOnList') }}
+        </SecondaryButton>
+      </div>
       <RegistrationStatsTable
           v-if="hasPermission(StationPermission.EVENT_REGISTRATION)"
           :fields="runsEvent ? fields : []"
@@ -202,8 +246,10 @@ function statusLabel(status: string): string {
           :stats="registrationStats"
           :show-actions="event.requiresConfirmation"
           :can-edit-answers="canEditAnswers"
+          :can-queue="canQueue"
           @accept="emit('accept', $event)"
           @deny="emit('deny', $event)"
+          @queue="id => emit('queue', [id])"
           @edit-answers="emit('editAnswers', $event)"
       />
       <template v-else>
@@ -219,6 +265,15 @@ function statusLabel(status: string): string {
         </NeutralContainer>
       </template>
     </div>
+
+    <QueueSection
+        :entries="queue ?? []"
+        :can-manage="decidesSignUps"
+        :partner-decides="partnerDecides"
+        :busy="busy"
+        @reorder="(entry, position) => emit('reorder', entry, position)"
+        @move-up="entry => emit('moveUp', entry)"
+    />
 
     <div v-for="group in nonPendingRegistrations" :key="group.status" class="space-y-2">
       <ConfirmedRegistrationsTable

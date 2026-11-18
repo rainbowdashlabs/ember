@@ -254,6 +254,16 @@ class EventChangePreviewServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void whoeverWaitsIsCountedAsToldAndMoved() {
+        var oneOff = create(StationEvent.EventType.ONE_TIME, null, today.plusDays(3), true);
+        register(oneOff, anna, today.plusDays(3), RegistrationStatus.QUEUED);
+
+        var counts = preview.preview(oneOff, later(oneOff, 24), EditScope.ALL);
+
+        assertEquals(new ChangePreview(1, true, "18:00", 1, 1), counts);
+    }
+
+    @Test
     void aPastAppointmentTellsNobodyAndAScopeNeedsItsDate() {
         var past = create(StationEvent.EventType.ONE_TIME, null, today.minusDays(3), true);
         register(past, anna, today.minusDays(3), RegistrationStatus.ACCEPTED);

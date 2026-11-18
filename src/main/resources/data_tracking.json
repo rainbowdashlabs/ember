@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:00f662b3df280afc0ba9385d80cc271e7c4168be2fe4892f66e202049f619c6c",
-  "generatedAt": "2026-11-17T14:22:36Z",
+  "schemaHash": "sha256:2f8ec750e8e5d289504778c298f8848d3201bd337829d1f79473abb246deb760",
+  "generatedAt": "2026-11-18T10:20:53Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -10755,7 +10755,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "Registration status: PENDING, CONFIRMED, CANCELLED."
+          "description": "PENDING, ACCEPTED, DENIED, DECLINED, WITHDRAWN, or QUEUED while waiting on the waiting list for a place."
         },
         {
           "name": "created_at",
@@ -11145,7 +11145,7 @@
     "event_group": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:45f06c4f8ac1b49e5f2711f998c5376c20d22ed3756111df3139a27f5cbd72f3",
+      "tableHash": "sha256:7a233f0d487f94451178a4fa106c775efcd94ec3b3e14efe480e2e73e3b60461",
       "columns": [
         {
           "name": "id",
@@ -11279,6 +11279,20 @@
           "nullable": false,
           "verified": true,
           "description": "When the event group was created."
+        },
+        {
+          "name": "queue_order",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "How the waiting list of the event group is ordered: TIME (oldest sign-up first) or FAIRNESS (highest fairness score first, ties by time)."
+        },
+        {
+          "name": "part_registration_limit",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "How many places each part has, for parts without a limit of their own; NULL for no limit. Counts accepted registrations of the part."
         }
       ],
       "foreignKeys": [
@@ -11694,7 +11708,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "PENDING, ACCEPTED, DENIED, DECLINED or WITHDRAWN, as for a member of this station."
+          "description": "PENDING, ACCEPTED, DENIED, DECLINED, WITHDRAWN or QUEUED, as for a member of this station."
         },
         {
           "name": "registered_at",
@@ -11736,6 +11750,94 @@
       },
       "description": "A partner station's member signed up for a shared event group. The chosen parts carry an event_federation_registration each."
     },
+    "event_group_queue": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:8b5657f1aed6bb9a6dbd7e476f8faa32e4579c3b3a7e222d232e1274992130dd",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "event_group_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The event group waited for."
+        },
+        {
+          "name": "sign_up_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The waiting sign-up of a member of this station; NULL for a partner's member."
+        },
+        {
+          "name": "partner_sign_up_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The waiting sign-up of a partner station's member; NULL for a member of this station."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The order of the list, lowest moves up first. Gaps are allowed; the position a member is shown is the rank."
+        },
+        {
+          "name": "score",
+          "type": "numeric",
+          "nullable": true,
+          "verified": true,
+          "description": "The fairness score the sign-up had when it joined the list, kept whatever the order so a list changed to fairness later can still use it."
+        },
+        {
+          "name": "joined_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the sign-up joined the list."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "event_group_id",
+          "refTable": "event_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "partner_sign_up_id",
+          "refTable": "event_group_partner_registration",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "sign_up_id",
+          "refTable": "event_group_registration",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Holds no member of its own: it points at a sign-up, which is exported with the member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Rows go with the sign-up they point at through ON DELETE CASCADE"
+      },
+      "description": "The waiting list of an event group: sign-ups with status QUEUED, each with the parts it chose, in the order they move up in."
+    },
     "event_group_registration": {
       "feature": "events",
       "scope": "STATION",
@@ -11767,7 +11869,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "PENDING, ACCEPTED, DENIED, DECLINED or WITHDRAWN, as for an appointment sign-up."
+          "description": "PENDING, ACCEPTED, DENIED, DECLINED, WITHDRAWN, or QUEUED while waiting on the waiting list, as for an appointment sign-up."
         },
         {
           "name": "registered_at",
@@ -11964,7 +12066,7 @@
     "event_group_set": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:d0f88ac20a6b9f0d693a3f7481d67c11c0c30d9560c2af9d0f6af02846eeb63f",
+      "tableHash": "sha256:938fd9d1724ceeb4d3c64b8a6ba997b1603737e54b8d9ac3820cab0755ab50e6",
       "columns": [
         {
           "name": "id",
@@ -12000,6 +12102,13 @@
           "nullable": false,
           "verified": true,
           "description": "Sort order of the set within the event group."
+        },
+        {
+          "name": "maximum",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "How many parts of the set a sign-up may choose at most; NULL for no maximum. Never below the minimum."
         }
       ],
       "foreignKeys": [
@@ -12413,7 +12522,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "Registration status: PENDING, CONFIRMED, CANCELLED."
+          "description": "PENDING, ACCEPTED, DENIED, DECLINED, WITHDRAWN, or QUEUED while waiting on the waiting list for a place."
         },
         {
           "name": "created_by",
@@ -12855,7 +12964,7 @@
     "event_template": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:64782299cd5ec85585ccdeefa8dd01d13a474417f86f1e751f739b38ff9a56fb",
+      "tableHash": "sha256:494a97dac805c51575f1ce446cb3e3d055e9d0d17b00bd90855e7715ddcd953a",
       "columns": [
         {
           "name": "id",
@@ -12975,6 +13084,13 @@
           "nullable": true,
           "verified": true,
           "description": "How many days before each date registration closes. Empty for no automatic close."
+        },
+        {
+          "name": "queue_order",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The waiting list order an appointment created from the template starts with: TIME or FAIRNESS."
         }
       ],
       "foreignKeys": [
@@ -28532,6 +28648,101 @@
       },
       "description": "Groups that members are auto-added to when using a registration code."
     },
+    "registration_queue": {
+      "feature": "events",
+      "scope": "STATION",
+      "tableHash": "sha256:21d1be3010581501e8c893a3b2b5260be5fd674b7f17f821a10e6028048438be",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "event_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The appointment waited for."
+        },
+        {
+          "name": "event_date",
+          "type": "date",
+          "nullable": false,
+          "verified": true,
+          "description": "The date of the appointment waited for; a series keeps one list per date."
+        },
+        {
+          "name": "registration_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The waiting sign-up of a member of this station; NULL for a partner's member."
+        },
+        {
+          "name": "federation_registration_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The waiting sign-up of a partner station's member; NULL for a member of this station."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The order of the list, lowest moves up next. Gaps are allowed; the position a member is shown is the rank."
+        },
+        {
+          "name": "score",
+          "type": "numeric",
+          "nullable": true,
+          "verified": true,
+          "description": "The fairness score the sign-up had when it joined the list, kept whatever the order so a list changed to fairness later can still use it."
+        },
+        {
+          "name": "joined_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the sign-up joined the list."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "event_id",
+          "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "federation_registration_id",
+          "refTable": "event_federation_registration",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "registration_id",
+          "refTable": "event_registration",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Holds no member of its own: it points at a sign-up, which is exported with the member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Rows go with the sign-up they point at through ON DELETE CASCADE"
+      },
+      "description": "The waiting list of one appointment date: sign-ups with status QUEUED in the order they move up in. Parts of an event group have none; their event group keeps the list."
+    },
     "saved_filter": {
       "feature": "members",
       "scope": "USER",
@@ -30463,7 +30674,7 @@
     "station_event": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:5474b5040664c431c1e0ebd809fa48307610e0ab7b2fb47cff91d85fc5a03a57",
+      "tableHash": "sha256:bfff8252513ccc25b80ed63eb3a415b9429eef414c24f27c31d7ddbaf450492b",
       "columns": [
         {
           "name": "id",
@@ -30695,6 +30906,13 @@
           "nullable": false,
           "verified": true,
           "description": "Whether the part has to be chosen by every sign-up of its event group while it takes place. It counts toward its block's minimum. Always FALSE for an appointment that is no part of an event group."
+        },
+        {
+          "name": "queue_order",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "How the waiting list of a full date is ordered: TIME (oldest sign-up first) or FAIRNESS (highest fairness score first, ties by time)."
         }
       ],
       "foreignKeys": [

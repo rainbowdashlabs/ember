@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -22,6 +24,10 @@ import java.util.Set;
  *
  * <p>A set may require single parts: every choice has to hold them while they take place, and they count
  * toward the set's minimum. A required part called off is required no more.
+ *
+ * <p>A set may also allow no more than a number of its parts, so two parts on the same topic become
+ * alternatives: "at least 1, at most 1". Only parts still taking place count toward the maximum, so a
+ * part called off never pushes a choice over it.
  */
 public final class EventGroupRules {
     private EventGroupRules() {}
@@ -37,11 +43,23 @@ public final class EventGroupRules {
      * @param minimum how many of its parts a sign-up has to choose
      * @param partIds the parts in the set
      * @param requiredPartIds the parts of the set every choice has to hold while they take place
+     * @param maximum how many of its parts taking place a choice may hold, or null for no maximum
      */
-    public record SetRule(int setId, String name, int minimum, Set<Integer> partIds, Set<Integer> requiredPartIds) {
+    public record SetRule(
+            int setId,
+            String name,
+            int minimum,
+            Set<Integer> partIds,
+            Set<Integer> requiredPartIds,
+            @Nullable Integer maximum) {
         /** A set from parts in any collection, each part counted once, requiring none of them. */
         public SetRule(int setId, String name, int minimum, Collection<Integer> partIds) {
-            this(setId, name, minimum, Set.copyOf(partIds), Set.of());
+            this(setId, name, minimum, Set.copyOf(partIds), Set.of(), null);
+        }
+
+        /** A set without a maximum. */
+        public SetRule(int setId, String name, int minimum, Set<Integer> partIds, Set<Integer> requiredPartIds) {
+            this(setId, name, minimum, partIds, requiredPartIds, null);
         }
 
         public SetRule {
@@ -58,11 +76,25 @@ public final class EventGroupRules {
      * @param required how many of its parts the choice has to hold, after cancellations
      * @param chosen   how many of its parts the choice holds
      * @param missingRequired the parts the set requires that take place and the choice does not hold
+     * @param maximum  how many of its parts taking place the choice may hold, or null for no maximum
+     * @param tooMany  how many parts taking place the choice holds beyond the maximum
      */
-    public record SetResult(int setId, String name, int required, int chosen, List<Integer> missingRequired) {
+    public record SetResult(
+            int setId,
+            String name,
+            int required,
+            int chosen,
+            List<Integer> missingRequired,
+            @Nullable Integer maximum,
+            int tooMany) {
         /** A result missing none of the parts the set requires. */
         public SetResult(int setId, String name, int required, int chosen) {
             this(setId, name, required, chosen, List.of());
+        }
+
+        /** A result of a set without a maximum. */
+        public SetResult(int setId, String name, int required, int chosen, List<Integer> missingRequired) {
+            this(setId, name, required, chosen, missingRequired, null, 0);
         }
 
         public SetResult {
@@ -115,6 +147,20 @@ public final class EventGroupRules {
     }
 
     /**
+     * The sets a choice holds more parts of than they allow, in the order the sets were given.
+     *
+     * @param sets      the event group's sets
+     * @param chosen    the parts chosen
+     * @param cancelled the parts called off
+     * @return every set the choice goes beyond, empty where it stays within all of them
+     */
+    public static List<SetResult> excesses(List<SetRule> sets, Set<Integer> chosen, Set<Integer> cancelled) {
+        return evaluate(sets, chosen, cancelled).stream()
+                .filter(result -> result.tooMany() > 0)
+                .toList();
+    }
+
+    /**
      * Whether a choice meets every set.
      *
      * @param sets      the event group's sets
@@ -128,10 +174,12 @@ public final class EventGroupRules {
 
     private static SetResult resultOf(SetRule set, Set<Integer> chosen, Set<Integer> cancelled) {
         int picked = 0;
+        int pickedTakingPlace = 0;
         int available = 0;
         for (int part : set.partIds()) {
             boolean isChosen = chosen.contains(part);
             if (isChosen) picked++;
+            if (isChosen && !cancelled.contains(part)) pickedTakingPlace++;
             if (isChosen || !cancelled.contains(part)) available++;
         }
         int required = Math.min(Math.max(set.minimum(), 0), available);
@@ -140,6 +188,8 @@ public final class EventGroupRules {
                 .filter(part -> !chosen.contains(part) && !cancelled.contains(part))
                 .sorted()
                 .toList();
-        return new SetResult(set.setId(), set.name(), required, picked, missingRequired);
+        Integer maximum = set.maximum();
+        int tooMany = maximum == null ? 0 : Math.max(0, pickedTakingPlace - maximum);
+        return new SetResult(set.setId(), set.name(), required, picked, missingRequired, maximum, tooMany);
     }
 }

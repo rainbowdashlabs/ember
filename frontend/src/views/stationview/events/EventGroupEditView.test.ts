@@ -141,8 +141,8 @@ describe('EventGroupEditView after a part changed', () => {
   const group = {id: 7, details: {name: 'Jugendflamme', description: null, registrationLimit: null, registrationDeadline: null,
     requiresConfirmation: false, color: null}}
 
-  function detailWith(minimum: number, parts: number) {
-    return {eventGroup: group, sets: [{id: 1, name: 'Übung', minimum}], questions: [], fields: [],
+  function detailWith(minimum: number, parts: number, maximum: number | null = null) {
+    return {eventGroup: group, sets: [{id: 1, name: 'Übung', minimum, maximum}], questions: [], fields: [],
       registration: YOUTH, view: YOUTH,
       parts: Array.from({length: parts}, (_, index) => ({eventId: index + 1, setId: 1}))}
   }
@@ -162,7 +162,7 @@ describe('EventGroupEditView after a part changed', () => {
     await (wrapper.findComponent({name: 'EventGroupPartsEditor'}).props('onChanged') as () => Promise<void>)()
     await flushPromises()
 
-    expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue')).toEqual([{id: 1, name: 'Übung', minimum: 2}])
+    expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue')).toEqual([{id: 1, name: 'Übung', minimum: 2, maximum: null}])
     expect(toast).toHaveBeenCalledOnce()
   })
 
@@ -175,7 +175,7 @@ describe('EventGroupEditView after a part changed', () => {
     await (wrapper.findComponent({name: 'EventGroupPartsEditor'}).props('onChanged') as () => Promise<void>)()
     await flushPromises()
 
-    expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue')).toEqual([{id: 1, name: 'Übung', minimum: 3}])
+    expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue')).toEqual([{id: 1, name: 'Übung', minimum: 3, maximum: null}])
     expect(toast).not.toHaveBeenCalled()
   })
 
@@ -183,14 +183,44 @@ describe('EventGroupEditView after a part changed', () => {
     api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(2, 3))
     const wrapper = mountEditor()
     await flushPromises()
-    await wrapper.findComponent({name: 'EventGroupSetsEditor'}).vm.$emit('update:modelValue', [{id: 1, name: 'Übung', minimum: 3}])
+    await wrapper.findComponent({name: 'EventGroupSetsEditor'}).vm.$emit('update:modelValue', [{id: 1, name: 'Übung', minimum: 3, maximum: null}])
 
     api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(2, 2))
     await (wrapper.findComponent({name: 'EventGroupPartsEditor'}).props('onChanged') as () => Promise<void>)()
     await flushPromises()
 
-    expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue')).toEqual([{id: 1, name: 'Übung', minimum: 2}])
+    expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue')).toEqual([{id: 1, name: 'Übung', minimum: 2, maximum: null}])
     expect(toast).toHaveBeenCalledOnce()
+  })
+
+  /** A maximum the server raised because a part became required reaches the form, which says so. */
+  it('takes a raised maximum into the form and says so', async () => {
+    api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(1, 3, 1))
+    const wrapper = mountEditor()
+    await flushPromises()
+
+    api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(2, 3, 2))
+    await (wrapper.findComponent({name: 'EventGroupPartsEditor'}).props('onChanged') as () => Promise<void>)()
+    await flushPromises()
+
+    expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue'))
+        .toEqual([{id: 1, name: 'Übung', minimum: 2, maximum: 2}])
+    expect(toast).toHaveBeenCalledWith(expect.stringContaining('höchstens 2 statt 1'))
+  })
+
+  it('leaves a maximum the form already holds high enough alone', async () => {
+    api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(1, 3, 1))
+    const wrapper = mountEditor()
+    await flushPromises()
+    await wrapper.findComponent({name: 'EventGroupSetsEditor'}).vm.$emit('update:modelValue', [{id: 1, name: 'Übung', minimum: 1, maximum: 3}])
+
+    api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(1, 3, 2))
+    await (wrapper.findComponent({name: 'EventGroupPartsEditor'}).props('onChanged') as () => Promise<void>)()
+    await flushPromises()
+
+    expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue'))
+        .toEqual([{id: 1, name: 'Übung', minimum: 1, maximum: 3}])
+    expect(toast).not.toHaveBeenCalled()
   })
 })
 

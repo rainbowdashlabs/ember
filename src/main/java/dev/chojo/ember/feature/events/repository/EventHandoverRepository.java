@@ -53,8 +53,9 @@ public class EventHandoverRepository {
     /**
      * Copies everything an appointment is set up with to another one: both audiences and how they
      * combine, the reminders, the questions and their values, the registration questions, the
-     * defaults of the attendance sheet, the files, the documents to bring, the sharing with partner
-     * stations with each partner's places, and the equipment every date needs.
+     * defaults of the attendance sheet, the order of the waiting list, the files, the documents to
+     * bring, the sharing with partner stations with each partner's places, and the equipment every
+     * date needs.
      *
      * @param source the appointment copied from
      * @param target the appointment copied to, which has none of these yet
@@ -64,7 +65,8 @@ public class EventHandoverRepository {
         for (var statement : List.of("""
                 UPDATE station_event t
                 SET restriction_mode      = s.restriction_mode,
-                    view_restriction_mode = s.view_restriction_mode
+                    view_restriction_mode = s.view_restriction_mode,
+                    queue_order           = s.queue_order
                 FROM station_event s
                 WHERE s.id = :source
                   AND t.id = :target;""", """

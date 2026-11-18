@@ -61,4 +61,31 @@ public class EventGroupSettingsRepository {
                 .map(DateSettingIds.map())
                 .first();
     }
+
+    /**
+     * The participant limit an appointment has of its own, without what its event group hands down.
+     *
+     * @param eventId the appointment
+     * @return its own limit, or null for none
+     */
+    public @Nullable Integer findOwnLimit(int eventId) {
+        return query("SELECT registration_limit FROM station_event WHERE id = :id;")
+                .single(call().bind("id", eventId))
+                .map(row -> row.getObject("registration_limit", Integer.class))
+                .first()
+                .orElse(null);
+    }
+
+    /**
+     * Gives a part of an event group places of its own, or takes them away so it takes the places per
+     * part of its event group again.
+     *
+     * @param eventId the part
+     * @param limit   its places, or null for the event group's
+     */
+    public void setOwnLimit(int eventId, @Nullable Integer limit) {
+        query("UPDATE station_event SET registration_limit = :limit WHERE id = :id AND event_group_set_id IS NOT NULL;")
+                .single(call().bind("id", eventId).bind("limit", limit))
+                .update();
+    }
 }

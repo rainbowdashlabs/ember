@@ -7,13 +7,18 @@ package dev.chojo.ember.feature.events.entity;
 
 /**
  * The possible states of an event registration.
+ *
+ * <p>{@link #QUEUED} is a sign-up waiting on the waiting list of a full appointment or event group. It
+ * holds no place and is not a decision yet: it counts neither as coming nor as an answer that says no,
+ * and it moves to {@link #ACCEPTED} when a place falls free.
  */
 public enum RegistrationStatus {
     PENDING,
     ACCEPTED,
     DENIED,
     DECLINED,
-    WITHDRAWN;
+    WITHDRAWN,
+    QUEUED;
 
     /**
      * Whether this answer, as the member's own, says they will not be at the appointment.
@@ -29,5 +34,15 @@ public enum RegistrationStatus {
      */
     public boolean saysNotComing(boolean registrationRequired) {
         return this == DECLINED || (this == WITHDRAWN && registrationRequired);
+    }
+
+    /**
+     * Whether the sign-up still stands: it holds a place, waits for a decision or waits on the waiting
+     * list. Such a sign-up can be taken back, and the member cannot sign up a second time beside it.
+     *
+     * @return true for PENDING, ACCEPTED and QUEUED
+     */
+    public boolean standing() {
+        return this == PENDING || this == ACCEPTED || this == QUEUED;
     }
 }

@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository.QueueOwner;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupCancelled;
 import dev.chojo.ember.feature.events.service.EventGroupRules.SetResult;
@@ -30,6 +31,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -60,6 +64,7 @@ public class EventGroupPartnerService {
     private final FederatedRegistrantService registrants;
     private final FederationRepository federationPartners;
     private final FederationTransport transport;
+    private final EventGroupQueue queue;
 
     @Inject
     public EventGroupPartnerService(
@@ -70,7 +75,9 @@ public class EventGroupPartnerService {
             EventRequirementService requirements,
             FederatedRegistrantService registrants,
             FederationRepository federationPartners,
-            FederationTransport transport) {
+            FederationTransport transport,
+            EventGroupQueue queue) {
+        this.queue = queue;
         this.eventGroups = eventGroups;
         this.rules = rules;
         this.partners = partners;
@@ -194,17 +201,19 @@ public class EventGroupPartnerService {
             var existing = partners.find(eventGroupId, partnerId, remoteMemberId);
             EventGroupSignUpRules.requireNoActiveSignUp(
                     existing.filter(EventGroupPartnerRegistration::active).isPresent());
-            rules.requireRoom(eventGroup, false);
             var parts = rules.lockParts(eventGroupId);
             var standing = rules.standing(stationId, parts);
             EventGroupSignUpRules.requireChoosable(partIds, parts.keySet(), standing, Set.of(), false);
             rules.requireRulesMet(eventGroupId, partIds, standing, false);
-            var status = EventGroupSignUpRules.initialStatus(eventGroup);
+            var status = queue.statusFor(eventGroup, partIds, parts, standing, false, null);
             existing.ifPresent(earlier ->
                     partners.findLinked(earlier.id()).forEach(registration -> partners.unlink(registration.id())));
             var stored = partners.signUp(eventGroupId, partnerId, remoteMemberId, status);
             for (int partId : EventGroupSignUpRules.ascending(partIds)) {
                 place(parts.get(partId), stored, status);
+            }
+            if (status == RegistrationStatus.QUEUED) {
+                queue.enqueue(eventGroup, QueueOwner.ofPartner(stored.id()), null);
             }
         });
         log.info("A member of partner {} signed up for event group {}", partnerId, eventGroupId);
@@ -224,7 +233,7 @@ public class EventGroupPartnerService {
     public PartnerStanding changeParts(
             int stationId, int eventGroupId, int partnerId, UUID remoteMemberId, Set<Integer> partIds) {
         Transactions.run(() -> {
-            rules.lockOpen(stationId, eventGroupId, false);
+            var eventGroup = rules.lockOpen(stationId, eventGroupId, false);
             var current = requireActive(eventGroupId, partnerId, remoteMemberId);
             var parts = rules.lockParts(eventGroupId);
             var standing = rules.standing(stationId, parts);
@@ -232,6 +241,11 @@ public class EventGroupPartnerService {
             EventGroupSignUpRules.requireChoosable(partIds, parts.keySet(), standing, held.keySet(), false);
             var dropped = EventGroupSignUpRules.requireDroppable(held.keySet(), partIds, standing, false);
             rules.requireRulesMet(eventGroupId, partIds, standing, false);
+            if (current.status() == RegistrationStatus.ACCEPTED) {
+                var added = new HashSet<>(partIds);
+                added.removeAll(held.keySet());
+                rules.requireRoomOnAdded(added, parts, standing, false);
+            }
             for (int partId : EventGroupSignUpRules.ascending(partIds)) {
                 if (!held.containsKey(partId)) place(parts.get(partId), current, current.status());
             }
@@ -240,6 +254,7 @@ public class EventGroupPartnerService {
                 partners.restate(registration.id(), EventGroupSignUpRules.givenUp(registration.status()));
                 partners.unlink(registration.id());
             }
+            queue.fill(eventGroup, parts, standing);
         });
         return standingOf(eventGroupId, partnerId, remoteMemberId);
     }
@@ -254,9 +269,10 @@ public class EventGroupPartnerService {
      */
     public void withdraw(int stationId, int eventGroupId, int partnerId, UUID remoteMemberId) {
         Transactions.run(() -> {
-            rules.lock(stationId, eventGroupId);
+            var eventGroup = rules.lock(stationId, eventGroupId);
             var current = requireActive(eventGroupId, partnerId, remoteMemberId);
-            var standing = rules.standing(stationId, rules.lockParts(eventGroupId));
+            var parts = rules.lockParts(eventGroupId);
+            var standing = rules.standing(stationId, parts);
             partners.updateStatus(current.id(), EventGroupSignUpRules.givenUp(current.status()));
             for (var registration : partners.findLinked(current.id())) {
                 if (!standing.tookPlace(registration.eventId())) {
@@ -264,12 +280,14 @@ public class EventGroupPartnerService {
                 }
                 partners.unlink(registration.id());
             }
+            if (current.status() == RegistrationStatus.ACCEPTED) queue.fill(eventGroup, parts, standing);
         });
         log.info("A member of partner {} withdrew from event group {}", partnerId, eventGroupId);
     }
 
     /**
-     * Accepts or turns down a partner member's sign-up, and every part chosen with it.
+     * Accepts or turns down a partner member's sign-up, and every part chosen with it, an acceptance going
+     * beyond the limit without being asked; routes use the form that takes the choice.
      *
      * @param stationId    this station
      * @param eventGroupId the event group
@@ -277,19 +295,96 @@ public class EventGroupPartnerService {
      * @param decision     {@link RegistrationStatus#ACCEPTED} or {@link RegistrationStatus#DENIED}
      */
     public void decide(int stationId, int eventGroupId, int signUpId, RegistrationStatus decision) {
+        decide(stationId, eventGroupId, signUpId, decision, true);
+    }
+
+    /**
+     * Accepts or turns down a partner member's sign-up, and every part chosen with it. Accepting a choice
+     * that does not fit refuses unless whoever decides goes beyond the limit.
+     *
+     * @param stationId    this station
+     * @param eventGroupId the event group
+     * @param signUpId     the partner sign-up
+     * @param decision     {@link RegistrationStatus#ACCEPTED} or {@link RegistrationStatus#DENIED}
+     * @param overLimit    whether an acceptance may go beyond the limit
+     */
+    public void decide(int stationId, int eventGroupId, int signUpId, RegistrationStatus decision, boolean overLimit) {
         Transactions.run(() -> {
-            rules.lockForDecision(stationId, eventGroupId, decision);
+            var eventGroup = rules.lockForDecision(stationId, eventGroupId, decision);
             var current = partners.findById(signUpId)
                     .filter(found -> found.eventGroupId() == eventGroupId)
                     .filter(found -> found.active() || found.status() == RegistrationStatus.DENIED)
                     .orElseThrow(EventRefusal.EVENT_GROUP_NOT_SIGNED_UP::raise);
-            rules.lockParts(eventGroupId);
+            var parts = rules.lockParts(eventGroupId);
+            var tied = partners.findLinked(current.id());
+            if (decision == RegistrationStatus.ACCEPTED && current.status() != RegistrationStatus.ACCEPTED) {
+                queue.requireRoomToAccept(
+                        eventGroup,
+                        tied.stream().map(EventFederationRegistration::eventId).collect(Collectors.toSet()),
+                        parts,
+                        rules.standing(stationId, parts),
+                        overLimit);
+            }
             partners.updateStatus(current.id(), decision);
-            for (var registration : partners.findLinked(current.id())) {
+            for (var registration : tied) {
                 partners.restate(registration.id(), decision);
+            }
+            if (current.status() == RegistrationStatus.ACCEPTED && decision != RegistrationStatus.ACCEPTED) {
+                queue.fill(eventGroup, parts, rules.standing(stationId, parts));
             }
         });
         log.info("Partner sign-up {} for event group {} is now {}", signUpId, eventGroupId, decision);
+    }
+
+    /**
+     * Puts partner members' sign-ups waiting for a decision onto the event group's waiting list, in
+     * sign-up order, placed by the order the list keeps. Nothing changes unless every one of them waits
+     * for a decision.
+     *
+     * @param stationId    this station
+     * @param eventGroupId the event group
+     * @param signUpIds    the partner sign-ups
+     */
+    public void moveToQueue(int stationId, int eventGroupId, Collection<Integer> signUpIds) {
+        Transactions.run(() -> {
+            var eventGroup = rules.lock(stationId, eventGroupId);
+            queue.requireLimit(eventGroup, rules.lockParts(eventGroupId));
+            var pending = signUpIds.stream()
+                    .distinct()
+                    .map(id -> partners.findById(id)
+                            .filter(found -> found.eventGroupId() == eventGroupId)
+                            .filter(found -> found.status() == RegistrationStatus.PENDING)
+                            .orElseThrow(EventRefusal.EVENT_GROUP_NOT_PENDING_FOR_QUEUE::raise))
+                    .sorted(Comparator.comparing(EventGroupPartnerRegistration::registeredAt)
+                            .thenComparing(EventGroupPartnerRegistration::id))
+                    .toList();
+            for (var signUp : pending) {
+                partners.updateStatus(signUp.id(), RegistrationStatus.QUEUED);
+                for (var registration : partners.findLinked(signUp.id())) {
+                    partners.restate(registration.id(), RegistrationStatus.QUEUED);
+                }
+                queue.enqueue(eventGroup, QueueOwner.ofPartner(signUp.id()), null);
+            }
+        });
+    }
+
+    /**
+     * Moves a partner member's sign-up to another place in line on the event group's waiting list.
+     *
+     * @param stationId    this station
+     * @param eventGroupId the event group
+     * @param signUpId     the partner sign-up, which waits on the list
+     * @param rank         the place in line it takes, 1 moving up next; beyond the end it goes last
+     */
+    public void moveInQueue(int stationId, int eventGroupId, int signUpId, int rank) {
+        Transactions.run(() -> {
+            var eventGroup = rules.lock(stationId, eventGroupId);
+            partners.findById(signUpId)
+                    .filter(found -> found.eventGroupId() == eventGroupId)
+                    .filter(found -> found.status() == RegistrationStatus.QUEUED)
+                    .orElseThrow(EventRefusal.EVENT_GROUP_NOT_QUEUED::raise);
+            queue.moveTo(eventGroup, QueueOwner.ofPartner(signUpId), rank);
+        });
     }
 
     /**
@@ -328,13 +423,14 @@ public class EventGroupPartnerService {
     public List<PartnerStanding> standings(int eventGroupId, int partnerId, List<UUID> remoteMemberIds) {
         var evaluate = rules.evaluator(eventGroupId);
         var linked = partners.findLinkedByEventGroup(eventGroupId);
+        var ranks = queue.ranks(eventGroupId);
         var byMember = partners.findByEventGroup(eventGroupId).stream()
                 .filter(signUp -> signUp.partnerId() == partnerId)
                 .collect(Collectors.toMap(
                         EventGroupPartnerRegistration::remoteMemberId, Function.identity(), (first, second) -> first));
         return remoteMemberIds.stream()
                 .map(member -> Optional.ofNullable(byMember.get(member))
-                        .map(signUp -> standing(signUp, linked, evaluate))
+                        .map(signUp -> standing(signUp, linked, evaluate, ranks))
                         .orElseGet(() -> notSignedUp(member)))
                 .toList();
     }
@@ -342,12 +438,15 @@ public class EventGroupPartnerService {
     private PartnerStanding standingOf(int eventGroupId, int partnerId, UUID remoteMemberId) {
         return partners.find(eventGroupId, partnerId, remoteMemberId)
                 .map(signUp -> standing(
-                        signUp, Map.of(signUp.id(), partners.findLinked(signUp.id())), rules.evaluator(eventGroupId)))
+                        signUp,
+                        Map.of(signUp.id(), partners.findLinked(signUp.id())),
+                        rules.evaluator(eventGroupId),
+                        queue.ranks(eventGroupId)))
                 .orElseGet(() -> notSignedUp(remoteMemberId));
     }
 
     private static PartnerStanding notSignedUp(UUID remoteMemberId) {
-        return new PartnerStanding(remoteMemberId, null, null, List.of(), List.of());
+        return new PartnerStanding(remoteMemberId, null, null, List.of(), List.of(), null);
     }
 
     /**
@@ -362,19 +461,21 @@ public class EventGroupPartnerService {
         eventGroups.requireEventGroup(stationId, eventGroupId);
         var evaluate = rules.evaluator(eventGroupId);
         var linked = partners.findLinkedByEventGroup(eventGroupId);
+        var ranks = queue.ranks(eventGroupId);
         return partners.findByEventGroup(eventGroupId).stream()
                 .filter(signUp -> signUp.active() || signUp.status() == RegistrationStatus.DENIED)
                 .map(signUp -> new PartnerSignUp(
                         signUp.id(),
                         registrants.identify(signUp.partnerId(), signUp.remoteMemberId()),
-                        standing(signUp, linked, evaluate)))
+                        standing(signUp, linked, evaluate, ranks)))
                 .toList();
     }
 
     private static PartnerStanding standing(
             EventGroupPartnerRegistration signUp,
             Map<Integer, List<EventFederationRegistration>> linked,
-            Function<Set<Integer>, List<SetResult>> evaluate) {
+            Function<Set<Integer>, List<SetResult>> evaluate,
+            Map<QueueOwner, Integer> ranks) {
         var counted = linked.getOrDefault(signUp.id(), List.of()).stream()
                 .filter(registration -> EventGroupSignUpRules.counts(registration.status(), signUp.status()))
                 .map(EventFederationRegistration::eventId)
@@ -384,7 +485,8 @@ public class EventGroupPartnerService {
                 signUp.status(),
                 signUp.registeredAt(),
                 counted.stream().sorted().toList(),
-                evaluate.apply(counted));
+                evaluate.apply(counted),
+                ranks.get(QueueOwner.ofPartner(signUp.id())));
     }
 
     private EventGroupPartnerRegistration requireActive(int eventGroupId, int partnerId, UUID remoteMemberId) {
@@ -413,13 +515,15 @@ public class EventGroupPartnerService {
      * @param registeredAt when they signed up, or null
      * @param parts        the parts that count for the rules, in id order
      * @param sets         how those parts meet every set
+     * @param queuePosition the place in line on the waiting list, or null where the sign-up does not wait
      */
     public record PartnerStanding(
             UUID memberUid,
             @Nullable RegistrationStatus status,
             @Nullable Instant registeredAt,
             List<Integer> parts,
-            List<SetResult> sets) {}
+            List<SetResult> sets,
+            @Nullable Integer queuePosition) {}
 
     /**
      * A partner member's sign-up as this station's event group page lists it.
