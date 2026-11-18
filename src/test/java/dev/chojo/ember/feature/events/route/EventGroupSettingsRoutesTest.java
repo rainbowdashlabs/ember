@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventGroupPartSettings;
 import dev.chojo.ember.feature.events.entity.EventGroupSettings;
+import dev.chojo.ember.feature.events.service.EventGroupRegistrationService;
 import dev.chojo.ember.feature.events.service.EventGroupSettingsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,7 @@ class EventGroupSettingsRoutesTest {
 
     private EventGroupSettingsService settings;
     private RouteHarness harness;
+    private EventGroupRegistrationService signUps;
 
     @BeforeEach
     void serve() {
@@ -45,7 +47,8 @@ class EventGroupSettingsRoutesTest {
         when(settings.ofPart(STATION_ID, 11))
                 .thenReturn(Optional.of(new EventGroupPartSettings(EVENT_GROUP_ID, null, 8, stored, null, null)));
         when(settings.ofPart(STATION_ID, 12)).thenReturn(Optional.empty());
-        harness = RouteHarness.serving(new EventGroupSettingsRoutes(settings));
+        signUps = mock(EventGroupRegistrationService.class);
+        harness = RouteHarness.serving(new EventGroupSettingsRoutes(settings, signUps));
     }
 
     @Test
@@ -112,5 +115,6 @@ class EventGroupSettingsRoutesTest {
         var part = json(harness.call(STATION_ID, "PUT", path, "{\"limit\": 4}", StationPermission.EVENT_EDIT));
         assertEquals(4, part.get("ownRegistrationLimit").asInt());
         assertEquals(10, part.get("partRegistrationLimit").asInt());
+        verify(signUps).moveUp(STATION_ID, EVENT_GROUP_ID);
     }
 }

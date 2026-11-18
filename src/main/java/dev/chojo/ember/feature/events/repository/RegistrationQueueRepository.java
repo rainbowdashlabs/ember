@@ -267,6 +267,21 @@ public class RegistrationQueueRepository {
     }
 
     /**
+     * The category an event group files its parts under, which the fairness score of its waiting list
+     * reads.
+     *
+     * @param eventGroupId the event group
+     * @return its category, or null for none
+     */
+    public @Nullable Integer categoryOfEventGroup(int eventGroupId) {
+        return query("SELECT category_id FROM event_group WHERE id = :id;")
+                .single(call().bind("id", eventGroupId))
+                .map(row -> row.getObject("category_id", Integer.class))
+                .first()
+                .orElse(null);
+    }
+
+    /**
      * The order of an event group's waiting list.
      *
      * @param eventGroupId the event group

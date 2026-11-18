@@ -20149,6 +20149,102 @@
         } ]
       }
     },
+    "/api/v1/events/groups/{eventGroupId}/partner-sign-ups/queue" : {
+      "post" : {
+        "summary" : "Put partner members' event group sign-ups waiting for a decision onto the waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventGroupQueueRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/groups/{eventGroupId}/partner-sign-ups/{signUpId}/queue-position" : {
+      "put" : {
+        "summary" : "Move a partner member's event group sign-up to another place in line on the waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "signUpId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventGroupQueuePositionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/groups/{eventGroupId}/partner-sign-ups/{signUpId}/status" : {
       "put" : {
         "summary" : "Accept or turn down a partner member's event group sign-up and every part chosen with it",
@@ -20821,6 +20917,122 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/events/groups/{eventGroupId}/sign-ups/queue" : {
+      "post" : {
+        "summary" : "Put event group sign-ups waiting for a decision onto the event group's waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventGroupQueueRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/groups/{eventGroupId}/sign-ups/{memberId}/queue-position" : {
+      "put" : {
+        "summary" : "Move an event group sign-up to another place in line on the waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventGroupId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventGroupQueuePositionRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/events/groups/{eventGroupId}/sign-ups/{memberId}/status" : {
@@ -64419,6 +64631,9 @@
         "properties" : {
           "status" : {
             "$ref" : "#/components/schemas/RegistrationStatus"
+          },
+          "overLimit" : {
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -64781,9 +64996,34 @@
             "items" : {
               "$ref" : "#/components/schemas/SetResult"
             }
+          },
+          "queuePosition" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "member", "status", "registeredAt", "parts", "sets" ]
+        "required" : [ "id", "member", "status", "registeredAt", "parts", "sets", "queuePosition" ]
+      },
+      "EventGroupQueuePositionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "position" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        }
+      },
+      "EventGroupQueueRequest" : {
+        "type" : "object",
+        "properties" : {
+          "ids" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
       },
       "EventGroupSet" : {
         "type" : "object",
@@ -64946,9 +65186,13 @@
           },
           "mayRegister" : {
             "type" : "boolean"
+          },
+          "queuePosition" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "memberId", "member", "status", "registeredAt", "parts", "sets", "answers", "answersMissing", "mayRegister" ]
+        "required" : [ "memberId", "member", "status", "registeredAt", "parts", "sets", "answers", "answersMissing", "mayRegister", "queuePosition" ]
       },
       "EventGroupSignUpRequest" : {
         "type" : "object",
@@ -64969,6 +65213,13 @@
             "items" : {
               "$ref" : "#/components/schemas/EventRegistrationFieldValue"
             }
+          },
+          "whenFull" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/WhenFull"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -64995,9 +65246,13 @@
           "holding" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "queued" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "details", "cancelled", "cancelReason", "partCount", "holding" ]
+        "required" : [ "id", "details", "cancelled", "cancelReason", "partCount", "holding", "queued" ]
       },
       "EventItem" : {
         "type" : "object",

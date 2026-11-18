@@ -49,10 +49,11 @@ public class EventGroupRepository {
                     WHERE s.event_group_id = g.id) AS part_count,
                    (SELECT count(*)
                     FROM event_group_registration r
-                    WHERE r.event_group_id = g.id AND r.status IN ('PENDING', 'ACCEPTED'))
+                    WHERE r.event_group_id = g.id AND r.status = 'ACCEPTED')
                        + (SELECT count(*)
                           FROM event_group_partner_registration p
-                          WHERE p.event_group_id = g.id AND p.status IN ('PENDING', 'ACCEPTED')) AS holding
+                          WHERE p.event_group_id = g.id AND p.status = 'ACCEPTED') AS holding,
+                   (SELECT count(*) FROM event_group_queue q WHERE q.event_group_id = g.id) AS queued
             FROM event_group g
             WHERE %s;""";
 
@@ -330,7 +331,7 @@ public class EventGroupRepository {
     }
 
     private static EventGroupTally tallyOf(Row row) throws SQLException {
-        return new EventGroupTally(row.getInt("part_count"), row.getInt("holding"));
+        return new EventGroupTally(row.getInt("part_count"), row.getInt("holding"), row.getInt("queued"));
     }
 
     /**
@@ -509,17 +510,26 @@ public class EventGroupRepository {
 
     /**
      * Unties the registrations of an appointment from the event group sign-ups they were chosen with, so
-     * the appointment's sign-ups stand on their own once it is no part of an event group.
+     * the appointment's sign-ups stand on their own once it is no part of an event group. A registration
+     * that only waited with its event group sign-up ends: the appointment has no waiting list of its own
+     * that it stood on, and its sign-up keeps waiting for the parts still in the event group. It ends the
+     * way a date that went away ends a registration, as no answer of the member's.
      *
      * @param eventId the appointment
      */
     public void untieRegistrations(int eventId) {
-        query("UPDATE event_registration SET group_registration_id = NULL WHERE event_id = :event_id;")
-                .single(call().bind("event_id", eventId))
-                .update();
+        query("""
+                UPDATE event_registration
+                SET status            = CASE WHEN status = 'QUEUED' THEN 'WITHDRAWN' ELSE status END,
+                    previous_status   = CASE WHEN status = 'QUEUED' THEN NULL ELSE previous_status END,
+                    status_changed_at = CASE WHEN status = 'QUEUED' THEN now() ELSE status_changed_at END,
+                    group_registration_id = NULL
+                WHERE event_id = :event_id;""").single(call().bind("event_id", eventId)).update();
         query("""
                 UPDATE event_federation_registration
-                SET group_partner_registration_id = NULL
+                SET status            = CASE WHEN status = 'QUEUED' THEN 'WITHDRAWN' ELSE status END,
+                    status_changed_at = CASE WHEN status = 'QUEUED' THEN now() ELSE status_changed_at END,
+                    group_partner_registration_id = NULL
                 WHERE event_id = :event_id;""").single(call().bind("event_id", eventId)).update();
     }
 

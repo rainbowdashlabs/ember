@@ -12,11 +12,15 @@ import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.entity.EventGroupPartState;
 import dev.chojo.ember.feature.events.entity.EventGroupRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.QueueEntry;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.entity.WhenFull;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository.QueueOwner;
 import dev.chojo.ember.feature.events.service.EventGroupRules.SetResult;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.util.sql.Transactions;
@@ -26,6 +30,8 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -63,6 +69,8 @@ public class EventGroupRegistrationService {
     private final DomainEventBus eventBus;
     private final MemberNameResolver names;
     private final EventGroupQuestionService questions;
+    private final EventGroupQueue queue;
+    private final RegistrationQueueRepository queueLists;
 
     @Inject
     public EventGroupRegistrationService(
@@ -73,7 +81,9 @@ public class EventGroupRegistrationService {
             DomainEventBus eventBus,
             MemberNameResolver names,
             EventGroupQuestionService questions,
-            EventGroupSignUpRules rules) {
+            EventGroupSignUpRules rules,
+            EventGroupQueue queue,
+            RegistrationQueueRepository queueLists) {
         this.eventGroups = eventGroups;
         this.rules = rules;
         this.signUps = signUps;
@@ -82,10 +92,13 @@ public class EventGroupRegistrationService {
         this.eventBus = eventBus;
         this.names = names;
         this.questions = questions;
+        this.queue = queue;
+        this.queueLists = queueLists;
     }
 
     /**
-     * Signs a member up for an event group with a choice of its parts.
+     * Signs a member up for an event group with a choice of its parts. Whoever runs events signing up
+     * here goes beyond every limit without being asked; routes use the form that takes their choice.
      *
      * @param stationId    the station asking
      * @param eventGroupId the event group
@@ -105,19 +118,54 @@ public class EventGroupRegistrationService {
             Map<Integer, String> answers,
             @Nullable Integer createdBy,
             boolean override) {
+        return register(
+                stationId,
+                eventGroupId,
+                memberId,
+                partIds,
+                answers,
+                createdBy,
+                override,
+                override ? WhenFull.OVER_LIMIT : null);
+    }
+
+    /**
+     * Signs a member up for an event group with a choice of its parts. A choice that does not fit waits on
+     * the waiting list; whoever runs events signing somebody up has to choose between the list and going
+     * beyond the limit.
+     *
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
+     * @param memberId     the member
+     * @param partIds      the chosen parts
+     * @param answers      the answers to the event group's questions, keyed by question id
+     * @param createdBy    the member who signs somebody else up, or null
+     * @param override     whether whoever runs events signs up, which passes the deadline, parts already
+     *                     past and the rules
+     * @param choice       what whoever runs events chose for a choice that does not fit, or null
+     * @return the sign-up
+     */
+    public EventGroupRegistration register(
+            int stationId,
+            int eventGroupId,
+            int memberId,
+            Set<Integer> partIds,
+            Map<Integer, String> answers,
+            @Nullable Integer createdBy,
+            boolean override,
+            @Nullable WhenFull choice) {
         var written = new ArrayList<EventRegistration>();
         var signUp = Transactions.call(() -> {
             var eventGroup = rules.lockOpen(stationId, eventGroupId, override);
             var existing = signUps.find(eventGroupId, memberId);
             EventGroupSignUpRules.requireNoActiveSignUp(
                     existing.filter(EventGroupRegistration::active).isPresent());
-            rules.requireRoom(eventGroup, override);
             var parts = rules.lockParts(eventGroupId);
             var standing = rules.standing(stationId, parts);
             EventGroupSignUpRules.requireChoosable(partIds, parts.keySet(), standing, Set.of(), override);
             rules.requireRulesMet(eventGroupId, partIds, standing, override);
             var resolved = questions.resolveAnswers(eventGroupId, answers);
-            var status = EventGroupSignUpRules.initialStatus(eventGroup);
+            var status = queue.statusFor(eventGroup, partIds, parts, standing, override, choice);
             existing.ifPresent(earlier -> registrations.findLinkedToEventGroup(earlier.id()).stream()
                     .filter(registration -> !partIds.contains(registration.eventId()))
                     .forEach(registration ->
@@ -127,6 +175,7 @@ public class EventGroupRegistrationService {
             for (int partId : EventGroupSignUpRules.ascending(partIds)) {
                 written.add(place(parts.get(partId), memberId, status, createdBy, stored.id()));
             }
+            if (status == RegistrationStatus.QUEUED) queue.enqueue(eventGroup, QueueOwner.local(stored.id()), memberId);
             return stored;
         });
         registrationService.recordedAll(written);
@@ -155,7 +204,7 @@ public class EventGroupRegistrationService {
             boolean override) {
         var written = new ArrayList<EventRegistration>();
         var signUp = Transactions.call(() -> {
-            rules.lockOpen(stationId, eventGroupId, override);
+            var eventGroup = rules.lockOpen(stationId, eventGroupId, override);
             var current = requireActive(eventGroupId, memberId);
             var parts = rules.lockParts(eventGroupId);
             var standing = rules.standing(stationId, parts);
@@ -163,6 +212,11 @@ public class EventGroupRegistrationService {
             EventGroupSignUpRules.requireChoosable(partIds, parts.keySet(), standing, held.keySet(), override);
             EventGroupSignUpRules.requireDroppable(held.keySet(), partIds, standing, override);
             rules.requireRulesMet(eventGroupId, partIds, standing, override);
+            if (current.status() == RegistrationStatus.ACCEPTED) {
+                var added = new HashSet<>(partIds);
+                added.removeAll(held.keySet());
+                rules.requireRoomOnAdded(added, parts, standing, override);
+            }
             for (int partId : EventGroupSignUpRules.ascending(partIds)) {
                 if (!held.containsKey(partId)) {
                     written.add(place(parts.get(partId), memberId, current.status(), createdBy, current.id()));
@@ -174,7 +228,8 @@ public class EventGroupRegistrationService {
                             registration, EventGroupSignUpRules.givenUp(registration.status())));
                 }
             }
-            return current;
+            queue.fill(eventGroup, parts, standing);
+            return signUps.find(eventGroupId, memberId).orElse(current);
         });
         registrationService.recordedAll(written);
         return signUp;
@@ -220,7 +275,8 @@ public class EventGroupRegistrationService {
         var freed = Transactions.call(() -> {
             var eventGroup = rules.lock(stationId, eventGroupId);
             var signUp = requireActive(eventGroupId, memberId);
-            var standing = rules.standing(stationId, rules.lockParts(eventGroupId));
+            var parts = rules.lockParts(eventGroupId);
+            var standing = rules.standing(stationId, parts);
             signUps.updateStatus(signUp.id(), EventGroupSignUpRules.givenUp(signUp.status()));
             questions.forgetAnswers(signUp.id());
             for (var registration : registrations.findLinkedToEventGroup(signUp.id())) {
@@ -229,14 +285,17 @@ public class EventGroupRegistrationService {
                         : EventGroupSignUpRules.givenUp(registration.status());
                 written.add(registrationService.releaseFromEventGroup(registration, endsWith));
             }
-            return signUp.status() == RegistrationStatus.ACCEPTED ? eventGroup : null;
+            if (signUp.status() != RegistrationStatus.ACCEPTED) return null;
+            queue.fill(eventGroup, parts, standing);
+            return eventGroup;
         });
         registrationService.recordedAll(written);
         if (freed != null) announce(freed, memberId, RegistrationStatus.WITHDRAWN);
     }
 
     /**
-     * Accepts or turns down a sign-up, and every part chosen with it. A called-off event group accepts
+     * Accepts or turns down a sign-up, and every part chosen with it, an acceptance going beyond the limit
+     * without being asked; routes use the form that takes the choice. A called-off event group accepts
      * nobody.
      *
      * @param stationId    the station asking
@@ -246,6 +305,22 @@ public class EventGroupRegistrationService {
      * @return the sign-up as it is now
      */
     public EventGroupRegistration decide(int stationId, int eventGroupId, int memberId, RegistrationStatus decision) {
+        return decide(stationId, eventGroupId, memberId, decision, true);
+    }
+
+    /**
+     * Accepts or turns down a sign-up, and every part chosen with it. Accepting a choice that does not fit
+     * refuses unless whoever decides goes beyond the limit. A called-off event group accepts nobody.
+     *
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
+     * @param memberId     the member
+     * @param decision     {@link RegistrationStatus#ACCEPTED} or {@link RegistrationStatus#DENIED}
+     * @param overLimit    whether an acceptance may go beyond the limit
+     * @return the sign-up as it is now
+     */
+    public EventGroupRegistration decide(
+            int stationId, int eventGroupId, int memberId, RegistrationStatus decision, boolean overLimit) {
         var written = new ArrayList<EventRegistration>();
         var decided = new ArrayList<EventGroup>();
         var signUp = Transactions.call(() -> {
@@ -254,16 +329,108 @@ public class EventGroupRegistrationService {
             var current = signUps.find(eventGroupId, memberId)
                     .filter(found -> found.active() || found.status() == RegistrationStatus.DENIED)
                     .orElseThrow(EventRefusal.EVENT_GROUP_NOT_SIGNED_UP::raise);
-            rules.lockParts(eventGroupId);
+            var parts = rules.lockParts(eventGroupId);
+            var tied = registrations.findLinkedToEventGroup(current.id());
+            if (decision == RegistrationStatus.ACCEPTED && current.status() != RegistrationStatus.ACCEPTED) {
+                queue.requireRoomToAccept(
+                        eventGroup,
+                        tied.stream().map(EventRegistration::eventId).collect(Collectors.toSet()),
+                        parts,
+                        rules.standing(stationId, parts),
+                        overLimit);
+            }
             signUps.updateStatus(current.id(), decision);
-            for (var registration : registrations.findLinkedToEventGroup(current.id())) {
+            for (var registration : tied) {
                 written.add(registrationService.restateForEventGroup(registration, decision));
+            }
+            if (current.status() == RegistrationStatus.ACCEPTED && decision != RegistrationStatus.ACCEPTED) {
+                queue.fill(eventGroup, parts, rules.standing(stationId, parts));
             }
             return signUps.find(eventGroupId, memberId).orElseThrow();
         });
         registrationService.recordedAll(written);
         announce(decided.getFirst(), memberId, decision);
         return signUp;
+    }
+
+    /**
+     * Moves people up from the event group's waiting list into places that are free now, such as after
+     * its limit on people or its places per part were raised.
+     *
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
+     * @return this station's members who moved up
+     */
+    public List<Integer> moveUp(int stationId, int eventGroupId) {
+        return Transactions.call(() -> {
+            var eventGroup = rules.lock(stationId, eventGroupId);
+            var parts = rules.lockParts(eventGroupId);
+            return queue.fill(eventGroup, parts, rules.standing(stationId, parts));
+        });
+    }
+
+    /**
+     * Puts sign-ups waiting for a decision onto the event group's waiting list, the way whoever runs an
+     * event group that confirms its sign-ups turns down the ones it cannot take yet without turning them
+     * away. They join in sign-up order, oldest first, placed by the order the list keeps. Nothing
+     * changes unless every one of them waits for a decision and the event group limits its places.
+     *
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
+     * @param memberIds    the members whose sign-ups go onto the list
+     */
+    public void moveToQueue(int stationId, int eventGroupId, Collection<Integer> memberIds) {
+        var written = new ArrayList<EventRegistration>();
+        Transactions.run(() -> {
+            var eventGroup = rules.lock(stationId, eventGroupId);
+            var parts = rules.lockParts(eventGroupId);
+            queue.requireLimit(eventGroup, parts);
+            var pending = memberIds.stream()
+                    .distinct()
+                    .map(memberId -> signUps.find(eventGroupId, memberId)
+                            .filter(found -> found.status() == RegistrationStatus.PENDING)
+                            .orElseThrow(EventRefusal.EVENT_GROUP_NOT_PENDING_FOR_QUEUE::raise))
+                    .sorted(Comparator.comparing(EventGroupRegistration::registeredAt)
+                            .thenComparing(EventGroupRegistration::id))
+                    .toList();
+            for (var signUp : pending) {
+                signUps.updateStatus(signUp.id(), RegistrationStatus.QUEUED);
+                for (var registration : registrations.findLinkedToEventGroup(signUp.id())) {
+                    written.add(registrationService.restateForEventGroup(registration, RegistrationStatus.QUEUED));
+                }
+                queue.enqueue(eventGroup, QueueOwner.local(signUp.id()), signUp.memberId());
+            }
+        });
+        registrationService.recordedAll(written);
+    }
+
+    /**
+     * Moves a member's sign-up to another place in line on the event group's waiting list.
+     *
+     * @param stationId    the station asking
+     * @param eventGroupId the event group
+     * @param memberId     the member, whose sign-up waits on the list
+     * @param rank         the place in line it takes, 1 moving up next; beyond the end it goes last
+     */
+    public void moveInQueue(int stationId, int eventGroupId, int memberId, int rank) {
+        Transactions.run(() -> {
+            var eventGroup = rules.lock(stationId, eventGroupId);
+            var signUp = signUps.find(eventGroupId, memberId)
+                    .filter(found -> found.status() == RegistrationStatus.QUEUED)
+                    .orElseThrow(EventRefusal.EVENT_GROUP_NOT_QUEUED::raise);
+            queue.moveTo(eventGroup, QueueOwner.local(signUp.id()), rank);
+        });
+    }
+
+    /**
+     * The places in line of the sign-ups waiting on an event group's list, this station's members and
+     * partners' members alike.
+     *
+     * @param eventGroupId the event group
+     * @return the entries in line, first in line first
+     */
+    public List<QueueEntry> queueOf(int eventGroupId) {
+        return queueLists.entries(RegistrationQueueRepository.ofEventGroup(eventGroupId));
     }
 
     /** Tells the member and whoever runs events what became of the sign-up, once for the event group. */
@@ -333,13 +500,18 @@ public class EventGroupRegistrationService {
         var calledOff = rules.standing(eventGroup.stationId(), rules.partEvents(eventGroupId))
                 .calledOff();
         var setRules = rules.rulesOf(eventGroupId);
+        var ranks = queue.ranks(eventGroupId);
         return memberIds.stream()
                 .map(memberId -> {
                     var signUp = bySignUp.get(memberId);
                     if (signUp == null) return new EventGroupStanding(memberId, null, Set.of(), List.of());
                     var counted = counted(signUp, tiedByMember.getOrDefault(memberId, List.of()));
                     return new EventGroupStanding(
-                            memberId, signUp, counted, EventGroupRules.evaluate(setRules, counted, calledOff));
+                            memberId,
+                            signUp,
+                            counted,
+                            EventGroupRules.evaluate(setRules, counted, calledOff),
+                            ranks.get(QueueOwner.local(signUp.id())));
                 })
                 .toList();
     }
@@ -351,15 +523,26 @@ public class EventGroupRegistrationService {
      * @param signUp   their sign-up, or null where they are not signed up
      * @param counted  the parts that count for the rules
      * @param sets     how those parts meet every set
+     * @param queuePosition the place in line on the waiting list, or null where the sign-up does not wait
      */
     public record EventGroupStanding(
-            int memberId, @Nullable EventGroupRegistration signUp, Set<Integer> counted, List<SetResult> sets) {}
+            int memberId,
+            @Nullable EventGroupRegistration signUp,
+            Set<Integer> counted,
+            List<SetResult> sets,
+            @Nullable Integer queuePosition) {
+        /** Where a member stands who does not wait on the waiting list. */
+        public EventGroupStanding(
+                int memberId, @Nullable EventGroupRegistration signUp, Set<Integer> counted, List<SetResult> sets) {
+            this(memberId, signUp, counted, sets, null);
+        }
+    }
 
     /**
-     * How many sign-ups hold or wait for a place in an event group, those of partners' members included.
+     * How many sign-ups hold a place in an event group, those of partners' members included.
      *
      * @param eventGroupId the event group
-     * @return the pending and accepted sign-ups
+     * @return the accepted sign-ups
      */
     public int holding(int eventGroupId) {
         return rules.holding(eventGroupId);

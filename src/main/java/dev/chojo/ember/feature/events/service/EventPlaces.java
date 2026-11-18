@@ -10,7 +10,6 @@ import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.Places;
-import dev.chojo.ember.feature.events.entity.QueueEntry;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.WhenFull;
@@ -21,7 +20,6 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -196,16 +194,11 @@ public class EventPlaces {
      * @param rank           the place in line it takes, 1 moving up next; beyond the end it goes last
      */
     public void moveTo(int eventId, LocalDate date, int registrationId, int rank) {
-        var list = RegistrationQueueRepository.ofDate(eventId, date);
-        var entries = new ArrayList<>(queue.entries(list));
-        var owner = QueueOwner.local(registrationId);
-        var moving = entries.stream()
-                .filter(owner::owns)
-                .findFirst()
-                .orElseThrow(EventRefusal.REGISTRATION_NOT_QUEUED::raise);
-        entries.remove(moving);
-        entries.add(Math.clamp(rank - 1L, 0, entries.size()), moving);
-        queue.reorder(list, entries.stream().map(QueueEntry::id).toList());
+        placement.moveTo(
+                RegistrationQueueRepository.ofDate(eventId, date),
+                QueueOwner.local(registrationId),
+                rank,
+                EventRefusal.REGISTRATION_NOT_QUEUED);
     }
 
     /**

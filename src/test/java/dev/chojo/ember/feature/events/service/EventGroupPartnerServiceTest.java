@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.entity.EventGroupContent;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
+import dev.chojo.ember.feature.events.entity.EventGroupPartnerRegistration;
 import dev.chojo.ember.feature.events.entity.EventGroupSet;
 import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
@@ -22,8 +23,10 @@ import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
+import dev.chojo.ember.feature.events.repository.EventGroupSettingsRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.PartnerEventGroupSignupRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.federation.FederationTestTransport;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -136,7 +139,10 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
                 mock(DomainEventBus.class),
                 memberNameResolver,
                 questions,
-                newEventGroupSignUpRules());
+                newEventGroupSignUpRules(),
+                newEventGroupQueue(
+                        newEventServices(new DomainEventBus(Set.of())).registration(), mock(DomainEventBus.class)),
+                new RegistrationQueueRepository());
         var httpClient = mock(FederationHttpClient.class);
         when(httpClient.canSign(anyInt())).thenReturn(true);
         var transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
@@ -148,7 +154,9 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
                 mock(EventRequirementService.class),
                 mock(FederatedRegistrantService.class),
                 federationRepo,
-                transport.transport());
+                transport.transport(),
+                newEventGroupQueue(
+                        newEventServices(new DomainEventBus(Set.of())).registration(), new DomainEventBus(Set.of())));
         notifier = mock(Notifier.class);
         partnerSide = new PartnerEventGroupService(
                 transport.transport(),
@@ -292,13 +300,13 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void aFullEventGroupRefusesAPartnerMemberAsWell() {
+    void aFullEventGroupPutsAPartnerMemberOnTheWaitingListAsWell() {
         eventGroup = jugendflamme(1);
         partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
 
-        assertRefused(
-                EventRefusal.EVENT_GROUP_FULL,
-                () -> partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), ben, Set.of(sat1, sun1, test)));
+        var waiting = partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), ben, Set.of(sat1, sun1, test));
+
+        assertEquals(RegistrationStatus.QUEUED, waiting.status());
     }
 
     @Test
@@ -418,10 +426,10 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
         eventGroup = jugendflamme(1);
         partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
 
-        assertRefused(
-                EventRefusal.EVENT_GROUP_FULL,
-                () -> signUps.register(
-                        holder.id(), eventGroup.id(), lea.id(), Set.of(sat1, sun1, test), Map.of(), null, false));
+        var waiting = signUps.register(
+                holder.id(), eventGroup.id(), lea.id(), Set.of(sat1, sun1, test), Map.of(), null, false);
+
+        assertEquals(RegistrationStatus.QUEUED, waiting.status());
     }
 
     @Test
@@ -490,5 +498,132 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
         partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
         var view = partnerSide.eventGroup(partner.id(), holder.uid(), eventGroup.id(), Map.of(mara.uid(), mara.id()));
         assertTrue(view.parts().stream().anyMatch(part -> part.eventId() == sat1 && part.required()));
+    }
+
+    private EventGroupPartnerRegistration partnerSignUpOf(StationMember member) {
+        return partnerRepo.find(eventGroup.id(), partnerOfHolder, member.uid()).orElseThrow();
+    }
+
+    @Test
+    void aPartnerMemberWaitingMovesUpWhenAPlaceFallsFree() {
+        eventGroup = jugendflamme(1);
+        signUps.register(holder.id(), eventGroup.id(), lea.id(), Set.of(sat1, sun1, test), Map.of(), null, false);
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        assertEquals(RegistrationStatus.QUEUED, partnerSignUpOf(mara).status());
+        assertEquals(
+                1,
+                partners.signUps(holder.id(), eventGroup.id()).stream()
+                        .filter(signUp -> signUp.standing().status() == RegistrationStatus.QUEUED)
+                        .findFirst()
+                        .orElseThrow()
+                        .standing()
+                        .queuePosition());
+
+        signUps.withdraw(holder.id(), eventGroup.id(), lea.id());
+
+        assertEquals(RegistrationStatus.ACCEPTED, partnerSignUpOf(mara).status());
+        assertEquals(Set.of(sat1, sun1, test), heldParts());
+    }
+
+    @Test
+    void whoeverDecidesPutsAPartnerMemberOnTheWaitingList() {
+        eventGroups.update(
+                holder.id(),
+                eventGroup.id(),
+                new EventGroupDetails("Jugendflamme 1", null, 1, Instant.now().plus(Duration.ofDays(5)), true, null));
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        int signUpId = partnerSignUpOf(mara).id();
+
+        partners.moveToQueue(holder.id(), eventGroup.id(), List.of(signUpId));
+        partners.moveInQueue(holder.id(), eventGroup.id(), signUpId, 1);
+
+        assertEquals(RegistrationStatus.QUEUED, partnerSignUpOf(mara).status());
+        assertRefused(
+                EventRefusal.EVENT_GROUP_NOT_PENDING_FOR_QUEUE,
+                () -> partners.moveToQueue(holder.id(), eventGroup.id(), List.of(signUpId)));
+    }
+
+    @Test
+    void aPartnerMemberIsNotPutOnTheListOfAnEventGroupWithoutLimits() {
+        eventGroups.update(
+                holder.id(),
+                eventGroup.id(),
+                new EventGroupDetails(
+                        "Jugendflamme 1", null, null, Instant.now().plus(Duration.ofDays(5)), true, null));
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        int signUpId = partnerSignUpOf(mara).id();
+
+        assertRefused(
+                EventRefusal.QUEUE_WITHOUT_LIMIT,
+                () -> partners.moveToQueue(holder.id(), eventGroup.id(), List.of(signUpId)));
+    }
+
+    @Test
+    void partnerMembersOnTheListAreReordered() {
+        eventGroups.update(
+                holder.id(),
+                eventGroup.id(),
+                new EventGroupDetails("Jugendflamme 1", null, 1, Instant.now().plus(Duration.ofDays(5)), true, null));
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), ben, Set.of(sat1, sun1, test));
+        int first = partnerSignUpOf(mara).id();
+        int second = partnerSignUpOf(ben).id();
+        partners.moveToQueue(holder.id(), eventGroup.id(), List.of(first, second));
+
+        partners.moveInQueue(holder.id(), eventGroup.id(), second, 1);
+
+        var ranks = partners.signUps(holder.id(), eventGroup.id()).stream()
+                .collect(Collectors.toMap(EventGroupPartnerService.PartnerSignUp::id, signUp -> signUp.standing()
+                        .queuePosition()));
+        assertEquals(1, ranks.get(second));
+        assertEquals(2, ranks.get(first));
+    }
+
+    @Test
+    void turningDownAnAcceptedPartnerMemberMovesTheNextUpAndAcceptingBeyondTheLimitHasToBeSaid() {
+        eventGroup = jugendflamme(1);
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test));
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), ben, Set.of(sat1, sun1, test));
+        int waiting = partnerSignUpOf(ben).id();
+
+        assertRefused(
+                EventRefusal.REGISTRATION_FULL,
+                () -> partners.decide(holder.id(), eventGroup.id(), waiting, RegistrationStatus.ACCEPTED, false));
+
+        partners.decide(holder.id(), eventGroup.id(), partnerSignUpOf(mara).id(), RegistrationStatus.DENIED, false);
+
+        assertEquals(RegistrationStatus.ACCEPTED, partnerSignUpOf(ben).status());
+    }
+
+    @Test
+    void aPartnerMemberHoldingAPlaceCannotAddAFullPart() {
+        var sets = eventGroups.findSets(eventGroup.id());
+        eventGroups.replaceSets(
+                holder.id(),
+                eventGroup.id(),
+                sets.stream()
+                        .map(set -> new EventGroupSetDraft(
+                                set.id(), set.name(), set.name().equals("Übung") ? 1 : set.minimum(), 2))
+                        .toList());
+        new EventGroupSettingsRepository().setOwnLimit(sat2, 1);
+        signUps.register(holder.id(), eventGroup.id(), lea.id(), Set.of(sat2, test), Map.of(), null, false);
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, test));
+
+        assertRefused(
+                EventRefusal.EVENT_GROUP_PART_FULL,
+                () -> partnerSide.changeParts(
+                        partner.id(), holder.uid(), eventGroup.id(), mara.uid(), Set.of(sat1, sat2, test)));
+    }
+
+    @Test
+    void aPartLeavingEndsThePartnerWaitingThatOnlyStoodWithTheEventGroup() {
+        eventGroup = jugendflamme(1);
+        signUps.register(holder.id(), eventGroup.id(), lea.id(), Set.of(sat1, sun1, sat2, test), Map.of(), null, false);
+        partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, sat2, test));
+
+        eventGroups.removePart(holder.id(), eventGroup.id(), sat2);
+
+        assertTrue(federationRegistrations.findRegistrations(sat2, null).stream()
+                .allMatch(registration -> registration.status() == RegistrationStatus.WITHDRAWN));
     }
 }

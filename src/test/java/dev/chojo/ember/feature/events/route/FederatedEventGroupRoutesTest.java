@@ -81,16 +81,18 @@ class FederatedEventGroupRoutesTest {
         var identities = mock(MemberIdentityFactory.class);
         when(identities.local(anyInt(), anyInt()))
                 .thenAnswer(call -> new MemberIdentity(UUID.randomUUID(), UUID.randomUUID()));
-        var standing =
-                new PartnerStanding(CHILD_UID, RegistrationStatus.ACCEPTED, Instant.now(), List.of(101), List.of());
+        var standing = new PartnerStanding(
+                CHILD_UID, RegistrationStatus.ACCEPTED, Instant.now(), List.of(101), List.of(), null);
         when(partnerEventGroups.signUp(anyInt(), any(), anyInt(), any(), any())).thenReturn(standing);
         var eventGroup = EventGroupFixtures.eventGroup(70, 9, "Jugendflamme 1");
         when(partnerEventGroups.eventGroup(anyInt(), eq(HOLDER), eq(70), any()))
                 .thenReturn(new RemoteEventGroupDetail(
-                        RemoteEventGroupSummary.of(EventGroupSummary.of(eventGroup, new EventGroupTally(1, 1))),
+                        RemoteEventGroupSummary.of(EventGroupSummary.of(eventGroup, new EventGroupTally(1, 1, 0))),
                         List.of(),
                         List.of(),
-                        List.of(standing, new PartnerStanding(UUID.randomUUID(), null, null, List.of(), List.of())),
+                        List.of(
+                                standing,
+                                new PartnerStanding(UUID.randomUUID(), null, null, List.of(), List.of(), null)),
                         null));
         harness = RouteHarness.serving(new FederatedEventGroupRoutes(
                 partnerEventGroups,

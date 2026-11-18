@@ -43,6 +43,19 @@ public class EventGroupRegistrationRepository {
     }
 
     /**
+     * A sign-up for an event group by its id.
+     *
+     * @param id the sign-up
+     * @return the sign-up, or empty where there is none
+     */
+    public Optional<EventGroupRegistration> findById(int id) {
+        return query("SELECT %s FROM event_group_registration WHERE id = :id;", EventGroupRegistration.COLUMNS)
+                .single(call().bind("id", id))
+                .map(EventGroupRegistration.map())
+                .first();
+    }
+
+    /**
      * The sign-ups of an event group, oldest first.
      *
      * @param eventGroupId the event group

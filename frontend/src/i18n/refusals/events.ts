@@ -255,8 +255,11 @@ export default {
     'E-226': 'Alle Plätze sind vergeben: über das Limit hinaus annehmen oder auf die Nachrückliste setzen',
     'E-227': 'Nur Anmeldungen, über die noch nicht entschieden ist, kommen auf die Nachrückliste, es wurde nichts geändert',
     'E-228': 'Diese Anmeldung steht nicht auf der Nachrückliste',
-    'E-229': 'Ein Termin ohne Teilnehmerlimit hat keine Nachrückliste, es wurde nichts geändert',
+    'E-229': 'Ohne Teilnehmerlimit gibt es keine Nachrückliste, es wurde nichts geändert',
     'E-230': 'Gib an, an welcher Stelle der Nachrückliste die Anmeldung stehen soll',
     'E-231': 'Ein Block kann nicht weniger Termine erlauben, als er verlangt, es wurde nichts gespeichert',
     'E-232': 'Aus einem Block sind zu viele Termine gewählt',
+    'E-233': 'Für diesen Termin ist kein Platz mehr frei, wähle einen anderen',
+    'E-234': 'Nur Anmeldungen, über die noch nicht entschieden ist, kommen auf die Nachrückliste, es wurde nichts geändert',
+    'E-235': 'Diese Anmeldung steht nicht auf der Nachrückliste',
 }

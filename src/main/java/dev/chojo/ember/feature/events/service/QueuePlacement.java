@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.service;
 
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.feature.events.entity.QueueEntry;
 import dev.chojo.ember.feature.events.entity.QueueOrder;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
@@ -15,6 +16,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -81,6 +83,23 @@ public class QueuePlacement {
         if (existing.isPresent()) return existing.get();
         queue.insertAt(list, owner, positionFor(entries, order, score), score);
         return queue.entryOf(list, owner).orElseThrow();
+    }
+
+    /**
+     * Moves a sign-up to another place in line on a waiting list. Moving by hand wins over the order the
+     * list keeps; whoever comes later is placed by that order around it.
+     *
+     * @param list    the list
+     * @param owner   the sign-up, which waits on it
+     * @param rank    the place in line it takes, 1 moving up next; beyond the end it goes last
+     * @param missing the refusal where the sign-up does not wait on the list
+     */
+    public void moveTo(QueueList list, QueueOwner owner, int rank, Refusal missing) {
+        var entries = new ArrayList<>(queue.entries(list));
+        var moving = entries.stream().filter(owner::owns).findFirst().orElseThrow(missing::raise);
+        entries.remove(moving);
+        entries.add(Math.clamp(rank - 1L, 0, entries.size()), moving);
+        queue.reorder(list, entries.stream().map(QueueEntry::id).toList());
     }
 
     /** The position key a new entry with this score takes among the entries of its list. */

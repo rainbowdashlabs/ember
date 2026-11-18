@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldDefault;
 import dev.chojo.ember.feature.events.entity.EventGroupPartSettings;
 import dev.chojo.ember.feature.events.entity.EventGroupSettings;
 import dev.chojo.ember.feature.events.route.EventStructureRoutes.FieldDefaultEntry;
+import dev.chojo.ember.feature.events.service.EventGroupRegistrationService;
 import dev.chojo.ember.feature.events.service.EventGroupSettingsService;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import io.javalin.http.Context;
@@ -42,10 +43,12 @@ public class EventGroupSettingsRoutes implements Routes {
     private static final String SETTINGS = "/events/groups/{eventGroupId}/settings";
 
     private final EventGroupSettingsService settings;
+    private final EventGroupRegistrationService signUps;
 
     @Inject
-    public EventGroupSettingsRoutes(EventGroupSettingsService settings) {
+    public EventGroupSettingsRoutes(EventGroupSettingsService settings, EventGroupRegistrationService signUps) {
         this.settings = settings;
+        this.signUps = signUps;
     }
 
     @Override
@@ -86,7 +89,9 @@ public class EventGroupSettingsRoutes implements Routes {
     private void setPartLimit(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(PartLimitRequest.class);
-        ctx.json(settings.setPartLimit(session.stationId(), pathInt(ctx, "eventId"), request.limit()));
+        var part = settings.setPartLimit(session.stationId(), pathInt(ctx, "eventId"), request.limit());
+        signUps.moveUp(session.stationId(), part.eventGroupId());
+        ctx.json(part);
     }
 
     /**

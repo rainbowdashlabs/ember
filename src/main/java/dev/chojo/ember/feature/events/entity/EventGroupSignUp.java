@@ -25,6 +25,8 @@ import java.util.List;
  *                       where the reader may read them
  * @param answersMissing whether a standing sign-up still owes an answer to a required question
  * @param mayRegister    whether the member is one of the people the event group takes
+ * @param queuePosition  the place in line on the waiting list, 1 moving up next; null where the sign-up
+ *                       does not wait
  */
 public record EventGroupSignUp(
         int memberId,
@@ -35,4 +37,5 @@ public record EventGroupSignUp(
         List<SetResult> sets,
         List<EventRegistrationFieldValue> answers,
         boolean answersMissing,
-        boolean mayRegister) {}
+        boolean mayRegister,
+        @Nullable Integer queuePosition) {}

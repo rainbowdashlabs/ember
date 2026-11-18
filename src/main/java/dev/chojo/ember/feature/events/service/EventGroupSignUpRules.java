@@ -23,6 +23,7 @@ import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -39,8 +40,8 @@ import java.util.stream.Collectors;
  */
 @Singleton
 public class EventGroupSignUpRules {
-    /** The statuses of a sign-up that holds or waits for a place. */
-    static final Set<RegistrationStatus> HOLDING = Set.of(RegistrationStatus.PENDING, RegistrationStatus.ACCEPTED);
+    /** The statuses of a sign-up that holds a place: only an accepted one does. */
+    static final Set<RegistrationStatus> HOLDING = Set.of(RegistrationStatus.ACCEPTED);
 
     private final EventGroupService eventGroupService;
     private final EventGroupRepository eventGroups;
@@ -121,27 +122,54 @@ public class EventGroupSignUpRules {
         if (active) throw EventRefusal.EVENT_GROUP_ALREADY_SIGNED_UP.raise();
     }
 
-    /** Refuses a sign-up for an event group whose limit is reached, unless whoever runs events overrides it. */
-    void requireRoom(EventGroup eventGroup, boolean override) {
+    /**
+     * Whether a choice of parts fits into an event group now: a place left within its limit on people,
+     * and a free place on every chosen part that still takes place. Parts called off or already past
+     * need no place.
+     *
+     * @param eventGroup the event group
+     * @param chosen     the parts chosen
+     * @param parts      the event group's parts, by id
+     * @param standing   which parts are called off or past
+     * @return true where the choice gets in without waiting
+     */
+    boolean fits(EventGroup eventGroup, Set<Integer> chosen, Map<Integer, StationEvent> parts, Standing standing) {
         Integer limit = eventGroup.details().registrationLimit();
-        if (!override && limit != null && holding(eventGroup.id()) >= limit) {
-            throw EventRefusal.EVENT_GROUP_FULL.raise();
+        if (limit != null && holding(eventGroup.id()) >= limit) return false;
+        return chosen.stream()
+                .filter(partId -> !standing.calledOff().contains(partId) && !standing.tookPlace(partId))
+                .map(parts::get)
+                .filter(Objects::nonNull)
+                .noneMatch(part -> placesOf(part).full());
+    }
+
+    /**
+     * Refuses a held sign-up that adds a part without a free place, naming the first such part, unless
+     * whoever runs events overrides it. A sign-up that holds a place never trades it for the waiting
+     * list by changing its parts.
+     *
+     * @param added    the parts a choice adds
+     * @param parts    the event group's parts, by id
+     * @param standing which parts are called off or past
+     * @param override whether whoever runs events changes it
+     */
+    void requireRoomOnAdded(Set<Integer> added, Map<Integer, StationEvent> parts, Standing standing, boolean override) {
+        if (override) return;
+        for (int partId : ascending(added)) {
+            var part = parts.get(partId);
+            if (part == null || standing.calledOff().contains(partId)) continue;
+            if (placesOf(part).full()) throw EventRefusal.EVENT_GROUP_PART_FULL.raise(part.name());
         }
     }
 
     /**
-     * How many sign-ups hold or wait for a place in an event group, those of partners' members included.
+     * How many sign-ups hold a place in an event group, those of partners' members included.
      *
      * @param eventGroupId the event group
-     * @return the pending and accepted sign-ups
+     * @return the accepted sign-ups
      */
     int holding(int eventGroupId) {
         return eventGroups.countSignUps(eventGroupId, HOLDING);
-    }
-
-    /** The status a new sign-up starts with: waiting where a manager confirms each one. */
-    static RegistrationStatus initialStatus(EventGroup eventGroup) {
-        return eventGroup.details().requiresConfirmation() ? RegistrationStatus.PENDING : RegistrationStatus.ACCEPTED;
     }
 
     /**

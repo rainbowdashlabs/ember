@@ -28603,6 +28603,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/groups/{eventGroupId}/partner-sign-ups/{signUpId}/queue-position": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Move a partner member's event group sign-up to another place in line on the waiting list */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    signUpId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupQueuePositionRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/groups/{eventGroupId}/partner-sign-ups/{signUpId}/status": {
         parameters: {
             query?: never;
@@ -28647,6 +28706,55 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/partner-sign-ups/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put partner members' event group sign-ups waiting for a decision onto the waiting list */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupQueueRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -29239,6 +29347,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/groups/{eventGroupId}/sign-ups/{memberId}/queue-position": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Move an event group sign-up to another place in line on the waiting list */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                    memberId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupQueuePositionRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/groups/{eventGroupId}/sign-ups/{memberId}/status": {
         parameters: {
             query?: never;
@@ -29359,6 +29535,64 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/groups/{eventGroupId}/sign-ups/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put event group sign-ups waiting for a decision onto the event group's waiting list */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventGroupId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventGroupQueueRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -73171,6 +73405,7 @@ export interface components {
             view?: components["schemas"]["RestrictionAudience"] | null;
         };
         EventGroupDecisionRequest: {
+            overLimit?: boolean | null;
             status?: components["schemas"]["RegistrationStatus"];
         };
         EventGroupDetail: {
@@ -73233,6 +73468,8 @@ export interface components {
             id: number;
             member: components["schemas"]["MemberIdentity"] | null;
             parts: number[];
+            /** Format: int32 */
+            queuePosition: number | null;
             registeredAt: components["schemas"]["Instant"] | null;
             sets: components["schemas"]["SetResult"][];
             status: components["schemas"]["RegistrationStatus"] | null;
@@ -73290,6 +73527,13 @@ export interface components {
             setId: number;
             setName: string;
         };
+        EventGroupQueuePositionRequest: {
+            /** Format: int32 */
+            position?: number | null;
+        };
+        EventGroupQueueRequest: {
+            ids?: number[] | null;
+        };
         EventGroupSet: {
             /** Format: int32 */
             eventGroupId: number;
@@ -73339,6 +73583,8 @@ export interface components {
             /** Format: int32 */
             memberId: number;
             parts: number[];
+            /** Format: int32 */
+            queuePosition: number | null;
             registeredAt: components["schemas"]["Instant"] | null;
             sets: components["schemas"]["SetResult"][];
             status: components["schemas"]["RegistrationStatus"] | null;
@@ -73348,6 +73594,7 @@ export interface components {
             /** Format: int32 */
             memberId?: number | null;
             parts?: number[] | null;
+            whenFull?: components["schemas"]["WhenFull"] | null;
         };
         EventGroupSummary: {
             cancelled: boolean;
@@ -73359,6 +73606,8 @@ export interface components {
             id: number;
             /** Format: int32 */
             partCount: number;
+            /** Format: int32 */
+            queued: number;
         };
         EventItem: {
             date?: string;
@@ -83347,6 +83596,8 @@ export type EventGroupPartRequiredRequest = components['schemas']['EventGroupPar
 export type EventGroupPartSettings = components['schemas']['EventGroupPartSettings'];
 export type EventGroupPartState = components['schemas']['EventGroupPartState'];
 export type EventGroupPartSummary = components['schemas']['EventGroupPartSummary'];
+export type EventGroupQueuePositionRequest = components['schemas']['EventGroupQueuePositionRequest'];
+export type EventGroupQueueRequest = components['schemas']['EventGroupQueueRequest'];
 export type EventGroupSet = components['schemas']['EventGroupSet'];
 export type EventGroupSetDraft = components['schemas']['EventGroupSetDraft'];
 export type EventGroupSetsRequest = components['schemas']['EventGroupSetsRequest'];

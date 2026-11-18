@@ -225,7 +225,8 @@ public class FederatedEventGroupRoutes implements Routes {
                 standing.sets(),
                 List.of(),
                 false,
-                true);
+                true,
+                standing.queuePosition());
     }
 
     private static Set<Integer> partsOf(EventGroupSignUpRequest request) {
