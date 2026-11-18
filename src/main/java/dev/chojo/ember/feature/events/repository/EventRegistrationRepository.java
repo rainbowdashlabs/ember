@@ -331,12 +331,17 @@ public class EventRegistrationRepository {
     }
 
     /**
-     * Aggregates the accept/deny history of everyone registered for an event, over the last
-     * {@code months} months and optionally narrowed to one category, so the registration screen
-     * can rank members by how often they were turned down.
+     * The accept/deny history of members at a station over the last {@code :months} months, optionally
+     * narrowed to the category {@code :category_id}, one row per member the given condition picks.
+     * Both the registration statistics and the order of waiting lists kept by fairness read it, so
+     * the two never disagree about anybody's history.
+     *
+     * @param station the condition picking the station, over {@code se}
+     * @param members the condition picking the members, over {@code er}
+     * @return the query
      */
-    public List<MemberRegistrationStats> findStatsByEvent(int eventId, @Nullable Integer categoryId, int months) {
-        return query("""
+    private static String statsQuery(String station, String members) {
+        return """
                 SELECT
                     er.member_id,
                     count(*)                                               AS registered,
@@ -348,19 +353,45 @@ public class EventRegistrationRepository {
                     event_registration er
                         JOIN station_event se
                         ON se.id = er.event_id
-                WHERE se.station_id = (
-                    SELECT station_id
-                    FROM station_event
-                    WHERE id = :event_id
-                                      )
+                WHERE %s
                   AND ( :category_id IS NULL OR %s = :category_id )
                   AND er.event_date >= ( current_date - make_interval(months => :months) )
-                  AND er.member_id IN (
-                    SELECT member_id
-                    FROM event_registration
-                    WHERE event_id = :event_id
-                                      )
-                GROUP BY er.member_id;""", RefusalSql.NOT_COMING, EventGroupInheritance.category("se"))
+                  AND %s
+                GROUP BY er.member_id;""".formatted(RefusalSql.NOT_COMING, station, EventGroupInheritance.category("se"), members);
+    }
+
+    /**
+     * Aggregates one member's accept/deny history at a station over the last {@code months} months,
+     * optionally narrowed to one category, the same way {@link #findStatsByEvent} does for everyone
+     * registered for an event.
+     *
+     * @param stationId  the station whose appointments count
+     * @param categoryId the category, or null for every appointment
+     * @param memberId   the member
+     * @param months     how many months back count
+     * @return the history, all zero where there is none
+     */
+    public MemberRegistrationStats findStatsOfMember(
+            int stationId, @Nullable Integer categoryId, int memberId, int months) {
+        return query(statsQuery("se.station_id = :station_id", "er.member_id = :member_id"))
+                .single(call().bind("station_id", stationId)
+                        .bind("member_id", memberId)
+                        .bind("category_id", categoryId)
+                        .bind("months", months))
+                .map(MemberRegistrationStats.map())
+                .first()
+                .orElseGet(() -> new MemberRegistrationStats(memberId, 0, 0, 0, 0, null));
+    }
+
+    /**
+     * Aggregates the accept/deny history of everyone registered for an event, over the last
+     * {@code months} months and optionally narrowed to one category, so the registration screen
+     * can rank members by how often they were turned down.
+     */
+    public List<MemberRegistrationStats> findStatsByEvent(int eventId, @Nullable Integer categoryId, int months) {
+        return query(statsQuery(
+                        "se.station_id = (SELECT station_id FROM station_event WHERE id = :event_id)",
+                        "er.member_id IN (SELECT member_id FROM event_registration WHERE event_id = :event_id)"))
                 .single(call().bind("event_id", eventId)
                         .bind("category_id", categoryId)
                         .bind("months", months))

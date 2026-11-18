@@ -11795,7 +11795,7 @@
           "type": "numeric",
           "nullable": true,
           "verified": true,
-          "description": "The fairness score taken when the sign-up joined the list, which orders a list kept by fairness; NULL where the list is kept by time."
+          "description": "The fairness score the sign-up had when it joined the list, kept whatever the order so a list changed to fairness later can still use it."
         },
         {
           "name": "joined_at",
@@ -28700,7 +28700,7 @@
           "type": "numeric",
           "nullable": true,
           "verified": true,
-          "description": "The fairness score taken when the sign-up joined the list, which orders a list kept by fairness; NULL where the list is kept by time."
+          "description": "The fairness score the sign-up had when it joined the list, kept whatever the order so a list changed to fairness later can still use it."
         },
         {
           "name": "joined_at",

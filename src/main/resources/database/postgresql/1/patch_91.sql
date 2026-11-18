@@ -329,7 +329,7 @@ COMMENT ON COLUMN ember_schema.registration_queue.federation_registration_id
 COMMENT ON COLUMN ember_schema.registration_queue.position
     IS 'The order of the list, lowest moves up next. Gaps are allowed; the position a member is shown is the rank.';
 COMMENT ON COLUMN ember_schema.registration_queue.score
-    IS 'The fairness score taken when the sign-up joined the list, which orders a list kept by fairness; NULL where the list is kept by time.';
+    IS 'The fairness score the sign-up had when it joined the list, kept whatever the order so a list changed to fairness later can still use it.';
 COMMENT ON COLUMN ember_schema.registration_queue.joined_at
     IS 'When the sign-up joined the list.';
 
@@ -359,7 +359,7 @@ COMMENT ON COLUMN ember_schema.event_group_queue.partner_sign_up_id
 COMMENT ON COLUMN ember_schema.event_group_queue.position
     IS 'The order of the list, lowest moves up first. Gaps are allowed; the position a member is shown is the rank.';
 COMMENT ON COLUMN ember_schema.event_group_queue.score
-    IS 'The fairness score taken when the sign-up joined the list, which orders a list kept by fairness; NULL where the list is kept by time.';
+    IS 'The fairness score the sign-up had when it joined the list, kept whatever the order so a list changed to fairness later can still use it.';
 COMMENT ON COLUMN ember_schema.event_group_queue.joined_at
     IS 'When the sign-up joined the list.';
 

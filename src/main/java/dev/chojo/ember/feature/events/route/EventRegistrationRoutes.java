@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.events.service.EventSignUpGuards;
+import dev.chojo.ember.feature.events.service.FairnessScore;
 import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.events.service.RegistrationAnswerReminder;
 import dev.chojo.ember.feature.events.service.RegistrationRowLookups;
@@ -452,22 +453,10 @@ public class EventRegistrationRoutes implements Routes {
         ctx.json(stats.stream().map(this::toRegistrationStats).toList());
     }
 
-    /**
-     * Scores a member's registration history so the registration screen can rank who should be
-     * prioritised next: the fairness score rises with denials and falls with acceptances, and the
-     * priority band summarises the accept rate.
-     */
+    /** A member's registration history with their fairness score, for the registration screen's ranking. */
     private RegistrationStatsResponse toRegistrationStats(MemberRegistrationStats s) {
         String name = memberNameResolver.called(s.memberId());
-        int decisions = s.accepted() + s.denied();
-        double acceptRate = decisions > 0 ? (double) s.accepted() / decisions : 1.0;
-        String priority;
-        if (decisions == 0) priority = "NONE";
-        else if (acceptRate < 0.5) priority = "HIGH";
-        else if (acceptRate < 0.75) priority = "MEDIUM";
-        else priority = "LOW";
-        double denialRatio = decisions > 0 ? (double) s.denied() / decisions : 0;
-        double fairnessScore = Math.round((denialRatio * 50 + s.denied() * 5 - s.accepted() * 2 + 50) * 10) / 10.0;
+        var fairness = FairnessScore.of(s);
         return new RegistrationStatsResponse(
                 s.memberId(),
                 name != null ? name : "#" + s.memberId(),
@@ -475,10 +464,10 @@ public class EventRegistrationRoutes implements Routes {
                 s.accepted(),
                 s.denied(),
                 s.declined(),
-                Math.round(acceptRate * 100) / 100.0,
+                fairness.acceptRate(),
                 s.lastDenied() != null ? s.lastDenied().toString() : null,
-                priority,
-                Math.max(0, fairnessScore));
+                fairness.priority(),
+                fairness.score());
     }
 
     @OpenApi(

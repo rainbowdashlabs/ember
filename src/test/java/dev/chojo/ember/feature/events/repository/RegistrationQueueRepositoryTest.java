@@ -284,4 +284,24 @@ class RegistrationQueueRepositoryTest extends RepositoryTestBase {
             eventGroups.delete(group.id());
         }
     }
+
+    @Test
+    void aPartnersSignUpWaitsUnderItsOwnColumn() {
+        var event = event(1);
+        var list = RegistrationQueueRepository.ofDate(event.id(), DATE);
+        try {
+            var local = eventRegistrationRepo.create(
+                    event.id(), members.get(0).id(), DATE, RegistrationStatus.QUEUED, null);
+            var owner = RegistrationQueueRepository.QueueOwner.local(local.id());
+            queue.insertAt(list, owner, queue.endOf(list), 50.0);
+            var partnerOwner = RegistrationQueueRepository.QueueOwner.ofPartner(local.id());
+
+            assertTrue(queue.entryOf(list, owner).isPresent());
+            assertTrue(queue.entryOf(list, partnerOwner).isEmpty(), "the same id of a partner sign-up is another one");
+            assertFalse(queue.remove(list, partnerOwner));
+            assertEquals(50.0, queue.entries(list).getFirst().score());
+        } finally {
+            eventRepo.delete(event.id());
+        }
+    }
 }
