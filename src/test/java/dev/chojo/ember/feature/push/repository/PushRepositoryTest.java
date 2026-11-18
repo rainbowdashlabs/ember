@@ -254,6 +254,33 @@ class PushRepositoryTest extends RepositoryTestBase {
                         .toList());
     }
 
+    /**
+     * A browser removed by hand is remembered as removed for its account, which counts as a choice about push;
+     * allowing it again turns the record around, and an address the browser left is forgotten with its
+     * registration.
+     */
+    @Test
+    void aBrowserRemovedByHandIsRememberedUntilAllowedAgain() {
+        int session = signIn(anna.id(), inADay());
+        String endpoint = "https://push.test/removed";
+        var browser = subscriptions.register(anna.id(), session, endpoint, new byte[] {1}, new byte[] {2}, "");
+        assertFalse(subscriptions.declinedAny(anna.id()));
+
+        assertTrue(subscriptions.declineOwn(browser.id(), anna.id()));
+        assertFalse(subscriptions.declineOwn(browser.id(), anna.id()));
+        assertEquals(Optional.of(false), subscriptions.allowed(anna.id(), endpoint));
+        assertTrue(subscriptions.declinedAny(anna.id()));
+
+        subscriptions.allow(anna.id(), endpoint);
+        assertEquals(Optional.of(true), subscriptions.allowed(anna.id(), endpoint));
+        assertFalse(subscriptions.declinedAny(anna.id()));
+
+        subscriptions.register(anna.id(), session, endpoint, new byte[] {1}, new byte[] {2}, "");
+        subscriptions.forgetAddress(anna.id(), endpoint);
+        assertEquals(Optional.empty(), subscriptions.allowed(anna.id(), endpoint));
+        assertTrue(subscriptions.findByAccount(anna.id()).isEmpty());
+    }
+
     /** What an account allowed is forgotten once its browser stays unregistered; a registered one is kept. */
     @Test
     void anUnregisteredBrowserIsForgottenAfterAWhile() {

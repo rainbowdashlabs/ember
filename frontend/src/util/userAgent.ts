@@ -3,7 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-
 /** The operating systems a browser's description is read for. */
 export type UserAgentSystem = 'android' | 'ios' | 'windows' | 'mac' | 'linux' | 'unknown'
 
