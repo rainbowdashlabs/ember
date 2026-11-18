@@ -22554,50 +22554,6 @@
         }
       }
     },
-    "/api/v1/events/{eventId}/places" : {
-      "get" : {
-        "summary" : "How many places a date of an appointment has, how many are taken and how many wait",
-        "tags" : [ "Events" ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Places"
-                }
-              }
-            }
-          },
-          "404" : {
-            "description" : "Not Found",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
-                }
-              }
-            }
-          }
-        },
-        "parameters" : [ {
-          "name" : "eventId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        }, {
-          "name" : "date",
-          "in" : "query",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ]
-      }
-    },
     "/api/v1/events/{eventId}/register" : {
       "post" : {
         "summary" : "Register for an event",
@@ -22856,6 +22812,50 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/events/{eventId}/sign-up-places" : {
+      "get" : {
+        "summary" : "How many places a date of an appointment has, how many are taken and how many wait",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Places"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "date",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
       }
     },
     "/api/v1/events/{id}" : {

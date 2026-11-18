@@ -106,7 +106,8 @@ public class QueuePlacement {
     private static int positionFor(List<QueueEntry> entries, QueueOrder order, double score) {
         if (order == QueueOrder.FAIRNESS) {
             for (var entry : entries) {
-                if (entry.score() != null && entry.score() < score) return entry.position();
+                Double entryScore = entry.score();
+                if (entryScore != null && entryScore < score) return entry.position();
             }
         }
         return entries.isEmpty() ? 1 : entries.getLast().position() + 1;

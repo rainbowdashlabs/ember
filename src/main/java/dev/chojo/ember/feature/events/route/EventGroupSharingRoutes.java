@@ -85,9 +85,8 @@ public class EventGroupSharingRoutes implements Routes {
             })
     private void moveToQueue(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        var request = ctx.bodyAsClass(EventGroupRoutes.EventGroupQueueRequest.class);
-        partners.moveToQueue(
-                session.stationId(), pathInt(ctx, "eventGroupId"), request.ids() == null ? List.of() : request.ids());
+        var ids = ctx.bodyAsClass(EventGroupRoutes.EventGroupQueueRequest.class).ids();
+        partners.moveToQueue(session.stationId(), pathInt(ctx, "eventGroupId"), ids == null ? List.of() : ids);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -110,10 +109,10 @@ public class EventGroupSharingRoutes implements Routes {
             })
     private void moveInQueue(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        var request = ctx.bodyAsClass(EventGroupRoutes.EventGroupQueuePositionRequest.class);
-        if (request.position() == null) throw EventRefusal.QUEUE_POSITION_MISSING.raise();
-        partners.moveInQueue(
-                session.stationId(), pathInt(ctx, "eventGroupId"), pathInt(ctx, "signUpId"), request.position());
+        var position = ctx.bodyAsClass(EventGroupRoutes.EventGroupQueuePositionRequest.class)
+                .position();
+        if (position == null) throw EventRefusal.QUEUE_POSITION_MISSING.raise();
+        partners.moveInQueue(session.stationId(), pathInt(ctx, "eventGroupId"), pathInt(ctx, "signUpId"), position);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

@@ -279,10 +279,11 @@ public class EventSharingRoutes implements Routes {
             })
     private void moveFederationRegistrationInQueue(Context ctx) {
         int id = pathInt(ctx, "id");
-        var req = ctx.bodyAsClass(EventRegistrationRoutes.QueuePositionRequest.class);
-        if (req.position() == null) throw EventRefusal.QUEUE_POSITION_MISSING.raise();
+        var position = ctx.bodyAsClass(EventRegistrationRoutes.QueuePositionRequest.class)
+                .position();
+        if (position == null) throw EventRefusal.QUEUE_POSITION_MISSING.raise();
         requireOwnFederationRegistration(ctx, id);
-        eventFederationService.moveInQueue(id, req.position());
+        eventFederationService.moveInQueue(id, position);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

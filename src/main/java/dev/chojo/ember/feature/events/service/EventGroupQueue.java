@@ -231,11 +231,15 @@ public class EventGroupQueue {
      */
     public Map<QueueOwner, Integer> ranks(int eventGroupId) {
         return queue.entries(RegistrationQueueRepository.ofEventGroup(eventGroupId)).stream()
-                .collect(Collectors.toMap(
-                        entry -> entry.localId() != null
-                                ? QueueOwner.local(entry.localId())
-                                : QueueOwner.ofPartner(Objects.requireNonNull(entry.partnerId())),
-                        QueueEntry::rank));
+                .collect(Collectors.toMap(EventGroupQueue::ownerOf, QueueEntry::rank));
+    }
+
+    /** Whose entry on the waiting list this is: a member's sign-up or a partner's. */
+    private static QueueOwner ownerOf(QueueEntry entry) {
+        Integer localId = entry.localId();
+        return localId != null
+                ? QueueOwner.local(localId)
+                : QueueOwner.ofPartner(Objects.requireNonNull(entry.partnerId()));
     }
 
     /**

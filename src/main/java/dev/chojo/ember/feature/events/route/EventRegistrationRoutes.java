@@ -75,6 +75,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
@@ -171,7 +172,11 @@ public class EventRegistrationRoutes implements Routes {
                 this::updateRegistrationStatus,
                 StationPermission.EVENT_REGISTRATION,
                 StationModule.EVENTS);
-        routes.get(prefix + "/events/{eventId}/places", this::places, StationPermission.USER, StationModule.EVENTS);
+        routes.get(
+                prefix + "/events/{eventId}/sign-up-places",
+                this::places,
+                StationPermission.USER,
+                StationModule.EVENTS);
         routes.post(
                 prefix + "/events/registrations/queue",
                 this::moveToQueue,
@@ -487,7 +492,7 @@ public class EventRegistrationRoutes implements Routes {
                 s.denied(),
                 s.declined(),
                 fairness.acceptRate(),
-                s.lastDenied() != null ? s.lastDenied().toString() : null,
+                Objects.toString(s.lastDenied(), null),
                 fairness.priority(),
                 fairness.score());
     }
@@ -852,7 +857,7 @@ public class EventRegistrationRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/events/{eventId}/places",
+            path = "/api/v1/events/{eventId}/sign-up-places",
             methods = HttpMethod.GET,
             summary = "How many places a date of an appointment has, how many are taken and how many wait",
             tags = {"Events"},
@@ -911,10 +916,10 @@ public class EventRegistrationRoutes implements Routes {
             })
     private void moveInQueue(Context ctx) {
         int id = pathInt(ctx, "id");
-        var req = ctx.bodyAsClass(QueuePositionRequest.class);
-        if (req.position() == null) throw EventRefusal.QUEUE_POSITION_MISSING.raise();
+        var position = ctx.bodyAsClass(QueuePositionRequest.class).position();
+        if (position == null) throw EventRefusal.QUEUE_POSITION_MISSING.raise();
         requireOwnRegistration(ctx, id);
-        registrationService.moveInQueue(id, req.position());
+        registrationService.moveInQueue(id, position);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

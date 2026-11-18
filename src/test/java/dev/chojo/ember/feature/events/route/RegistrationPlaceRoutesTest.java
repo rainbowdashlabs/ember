@@ -376,7 +376,7 @@ class RegistrationPlaceRoutesTest {
         var harness = RouteHarness.serving(routes);
 
         var answer = harness.request(client -> client.get(
-                RouteHarness.PREFIX + "/events/%d/places?date=2026-09-02".formatted(EVENT_ID),
+                RouteHarness.PREFIX + "/events/%d/sign-up-places?date=2026-09-02".formatted(EVENT_ID),
                 harness.as(sessionWith())));
 
         var body = answer.body().string();
@@ -387,7 +387,8 @@ class RegistrationPlaceRoutesTest {
     private Response placesOn(String query) {
         var harness = RouteHarness.serving(routes);
         return harness.request(client -> client.get(
-                RouteHarness.PREFIX + "/events/%d/places%s".formatted(EVENT_ID, query), harness.as(sessionWith())));
+                RouteHarness.PREFIX + "/events/%d/sign-up-places%s".formatted(EVENT_ID, query),
+                harness.as(sessionWith())));
     }
 
     @Test

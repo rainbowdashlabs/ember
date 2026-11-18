@@ -142,7 +142,8 @@ public class PartnerEventGroupService implements FederationServer {
 
     /** Whether a member's sign-up still stands at the partner, waiting on its waiting list included. */
     private static boolean holds(PartnerStanding standing) {
-        return standing.status() != null && standing.status().standing();
+        var status = standing.status();
+        return status != null && status.standing();
     }
 
     /**

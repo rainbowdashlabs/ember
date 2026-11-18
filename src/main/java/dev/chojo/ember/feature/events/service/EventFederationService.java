@@ -868,7 +868,8 @@ public class EventFederationService implements FederationServer {
             }
             var budget = countPartnerPlaces(eventId, partner.partnerId(), request.eventDate());
             int waiting = federationRepository.countQueuedForPartner(eventId, partner.partnerId(), request.eventDate());
-            if (budget.budget() != null && budget.taken() + waiting >= budget.budget()) {
+            Integer places = budget.budget();
+            if (places != null && budget.taken() + waiting >= places) {
                 throw EventRefusal.NO_PLACES_LEFT_FOR_PARTNER.raise();
             }
             var current =

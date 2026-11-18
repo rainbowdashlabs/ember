@@ -482,7 +482,7 @@ export async function moveRegistrationInQueue(id: number, position: number): Pro
 
 /** How the places of one date stand, partners' members counted, as anybody who sees the appointment may read. */
 export async function getPlaces(eventId: number, date: string): Promise<Places> {
-    const res = await client.get<Places>(`/events/${eventId}/places`, {params: {date}})
+    const res = await client.get<Places>(`/events/${eventId}/sign-up-places`, {params: {date}})
     return res.data
 }
 

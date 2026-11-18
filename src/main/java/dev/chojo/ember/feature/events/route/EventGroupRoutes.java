@@ -697,10 +697,9 @@ public class EventGroupRoutes implements Routes {
             })
     private void moveInQueue(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        var request = ctx.bodyAsClass(EventGroupQueuePositionRequest.class);
-        if (request.position() == null) throw EventRefusal.QUEUE_POSITION_MISSING.raise();
-        signUps.moveInQueue(
-                session.stationId(), pathInt(ctx, "eventGroupId"), pathInt(ctx, "memberId"), request.position());
+        var position = ctx.bodyAsClass(EventGroupQueuePositionRequest.class).position();
+        if (position == null) throw EventRefusal.QUEUE_POSITION_MISSING.raise();
+        signUps.moveInQueue(session.stationId(), pathInt(ctx, "eventGroupId"), pathInt(ctx, "memberId"), position);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
