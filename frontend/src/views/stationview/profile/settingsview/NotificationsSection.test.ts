@@ -84,4 +84,22 @@ describe('NotificationsSection', () => {
         expect(view.get('[data-testid="push-toggle-EXPIRY_REMINDER"]').findComponent(ToggleInput).props('disabled'),
             'nothing to push where Ember shows nothing').toBe(true)
     })
+
+    it('leaves out the mail switch and the mail column where the station sends no mail, and says so', () => {
+        const view = mount(NotificationsSection, {props: {settings: {...settings, mailConfigured: false, mailProviders: []}}})
+
+        expect(view.find('[data-testid="mail-switch"]').exists()).toBe(false)
+        expect(view.find('[data-testid="email-toggle-NEW_NEWS"]').exists()).toBe(false)
+        expect(view.get('[data-testid="mail-not-configured"]').text())
+            .toContain('Benachrichtigungen nicht per E-Mail zugestellt werden')
+        expect(view.findAllComponents(ToggleInput)).toHaveLength(4)
+    })
+
+    it('offers the mail switch and the mail column where the station sends mail', () => {
+        const view = mount(NotificationsSection, {props: {settings}})
+
+        expect(view.find('[data-testid="mail-switch"]').exists()).toBe(true)
+        expect(view.find('[data-testid="email-toggle-NEW_NEWS"]').exists()).toBe(true)
+        expect(view.find('[data-testid="mail-not-configured"]').exists()).toBe(false)
+    })
 })

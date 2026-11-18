@@ -37,6 +37,7 @@ function exampleFeedUrl(format: string): string {
 
     <HelpSection :title="t('helpCenter.notifications.matrixTitle')">
       <p>{{ t('helpCenter.notifications.matrixText') }}</p>
+      <p>{{ t('helpCenter.notifications.matrixNoMail') }}</p>
     </HelpSection>
 
     <NotificationsSection :settings="DEMO_SETTINGS"/>
