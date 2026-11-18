@@ -7,6 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import DeleteButton from '@/components/button/DeleteButton.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 
 /**
@@ -57,9 +58,7 @@ const {t} = useI18n()
       <div class="flex shrink-0 items-center gap-1">
         <SecondaryBadge data-testid="question-row-type">{{ typeLabel }}</SecondaryBadge>
         <slot name="marks"/>
-        <IconButton
-            :icon="['fas', 'trash']"
-            :label="t('common.delete')"
+        <DeleteButton
             :disabled="disabled"
             data-testid="question-row-remove"
             @click="emit('remove')"
