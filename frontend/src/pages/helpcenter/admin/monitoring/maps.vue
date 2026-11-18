@@ -4,14 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import MapsHelp from '~/views/helpcenter/adminview/MapsHelp.vue'
-
+/**
+ * The help on the map settings moved with them into the settings. This keeps the address it used to live at
+ * working, because somebody has it bookmarked.
+ */
 definePageMeta({
   layout: 'helpcenter-admin',
-  name: 'help-admin-maps',
+  name: 'help-admin-maps-legacy',
+  redirect: '/helpcenter/admin/settings/maps',
 })
 </script>
 
 <template>
-  <MapsHelp/>
+  <div/>
 </template>

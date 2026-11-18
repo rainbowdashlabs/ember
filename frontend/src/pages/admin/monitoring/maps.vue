@@ -4,14 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import AdminMapsView from '~/views/adminview/AdminMapsView.vue'
-
+/**
+ * The map settings moved out of the monitoring pages into the settings. This keeps the address they used to live
+ * at working, because somebody has it bookmarked.
+ */
 definePageMeta({
   layout: 'admin',
-  name: 'admin-maps',
+  name: 'admin-maps-legacy',
+  redirect: '/admin/settings/maps',
 })
 </script>
 
 <template>
-  <AdminMapsView/>
+  <div/>
 </template>

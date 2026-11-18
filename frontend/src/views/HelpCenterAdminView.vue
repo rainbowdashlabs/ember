@@ -99,6 +99,10 @@ watch(
                      to="/helpcenter/admin/settings/fonts" @navigate="close">
           {{ t('sidebar.documentFonts') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'map-location-dot']" name="help-admin-maps"
+                     to="/helpcenter/admin/settings/maps" @navigate="close">
+          {{ t('sidebar.maps') }}
+        </SidebarLink>
       </SidebarGroup>
 
       <SidebarGroup :icon="['fas', 'users']" :label="t('sidebar.accounts')"
@@ -139,10 +143,6 @@ watch(
         <SidebarLink :icon="['fas', 'compass']" name="help-admin-discovery"
                      to="/helpcenter/admin/monitoring/discovery" @navigate="close">
           {{ t('sidebar.adminDiscovery') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'map-location-dot']" name="help-admin-maps"
-                     to="/helpcenter/admin/monitoring/maps" @navigate="close">
-          {{ t('sidebar.maps') }}
         </SidebarLink>
       </SidebarGroup>
 
