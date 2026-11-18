@@ -292,7 +292,7 @@ public class EventFederationRepository {
                           AND partner_id = :partner_id
                           AND remote_member_id = :remote_member_id::UUID
                           AND event_date = :event_date
-                          AND status IN ('PENDING', 'ACCEPTED');""")
+                          AND status IN ('PENDING', 'ACCEPTED', 'QUEUED');""")
                 .single(registrationKey(eventId, partnerId, remoteMemberId, eventDate)
                         .bind("at", at, INSTANT_TIMESTAMP))
                 .update()
@@ -524,6 +524,27 @@ public class EventFederationRepository {
                 .changed();
     }
 
+    /**
+     * How many of a partner's members wait on the waiting list of one date.
+     *
+     * @param eventId   the appointment
+     * @param partnerId the partner
+     * @param eventDate the date
+     * @return the partner's waiting members
+     */
+    public int countQueuedForPartner(int eventId, int partnerId, LocalDate eventDate) {
+        return query("""
+                SELECT count(*) AS waiting FROM event_federation_registration
+                WHERE event_id = :event_id AND partner_id = :partner_id
+                  AND event_date = :event_date AND status = 'QUEUED';""")
+                .single(call().bind("event_id", eventId)
+                        .bind("partner_id", partnerId)
+                        .bind("event_date", eventDate))
+                .map(row -> row.getInt("waiting"))
+                .first()
+                .orElse(0);
+    }
+
     /** How many places a partner has actually filled on one date, for the screen that shows it. */
     public int countAcceptedForPartner(int eventId, int partnerId, LocalDate eventDate) {
         return query("""
@@ -566,6 +587,32 @@ public class EventFederationRepository {
                         .bind("event_date", eventDate))
                 .update()
                 .changed();
+    }
+
+    /**
+     * The status a partner's member held before their registration of a date was withdrawn.
+     *
+     * @param eventId        the event ID
+     * @param partnerId      the federation partner ID
+     * @param remoteMemberId the remote member UUID
+     * @param eventDate      the event occurrence date
+     * @return the status given up, or empty where there is none
+     */
+    public Optional<RegistrationStatus> findPreviousStatus(
+            int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
+        return query("""
+                        SELECT previous_status FROM event_federation_registration
+                        WHERE event_id = :event_id
+                          AND partner_id = :partner_id
+                          AND remote_member_id = :remote_member_id::UUID
+                          AND event_date = :event_date
+                          AND previous_status IS NOT NULL;""")
+                .single(call().bind("event_id", eventId)
+                        .bind("partner_id", partnerId)
+                        .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING)
+                        .bind("event_date", eventDate))
+                .map(row -> RegistrationStatus.valueOf(row.getString("previous_status")))
+                .first();
     }
 
     /**

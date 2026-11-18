@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.events.entity.AppointmentTemplateField;
 import dev.chojo.ember.feature.events.entity.AppointmentTemplateFieldDraft;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
+import dev.chojo.ember.feature.events.entity.QueueOrder;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldDraft;
 import dev.chojo.ember.feature.events.entity.RegistrationTemplateField;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -28,7 +29,7 @@ public class EventTemplateRepository {
             id, station_id, name, title, description, category_id, event_type, requires_registration,
             (EXTRACT(EPOCH FROM registration_deadline_offset) / 3600)::INTEGER AS registration_deadline_offset_hours,
             requires_confirmation, restriction_mode, view_restriction_mode, attendance_template_id,
-            registration_limit, min_registrations, threshold_days, registration_close_days""";
+            registration_limit, min_registrations, threshold_days, registration_close_days, queue_order""";
 
     public List<EventTemplate> findByStation(int stationId) {
         return query("""
@@ -77,7 +78,8 @@ public class EventTemplateRepository {
                     registration_limit = :registration_limit,
                     min_registrations = :min_registrations,
                     threshold_days = :threshold_days,
-                    registration_close_days = :registration_close_days
+                    registration_close_days = :registration_close_days,
+                    queue_order = :queue_order
                 WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("name", settings.name())
@@ -93,7 +95,8 @@ public class EventTemplateRepository {
                         .bind("registration_limit", settings.registrationLimit())
                         .bind("min_registrations", settings.minRegistrations())
                         .bind("threshold_days", settings.thresholdDays())
-                        .bind("registration_close_days", settings.registrationCloseDays()))
+                        .bind("registration_close_days", settings.registrationCloseDays())
+                        .bind("queue_order", settings.queueOrder() == null ? QueueOrder.TIME : settings.queueOrder()))
                 .update()
                 .changed();
     }

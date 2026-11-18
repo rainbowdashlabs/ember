@@ -19,6 +19,7 @@ import type {
     EventGroupSettings,
     EventTemplate,
     MemberGroup,
+    QueueOrder,
     PartnerResponse,
     RegistrationFieldDefinition,
     UserTag,
@@ -31,6 +32,7 @@ import FederationCard from './FederationCard.vue'
 import FieldDefaultsCard from './FieldDefaultsCard.vue'
 import InheritedFieldsCard from './InheritedFieldsCard.vue'
 import InheritedSettingsCard, {type InheritedSetting} from './InheritedSettingsCard.vue'
+import PartLimitCard from './PartLimitCard.vue'
 import {entryOf} from '../eventshared/eventQuestions'
 import RegistrationFieldsEditor from '../eventshared/RegistrationFieldsEditor.vue'
 import type {FieldDefaultValue} from './useEventFieldDefaults'
@@ -58,6 +60,8 @@ const props = defineProps<{
   inheritedFields?: AppointmentField[]
   /** The date settings the appointment takes over from its event group. */
   inheritedSettings?: EventGroupSettings | null
+  /** The places per appointment the event group gives its parts, null for no limit. */
+  inheritedPartLimit?: number | null
 }>()
 
 const emit = defineEmits<{
@@ -84,6 +88,7 @@ const requiresConfirmation = defineModel<boolean>('requiresConfirmation', {requi
 const hasDeadline = defineModel<boolean>('hasDeadline', {required: true})
 const registrationDeadline = defineModel<string>('registrationDeadline', {required: true})
 const registrationLimit = defineModel<number | undefined>('registrationLimit')
+const queueOrder = defineModel<QueueOrder>('queueOrder')
 const minRegistrations = defineModel<number | undefined>('minRegistrations')
 const thresholdDays = defineModel<number | undefined>('thresholdDays')
 const registrationCloseDays = defineModel<number | undefined>('registrationCloseDays')
@@ -149,6 +154,7 @@ function override(field: AppointmentField) {
         v-model:has-deadline="hasDeadline"
         v-model:registration-deadline="registrationDeadline"
         v-model:registration-limit="registrationLimit"
+        v-model:queue-order="queueOrder"
         v-model:min-registrations="minRegistrations"
         v-model:threshold-days="thresholdDays"
         v-model:registration-close-days="registrationCloseDays"
@@ -172,7 +178,6 @@ function override(field: AppointmentField) {
             :own="fields"
             @override="override"
         />
-
         <FieldDefaultsCard
             v-if="props.currentTemplateFields.length > 0"
             :fields="props.currentTemplateFields"
@@ -182,6 +187,12 @@ function override(field: AppointmentField) {
         />
       </template>
     </EventFormCard>
+
+    <PartLimitCard
+        v-if="props.eventGroupPart"
+        v-model="registrationLimit"
+        :inherited="props.inheritedPartLimit ?? null"
+    />
 
     <InheritedSettingsCard
         v-if="props.eventGroupPart && props.inheritedSettings"

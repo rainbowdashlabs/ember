@@ -15,7 +15,8 @@ import org.jspecify.annotations.Nullable;
  * @param cancelled    whether it was called off
  * @param cancelReason why, where it was
  * @param partCount    how many parts it has
- * @param holding      how many sign-ups hold or wait for a place
+ * @param holding      how many accepted sign-ups hold a place
+ * @param queued       how many sign-ups wait on the waiting list
  */
 public record EventGroupSummary(
         int id,
@@ -23,7 +24,8 @@ public record EventGroupSummary(
         boolean cancelled,
         @Nullable String cancelReason,
         int partCount,
-        int holding) {
+        int holding,
+        int queued) {
     /**
      * An event group with its counts as lists show it.
      *
@@ -38,6 +40,7 @@ public record EventGroupSummary(
                 eventGroup.cancelled(),
                 eventGroup.cancelReason(),
                 tally.partCount(),
-                tally.holding());
+                tally.holding(),
+                tally.queued());
     }
 }

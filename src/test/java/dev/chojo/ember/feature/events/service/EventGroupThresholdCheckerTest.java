@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -97,7 +98,10 @@ class EventGroupThresholdCheckerTest extends RepositoryTestBase {
                 mock(DomainEventBus.class),
                 memberNameResolver,
                 questions,
-                newEventGroupSignUpRules());
+                newEventGroupSignUpRules(),
+                newEventGroupQueue(
+                        newEventServices(new DomainEventBus(Set.of())).registration(), mock(DomainEventBus.class)),
+                new RegistrationQueueRepository());
         cancellation = new EventGroupCancellationService(
                 eventGroupRepo,
                 signUpRepo,

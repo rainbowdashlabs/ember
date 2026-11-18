@@ -52,6 +52,7 @@ const cancelOpen = ref(false)
 const deleteOpen = ref(false)
 const signUpsPanel = ref<InstanceType<typeof EventGroupSignUpsPanel> | null>(null)
 const attendancePanel = ref<InstanceType<typeof EventGroupAttendancePanel> | null>(null)
+const partnerSignUpsPanel = ref<InstanceType<typeof EventGroupPartnerSignUpsPanel> | null>(null)
 
 const canEdit = computed(() => hasPermission(StationPermission.EVENT_EDIT))
 const canDecide = computed(() => hasPermission(StationPermission.EVENT_REGISTRATION))
@@ -94,6 +95,7 @@ watch(loaded, ready => { if (ready) reload() })
 async function refresh() {
   await reload()
   await signUpsPanel.value?.reload()
+  await partnerSignUpsPanel.value?.reload()
   await attendancePanel.value?.reload()
 }
 
@@ -150,7 +152,7 @@ async function deleteEventGroup() {
         </div>
         <div v-if="canDecide || readsWaitingLists" v-show="activeTab === 'sign-up'" class="space-y-6" data-testid="event-group-tab-sign-up">
           <EventGroupSignUpsPanel v-if="canDecide" ref="signUpsPanel" :detail="detail" :on-changed="refresh"/>
-          <EventGroupPartnerSignUpsPanel v-if="canDecide" :detail="detail" :on-changed="refresh"/>
+          <EventGroupPartnerSignUpsPanel v-if="canDecide" ref="partnerSignUpsPanel" :detail="detail" :on-changed="refresh"/>
           <AgreementSignersPanel v-if="canDecide" :event-group-id="detail.eventGroup.id"/>
           <EventGroupProbeVisitorsPanel v-if="readsWaitingLists" :parts="detail.parts"/>
         </div>

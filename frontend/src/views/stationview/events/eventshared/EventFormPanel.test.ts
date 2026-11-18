@@ -119,3 +119,27 @@ describe('EventFormPanel repeat line', () => {
         expect(wrapper.find('[data-testid="restrict-visibility"]').exists()).toBe(false)
     })
 })
+
+/**
+ * The waiting list order stands next to the participant limit, and only once there is a limit:
+ * without one, nothing waits.
+ */
+describe('EventFormPanel waiting list order', () => {
+    const registration = {requiresRegistration: true, requiresConfirmation: false, queueOrder: 'TIME'}
+
+    it('offers the order once a limit is set', async () => {
+        const wrapper = panel('ONE_TIME', {...registration, registrationLimit: 12})
+
+        expect(wrapper.text()).toContain('weitere Anmeldungen auf die Nachrückliste')
+        const select = wrapper.get('[data-testid="queue-order"] select')
+        await select.setValue('FAIRNESS')
+
+        expect(wrapper.emitted('update:queueOrder')?.at(-1)).toEqual(['FAIRNESS'])
+    })
+
+    it('offers no order without a limit', () => {
+        const wrapper = panel('ONE_TIME', {...registration, registrationLimit: undefined})
+
+        expect(wrapper.find('[data-testid="queue-order"]').exists()).toBe(false)
+    })
+})

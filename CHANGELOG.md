@@ -2,13 +2,15 @@
 
 ## v26.26.0
 
-Notifications and messages can arrive as push notifications on phones and computers, even with Ember closed. Places named by appointments, such as the meeting point, can carry a pin, and the appointment page shows them on a small map. Groups and tags can fill themselves from rules over profile answers, age and membership, such as everybody whose JuLeiCa runs out within ten months.
+Notifications and messages can arrive as push notifications on phones and computers, even with Ember closed. Groups and tags can fill themselves from rules over profile answers, age and membership, such as everybody whose JuLeiCa runs out within ten months. Full appointments and event groups put further sign-ups on a waiting list, and the first in line moves up when a place frees.
 
 ### New Features
 
 - **Appointment places on a map.** "Location" and "Meeting point" now add place fields, and "On the map" next to a place opens a map to find or correct its pin. The pin applies to every appointment naming the same place, and the appointment page shows it on a small map with a link to OpenStreetMap.
 - **Push notifications.** Notifications and chat messages can arrive on a phone or computer even with Ember closed, once push is allowed on that device under Profile → Notifications. A new "Push" column chooses which kinds are pushed, and devices can be tested and removed there or in the list of sign-ins.
 - **Push for operators.** Push notifications work without any setup and can be switched off for the whole instance in the administration settings. They are delivered through the push services of the browser makers, and the privacy notice gains a section on them.
+- **Waiting list for full appointments.** Once every place of a date is taken, further sign-ups go onto a waiting list, and the first in line moves up on their own when a place frees and is told so. Whoever runs the appointment sees the list in order, can reorder it or move somebody up by hand, and chooses whether it follows sign-up time or the fairness score.
+- **Alternatives and places in event groups.** A block of an event group can set a maximum beside its minimum, so "exactly one of two" offers alternatives to pick from. Event groups set places per appointment, an appointment of the group can set its own, and a full appointment is marked so members pick the free alternative or wait on the waiting list.
 - **Groups and tags filled by rules.** A group or tag can take its members from a rule of checks on profile answers, age, membership and other groups or tags. Members join and leave on their own as answers change and dates come closer, and a preview shows whom a rule takes in before it is saved.
 
 ### Improvements
@@ -27,6 +29,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 
 ### Fixes
 
+- **Participant limit not enforced.** An appointment could take more sign-ups than its participant limit, which was shown but never checked. Sign-ups beyond the limit now go onto the waiting list.
 - **Badges of upcoming appointments wandered.** In some cases an appointment with a long description line showed its registration counts below the text instead of beside it. The description now wraps, so the counts stay beside it wherever there is room.
 - **Consent asked twice after a policy update.** After the privacy policy or the terms changed, agreeing on the sign-in page did not count for the account, so the same question came again right after signing in. Agreeing before signing in now covers the account.
 - **Installing Ember was not always offered.** In some cases the part of Ember that runs in the background was never started, so the browser did not offer to install Ember and saved files could open in the browser instead. It now starts with every page.

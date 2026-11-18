@@ -14,6 +14,8 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TemplateDeadlineOffset from './TemplateDeadlineOffset.vue'
 import TemplateTurnoutRules from './TemplateTurnoutRules.vue'
 import {nonNegative} from './signUpRules'
+import QueueOrderField from '../eventshared/QueueOrderField.vue'
+import type {QueueOrder} from '@/api/generated/schema'
 
 /**
  * The sign-up rules an event template hands the appointments made from it, laid out as the
@@ -26,6 +28,7 @@ defineProps<{
 const requiresRegistration = defineModel<boolean>('requiresRegistration', {required: true})
 const requiresConfirmation = defineModel<boolean>('requiresConfirmation', {required: true})
 const registrationLimit = defineModel<number | undefined>('registrationLimit')
+const queueOrder = defineModel<QueueOrder>('queueOrder', {required: true})
 const deadlineOffsetHours = defineModel<number | null>('deadlineOffsetHours', {required: true})
 const minRegistrations = defineModel<number | undefined>('minRegistrations')
 const thresholdDays = defineModel<number | undefined>('thresholdDays')
@@ -62,7 +65,10 @@ const labelId = useId()
             @update:model-value="value => registrationLimit = nonNegative(value)"
         />
         <p class="text-xs text-(--text-muted)">{{ t('events.registrationLimitHint') }}</p>
+        <p class="text-xs text-(--text-muted)">{{ t('registrationQueue.limitHint') }}</p>
       </div>
+
+      <QueueOrderField v-if="registrationLimit" v-model="queueOrder"/>
 
       <TemplateTurnoutRules
           v-model:min-registrations="minRegistrations"

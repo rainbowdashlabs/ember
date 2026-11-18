@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.events.service;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventGroup;
 import dev.chojo.ember.feature.events.entity.EventGroupPart;
+import dev.chojo.ember.feature.events.entity.Places;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
@@ -22,6 +23,7 @@ import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -38,13 +40,14 @@ import java.util.stream.Collectors;
  */
 @Singleton
 public class EventGroupSignUpRules {
-    /** The statuses of a sign-up that holds or waits for a place. */
-    static final Set<RegistrationStatus> HOLDING = Set.of(RegistrationStatus.PENDING, RegistrationStatus.ACCEPTED);
+    /** The statuses of a sign-up that holds a place: only an accepted one does. */
+    static final Set<RegistrationStatus> HOLDING = Set.of(RegistrationStatus.ACCEPTED);
 
     private final EventGroupService eventGroupService;
     private final EventGroupRepository eventGroups;
     private final EventRepository events;
     private final OccurrenceCalendar calendar;
+    private final EventCapacity capacity;
 
     /**
      * Creates the rules.
@@ -53,17 +56,31 @@ public class EventGroupSignUpRules {
      * @param eventGroups       the event groups' parts, sets and sign-up counts
      * @param events            the appointments that are parts
      * @param calendar          the occurrence calendar, for what took place or is called off
+     * @param capacity          the places of a part
      */
     @Inject
     public EventGroupSignUpRules(
             EventGroupService eventGroupService,
             EventGroupRepository eventGroups,
             EventRepository events,
-            OccurrenceCalendar calendar) {
+            OccurrenceCalendar calendar,
+            EventCapacity capacity) {
         this.eventGroupService = eventGroupService;
         this.eventGroups = eventGroups;
         this.events = events;
         this.calendar = calendar;
+        this.capacity = capacity;
+    }
+
+    /**
+     * The places of a part on its day: its own limit or the event group's places per part, and the
+     * accepted registrations holding one.
+     *
+     * @param part the part
+     * @return its places
+     */
+    Places placesOf(StationEvent part) {
+        return capacity.of(part.id(), dayOf(part));
     }
 
     /** Locks an event group of the station for a change to its sign-ups. */
@@ -105,40 +122,72 @@ public class EventGroupSignUpRules {
         if (active) throw EventRefusal.EVENT_GROUP_ALREADY_SIGNED_UP.raise();
     }
 
-    /** Refuses a sign-up for an event group whose limit is reached, unless whoever runs events overrides it. */
-    void requireRoom(EventGroup eventGroup, boolean override) {
+    /**
+     * Whether a choice of parts fits into an event group now: a place left within its limit on people,
+     * and a free place on every chosen part that still takes place. Parts called off or already past
+     * need no place.
+     *
+     * @param eventGroup the event group
+     * @param chosen     the parts chosen
+     * @param parts      the event group's parts, by id
+     * @param standing   which parts are called off or past
+     * @return true where the choice gets in without waiting
+     */
+    boolean fits(EventGroup eventGroup, Set<Integer> chosen, Map<Integer, StationEvent> parts, Standing standing) {
         Integer limit = eventGroup.details().registrationLimit();
-        if (!override && limit != null && holding(eventGroup.id()) >= limit) {
-            throw EventRefusal.EVENT_GROUP_FULL.raise();
+        if (limit != null && holding(eventGroup.id()) >= limit) return false;
+        return chosen.stream()
+                .filter(partId -> !standing.calledOff().contains(partId) && !standing.tookPlace(partId))
+                .map(parts::get)
+                .filter(Objects::nonNull)
+                .noneMatch(part -> placesOf(part).full());
+    }
+
+    /**
+     * Refuses a held sign-up that adds a part without a free place, naming the first such part, unless
+     * whoever runs events overrides it. A sign-up that holds a place never trades it for the waiting
+     * list by changing its parts.
+     *
+     * @param added    the parts a choice adds
+     * @param parts    the event group's parts, by id
+     * @param standing which parts are called off or past
+     * @param override whether whoever runs events changes it
+     */
+    void requireRoomOnAdded(Set<Integer> added, Map<Integer, StationEvent> parts, Standing standing, boolean override) {
+        if (override) return;
+        for (int partId : ascending(added)) {
+            var part = parts.get(partId);
+            if (part == null || standing.calledOff().contains(partId)) continue;
+            if (placesOf(part).full()) throw EventRefusal.EVENT_GROUP_PART_FULL.raise(part.name());
         }
     }
 
     /**
-     * How many sign-ups hold or wait for a place in an event group, those of partners' members included.
+     * How many sign-ups hold a place in an event group, those of partners' members included.
      *
      * @param eventGroupId the event group
-     * @return the pending and accepted sign-ups
+     * @return the accepted sign-ups
      */
     int holding(int eventGroupId) {
         return eventGroups.countSignUps(eventGroupId, HOLDING);
     }
 
-    /** The status a new sign-up starts with: waiting where a manager confirms each one. */
-    static RegistrationStatus initialStatus(EventGroup eventGroup) {
-        return eventGroup.details().requiresConfirmation() ? RegistrationStatus.PENDING : RegistrationStatus.ACCEPTED;
-    }
-
-    /** The status a part or sign-up given up ends with: a held place is withdrawn, a waiting one declined. */
+    /**
+     * The status a part or sign-up given up ends with: a held place or a place on the waiting list is
+     * withdrawn, a sign-up still waiting for a decision declined.
+     */
     static RegistrationStatus givenUp(RegistrationStatus status) {
-        return status == RegistrationStatus.ACCEPTED ? RegistrationStatus.WITHDRAWN : RegistrationStatus.DECLINED;
+        return status == RegistrationStatus.ACCEPTED || status == RegistrationStatus.QUEUED
+                ? RegistrationStatus.WITHDRAWN
+                : RegistrationStatus.DECLINED;
     }
 
     /**
-     * Whether a part's registration counts for the rules: it holds or waits for a place, or the whole
-     * sign-up was turned down together with it.
+     * Whether a part's registration counts for the rules: it still stands, on the waiting list
+     * included, or the whole sign-up was turned down together with it.
      */
     static boolean counts(RegistrationStatus part, RegistrationStatus signUp) {
-        return HOLDING.contains(part) || (part == RegistrationStatus.DENIED && signUp == RegistrationStatus.DENIED);
+        return part.standing() || (part == RegistrationStatus.DENIED && signUp == RegistrationStatus.DENIED);
     }
 
     /** Locks the parts of an event group in ascending order and reads them by id. */
@@ -186,7 +235,8 @@ public class EventGroupSignUpRules {
                         set.name(),
                         set.minimum(),
                         partsBySet.getOrDefault(set.id(), Set.of()),
-                        requiredBySet.getOrDefault(set.id(), Set.of())))
+                        requiredBySet.getOrDefault(set.id(), Set.of()),
+                        set.maximum()))
                 .toList();
     }
 
@@ -204,9 +254,18 @@ public class EventGroupSignUpRules {
         return chosen -> EventGroupRules.evaluate(rules, chosen, calledOff);
     }
 
-    /** Refuses a choice that falls short of a set, unless whoever runs events overrides it. */
+    /**
+     * Refuses a choice that falls short of a set or holds more of a set's parts than it allows, unless
+     * whoever runs events overrides it. Too many is named by the set, so the member knows which
+     * alternatives to choose between.
+     */
     void requireRulesMet(int eventGroupId, Set<Integer> chosen, Standing standing, boolean override) {
-        if (!override && !EventGroupRules.met(rulesOf(eventGroupId), chosen, standing.calledOff())) {
+        if (override) return;
+        var rules = rulesOf(eventGroupId);
+        var excess = EventGroupRules.excesses(rules, chosen, standing.calledOff());
+        if (!excess.isEmpty())
+            throw EventRefusal.EVENT_GROUP_SET_TOO_MANY.raise(excess.getFirst().name());
+        if (!EventGroupRules.met(rules, chosen, standing.calledOff())) {
             throw EventRefusal.EVENT_GROUP_CHOICE_SHORT.raise();
         }
     }

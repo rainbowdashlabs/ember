@@ -23,12 +23,14 @@ import dev.chojo.ember.feature.events.entity.AppointmentOwner;
 import dev.chojo.ember.feature.events.entity.CancellationCause;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
+import dev.chojo.ember.feature.events.entity.QueueEntry;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventAttachmentRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.events.route.FederatedEventRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
 import dev.chojo.ember.feature.federation.FederationTestTransport;
@@ -1641,5 +1643,340 @@ class EventFederationServiceTest extends RepositoryTestBase {
         return federationRepo
                 .findPartnerByStationAndRemoteUid(station.id(), other.uid())
                 .orElseThrow();
+    }
+
+    /** A one-off of station A with one place, starting tomorrow, on its first day. */
+    private static StationEvent onePlace() {
+        Instant start = Instant.now().plus(1, ChronoUnit.DAYS);
+        return eventRepo.create(
+                stationA.id(),
+                "Eine Stelle",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                true,
+                null,
+                false,
+                null,
+                1,
+                null,
+                null,
+                null);
+    }
+
+    private static LocalDate dayOf(StationEvent event) {
+        return event.startTime()
+                .atZone(occurrenceCalendar.zoneOf(stationA.id()))
+                .toLocalDate();
+    }
+
+    private static RegistrationStatus statusOf(StationEvent event, UUID member) {
+        return service.findRegistration(event.id(), partnerId, member, dayOf(event))
+                .orElseThrow()
+                .status();
+    }
+
+    @Test
+    void aPartnersMemberWaitsForAFullDateAndMovesUpWhenAPlaceFallsFree() {
+        var event = onePlace();
+        var day = dayOf(event);
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        try {
+            assertEquals(
+                    RegistrationStatus.ACCEPTED,
+                    service.registerFederated(event.id(), partnerId, first, day).status());
+            assertEquals(
+                    RegistrationStatus.QUEUED,
+                    service.registerFederated(event.id(), partnerId, second, day)
+                            .status());
+            assertEquals(
+                    RegistrationStatus.QUEUED,
+                    service.registerFederated(event.id(), partnerId, second, day)
+                            .status(),
+                    "signing up again keeps the place in line");
+
+            service.withdrawRegistration(event.id(), partnerId, first, day);
+
+            assertEquals(RegistrationStatus.ACCEPTED, statusOf(event, second));
+        } finally {
+            eventRepo.delete(event.id());
+        }
+    }
+
+    @Test
+    void acceptingAWaitingPartnerMemberBeyondTheLimitHasToBeSaidAndTurningDownMovesTheNextUp() {
+        var event = onePlace();
+        var day = dayOf(event);
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        try {
+            var held = service.registerFederated(event.id(), partnerId, first, day);
+            var waiting = service.registerFederated(event.id(), partnerId, second, day);
+
+            var refusal = assertThrows(
+                    RefusalResponse.class,
+                    () -> service.acceptWithinBudget(waiting.id(), event.id(), partnerId, day, false));
+            assertEquals(EventRefusal.REGISTRATION_FULL, refusal.refusal());
+
+            service.updateRegistrationStatus(held.id(), RegistrationStatus.DENIED);
+            assertEquals(RegistrationStatus.ACCEPTED, statusOf(event, second));
+
+            var third = service.registerFederated(event.id(), partnerId, UUID.randomUUID(), day);
+            assertTrue(service.acceptWithinBudget(third.id(), event.id(), partnerId, day, true));
+        } finally {
+            eventRepo.delete(event.id());
+        }
+    }
+
+    @Test
+    void takingBackAGivenUpSeatThatWasFilledPutsThePartnersMemberFirstInLine() {
+        var event = onePlace();
+        var day = dayOf(event);
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        UUID third = UUID.randomUUID();
+        try {
+            service.registerFederated(event.id(), partnerId, first, day);
+            service.registerFederated(event.id(), partnerId, second, day);
+            service.registerFederated(event.id(), partnerId, third, day);
+            service.withdrawRegistration(event.id(), partnerId, first, day);
+
+            assertTrue(service.undoWithdrawal(event.id(), partnerId, first, day));
+
+            assertEquals(RegistrationStatus.ACCEPTED, statusOf(event, second));
+            assertEquals(RegistrationStatus.QUEUED, statusOf(event, first));
+            var line = new RegistrationQueueRepository().entries(RegistrationQueueRepository.ofDate(event.id(), day));
+            assertEquals(
+                    service.findRegistration(event.id(), partnerId, first, day)
+                            .orElseThrow()
+                            .id(),
+                    line.getFirst().partnerId());
+        } finally {
+            eventRepo.delete(event.id());
+        }
+    }
+
+    @Test
+    void membersHereAndPartnersMembersWaitInOneLine() {
+        var event = onePlace();
+        var day = dayOf(event);
+        var registrations = newEventServices(new DomainEventBus(Set.of())).registration();
+        var anna = stationMemberRepo.create(
+                stationA.id(),
+                accountRepo.create("line-anna@test.com", "Anna", "Line").id());
+        var ben = stationMemberRepo.create(
+                stationA.id(),
+                accountRepo.create("line-ben@test.com", "Ben", "Line").id());
+        UUID visitor = UUID.randomUUID();
+        try {
+            var held = registrations.register(event.id(), anna.id(), day, true, null);
+            assertEquals(
+                    RegistrationStatus.QUEUED,
+                    service.registerFederated(event.id(), partnerId, visitor, day)
+                            .status());
+            var waiting = registrations.register(event.id(), ben.id(), day, true, null);
+            assertEquals(RegistrationStatus.QUEUED, waiting.status());
+
+            registrations.withdraw(held.id());
+            assertEquals(RegistrationStatus.ACCEPTED, statusOf(event, visitor), "the partner's member was first");
+
+            service.withdrawRegistration(event.id(), partnerId, visitor, day);
+            assertEquals(
+                    RegistrationStatus.ACCEPTED,
+                    eventRegistrationRepo.findById(waiting.id()).orElseThrow().status());
+        } finally {
+            eventRepo.delete(event.id());
+        }
+    }
+
+    @Test
+    void takingBackLeavingTheLinePutsThePartnersMemberBackInLine() {
+        var event = onePlace();
+        var day = dayOf(event);
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        try {
+            service.registerFederated(event.id(), partnerId, first, day);
+            service.registerFederated(event.id(), partnerId, second, day);
+            service.withdrawRegistration(event.id(), partnerId, second, day);
+
+            assertTrue(service.undoWithdrawal(event.id(), partnerId, second, day));
+
+            assertEquals(RegistrationStatus.QUEUED, statusOf(event, second));
+            assertEquals(
+                    1,
+                    new RegistrationQueueRepository()
+                            .entries(RegistrationQueueRepository.ofDate(event.id(), day))
+                            .size());
+        } finally {
+            eventRepo.delete(event.id());
+        }
+    }
+
+    @Test
+    void whoeverRunsTheAppointmentPutsPartnersMembersOnTheListAndReordersIt() {
+        Instant start = Instant.now().plus(1, ChronoUnit.DAYS);
+        var event = eventRepo.create(
+                stationA.id(),
+                "Mit Entscheidung",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                true,
+                null,
+                true,
+                null,
+                1,
+                null,
+                null,
+                null);
+        var day = dayOf(event);
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        try {
+            var one = service.registerFederated(event.id(), partnerId, first, day);
+            var two = service.registerFederated(event.id(), partnerId, second, day);
+            assertEquals(RegistrationStatus.PENDING, one.status());
+
+            service.moveToQueue(List.of(two.id(), one.id()));
+            service.moveInQueue(two.id(), 1);
+
+            var line = new RegistrationQueueRepository().entries(RegistrationQueueRepository.ofDate(event.id(), day));
+            assertEquals(
+                    List.of(two.id(), one.id()),
+                    line.stream().map(QueueEntry::partnerId).toList());
+            assertRefused(
+                    EventRefusal.REGISTRATION_NOT_PENDING_FOR_QUEUE, () -> service.moveToQueue(List.of(one.id())));
+            assertRefused(
+                    EventRefusal.REGISTRATION_NOT_QUEUED,
+                    () -> service.moveInQueue(
+                            service.registerFederated(event.id(), partnerId, UUID.randomUUID(), day)
+                                    .id(),
+                            1));
+        } finally {
+            eventRepo.delete(event.id());
+        }
+    }
+
+    @Test
+    void aPartnerConfirmingItsOwnOnAFullDatePutsThemOnTheWaitingList() {
+        var event = onePlace();
+        var day = dayOf(event);
+        int serving = partnerOf(stationA, stationB).id();
+        var registrations = newEventServices(new DomainEventBus(Set.of())).registration();
+        var held = stationMemberRepo.create(
+                stationA.id(),
+                accountRepo.create("full-held@test.com", "Voll", "Platz").id());
+        UUID member = UUID.randomUUID();
+        try {
+            service.setShare(event.id(), ShareScope.ALL_PARTNERS, List.of());
+            service.setPartnerPlaces(event.id(), serving, 2, true);
+            service.registerForFederatedEvent(stationB.id(), stationA.uid(), event.id(), member, day);
+            registrations.register(event.id(), held.id(), day, true, null);
+
+            service.confirmOwnFederatedMember(stationB.id(), stationA.uid(), event.id(), member, day);
+
+            assertEquals(
+                    RegistrationStatus.QUEUED,
+                    service.findRegistration(event.id(), serving, member, day)
+                            .orElseThrow()
+                            .status());
+        } finally {
+            eventRepo.delete(event.id());
+        }
+    }
+
+    @Test
+    void aPartnerWaitsOnlyWithinItsPlacesAndAMemberWithoutAPlaceLeftIsPassedOver() {
+        Instant start = Instant.now().plus(1, ChronoUnit.DAYS);
+        var event = eventRepo.create(
+                stationA.id(),
+                "Zwei Stellen",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                true,
+                null,
+                false,
+                null,
+                2,
+                null,
+                null,
+                null);
+        var day = dayOf(event);
+        int serving = partnerOf(stationA, stationB).id();
+        var registrations = newEventServices(new DomainEventBus(Set.of())).registration();
+        var local = stationMemberRepo.create(
+                stationA.id(),
+                accountRepo.create("budget-local@test.com", "Bud", "Get").id());
+        var behind = stationMemberRepo.create(
+                stationA.id(),
+                accountRepo.create("budget-behind@test.com", "Hin", "Ten").id());
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        UUID third = UUID.randomUUID();
+        try {
+            service.setShare(event.id(), ShareScope.ALL_PARTNERS, List.of());
+            service.setPartnerPlaces(event.id(), serving, 2, true);
+            for (var member : List.of(first, second, third)) {
+                service.registerForFederatedEvent(stationB.id(), stationA.uid(), event.id(), member, day);
+            }
+            service.confirmOwnFederatedMember(stationB.id(), stationA.uid(), event.id(), first, day);
+            var held = registrations.register(event.id(), local.id(), day, true, null);
+            service.confirmOwnFederatedMember(stationB.id(), stationA.uid(), event.id(), second, day);
+            assertEquals(
+                    RegistrationStatus.QUEUED,
+                    service.findRegistration(event.id(), serving, second, day)
+                            .orElseThrow()
+                            .status());
+
+            assertRefused(
+                    EventRefusal.NO_PLACES_LEFT_FOR_PARTNER,
+                    () -> service.confirmOwnFederatedMember(stationB.id(), stationA.uid(), event.id(), third, day));
+
+            service.setPartnerPlaces(event.id(), serving, 1, true);
+            var waitingHere = registrations.register(event.id(), behind.id(), day, true, null);
+            registrations.withdraw(held.id());
+            assertEquals(
+                    RegistrationStatus.QUEUED,
+                    service.findRegistration(event.id(), serving, second, day)
+                            .orElseThrow()
+                            .status(),
+                    "the partner's own places are spent");
+            assertEquals(
+                    RegistrationStatus.ACCEPTED,
+                    eventRegistrationRepo
+                            .findById(waitingHere.id())
+                            .orElseThrow()
+                            .status());
+
+            assertEquals(
+                    RegistrationStatus.QUEUED,
+                    service.registerFederated(event.id(), serving, second, day).status(),
+                    "signing up again changes nothing");
+            service.confirmOwnFederatedMember(stationB.id(), stationA.uid(), event.id(), second, day);
+            registrations.withdraw(waitingHere.id());
+            var late = stationMemberRepo.create(
+                    stationA.id(),
+                    accountRepo.create("budget-late@test.com", "Sp", "Aet").id());
+            assertEquals(
+                    RegistrationStatus.ACCEPTED,
+                    registrations
+                            .register(event.id(), late.id(), day, true, null)
+                            .status(),
+                    "a free place is not kept from a newcomer by somebody who cannot move up");
+        } finally {
+            eventRepo.delete(event.id());
+        }
     }
 }

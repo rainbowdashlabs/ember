@@ -13,7 +13,7 @@ const documentsToBring = vi.hoisted(() => vi.fn())
 vi.mock('@/api', () => ({appointmentDocuments: {documentsToBring}}))
 
 function part(eventId: number, startTime: string, calledOff = false): EventGroupPartState {
-    return {eventId, setId: 1, name: `Tag ${eventId}`, startTime, endTime: startTime, calledOff, tookPlace: false, required: false}
+    return {eventId, setId: 1, name: `Tag ${eventId}`, startTime, endTime: startTime, calledOff, tookPlace: false, required: false, accepted: 0, places: null}
 }
 
 function documents(open: {templateId: number; fromEventGroup: boolean}[], memberId = 12): AppointmentDocuments {

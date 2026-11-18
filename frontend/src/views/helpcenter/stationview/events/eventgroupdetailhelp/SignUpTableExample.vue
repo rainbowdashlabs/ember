@@ -21,8 +21,13 @@ import {useDataTable} from '@/composables/useDataTable'
 import {isSignUpComplete, signUpColumns} from '@/views/stationview/events/eventgroupdetailview/eventGroupTables'
 import {RegistrationStatus, type EventGroupSignUp} from '@/api/generated/schema'
 import {exampleSignUps} from './exampleSignUps'
+import QueueSection from '@/views/stationview/events/eventshared/QueueSection.vue'
+import {eventGroupQueueOf} from '@/util/registrationQueue'
 
-/** The sign-up list of the event group page as the help shows it: two sign-ups, one still incomplete. */
+/**
+ * The sign-up list of the event group page as the help shows it: the waiting list above the table,
+ * and three sign-ups, one still incomplete and one waiting.
+ */
 const {t} = useI18n()
 
 const table = useDataTable<EventGroupSignUp>({
@@ -31,6 +36,8 @@ const table = useDataTable<EventGroupSignUp>({
   columns: computed(() => signUpColumns(t)),
   rowKey: entry => entry.memberId,
 })
+
+const queue = computed(() => eventGroupQueueOf(exampleSignUps(t), []))
 </script>
 
 <template>
@@ -42,9 +49,10 @@ const table = useDataTable<EventGroupSignUp>({
         <SecondaryButton :icon="['fas', 'file-export']">{{ t('eventGroups.exportSignUps') }}</SecondaryButton>
       </ButtonRow>
     </div>
+    <QueueSection :entries="queue" can-manage/>
     <RecordTable :table="table" test-id="help-event-group-sign-ups" plain>
       <template #cell-status="{row}">
-        <RegistrationStatusBadge v-if="row.status" :status="row.status"/>
+        <RegistrationStatusBadge v-if="row.status" :status="row.status" :queue-position="row.queuePosition"/>
       </template>
       <template #cell-complete="{row}">
         <SuccessBadge v-if="isSignUpComplete(row)">{{ t('eventGroups.signUpComplete') }}</SuccessBadge>
@@ -52,7 +60,10 @@ const table = useDataTable<EventGroupSignUp>({
       </template>
       <template #actions="{row}">
         <ButtonRow align="end">
-          <SuccessButton v-if="row.status !== RegistrationStatus.ACCEPTED" compact>{{ t('eventGroups.accept') }}</SuccessButton>
+          <SuccessButton v-if="row.status !== RegistrationStatus.ACCEPTED" compact>
+            {{ row.status === RegistrationStatus.QUEUED ? t('registrationQueue.moveUp') : t('eventGroups.accept') }}
+          </SuccessButton>
+          <SecondaryButton v-if="row.status === RegistrationStatus.PENDING" compact>{{ t('registrationQueue.putOnList') }}</SecondaryButton>
           <ErrorButton compact>{{ t('eventGroups.deny') }}</ErrorButton>
         </ButtonRow>
       </template>

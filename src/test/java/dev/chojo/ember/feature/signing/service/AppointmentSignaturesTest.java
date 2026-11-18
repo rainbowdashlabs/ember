@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.events.repository.EventGroupPartnerRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.events.service.EventGroupPartDates;
 import dev.chojo.ember.feature.events.service.EventGroupQuestionService;
 import dev.chojo.ember.feature.events.service.EventGroupRegistrationService;
@@ -69,6 +70,7 @@ import dev.chojo.ember.feature.signing.repository.IssuerSignatureRepository;
 import dev.chojo.ember.feature.signing.repository.PartnerAgreementRepository;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
+import dev.chojo.ember.util.TestEventPlaces;
 import io.javalin.http.UploadedFile;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -235,7 +237,8 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 new EventRegistrationFieldRepository(),
                 eventRepo,
                 new DomainEventBus(Set.of(new RegistrationSignaturesHandler(() -> signatures))),
-                memberNameResolver);
+                memberNameResolver,
+                TestEventPlaces.of(eventRegistrationRepo));
         attendance = new AgreementAttendance(requestRepo, eventRepo, eventRegistrationRepo, registrations);
         var rights = new WithdrawalRights(guardianPolicy);
         offers = new AgreementOffers(
@@ -1055,7 +1058,9 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 new DomainEventBus(Set.of()),
                 memberNameResolver,
                 new EventGroupQuestionService(new EventRegistrationFieldRepository(), memberEligibility),
-                newEventGroupSignUpRules());
+                newEventGroupSignUpRules(),
+                newEventGroupQueue(registrations, new DomainEventBus(Set.of())),
+                new RegistrationQueueRepository());
     }
 
     private static void signUp(GroupParts group, StationEvent... parts) {

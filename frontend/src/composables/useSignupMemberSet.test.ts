@@ -33,9 +33,11 @@ function guest(status: RegistrationStatus, eventDate: string): EnrichedFederatio
       status,
       createdAt: '2026-05-01T10:00:00Z',
       agreementWithdrawnAt: null,
+      comingOrAsking: true,
       standing: true,
     },
     memberIdentity: null,
+    queuePosition: null,
   }
 }
 

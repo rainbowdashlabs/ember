@@ -9,7 +9,6 @@ import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
-import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.repository.PartnerEventGroupSignupRepository;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes;
 import dev.chojo.ember.feature.events.route.RemoteEventGroupRoutes.RemoteEventGroupCancelled;
@@ -141,8 +140,10 @@ public class PartnerEventGroupService implements FederationServer {
         return detail;
     }
 
+    /** Whether a member's sign-up still stands at the partner, waiting on its waiting list included. */
     private static boolean holds(PartnerStanding standing) {
-        return standing.status() == RegistrationStatus.PENDING || standing.status() == RegistrationStatus.ACCEPTED;
+        var status = standing.status();
+        return status != null && status.standing();
     }
 
     /**

@@ -26,6 +26,7 @@ import {emptyRestriction, toRestriction} from '@/components/input/restriction'
 import type {RestrictionSelection} from '@/api/types'
 import {
     EventType,
+    QueueOrder,
     StationPermission,
     type AttendanceTemplate,
     type AttendanceTemplateField,
@@ -97,6 +98,7 @@ const settings = reactive({
   requiresRegistration: false,
   requiresConfirmation: false,
   registrationLimit: undefined as number | undefined,
+  queueOrder: QueueOrder.TIME as QueueOrder,
   deadlineOffsetHours: null as number | null,
   minRegistrations: undefined as number | undefined,
   thresholdDays: undefined as number | undefined,
@@ -134,6 +136,7 @@ function seedForm(detail: TemplateDetailResponse) {
   settings.requiresRegistration = tpl.requiresRegistration ?? false
   settings.requiresConfirmation = tpl.requiresConfirmation ?? false
   settings.registrationLimit = tpl.registrationLimit ?? undefined
+  settings.queueOrder = tpl.queueOrder ?? QueueOrder.TIME
   settings.deadlineOffsetHours = tpl.registrationDeadlineOffsetHours ?? null
   settings.minRegistrations = tpl.minRegistrations ?? undefined
   settings.thresholdDays = tpl.thresholdDays ?? undefined
@@ -203,6 +206,7 @@ async function save() {
       requiresRegistration: settings.requiresRegistration || null,
       requiresConfirmation: settings.requiresConfirmation || null,
       registrationLimit: settings.registrationLimit ?? null,
+      queueOrder: settings.queueOrder,
       registrationDeadlineOffsetHours: settings.deadlineOffsetHours,
       minRegistrations: settings.minRegistrations ?? null,
       thresholdDays: settings.minRegistrations ? settings.thresholdDays ?? null : null,

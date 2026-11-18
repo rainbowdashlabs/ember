@@ -60,7 +60,10 @@ public class EventFeedDetails implements FeedDetailsContributor {
                     String memberName,
                     String eventName,
                     RegistrationStatus status,
-                    String eventDescription) -> {
+                    String eventDescription,
+                    Integer _,
+                    boolean _,
+                    boolean _) -> {
                 details.putIfPresent(details.label("member", "Member"), memberName);
                 details.putIfPresent(details.label("status", "Status"), details.statusWithSymbol(status.name()));
                 details.putIfPresent(details.label("event", "Event"), eventName);

@@ -9,6 +9,7 @@ import {needsDayOfWeek} from '@/api/events'
 import {namesMembers} from '@/api/fieldTypes'
 import {
     EventType,
+    QueueOrder,
     type AppointmentField,
     type EventFieldEntry,
     type EventRequest,
@@ -74,6 +75,12 @@ export function useEventForm() {
    * start entered first by that much rather than landing on the start itself.
    */
   const copiedLength = ref<number | null>(null)
+
+  /**
+   * The waiting list order the appointment had when the editor opened, null for a new one. Kept apart
+   * from the form state because the order is saved on its own after the appointment.
+   */
+  const savedQueueOrder = ref<QueueOrder | null>(null)
 
   watch(() => state.startTime, (val) => {
     if (val && !state.endTime) {
@@ -200,6 +207,7 @@ export function useEventForm() {
     if (tpl.requiresRegistration != null) state.requiresRegistration = tpl.requiresRegistration
     if (tpl.requiresConfirmation != null) state.requiresConfirmation = tpl.requiresConfirmation
     if (tpl.registrationLimit != null) state.registrationLimit = tpl.registrationLimit
+    if (tpl.queueOrder != null) state.queueOrder = tpl.queueOrder
     if (tpl.minRegistrations != null) state.minRegistrations = tpl.minRegistrations
     if (tpl.thresholdDays != null) state.thresholdDays = tpl.thresholdDays
     if (tpl.registrationCloseDays != null) state.registrationCloseDays = tpl.registrationCloseDays
@@ -299,6 +307,8 @@ export function useEventForm() {
     state.registrationDeadline = instantToLocalInput(ev.registrationDeadline)
     state.requiresConfirmation = ev.requiresConfirmation ?? false
     state.registrationLimit = ev.registrationLimit ?? undefined
+    state.queueOrder = ev.queueOrder ?? QueueOrder.TIME
+    savedQueueOrder.value = state.queueOrder
     state.minRegistrations = ev.minRegistrations ?? undefined
     state.thresholdDays = ev.thresholdDays ?? undefined
     state.registrationCloseDays = ev.registrationCloseDays ?? undefined
@@ -351,6 +361,19 @@ export function useEventForm() {
     return namedEntries(state.fields)
   }
 
+  /**
+   * Whether the waiting list order has to be saved after the appointment: where it has a participant
+   * limit, which is what a waiting list needs, and where the order was changed. An appointment
+   * without a limit keeps no waiting list, and saving an order nobody touched would be a request for
+   * nothing.
+   */
+  function queueOrderToSave(): QueueOrder | null {
+    if (state.registrationLimit || state.queueOrder !== (savedQueueOrder.value ?? QueueOrder.TIME)) {
+      return state.queueOrder
+    }
+    return null
+  }
+
   return {
     state,
     props,
@@ -362,6 +385,7 @@ export function useEventForm() {
     loadEvent,
     buildPayload,
     namedFields,
+    queueOrderToSave,
     endsBeforeItStarts,
   }
 }

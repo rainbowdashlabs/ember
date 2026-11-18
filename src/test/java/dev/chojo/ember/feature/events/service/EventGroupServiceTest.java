@@ -627,7 +627,7 @@ class EventGroupServiceTest extends EventGroupServiceTestBase {
     }
 
     @Test
-    void theTallyCountsPartsAndTheSignUpsHoldingAPlace() {
+    void theTallyCountsPartsAndOnlyTheAcceptedSignUpsAsHoldingAPlace() {
         var eventGroup = jugendflamme();
         var empty = create(details("Leer", false), List.of(new EventGroupSetDraft(null, "Teile", 1)));
         service.addPart(
@@ -641,13 +641,14 @@ class EventGroupServiceTest extends EventGroupServiceTestBase {
                 oneTime(62).id(),
                 set(eventGroup, "Prüfung").id());
         var registrations = new EventGroupRegistrationRepository();
-        registrations.signUp(eventGroup.id(), anna.id(), RegistrationStatus.PENDING, null);
+        registrations.signUp(eventGroup.id(), anna.id(), RegistrationStatus.ACCEPTED, null);
+        registrations.signUp(eventGroup.id(), outsider.id(), RegistrationStatus.PENDING, null);
 
         var tallies = service.tallies(station.id());
 
-        assertEquals(new EventGroupTally(2, 1), tallies.get(eventGroup.id()));
+        assertEquals(new EventGroupTally(2, 1, 0), tallies.get(eventGroup.id()));
         assertEquals(EventGroupTally.NONE, tallies.get(empty.id()));
-        assertEquals(new EventGroupTally(2, 1), service.tally(eventGroup.id()));
+        assertEquals(new EventGroupTally(2, 1, 0), service.tally(eventGroup.id()));
         assertEquals(EventGroupTally.NONE, service.tally(-1));
         assertEquals(
                 Set.of(anna.id()),

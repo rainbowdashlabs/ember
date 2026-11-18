@@ -39,7 +39,7 @@ public class RegistrationSignaturesHandler implements DomainEventHandler<EventAn
         switch (event.status()) {
             case PENDING, ACCEPTED ->
                 signatures.get().askOnRegistration(event.eventId(), event.eventDate(), event.memberId());
-            case DENIED, DECLINED, WITHDRAWN ->
+            case DENIED, DECLINED, WITHDRAWN, QUEUED ->
                 signatures.get().withdrawOnLeaving(event.eventId(), event.eventDate(), event.memberId());
         }
     }

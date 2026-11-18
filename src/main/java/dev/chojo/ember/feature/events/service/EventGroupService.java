@@ -117,7 +117,7 @@ public class EventGroupService {
             var eventGroup = eventGroups.create(stationId, checked);
             for (int position = 0; position < sets.size(); position++) {
                 var set = sets.get(position);
-                eventGroups.createSet(eventGroup.id(), set.name().strip(), set.minimum(), position);
+                eventGroups.createSet(eventGroup.id(), set.name().strip(), set.minimum(), set.maximum(), position);
             }
             restrictions.setAudience(RestrictionType.EVENT_GROUP, eventGroup.id(), registration);
             restrictions.setAudience(RestrictionType.EVENT_GROUP_VIEW, eventGroup.id(), view);
@@ -261,6 +261,12 @@ public class EventGroupService {
                 Integer setId = draft.id();
                 if (setId == null) continue;
                 int required = requiredTakingPlace(stationId, eventGroupId, setId);
+                Integer maximum = draft.maximum();
+                int requiredAll = requiredIn(eventGroupId, setId);
+                if (maximum != null && maximum < requiredAll) {
+                    throw EventRefusal.EVENT_GROUP_SET_MAXIMUM_OUT_OF_RANGE.raise(
+                            RefusalDetail.range(Math.max(requiredAll, draft.minimum()), null));
+                }
                 boolean changed = !Objects.equals(stored.get(setId), draft.minimum());
                 int parts = draft.minimum() < required || changed ? eventGroups.countPartsInSet(setId) : 0;
                 if (draft.minimum() < required || (changed && parts > 0 && draft.minimum() > parts)) {
@@ -276,9 +282,10 @@ public class EventGroupService {
                 var draft = drafts.get(position);
                 Integer setId = draft.id();
                 if (setId == null) {
-                    eventGroups.createSet(eventGroupId, draft.name().strip(), draft.minimum(), position);
+                    eventGroups.createSet(
+                            eventGroupId, draft.name().strip(), draft.minimum(), draft.maximum(), position);
                 } else {
-                    eventGroups.updateSet(setId, draft.name().strip(), draft.minimum(), position);
+                    eventGroups.updateSet(setId, draft.name().strip(), draft.minimum(), draft.maximum(), position);
                 }
             }
             return eventGroups.findSets(eventGroupId);
@@ -315,6 +322,7 @@ public class EventGroupService {
             requireCompatibleAudiences(eventGroupId, eventId);
             if (!eventGroups.claimPart(eventId, setId)) throw EventRefusal.EVENT_GROUP_PART_TAKEN.raise();
             questions.dropQuestionsOfPart(eventId);
+            eventGroups.clearOwnLimit(eventId);
             eventGroups.alignParts(
                     eventGroupId,
                     eventGroup.details().requiresConfirmation(),
@@ -377,6 +385,17 @@ public class EventGroupService {
     private void raiseToRequired(int stationId, int eventGroupId, int setId) {
         int required = requiredTakingPlace(stationId, eventGroupId, setId);
         if (required > 0) eventGroups.raiseMinimum(setId, required);
+        eventGroups.raiseMaximum(setId, requiredIn(eventGroupId, setId));
+    }
+
+    /**
+     * How many parts of a set are required, called off or not: a part called off can be brought back, and
+     * a maximum below them would leave no choice that meets the set.
+     */
+    private int requiredIn(int eventGroupId, int setId) {
+        return (int) eventGroups.findParts(eventGroupId).stream()
+                .filter(part -> part.setId() == setId && part.required())
+                .count();
     }
 
     /** How many parts of a set are required and still take place; a called-off part is required no more. */
@@ -392,8 +411,9 @@ public class EventGroupService {
 
     /**
      * Makes a part an appointment of its own again. Who was signed up for it stays signed up, and
-     * it keeps the sign-up settings, audiences and partner share it had as a part until somebody
-     * changes them, so partners' members signed up for it can still be seen and decided. A set that
+     * it keeps the sign-up settings, places, audiences and partner share it had as a part until
+     * somebody changes them, so partners' members signed up for it can still be seen and decided, and
+     * a part that took the places per part keeps that many places of its own. A set that
      * asked for every one of its parts asks for all it still holds afterwards.
      *
      * @param stationId    the station asking
@@ -406,6 +426,7 @@ public class EventGroupService {
             requirePartOf(eventGroupId, eventId);
             var leaving = departure.leaving(eventGroupId, eventId);
             int left = eventGroups.findPart(eventId).orElseThrow().setId();
+            eventGroups.keepLimit(eventId);
             eventGroups.setPartSet(eventId, null);
             eventGroups.untieRegistrations(eventId);
             eventGroups.capMinimum(left);
@@ -752,6 +773,10 @@ public class EventGroupService {
         if (limit != null && limit < 1) {
             throw EventRefusal.EVENT_GROUP_LIMIT_NOT_POSITIVE.raise();
         }
+        Integer partLimit = details.partRegistrationLimit();
+        if (partLimit != null && partLimit < 1) {
+            throw EventRefusal.EVENT_GROUP_LIMIT_NOT_POSITIVE.raise();
+        }
         requireCompleteMinimum(details.minRegistrations(), details.thresholdDays());
         return new EventGroupDetails(
                 name.strip(),
@@ -761,7 +786,9 @@ public class EventGroupService {
                 details.requiresConfirmation(),
                 checkedColor(details.color()),
                 details.minRegistrations(),
-                details.thresholdDays());
+                details.thresholdDays(),
+                partLimit,
+                details.order());
     }
 
     /**
@@ -797,6 +824,11 @@ public class EventGroupService {
         for (var set : sets) {
             if (set.name() == null || set.name().isBlank()) throw EventRefusal.EVENT_GROUP_NAME_MISSING.raise();
             if (set.minimum() < 0) throw minimumOutOfRange(0, 0);
+            Integer maximum = set.maximum();
+            if (maximum != null && (maximum < 1 || maximum < set.minimum())) {
+                throw EventRefusal.EVENT_GROUP_SET_MAXIMUM_OUT_OF_RANGE.raise(
+                        RefusalDetail.range(Math.max(1, set.minimum()), null));
+            }
         }
     }
 }

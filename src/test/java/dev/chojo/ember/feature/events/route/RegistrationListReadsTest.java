@@ -224,7 +224,8 @@ class RegistrationListReadsTest {
                         "Fahrer",
                         null,
                         false,
-                        Instant.parse("2026-08-01T10:00:00Z")),
+                        Instant.parse("2026-08-01T10:00:00Z"),
+                        null),
                 row);
     }
 

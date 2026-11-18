@@ -341,4 +341,46 @@ class EventGroupSettingsServiceTest extends RepositoryTestBase {
 
         assertTrue(service.ofPart(station.id(), event.id()).isEmpty());
     }
+
+    @Test
+    void aPartTakesThePlacesPerPartUntilItGetsItsOwnAndKeepsThemWhenTheGroupIsSaved() {
+        var group = group();
+        var set = groupRepo.findSets(group.id()).getFirst();
+        int partId = part(group, set.id(), 12).id();
+        groups.update(
+                station.id(),
+                group.id(),
+                new EventGroupDetails("Jugendflamme", null, null, null, false, null, null, null, 10, null));
+
+        var inherited = service.ofPart(station.id(), partId).orElseThrow();
+        assertNull(inherited.ownRegistrationLimit());
+        assertEquals(10, inherited.partRegistrationLimit());
+        assertEquals(10, eventRepo.findById(partId).orElseThrow().registrationLimit());
+
+        var own = service.setPartLimit(station.id(), partId, 4);
+        assertEquals(4, own.ownRegistrationLimit());
+        groups.update(
+                station.id(),
+                group.id(),
+                new EventGroupDetails("Jugendflamme", null, null, null, false, null, null, null, 12, null));
+        assertEquals(4, eventRepo.findById(partId).orElseThrow().registrationLimit(), "saving the group keeps it");
+
+        service.setPartLimit(station.id(), partId, null);
+        assertEquals(12, eventRepo.findById(partId).orElseThrow().registrationLimit());
+    }
+
+    @Test
+    void aPartGetsAtLeastOnePlaceAndOnlyAtItsOwnStation() {
+        var group = group();
+        int partId =
+                part(group, groupRepo.findSets(group.id()).getFirst().id(), 13).id();
+
+        var none = assertThrows(RefusalResponse.class, () -> service.setPartLimit(station.id(), partId, 0));
+        assertEquals(EventRefusal.EVENT_GROUP_LIMIT_NOT_POSITIVE, none.refusal());
+        var foreign = assertThrows(RefusalResponse.class, () -> service.setPartLimit(otherStation.id(), partId, 3));
+        assertEquals(EventRefusal.EVENT_GROUP_NOT_HERE, foreign.refusal());
+        var notAPart =
+                assertThrows(RefusalResponse.class, () -> service.setPartLimit(station.id(), Integer.MAX_VALUE, 3));
+        assertEquals(EventRefusal.EVENT_GROUP_NOT_HERE, notAPart.refusal());
+    }
 }

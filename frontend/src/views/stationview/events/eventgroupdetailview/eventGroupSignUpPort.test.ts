@@ -17,7 +17,7 @@ describe('eventGroupSignUpPort', () => {
   it('sends a sign-up for an event group of this station with its answers', async () => {
     await ownEventGroupPort(70).signUp([11], [{fieldId: 5, value: 'M'}], 12)
 
-    expect(eventGroups.signUp).toHaveBeenCalledWith(70, [11], [{fieldId: 5, value: 'M'}], 12)
+    expect(eventGroups.signUp).toHaveBeenCalledWith(70, [11], [{fieldId: 5, value: 'M'}], 12, undefined)
   })
 
   it('signs the documents of an own event group here and leaves a partner\'s to the partner', () => {

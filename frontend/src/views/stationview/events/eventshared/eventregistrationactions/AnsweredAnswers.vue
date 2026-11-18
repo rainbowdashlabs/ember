@@ -12,7 +12,7 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import RegistrationStatusBadge from '../RegistrationStatusBadge.vue'
 import {isRefusal, type GivenAnswer} from '@/util/eventAnswers'
-import type {RegistrationStatus} from '@/api/generated/schema'
+import {RegistrationStatus} from '@/api/generated/schema'
 
 /**
  * What each person who has answered said, and the way to take it back.
@@ -28,6 +28,8 @@ const props = defineProps<{
   /** Whether signing up is still taken, which a place given up offers to do again. */
   signUpOpen: boolean
   registering: boolean
+  /** Whether the date is already over, which turns a wait on the waiting list into no place. */
+  past?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -45,19 +47,25 @@ const {t} = useI18n()
  * answer at all, and what that means depends on the appointment: where everybody is expected it puts
  * the person back among them, and where a place has to be asked for it simply clears the refusal.
  * Reading this off the appointment alone once put "sign off" behind somebody who had already
- * refused. A place already given up is asked for anew, so its button signs up.
+ * refused. A place already given up is asked for anew, so its button signs up, and a wait on the
+ * waiting list is left rather than signed off.
  */
 function undoLabel(row: GivenAnswer<K, U>): string {
   if (row.placeGivenUp) return t('eventsUpcoming.register')
   const status: RegistrationStatus = row.status
+  if (status === RegistrationStatus.QUEUED) return t('registrationQueue.leave')
   if (!isRefusal(status)) return t('eventsUpcoming.unregister')
   return props.requiresRegistration
       ? t('eventsUpcoming.undoDecline')
       : t('eventsUpcoming.register')
 }
 
-/** Whether a row offers anything to undo: a place given up only while signing up is still taken. */
+/**
+ * Whether a row offers anything to undo: a place given up only while signing up is still taken, and
+ * a wait on the waiting list only while the date is still to come.
+ */
 function canUndo(row: GivenAnswer<K, U>): boolean {
+  if (row.status === RegistrationStatus.QUEUED && props.past) return false
   return !row.placeGivenUp || props.signUpOpen
 }
 </script>
@@ -65,7 +73,7 @@ function canUndo(row: GivenAnswer<K, U>): boolean {
 <template>
   <ButtonRow v-for="row in rows" :key="`reg-${row.key}`">
     <span v-if="showNames" class="min-w-28 truncate text-xs text-(--text-muted)">{{ row.name }}</span>
-    <RegistrationStatusBadge :status="row.status"/>
+    <RegistrationStatusBadge :status="row.status" :queue-position="row.queuePosition" :past="past"/>
 
     <MutedText v-if="row.heldByField != null" size="sm" :data-testid="`held-by-field-${row.key}`">
       {{ row.heldByField ? t('eventsUpcoming.heldByNamedField', {field: row.heldByField})

@@ -42,7 +42,7 @@ public record EventGroup(
 
     /** The columns {@link #map()} reads. */
     public static final String COLUMNS =
-            "id, station_id, name, description, registration_limit, registration_deadline, requires_confirmation, restriction_mode, view_restriction_mode, cancelled, cancelled_at, cancel_reason, color, min_registrations, threshold_days";
+            "id, station_id, name, description, registration_limit, registration_deadline, requires_confirmation, restriction_mode, view_restriction_mode, cancelled, cancelled_at, cancel_reason, color, min_registrations, threshold_days, part_registration_limit, queue_order";
 
     /** Reads an event group from a row holding {@link #COLUMNS}. */
     public static RowMapping<EventGroup> map() {
@@ -57,7 +57,9 @@ public record EventGroup(
                         row.getBoolean("requires_confirmation"),
                         row.getString("color"),
                         row.getObject("min_registrations", Integer.class),
-                        row.getObject("threshold_days", Integer.class)),
+                        row.getObject("threshold_days", Integer.class),
+                        row.getObject("part_registration_limit", Integer.class),
+                        row.getEnum("queue_order", QueueOrder.class)),
                 row.getEnum("restriction_mode", RestrictionMode.class),
                 row.getEnum("view_restriction_mode", RestrictionMode.class),
                 row.getBoolean("cancelled"),

@@ -287,6 +287,9 @@ async function writeEvent(choice: SaveChoice | null): Promise<number> {
 
   await fieldDefaults.save(eventFieldDefaultsPort(savedEventId), isEdit.value)
   await events.setEventReminders(savedEventId, form.state.reminders)
+  const queueOrder = form.queueOrderToSave()
+  if (queueOrder && !eventGroupPart.value) await events.setQueueOrder(savedEventId, queueOrder)
+  if (eventGroupPart.value) await groupPart.saveOwnLimit(savedEventId, form.state.registrationLimit || null)
   await events.setEventFields(savedEventId, {fields: form.namedFields()})
   if (!eventGroupPart.value) {
     await events.setRegistrationFields(savedEventId, namedEntries(registrationFields.value))
@@ -407,6 +410,7 @@ const bodyProps = computed(() => ({
   eventGroupPart: eventGroupPart.value !== null,
   inheritedFields: groupPart.inheritedFields.value,
   inheritedSettings: groupPart.settings.value?.eventGroup ?? null,
+  inheritedPartLimit: groupPart.settings.value?.partRegistrationLimit ?? null,
   ...data.props.value,
   ...fieldDefaults.props.value,
   ...federationShare.props.value,

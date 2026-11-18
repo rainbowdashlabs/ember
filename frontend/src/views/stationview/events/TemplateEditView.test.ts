@@ -11,6 +11,7 @@ import TemplateEditView from './TemplateEditView.vue'
 import TemplateEditBody from './templateeditview/TemplateEditBody.vue'
 import {
     EventType,
+    QueueOrder,
     RestrictionMode,
     ShareScope,
     type EventTemplate,
@@ -67,6 +68,7 @@ function template(overrides: Partial<EventTemplate> = {}): EventTemplate {
         requiresRegistration: true,
         requiresConfirmation: null,
         registrationLimit: 20,
+        queueOrder: null,
         registrationDeadlineOffsetHours: 30,
         minRegistrations: 5,
         thresholdDays: 2,
@@ -158,6 +160,19 @@ describe('TemplateEditView', () => {
             thresholdDays: 4,
             registrationCloseDays: 3,
         }))
+    })
+
+    /** The waiting list order is a setting of the template, handed to every appointment made from it. */
+    it('loads the waiting list order and sends it as changed', async () => {
+        api.events.getTemplate.mockResolvedValue(detail(template({queueOrder: QueueOrder.FAIRNESS})))
+        const body = await editor()
+
+        expect(body.props('queueOrder')).toBe(QueueOrder.FAIRNESS)
+        body.vm.$emit('update:queueOrder', QueueOrder.TIME)
+        await flushPromises()
+        await body.props('save')()
+
+        expect(api.events.updateTemplate).toHaveBeenCalledWith(31, expect.objectContaining({queueOrder: QueueOrder.TIME}))
     })
 
     it('sends no deadline and no threshold where none is set', async () => {

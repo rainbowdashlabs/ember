@@ -39,8 +39,20 @@ const api = vi.hoisted(() => ({
         listRegistrationFields: vi.fn(),
         listEventAttachments: vi.fn(),
         attachEventFile: vi.fn(),
+        getNextDate: vi.fn(),
+        updateEvent: vi.fn(),
+        setFieldDefaults: vi.fn(),
+        setEventReminders: vi.fn(),
+        setEventFields: vi.fn(),
+        setRegistrationFields: vi.fn(),
+        setQueueOrder: vi.fn(),
+        setFederationShare: vi.fn(),
+        removeFederationShare: vi.fn(),
+        setPartnerPlaces: vi.fn(),
     },
-    eventGroups: {eventGroupOfEvent: vi.fn(async (): Promise<unknown> => null), getEventGroup: vi.fn(), partSettings: vi.fn()},
+    eventGroups: {
+        eventGroupOfEvent: vi.fn(async (): Promise<unknown> => null), getEventGroup: vi.fn(), partSettings: vi.fn(), setPartLimit: vi.fn(),
+    },
     federation: {listPartners: vi.fn()},
     appointmentDocuments: {offeredTemplates: vi.fn(), listRequirements: vi.fn()},
 }))
@@ -87,6 +99,7 @@ const TEMPLATE: EventTemplate = {
     requiresRegistration: null,
     requiresConfirmation: null,
     registrationLimit: null,
+    queueOrder: null,
     registrationDeadlineOffsetHours: null,
     minRegistrations: null,
     thresholdDays: null,
@@ -291,6 +304,27 @@ describe('EventEditView of a part of an event group', () => {
         expect(body.props('inheritedSettings')).toEqual({templateId: 4, categoryId: 2, reminderDays: [3], fieldDefaults: []})
     })
 
+    /** A part saves the places it sets itself through the part route, and only where they changed. */
+    it('saves the part\'s own places through the part route', async () => {
+        api.events.getNextDate.mockResolvedValue(null)
+        api.events.updateEvent.mockResolvedValue({id: 12, eventType: EventType.ONE_TIME})
+        api.eventGroups.setPartLimit.mockResolvedValue({})
+        const wrapper = mount(EventEditView, {
+            global: {renderStubDefaultSlot: true, stubs: {ViewContent: {template: '<div><slot/></div>'}, EventEditBody: true, DocumentRequirementsEditor: true}},
+        })
+        await flushPromises()
+
+        const body = wrapper.findComponent(EventEditBody)
+        expect(body.props('registrationLimit')).toBeUndefined()
+        body.vm.$emit('update:registrationLimit', 20)
+        await flushPromises()
+        body.vm.$emit('submit')
+        await flushPromises()
+
+        expect(api.eventGroups.setPartLimit).toHaveBeenCalledWith(12, 20)
+        expect(api.events.setQueueOrder).not.toHaveBeenCalled()
+    })
+
     it('reads the own fields for editing and the group fields as the group stores them', async () => {
         const wrapper = mount(EventEditView, {
             global: {renderStubDefaultSlot: true, stubs: {ViewContent: {template: '<div><slot/></div>'}, EventEditBody: true, DocumentRequirementsEditor: true}},
@@ -335,6 +369,20 @@ describe('EventEditView offering to join an event group', () => {
         api.appointmentDocuments.offeredTemplates.mockResolvedValue({total: 0, items: []})
         api.appointmentDocuments.listRequirements.mockResolvedValue([])
         api.eventGroups.eventGroupOfEvent.mockResolvedValue(null)
+    })
+
+    /** An appointment of its own keeps its limit in its own save and never touches the part route. */
+    it('saves no part places for an appointment of its own', async () => {
+        api.events.getNextDate.mockResolvedValue(null)
+        api.events.updateEvent.mockResolvedValue({id: 12, eventType: EventType.ONE_TIME})
+        const wrapper = mountEditor()
+        await flushPromises()
+
+        wrapper.findComponent(EventEditBody).vm.$emit('submit')
+        await flushPromises()
+
+        expect(api.events.updateEvent).toHaveBeenCalled()
+        expect(api.eventGroups.setPartLimit).not.toHaveBeenCalled()
     })
 
     it('offers it for a saved one-time appointment of the station', async () => {

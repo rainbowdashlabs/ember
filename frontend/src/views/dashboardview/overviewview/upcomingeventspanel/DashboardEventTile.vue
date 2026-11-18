@@ -95,7 +95,7 @@ const canDecline = computed(() => props.openCount > 0
       <div v-if="answers.length > 0" class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
         <span v-for="answer in answers" :key="answer.registration.id" class="flex items-center gap-1">
           <span v-if="showNames" class="text-xs text-(--text-muted)">{{ answer.name }}</span>
-          <RegistrationStatusBadge :status="answer.registration.status"/>
+          <RegistrationStatusBadge :status="answer.registration.status" :queue-position="answer.registration.queuePosition"/>
         </span>
       </div>
     </EventGroupTile>

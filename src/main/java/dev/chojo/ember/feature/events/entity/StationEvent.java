@@ -40,6 +40,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param thresholdDays        how many days before each date the minimum must be reached, or the date
  *                             is cancelled automatically; null where no date is ever cancelled for it
  * @param repeatUntil         the last day a recurring event may fall on, or null where it has no end
+ * @param queueOrder           how the waiting lists of its dates are ordered; null reads as by time
  * @param repeatCount          how many times a recurring event takes place in total, counted from its
  *                             first date, or null where it has no end. Never set together with
  *                             {@code repeatUntil}: they are two ways of saying the same thing
@@ -70,7 +71,68 @@ public record StationEvent(
         @Nullable Integer thresholdDays,
         @Nullable Integer registrationCloseDays,
         @Nullable LocalDate repeatUntil,
-        @Nullable Integer repeatCount) {
+        @Nullable Integer repeatCount,
+        @Nullable QueueOrder queueOrder) {
+
+    /**
+     * An appointment whose waiting list keeps the order by time.
+     */
+    public StationEvent(
+            int id,
+            int stationId,
+            String name,
+            @Nullable String description,
+            EventType eventType,
+            @Nullable Integer dayOfWeek,
+            Instant startTime,
+            Instant endTime,
+            @Nullable Integer templateId,
+            boolean requiresRegistration,
+            @Nullable Instant registrationDeadline,
+            boolean requiresConfirmation,
+            @Nullable Integer categoryId,
+            RestrictionMode restrictionMode,
+            RestrictionMode viewRestrictionMode,
+            boolean restricted,
+            @Nullable Boolean isPublic,
+            @Nullable Integer registrationLimit,
+            boolean cancelled,
+            @Nullable Instant cancelledAt,
+            @Nullable String cancelReason,
+            @Nullable Integer minRegistrations,
+            @Nullable Integer thresholdDays,
+            @Nullable Integer registrationCloseDays,
+            @Nullable LocalDate repeatUntil,
+            @Nullable Integer repeatCount) {
+        this(
+                id,
+                stationId,
+                name,
+                description,
+                eventType,
+                dayOfWeek,
+                startTime,
+                endTime,
+                templateId,
+                requiresRegistration,
+                registrationDeadline,
+                requiresConfirmation,
+                categoryId,
+                restrictionMode,
+                viewRestrictionMode,
+                restricted,
+                isPublic,
+                registrationLimit,
+                cancelled,
+                cancelledAt,
+                cancelReason,
+                minRegistrations,
+                thresholdDays,
+                registrationCloseDays,
+                repeatUntil,
+                repeatCount,
+                null);
+    }
 
     /**
      * Creates a row mapping for database result set conversion.
@@ -102,7 +164,8 @@ public record StationEvent(
                 row.getObject("threshold_days", Integer.class),
                 row.getObject("registration_close_days", Integer.class),
                 row.getObject("repeat_until", LocalDate.class),
-                row.getObject("repeat_count", Integer.class));
+                row.getObject("repeat_count", Integer.class),
+                row.getEnum("queue_order", QueueOrder.class));
     }
 
     /**

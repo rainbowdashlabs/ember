@@ -42,6 +42,7 @@ import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupSettingsRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.EventFieldService;
@@ -144,6 +145,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -430,6 +432,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 eventTemplateService,
                 eventServices.restriction(),
                 new EventRegistrationFieldService(new EventRegistrationFieldRepository(), memberEligibility),
+                eventServices.registration(),
                 demoClock);
         var attendanceSeeder = new DemoAttendanceSeeder(attendanceRepo, stationMemberRepo, demoClock);
         var eventGroupQuestions =
@@ -452,7 +455,9 @@ class DemoServiceTest extends RepositoryTestBase {
                         noOpBus,
                         memberNameResolver,
                         eventGroupQuestions,
-                        newEventGroupSignUpRules()),
+                        newEventGroupSignUpRules(),
+                        newEventGroupQueue(eventServices.registration(), noOpBus),
+                        new RegistrationQueueRepository()),
                 eventGroupQuestions,
                 new EventGroupPartFactory(eventServices.crud(), eventGroupService),
                 new EventGroupSettingsService(
@@ -760,6 +765,84 @@ class DemoServiceTest extends RepositoryTestBase {
                                 .findLinkedToEventGroup(signUp.id())
                                 .size()
                         == 4));
+    }
+
+    /**
+     * The demo station has a drill whose places are all taken, with a short waiting list that is a
+     * real one: every waiting sign-up holds a place in line, first come first in line.
+     */
+    @Test
+    @Order(4)
+    void verifyTheFullDrillHasAWaitingList() {
+        var station = demoStation();
+        var drill = eventRepo.findByStation(station.id()).stream()
+                .filter(event -> event.name().equals(DemoEventSeeder.FULL_DRILL))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The demo should have the full drill"));
+        var registrations = eventRegistrationRepo.findByEvent(drill.id());
+        assertEquals(
+                DemoEventSeeder.FULL_DRILL_PLACES,
+                registrations.stream()
+                        .filter(registration -> registration.status() == RegistrationStatus.ACCEPTED)
+                        .count());
+        var waiting = registrations.stream()
+                .filter(registration -> registration.status() == RegistrationStatus.QUEUED)
+                .toList();
+        assertEquals(DemoEventSeeder.FULL_DRILL_WAITING, waiting.size());
+        var date = waiting.getFirst().eventDate();
+        var queue = new RegistrationQueueRepository().entries(RegistrationQueueRepository.ofDate(drill.id(), date));
+        assertEquals(
+                waiting.stream().map(registration -> registration.id()).sorted().toList(),
+                queue.stream().map(entry -> entry.localId()).toList());
+    }
+
+    /**
+     * The first aid course offers exactly one of two dates with three places each: the Saturday is full
+     * and somebody waits for it on the event group's waiting list, the Sunday still has a free place.
+     */
+    @Test
+    @Order(4)
+    void verifyTheFirstAidCourseHasAFullAlternative() {
+        var station = demoStation();
+        var eventGroupRepository = new EventGroupRepository();
+        var course = eventGroupRepository.findByStation(station.id()).stream()
+                .filter(group -> group.details().name().equals(DemoEventGroupSeeder.ERSTE_HILFE))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The demo should have the first aid course"));
+        assertEquals(DemoEventGroupSeeder.ERSTE_HILFE_PLACES, course.details().partRegistrationLimit());
+        var set = eventGroupRepository.findSets(course.id()).getFirst();
+        assertEquals(1, set.minimum());
+        assertEquals(1, set.maximum());
+
+        var accepted = new HashMap<String, Long>();
+        for (var part : eventGroupRepository.findParts(course.id())) {
+            var name = eventRepo.findById(part.eventId()).orElseThrow().name();
+            accepted.put(
+                    name,
+                    eventRegistrationRepo.findByEvent(part.eventId()).stream()
+                            .filter(registration -> registration.status() == RegistrationStatus.ACCEPTED)
+                            .count());
+        }
+        assertEquals(
+                (long) DemoEventGroupSeeder.ERSTE_HILFE_PLACES, accepted.get(DemoEventGroupSeeder.ERSTE_HILFE_FULL));
+        assertTrue(accepted.get(DemoEventGroupSeeder.ERSTE_HILFE_FREE) < DemoEventGroupSeeder.ERSTE_HILFE_PLACES);
+
+        var waiting = new EventGroupRegistrationRepository()
+                .findByEventGroup(course.id()).stream()
+                        .filter(signUp -> signUp.status() == RegistrationStatus.QUEUED)
+                        .toList();
+        assertEquals(1, waiting.size());
+        var queue = new RegistrationQueueRepository().entries(RegistrationQueueRepository.ofEventGroup(course.id()));
+        assertEquals(
+                List.of(waiting.getFirst().id()),
+                queue.stream().map(entry -> entry.localId()).toList());
+    }
+
+    private Station demoStation() {
+        return stationRepo.findAll().stream()
+                .filter(s -> "Jugendfeuerwehr Musterstadt".equals(s.name()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The demo station should exist"));
     }
 
     /**

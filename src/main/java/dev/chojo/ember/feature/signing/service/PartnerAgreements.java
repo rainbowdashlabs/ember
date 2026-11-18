@@ -323,7 +323,7 @@ public class PartnerAgreements implements FederationServer, TaskSource {
         if (asked.isEmpty()) return List.of();
         var recorded = agreements.forDate(event.id(), date);
         return federation.findRegistrations(event.id(), date).stream()
-                .filter(EventFederationRegistration::isStanding)
+                .filter(EventFederationRegistration::isComingOrAsking)
                 .map(registration -> signer(registration, asked, recorded))
                 .toList();
     }
@@ -343,7 +343,7 @@ public class PartnerAgreements implements FederationServer, TaskSource {
         int eventId = event.id();
         var registration = federation
                 .findRegistrationById(registrationId)
-                .filter(found -> found.eventId() == eventId && found.isStanding())
+                .filter(found -> found.eventId() == eventId && found.isComingOrAsking())
                 .orElseThrow(DocumentRefusal.PARTNER_AGREEMENT_REGISTRATION_NOT_HERE::raise);
         var template = signable(event).stream()
                 .filter(asked -> asked.id() == templateId)
@@ -499,7 +499,7 @@ public class PartnerAgreements implements FederationServer, TaskSource {
             FederationPartner partner, StationEvent event, RemoteAgreementNotice notice) {
         return federation
                 .findRegistration(event.id(), partner.id(), notice.memberUid(), notice.eventDate())
-                .filter(EventFederationRegistration::isStanding);
+                .filter(EventFederationRegistration::isComingOrAsking);
     }
 
     private PartnerAgreement.Key keyOf(
