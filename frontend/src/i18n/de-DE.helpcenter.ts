@@ -2035,13 +2035,13 @@ volumes:
             rulesTitle: 'Mitglieder nach Regel',
             rulesText: 'Statt die Mitglieder von Hand zu pflegen, kann eine Gruppe sie aus einer Regel nehmen. '
                 + 'Stell dazu bei der Gruppe unter „Mitglieder“ auf „Nach Regel“. Die Regel besteht aus Blöcken '
-                + '(„Alle treffen zu“, „Mindestens eine trifft zu“, „Keine trifft zu“) mit Prüfungen darin, '
+                + '(„Alle treffen zu“, „Mindestens eine trifft zu“, „Keine trifft zu“) mit Bedingungen darin, '
                 + 'Blöcke lassen sich auch ineinander setzen.',
-            rulesChecks: 'Eine Prüfung schaut auf eine Gruppe, einen Tag, den Mitgliedstyp, die Dauer der '
+            rulesChecks: 'Eine Bedingung schaut auf eine Gruppe, einen Tag, den Mitgliedstyp, die Dauer der '
                 + 'Mitgliedschaft, das Alter oder ein Feld des Profils. Was sich vergleichen lässt, richtet sich nach '
                 + 'dem Feld: Ja oder nein, eine Auswahl, Zahlen, Texte und Daten, bei einem Ablaufdatum auch, ob es '
                 + 'bald abläuft.',
-            rulesDates: 'Prüfungen auf ein Datum rechnen ab heute oder ab einem festen Tag, etwa „ist am 1. Januar '
+            rulesDates: 'Bedingungen auf ein Datum rechnen ab heute oder ab einem festen Tag, etwa „ist am 1. Januar '
                 + 'mindestens 10 Jahre alt“.',
             rulesRuns: 'Die Vorschau zeigt, wer heute passt, wer dazukommt und wer herausfällt, bevor du die Regel '
                 + 'speicherst. Danach passt Ember die Mitglieder an, sobald sich Daten ändern, und spätestens jede '

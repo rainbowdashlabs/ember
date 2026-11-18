@@ -134,7 +134,7 @@ describe('MemberRuleEditor', () => {
 
         const save = wrapper.findAll('button').find(button => button.text().includes('Regel speichern'))
         expect(save!.attributes('disabled')).toBeDefined()
-        expect(wrapper.text()).toContain('Noch nicht vollständige Prüfungen: 1')
+        expect(wrapper.text()).toContain('Noch nicht vollständige Bedingungen: 1')
         wrapper.unmount()
     })
 
