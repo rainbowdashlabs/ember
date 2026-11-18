@@ -31,6 +31,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Consent asked twice after a policy update.** After the privacy policy or the terms changed, agreeing on the sign-in page did not count for the account, so the same question came again right after signing in. Agreeing before signing in now covers the account.
 - **Installing Ember was not always offered.** In some cases the part of Ember that runs in the background was never started, so the browser did not offer to install Ember and saved files could open in the browser instead. It now starts with every page.
 - **Delivery address shown for own mail servers.** The mail settings offered a delivery report address for a station's own mail server, which sends no such reports. It is no longer shown there.
+- **Station chat permission without an icon.** In the permission picker, "Manage station chats" was the only group shown without an icon. It now has one like the others.
 
 ## v26.25.1
 

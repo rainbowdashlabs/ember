@@ -31,6 +31,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Zustimmung nach Änderungen doppelt abgefragt.** Nach einer Änderung der Datenschutzerklärung oder der Nutzungsbedingungen galt die Zustimmung auf der Anmeldeseite nicht für das Konto, sodass dieselbe Frage direkt nach der Anmeldung noch einmal kam. Eine Zustimmung vor der Anmeldung gilt jetzt auch für das Konto.
 - **Installieren wurde nicht immer angeboten.** In manchen Fällen startete der Hintergrundteil von Ember nicht, sodass der Browser die Installation nicht anbot und gespeicherte Dateien sich im Browser öffnen konnten. Er startet jetzt mit jeder Seite.
 - **Rückmeldeadresse beim eigenen Mailserver.** Die Mail-Einstellungen boten auch für einen eigenen Mailserver eine Adresse für Zustellrückmeldungen an, obwohl er keine schickt. Dort wird sie nicht mehr angezeigt.
+- **Berechtigung für Wachenchats ohne Symbol.** In der Rechteauswahl stand „Wachenchats verwalten“ als einzige Gruppe ohne Symbol. Jetzt hat sie eines wie die anderen.
 
 ## v26.25.1
 
