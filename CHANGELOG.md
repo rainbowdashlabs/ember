@@ -8,6 +8,10 @@ Reported chat messages are found under Monitoring.
 
 - **Reported messages under Monitoring.** The page with reported chat messages moved from its own sidebar entry into the Monitoring section. Whoever looks after the station's chats sees it there without the station's other figures.
 
+### Fixes
+
+- **Overlong tiles under next appointments.** At some window widths the appointments on the dashboard overview and the partner appointments in the upcoming list were drawn far taller than their content. They keep their usual size again.
+
 ## v26.25.0
 
 People who share a station can write to each other directly, in groups, and in chats the station opens for any of its people, such as a group together with its leaders. One date of a series, or a series from one date on, can be changed on its own, and saving a change can tell the people it concerns. Event groups such as the Jugendflamme group appointments into blocks, take one sign-up for all their dates and can be shared with partner stations. Shared appointments with a partner station on another server need both stations on this version.
