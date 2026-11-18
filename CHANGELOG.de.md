@@ -35,6 +35,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Rückmeldeadresse beim eigenen Mailserver.** Die Mail-Einstellungen boten auch für einen eigenen Mailserver eine Adresse für Zustellrückmeldungen an, obwohl er keine schickt. Dort wird sie nicht mehr angezeigt.
 - **Berechtigung für Wachenchats ohne Symbol.** In der Rechteauswahl stand „Wachenchats verwalten“ als einzige Gruppe ohne Symbol. Jetzt hat sie eines wie die anderen.
 - **iPhones als Mac unter den Anmeldungen.** Die Liste der Anmeldungen zeigte ein iPhone als Mac mit dem Symbol für Apple-Rechner. Jetzt steht dort iOS.
+- **Schließen einer Frage konnte sie löschen.** In einer Liste von Fragen lag nach dem Schließen einer geöffneten Frage ihr Löschknopf genau unter dem Mauszeiger, so dass ein Doppelklick auf den Pfeil die Frage löschen konnte. Der Pfeil bleibt jetzt am Ende der Zeile, der Löschknopf steht mit Abstand davor.
 
 ## v26.25.1
 

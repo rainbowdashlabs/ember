@@ -17,6 +17,10 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
  * of questions into a long page. Most of them only need their name read or changed; the rest of the
  * card opens on request. The list decides what stands beside the name (a value, marks) and what the
  * opened card is.
+ *
+ * <p>The arrow that opens and closes the card stands at the far end of the line in both states, with the delete
+ * button kept apart before it: a second click on the arrow, as in a double click, toggles the card again and never
+ * lands on delete.
  */
 const open = defineModel<boolean>('open', {required: true})
 
@@ -54,18 +58,19 @@ const {t} = useI18n()
         <SecondaryBadge data-testid="question-row-type">{{ typeLabel }}</SecondaryBadge>
         <slot name="marks"/>
         <IconButton
-            :icon="['fas', 'chevron-down']"
-            :label="t('common.openSettings')"
-            :disabled="disabled"
-            data-testid="question-row-open"
-            @click="open = true"
-        />
-        <IconButton
             :icon="['fas', 'trash']"
             :label="t('common.delete')"
             :disabled="disabled"
             data-testid="question-row-remove"
             @click="emit('remove')"
+        />
+        <IconButton
+            :icon="['fas', 'chevron-down']"
+            :label="t('common.openSettings')"
+            :disabled="disabled"
+            class="ml-3"
+            data-testid="question-row-open"
+            @click="open = true"
         />
       </div>
     </div>

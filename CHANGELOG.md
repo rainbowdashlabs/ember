@@ -35,6 +35,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Delivery address shown for own mail servers.** The mail settings offered a delivery report address for a station's own mail server, which sends no such reports. It is no longer shown there.
 - **Station chat permission without an icon.** In the permission picker, "Manage station chats" was the only group shown without an icon. It now has one like the others.
 - **iPhones listed as Macs among sign-ins.** The list of sign-ins showed an iPhone as a Mac with the Apple desktop icon. It now names it iOS.
+- **Closing a question could delete it.** On a list of questions, closing an opened question put its delete button right under the pointer, so a double click on the arrow could delete the question. The arrow now stays at the end of the line, with the delete button kept apart before it.
 
 ## v26.25.1
 
