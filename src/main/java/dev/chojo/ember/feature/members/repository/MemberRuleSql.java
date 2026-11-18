@@ -76,7 +76,7 @@ final class MemberRuleSql {
      * @param today the current day, which a check counts from unless it names a fixed one
      */
     static Compiled compile(RuleNode root, LocalDate today) {
-        if (root.checks().stream().anyMatch(MemberRuleSql::lostItsTarget)) return new Compiled("FALSE", call -> call);
+        if (root.lostATarget()) return new Compiled("FALSE", call -> call);
         var sql = new MemberRuleSql(today);
         String predicate = sql.node(root);
         List<UnaryOperator<Call>> all = List.copyOf(sql.binds);
@@ -85,18 +85,6 @@ final class MemberRuleSql {
             for (var bind : all) bound = bind.apply(bound);
             return bound;
         });
-    }
-
-    /** Whether a check names nothing any more that it could read. */
-    static boolean lostItsTarget(RuleNode check) {
-        var subject = check.subject();
-        if (subject == null) return false;
-        return switch (subject) {
-            case GROUP -> check.groupId() == null;
-            case TAG -> check.tagId() == null;
-            case USER_TYPE, MEMBER_SINCE -> false;
-            case AGE, FIELD, CLUSTER_FIELD -> !readsAField(check);
-        };
     }
 
     private String node(RuleNode node) {

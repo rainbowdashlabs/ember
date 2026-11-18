@@ -55,6 +55,7 @@ export const ADMIN_NAV: NavEntryDef<AdminNavContext>[] = [
             },
             {kind: 'page', key: 'admin-legal', label: 'sidebar.legal', icon: 'scale-balanced', to: '/admin/settings/legal', onboarding: 'nav.admin.legal'},
             {kind: 'page', key: 'admin-document-fonts', label: 'sidebar.documentFonts', icon: 'font', to: '/admin/settings/fonts'},
+            {kind: 'page', key: 'admin-maps', label: 'sidebar.maps', icon: 'map-location-dot', to: '/admin/settings/maps', onboarding: 'nav.admin.maps'},
         ],
     },
     {kind: 'page', key: 'admin-accounts', label: 'sidebar.accounts', icon: 'users', to: '/admin/accounts'},
@@ -75,7 +76,6 @@ export const ADMIN_NAV: NavEntryDef<AdminNavContext>[] = [
             {kind: 'page', key: 'admin-tasks', label: 'sidebar.backgroundTasks', icon: 'list-check', to: '/admin/monitoring/tasks'},
             {kind: 'page', key: 'admin-traffic', label: 'sidebar.adminTraffic', icon: 'tower-broadcast', to: '/admin/monitoring/traffic'},
             {kind: 'page', key: 'admin-discovery', label: 'sidebar.adminDiscovery', icon: 'compass', to: '/admin/monitoring/discovery'},
-            {kind: 'page', key: 'admin-maps', label: 'sidebar.maps', icon: 'map-location-dot', to: '/admin/monitoring/maps', onboarding: 'nav.admin.maps'},
         ],
     },
     {

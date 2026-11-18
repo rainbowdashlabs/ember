@@ -948,7 +948,20 @@ public enum MemberRefusal implements Refusal {
             "This group is given to people on joining, so it cannot take its members from a rule"),
 
     /** A rule that reads profile answers, ages or join dates, saved or tried by a caller who may not read members. */
-    RULE_READS_MEMBER_DATA(262, HttpStatus.FORBIDDEN, "A rule that reads member data takes the right to read members");
+    RULE_READS_MEMBER_DATA(262, HttpStatus.FORBIDDEN, "A rule that reads member data takes the right to read members"),
+
+    /** A rule with a block that holds nothing, which would match everybody or nobody instead of asking anything. */
+    RULE_BLOCK_EMPTY(
+            263, HttpStatus.BAD_REQUEST, "Every block of a rule needs at least one condition, so nothing was saved"),
+
+    /**
+     * A group granting permissions that would take its members, directly or through other rules, from an answer the
+     * members write themselves, naming the group.
+     */
+    RULE_PERMISSIONS_FROM_OWN_ANSWER(
+            264,
+            HttpStatus.CONFLICT,
+            "A group that grants permissions cannot take its members from answers the members give themselves");
 
     private final Definition definition;
 

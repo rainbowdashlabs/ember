@@ -12,6 +12,7 @@ import PlacePinModal from './PlacePinModal.vue'
 const findPlace = vi.fn()
 const geocodePlace = vi.fn()
 const savePlace = vi.fn()
+const removePlace = vi.fn()
 const mapsConfig = {geocoding: true}
 
 vi.mock('@/api', () => ({
@@ -19,6 +20,7 @@ vi.mock('@/api', () => ({
         findPlace: (...args: unknown[]) => findPlace(...args),
         geocodePlace: (...args: unknown[]) => geocodePlace(...args),
         savePlace: (...args: unknown[]) => savePlace(...args),
+        removePlace: (...args: unknown[]) => removePlace(...args),
     },
 }))
 
@@ -73,6 +75,20 @@ describe('PlacePinModal', () => {
 
         expect(mounted.get('[data-testid="picker"]').text()).toContain('52.1,10.6')
         expect(geocodePlace).not.toHaveBeenCalled()
+    })
+
+    it('takes a stored pin off, and offers that only where there is one', async () => {
+        const unpinned = await modal()
+        expect(unpinned.find('[data-testid="place-remove"]').exists()).toBe(false)
+
+        findPlace.mockResolvedValue({text: 'Gerätehaus', latitude: 52.1, longitude: 10.6, precision: null, updatedAt: ''})
+        removePlace.mockResolvedValue(undefined)
+        const mounted = await modal()
+        await mounted.get('[data-testid="place-remove"]').trigger('click')
+        await flushPromises()
+
+        expect(removePlace).toHaveBeenCalledWith('Gerätehaus')
+        expect(mounted.emitted('update:modelValue')?.at(-1)).toEqual([false])
     })
 
     it('looks a new place up and keeps how close the match was', async () => {

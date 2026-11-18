@@ -58,6 +58,8 @@ public class MemberRuleService implements TaskSource {
     private final DomainEventBus eventBus;
     private final SerialLane lane;
     private final Set<Integer> pending = ConcurrentHashMap.newKeySet();
+    /** The rules already reported as asking about something deleted, so the sweep does not repeat it. */
+    private final Set<RuleOwner> resting = ConcurrentHashMap.newKeySet();
 
     @Inject
     public MemberRuleService(
@@ -131,6 +133,16 @@ public class MemberRuleService implements TaskSource {
     }
 
     private RuleChange run(int stationId, RuleOwner owner, RuleNode rule, LocalDate today) {
+        if (rule.lostATarget()) {
+            if (resting.add(owner)) {
+                log.warn(
+                        "The rule of {} at station {} asks about something deleted and keeps its members",
+                        owner,
+                        stationId);
+            }
+            return RuleChange.none(owner);
+        }
+        resting.remove(owner);
         var bound = owner.kind() == RuleOwner.Kind.GROUP
                 ? groupRepository
                         .findById(owner.id())

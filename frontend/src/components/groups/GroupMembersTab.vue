@@ -64,7 +64,7 @@ const words = computed(() => capabilities.holds === 'stations'
     <MutedText v-if="current.length === 0" tag="div" size="sm" class="py-2">
       {{ words.none }}
     </MutedText>
-    <div class="space-y-1">
+    <div class="space-y-1" data-testid="group-current-members">
       <div v-for="member in current" :key="member.value"
            class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
         <MemberName :identity="identityOf(member)" class="text-sm font-medium"/>

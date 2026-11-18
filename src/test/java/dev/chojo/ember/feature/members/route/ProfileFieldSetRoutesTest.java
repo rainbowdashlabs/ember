@@ -28,6 +28,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -109,8 +111,7 @@ class ProfileFieldSetRoutesTest {
         when(fields.create(anyInt(), any(), any(), any(), anyBoolean(), anyBoolean(), any(), anyBoolean()))
                 .thenReturn(written);
         when(fields.findById(9)).thenReturn(Optional.of(written));
-        when(fields.update(anyInt(), any(), any(), any(), anyBoolean(), anyBoolean(), any(), anyBoolean()))
-                .thenReturn(Optional.of(written));
+        when(fields.change(eq(9), any())).thenReturn(written);
         var harness = RouteHarness.serving(new ProfileFieldRoutes(
                 fields, mock(StationMemberService.class), new GuardianPolicy(mock(StationMemberRepository.class))));
         var editor = harness.as(TestSessions.member(STATION, StationPermission.MEMBER_FIELDS));
@@ -128,7 +129,8 @@ class ProfileFieldSetRoutesTest {
         });
 
         verify(fields, times(2)).requireSetAllowed(STATION, 4);
-        verify(fields, times(2)).joinSet(9, 4);
-        verify(fields, times(2)).dependOn(9, 8, 4);
+        verify(fields).joinSet(9, 4);
+        verify(fields).dependOn(9, 8, 4);
+        verify(fields).change(eq(9), argThat(change -> change.fieldSetId() == 4 && change.shownIfFieldId() == 8));
     }
 }

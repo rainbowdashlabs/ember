@@ -108,8 +108,8 @@ function optionsOf(entry: SetOfGroups): SetOption[] {
           :title="hintOf(group)"
           @toggle="emit('change', toggled(selected, group.id))"
       >
-        <RuleKeptMark v-if="kept(group)"/>
         {{ group.name }}
+        <RuleKeptMark v-if="kept(group)" labelled/>
       </SelectionToggleButton>
     </div>
 

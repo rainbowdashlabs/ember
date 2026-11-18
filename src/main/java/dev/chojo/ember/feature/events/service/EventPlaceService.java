@@ -83,6 +83,18 @@ public class EventPlaceService {
     }
 
     /**
+     * Takes the pin off a place text, for a pin that was set wrong or a place that needs none.
+     *
+     * @param stationId the station
+     * @param text      the place text as typed
+     * @return whether the text had a pin
+     */
+    public boolean remove(int stationId, @Nullable String text) {
+        if (text == null || text.isBlank()) return false;
+        return places.delete(stationId, GeocodeQuery.normalise(text));
+    }
+
+    /**
      * Stores the pin of a place text, replacing the one it had.
      *
      * @param stationId the station

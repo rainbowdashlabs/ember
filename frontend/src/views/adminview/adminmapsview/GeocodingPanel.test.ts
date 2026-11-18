@@ -11,7 +11,7 @@ import {GeocodingProvider, type MapsGeocodingConfig} from '@/api/generated/schem
 /** The address search setting offers nobody or Photon, and a server address only for Photon. */
 describe('GeocodingPanel', () => {
     async function panel(config: MapsGeocodingConfig) {
-        return mountSuspended(GeocodingPanel, {props: {modelValue: config}})
+        return mountSuspended(GeocodingPanel, {props: {modelValue: config, defaultServer: 'https://photon.komoot.io'}})
     }
 
     it('offers only switching it off and Photon', async () => {
@@ -30,5 +30,11 @@ describe('GeocodingPanel', () => {
         await wrapper.get('input[data-testid="geocoding-server"]').setValue('https://photon.example')
 
         expect(config.baseUrl).toBe('https://photon.example')
+    })
+
+    it('names the server the instance asks while no address is entered', async () => {
+        const wrapper = await panel({provider: GeocodingProvider.PHOTON, baseUrl: null})
+
+        expect(wrapper.get('input[data-testid="geocoding-server"]').attributes('placeholder')).toBe('https://photon.komoot.io')
     })
 })

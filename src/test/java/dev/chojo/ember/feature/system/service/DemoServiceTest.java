@@ -87,6 +87,9 @@ import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseService;
 import dev.chojo.ember.feature.knowledgebase.service.TextCompressionPolicy;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundImageService;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundService;
+import dev.chojo.ember.feature.maps.entity.GeocodingProvider;
+import dev.chojo.ember.feature.maps.entity.MapsGeocodingConfig;
+import dev.chojo.ember.feature.maps.service.MapsConfigService;
 import dev.chojo.ember.feature.media.MediaTestSupport;
 import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
@@ -614,7 +617,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 demoConfig,
                 apiConfig);
         var sessionSeeder = new DemoSessionSeeder(accountRepo);
-        var settingsSeeder = new DemoSettingsSeeder(feedTokenService, stationRepo, applicationSettingRepo);
+        var settingsSeeder = new DemoSettingsSeeder(
+                feedTokenService, stationRepo, applicationSettingRepo, new MapsConfigService(applicationSettingRepo));
         var setupSeeder = new DemoSetupSeeder(stationRepo);
         var freshStationSeeder = new DemoFreshStationSeeder(stationRepo, accountRepo, stationMemberRepo);
         var demoInstance = mock(Demo.class);
@@ -723,6 +727,15 @@ class DemoServiceTest extends RepositoryTestBase {
         assertTrue(
                 stations.stream().anyMatch(s -> "Jugendfeuerwehr Musterstadt".equals(s.name())),
                 "Station 'Jugendfeuerwehr Musterstadt' should exist");
+    }
+
+    /** The demo looks addresses up on the public Photon server, so places can be found on the map right away. */
+    @Test
+    @Order(3)
+    void verifyTheAddressSearchIsOn() {
+        var geocoding = new MapsConfigService(applicationSettingRepo).geocodingConfig();
+        assertEquals(GeocodingProvider.PHOTON, geocoding.provider());
+        assertEquals(MapsGeocodingConfig.DEFAULT_BASE_URL, geocoding.resolvedBaseUrl());
     }
 
     /** The demo station runs a Jugendflamme event group with people signed up, one of them short of the rules. */
