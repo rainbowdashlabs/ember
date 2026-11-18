@@ -8,6 +8,8 @@
 # The flags go in front of JAVA_OPTS, so a flag an operator sets there still has the last word.
 set -u
 
+# TODO: remove this script and its entrypoint step once eclipse-temurin ships a Java runtime fixed for CVE-2026-114938
+
 case "$(uname -m)" in
     aarch64 | arm64 | arm*) ;;
     *) export JAVA_OPTS="-XX:UseAVX=2 -XX:-UseBASE64Intrinsics ${JAVA_OPTS:-}" ;;
