@@ -130,6 +130,14 @@ describe('TemplateEditView', () => {
         api.appointmentDocuments.setRequirements.mockResolvedValue([])
     })
 
+    /** Saving writes every column, so a form that could not be filled must not offer to save. */
+    it('shows no form where the template could not be read', async () => {
+        api.events.getTemplate.mockRejectedValue({response: {status: 500, data: {}}})
+
+        expect((await editor()).exists()).toBe(false)
+        expect(api.events.updateTemplate).not.toHaveBeenCalled()
+    })
+
     it('sends the deadline offset and the three rules it loaded', async () => {
         const body = await editor()
 

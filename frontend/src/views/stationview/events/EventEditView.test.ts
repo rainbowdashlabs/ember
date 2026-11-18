@@ -385,6 +385,16 @@ describe('EventEditView offering to join an event group', () => {
         expect(api.eventGroups.setPartLimit).not.toHaveBeenCalled()
     })
 
+    /** Saving replaces every question, so an editor that could not read them must not offer to save. */
+    it('shows no form where the questions could not be read', async () => {
+        api.events.listRegistrationFields.mockRejectedValue({response: {status: 500, data: {}}})
+        const wrapper = mountEditor()
+        await flushPromises()
+
+        expect(wrapper.findComponent(EventEditBody).exists()).toBe(false)
+        expect(api.events.setRegistrationFields).not.toHaveBeenCalled()
+    })
+
     it('offers it for a saved one-time appointment of the station', async () => {
         const wrapper = mountEditor()
         await flushPromises()

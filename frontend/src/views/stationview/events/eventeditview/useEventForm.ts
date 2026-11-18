@@ -37,14 +37,14 @@ export interface EventEditDetail {
   reminders: number[]
 }
 
-/** Reads what the editor fills its form from. Reminders that cannot be read count as none. */
+/** Reads what the editor fills its form from. */
 export async function fetchEditDetail(id: number): Promise<EventEditDetail> {
-  const [event, restrictions, fields] = await Promise.all([
+  const [event, restrictions, fields, reminders] = await Promise.all([
     events.getEvent(id),
     events.getRestrictions(id),
     events.getEventFields(id, null, true),
+    events.getEventReminders(id),
   ])
-  const reminders = await events.getEventReminders(id).catch(() => [] as number[])
   return {event, restrictions, fields, reminders}
 }
 

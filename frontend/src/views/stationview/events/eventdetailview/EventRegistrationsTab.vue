@@ -39,8 +39,9 @@ import {isMembersAnswer, isStandingSignUp, maySignUp, membersToRegister, notOpen
 import {signUpQueues, type Places} from '@/util/eventPlaces'
 import {useDatePlaces} from '../eventshared/useDatePlaces'
 import RegistrationStatusBadge from '../eventshared/RegistrationStatusBadge.vue'
-import FullDateDialog from '../eventshared/FullDateDialog.vue'
-import {useQueueActions} from '../eventshared/useQueueActions'
+import QueueDialogs from '../eventshared/QueueDialogs.vue'
+import {appointmentStatuses, useQueueActions} from '../eventshared/useQueueActions'
+import {appointmentQueueRoutes} from '../eventshared/queueRoutes'
 
 const props = defineProps<{
   /** Whether the appointment is a part of an event group, whose sign-up goes through the event group. */
@@ -192,7 +193,8 @@ async function reloadAndRefresh() {
  * <p>The two are answered for separately. A decision the server took, followed by a refresh that
  * failed, used to say the decision had been refused, and whoever read that pressed the button again.
  */
-const queueActions = useQueueActions(() => places.value, reloadAndRefresh, failure)
+const queueActions = useQueueActions(() => places.value, reloadAndRefresh, failure, appointmentQueueRoutes,
+    appointmentStatuses(() => registrations.value, () => federatedRegs.value))
 
 const {running: registering, failure: registrationFailure, run: runRegistration} = useAsyncAction(
     async (kind: 'register' | 'decline', memberId: number, fields?: EventRegistrationFieldValue[]) => {
@@ -493,6 +495,6 @@ onMounted(loadRegistrations)
         @queue="id => queueActions.queuePartners([id])"
     />
 
-    <FullDateDialog :question="queueActions.fullDateQuestion.value" @answer="queueActions.answerFullDate"/>
+    <QueueDialogs :actions="queueActions"/>
   </div>
 </template>

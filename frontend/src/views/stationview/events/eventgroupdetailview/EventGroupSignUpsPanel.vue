@@ -38,7 +38,7 @@ import {eventGroupQueueOf} from '@/util/registrationQueue'
 import type {Failure} from '@/util/failure'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import QueueSection from '../eventshared/QueueSection.vue'
-import FullDateDialog from '../eventshared/FullDateDialog.vue'
+import QueueDialogs from '../eventshared/QueueDialogs.vue'
 import {useQueueActions} from '../eventshared/useQueueActions'
 import {eventGroupQueueRoutes} from '../eventshared/queueRoutes'
 import {isSignUpComplete, signUpColumns} from './eventGroupTables'
@@ -103,7 +103,7 @@ async function added() {
 const {loading, failure, reload} = useAsyncLoader(async () => {
   const [entries, partners, completions] = await Promise.all([
     eventGroups.listSignUps(props.detail.eventGroup.id),
-    eventGroups.listPartnerSignUps(props.detail.eventGroup.id).catch(() => []),
+    eventGroups.listPartnerSignUps(props.detail.eventGroup.id),
     canAdd.value ? stationMembers.listCompletions().catch(() => []) : Promise.resolve([]),
   ])
   signUps.value = entries
@@ -134,7 +134,10 @@ const actions = useQueueActions(
     () => fullPeoplePlaces(props.detail.eventGroup),
     async () => { await props.onChanged?.() },
     actionFailure,
-    eventGroupQueueRoutes(props.detail.eventGroup.id))
+    eventGroupQueueRoutes(props.detail.eventGroup.id),
+    (id, partner) => partner
+      ? partnerSignUps.value.find(entry => entry.id === id)?.status
+      : signUps.value.find(entry => entry.memberId === id)?.status)
 
 const columns = computed(() => signUpColumns(t))
 
@@ -236,6 +239,6 @@ defineExpose({reload})
         </template>
       </RecordTable>
     </AsyncSection>
-    <FullDateDialog :question="actions.fullDateQuestion.value" @answer="actions.answerFullDate"/>
+    <QueueDialogs :actions="actions"/>
   </NeutralContainer>
 </template>

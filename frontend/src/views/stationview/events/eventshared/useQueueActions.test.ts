@@ -11,7 +11,8 @@ import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {RegistrationStatus, WhenFull} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
 import type {QueueEntry} from '@/util/registrationQueue'
-import {useQueueActions} from './useQueueActions'
+import {appointmentStatuses, useQueueActions} from './useQueueActions'
+import type {EnrichedFederationRegistration, RegistrationResponse} from '@/api/generated/schema'
 
 const api = vi.hoisted(() => ({
     events: {
@@ -25,6 +26,9 @@ const api = vi.hoisted(() => ({
 }))
 vi.mock('@/api', () => api)
 
+const toast = vi.hoisted(() => ({showToast: vi.fn()}))
+vi.mock('@/util/toast', () => toast)
+
 const FULL = {response: {status: 409, data: {code: 'E-226', error: 'full'}}}
 const places = {taken: 12, limit: 12, waiting: 2, full: true}
 
@@ -33,12 +37,15 @@ function entry(kind: QueueEntry['kind'], id: number): QueueEntry {
 }
 
 /** The composable reaches for the locale, so it is used from inside a component as the app does. */
-function actionsWith(reload = vi.fn(async () => undefined)) {
+function actionsWith(
+    reload = vi.fn(async () => undefined),
+    statusOf: (id: number, partner: boolean) => RegistrationStatus | undefined = () => undefined,
+) {
     const failure = ref<Failure | null>(null)
     let actions: ReturnType<typeof useQueueActions> | null = null
     mount(defineComponent({
         setup() {
-            actions = useQueueActions(() => places, reload, failure)
+            actions = useQueueActions(() => places, reload, failure, undefined, statusOf)
             return () => null
         },
     }), {global: {plugins: [createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': {}, en: {}}})]}})
@@ -49,6 +56,7 @@ function actionsWith(reload = vi.fn(async () => undefined)) {
 describe('useQueueActions', () => {
     beforeEach(() => {
         Object.values(api.events).forEach(mock => mock.mockReset())
+        toast.showToast.mockReset()
     })
 
     /** Accepting on a full date is asked about first, and sent again beyond the limit once agreed. */
@@ -81,6 +89,56 @@ describe('useQueueActions', () => {
 
         expect(api.events.updateRegistrationStatus).toHaveBeenCalledOnce()
         expect(failure.value).toBeNull()
+        expect(toast.showToast).not.toHaveBeenCalled()
+    })
+
+    it('says an acceptance went through', async () => {
+        api.events.updateRegistrationStatus.mockResolvedValue({message: 'ok'})
+        const {actions} = actionsWith()
+
+        expect(await actions.accept(5)).toBe(true)
+
+        expect(toast.showToast).toHaveBeenCalledWith('registrationQueue.accepted', 'success')
+    })
+
+    /** A sign-up still waiting loses nothing by being denied, so nothing is asked. */
+    it('denies a waiting sign-up at once and says so', async () => {
+        api.events.updateRegistrationStatus.mockResolvedValue({message: 'ok'})
+        const {actions} = actionsWith(undefined, () => RegistrationStatus.PENDING)
+
+        await actions.deny(5)
+
+        expect(actions.denyQuestion.value).toBe(false)
+        expect(api.events.updateRegistrationStatus).toHaveBeenCalledWith(5, RegistrationStatus.DENIED, undefined)
+        expect(toast.showToast).toHaveBeenCalledWith('registrationQueue.denied', 'success')
+    })
+
+    /** Denying somebody who holds a place takes it away, so it is asked first. */
+    it('asks before denying an accepted sign-up and sends it once agreed', async () => {
+        api.events.updateFederationRegistrationStatus.mockResolvedValue(undefined)
+        const statusOf = vi.fn(() => RegistrationStatus.ACCEPTED)
+        const {actions} = actionsWith(undefined, statusOf)
+
+        const denying = actions.deny(9, true)
+        await vi.waitFor(() => expect(actions.denyQuestion.value).toBe(true))
+        expect(api.events.updateFederationRegistrationStatus).not.toHaveBeenCalled()
+        actions.answerDeny(true)
+        await denying
+
+        expect(statusOf).toHaveBeenCalledWith(9, true)
+        expect(api.events.updateFederationRegistrationStatus).toHaveBeenCalledWith(9, RegistrationStatus.DENIED, undefined)
+    })
+
+    it('leaves an accepted sign-up where the question is turned down', async () => {
+        const {actions} = actionsWith(undefined, () => RegistrationStatus.ACCEPTED)
+
+        const denying = actions.deny(5)
+        await vi.waitFor(() => expect(actions.denyQuestion.value).toBe(true))
+        actions.answerDeny(false)
+
+        expect(await denying).toBe(false)
+        expect(api.events.updateRegistrationStatus).not.toHaveBeenCalled()
+        expect(toast.showToast).not.toHaveBeenCalled()
     })
 
     /** Moving somebody up is accepting them, a partner's member through the partner route. */
@@ -122,5 +180,18 @@ describe('useQueueActions', () => {
 
         expect(failure.value).not.toBeNull()
         expect(reload).not.toHaveBeenCalled()
+    })
+})
+
+/** An appointment date's own sign-ups are found by their id, partners' by the id of their registration. */
+describe('appointmentStatuses', () => {
+    const own = [{id: 5, status: RegistrationStatus.ACCEPTED}] as RegistrationResponse[]
+    const partners = [{registration: {id: 5, status: RegistrationStatus.PENDING}}] as EnrichedFederationRegistration[]
+    const statusOf = appointmentStatuses(() => own, () => partners)
+
+    it('tells the two kinds apart where their ids are the same', () => {
+        expect(statusOf(5, false)).toBe(RegistrationStatus.ACCEPTED)
+        expect(statusOf(5, true)).toBe(RegistrationStatus.PENDING)
+        expect(statusOf(6, false)).toBeUndefined()
     })
 })

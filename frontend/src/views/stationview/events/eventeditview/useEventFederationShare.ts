@@ -38,6 +38,10 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
 
   const props = computed(() => ({partners: partners.value, ...modelProps.value}))
 
+  /**
+   * Reads the partners and how the opened appointment or template is shared. A share that cannot be
+   * read fails the load, since a form left at "not shared" would stop the sharing on the next save.
+   */
   async function load(port: FederationSharePort) {
     try {
       partners.value = await federation.listPartners()
@@ -45,15 +49,11 @@ export function useEventFederationShare(canFederate: Ref<boolean>) {
       partners.value = []
     }
     if (!canFederate.value) return
-    try {
-      const share = await port.get()
-      state.federationShared = share.shared
-      if (share.shared) {
-        state.federationScope = share.scope ?? 'ALL_PARTNERS'
-        state.federationPartnerIds = share.partnerIds ?? []
-      }
-    } catch {
-      state.federationShared = false
+    const share = await port.get()
+    state.federationShared = share.shared
+    if (share.shared) {
+      state.federationScope = share.scope ?? 'ALL_PARTNERS'
+      state.federationPartnerIds = share.partnerIds ?? []
     }
     if (!port.places) return
     try {

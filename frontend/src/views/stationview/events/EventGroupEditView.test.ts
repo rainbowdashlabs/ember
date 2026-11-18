@@ -193,6 +193,21 @@ describe('EventGroupEditView after a part changed', () => {
     expect(toast).toHaveBeenCalledOnce()
   })
 
+  /** A minimum the server raised because a part became required reaches the form, which says so. */
+  it('takes a minimum raised by a required part into the form and says so', async () => {
+    api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(1, 3))
+    const wrapper = mountEditor()
+    await flushPromises()
+
+    api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(2, 3))
+    await (wrapper.findComponent({name: 'EventGroupPartsEditor'}).props('onChanged') as () => Promise<void>)()
+    await flushPromises()
+
+    expect(wrapper.findComponent({name: 'EventGroupSetsEditor'}).props('modelValue')).toEqual([{id: 1, name: 'Übung', minimum: 2, maximum: null}])
+    expect(toast).toHaveBeenCalledOnce()
+    expect(toast).toHaveBeenCalledWith(expect.stringContaining('2 statt 1'))
+  })
+
   /** A maximum the server raised because a part became required reaches the form, which says so. */
   it('takes a raised maximum into the form and says so', async () => {
     api.eventGroups.getEventGroup.mockResolvedValueOnce(detailWith(1, 3, 1))

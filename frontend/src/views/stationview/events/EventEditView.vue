@@ -44,11 +44,7 @@ import EventSaveDialog from './eventeditview/EventSaveDialog.vue'
 import {useSaveChoice, type SaveChoice} from './eventeditview/useSaveChoice'
 import TemplateFilesNote from './eventeditview/TemplateFilesNote.vue'
 import {
-  eventAttachmentPort,
-  eventFederationPort,
-  eventFieldDefaultsPort,
-  templateFederationPort,
-  templateFieldDefaultsPort,
+  eventAttachmentPort, eventFederationPort, eventFieldDefaultsPort, templateFederationPort, templateFieldDefaultsPort,
 } from './eventeditview/eventOwnerPorts'
 import DocumentRequirementsEditor from './eventshared/DocumentRequirementsEditor.vue'
 import {useDocumentRequirements} from './eventshared/useDocumentRequirements'
@@ -216,13 +212,17 @@ function asDefinition(field: RegistrationFieldDefinition): RegistrationFieldDefi
  * and the whole set is replaced on save.
  */
 async function loadRegistrationFields(id: number) {
-  const loadedFields = await events.listRegistrationFields(id).catch(() => [])
+  const loadedFields = await events.listRegistrationFields(id)
   registrationFields.value = loadedFields.map(asDefinition)
 }
+
+/** Whether the editor could not be filled; saving a form filled in part would remove the rest, such as its questions. */
+const loadFailed = ref(false)
 
 /** Fills the editor once the session is there, since the choices it offers depend on the station. */
 const {loading, failure} = useAsyncLoader(async () => {
   await until(loaded).toBe(true)
+  loadFailed.value = false
   try {
     await data.load()
     await documentRequirements.load(isEdit.value ? {kind: 'events', id: eventId.value!} : null)
@@ -244,6 +244,7 @@ const {loading, failure} = useAsyncLoader(async () => {
       templateFiles.value = await copying.copy(copySourceId.value)
     }
   } catch (e) {
+    loadFailed.value = true
     reportCaughtError(e, 'EventEditView.loadData')
     throw e
   }
@@ -448,7 +449,7 @@ const bodyHandlers = {
       <AddToEventGroupCard v-else-if="joinsGroup" :event-id="eventId!" :on-added="groupPart.reload"/>
 
       <EventEditBody
-          v-if="!loading"
+          v-if="!loading && !loadFailed"
           v-model:registration-fields="registrationFields"
           v-bind="bodyProps"
           v-on="bodyHandlers"

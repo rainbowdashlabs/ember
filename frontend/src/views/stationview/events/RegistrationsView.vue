@@ -11,8 +11,9 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import PendingDateCard from './registrationsview/PendingDateCard.vue'
-import FullDateDialog from './eventshared/FullDateDialog.vue'
-import {useQueueActions} from './eventshared/useQueueActions'
+import QueueDialogs from './eventshared/QueueDialogs.vue'
+import {appointmentStatuses, useQueueActions} from './eventshared/useQueueActions'
+import {appointmentQueueRoutes} from './eventshared/queueRoutes'
 import {events} from '@/api'
 import type {
   RegistrationStatus,
@@ -137,19 +138,24 @@ async function toggleExpand(group: PendingDate) {
     return
   }
   expandedKey.value = group.key
+  expandedRegistrations.value = []
+  expandedPartners.value = []
+  expandedPartnerPlaces.value = []
+  registrationStats.value = []
   expandedLoading.value = true
   try {
     const [stats, regs, partners, partnerPlaces] = await Promise.all([
       events.getRegistrationStats(group.event.id),
       events.listEventRegistrations(group.event.id, group.date),
-      events.listFederationRegistrations(group.event.id, group.date).catch(() => []),
-      events.getPartnerPlaces(group.event.id).catch(() => []),
+      events.listFederationRegistrations(group.event.id, group.date),
+      events.getPartnerPlaces(group.event.id),
     ])
     registrationStats.value = stats
     expandedRegistrations.value = regs
     expandedPartners.value = partners
     expandedPartnerPlaces.value = partnerPlaces
   } catch (e) {
+    expandedKey.value = null
     failure.value = describeFailure(e, t)
   }
   finally { expandedLoading.value = false }
@@ -164,7 +170,7 @@ async function refreshExpanded() {
   if (!group) return
   const [regs, partners, counts, pending] = await Promise.all([
     events.listEventRegistrations(group.event.id, group.date),
-    events.listFederationRegistrations(group.event.id, group.date).catch(() => []),
+    events.listFederationRegistrations(group.event.id, group.date),
     events.listRegistrationCounts(),
     events.listPendingRegistrations(),
   ])
@@ -192,7 +198,9 @@ const {loading, failure} = useAsyncLoader(async () => {
  * followed by a refresh that failed used to read as a refusal that was not written: the row was gone
  * from the list and the page said it had not worked.
  */
-const queueActions = useQueueActions(() => expanded.places.value, refreshExpanded, failure)
+const queueActions = useQueueActions(
+    () => expanded.places.value, refreshExpanded, failure, appointmentQueueRoutes,
+    appointmentStatuses(() => expandedRegistrations.value, () => expandedPartners.value))
 </script>
 
 <template>
@@ -231,7 +239,7 @@ const queueActions = useQueueActions(() => expanded.places.value, refreshExpande
               @move-up="queueActions.moveUp"
           />
         </div>
-        <FullDateDialog :question="queueActions.fullDateQuestion.value" @answer="queueActions.answerFullDate"/>
+        <QueueDialogs :actions="queueActions"/>
       </template>
     </div>
   </ViewContent>

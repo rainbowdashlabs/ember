@@ -201,7 +201,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
     stationMembers.listCompletions().catch(() => []),
     events.getNextDate(eventId.value).catch(() => null),
     events.listCancelledDates(eventId.value).catch(() => []),
-    eventGroups.eventGroupOfEvent(eventId.value).catch(() => null),
+    eventGroups.eventGroupOfEvent(eventId.value),
   ])
   event.value = ev
   eventGroupPart.value = part

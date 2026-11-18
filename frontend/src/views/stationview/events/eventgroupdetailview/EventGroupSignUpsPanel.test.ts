@@ -113,6 +113,31 @@ describe('EventGroupSignUpsPanel', () => {
         expect(api.eventGroups.decide).toHaveBeenCalledWith(70, 12, RegistrationStatus.ACCEPTED, false)
     })
 
+    /** Denying somebody who holds a place takes it away, so it is asked first, keyed by the member. */
+    it('asks before denying an accepted sign-up and sends nothing until agreed', async () => {
+        api.eventGroups.decide.mockResolvedValue({})
+        await mountPanel()
+
+        await wrapper!.findAll('[data-testid="event-group-sign-up-row"]')[0]!.get('[data-testid="event-group-deny"]').trigger('click')
+        await flushPromises()
+        expect(api.eventGroups.decide).not.toHaveBeenCalled()
+
+        ;(document.body.querySelector('[data-testid="deny-accepted-confirm"]') as HTMLElement).click()
+        await flushPromises()
+
+        expect(api.eventGroups.decide).toHaveBeenCalledWith(70, 11, RegistrationStatus.DENIED, undefined)
+    })
+
+    it('denies a pending sign-up without asking', async () => {
+        api.eventGroups.decide.mockResolvedValue({})
+        await mountPanel()
+
+        await wrapper!.findAll('[data-testid="event-group-sign-up-row"]')[1]!.get('[data-testid="event-group-deny"]').trigger('click')
+        await flushPromises()
+
+        expect(api.eventGroups.decide).toHaveBeenCalledWith(70, 12, RegistrationStatus.DENIED, undefined)
+    })
+
     /**
      * Where places are limited, the waiting list stands above the table in its order, partners'
      * members among the station's own, and pending sign-ups go onto it one at a time or all at once.
