@@ -382,4 +382,67 @@ class EventGroupWaitingListTest extends EventGroupRegistrationTestBase {
             eventRepo.delete(past.id());
         }
     }
+
+    private List<EventGroupRegistrationStatusChanged> toldAbout(StationMember member) {
+        var told = ArgumentCaptor.forClass(DomainEvent.class);
+        verify(bus, atLeast(0)).publish(told.capture());
+        return told.getAllValues().stream()
+                .filter(EventGroupRegistrationStatusChanged.class::isInstance)
+                .map(EventGroupRegistrationStatusChanged.class::cast)
+                .filter(event -> event.memberId() == member.id())
+                .toList();
+    }
+
+    @Test
+    void whoeverMovesUpIsToldSoAndWhoeverIsPutOnTheListTheirPlace() {
+        eventGroup = jugendflamme(1, true, Instant.now().plus(Duration.ofDays(5)));
+        signUp(anna, sat1, sun1, test);
+        signUp(ben, sat1, sun1, test);
+        service.decide(station.id(), eventGroup.id(), anna.id(), RegistrationStatus.ACCEPTED);
+
+        service.moveToQueue(station.id(), eventGroup.id(), List.of(ben.id()));
+        var waiting = toldAbout(ben).getLast();
+        assertEquals(RegistrationStatus.QUEUED, waiting.newStatus());
+        assertEquals(1, waiting.queuePosition());
+
+        service.withdraw(station.id(), eventGroup.id(), anna.id());
+        var movedUp = toldAbout(ben).getLast();
+        assertTrue(movedUp.movedUp());
+        assertTrue(!movedUp.shortNotice(), "the first part is days away");
+    }
+
+    @Test
+    void movingUpADayBeforeTheFirstPartSaysItIsShortNotice() {
+        eventGroup = jugendflamme(1, false, Instant.now().plus(Duration.ofDays(5)));
+        query(
+                        "UPDATE station_event SET start_time = now() + INTERVAL '3 hours', end_time = now() + INTERVAL '5 hours' WHERE id = :id;")
+                .single(call().bind("id", sat1))
+                .update();
+        signUp(anna, sat1, sun1, test);
+        signUp(ben, sat1, sun1, test);
+
+        service.withdraw(station.id(), eventGroup.id(), anna.id());
+
+        assertTrue(toldAbout(ben).getLast().shortNotice());
+    }
+
+    @Test
+    void somebodyPutOnTheListByWhoeverRunsEventsIsToldTheirPlace() {
+        eventGroup = jugendflamme(1, false, Instant.now().plus(Duration.ofDays(5)));
+        signUp(anna, sat1, sun1, test);
+
+        service.register(
+                station.id(),
+                eventGroup.id(),
+                ben.id(),
+                Set.of(sat1, sun1, test),
+                Map.of(),
+                leader.id(),
+                true,
+                WhenFull.QUEUE);
+
+        var notice = toldAbout(ben).getLast();
+        assertEquals(RegistrationStatus.QUEUED, notice.newStatus());
+        assertEquals(1, notice.queuePosition());
+    }
 }

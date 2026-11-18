@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.EventFieldConfig;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.entity.WhenFull;
 import dev.chojo.ember.feature.events.handler.EventLimitRaisedHandler;
 import dev.chojo.ember.feature.events.handler.RegistrationPlacesFreedHandler;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
@@ -32,8 +33,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -49,6 +52,7 @@ class QueueMoveUpTest extends RepositoryTestBase {
     private static final LocalDate DATE = LocalDate.now().plusDays(7);
 
     private static final List<RegistrationStatusChangedRecord> announced = new ArrayList<>();
+    private static final List<EventRegistrationStatusChanged> told = new ArrayList<>();
     private static EventRegistrationService registrations;
     private static Station station;
     private static final List<Account> accounts = new ArrayList<>();
@@ -73,6 +77,7 @@ class QueueMoveUpTest extends RepositoryTestBase {
                     @Override
                     public void handle(EventRegistrationStatusChanged event) {
                         announced.add(new RegistrationStatusChangedRecord(event.memberId(), event.newStatus()));
+                        told.add(event);
                     }
                 })),
                 memberNameResolver,
@@ -98,6 +103,7 @@ class QueueMoveUpTest extends RepositoryTestBase {
         partnerStations.forEach(partner -> stationRepo.delete(partner.id()));
         partnerStations.clear();
         announced.clear();
+        told.clear();
     }
 
     private StationEvent event(@Nullable Integer limit, LocalDate date, StationEvent.EventType type) {
@@ -479,5 +485,111 @@ class QueueMoveUpTest extends RepositoryTestBase {
         var ranks = registrations.queueRanksOf(List.of(given.id(), newcomer.id()));
         assertEquals(1, ranks.get(given.id()), "nobody is placed before a seat taken back");
         assertEquals(2, ranks.get(newcomer.id()));
+    }
+
+    private EventRegistrationStatusChanged toldTo(int member) {
+        return told.stream()
+                .filter(event -> event.memberId() == members.get(member).id())
+                .reduce((first, second) -> second)
+                .orElseThrow();
+    }
+
+    @Test
+    void whoeverMovesUpIsToldSo() {
+        var event = full(1);
+
+        registrations.withdraw(registrationOf(event, 0, DATE).id());
+
+        var notice = toldTo(1);
+        assertTrue(notice.movedUp());
+        assertTrue(!notice.shortNotice(), "a week ahead is no short notice");
+    }
+
+    @Test
+    void movingUpLessThanADayBeforeTheStartSaysSo() {
+        var start = Instant.now().plus(3, ChronoUnit.HOURS);
+        var day = start.atZone(occurrenceCalendar.zoneOf(station.id())).toLocalDate();
+        var event = eventRepo.create(
+                station.id(),
+                "Kurzfristig",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plusSeconds(3600),
+                null,
+                true,
+                null,
+                false,
+                null,
+                1,
+                null,
+                null,
+                null);
+        events.add(event);
+        signUp(event, 0, day);
+        signUp(event, 1, day);
+
+        registrations.withdraw(registrationOf(event, 0, day).id());
+
+        assertTrue(toldTo(1).shortNotice());
+    }
+
+    @Test
+    void somebodyPutOnTheListByWhoeverRunsTheAppointmentIsToldTheirPlace() {
+        var event = full(1);
+        registrations.register(
+                event.id(), members.get(2).id(), DATE, true, members.get(0).id(), true, WhenFull.QUEUE);
+
+        var notice = toldTo(2);
+        assertEquals(RegistrationStatus.QUEUED, notice.newStatus());
+        assertEquals(2, notice.queuePosition());
+    }
+
+    @Test
+    void pendingSignUpsPutOnTheListAreToldTheirPlaceInSignUpOrderAndOnlyOnce() {
+        var start = DATE.atTime(18, 0).toInstant(ZoneOffset.UTC);
+        var event = eventRepo.create(
+                station.id(),
+                "Mit Entscheidung",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plusSeconds(7200),
+                null,
+                true,
+                null,
+                true,
+                null,
+                1,
+                null,
+                null,
+                null);
+        events.add(event);
+        var first = signUp(event, 0, DATE);
+        var second = signUp(event, 1, DATE);
+
+        registrations.moveToQueue(List.of(second.id(), first.id()));
+
+        assertEquals(1, toldTo(0).queuePosition());
+        assertEquals(2, toldTo(1).queuePosition());
+
+        told.clear();
+        registrations.register(
+                event.id(), members.get(0).id(), DATE, false, members.get(3).id(), true, WhenFull.QUEUE);
+        assertTrue(told.isEmpty(), "signing up somebody who already waits tells them nothing new");
+    }
+
+    @Test
+    void comingAfterAllOntoTheListByWhoeverRunsTheAppointmentCarriesThePlace() {
+        var event = full(1);
+        var declined =
+                eventRegistrationRepo.create(event.id(), members.get(2).id(), DATE, RegistrationStatus.DECLINED, null);
+
+        registrations.answerComing(declined.id(), true, WhenFull.QUEUE);
+
+        assertEquals(RegistrationStatus.QUEUED, toldTo(2).newStatus());
+        assertEquals(2, toldTo(2).queuePosition());
     }
 }

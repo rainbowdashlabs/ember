@@ -36,6 +36,21 @@ function withReadableDates(params: Record<string, string>): Record<string, strin
     )
 }
 
+/**
+ * The status of a registration as a notification words it: whoever moved up from the waiting list is
+ * told so, at short notice where the start is less than a day away, and whoever waits is told their
+ * place in line.
+ */
+function registrationStatusWord(t: Translate, params: Record<string, string>): string {
+    if (String(params.movedUp) === 'true') {
+        const movedUp = t('notification.registrationMovedUp')
+        return String(params.shortNotice) === 'true' ? `${movedUp}, ${t('notification.registrationShortNotice')}` : movedUp
+    }
+    const status = t(`dashboard.registrationStatus.${params.status}`)
+    if (params.status !== 'QUEUED' || params.queuePosition === undefined || params.queuePosition === null) return status
+    return `${status} (${t('notification.registrationQueuePlace', {position: String(params.queuePosition)})})`
+}
+
 /** The name a station module goes by on its own page, the bare value for one nobody named. */
 function moduleLabel(t: Translate, module: string): string {
     const option = STATION_MODULE_OPTIONS.find(candidate => candidate.value === module)
@@ -50,7 +65,7 @@ function moduleLabel(t: Translate, module: string): string {
 function readableParams(t: Translate, type: NotificationType, raw: Record<string, string>): Record<string, string> {
     const params = withReadableDates(raw)
     if (type === NotificationType.EVENT_REGISTRATION_STATUS && params.status) {
-        params.status = t(`dashboard.registrationStatus.${params.status}`)
+        params.status = registrationStatusWord(t, params)
     }
     if (type === NotificationType.LENDING_STATUS_CHANGE && params.status) {
         params.status = t(`dashboard.lendingStatus.${params.status}`)

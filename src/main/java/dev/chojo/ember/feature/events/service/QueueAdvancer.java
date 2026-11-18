@@ -20,6 +20,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -155,6 +157,28 @@ public class QueueAdvancer {
         var moved = new ArrayList<EventRegistration>();
         for (var date : queue.datesWaitedFor(eventId, from)) moved.addAll(fill(eventId, date));
         return moved;
+    }
+
+    /**
+     * Whether a date starts in less than a day.
+     *
+     * @param event     the appointment
+     * @param eventDate the date
+     * @return true where the start is less than 24 hours away
+     */
+    public boolean startsWithinADay(StationEvent event, LocalDate eventDate) {
+        return withinADay(clock, OccurrenceWindows.startOf(event, eventDate, calendar.zoneOf(event.stationId())));
+    }
+
+    /**
+     * Whether a start lies less than a day ahead, which a member moving up is told plainly.
+     *
+     * @param clock the current time
+     * @param start the start
+     * @return true where the start is less than 24 hours away
+     */
+    static boolean withinADay(Clock clock, Instant start) {
+        return start.isBefore(clock.instant().plus(Duration.ofDays(1)));
     }
 
     private boolean started(StationEvent event, LocalDate date) {

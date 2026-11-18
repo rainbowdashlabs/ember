@@ -155,8 +155,10 @@ public class EventGroupRegistrationService {
             boolean override,
             @Nullable WhenFull choice) {
         var written = new ArrayList<EventRegistration>();
+        var opened = new ArrayList<EventGroup>();
         var signUp = Transactions.call(() -> {
             var eventGroup = rules.lockOpen(stationId, eventGroupId, override);
+            opened.add(eventGroup);
             var existing = signUps.find(eventGroupId, memberId);
             EventGroupSignUpRules.requireNoActiveSignUp(
                     existing.filter(EventGroupRegistration::active).isPresent());
@@ -179,6 +181,10 @@ public class EventGroupRegistrationService {
             return stored;
         });
         registrationService.recordedAll(written);
+        if (override && signUp.status() == RegistrationStatus.QUEUED) {
+            announceQueued(
+                    opened.getFirst(), memberId, queue.ranks(eventGroupId).get(QueueOwner.local(signUp.id())));
+        }
         return signUp;
     }
 
@@ -381,7 +387,8 @@ public class EventGroupRegistrationService {
      */
     public void moveToQueue(int stationId, int eventGroupId, Collection<Integer> memberIds) {
         var written = new ArrayList<EventRegistration>();
-        Transactions.run(() -> {
+        var queued = new ArrayList<EventGroupRegistration>();
+        var group = Transactions.call(() -> {
             var eventGroup = rules.lock(stationId, eventGroupId);
             var parts = rules.lockParts(eventGroupId);
             queue.requireLimit(eventGroup, parts);
@@ -399,9 +406,13 @@ public class EventGroupRegistrationService {
                     written.add(registrationService.restateForEventGroup(registration, RegistrationStatus.QUEUED));
                 }
                 queue.enqueue(eventGroup, QueueOwner.local(signUp.id()), signUp.memberId());
+                queued.add(signUp);
             }
+            return eventGroup;
         });
         registrationService.recordedAll(written);
+        var ranks = queue.ranks(eventGroupId);
+        queued.forEach(signUp -> announceQueued(group, signUp.memberId(), ranks.get(QueueOwner.local(signUp.id()))));
     }
 
     /**
@@ -431,6 +442,20 @@ public class EventGroupRegistrationService {
      */
     public List<QueueEntry> queueOf(int eventGroupId) {
         return queueLists.entries(RegistrationQueueRepository.ofEventGroup(eventGroupId));
+    }
+
+    /** Tells a member that somebody else put them on the event group's waiting list, with their place in line. */
+    private void announceQueued(EventGroup eventGroup, int memberId, @Nullable Integer rank) {
+        eventBus.publish(new EventGroupRegistrationStatusChanged(
+                eventGroup.stationId(),
+                eventGroup.id(),
+                eventGroup.details().name(),
+                memberId,
+                names.called(memberId),
+                RegistrationStatus.QUEUED,
+                rank,
+                false,
+                false));
     }
 
     /** Tells the member and whoever runs events what became of the sign-up, once for the event group. */

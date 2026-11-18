@@ -30,7 +30,10 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Clock;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -68,6 +71,7 @@ public class EventGroupQueue {
     private final EventRegistrationService registrationService;
     private final DomainEventBus eventBus;
     private final MemberNameResolver names;
+    private final Clock clock;
 
     /**
      * Creates the waiting list.
@@ -93,6 +97,45 @@ public class EventGroupQueue {
             EventRegistrationService registrationService,
             DomainEventBus eventBus,
             MemberNameResolver names) {
+        this(
+                rules,
+                signUps,
+                partners,
+                registrations,
+                queue,
+                placement,
+                registrationService,
+                eventBus,
+                names,
+                Clock.systemUTC());
+    }
+
+    /**
+     * Creates the waiting list on a given clock.
+     *
+     * @param rules               the sign-up rules, for room and standing
+     * @param signUps             the sign-ups of this station's members
+     * @param partners            the sign-ups of partners' members
+     * @param registrations       the registrations of the parts
+     * @param queue               the waiting lists
+     * @param placement           the order of the waiting lists
+     * @param registrationService the registrations, for whoever keeps a record of the dates
+     * @param eventBus            where whoever moved up is announced
+     * @param names               the names announcements carry
+     * @param clock               the current time, for a start at short notice
+     */
+    public EventGroupQueue(
+            EventGroupSignUpRules rules,
+            EventGroupRegistrationRepository signUps,
+            EventGroupPartnerRepository partners,
+            EventRegistrationRepository registrations,
+            RegistrationQueueRepository queue,
+            QueuePlacement placement,
+            EventRegistrationService registrationService,
+            DomainEventBus eventBus,
+            MemberNameResolver names,
+            Clock clock) {
+        this.clock = clock;
         this.rules = rules;
         this.signUps = signUps;
         this.partners = partners;
@@ -223,14 +266,20 @@ public class EventGroupQueue {
         if (eventGroup.cancelled()) return List.of();
         var list = RegistrationQueueRepository.ofEventGroup(eventGroup.id());
         var moved = new ArrayList<Integer>();
+        var atShortNotice = new HashSet<Integer>();
         Integer limit = eventGroup.details().registrationLimit();
         for (var entry : queue.entries(list)) {
             if (limit != null && rules.holding(eventGroup.id()) >= limit) break;
             Integer local = entry.localId();
             Integer partner = entry.partnerId();
-            if (local != null)
-                moveUpLocal(eventGroup, list, local, parts, standing).ifPresent(moved::add);
-            else if (partner != null) moveUpPartner(eventGroup, list, partner, parts, standing);
+            if (local != null) {
+                moveUpLocal(eventGroup, list, local, parts, standing).ifPresent(chosen -> {
+                    moved.add(chosen.memberId());
+                    if (chosen.shortNotice()) atShortNotice.add(chosen.memberId());
+                });
+            } else if (partner != null) {
+                moveUpPartner(eventGroup, list, partner, parts, standing);
+            }
         }
         if (!moved.isEmpty()) log.info("Moved {} up in event group {}", moved.size(), eventGroup.id());
         for (int memberId : moved) {
@@ -240,12 +289,18 @@ public class EventGroupQueue {
                     eventGroup.details().name(),
                     memberId,
                     names.called(memberId),
-                    RegistrationStatus.ACCEPTED)));
+                    RegistrationStatus.ACCEPTED,
+                    null,
+                    true,
+                    atShortNotice.contains(memberId))));
         }
         return moved;
     }
 
-    private Optional<Integer> moveUpLocal(
+    /** A member who moved up, and whether their first part still to come starts in less than a day. */
+    private record MovedUp(int memberId, boolean shortNotice) {}
+
+    private Optional<MovedUp> moveUpLocal(
             EventGroup eventGroup, QueueList list, int signUpId, Map<Integer, StationEvent> parts, Standing standing) {
         var signUp = signUps.findById(signUpId).orElse(null);
         if (signUp == null || signUp.status() != RegistrationStatus.QUEUED) {
@@ -263,7 +318,15 @@ public class EventGroupQueue {
             }
         }
         Transactions.afterCommit(() -> registrationService.recordedAll(written));
-        return Optional.of(signUp.memberId());
+        boolean shortNotice = chosen.stream()
+                .map(parts::get)
+                .filter(Objects::nonNull)
+                .map(StationEvent::startTime)
+                .filter(start -> start.isAfter(clock.instant()))
+                .min(Comparator.naturalOrder())
+                .filter(start -> QueueAdvancer.withinADay(clock, start))
+                .isPresent();
+        return Optional.of(new MovedUp(signUp.memberId(), shortNotice));
     }
 
     private void moveUpPartner(

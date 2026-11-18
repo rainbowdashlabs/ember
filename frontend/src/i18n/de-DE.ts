@@ -7881,6 +7881,7 @@ export default {
             DENIED: 'Abgelehnt',
             DECLINED: 'Abgemeldet',
             WITHDRAWN: 'Zurückgezogen',
+            QUEUED: 'Nachrückliste',
         },
         lendingStatus: {
             REQUESTED: 'Angefragt',
@@ -7963,6 +7964,9 @@ export default {
         eventChangedMoved: '{eventName} am {eventDate} wurde geändert: {changedParts}. Beginn jetzt um {startTime} Uhr. Betrifft {memberName}.',
         eventChangedNote: '{eventName} am {eventDate} wurde geändert: {changedParts}. Betrifft {memberName}. Hinweis: {note}',
         eventChangedMovedNote: '{eventName} am {eventDate} wurde geändert: {changedParts}. Beginn jetzt um {startTime} Uhr. Betrifft {memberName}. Hinweis: {note}',
+        registrationMovedUp: 'Von der Nachrückliste nachgerückt',
+        registrationShortNotice: 'kurzfristig',
+        registrationQueuePlace: 'Platz {position}',
         changedPart: {
             TIME: 'Uhrzeit',
             DATE: 'Datum',

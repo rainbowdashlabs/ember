@@ -77,6 +77,17 @@ public class EventPlaces {
     }
 
     /**
+     * Whether a date starts in less than a day, which a member moving up is told plainly.
+     *
+     * @param event     the appointment
+     * @param eventDate the date
+     * @return true where the start is less than 24 hours away
+     */
+    public boolean startsWithinADay(StationEvent event, LocalDate eventDate) {
+        return advancer.startsWithinADay(event, eventDate);
+    }
+
+    /**
      * Whether every place of a date is taken.
      *
      * @param eventId   the appointment

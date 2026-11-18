@@ -189,11 +189,13 @@ public class EventRegistrationService {
             boolean byManager,
             @Nullable WhenFull choice) {
         var moved = new ArrayList<EventRegistration>();
+        var created = new boolean[1];
         var stored = Transactions.call(() -> {
             eventRepository.lockForSignUp(eventId);
             requireOwnSignUp(eventId);
             var standing = standingOf(eventId, memberId, eventDate, autoAccept);
             if (standing != null) return standing;
+            created[0] = true;
             var event = eventRepository.findById(eventId).orElseThrow();
             var status = autoAccept
                     ? places.statusForComing(event, eventDate, byManager, choice)
@@ -209,6 +211,9 @@ public class EventRegistrationService {
         movedUp(moved.stream()
                 .filter(registration -> registration.id() != stored.id())
                 .toList());
+        if (byManager && created[0] && stored.status() == RegistrationStatus.QUEUED) {
+            announceQueued(stored, places.ranksOf(List.of(stored.id())).get(stored.id()));
+        }
         recorded(stored);
         return stored;
     }
@@ -270,6 +275,8 @@ public class EventRegistrationService {
         log.info("Registration {} is coming ({})", id, registration.status());
         if (changed.moved() && registration.status() != RegistrationStatus.QUEUED) {
             announce(registration.eventId(), registration.memberId(), registration.status());
+        } else if (changed.moved() && byManager) {
+            announceQueued(registration, places.ranksOf(List.of(id)).get(id));
         }
         recorded(registration);
         movedUp(moved.stream().filter(other -> other.id() != id).toList());
@@ -352,7 +359,11 @@ public class EventRegistrationService {
             return queued;
         });
         log.info("Moved {} sign-ups onto the waiting list", moved.size());
-        moved.forEach(this::recorded);
+        var ranks = places.ranksOf(moved.stream().map(EventRegistration::id).toList());
+        moved.forEach(registration -> {
+            announceQueued(registration, ranks.get(registration.id()));
+            recorded(registration);
+        });
         return moved;
     }
 
@@ -906,9 +917,24 @@ public class EventRegistrationService {
         return moved.stream().noneMatch(registration -> registration.id() == restored.id());
     }
 
+    /**
+     * Tells the members who moved up from the waiting list, saying so plainly where the date starts in
+     * less than a day, and whoever keeps a record of the date.
+     */
     private void movedUp(List<EventRegistration> moved) {
         for (var registration : moved) {
-            announce(registration.eventId(), registration.memberId(), RegistrationStatus.ACCEPTED);
+            eventRepository
+                    .findById(registration.eventId())
+                    .ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
+                            event.stationId(),
+                            event.id(),
+                            event.name(),
+                            registration.memberId(),
+                            nameResolver.called(registration.memberId()),
+                            RegistrationStatus.ACCEPTED,
+                            null,
+                            true,
+                            places.startsWithinADay(event, registration.eventDate()))));
             recorded(registration);
         }
     }
@@ -939,6 +965,27 @@ public class EventRegistrationService {
                 .findById(eventId)
                 .ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
                         event.stationId(), event.id(), event.name(), memberId, nameResolver.called(memberId), status)));
+    }
+
+    /**
+     * Tells a member that somebody else put them on the waiting list, with their place in line.
+     *
+     * @param registration the registration, which waits on the list
+     * @param rank         its place in line
+     */
+    private void announceQueued(EventRegistration registration, @Nullable Integer rank) {
+        eventRepository
+                .findById(registration.eventId())
+                .ifPresent(event -> eventBus.publish(new EventRegistrationStatusChanged(
+                        event.stationId(),
+                        event.id(),
+                        event.name(),
+                        registration.memberId(),
+                        nameResolver.called(registration.memberId()),
+                        RegistrationStatus.QUEUED,
+                        rank,
+                        false,
+                        false)));
     }
 
     /**
