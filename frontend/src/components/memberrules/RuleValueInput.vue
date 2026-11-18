@@ -13,11 +13,12 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import MultiSelectInput from '@/components/input/select/MultiSelectInput.vue'
 import {StationUserTypeLabels} from '@/api/types'
+import {STATION_USER_TYPES} from '@/util/stationUserTypes'
 import {
   ExpiryState,
   RuleNeed,
   RuleUnit,
-  StationUserType,
+  type StationUserType,
   type RuleValue,
 } from '@/api/generated/schema'
 import {emptyValue} from './ruleDraft'
@@ -47,9 +48,11 @@ function set(part: Partial<RuleValue>) {
 }
 
 const answerOptions = computed(() => props.answers.map(answer => ({value: answer, label: answer})))
-const typeOptions = computed(() => Object.values(StationUserType)
+const typeOptions = computed(() => STATION_USER_TYPES
     .map(type => ({value: type, label: StationUserTypeLabels[type]})))
-const stateOptions = computed(() => Object.values(ExpiryState)
+/** Valid first, then running out, run out and empty, the order the states follow over a date's life. */
+const STATE_ORDER = [ExpiryState.VALID, ExpiryState.EXPIRING, ExpiryState.EXPIRED, ExpiryState.EMPTY]
+const stateOptions = computed(() => STATE_ORDER
     .map(state => ({value: state, label: t(`memberRules.states.${state}`)})))
 const units = [RuleUnit.DAYS, RuleUnit.MONTHS, RuleUnit.YEARS]
 

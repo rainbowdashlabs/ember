@@ -32,6 +32,12 @@ const open = ref(false)
 
 const selectedSet = computed(() => new Set(modelValue.value))
 
+/** The choices in the order the options list them, whatever order they were picked in. */
+const chosenInOrder = computed(() => props.options
+    .filter(o => selectedSet.value.has(o.value))
+    .map(o => o.value)
+    .concat(modelValue.value.filter(v => !props.options.some(o => o.value === v))))
+
 const availableOptions = computed(() => props.options.filter(o => !selectedSet.value.has(o.value)))
 
 /** Adds the entry to the choices; the list itself keeps no choice of its own. */
@@ -54,7 +60,7 @@ function getLabel(value: string): string {
   <div :class="inline ? 'flex flex-wrap items-center gap-1' : 'space-y-2'">
     <div v-if="modelValue.length > 0" :class="inline ? 'contents' : 'flex flex-wrap gap-1'">
       <PillBadge
-          v-for="val in modelValue"
+          v-for="val in chosenInOrder"
           :key="val"
           class="gap-1 px-2.5 py-1 text-xs font-medium bg-primary/10 text-primary border border-primary/20"
       >
