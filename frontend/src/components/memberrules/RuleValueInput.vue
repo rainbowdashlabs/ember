@@ -73,11 +73,11 @@ const unitModel = computed({
 
 <template>
   <div class="flex flex-wrap items-center gap-2">
-    <MultiSelectInput v-if="need === RuleNeed.ANSWERS" v-model="answersModel" :options="answerOptions"
+    <MultiSelectInput v-if="need === RuleNeed.ANSWERS" v-model="answersModel" :options="answerOptions" inline
                       role="group" :aria-label="t('memberRules.valueAnswers')"/>
-    <MultiSelectInput v-else-if="need === RuleNeed.USER_TYPES" v-model="typesModel" :options="typeOptions"
+    <MultiSelectInput v-else-if="need === RuleNeed.USER_TYPES" v-model="typesModel" :options="typeOptions" inline
                       role="group" :aria-label="t('memberRules.valueUserTypes')"/>
-    <MultiSelectInput v-else-if="need === RuleNeed.STATES" v-model="statesModel" :options="stateOptions"
+    <MultiSelectInput v-else-if="need === RuleNeed.STATES" v-model="statesModel" :options="stateOptions" inline
                       role="group" :aria-label="t('memberRules.valueStates')"/>
     <DecimalInput v-else-if="need === RuleNeed.NUMBER" class="w-28" :aria-label="t('memberRules.valueNumber')" :model-value="current.number ?? undefined"
                   @update:model-value="number => set({number: number ?? null})"/>

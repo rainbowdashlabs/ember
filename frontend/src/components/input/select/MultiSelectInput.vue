@@ -7,6 +7,7 @@
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import PillBadge from '@/components/badge/PillBadge.vue'
 import DropdownPanel from './dropdown/DropdownPanel.vue'
 import DropdownListbox from './dropdown/DropdownListbox.vue'
@@ -21,6 +22,8 @@ const modelValue = defineModel<string[]>({required: true})
 const props = defineProps<{
   options: { value: string; label: string }[]
   placeholder?: string
+  /** Chips and an icon-only add button share one wrapping line, for a row too tight for a labelled button below the chips. */
+  inline?: boolean
 }>()
 
 const {t} = useI18n()
@@ -48,8 +51,8 @@ function getLabel(value: string): string {
 </script>
 
 <template>
-  <div class="space-y-2">
-    <div v-if="modelValue.length > 0" class="flex flex-wrap gap-1">
+  <div :class="inline ? 'flex flex-wrap items-center gap-1' : 'space-y-2'">
+    <div v-if="modelValue.length > 0" :class="inline ? 'contents' : 'flex flex-wrap gap-1'">
       <PillBadge
           v-for="val in modelValue"
           :key="val"
@@ -64,7 +67,8 @@ function getLabel(value: string): string {
 
     <DropdownPanel v-if="availableOptions.length > 0" v-model:open="open" panel-class="w-64 max-h-48">
       <template #trigger>
-        <SecondaryButton :icon="['fas', 'plus']" aria-haspopup="listbox">
+        <IconButton v-if="inline" :icon="['fas', 'plus']" :label="placeholder ?? t('dropdown.add')" aria-haspopup="listbox"/>
+        <SecondaryButton v-else :icon="['fas', 'plus']" aria-haspopup="listbox">
           {{ placeholder ?? t('dropdown.add') }}
         </SecondaryButton>
       </template>
