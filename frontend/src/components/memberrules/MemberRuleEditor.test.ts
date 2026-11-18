@@ -75,6 +75,23 @@ describe('MemberRuleEditor', () => {
         wrapper.unmount()
     })
 
+    it('closes the question once a first rule is saved', async () => {
+        getRule.mockResolvedValue(null)
+        saveRule.mockResolvedValue(RULE)
+        const wrapper = editor()
+        await flushPromises()
+        await wrapper.find('select').setValue('rule')
+
+        const save = wrapper.findAll('button').find(button => button.text().includes('Regel speichern'))
+        await save!.trigger('click')
+        document.body.querySelector<HTMLButtonElement>('[data-confirm]')!.click()
+        await flushPromises()
+
+        expect(saveRule).toHaveBeenCalledTimes(1)
+        expect(document.body.textContent).not.toContain('Ab jetzt bestimmt die Regel die Mitglieder')
+        wrapper.unmount()
+    })
+
     it('saves a changed rule at once and tells the page', async () => {
         getRule.mockResolvedValue(RULE)
         saveRule.mockResolvedValue(RULE)

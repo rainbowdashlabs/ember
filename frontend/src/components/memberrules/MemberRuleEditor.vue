@@ -54,6 +54,7 @@ const draft = ref<RuleNode | null>(null)
 const preview = ref<RulePreview | null>(null)
 const confirmSave = ref(false)
 const confirmRemove = ref(false)
+const busy = ref(false)
 
 const byRule = computed(() => draft.value !== null)
 
@@ -151,10 +152,15 @@ function requestSave() {
   else confirmSave.value = true
 }
 
+/**
+ * Saves the rule. The members follow a few seconds later on the server, so nothing here waits for them; the
+ * question closes once the save has an answer, and a refusal is shown by the page's alert behind it.
+ */
 async function save() {
   const rule = draft.value
   if (!rule) return
   failure.value = null
+  busy.value = true
   try {
     saved.value = await memberRules.saveRule(props.kind, props.ownerId, rule)
     draft.value = saved.value
@@ -162,11 +168,16 @@ async function save() {
     props.onChanged?.()
   } catch (e) {
     failure.value = describeFailure(e, t)
+  } finally {
+    busy.value = false
+    confirmSave.value = false
   }
 }
 
+/** Removes the rule, keeping its members, and closes the question once the server has answered. */
 async function remove() {
   failure.value = null
+  busy.value = true
   try {
     await memberRules.removeRule(props.kind, props.ownerId)
     saved.value = null
@@ -175,6 +186,9 @@ async function remove() {
     props.onChanged?.()
   } catch (e) {
     failure.value = describeFailure(e, t)
+  } finally {
+    busy.value = false
+    confirmRemove.value = false
   }
 }
 </script>
@@ -206,7 +220,7 @@ async function remove() {
           <SecondaryButton :icon="['fas', 'eye']" :disabled="!ready" @click="runPreview">
             {{ t('memberRules.preview.refresh') }}
           </SecondaryButton>
-          <PrimaryButton :icon="['fas', 'floppy-disk']" :disabled="!ready" @click="requestSave">
+          <PrimaryButton :icon="['fas', 'floppy-disk']" :disabled="!ready || busy" @click="requestSave">
             {{ t('memberRules.save') }}
           </PrimaryButton>
           <ErrorButton v-if="saved" :icon="['fas', 'trash']" @click="confirmRemove = true">
@@ -216,8 +230,8 @@ async function remove() {
       </template>
     </template>
     <ConfirmDeleteModal v-model="confirmSave" :message="t('memberRules.switchConfirm')"
-                        :confirm-label="t('memberRules.save')" @confirm="save"/>
+                        :confirm-label="t('memberRules.save')" :busy="busy" @confirm="save"/>
     <ConfirmDeleteModal v-model="confirmRemove" :message="t('memberRules.removeConfirm')"
-                        :confirm-label="t('memberRules.removeRule')" @confirm="remove"/>
+                        :confirm-label="t('memberRules.removeRule')" :busy="busy" @confirm="remove"/>
   </div>
 </template>
