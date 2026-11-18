@@ -309,7 +309,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 new ModuleAvailability(stationRepo, clusterRepo));
 
         var groupService = newMemberGroupService();
-        var tagService = new UserTagService(userTagRepo, memberGroupRepo, new DomainEventBus(Set.of()));
+        var tagService = new UserTagService(
+                userTagRepo, memberGroupRepo, memberRuleRepo, newGroupMemberships(), new DomainEventBus(Set.of()));
         var memberNameResolver = new MemberNameResolver(
                 newStationMemberService(accountRepo, mock(AuthService.class)),
                 accountRepo,
@@ -418,7 +419,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 profileFieldChangeRepo,
                 userTagRepo,
                 stationRepo,
-                new StationFieldSetRepository());
+                new StationFieldSetRepository(),
+                memberRuleRepo);
         var eventSeeder = new DemoEventSeeder(
                 eventCategoryRepo,
                 eventRegistrationRepo,

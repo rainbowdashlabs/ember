@@ -29,6 +29,7 @@ import {todayIsoDate} from '@/util/format'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useFieldAudiences} from '@/composables/useFieldAudiences'
+import {useRuleOwners} from '@/composables/useRuleOwners'
 import {describeFailure, type Failure, FailureKind} from '@/util/failure'
 
 const {t} = useI18n()
@@ -77,12 +78,15 @@ const audiences = useFieldAudiences()
 /** The questions this kind of member is asked, on the form they will be asked them. */
 const scopeFields = computed(() => audiences.fieldsFor(allFields.value, selectedUserType.value))
 
+const ruleOwners = useRuleOwners()
+
 const {loading, failure} = useAsyncLoader(async () => {
   const [fields, groups, mems] = await Promise.all([
     profileFields.listFields(),
     memberGroups.listGroups(),
     stationMembers.listMembers(),
     audiences.load(),
+    ruleOwners.load(),
   ])
   allFields.value = fields
   allGroups.value = groups
@@ -115,8 +119,12 @@ function nextFromGroups() {
   }
 }
 
-/** The groups that take the kind of member being created; a group bound to other kinds is not offered. */
-const offeredGroups = computed(() => allGroups.value.filter(group => admits(group, selectedUserType.value)))
+/**
+ * The groups that take the kind of member being created. A group bound to other kinds is not offered, and
+ * neither is one that takes its members from a rule, since the rule decides who is in it.
+ */
+const offeredGroups = computed(() => allGroups.value.filter(group =>
+  admits(group, selectedUserType.value) && !ruleOwners.isGroupRuled(group.id)))
 
 /** Picks or drops a group, and drops the other group of its set, since a member is in only one of those. */
 function toggleGroup(id: number) {

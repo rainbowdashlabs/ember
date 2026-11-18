@@ -265,6 +265,7 @@ const sampleFields = [
 
     <HelpSection :title="t('helpCenter.waitingList.groupsTitle')">
       <p>{{ t('helpCenter.waitingList.groupsText') }}</p>
+      <p>{{ t('helpCenter.waitingList.groupsRuleText') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.waitingList.tip') }}</HelpTip>

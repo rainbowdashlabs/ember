@@ -41,7 +41,8 @@ import java.util.stream.Collectors;
  * to types some members are not of is refused with those members named, unless the caller asked to
  * take them out of the group. Putting a group into a set where some members are also in another
  * group of the set is always refused with the list, because there is no safe way to pick for them
- * which group they stay in.
+ * which group they stay in. A group that takes its members from a rule is refused a set outright, because
+ * a rule cannot promise to pick only one group of it.
  */
 @Singleton
 public class GroupRulesService {
@@ -143,6 +144,7 @@ public class GroupRulesService {
                     .findById(setId)
                     .filter(set -> set.stationId() == group.stationId())
                     .orElseThrow(MemberRefusal.GROUP_SET_NOT_HERE_FOR_GROUP::raise);
+            membershipService.requireNoRule(group, MemberRefusal.RULE_GROUP_NOT_FOR_A_SET);
         }
         Set<StationUserType> userTypes = rules.userTypes();
         leaveMisfits(group, userTypes, removeNonMatching, by);

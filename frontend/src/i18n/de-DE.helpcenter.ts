@@ -1999,6 +1999,8 @@ volumes:
             step4Text: 'Wähle aus, zu welchen Gruppen das neue Mitglied gehören soll.',
             step4Rules: 'Gruppen, die nur andere Mitgliedstypen aufnehmen, werden hier nicht angeboten. Aus einem '
                 + 'Gruppenset kannst du nur eine Gruppe wählen.',
+            step4RuleGroups: 'Gruppen, die ihre Mitglieder aus einer Regel bekommen, fehlen hier ebenfalls, denn '
+                + 'wer in ihnen ist, bestimmt die Regel.',
             step5: 'Schritt 5: Erziehungsberechtigter (bei Mitgliedern)',
             step5Text: 'Weise dem Mitglied einen Verwalter zu - jemanden, der die Daten pflegen darf. Du kannst einen bestehenden Verwalter wählen oder einen neuen erstellen.',
             step6: 'Schritt 6: Fertig',
@@ -2030,6 +2032,26 @@ volumes:
             tip: 'Klicke auf einen Namen, um die Detailseite des Mitglieds zu öffnen.',
         },
         membersGroups: {
+            rulesTitle: 'Mitglieder nach Regel',
+            rulesText: 'Statt die Mitglieder von Hand zu pflegen, kann eine Gruppe sie aus einer Regel nehmen. '
+                + 'Stell dazu bei der Gruppe unter „Mitglieder“ auf „Nach Regel“. Die Regel besteht aus Blöcken '
+                + '(„Alle treffen zu“, „Mindestens eine trifft zu“, „Keine trifft zu“) mit Prüfungen darin, '
+                + 'Blöcke lassen sich auch ineinander setzen.',
+            rulesChecks: 'Eine Prüfung schaut auf eine Gruppe, einen Tag, den Mitgliedstyp, die Dauer der '
+                + 'Mitgliedschaft, das Alter oder ein Feld des Profils. Was sich vergleichen lässt, richtet sich nach '
+                + 'dem Feld: Ja oder nein, eine Auswahl, Zahlen, Texte und Daten, bei einem Ablaufdatum auch, ob es '
+                + 'bald abläuft.',
+            rulesDates: 'Prüfungen auf ein Datum rechnen ab heute oder ab einem festen Tag, etwa „ist am 1. Januar '
+                + 'mindestens 10 Jahre alt“.',
+            rulesRuns: 'Die Vorschau zeigt, wer heute passt, wer dazukommt und wer herausfällt, bevor du die Regel '
+                + 'speicherst. Danach passt Ember die Mitglieder an, sobald sich Daten ändern, und spätestens jede '
+                + 'halbe Stunde, damit etwa ein Geburtstag die Gruppe von selbst ändert. Solange eine Regel gilt, '
+                + 'lassen sich die Mitglieder nicht von Hand ändern; Gruppen mit Regel tragen dafür ein eigenes Zeichen.',
+            rulesLimits: 'Eine Gruppe in einem Gruppenset oder eine, die beim Beitritt vergeben wird, kann keine '
+                + 'Regel haben. Vergibt die Gruppe Berechtigungen, brauchst du diese Berechtigungen selbst, um ihre '
+                + 'Regel zu speichern, und ebenso, um Gruppen oder Tags zu ändern, nach denen ihre Regel fragt. Wer '
+                + 'Felder in Regeln nutzt, braucht das Recht, Mitglieder zu sehen.',
+            rulesExampleTitle: 'Beispiel: JuLeiCa läuft bald ab',
             title: 'Gruppen',
             subtitle: 'Mitglieder in Gruppen organisieren.',
             whatIs: 'Was sind Gruppen?',
@@ -2597,6 +2619,11 @@ volumes:
                 + 'erstellen".',
         },
         membersTags: {
+            rulesTitle: 'Mitglieder nach Regel',
+            rulesText: 'Ein Tag kann seine Mitglieder wie eine Gruppe aus einer Regel nehmen, etwa alle, deren '
+                + 'JuLeiCa in den nächsten zehn Monaten abläuft. Wie Regeln aufgebaut sind, steht bei den Gruppen. '
+                + 'Ein privater Tag kann nicht in einer Regel vorkommen, und ein Tag, nach dem eine Regel fragt, '
+                + 'kann nicht privat werden.',
             title: 'Tags',
             subtitle: 'Mitglieder mit Tags markieren.',
             whatIs: 'Was sind Tags?',
@@ -3938,6 +3965,8 @@ volumes:
             groupsText: 'Die Gruppe für die Probezeit muss Mitglieder auf Probe aufnehmen, die Gruppe für den Beitritt '
                 + 'Mitglieder. Passt eine Gruppe nicht, lässt sich die Liste nicht speichern. Beim Beitritt verlässt '
                 + 'das Mitglied Gruppen, die nur Mitglieder auf Probe aufnehmen.',
+            groupsRuleText: 'Eine Gruppe, die ihre Mitglieder aus einer Regel bekommt, ist in beiden Auswahlen '
+                + 'ausgegraut: Wer in ihr ist, bestimmt die Regel, nicht die Warteliste.',
             tip: 'Tipp: Nutze die Bewertungsformel, um die Warteliste automatisch nach Priorität zu sortieren. Die Formel wird bei jeder Ansicht neu berechnet.',
         },
         quiz: {
@@ -5835,6 +5864,8 @@ volumes:
                 + 'nur in einer davon sein: Wählst du eine andere, wird es verschoben, mit „Keine" verlässt es das Set.',
             groupBoundText: 'Eine Gruppe nur für andere Mitgliedstypen ist ausgegraut. Darunter steht, für welche '
                 + 'Mitgliedstypen sie gedacht ist.',
+            groupRuleText: 'Gruppen und Tags mit einem Zauberstab bekommen ihre Mitglieder aus einer Regel. Sie '
+                + 'zeigen, ob das Mitglied dabei ist, lassen sich hier aber nicht umschalten.',
             typeChangeText: 'Änderst du den Mitgliedstyp und passt das Mitglied danach nicht mehr in eine seiner '
                 + 'Gruppen, zeigt Ember dir diese Gruppen vorher. Bestätigst du, wird es aus ihnen genommen.',
             relationsTitle: 'Beziehungen',
@@ -7478,6 +7509,10 @@ volumes:
                 jfBeispieldorfText: 'Freiwillige Feuerwehr Beispieldorf',
                 connectedSince: 'Verbunden seit 1. März 2026 · Protokollversion v1',
                 germany: 'Deutschland (DE)',
+            },
+            rules: {
+                juleica: 'JuLeiCa',
+                juleicaEnd: 'JuLeiCa Ablaufdatum',
             },
             groups: {
                 beginners: 'Anfänger',

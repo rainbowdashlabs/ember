@@ -176,6 +176,7 @@ import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
+import dev.chojo.ember.feature.members.repository.MemberRuleRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.RegistrationCodeRepository;
@@ -357,6 +358,7 @@ public abstract class RepositoryTestBase {
 
     protected static ClusterItemHandoverService clusterItemHandoverService;
     protected static MemberGroupRepository memberGroupRepo;
+    protected static MemberRuleRepository memberRuleRepo;
     protected static ProfileFieldRepository profileFieldRepo;
     protected static DocumentRepository memberDocumentRepo;
     protected static MailRuleRepository mailRuleRepo;
@@ -683,6 +685,7 @@ public abstract class RepositoryTestBase {
                 new DomainEventBus(Set.of()),
                 newDocumentIntake());
         memberGroupRepo = new MemberGroupRepository();
+        memberRuleRepo = new MemberRuleRepository();
         profileFieldRepo = new ProfileFieldRepository();
         memberDocumentRepo = new DocumentRepository();
         mailRuleRepo = new MailRuleRepository();
@@ -825,7 +828,8 @@ public abstract class RepositoryTestBase {
         var fedRepo = new FederationRepository();
         var memberSvc = newStationMemberService(accountRepo, null);
         var groupSvc = newMemberGroupService();
-        var tagSvc = new UserTagService(userTagRepo, memberGroupRepo, new DomainEventBus(Set.of()));
+        var tagSvc = new UserTagService(
+                userTagRepo, memberGroupRepo, memberRuleRepo, newGroupMemberships(), new DomainEventBus(Set.of()));
         memberNameResolver =
                 new MemberNameResolver(memberSvc, accountRepo, eventFedRepo, fedRepo, stationRepo, groupSvc, tagSvc);
         memberIdentityFactory = new MemberIdentityFactory(stationRepo, memberLookupService, memberNameResolver);
@@ -988,7 +992,8 @@ public abstract class RepositoryTestBase {
                         new AssociationProfileFields(clusterProfileFieldRepo, stationRepo, clusterRepo, eventBus)),
                 profileFieldChangeRepo,
                 stationMemberRepo,
-                memberPermissionResolver);
+                memberPermissionResolver,
+                eventBus);
     }
 
     /**
@@ -1006,7 +1011,8 @@ public abstract class RepositoryTestBase {
                 memberGroupRepo,
                 core,
                 new GenderFields(core, stationRepo),
-                new StationFieldSetRepository());
+                new StationFieldSetRepository(),
+                memberRuleRepo);
     }
 
     /**
@@ -1129,7 +1135,12 @@ public abstract class RepositoryTestBase {
                 boardRepo,
                 memberService,
                 newMemberGroupService(),
-                new UserTagService(userTagRepo, memberGroupRepo, new DomainEventBus(Set.of())),
+                new UserTagService(
+                        userTagRepo,
+                        memberGroupRepo,
+                        memberRuleRepo,
+                        newGroupMemberships(),
+                        new DomainEventBus(Set.of())),
                 privateTags);
         var tickets = new BoardTicketService(
                 boardTicketRepo,
@@ -1290,6 +1301,7 @@ public abstract class RepositoryTestBase {
         return new GroupMembershipService(
                 memberGroupRepo,
                 stationMemberRepo,
+                memberRuleRepo,
                 mock(StepUpGuard.class),
                 () -> mock(MemberNameResolver.class),
                 new DomainEventBus(Set.of()));
@@ -1301,7 +1313,12 @@ public abstract class RepositoryTestBase {
      */
     protected static MemberGroupService newMemberGroupService() {
         return new MemberGroupService(
-                memberGroupRepo, stationMemberRepo, userTagRepo, newGroupMemberships(), new DomainEventBus(Set.of()));
+                memberGroupRepo,
+                stationMemberRepo,
+                userTagRepo,
+                memberRuleRepo,
+                newGroupMemberships(),
+                new DomainEventBus(Set.of()));
     }
 
     /**

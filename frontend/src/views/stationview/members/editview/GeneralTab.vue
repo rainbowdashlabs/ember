@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import PermissionPicker from '@/components/input/PermissionPicker.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -30,6 +30,7 @@ import {
 } from '@/api/generated/schema'
 import {stationMembers, memberGroups} from '@/api'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useRuleOwners} from '@/composables/useRuleOwners'
 import {describeFailure, type Failure} from '@/util/failure'
 
 const {t} = useI18n()
@@ -39,7 +40,8 @@ const {t} = useI18n()
  *
  * <p>Groups and tags come first as compact chips, because they are what a manager changes most and
  * what used to go unnoticed below a long list of permissions. The groups are written for this one
- * member in one step, so two editors cannot overwrite each other's work on a whole group.
+ * member in one step, so two editors cannot overwrite each other's work on a whole group. Groups and tags
+ * that take their members from a rule are marked and stay as the rule keeps them.
  */
 const props = defineProps<{
   member: MemberWithName
@@ -60,6 +62,9 @@ const emit = defineEmits<{
   userTypeChanged: [userType: string]
   groupsChanged: [groupIds: Set<number>]
 }>()
+
+const {load: loadRuleOwners, ruledGroups, ruledTags} = useRuleOwners()
+onMounted(loadRuleOwners)
 
 const failure = ref<Failure | null>(null)
 const success = ref('')
@@ -152,12 +157,13 @@ const {running: markingFormer, failure: formerFailure, run: confirmMarkFormer} =
     <NeutralContainer class="space-y-3">
       <SubHeader class="text-sm">{{ t('memberEdit.groups') }}</SubHeader>
       <MemberGroupChips :groups="allGroups" :sets="allSets" :selected="editGroupIds" :user-type="editUserType"
-                        :disabled="savingGroups" @change="onGroupsChange"/>
+                        :disabled="savingGroups" :ruled="ruledGroups" @change="onGroupsChange"/>
     </NeutralContainer>
 
     <NeutralContainer class="space-y-3">
       <SubHeader class="text-sm">{{ t('memberEdit.tags') }}</SubHeader>
-      <MemberTagChips :member-id="memberId" :tags="allTags" :initial-tag-ids="initialTagIds" @failed="f => failure = f"/>
+      <MemberTagChips :member-id="memberId" :tags="allTags" :initial-tag-ids="initialTagIds" :ruled="ruledTags"
+                      @failed="f => failure = f"/>
     </NeutralContainer>
 
     <NeutralContainer class="space-y-3">

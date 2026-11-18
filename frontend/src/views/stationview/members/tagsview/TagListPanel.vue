@@ -12,6 +12,7 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ColorDot from '@/components/display/ColorDot.vue'
+import RuleKeptMark from '@/components/display/RuleKeptMark.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {TagVisibility, type UserTag} from '@/api/generated/schema'
 
@@ -21,6 +22,8 @@ defineProps<{
   tags: UserTag[]
   selectedTag: UserTag | null
   canConvertToGroup: boolean
+  /** The tags that take their members from a rule, which carry the rule mark. */
+  ruled?: ReadonlySet<number>
 }>()
 
 const emit = defineEmits<{
@@ -54,6 +57,7 @@ const emit = defineEmits<{
         <span class="flex items-center gap-2">
           <ColorDot v-if="tag.color" :color="tag.color"/>
           <span class="font-medium">{{ tag.name }}</span>
+          <RuleKeptMark v-if="ruled?.has(tag.id)" class="text-(--text-muted)"/>
           <font-awesome-icon v-if="tag.visibility === TagVisibility.BADGE" :icon="['fas', 'eye']" class="text-xs text-(--text-muted)"/>
           <font-awesome-icon v-else-if="tag.visibility === TagVisibility.PRIVATE" :icon="['fas', 'lock']"
                              :title="t('userTags.visibilities.PRIVATE.label')" class="text-xs text-(--text-muted)"/>

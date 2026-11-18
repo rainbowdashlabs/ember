@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -23,6 +23,8 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import TagConvertModal from './tagsview/TagConvertModal.vue'
 import {useMemberAssignment} from '@/components/groups/useMemberAssignment'
 import {describeFailure} from '@/util/failure'
+import {useRuleOwners} from '@/composables/useRuleOwners'
+import MemberRuleEditor from '@/components/memberrules/MemberRuleEditor.vue'
 
 const {t} = useI18n()
 const {hasPermission} = useSession()
@@ -51,6 +53,17 @@ const {loading, error, failure} = useAsyncLoader(async () => {
   tags.value = tagList
   allMembers.value = members
 })
+
+const ruleOwners = useRuleOwners()
+onMounted(ruleOwners.load)
+
+/** A rule was saved or removed, so the markers and, a little later, the open members are read again. */
+function ruleChanged() {
+  const tag = selectedTag.value
+  ruleOwners.changed(() => {
+    if (tag && selectedTag.value?.id === tag.id) void selectTag(tag)
+  })
+}
 
 const {
   show: showDeleteModal,
@@ -177,12 +190,18 @@ const {
 
       <div v-if="!loading" class="grid gap-6 lg:grid-cols-2">
         <TagListPanel :tags="tags" :selected-tag="selectedTag" :can-convert-to-group="canConvertToGroup"
+                      :ruled="ruleOwners.ruledTags.value"
                       @create="openCreateTag" @select="selectTag" @edit="openEditTag"
                       @delete="requestDelete" @convert="requestConvert"/>
         <TagMembersPanel v-if="selectedTag" :selected-tag="selectedTag" :tag-loading="tagLoading"
                          :tag-members="tagMembers" :available-members="availableMembers"
                          :offered-user-types="offeredUserTypes"
-                         @add-member="addMemberToTag" @remove-member="removeMemberFromTag"/>
+                         :locked="ruleOwners.isTagRuled(selectedTag.id)"
+                         @add-member="addMemberToTag" @remove-member="removeMemberFromTag">
+          <template #members-source>
+            <MemberRuleEditor kind="tag" :owner-id="selectedTag.id" :on-changed="ruleChanged"/>
+          </template>
+        </TagMembersPanel>
         <div v-else class="flex items-center justify-center text-(--text-muted) py-12">
           {{ t('userTags.selectHint') }}
         </div>
