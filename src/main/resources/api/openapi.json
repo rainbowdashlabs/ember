@@ -29539,6 +29539,171 @@
         }
       }
     },
+    "/api/v1/groups/{id}/rule" : {
+      "get" : {
+        "summary" : "The rule a group takes its members from, if any",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberRuleResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Save the rule a group takes its members from; the group is filled by it from then on",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberRuleResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MemberRuleRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Remove a group's rule; it keeps its members and is kept by hand from then on",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/groups/{id}/rule/preview" : {
+      "post" : {
+        "summary" : "Who a rule would put into a group today, without saving it",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RulePreview"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MemberRuleRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/inventories" : {
       "post" : {
         "summary" : "Create an inventory",
@@ -35408,6 +35573,66 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/member-rules" : {
+      "get" : {
+        "summary" : "The groups and tags of the station that take their members from a rule",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RuleOwners"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/member-rules/fields" : {
+      "get" : {
+        "summary" : "The fields a check of a group or tag rule can read, the station's and its association's",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RuleField"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/member-rules/operators" : {
+      "get" : {
+        "summary" : "The operators a check of a group or tag rule can use, per subject and field type",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RuleOperatorOption"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/member-table" : {
@@ -52913,6 +53138,161 @@
         }
       }
     },
+    "/api/v1/tags/{id}/rule" : {
+      "get" : {
+        "summary" : "The rule a tag takes its members from, if any",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberRuleResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Save the rule a tag takes its members from; the tag is filled by it from then on",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberRuleResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MemberRuleRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Remove a tag's rule; it keeps its members and is kept by hand from then on",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/tags/{id}/rule/preview" : {
+      "post" : {
+        "summary" : "Who a rule would put into a tag today, without saving it",
+        "tags" : [ "Member Rules" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RulePreview"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MemberRuleRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/trials" : {
       "get" : {
         "summary" : "The trials running for the reader or anybody they look after",
@@ -65034,6 +65414,10 @@
         "type" : "string",
         "enum" : [ "ITS_OWN", "THE_CLUSTERS", "INSTANCE_DEFAULT", "WHEREVER_IT_IS" ]
       },
+      "ExpiryState" : {
+        "type" : "string",
+        "enum" : [ "VALID", "EXPIRING", "EXPIRED", "EMPTY" ]
+      },
       "ExportColumnRequest" : {
         "type" : "object",
         "properties" : {
@@ -73798,6 +74182,27 @@
           }
         },
         "required" : [ "required", "unassigned" ]
+      },
+      "MemberRuleRequest" : {
+        "type" : "object",
+        "properties" : {
+          "rule" : {
+            "$ref" : "#/components/schemas/RuleNode"
+          }
+        }
+      },
+      "MemberRuleResponse" : {
+        "type" : "object",
+        "properties" : {
+          "rule" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RuleNode"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "rule" ]
       },
       "MemberSearchResult" : {
         "type" : "object",
@@ -83118,6 +83523,181 @@
         },
         "required" : [ "kind", "freeBytes", "totalBytes" ]
       },
+      "RuleField" : {
+        "type" : "object",
+        "properties" : {
+          "origin" : {
+            "$ref" : "#/components/schemas/FieldOrigin"
+          },
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "fieldType" : {
+            "$ref" : "#/components/schemas/FieldType"
+          },
+          "options" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "origin", "id", "name", "fieldType", "options" ]
+      },
+      "RuleMember" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "name" ]
+      },
+      "RuleNeed" : {
+        "type" : "string",
+        "enum" : [ "NOTHING", "ANSWERS", "USER_TYPES", "STATES", "NUMBER", "NUMBER_RANGE", "TEXT", "DATE", "DURATION", "YEARS", "YEARS_RANGE" ]
+      },
+      "RuleNode" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "$ref" : "#/components/schemas/RuleNodeKind"
+          },
+          "children" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RuleNode"
+            }
+          },
+          "subject" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RuleSubject"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "operator" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RuleOperator"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "fieldId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "clusterFieldId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "groupId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "tagId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "value" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RuleValue"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "referenceDate" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "kind", "children", "subject", "operator", "fieldId", "clusterFieldId", "groupId", "tagId", "value", "referenceDate" ]
+      },
+      "RuleNodeKind" : {
+        "type" : "string",
+        "enum" : [ "ALL", "ANY", "NONE", "CHECK" ]
+      },
+      "RuleOperator" : {
+        "type" : "string",
+        "enum" : [ "IN", "NOT_IN", "ONE_OF", "NONE_OF", "AT_LEAST", "LESS_THAN", "BETWEEN", "IS_YES", "IS_NO", "IS_NOT_YES", "EMPTY", "NOT_EMPTY", "EQUALS", "CONTAINS", "EQ", "LT", "LE", "GT", "GE", "BEFORE", "ON_OR_AFTER", "WITHIN_NEXT", "WITHIN_LAST", "EXPIRES_WITHIN", "EXPIRED", "STATE_IN" ]
+      },
+      "RuleOperatorOption" : {
+        "type" : "object",
+        "properties" : {
+          "subject" : {
+            "$ref" : "#/components/schemas/RuleSubject"
+          },
+          "fieldType" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/FieldType"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "operator" : {
+            "$ref" : "#/components/schemas/RuleOperator"
+          },
+          "need" : {
+            "$ref" : "#/components/schemas/RuleNeed"
+          }
+        },
+        "required" : [ "subject", "fieldType", "operator", "need" ]
+      },
+      "RuleOwners" : {
+        "type" : "object",
+        "properties" : {
+          "groupIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "tagIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        },
+        "required" : [ "groupIds", "tagIds" ]
+      },
+      "RulePreview" : {
+        "type" : "object",
+        "properties" : {
+          "matching" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RuleMember"
+            }
+          },
+          "joining" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RuleMember"
+            }
+          },
+          "leaving" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RuleMember"
+            }
+          }
+        },
+        "required" : [ "matching", "joining", "leaving" ]
+      },
       "RuleRequest" : {
         "type" : "object",
         "properties" : {
@@ -83254,6 +83834,69 @@
           }
         },
         "required" : [ "id", "mailboxId", "name", "position", "enabled", "subjectFilter", "attachmentNameFilter", "acceptedTypes", "minSizeBytes", "includeInline", "titleSource", "hidden", "keepOnArchive", "readSubjectForMember", "action", "moveToFolder", "senderPatterns", "tags" ]
+      },
+      "RuleSubject" : {
+        "type" : "string",
+        "enum" : [ "GROUP", "TAG", "USER_TYPE", "MEMBER_SINCE", "AGE", "FIELD", "CLUSTER_FIELD" ]
+      },
+      "RuleUnit" : {
+        "type" : "string",
+        "enum" : [ "DAYS", "MONTHS", "YEARS" ]
+      },
+      "RuleValue" : {
+        "type" : "object",
+        "properties" : {
+          "answers" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "userTypes" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/StationUserType"
+            }
+          },
+          "states" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/ExpiryState"
+            }
+          },
+          "number" : {
+            "type" : [ "number", "null" ]
+          },
+          "numberTo" : {
+            "type" : [ "number", "null" ]
+          },
+          "text" : {
+            "type" : [ "string", "null" ]
+          },
+          "date" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "amount" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "amountTo" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "unit" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RuleUnit"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "answers", "userTypes", "states", "number", "numberTo", "text", "date", "amount", "amountTo", "unit" ]
       },
       "RunDetailResponse" : {
         "type" : "object",

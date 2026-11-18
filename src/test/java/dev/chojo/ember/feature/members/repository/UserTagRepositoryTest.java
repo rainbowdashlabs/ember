@@ -6,6 +6,9 @@
 package dev.chojo.ember.feature.members.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.members.entity.RuleNode;
+import dev.chojo.ember.feature.members.entity.RuleOperator;
+import dev.chojo.ember.feature.members.entity.RuleOwner;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.TagVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -155,5 +158,18 @@ class UserTagRepositoryTest extends RepositoryTestBase {
     void delete() {
         assertTrue(userTagRepo.delete(tagId));
         assertTrue(userTagRepo.findById(tagId).isEmpty());
+    }
+
+    @Test
+    void aRuleAskingAboutATagCountsAsAUse() {
+        var asked = userTagRepo.create(station.id(), "Asked By Rule");
+        var group = memberGroupRepo.create(station.id(), "Asking Rule");
+        assertEquals(0, userTagRepo.countSelectingUses(asked.id()));
+
+        memberRuleRepo.replace(
+                station.id(), RuleOwner.group(group.id()), RuleNode.all(RuleNode.tag(RuleOperator.IN, asked.id())));
+
+        assertEquals(1, userTagRepo.countSelectingUses(asked.id()));
+        memberRuleRepo.delete(RuleOwner.group(group.id()));
     }
 }

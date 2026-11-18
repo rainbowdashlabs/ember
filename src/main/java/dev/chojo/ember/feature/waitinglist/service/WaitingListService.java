@@ -1637,8 +1637,9 @@ public class WaitingListService implements TaskSource {
 
     /**
      * Refuses a list whose groups are not the station's, or do not take the people the list puts in
-     * them: somebody on trial joins the testing group, a member the join group. Refused where the list
-     * is saved, so the manager hears of it rather than a family on the list later.
+     * them: somebody on trial joins the testing group, a member the join group. A group that takes its
+     * members from a rule is refused as either, because the rule decides who is in it. Refused where the
+     * list is saved, so the manager hears of it rather than a family on the list later.
      */
     private void requireGroupsFit(int stationId, @Nullable Integer testingGroupId, @Nullable Integer joinGroupId) {
         groupMemberships.requireAdmits(

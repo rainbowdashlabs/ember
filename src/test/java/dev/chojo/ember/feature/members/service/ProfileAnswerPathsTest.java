@@ -10,6 +10,7 @@ import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.event.events.ClusterFieldValueChanged;
+import dev.chojo.ember.event.events.MemberAnswersChanged;
 import dev.chojo.ember.feature.cluster.entity.ClusterProfileField;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
@@ -62,6 +63,7 @@ class ProfileAnswerPathsTest extends RepositoryTestBase {
     private StationMember member;
     private Notifier notifier;
     private List<ClusterFieldValueChanged> told;
+    private List<MemberAnswersChanged> answered;
     private ProfileFieldService answers;
 
     @BeforeEach
@@ -70,6 +72,7 @@ class ProfileAnswerPathsTest extends RepositoryTestBase {
         member = scene.member();
         notifier = mock(Notifier.class);
         told = new ArrayList<>();
+        answered = new ArrayList<>();
         var memberHears = new DomainEventHandler<ClusterFieldValueChanged>() {
             @Override
             public Class<ClusterFieldValueChanged> eventType() {
@@ -81,7 +84,19 @@ class ProfileAnswerPathsTest extends RepositoryTestBase {
                 told.add(event);
             }
         };
-        answers = newProfileFieldService(newProfileFieldCore(notifier, new DomainEventBus(Set.of(memberHears))));
+        var rulesHear = new DomainEventHandler<MemberAnswersChanged>() {
+            @Override
+            public Class<MemberAnswersChanged> eventType() {
+                return MemberAnswersChanged.class;
+            }
+
+            @Override
+            public void handle(MemberAnswersChanged event) {
+                answered.add(event);
+            }
+        };
+        answers = newProfileFieldService(
+                newProfileFieldCore(notifier, new DomainEventBus(Set.of(memberHears, rulesHear))));
     }
 
     @AfterEach
@@ -176,6 +191,17 @@ class ProfileAnswerPathsTest extends RepositoryTestBase {
 
         assertEquals(1, changes().size());
         assertEquals("\"13\"", changes().getFirst().newValue());
+    }
+
+    /** A changed answer is announced once for the member's station; saving the same answer again is not. */
+    @Test
+    void aChangedAnswerIsAnnouncedToTheStation() {
+        var field = stationAsks("Funkrufname", "{}", false);
+
+        write(member.id(), ProfileWriter.station(false), station(field.id(), "\"Florian 1\""));
+        write(member.id(), ProfileWriter.station(false), station(field.id(), "\"Florian 1\""));
+
+        assertEquals(List.of(new MemberAnswersChanged(member.stationId(), member.id())), answered);
     }
 
     @Test

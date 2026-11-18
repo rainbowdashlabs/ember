@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.members.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.MemberAnswersChanged;
 import dev.chojo.ember.feature.members.entity.ExpirySettings;
 import dev.chojo.ember.feature.members.entity.FieldDraft;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
@@ -74,18 +76,21 @@ public class ProfileFieldCore {
     private final ProfileFieldChangeRepository changeRepository;
     private final StationMemberRepository memberRepository;
     private final MemberPermissionResolver permissionResolver;
+    private final DomainEventBus eventBus;
 
     @Inject
     public ProfileFieldCore(
             Map<FieldOrigin, ProfileFieldOwner> owners,
             ProfileFieldChangeRepository changeRepository,
             StationMemberRepository memberRepository,
-            MemberPermissionResolver permissionResolver) {
+            MemberPermissionResolver permissionResolver,
+            DomainEventBus eventBus) {
         this.owners = new EnumMap<>(FieldOrigin.class);
         this.owners.putAll(owners);
         this.changeRepository = changeRepository;
         this.memberRepository = memberRepository;
         this.permissionResolver = permissionResolver;
+        this.eventBus = eventBus;
     }
 
     /**
@@ -189,6 +194,7 @@ public class ProfileFieldCore {
         List<String> changed = Transactions.call(() -> writeAll(member, entries, recorded, writer));
         if (!changed.isEmpty()) {
             for (ProfileFieldOwner owner : ordered()) owner.changed(member, recorded.memberId(), writer, changed);
+            eventBus.publish(new MemberAnswersChanged(member.stationId(), memberId));
             log.info("Profile answers changed: member={}, author={}, fields={}", memberId, recorded, changed);
         }
         return answersOf(memberId);

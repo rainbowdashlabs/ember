@@ -7,6 +7,7 @@
 import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
+import RuleKeptMark from '@/components/display/RuleKeptMark.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {userTags} from '@/api'
 import {TagVisibility, type UserTag} from '@/api/generated/schema'
@@ -14,12 +15,15 @@ import {describeFailure, type Failure} from '@/util/failure'
 
 /**
  * The tags of one member as a compact row of chips, each one saved as it is clicked and put back where
- * the save was refused.
+ * the save was refused. A tag that takes its members from a rule shows whether the member has it, carries
+ * the rule mark and cannot be toggled, because the rule decides.
  */
 const props = defineProps<{
   memberId: number
   tags: UserTag[]
   initialTagIds: Set<number>
+  /** The tags that take their members from a rule. */
+  ruled?: ReadonlySet<number>
 }>()
 
 const emit = defineEmits<{
@@ -58,8 +62,11 @@ async function toggle(tagId: number) {
         v-for="tag in tags"
         :key="tag.id"
         :selected="tagIds.has(tag.id)"
+        :disabled="ruled?.has(tag.id)"
+        :title="ruled?.has(tag.id) ? t('memberRules.keptByRuleHint') : undefined"
         @toggle="toggle(tag.id)"
     >
+      <RuleKeptMark v-if="ruled?.has(tag.id)"/>
       <font-awesome-icon v-if="tag.visibility === TagVisibility.PRIVATE" :icon="['fas', 'lock']"
                          :title="t('userTags.visibilities.PRIVATE.label')" class="text-xs"/>
       {{ tag.name }}

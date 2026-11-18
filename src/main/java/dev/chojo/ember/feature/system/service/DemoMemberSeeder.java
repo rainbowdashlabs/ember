@@ -13,11 +13,17 @@ import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.PronounPreset;
+import dev.chojo.ember.feature.members.entity.RuleNode;
+import dev.chojo.ember.feature.members.entity.RuleOperator;
+import dev.chojo.ember.feature.members.entity.RuleOwner;
+import dev.chojo.ember.feature.members.entity.RuleUnit;
+import dev.chojo.ember.feature.members.entity.RuleValue;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.TagVisibility;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
+import dev.chojo.ember.feature.members.repository.MemberRuleRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.StationFieldSetRepository;
@@ -75,6 +81,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
     private final UserTagRepository userTagRepository;
     private final StationRepository stationRepository;
     private final StationFieldSetRepository fieldSetRepository;
+    private final MemberRuleRepository ruleRepository;
 
     @Inject
     public DemoMemberSeeder(
@@ -87,7 +94,9 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
             ProfileFieldChangeRepository profileFieldChangeRepository,
             UserTagRepository userTagRepository,
             StationRepository stationRepository,
-            StationFieldSetRepository fieldSetRepository) {
+            StationFieldSetRepository fieldSetRepository,
+            MemberRuleRepository ruleRepository) {
+        this.ruleRepository = ruleRepository;
         this.fieldSetRepository = fieldSetRepository;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -576,6 +585,8 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                     tagFeeDue.id(), fortgeschrittenMembers.get(i).id());
         }
 
+        seedJuleicaRunningOut(stationId, fieldJuleica, fieldJuleicaAblauf);
+
         log.info(
                 "Demo: Created {} members (betreuer={}, eltern={}, anfaenger={}, fortgeschritten={})",
                 betreuerMembers.size() + elternMembers.size() + anfaengerMembers.size() + fortgeschrittenMembers.size(),
@@ -656,6 +667,22 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         stationMemberRepository.grantPermission(member.id(), loginRoleId);
         stationMemberRepository.grantPermission(member.id(), guardianRoleId);
         return member;
+    }
+
+    /**
+     * A tag kept by a rule: everybody with a JuLeiCa that runs out within ten months. The rule runs once here,
+     * after the answers are in; from then on the station's rules keep it up to date, so the tag fills on its own as
+     * the seeded dates come closer.
+     */
+    private void seedJuleicaRunningOut(int stationId, ProfileField juleica, ProfileField juleicaEnd) {
+        var tag = RuleOwner.tag(
+                userTagRepository.create(stationId, "JuLeiCa läuft bald ab").id());
+        var rule = RuleNode.all(
+                RuleNode.field(juleica.id(), RuleOperator.IS_YES, RuleValue.empty()),
+                RuleNode.field(
+                        juleicaEnd.id(), RuleOperator.EXPIRES_WITHIN, RuleValue.ofDuration(10, RuleUnit.MONTHS)));
+        ruleRepository.replace(stationId, tag, rule);
+        ruleRepository.apply(tag, ruleRepository.matching(stationId, rule, LocalDate.now(), List.of()));
     }
 
     private StringNode text(String value) {

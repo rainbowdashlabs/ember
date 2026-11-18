@@ -52,6 +52,7 @@ class GroupRulesServiceTest extends RepositoryTestBase {
         var memberships = new GroupMembershipService(
                 memberGroupRepo,
                 stationMemberRepo,
+                memberRuleRepo,
                 stepUp,
                 () -> mock(MemberNameResolver.class),
                 new DomainEventBus(Set.of()));

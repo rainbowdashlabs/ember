@@ -33,7 +33,8 @@ class UserTagServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new UserTagService(userTagRepo, memberGroupRepo, new DomainEventBus(Set.of()));
+        service = new UserTagService(
+                userTagRepo, memberGroupRepo, memberRuleRepo, newGroupMemberships(), new DomainEventBus(Set.of()));
         station = stationRepo.create("TagStation");
         account = accountRepo.create("tag-svc@test.com", "Tag", "Tester");
         member = stationMemberRepo.create(station.id(), account.id());
@@ -70,7 +71,7 @@ class UserTagServiceTest extends RepositoryTestBase {
     @Test
     @Order(10)
     void setMembersAndFind() {
-        service.setMembers(tagId, List.of(member.id()));
+        service.setMembers(tagId, List.of(member.id()), signedIn(member));
         var members = service.findMembers(tagId);
         assertTrue(members.stream().anyMatch(m -> m.id() == member.id()));
     }
@@ -85,7 +86,7 @@ class UserTagServiceTest extends RepositoryTestBase {
     @Test
     @Order(12)
     void clearMembers() {
-        service.setMembers(tagId, List.of());
+        service.setMembers(tagId, List.of(), signedIn(member));
         var members = service.findMembers(tagId);
         assertFalse(members.stream().anyMatch(m -> m.id() == member.id()));
     }
@@ -109,7 +110,7 @@ class UserTagServiceTest extends RepositoryTestBase {
     @Order(40)
     void convertToGroup() {
         var tag2 = service.create(station.id(), "ToBeGroup");
-        service.setMembers(tag2.id(), List.of(member.id()));
+        service.setMembers(tag2.id(), List.of(member.id()), signedIn(member));
 
         service.convertToGroup(tag2.id());
 

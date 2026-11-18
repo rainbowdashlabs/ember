@@ -20,13 +20,14 @@ const advanced = group(2, 'Fortgeschritten', {groupSetId: 10})
 const trainers = group(3, 'Ausbilder', {userTypes: ['TEAM', 'MANAGER']})
 const swimmers = group(4, 'Schwimmer')
 
-function chips(selected: number[], userType = 'MEMBER') {
+function chips(selected: number[], userType = 'MEMBER', ruled: number[] = []) {
   return mount(MemberGroupChips, {
     props: {
       groups: [beginners, advanced, trainers, swimmers],
       sets: [{id: 10, stationId: 's', name: 'Stufen'}],
       selected: new Set(selected),
       userType,
+      ruled: new Set(ruled),
     },
     global: {plugins: [createI18n({legacy: false, locale: 'de-DE', messages: {'de-DE': deDE, en: {}}})]},
   })
@@ -64,5 +65,16 @@ describe('MemberGroupChips', () => {
     expect(view.text()).toContain('Nur für Team, Manager')
     expect(chip(view, 'Schwimmer').attributes('disabled')).toBeUndefined()
     expect(chips([], 'TEAM').text()).not.toContain('Nur für')
+  })
+
+  it('shows a group a rule fills as it is, but does not let it be toggled', async () => {
+    const view = chips([4], 'MEMBER', [4])
+
+    const kept = chip(view, 'Schwimmer')
+    expect(kept.attributes('disabled')).toBeDefined()
+    expect(kept.attributes('aria-pressed')).toBe('true')
+    expect(kept.attributes('title')).toBe(deDE.memberRules.keptByRuleHint)
+    await kept.trigger('click')
+    expect(view.emitted('change')).toBeUndefined()
   })
 })

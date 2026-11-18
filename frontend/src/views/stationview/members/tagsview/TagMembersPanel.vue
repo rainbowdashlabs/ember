@@ -27,6 +27,8 @@ const props = defineProps<{
   availableMembers: MemberOption[]
   /** The kinds of member still on offer, for the filter beside the search. */
   offeredUserTypes: string[]
+  /** Whether a rule decides the members, so they are shown but not changed by hand. */
+  locked?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -43,6 +45,7 @@ const {picked, take} = useMemberPick(memberId => emit('add-member', memberId))
 <template>
   <div class="space-y-4">
     <SubHeader>{{ selectedTag.name }}</SubHeader>
+    <slot name="members-source"/>
 
     <Spinner v-if="tagLoading" size="md"/>
 
@@ -56,12 +59,12 @@ const {picked, take} = useMemberPick(memberId => emit('add-member', memberId))
           <div v-for="member in current" :key="member.value"
                class="flex items-center justify-between rounded-lg px-3 py-2 bg-bg-light-accent dark:bg-bg-dark-accent">
             <MemberName :identity="identityOf(member)" class="text-sm font-medium"/>
-            <IconButton :icon="['fas', 'xmark']" :label="t('userTags.removeMember')" class="text-error hover:text-error/80 text-sm" @click="emit('remove-member', Number(member.value))"/>
+            <IconButton v-if="!locked" :icon="['fas', 'xmark']" :label="t('userTags.removeMember')" class="text-error hover:text-error/80 text-sm" @click="emit('remove-member', Number(member.value))"/>
           </div>
         </div>
       </div>
 
-      <div class="space-y-1">
+      <div v-if="!locked" class="space-y-1">
         <FieldLabel class="text-(--text-muted)">{{ t('userTags.addMembers') }}</FieldLabel>
         <MutedText v-if="availableMembers.length === 0" tag="div" size="sm" class="py-2">
           {{ t('userTags.allAdded') }}
