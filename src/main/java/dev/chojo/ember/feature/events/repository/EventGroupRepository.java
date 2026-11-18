@@ -69,8 +69,8 @@ public class EventGroupRepository {
     public EventGroup create(int stationId, EventGroupDetails details) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO event_group(station_id, name, description, registration_limit, registration_deadline, requires_confirmation, color, min_registrations, threshold_days)
-                VALUES (:station_id, :name, :description, :registration_limit, :registration_deadline, :requires_confirmation, :color, :min_registrations, :threshold_days)
+                INSERT INTO event_group(station_id, name, description, registration_limit, registration_deadline, requires_confirmation, color, min_registrations, threshold_days, part_registration_limit, queue_order)
+                VALUES (:station_id, :name, :description, :registration_limit, :registration_deadline, :requires_confirmation, :color, :min_registrations, :threshold_days, :part_registration_limit, :queue_order)
                 RETURNING %s;""",
                 call().bind("station_id", stationId)
                         .bind("name", details.name())
@@ -80,7 +80,9 @@ public class EventGroupRepository {
                         .bind("requires_confirmation", details.requiresConfirmation())
                         .bind("color", details.color())
                         .bind("min_registrations", details.minRegistrations())
-                        .bind("threshold_days", details.thresholdDays()),
+                        .bind("threshold_days", details.thresholdDays())
+                        .bind("part_registration_limit", details.partRegistrationLimit())
+                        .bind("queue_order", details.order()),
                 EventGroup.map(),
                 EventGroup.COLUMNS);
     }
@@ -104,7 +106,9 @@ public class EventGroupRepository {
                     requires_confirmation = :requires_confirmation,
                     color                 = :color,
                     min_registrations     = :min_registrations,
-                    threshold_days        = :threshold_days
+                    threshold_days        = :threshold_days,
+                    part_registration_limit = :part_registration_limit,
+                    queue_order           = :queue_order
                 WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("name", details.name())
@@ -114,7 +118,9 @@ public class EventGroupRepository {
                         .bind("requires_confirmation", details.requiresConfirmation())
                         .bind("color", details.color())
                         .bind("min_registrations", details.minRegistrations())
-                        .bind("threshold_days", details.thresholdDays()))
+                        .bind("threshold_days", details.thresholdDays())
+                        .bind("part_registration_limit", details.partRegistrationLimit())
+                        .bind("queue_order", details.order()))
                 .update()
                 .changed();
     }
@@ -196,14 +202,30 @@ public class EventGroupRepository {
      * @return the set
      */
     public EventGroupSet createSet(int eventGroupId, String name, int minimum, int position) {
+        return createSet(eventGroupId, name, minimum, null, position);
+    }
+
+    /**
+     * Adds a set to an event group.
+     *
+     * @param eventGroupId the event group
+     * @param name         its name
+     * @param minimum      how many of its parts a sign-up has to choose
+     * @param maximum      how many of its parts a sign-up may choose at most, or null for no maximum
+     * @param position     its place among the sets
+     * @return the set
+     */
+    public EventGroupSet createSet(
+            int eventGroupId, String name, int minimum, @Nullable Integer maximum, int position) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO event_group_set(event_group_id, name, minimum, position)
-                VALUES (:event_group_id, :name, :minimum, :position)
+                INSERT INTO event_group_set(event_group_id, name, minimum, maximum, position)
+                VALUES (:event_group_id, :name, :minimum, :maximum, :position)
                 RETURNING %s;""",
                 call().bind("event_group_id", eventGroupId)
                         .bind("name", name)
                         .bind("minimum", minimum)
+                        .bind("maximum", maximum)
                         .bind("position", position),
                 EventGroupSet.map(),
                 EventGroupSet.COLUMNS);
@@ -215,13 +237,18 @@ public class EventGroupRepository {
      * @param setId    the set
      * @param name     its name
      * @param minimum  how many of its parts a sign-up has to choose
+     * @param maximum  how many of its parts a sign-up may choose at most, or null for no maximum
      * @param position its place among the sets
      */
-    public void updateSet(int setId, String name, int minimum, int position) {
-        query("UPDATE event_group_set SET name = :name, minimum = :minimum, position = :position WHERE id = :id;")
+    public void updateSet(int setId, String name, int minimum, @Nullable Integer maximum, int position) {
+        query("""
+                        UPDATE event_group_set
+                        SET name = :name, minimum = :minimum, maximum = :maximum, position = :position
+                        WHERE id = :id;""")
                 .single(call().bind("id", setId)
                         .bind("name", name)
                         .bind("minimum", minimum)
+                        .bind("maximum", maximum)
                         .bind("position", position))
                 .update();
     }
@@ -449,17 +476,35 @@ public class EventGroupRepository {
     }
 
     /**
-     * Raises a set's minimum to a number of parts where it asks for fewer.
+     * Raises a set's minimum to a number of parts where it asks for fewer, and its maximum with it where
+     * that would fall below.
      *
      * @param setId   the set
      * @param minimum the least it may ask for
      * @return whether the minimum was raised
      */
     public boolean raiseMinimum(int setId, int minimum) {
-        return query("UPDATE event_group_set SET minimum = :minimum WHERE id = :set_id AND minimum < :minimum;")
+        return query("""
+                        UPDATE event_group_set
+                        SET minimum = :minimum,
+                            maximum = CASE WHEN maximum < :minimum THEN :minimum ELSE maximum END
+                        WHERE id = :set_id AND minimum < :minimum;""")
                 .single(call().bind("set_id", setId).bind("minimum", minimum))
                 .update()
                 .changed();
+    }
+
+    /**
+     * Raises a set's maximum to a number of parts where it allows fewer. A set without a maximum keeps
+     * none.
+     *
+     * @param setId   the set
+     * @param maximum the least it may allow
+     */
+    public void raiseMaximum(int setId, int maximum) {
+        query("UPDATE event_group_set SET maximum = :maximum WHERE id = :set_id AND maximum < :maximum;")
+                .single(call().bind("set_id", setId).bind("maximum", maximum))
+                .update();
     }
 
     /**
@@ -572,7 +617,9 @@ public class EventGroupRepository {
 
     /**
      * Gives every part of an event group the sign-up of the event group: parts take sign-ups, confirm them as
-     * the event group does and close with it, and carry no limit, closing days or minimum of their own.
+     * the event group does and close with it, and carry no closing days or minimum of their own. A part's
+     * own participant limit stays: it is the part's places, set on the part, which an event group saved
+     * again must not take away.
      *
      * @param eventGroupId         the event group
      * @param requiresConfirmation whether the event group confirms sign-ups
@@ -584,7 +631,6 @@ public class EventGroupRepository {
                 SET requires_registration   = TRUE,
                     requires_confirmation   = :requires_confirmation,
                     registration_deadline   = :registration_deadline,
-                    registration_limit      = NULL,
                     registration_close_days = NULL,
                     min_registrations       = NULL,
                     threshold_days          = NULL,
@@ -593,6 +639,31 @@ public class EventGroupRepository {
                 .single(call().bind("event_group_id", eventGroupId)
                         .bind("requires_confirmation", requiresConfirmation)
                         .bind("registration_deadline", deadline, INSTANT_TIMESTAMP))
+                .update();
+    }
+
+    /**
+     * Writes the participant limit a part takes from its event group into the part itself, so it keeps
+     * its places once it leaves the event group.
+     *
+     * @param eventId the part leaving
+     */
+    public void keepLimit(int eventId) {
+        query("UPDATE station_event SET registration_limit = %s WHERE id = :id;"
+                        .formatted(EventGroupInheritance.registrationLimit("station_event")))
+                .single(call().bind("id", eventId))
+                .update();
+    }
+
+    /**
+     * Drops the participant limit an appointment had of its own before it joined an event group, so it
+     * takes the places per part of its event group until somebody gives it places of its own.
+     *
+     * @param eventId the appointment joining
+     */
+    public void clearOwnLimit(int eventId) {
+        query("UPDATE station_event SET registration_limit = NULL WHERE id = :id;")
+                .single(call().bind("id", eventId))
                 .update();
     }
 

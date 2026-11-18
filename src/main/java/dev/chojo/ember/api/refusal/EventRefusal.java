@@ -874,7 +874,14 @@ public enum EventRefusal implements Refusal {
             "An appointment without a participant limit has no waiting list, nothing was changed"),
 
     /** A place in line asked for without saying which. */
-    QUEUE_POSITION_MISSING(230, HttpStatus.BAD_REQUEST, "Say which place in line the sign-up takes");
+    QUEUE_POSITION_MISSING(230, HttpStatus.BAD_REQUEST, "Say which place in line the sign-up takes"),
+
+    /** A set maximum below one or below the set's minimum. Carries the least maximum the set allows. */
+    EVENT_GROUP_SET_MAXIMUM_OUT_OF_RANGE(
+            231, HttpStatus.BAD_REQUEST, "A set cannot allow fewer parts than it asks for, nothing was saved"),
+
+    /** A choice holding more parts of a set than the set allows. Carries the set's name. */
+    EVENT_GROUP_SET_TOO_MANY(232, HttpStatus.BAD_REQUEST, "Too many parts of one set are chosen");
 
     private final Definition definition;
 

@@ -158,4 +158,21 @@ class EventGroupRulesTest {
 
         assertTrue(EventGroupRules.met(practice, Set.of(12, 13), Set.of(11)));
     }
+
+    @Test
+    void aSetAllowsNoMoreThanItsMaximumOfThePartsTakingPlace() {
+        var alternatives = new EventGroupRules.SetRule(1, "Übung", 1, Set.of(10, 11), Set.of(), 1);
+
+        var both = EventGroupRules.excesses(List.of(alternatives), Set.of(10, 11), Set.of());
+        assertEquals(1, both.size());
+        assertEquals(1, both.getFirst().tooMany());
+        assertEquals(1, both.getFirst().maximum());
+        assertTrue(EventGroupRules.excesses(List.of(alternatives), Set.of(10), Set.of())
+                .isEmpty());
+        assertTrue(
+                EventGroupRules.excesses(List.of(alternatives), Set.of(10, 11), Set.of(10))
+                        .isEmpty(),
+                "a part called off does not count");
+        assertTrue(EventGroupRules.met(List.of(alternatives), Set.of(10, 11), Set.of()), "too many is not short");
+    }
 }

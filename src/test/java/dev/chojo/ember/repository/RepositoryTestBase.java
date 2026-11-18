@@ -93,10 +93,12 @@ import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventReminderRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.events.route.EventVisibility;
 import dev.chojo.ember.feature.events.service.EventBlockReferences;
 import dev.chojo.ember.feature.events.service.EventBreakService;
 import dev.chojo.ember.feature.events.service.EventCancellationService;
+import dev.chojo.ember.feature.events.service.EventCapacity;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCommentTarget;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -1067,7 +1069,11 @@ public abstract class RepositoryTestBase {
      */
     protected static EventGroupSignUpRules newEventGroupSignUpRules() {
         return new EventGroupSignUpRules(
-                newEventGroupService(), new EventGroupRepository(), eventRepo, occurrenceCalendar);
+                newEventGroupService(),
+                new EventGroupRepository(),
+                eventRepo,
+                occurrenceCalendar,
+                new EventCapacity(new RegistrationQueueRepository()));
     }
 
     private static EventGroupCommentTarget eventGroupCommentTarget() {

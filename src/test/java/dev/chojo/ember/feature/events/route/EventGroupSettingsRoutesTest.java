@@ -43,7 +43,7 @@ class EventGroupSettingsRoutesTest {
         when(settings.find(STATION_ID, EVENT_GROUP_ID)).thenReturn(stored);
         when(settings.save(anyInt(), anyInt(), any())).thenReturn(stored);
         when(settings.ofPart(STATION_ID, 11))
-                .thenReturn(Optional.of(new EventGroupPartSettings(EVENT_GROUP_ID, null, 8, stored)));
+                .thenReturn(Optional.of(new EventGroupPartSettings(EVENT_GROUP_ID, null, 8, stored, null, null)));
         when(settings.ofPart(STATION_ID, 12)).thenReturn(Optional.empty());
         harness = RouteHarness.serving(new EventGroupSettingsRoutes(settings));
     }
@@ -94,5 +94,23 @@ class EventGroupSettingsRoutesTest {
                                 null,
                                 StationPermission.EVENT_EDIT)
                         .code());
+    }
+
+    @Test
+    void onlyWhoeverEditsAppointmentsGivesAPartPlacesOfItsOwn() {
+        var stored = new EventGroupSettings(5, 6, List.of(2), List.of());
+        when(settings.setPartLimit(STATION_ID, 11, 4))
+                .thenReturn(new EventGroupPartSettings(EVENT_GROUP_ID, null, 8, stored, 4, 10));
+        String path = PREFIX + "/events/11/group-settings/limit";
+
+        assertEquals(
+                403,
+                harness.call(STATION_ID, "PUT", path, "{\"limit\": 4}", StationPermission.USER)
+                        .code());
+        verify(settings, never()).setPartLimit(anyInt(), anyInt(), any());
+
+        var part = json(harness.call(STATION_ID, "PUT", path, "{\"limit\": 4}", StationPermission.EVENT_EDIT));
+        assertEquals(4, part.get("ownRegistrationLimit").asInt());
+        assertEquals(10, part.get("partRegistrationLimit").asInt());
     }
 }

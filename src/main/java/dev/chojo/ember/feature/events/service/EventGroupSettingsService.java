@@ -129,15 +129,37 @@ public class EventGroupSettingsService {
     public Optional<EventGroupPartSettings> ofPart(int stationId, int eventId) {
         return eventGroupRepository
                 .findPart(eventId)
-                .filter(part -> eventGroupRepository
-                        .findById(part.eventGroupId())
-                        .filter(group -> group.stationId() == stationId)
-                        .isPresent())
-                .map(part -> {
+                .flatMap(part -> eventGroupRepository.findById(part.eventGroupId()))
+                .filter(group -> group.stationId() == stationId)
+                .map(group -> {
                     var own = settings.findOwnOfEvent(eventId).orElse(new DateSettingIds(null, null));
                     return new EventGroupPartSettings(
-                            part.eventGroupId(), own.templateId(), own.categoryId(), read(part.eventGroupId()));
+                            group.id(),
+                            own.templateId(),
+                            own.categoryId(),
+                            read(group.id()),
+                            settings.findOwnLimit(eventId),
+                            group.details().partRegistrationLimit());
                 });
+    }
+
+    /**
+     * Gives a part of an event group places of its own, or takes them away so it takes the places per
+     * part of its event group again.
+     *
+     * @param stationId the station asking
+     * @param eventId   the part
+     * @param limit     its places, at least one, or null for the event group's
+     * @return what the part sets itself and takes over now
+     */
+    public EventGroupPartSettings setPartLimit(int stationId, int eventId, @Nullable Integer limit) {
+        if (limit != null && limit < 1) throw EventRefusal.EVENT_GROUP_LIMIT_NOT_POSITIVE.raise();
+        var part = eventGroupRepository.findPart(eventId).orElseThrow(EventRefusal.EVENT_GROUP_NOT_HERE::raise);
+        Transactions.run(() -> {
+            eventGroups.lockEventGroup(stationId, part.eventGroupId());
+            settings.setOwnLimit(eventId, limit);
+        });
+        return ofPart(stationId, eventId).orElseThrow(EventRefusal.EVENT_GROUP_NOT_HERE::raise);
     }
 
     private EventGroupSettings read(int eventGroupId) {

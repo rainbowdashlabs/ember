@@ -380,6 +380,7 @@ public class EventGroupRegistrationService {
                 .filter(part -> appointments.containsKey(part.eventId()))
                 .map(part -> {
                     var event = appointments.get(part.eventId());
+                    var places = rules.placesOf(event);
                     return new EventGroupPartState(
                             event.id(),
                             part.setId(),
@@ -388,7 +389,9 @@ public class EventGroupRegistrationService {
                             event.endTime(),
                             standing.calledOff().contains(event.id()),
                             standing.tookPlace(event.id()),
-                            part.required());
+                            part.required(),
+                            places.limit(),
+                            places.accepted());
                 })
                 .toList();
     }

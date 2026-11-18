@@ -57,6 +57,36 @@ public class EventGroupSettingsRoutes implements Routes {
                 this::ofPart,
                 StationPermission.EVENT_EDIT,
                 StationModule.EVENTS);
+        routes.put(
+                prefix + "/events/{eventId}/group-settings/limit",
+                this::setPartLimit,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS);
+    }
+
+    /**
+     * The places a part of an event group has of its own.
+     *
+     * @param limit its places, or null to take the event group's places per part
+     */
+    public record PartLimitRequest(@Nullable Integer limit) {}
+
+    @OpenApi(
+            path = "/api/v1/events/{eventId}/group-settings/limit",
+            methods = HttpMethod.PUT,
+            summary = "Give a part of an event group places of its own, or take its event group's again",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "eventId", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PartLimitRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = EventGroupPartSettings.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void setPartLimit(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var request = ctx.bodyAsClass(PartLimitRequest.class);
+        ctx.json(settings.setPartLimit(session.stationId(), pathInt(ctx, "eventId"), request.limit()));
     }
 
     /**

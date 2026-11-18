@@ -257,4 +257,6 @@ export default {
     'E-228': 'Diese Anmeldung steht nicht auf der Nachrückliste',
     'E-229': 'Ein Termin ohne Teilnehmerlimit hat keine Nachrückliste, es wurde nichts geändert',
     'E-230': 'Gib an, an welcher Stelle der Nachrückliste die Anmeldung stehen soll',
+    'E-231': 'Ein Block kann nicht weniger Termine erlauben, als er verlangt, es wurde nichts gespeichert',
+    'E-232': 'Aus einem Block sind zu viele Termine gewählt',
 }

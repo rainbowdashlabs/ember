@@ -259,6 +259,22 @@ class EventGroupPartnerServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    void aPartnerMemberChoosesNoMoreThanASetAllows() {
+        var sets = eventGroups.findSets(eventGroup.id());
+        eventGroups.replaceSets(
+                holder.id(),
+                eventGroup.id(),
+                sets.stream()
+                        .map(set -> new EventGroupSetDraft(
+                                set.id(), set.name(), set.name().equals("Übung") ? 1 : set.minimum(), 1))
+                        .toList());
+
+        assertRefused(
+                EventRefusal.EVENT_GROUP_SET_TOO_MANY,
+                () -> partnerSide.signUp(partner.id(), holder.uid(), eventGroup.id(), mara, Set.of(sat1, sun1, test)));
+    }
+
+    @Test
     void aPartnerMemberSignsUpThroughTheSameRules() {
         assertRefused(
                 EventRefusal.EVENT_GROUP_CHOICE_SHORT,
