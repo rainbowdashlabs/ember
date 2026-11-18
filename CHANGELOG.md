@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.25.2
+
+The backend image protects x86 servers against the Java4Shell vulnerability.
+
+### Security
+
+- **Protection against Java4Shell on x86 servers.** The backend image switches off the processor features of the Java runtime that CVE-2026-114938 affects, whenever it runs on an x86 machine. Servers on ARM are not affected and start as before.
+
 ## v26.25.1
 
 Reported chat messages are found under Monitoring.

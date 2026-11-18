@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.25.2
+
+Das Backend-Image schützt x86-Server vor der Java4Shell-Lücke.
+
+### Sicherheit
+
+- **Schutz vor Java4Shell auf x86-Servern.** Das Backend-Image schaltet auf x86-Rechnern die Prozessorfunktionen der Java-Laufzeit ab, die CVE-2026-114938 betrifft. Server mit ARM sind nicht betroffen und starten wie bisher.
+
 ## v26.25.1
 
 Gemeldete Chatnachrichten stehen jetzt unter Monitoring.
