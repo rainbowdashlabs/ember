@@ -44,6 +44,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -51,9 +52,11 @@ import java.util.stream.Collectors;
  *
  * <p>A rule is saved only when every check names a subject, an operator its subject offers for the field it
  * reads, and the value that operator needs, and every field, group or tag it names belongs to the station. A
+ * block holds at least one node, since an empty one would match everybody or nobody without asking anything. A
  * rule may not ask about itself through other rules, may not be larger than {@link #MAX_DEPTH} levels and
  * {@link #MAX_CHECKS} checks, and may not fill a group that is part of a group set. A rule for a group that grants
- * permissions decides who receives them, so the caller has to hold them all, as for adding members by hand.
+ * permissions decides who receives them, so the caller has to hold them all, as for adding members by hand, and it
+ * may not read answers the members give themselves (see {@link SelfAnsweredRules}).
  *
  * <p>A rule that reads profile answers, ages or join dates answers questions about member data, so saving or
  * trying one takes the right to read members. A rule may not choose people by a private tag, which only labels
@@ -80,6 +83,7 @@ public class MemberRuleEditService {
     private final GroupMembershipService memberships;
     private final MemberRuleService rules;
     private final Provider<MemberNameResolver> names;
+    private final SelfAnsweredRules selfAnswered;
 
     @Inject
     public MemberRuleEditService(
@@ -91,7 +95,8 @@ public class MemberRuleEditService {
             StationRepository stationRepository,
             GroupMembershipService memberships,
             MemberRuleService rules,
-            Provider<MemberNameResolver> names) {
+            Provider<MemberNameResolver> names,
+            SelfAnsweredRules selfAnswered) {
         this.ruleRepository = ruleRepository;
         this.groupRepository = groupRepository;
         this.tagRepository = tagRepository;
@@ -101,6 +106,7 @@ public class MemberRuleEditService {
         this.memberships = memberships;
         this.rules = rules;
         this.names = names;
+        this.selfAnswered = selfAnswered;
     }
 
     /** Every operator a check can use, per subject and field type, as the builder offers them. */
@@ -139,14 +145,17 @@ public class MemberRuleEditService {
 
     /**
      * The fields a check of a rule at a station can read: its own, then its association's, each in their order,
-     * leaving out those no check reads.
+     * leaving out those no check reads and those the reader may not read, since a rule and its preview would
+     * otherwise tell them who answered what.
      *
-     * @param stationId the station
+     * @param session the reader, at the station
      */
-    public List<RuleField> fields(int stationId) {
+    public List<RuleField> fields(StationSession session) {
+        int stationId = session.stationId();
+        var readable = readableFields(session);
         var fields = new ArrayList<RuleField>();
         for (var field : fieldRepository.findByStation(stationId)) {
-            if (RuleOperators.readable(field.fieldType())) {
+            if (readable.station().contains(field.id()) && RuleOperators.readable(field.fieldType())) {
                 fields.add(
                         RuleField.of(FieldOrigin.STATION, field.id(), field.name(), field.fieldType(), field.config()));
             }
@@ -157,7 +166,7 @@ public class MemberRuleEditService {
                 .orElse(null);
         if (clusterId != null) {
             for (var field : clusterFields.get().findByCluster(clusterId)) {
-                if (RuleOperators.readable(field.fieldType())) {
+                if (readable.cluster().contains(field.id()) && RuleOperators.readable(field.fieldType())) {
                     fields.add(RuleField.of(
                             FieldOrigin.CLUSTER, field.id(), field.name(), field.fieldType(), field.config()));
                 }
@@ -200,6 +209,7 @@ public class MemberRuleEditService {
             String chain = circle.get().stream().map(this::nameOf).collect(Collectors.joining(" > "));
             throw MemberRefusal.RULE_IN_A_CIRCLE.raise(RefusalDetail.text(chain));
         }
+        selfAnswered.requireNone(owner, all);
         Transactions.run(() -> {
             ruleRepository.replace(stationId, owner, root);
             Transactions.afterCommit(() -> rules.stationChanged(stationId));
@@ -255,6 +265,27 @@ public class MemberRuleEditService {
                 .toList();
     }
 
+    /**
+     * The fields of the station and of its association a reader may read, by id. A rule may name no other: to its
+     * author a field they cannot read is one that is not there.
+     */
+    private ReadableFields readableFields(StationSession session) {
+        var scopes = ProfileFieldScopes.readableBy(session.user().permissions());
+        var station = new HashSet<Integer>();
+        fieldRepository.findReadableBy(session.stationId(), scopes).forEach(field -> station.add(field.id()));
+        var cluster = new HashSet<Integer>();
+        for (var scope : scopes) {
+            clusterFields
+                    .get()
+                    .findForStation(session.stationId(), scope)
+                    .forEach(found -> cluster.add(found.field().id()));
+        }
+        return new ReadableFields(Set.copyOf(station), Set.copyOf(cluster));
+    }
+
+    /** The ids of the station's and of its association's fields a reader may read. */
+    private record ReadableFields(Set<Integer> station, Set<Integer> cluster) {}
+
     private void requireValid(StationSession session, RuleNode root) {
         int stationId = session.stationId();
         requireWellFormed(root, true);
@@ -270,7 +301,8 @@ public class MemberRuleEditService {
                 .findById(stationId)
                 .map(station -> station.clusterId())
                 .orElse(null);
-        root.nodes().forEach(node -> requireValidNode(stationId, clusterId, node));
+        var readable = readableFields(session);
+        root.nodes().forEach(node -> requireValidNode(stationId, clusterId, readable, node));
     }
 
     /**
@@ -293,7 +325,7 @@ public class MemberRuleEditService {
                 || subject == RuleSubject.MEMBER_SINCE;
     }
 
-    private void requireValidNode(int stationId, @Nullable Integer clusterId, RuleNode node) {
+    private void requireValidNode(int stationId, @Nullable Integer clusterId, ReadableFields readable, RuleNode node) {
         if (node.kind() != RuleNodeKind.CHECK) {
             boolean bare = node.subject() == null
                     && node.operator() == null
@@ -304,6 +336,7 @@ public class MemberRuleEditService {
                     && node.value() == null
                     && node.referenceDate() == null;
             if (!bare) throw MemberRefusal.RULE_CHECK_INCOMPLETE.raise();
+            if (node.children().isEmpty()) throw MemberRefusal.RULE_BLOCK_EMPTY.raise();
             return;
         }
         var subject = node.subject();
@@ -311,7 +344,7 @@ public class MemberRuleEditService {
         if (subject == null || operator == null || !node.children().isEmpty()) {
             throw MemberRefusal.RULE_CHECK_INCOMPLETE.raise();
         }
-        FieldType type = targetType(stationId, clusterId, subject, node);
+        FieldType type = targetType(stationId, clusterId, readable, subject, node);
         var need = RuleOperators.need(subject, type, operator).orElseThrow(MemberRefusal.RULE_CHECK_INCOMPLETE::raise);
         if (!node.valueOrEmpty().satisfies(need)) throw MemberRefusal.RULE_CHECK_INCOMPLETE.raise();
         if (node.referenceDate() != null && !RuleOperators.countsFromReference(subject, operator)) {
@@ -321,7 +354,7 @@ public class MemberRuleEditService {
 
     /** Checks that a check names exactly the target its subject reads, at this station, and says its field type. */
     private @Nullable FieldType targetType(
-            int stationId, @Nullable Integer clusterId, RuleSubject subject, RuleNode node) {
+            int stationId, @Nullable Integer clusterId, ReadableFields readable, RuleSubject subject, RuleNode node) {
         Integer field = node.fieldId();
         Integer clusterField = node.clusterFieldId();
         Integer group = node.groupId();
@@ -355,21 +388,22 @@ public class MemberRuleEditService {
             }
             case FIELD -> {
                 if (!onlyField) throw MemberRefusal.RULE_CHECK_INCOMPLETE.raise();
-                yield stationFieldType(stationId, field);
+                yield stationFieldType(stationId, readable, field);
             }
             case CLUSTER_FIELD -> {
                 if (!onlyClusterField) throw MemberRefusal.RULE_CHECK_INCOMPLETE.raise();
-                yield clusterFieldType(clusterId, clusterField);
+                yield clusterFieldType(clusterId, readable, clusterField);
             }
             case AGE -> {
-                if (onlyField) yield stationFieldType(stationId, field);
-                if (onlyClusterField) yield clusterFieldType(clusterId, clusterField);
+                if (onlyField) yield stationFieldType(stationId, readable, field);
+                if (onlyClusterField) yield clusterFieldType(clusterId, readable, clusterField);
                 throw MemberRefusal.RULE_CHECK_INCOMPLETE.raise();
             }
         };
     }
 
-    private FieldType stationFieldType(int stationId, int fieldId) {
+    private FieldType stationFieldType(int stationId, ReadableFields readable, int fieldId) {
+        if (!readable.station().contains(fieldId)) throw MemberRefusal.RULE_TARGET_NOT_HERE.raise();
         return fieldRepository
                 .findById(fieldId)
                 .filter(found -> found.stationId() == stationId)
@@ -377,8 +411,9 @@ public class MemberRuleEditService {
                 .fieldType();
     }
 
-    private FieldType clusterFieldType(@Nullable Integer clusterId, int fieldId) {
-        if (clusterId == null) throw MemberRefusal.RULE_TARGET_NOT_HERE.raise();
+    private FieldType clusterFieldType(@Nullable Integer clusterId, ReadableFields readable, int fieldId) {
+        if (clusterId == null || !readable.cluster().contains(fieldId))
+            throw MemberRefusal.RULE_TARGET_NOT_HERE.raise();
         return clusterFields.get().findByCluster(clusterId).stream()
                 .filter(found -> found.id() == fieldId)
                 .findFirst()

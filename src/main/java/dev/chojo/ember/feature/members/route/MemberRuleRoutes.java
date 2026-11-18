@@ -141,7 +141,7 @@ public class MemberRuleRoutes implements Routes {
             tags = {"Member Rules"},
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RuleField[].class)))
     private void fields(Context ctx) {
-        ctx.json(ruleEdits.fields(StationSession.from(ctx).stationId()));
+        ctx.json(ruleEdits.fields(StationSession.from(ctx)));
     }
 
     @OpenApi(

@@ -172,6 +172,13 @@ export function countChecks(node: RuleNode): number {
     return node.children.reduce((sum, child) => sum + countChecks(child), 0)
 }
 
+/** How many blocks of a tree hold nothing, which the server refuses: an empty block would ask nothing at all. */
+export function countEmptyBlocks(node: RuleNode): number {
+    if (node.kind === RuleNodeKind.CHECK) return 0
+    const own = node.children.length === 0 ? 1 : 0
+    return node.children.reduce((sum, child) => sum + countEmptyBlocks(child), own)
+}
+
 /** How many levels a tree has, one for a single node, as the server counts them. */
 export function depthOf(node: RuleNode): number {
     return 1 + node.children.reduce((deepest, child) => Math.max(deepest, depthOf(child)), 0)

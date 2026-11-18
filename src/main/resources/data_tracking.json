@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:00f662b3df280afc0ba9385d80cc271e7c4168be2fe4892f66e202049f619c6c",
-  "generatedAt": "2026-11-17T14:22:36Z",
+  "schemaHash": "sha256:d66dfd7582bfc74d23b02d1539e65ac5d69aaa768d337d6a349b2b59af1bde76",
+  "generatedAt": "2026-11-18T13:22:28Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -26982,6 +26982,66 @@
         ]
       },
       "description": "Stored values of profile fields per member."
+    },
+    "push_declined": {
+      "feature": "push",
+      "scope": "USER",
+      "tableHash": "sha256:810356b798859407ffa564dbf2a9583238ff5be8f65bf599b973d13f693654cc",
+      "columns": [
+        {
+          "name": "account_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The account that removed the browser."
+        },
+        {
+          "name": "endpoint",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The address of the push service of the removed browser, as it was registered."
+        },
+        {
+          "name": "declined_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the browser was removed."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Account-scoped data, not part of a station export"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "ACCOUNT_ID",
+            "column": "account_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "account_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on account delete"
+          }
+        ]
+      },
+      "description": "Browsers an account removed from push by hand, so they are not registered again without being asked."
     },
     "push_outbox": {
       "feature": "push",

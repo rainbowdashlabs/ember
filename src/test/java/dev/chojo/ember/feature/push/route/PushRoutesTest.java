@@ -203,6 +203,31 @@ class PushRoutesTest extends RepositoryTestBase {
         assertEquals(204, gone.code());
     }
 
+    /**
+     * A browser removed by hand is not registered again when the page renews it on its own, only when the account
+     * allows it anew, after which renewing works again.
+     */
+    @Test
+    void aBrowserRemovedByHandIsNotRenewedOnItsOwn() {
+        String endpoint = PUSH_SERVICE + UUID.randomUUID();
+        String auth = URL.encodeToString(new byte[16]);
+        int id = json(subscribe(owner, ownerSession, endpoint, publicKey(), auth))
+                .get("id")
+                .asInt();
+        harness.request(client -> client.delete(
+                RouteHarness.PREFIX + "/push/subscriptions/" + id, null, harness.as(as(owner, ownerSession))));
+
+        assertEquals(
+                204, renew(owner, ownerSession, endpoint, publicKey(), auth).code());
+        assertTrue(subscriptions.findByAccount(owner.id()).isEmpty());
+
+        assertEquals(
+                200, subscribe(owner, ownerSession, endpoint, publicKey(), auth).code());
+        assertEquals(
+                200, renew(owner, ownerSession, endpoint, publicKey(), auth).code());
+        assertEquals(1, subscriptions.findByAccount(owner.id()).size());
+    }
+
     @Test
     void nothingIsRegisteredWhilePushIsSwitchedOff() {
         when(instance.pushEnabled()).thenReturn(false);
@@ -219,8 +244,17 @@ class PushRoutesTest extends RepositoryTestBase {
     }
 
     private Response subscribe(Account account, int session, String endpoint, String p256dh, String auth) {
+        return register(account, session, endpoint, p256dh, auth, false);
+    }
+
+    private Response renew(Account account, int session, String endpoint, String p256dh, String auth) {
+        return register(account, session, endpoint, p256dh, auth, true);
+    }
+
+    private Response register(
+            Account account, int session, String endpoint, String p256dh, String auth, boolean renewal) {
         String json = "{" + (endpoint == null ? "" : "\"endpoint\":\"" + endpoint + "\",") + "\"p256dh\":\"" + p256dh
-                + "\",\"auth\":\"" + auth + "\",\"label\":\"Firefox auf Android\"}";
+                + "\",\"auth\":\"" + auth + "\",\"label\":\"Firefox auf Android\",\"renewal\":" + renewal + "}";
         return harness.request(client ->
                 client.put(RouteHarness.PREFIX + "/push/subscriptions", body(json), harness.as(as(account, session))));
     }

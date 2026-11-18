@@ -45463,6 +45463,9 @@
                 }
               }
             }
+          },
+          "204" : {
+            "description" : "A renewal of a browser the account removed by hand"
           }
         },
         "requestBody" : {
@@ -88333,6 +88336,9 @@
           },
           "label" : {
             "type" : [ "string", "null" ]
+          },
+          "renewal" : {
+            "type" : "boolean"
           }
         }
       },

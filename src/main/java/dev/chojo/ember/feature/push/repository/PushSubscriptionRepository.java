@@ -108,15 +108,39 @@ public class PushSubscriptionRepository {
     }
 
     /**
-     * Forgets one of the account's browsers.
+     * Forgets one of the account's browsers and remembers that it was removed by hand, so it is not registered
+     * again without being asked.
      *
      * @return true when it was the account's and is gone
      */
-    public boolean deleteOwn(int id, int accountId) {
-        return query("DELETE FROM push_subscription WHERE id = :id AND account_id = :account_id;")
+    public boolean declineOwn(int id, int accountId) {
+        return query("""
+                        WITH gone AS (
+                            DELETE FROM push_subscription
+                            WHERE id = :id AND account_id = :account_id
+                            RETURNING account_id, endpoint)
+                        INSERT INTO push_declined (account_id, endpoint)
+                        SELECT account_id, endpoint FROM gone
+                        ON CONFLICT (account_id, endpoint) DO UPDATE SET declined_at = now();""")
                 .single(call().bind("id", id).bind("account_id", accountId))
-                .delete()
+                .insert()
                 .changed();
+    }
+
+    /** @return whether the account removed this browser by hand and has not allowed it again since */
+    public boolean declined(int accountId, String endpoint) {
+        return query("SELECT 1 FROM push_declined WHERE account_id = :account_id AND endpoint = :endpoint;")
+                .single(call().bind("account_id", accountId).bind("endpoint", endpoint))
+                .map(row -> true)
+                .first()
+                .orElse(false);
+    }
+
+    /** Lets a browser the account removed by hand be registered again, because the account allowed it anew. */
+    public void allowAgain(int accountId, String endpoint) {
+        query("DELETE FROM push_declined WHERE account_id = :account_id AND endpoint = :endpoint;")
+                .single(call().bind("account_id", accountId).bind("endpoint", endpoint))
+                .delete();
     }
 
     /** Forgets a browser the push service no longer knows. */

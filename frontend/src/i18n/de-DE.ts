@@ -4150,6 +4150,7 @@ export default {
         kind: 'Verknüpfung',
         incomplete: 'Diese Bedingung ist noch nicht vollständig.',
         incompleteCount: 'Noch nicht vollständige Bedingungen: {count}',
+        emptyBlockCount: 'Blöcke ohne Bedingung: {count}',
         readsMemberData: 'Liest Mitgliedsdaten',
         needsMemberRead: 'Diese Regel liest Mitgliedsdaten. Ändern kann sie nur, wer Mitglieder sehen darf.',
         valueNumber: 'Zahl',

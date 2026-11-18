@@ -59,6 +59,21 @@ COMMENT ON COLUMN ember_schema.push_subscription.last_success_at IS 'When a push
 COMMENT ON COLUMN ember_schema.push_subscription.failure_count IS
     'Pushes in a row the push service refused; past a limit the subscription is dropped.';
 
+CREATE TABLE ember_schema.push_declined
+(
+    account_id  INTEGER     NOT NULL REFERENCES ember_schema.account (id) ON DELETE CASCADE,
+    endpoint    TEXT        NOT NULL,
+    declined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (account_id, endpoint)
+);
+
+COMMENT ON TABLE ember_schema.push_declined IS
+    'Browsers an account removed from push by hand, so they are not registered again without being asked.';
+COMMENT ON COLUMN ember_schema.push_declined.account_id IS 'The account that removed the browser.';
+COMMENT ON COLUMN ember_schema.push_declined.endpoint IS
+    'The address of the push service of the removed browser, as it was registered.';
+COMMENT ON COLUMN ember_schema.push_declined.declined_at IS 'When the browser was removed.';
+
 -- Pushes waiting to be sent, written in the same statement as what they are about so none is lost
 -- on a restart. A sent row stays for an hour, which is what the per-browser rate limit counts.
 
@@ -123,18 +138,15 @@ COMMENT ON COLUMN ember_schema.account.messages_push IS
 
 ALTER TABLE ember_schema.user_settings
     ALTER COLUMN email_enabled SET DEFAULT TRUE;
-UPDATE ember_schema.user_settings SET email_enabled = TRUE WHERE NOT email_enabled;
 
 COMMENT ON COLUMN ember_schema.user_settings.email_enabled IS
     'Whether this membership gets notifications by mail at all. On unless switched off, which takes effect once the station or the instance can send mail.';
 
 ALTER TABLE ember_schema.user_notification_settings
     ALTER COLUMN email_enabled SET DEFAULT TRUE;
-UPDATE ember_schema.user_notification_settings SET email_enabled = TRUE WHERE NOT email_enabled;
 
 ALTER TABLE ember_schema.cluster_member
     ALTER COLUMN email_enabled SET DEFAULT TRUE;
-UPDATE ember_schema.cluster_member SET email_enabled = TRUE WHERE NOT email_enabled;
 
 COMMENT ON COLUMN ember_schema.cluster_member.email_enabled IS
     'Whether this person gets the association''s gathered notifications by mail. On unless switched off, the same as a station membership''s mail setting.';

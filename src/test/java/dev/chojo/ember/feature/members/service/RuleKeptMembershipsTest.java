@@ -69,6 +69,7 @@ class RuleKeptMembershipsTest extends RepositoryTestBase {
                 userTagRepo,
                 memberRuleRepo,
                 memberships,
+                newSelfAnsweredRules(),
                 new DomainEventBus(Set.of()));
         station = stationRepo.create("Rule Kept Station " + System.nanoTime());
         manager = member(StationUserType.MANAGER);

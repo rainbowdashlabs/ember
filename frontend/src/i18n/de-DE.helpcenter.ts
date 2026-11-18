@@ -2050,7 +2050,10 @@ volumes:
             rulesLimits: 'Eine Gruppe in einem Gruppenset oder eine, die beim Beitritt vergeben wird, kann keine '
                 + 'Regel haben. Vergibt die Gruppe Berechtigungen, brauchst du diese Berechtigungen selbst, um ihre '
                 + 'Regel zu speichern, und ebenso, um Gruppen oder Tags zu ändern, nach denen ihre Regel fragt. Wer '
-                + 'Felder in Regeln nutzt, braucht das Recht, Mitglieder zu sehen.',
+                + 'Felder in Regeln nutzt, braucht das Recht, Mitglieder zu sehen, und bekommt nur die Felder angeboten, '
+                + 'die er selbst sehen darf. Eine Gruppe, die Berechtigungen vergibt, kann nur Felder lesen, die für '
+                + 'alle, denen sie gestellt werden, schreibgeschützt sind: sonst könnte sich jeder mit seiner eigenen '
+                + 'Antwort selbst Rechte geben. Jeder Block einer Regel braucht mindestens eine Bedingung.',
             rulesExampleTitle: 'Beispiel: JuLeiCa läuft bald ab',
             title: 'Gruppen',
             subtitle: 'Mitglieder in Gruppen organisieren.',

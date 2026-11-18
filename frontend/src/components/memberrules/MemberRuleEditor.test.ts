@@ -48,6 +48,15 @@ describe('MemberRuleEditor', () => {
         listFields.mockResolvedValue([])
     })
 
+    /** Adds one condition asking about the group Team, which leaves a first rule ready to save. */
+    async function addGroupCheck(wrapper: ReturnType<typeof editor>) {
+        const add = wrapper.findAll('button').find(button => button.text().trim() === 'Bedingung')
+        await add!.trigger('click')
+        await wrapper.get('select[aria-label="Worauf"]').setValue(RuleSubject.GROUP)
+        await wrapper.get('select[aria-label="Gruppe wählen"]').setValue('4')
+        await flushPromises()
+    }
+
     function editor(onChanged = vi.fn()) {
         return mount(MemberRuleEditor, {
             attachTo: document.body,
@@ -67,6 +76,9 @@ describe('MemberRuleEditor', () => {
 
         await wrapper.find('select').setValue('rule')
         expect(wrapper.text()).toContain('Regel speichern')
+        expect(wrapper.text()).not.toContain('Blöcke ohne Bedingung')
+        await addGroupCheck(wrapper)
+        expect(wrapper.text()).not.toContain('Blöcke ohne Bedingung')
 
         const save = wrapper.findAll('button').find(button => button.text().includes('Regel speichern'))
         await save!.trigger('click')
@@ -81,6 +93,7 @@ describe('MemberRuleEditor', () => {
         const wrapper = editor()
         await flushPromises()
         await wrapper.find('select').setValue('rule')
+        await addGroupCheck(wrapper)
 
         const save = wrapper.findAll('button').find(button => button.text().includes('Regel speichern'))
         await save!.trigger('click')

@@ -87,7 +87,13 @@ class StationAudienceEventsTest extends RepositoryTestBase {
     void deletingAGroupSaysSo() {
         var group = memberGroupRepo.create(station.id(), "Jugend");
         var groups = new MemberGroupService(
-                memberGroupRepo, stationMemberRepo, userTagRepo, memberRuleRepo, newGroupMemberships(), bus);
+                memberGroupRepo,
+                stationMemberRepo,
+                userTagRepo,
+                memberRuleRepo,
+                newGroupMemberships(),
+                newSelfAnsweredRules(),
+                bus);
 
         groups.delete(group, mock(UserSession.class));
 

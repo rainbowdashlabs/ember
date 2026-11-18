@@ -94,9 +94,9 @@ class PushRepositoryTest extends RepositoryTestBase {
         var subscription = subscriptions.register(
                 anna.id(), signIn(anna.id(), inADay()), "https://push.test/b", new byte[] {1}, new byte[] {2}, "");
 
-        assertFalse(subscriptions.deleteOwn(subscription.id(), ben.id()));
+        assertFalse(subscriptions.declineOwn(subscription.id(), ben.id()));
         assertTrue(subscriptions.findOwn(subscription.id(), ben.id()).isEmpty());
-        assertTrue(subscriptions.deleteOwn(subscription.id(), anna.id()));
+        assertTrue(subscriptions.declineOwn(subscription.id(), anna.id()));
     }
 
     /** Signing out ends the sign-in, and the browser stops receiving pushes with it. */

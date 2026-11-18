@@ -44,6 +44,7 @@ public class MemberGroupService {
     private final UserTagRepository tagRepository;
     private final MemberRuleRepository ruleRepository;
     private final GroupMembershipService memberships;
+    private final SelfAnsweredRules selfAnswered;
 
     private final DomainEventBus eventBus;
 
@@ -54,6 +55,7 @@ public class MemberGroupService {
             UserTagRepository tagRepository,
             MemberRuleRepository ruleRepository,
             GroupMembershipService memberships,
+            SelfAnsweredRules selfAnswered,
             DomainEventBus eventBus) {
         this.eventBus = eventBus;
         this.groupRepository = groupRepository;
@@ -61,6 +63,7 @@ public class MemberGroupService {
         this.tagRepository = tagRepository;
         this.ruleRepository = ruleRepository;
         this.memberships = memberships;
+        this.selfAnswered = selfAnswered;
     }
 
     public List<MemberGroup> findByStation(int stationId) {
@@ -125,6 +128,10 @@ public class MemberGroupService {
         return groupRepository.findGroupPermissions(groupId);
     }
 
+    /**
+     * Replaces what a group grants. A group that grants anything may not take its members from answers the members
+     * give themselves, see {@link SelfAnsweredRules}.
+     */
     public List<Permission> setGroupPermissions(
             int groupId, List<Integer> desiredPermissionIds, Set<StationPermission> callerPermissions) {
         List<Permission> allPermissions = memberRepository.findAllPermissions();
@@ -134,6 +141,12 @@ public class MemberGroupService {
                 currentPermissions, desiredPermissionIds, allPermissions, callerPermissions);
 
         var change = SetDiff.of(currentPermissions.stream().map(Permission::id).toList(), desiredPermissionIds);
+        if (!desiredPermissionIds.isEmpty()) {
+            groupRepository
+                    .findById(groupId)
+                    .ifPresent(group ->
+                            selfAnswered.requireNoneFor(group, ruleRepository.findByStation(group.stationId())));
+        }
         Transactions.run(() -> {
             change.removed().forEach(permId -> groupRepository.removeGroupPermission(groupId, permId));
             change.added().forEach(permId -> groupRepository.addGroupPermission(groupId, permId));

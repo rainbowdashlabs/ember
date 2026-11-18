@@ -57855,6 +57855,13 @@ export interface paths {
                         "application/json": components["schemas"]["PushDevice"];
                     };
                 };
+                /** @description A renewal of a browser the account removed by hand */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
             };
         };
         post?: never;
@@ -81247,6 +81254,7 @@ export interface components {
             endpoint?: string | null;
             label?: string | null;
             p256dh?: string | null;
+            renewal?: boolean;
         };
         SuggestedAnswer: {
             question: components["schemas"]["TemplateQuestion"];

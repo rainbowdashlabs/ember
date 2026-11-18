@@ -25,7 +25,7 @@ import {showToast} from '@/util/toast'
 import type {RuleCatalog} from './ruleCatalog'
 import RuleBlockEditor from './RuleBlockEditor.vue'
 import RulePreviewPanel from './RulePreviewPanel.vue'
-import {countChecks, depthOf, emptyBlock, incompleteChecks, readsMemberData, RULE_LIMITS} from './ruleDraft'
+import {countChecks, countEmptyBlocks, depthOf, emptyBlock, incompleteChecks, readsMemberData, RULE_LIMITS} from './ruleDraft'
 
 /**
  * Whether a group or tag is kept by hand or by a rule, and the rule itself: the builder, a preview of who it
@@ -72,10 +72,15 @@ const missing = computed(() => {
   return rule && loaded ? incompleteChecks(rule, loaded.options, loaded.fields) : 0
 })
 
+const emptyBlocks = computed(() => draft.value ? countEmptyBlocks(draft.value) : 0)
+
+/** A rule that holds nothing yet is plainly unfinished, so only an empty block among others is pointed out. */
+const showEmptyBlocks = computed(() => emptyBlocks.value > 0 && (draft.value?.children.length ?? 0) > 0)
+
 const full = computed(() => draft.value !== null && countChecks(draft.value) >= RULE_LIMITS.checks)
 const fits = computed(() => draft.value !== null
     && countChecks(draft.value) <= RULE_LIMITS.checks && depthOf(draft.value) <= RULE_LIMITS.depth)
-const ready = computed(() => !locked.value && missing.value === 0 && fits.value)
+const ready = computed(() => !locked.value && missing.value === 0 && emptyBlocks.value === 0 && fits.value)
 
 function countChecksWhere(node: RuleNode, test: (check: RuleNode) => boolean): number {
   if (node.kind === RuleNodeKind.CHECK) return test(node) ? 1 : 0
@@ -214,6 +219,9 @@ async function remove() {
         </fieldset>
         <MutedText v-if="missing > 0" tag="p" class="text-error">
           {{ t('memberRules.incompleteCount', {count: missing}) }}
+        </MutedText>
+        <MutedText v-if="showEmptyBlocks" tag="p" class="text-error">
+          {{ t('memberRules.emptyBlockCount', {count: emptyBlocks}) }}
         </MutedText>
         <RulePreviewPanel v-if="preview" :preview="preview"/>
         <ButtonRow v-if="!locked">

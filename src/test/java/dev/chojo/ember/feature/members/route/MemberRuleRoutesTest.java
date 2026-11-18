@@ -102,7 +102,7 @@ class MemberRuleRoutesTest {
 
     @Test
     void theReadableFieldsTakeTheRightToReadMembers() {
-        when(edits.fields(STATION_ID))
+        when(edits.fields(any()))
                 .thenReturn(List.of(new RuleField(FieldOrigin.STATION, 12, "JuLeiCa", FieldType.BOOLEAN, List.of())));
 
         harness.run((server, client) -> {

@@ -22,7 +22,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 ### Änderungen
 
 - **Photon schlägt Adressen nach.** Unter Verwaltung → Karten gibt es Photon als einzige Adresssuche, mit dem öffentlichen Server, solange keine eigene Serveradresse eingetragen ist. Nominatim, LocationIQ und Geoapify entfallen; eine Instanz, die einen davon gewählt hatte, hat keine Adresssuche, bis Photon gewählt wird.
-- **Benachrichtigungen per E-Mail sind von Anfang an an.** Jedes Mitglied bekommt Benachrichtigungen per E-Mail, sobald die Wache oder die Instanz E-Mails versenden kann, und zwar für jede Art. Wer das nicht möchte, schaltet es unter Profil → Benachrichtigungen ab, auch wer es vor dieser Version schon abgeschaltet hatte.
+- **Benachrichtigungen per E-Mail sind von Haus aus eingeschaltet.** Mitglieder ohne eigene E-Mail-Einstellung bekommen Benachrichtigungen per E-Mail, sobald die Wache oder die Instanz E-Mails versenden kann, und zwar für jede Art. Bestehende E-Mail-Einstellungen bleiben, wie sie waren.
 - **Antwortadresse oben in den Mail-Einstellungen.** Die Antwortadresse steht nicht mehr im Kasten zu den Mailanbietern der Instanz, sondern ganz oben auf der Seite, weil sie für alle Mails der Wache gilt.
 
 ### Fehlerbehebungen

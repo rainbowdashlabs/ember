@@ -20,6 +20,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * The browsers an account receives push messages on, as the account's own settings manage them.
@@ -94,19 +95,24 @@ public class PushService {
     /**
      * Registers the asking browser, or refreshes it.
      *
+     * <p>A renewal is the page registering a browser again on its own, after the sign-in it was bound to ended. It
+     * leaves out a browser the account removed by hand, which only an explicit allowing brings back.
+     *
      * @param endpoint the push service's address for the browser
      * @param p256dh   the browser's public key, base64url
      * @param auth     the browser's secret, base64url
      * @param label    the name to list it under
-     * @return the device as listed
+     * @param renewal  whether the page renews the browser on its own rather than the account allowing it
+     * @return the device as listed, empty for a renewal of a browser removed by hand
      */
-    public PushDevice register(
+    public Optional<PushDevice> register(
             int accountId,
             int sessionId,
             @Nullable String endpoint,
             @Nullable String p256dh,
             @Nullable String auth,
-            @Nullable String label) {
+            @Nullable String label,
+            boolean renewal) {
         if (!instance.pushEnabled()) throw PushRefusal.PUSH_TURNED_OFF.raise();
         if (endpoint == null || endpoint.isBlank() || p256dh == null || auth == null) {
             throw PushRefusal.SUBSCRIPTION_INCOMPLETE.raise();
@@ -122,9 +128,12 @@ public class PushService {
             throw PushRefusal.KEYS_NOT_USABLE.raise();
         }
         if (secret.length != AUTH_BYTES) throw PushRefusal.KEYS_NOT_USABLE.raise();
-        var stored = subscriptions.register(accountId, sessionId, endpoint.trim(), publicKey, secret, labelOf(label));
+        String address = endpoint.trim();
+        if (renewal && subscriptions.declined(accountId, address)) return Optional.empty();
+        subscriptions.allowAgain(accountId, address);
+        var stored = subscriptions.register(accountId, sessionId, address, publicKey, secret, labelOf(label));
         subscriptions.keepNewest(accountId, MAX_DEVICES);
-        return device(stored, sessionId);
+        return Optional.of(device(stored, sessionId));
     }
 
     /** @return the account's devices, the asking one marked */
@@ -159,9 +168,9 @@ public class PushService {
         outbox.enqueueMessage(messageId, accountIds);
     }
 
-    /** Forgets one of the account's devices. */
+    /** Forgets one of the account's devices, which the page then does not register again on its own. */
     public void forget(int accountId, int id) {
-        if (!subscriptions.deleteOwn(id, accountId)) throw PushRefusal.DEVICE_NOT_HERE.raise();
+        if (!subscriptions.declineOwn(id, accountId)) throw PushRefusal.DEVICE_NOT_HERE.raise();
     }
 
     /** Queues a test push to one of the account's devices. */

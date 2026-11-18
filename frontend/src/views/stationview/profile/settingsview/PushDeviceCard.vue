@@ -102,13 +102,14 @@ function test(device: PushDevice) {
 /**
  * Registers this browser again without asking, where it still holds its subscription and the
  * permission but Ember no longer knows it: a subscription ends with its sign-in, and nobody should
- * have to switch push on again after every sign-in.
+ * have to switch push on again after every sign-in. A browser removed by hand stays removed; the
+ * server leaves it out of a renewal.
  */
 async function renewSilently() {
   if (state.value !== 'allowed' || thisDevice.value) return
   const subscription = await currentBrowserSubscription()
   if (!subscription) return
-  await registerPushDevice({...subscription, label: deviceLabel()})
+  await registerPushDevice({...subscription, label: deviceLabel(), renewal: true})
   await loadDevices()
 }
 

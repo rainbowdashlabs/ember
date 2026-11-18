@@ -298,4 +298,7 @@ export default {
     'M-260': GROUP_GRANTS_MORE_THAN_YOURS,
     'M-261': 'Diese Gruppe wird beim Beitritt vergeben und kann ihre Mitglieder deshalb nicht aus einer Regel nehmen',
     'M-262': 'Eine Regel, die Mitgliedsdaten liest, braucht das Recht, Mitglieder zu sehen',
+    'M-263': 'Jeder Block einer Regel braucht mindestens eine Bedingung, es wurde nichts gespeichert',
+    'M-264': 'Eine Gruppe, die Berechtigungen vergibt, kann ihre Mitglieder nicht aus Antworten nehmen, die die '
+        + 'Mitglieder selbst geben. Dafür taugen nur Felder, die für Mitglieder schreibgeschützt sind',
 }
