@@ -50,6 +50,8 @@ import type {
     NextDate,
     PartnerPlacesView,
     PickerEvent,
+    Places,
+    QueueOrder,
     RegistrationCount,
     RegistrationFieldDefinition,
     EventRegistrationField,
@@ -67,6 +69,7 @@ import type {
     TemplateRestrictions,
     UpcomingEventOccurrence,
     UpdateTemplateRequest,
+    WhenFull,
     WithdrawalResponse,
 } from './generated/schema'
 
@@ -384,10 +387,18 @@ export async function listEligibleMembers(): Promise<Record<number, number[]>> {
     return Object.fromEntries(res.data.map(opening => [opening.eventId, opening.memberIds]))
 }
 
+/**
+ * Signs somebody up for one date.
+ *
+ * <p>`whenFull` is the choice of whoever runs the appointment when they sign up somebody else on a
+ * date whose places are all taken: over the limit, or onto the waiting list. Without it the server
+ * refuses such a sign-up and names the number of places, so the screen can ask.
+ */
 export async function registerForEvent(eventId: number, data: {
     eventDate?: string;
     memberId?: number;
-    fields?: EventRegistrationFieldValue[]
+    fields?: EventRegistrationFieldValue[];
+    whenFull?: WhenFull;
 }): Promise<RegistrationResponse> {
     const res = await client.post<RegistrationResponse>(`/events/${eventId}/register`, data)
     return res.data
@@ -441,13 +452,43 @@ export async function listAwaitingAnswer(): Promise<AwaitingAnswer[]> {
  * run the event afterwards. Coming back after declining is a fresh answer, so an event that confirms its
  * list confirms this one too.
  */
-export async function changeRegistrationAnswer(id: number, attending: boolean): Promise<void> {
-    await client.put(`/events/registrations/${id}/answer`, {attending})
+export async function changeRegistrationAnswer(id: number, attending: boolean, whenFull?: WhenFull): Promise<void> {
+    await client.put(`/events/registrations/${id}/answer`, {attending, whenFull})
 }
 
-export async function updateRegistrationStatus(id: number, status: RegistrationStatus): Promise<MessageResponse> {
-    const res = await client.put<MessageResponse>(`/events/registrations/${id}/status`, {status})
+/**
+ * Accepts or denies a sign-up. Accepting on a date whose places are all taken is refused unless
+ * `overLimit` says it goes beyond the limit on purpose. Accepting somebody on the waiting list moves
+ * them up by hand.
+ */
+export async function updateRegistrationStatus(
+    id: number,
+    status: RegistrationStatus,
+    overLimit?: boolean,
+): Promise<MessageResponse> {
+    const res = await client.put<MessageResponse>(`/events/registrations/${id}/status`, {status, overLimit})
     return res.data
+}
+
+/** Puts sign-ups that wait for a decision onto the waiting list of their date, in the order given. */
+export async function moveRegistrationsToQueue(registrationIds: number[]): Promise<void> {
+    await client.post('/events/registrations/queue', {registrationIds})
+}
+
+/** Moves a sign-up on the waiting list to a place in line, 1 moving up next. */
+export async function moveRegistrationInQueue(id: number, position: number): Promise<void> {
+    await client.put(`/events/registrations/${id}/queue-position`, {position})
+}
+
+/** How the places of one date stand, partners' members counted, as anybody who sees the appointment may read. */
+export async function getPlaces(eventId: number, date: string): Promise<Places> {
+    const res = await client.get<Places>(`/events/${eventId}/places`, {params: {date}})
+    return res.data
+}
+
+/** Sets the order the waiting list of an appointment follows. */
+export async function setQueueOrder(eventId: number, queueOrder: QueueOrder): Promise<void> {
+    await client.put(`/events/${eventId}/queue-order`, {queueOrder})
 }
 
 export async function getFieldDefaults(eventId: number): Promise<EventFieldDefault[]> {
@@ -655,8 +696,22 @@ export async function listFederationRegistrations(eventId: number, date?: string
     return res.data
 }
 
-export async function updateFederationRegistrationStatus(registrationId: number, status: RegistrationStatus): Promise<void> {
-    await client.put(`/events/federation-registrations/${registrationId}/status`, { status })
+export async function updateFederationRegistrationStatus(
+    registrationId: number,
+    status: RegistrationStatus,
+    overLimit?: boolean,
+): Promise<void> {
+    await client.put(`/events/federation-registrations/${registrationId}/status`, {status, overLimit})
+}
+
+/** Puts partners' sign-ups that wait for a decision onto the waiting list of their date. */
+export async function moveFederationRegistrationsToQueue(registrationIds: number[]): Promise<void> {
+    await client.post('/events/federation-registrations/queue', {registrationIds})
+}
+
+/** Moves a partner's sign-up on the waiting list to a place in line, 1 moving up next. */
+export async function moveFederationRegistrationInQueue(id: number, position: number): Promise<void> {
+    await client.put(`/events/federation-registrations/${id}/queue-position`, {position})
 }
 
 export async function getFederationShare(eventId: number): Promise<FederationShareResponse> {

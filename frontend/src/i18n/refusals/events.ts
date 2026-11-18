@@ -262,4 +262,5 @@ export default {
     'E-233': 'Für diesen Termin ist kein Platz mehr frei, wähle einen anderen',
     'E-234': 'Nur Anmeldungen, über die noch nicht entschieden ist, kommen auf die Nachrückliste, es wurde nichts geändert',
     'E-235': 'Diese Anmeldung steht nicht auf der Nachrückliste',
+    'E-236': 'Für die Plätze fehlt das Datum des Termins',
 }

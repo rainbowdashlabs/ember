@@ -287,6 +287,8 @@ async function writeEvent(choice: SaveChoice | null): Promise<number> {
 
   await fieldDefaults.save(eventFieldDefaultsPort(savedEventId), isEdit.value)
   await events.setEventReminders(savedEventId, form.state.reminders)
+  const queueOrder = form.queueOrderToSave()
+  if (queueOrder && !eventGroupPart.value) await events.setQueueOrder(savedEventId, queueOrder)
   await events.setEventFields(savedEventId, {fields: form.namedFields()})
   if (!eventGroupPart.value) {
     await events.setRegistrationFields(savedEventId, namedEntries(registrationFields.value))

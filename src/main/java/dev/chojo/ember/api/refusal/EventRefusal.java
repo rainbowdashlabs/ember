@@ -891,7 +891,10 @@ public enum EventRefusal implements Refusal {
             "Only sign-ups waiting for a decision can go onto the waiting list, nothing was changed"),
 
     /** A place in line asked for a sign-up that does not wait on the event group's waiting list. */
-    EVENT_GROUP_NOT_QUEUED(235, HttpStatus.CONFLICT, "This sign-up does not wait on the waiting list");
+    EVENT_GROUP_NOT_QUEUED(235, HttpStatus.CONFLICT, "This sign-up does not wait on the waiting list"),
+
+    /** The places of an appointment asked without a date, or with something that is not one. */
+    PLACES_DATE_NOT_A_DATE(236, HttpStatus.BAD_REQUEST, "Say which date the places are for");
 
     private final Definition definition;
 

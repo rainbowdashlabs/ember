@@ -11,6 +11,7 @@ import {events} from '@/api'
 import {
     EventType,
     FieldType,
+    QueueOrder,
     RestrictionMode,
     type AppointmentField,
     type EventTemplate,
@@ -42,6 +43,7 @@ function templateDetail(overrides: Partial<EventTemplate> = {}): TemplateDetailR
             thresholdDays: null,
             registrationCloseDays: null,
             registrationLimit: null,
+            queueOrder: null,
             requiresConfirmation: null,
             requiresRegistration: null,
             restrictionMode: null,
@@ -69,6 +71,39 @@ describe('useEventForm.applyTemplate', () => {
         form.applyTemplate(templateDetail())
 
         expect(form.state.registrationLimit).toBe(8)
+    })
+})
+
+/**
+ * The waiting list order is saved after the appointment, only where it means something: with a
+ * participant limit, or where it was changed.
+ */
+describe('useEventForm waiting list order', () => {
+    it('takes the order from the template', () => {
+        const form = useEventForm()
+
+        form.applyTemplate(templateDetail({registrationLimit: 12, queueOrder: QueueOrder.FAIRNESS}))
+
+        expect(form.state.queueOrder).toBe(QueueOrder.FAIRNESS)
+        expect(form.queueOrderToSave()).toBe(QueueOrder.FAIRNESS)
+    })
+
+    it('saves nothing for an appointment without a limit whose order nobody touched', () => {
+        const form = useEventForm()
+
+        expect(form.queueOrderToSave()).toBeNull()
+
+        form.state.queueOrder = QueueOrder.FAIRNESS
+        expect(form.queueOrderToSave()).toBe(QueueOrder.FAIRNESS)
+    })
+
+    it('reads the order of an appointment back and saves it with its limit', () => {
+        const form = useEventForm()
+
+        form.applyCopy(copyDetail(original({queueOrder: QueueOrder.FAIRNESS}), []), '2026-11-18', null)
+
+        expect(form.state.queueOrder).toBe(QueueOrder.FAIRNESS)
+        expect(form.queueOrderToSave()).toBe(QueueOrder.FAIRNESS)
     })
 })
 
@@ -210,6 +245,7 @@ function original(overrides: Partial<StationEvent> = {}): StationEvent {
         registrationCloseDays: 1,
         registrationDeadline: null,
         registrationLimit: 20,
+        queueOrder: null,
         repeatCount: null,
         repeatUntil: null,
         requiresConfirmation: true,

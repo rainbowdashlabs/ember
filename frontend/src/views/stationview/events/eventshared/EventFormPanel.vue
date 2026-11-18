@@ -20,9 +20,11 @@ import AudienceRestrictions from './AudienceRestrictions.vue'
 import type {RestrictionSelection} from '@/api/types'
 import EventFieldList from './EventFieldList.vue'
 import RepeatEndField from './RepeatEndField.vue'
+import QueueOrderField from './QueueOrderField.vue'
 import {isRecurringEvent, needsDayOfWeek} from '@/api/events'
 import {
     EventType,
+    type QueueOrder,
     type AttendanceTemplate,
     type AttendanceTemplateField,
     type EventCategory,
@@ -69,6 +71,7 @@ const requiresConfirmation = defineModel<boolean>('requiresConfirmation')
 const hasDeadline = defineModel<boolean>('hasDeadline')
 const registrationDeadline = defineModel<string>('registrationDeadline')
 const registrationLimit = defineModel<number>('registrationLimit')
+const queueOrder = defineModel<QueueOrder>('queueOrder')
 const minRegistrations = defineModel<number>('minRegistrations')
 const thresholdDays = defineModel<number>('thresholdDays')
 const registrationCloseDays = defineModel<number>('registrationCloseDays')
@@ -209,7 +212,10 @@ const labelId = useId()
         <div class="space-y-1">
           <FieldLabel>{{ t('events.registrationLimit') }}</FieldLabel>
           <NumberInput v-model="registrationLimit" :placeholder="t('events.registrationLimitHint')"/>
+          <FieldHint>{{ t('registrationQueue.limitHint') }}</FieldHint>
         </div>
+
+        <QueueOrderField v-if="queueOrder !== undefined && registrationLimit" v-model="queueOrder"/>
 
         <div class="space-y-1">
           <FieldLabel>{{ t('events.minRegistrations') }}</FieldLabel>

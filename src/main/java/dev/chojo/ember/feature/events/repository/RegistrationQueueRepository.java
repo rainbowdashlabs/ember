@@ -108,18 +108,40 @@ public class RegistrationQueueRepository {
      * @return the place in line by registration, only for those waiting
      */
     public Map<Integer, Integer> ranksOf(Collection<Integer> registrationIds) {
-        if (registrationIds.isEmpty()) return Map.of();
+        return ranksBy("registration_id", registrationIds);
+    }
+
+    /**
+     * The places in line of partners' members' registrations that wait on the waiting list of their date.
+     *
+     * @param federationRegistrationIds the partners' registrations
+     * @return the place in line by registration, only for those waiting
+     */
+    public Map<Integer, Integer> partnerRanksOf(Collection<Integer> federationRegistrationIds) {
+        return ranksBy("federation_registration_id", federationRegistrationIds);
+    }
+
+    /**
+     * The places in line of the registrations named by one owner column, ranked over the whole list of
+     * their date so members and partners' members count alike.
+     *
+     * @param ownerColumn the column naming the owner, a fixed name and never input
+     * @param ids         the owners
+     * @return the place in line by owner, only for those waiting
+     */
+    private static Map<Integer, Integer> ranksBy(String ownerColumn, Collection<Integer> ids) {
+        if (ids.isEmpty()) return Map.of();
         return query("""
-                        SELECT registration_id, rank
-                        FROM (SELECT q.registration_id,
+                        SELECT %1$s, rank
+                        FROM (SELECT q.%1$s,
                                      row_number() OVER (PARTITION BY q.event_id, q.event_date ORDER BY q.position) AS rank
                               FROM registration_queue q
                               WHERE (q.event_id, q.event_date) IN (SELECT w.event_id, w.event_date
                                                                    FROM registration_queue w
-                                                                   WHERE w.registration_id = ANY(:ids))) ranked
-                        WHERE registration_id = ANY(:ids);""")
-                .single(call().bind("ids", List.copyOf(registrationIds), PostgreSqlTypes.INTEGER))
-                .map(row -> Map.entry(row.getInt("registration_id"), row.getInt("rank")))
+                                                                   WHERE w.%1$s = ANY(:ids))) ranked
+                        WHERE %1$s = ANY(:ids);""".formatted(ownerColumn))
+                .single(call().bind("ids", List.copyOf(ids), PostgreSqlTypes.INTEGER))
+                .map(row -> Map.entry(row.getInt(ownerColumn), row.getInt("rank")))
                 .all()
                 .stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));

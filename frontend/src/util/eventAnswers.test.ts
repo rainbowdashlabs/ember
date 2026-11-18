@@ -6,7 +6,7 @@
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {FieldType, RegistrationStatus, type EventRegistrationField, type RegistrationResponse} from '@/api/generated/schema'
-import {answerTotals, localAnswers, maySignUp, membersToRegister, rowsOnDate, saysNotComing} from './eventAnswers'
+import {answerTotals, holdsOrAwaitsPlace, isStandingSignUp, localAnswers, maySignUp, membersToRegister, rowsOnDate, saysNotComing} from './eventAnswers'
 
 const SETTINGS = {required: false, managersOnly: false, selfRegistration: false, perDate: false}
 
@@ -46,6 +46,7 @@ function registration(id: number, status: RegistrationStatus, answers: Record<nu
     eventName: null,
     answersMissing: false,
     placeGivenUp: false,
+    queuePosition: null,
     statusChangedAt: '2026-08-01T10:00:00Z',
     fromField: false,
     fieldName: null,
@@ -162,6 +163,36 @@ describe('membersToRegister', () => {
     ])
 
     expect(offered.map(entry => entry.value)).toEqual(['3', '4', '5', '6'])
+  })
+
+  /** Somebody on the waiting list is on the list already, only further down. */
+  it('leaves out whoever waits on the waiting list', () => {
+    const offered = membersToRegister(members, [registration(6, RegistrationStatus.QUEUED, {})])
+
+    expect(offered.map(entry => entry.value)).toEqual(['1', '2', '3', '4', '5'])
+  })
+})
+
+/**
+ * A wait on the waiting list holds no place, so nothing counts the member as coming, and it still
+ * stands, so they cannot sign up a second time beside it.
+ */
+describe('a sign-up on the waiting list', () => {
+  const waiting = {status: RegistrationStatus.QUEUED}
+
+  it('holds no place', () => {
+    expect(holdsOrAwaitsPlace(waiting)).toBe(false)
+  })
+
+  it('stands, and offers no second sign-up', () => {
+    expect(isStandingSignUp(waiting)).toBe(true)
+    expect(maySignUp(waiting)).toBe(false)
+  })
+
+  it('carries its place in line into the answer', () => {
+    const answers = localAnswers([{key: 1, name: 'Ich'}], [{...registration(1, RegistrationStatus.QUEUED, {}), queuePosition: 3}])
+
+    expect(answers.map(answer => [answer.status, answer.queuePosition])).toEqual([[RegistrationStatus.QUEUED, 3]])
   })
 })
 

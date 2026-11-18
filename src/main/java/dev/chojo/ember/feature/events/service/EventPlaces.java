@@ -245,4 +245,26 @@ public class EventPlaces {
     public Map<Integer, Integer> ranksOf(Collection<Integer> registrationIds) {
         return queue.ranksOf(registrationIds);
     }
+
+    /**
+     * The places in line of the given partners' registrations that wait on a waiting list.
+     *
+     * @param federationRegistrationIds the partners' registrations
+     * @return the place in line by registration, only for those waiting
+     */
+    public Map<Integer, Integer> partnerRanksOf(Collection<Integer> federationRegistrationIds) {
+        return queue.partnerRanksOf(federationRegistrationIds);
+    }
+
+    /**
+     * The places of an appointment date: the limit in effect, the accepted and the waiting, partners'
+     * members included.
+     *
+     * @param eventId   the appointment
+     * @param eventDate the date
+     * @return its places
+     */
+    public Places placesOf(int eventId, LocalDate eventDate) {
+        return capacity.of(eventId, eventDate);
+    }
 }

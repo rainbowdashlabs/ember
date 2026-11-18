@@ -51,6 +51,8 @@ export interface GivenAnswer<K extends string | number = number, U = number> ext
      * again, and what it offers is signing up anew rather than taking the answer back.
      */
     placeGivenUp?: boolean
+    /** The place in line on the waiting list, 1 moving up next, where the answer waits on it. */
+    queuePosition?: number | null
 }
 
 /** One person's answer to the appointment's questions, ready to be sent. */
@@ -101,20 +103,38 @@ export function isMembersAnswer(registration: Pick<RegistrationResponse, 'status
     return isStandingAnswer(registration) || registration.placeGivenUp
 }
 
-/** Whether a registration holds a place or is waiting for one to be confirmed. */
+/** Whether a registration waits on the waiting list of a full date. */
+export function isQueued(registration: Pick<RegistrationResponse, 'status'>): boolean {
+    return registration.status === RegistrationStatus.QUEUED
+}
+
+/**
+ * Whether a registration holds a place or is waiting for one to be confirmed.
+ *
+ * <p>Somebody on the waiting list does neither: they wait for a place to fall free, and nothing about
+ * the date counts them as coming until they move up.
+ */
 export function holdsOrAwaitsPlace(registration: Pick<RegistrationResponse, 'status'>): boolean {
-    return isStandingAnswer(registration) && !isRefusal(registration.status)
+    return isStandingAnswer(registration) && !isRefusal(registration.status) && !isQueued(registration)
+}
+
+/**
+ * Whether a sign-up still stands: it holds a place, waits for a decision or waits on the waiting
+ * list. Such a sign-up can be given up, and nobody signs up a second time beside it.
+ */
+export function isStandingSignUp(registration: Pick<RegistrationResponse, 'status'>): boolean {
+    return holdsOrAwaitsPlace(registration) || isQueued(registration)
 }
 
 /**
  * Whether somebody may still sign up, judged by their registration on the date.
  *
- * <p>Nobody holding or awaiting a place may, which includes whoever refused or gave a place up: they
- * may change their mind. A place the organiser denied stays denied.
+ * <p>Nobody whose sign-up stands may, the waiting list included, while whoever refused or gave a place
+ * up may: they may change their mind. A place the organiser denied stays denied.
  */
 export function maySignUp(registration: Pick<RegistrationResponse, 'status'> | undefined): boolean {
     return registration === undefined
-        || (!holdsOrAwaitsPlace(registration) && registration.status !== RegistrationStatus.DENIED)
+        || (!isStandingSignUp(registration) && registration.status !== RegistrationStatus.DENIED)
 }
 
 /**
@@ -135,7 +155,7 @@ export function rowsOnDate<T>(rows: T[], date: string | null, dateOf: (row: T) =
 /**
  * The members whoever runs an appointment can still put on its list.
  *
- * <p>Everybody who neither holds a place nor waits for one. A place given back, a refusal and a
+ * <p>Everybody who neither holds a place nor waits for one, on the waiting list or for a decision. A place given back, a refusal and a
  * request turned away all keep their row, but none of them is a place, and leaving those members out
  * meant not even the appointment's managers could put them back on.
  *
@@ -147,7 +167,7 @@ export function membersToRegister<M extends {value: string}>(
     registrations: Pick<RegistrationResponse, 'status' | 'memberId'>[],
 ): M[] {
     const placed = new Set(registrations
-        .filter(holdsOrAwaitsPlace)
+        .filter(isStandingSignUp)
         .map(registration => Number(registration.memberId)))
     return members.filter(member => !placed.has(Number(member.value)))
 }
@@ -229,10 +249,11 @@ export function localAnswers(
             status: registration.status,
             undo: registration.id,
             createdByName: registration.createdByName,
-            canUpdate: asksQuestions && holdsOrAwaitsPlace(registration),
+            canUpdate: asksQuestions && isStandingSignUp(registration),
             answersMissing: registration.answersMissing,
             heldByField: registration.fromField ? (registration.fieldName ?? '') : null,
             placeGivenUp: registration.placeGivenUp,
+            queuePosition: registration.queuePosition,
         })
     }
     return answers

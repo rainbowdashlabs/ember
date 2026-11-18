@@ -12,10 +12,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure, type Failure} from '@/util/failure'
 import {RegistrationStatus, StationPermission, type EventRegistrationFieldValue, type PartnerPlacesView, type EventRegistrationField, type RegistrationResponse, type RegistrationStatsResponse, type StationEvent} from '@/api/generated/schema'
@@ -37,7 +34,13 @@ import EventAnswerDialog from '../eventshared/EventAnswerDialog.vue'
 import RegistrationSigningStep from '../eventshared/RegistrationSigningStep.vue'
 import {useRegistrationSigningStep} from '@/composables/useRegistrationSigningStep'
 import {useHouseholdSignOff} from './useHouseholdSignOff'
-import {holdsOrAwaitsPlace, isMembersAnswer, maySignUp, membersToRegister, notOpenLabelKey, type AnswerablePerson, type PersonAnswer} from '@/util/eventAnswers'
+import {decidedByStatus, pendingByFairness} from './registrationGroups'
+import {isMembersAnswer, isStandingSignUp, maySignUp, membersToRegister, notOpenLabelKey, type AnswerablePerson, type PersonAnswer} from '@/util/eventAnswers'
+import {signUpQueues, type Places} from '@/util/eventPlaces'
+import {useDatePlaces} from '../eventshared/useDatePlaces'
+import RegistrationStatusBadge from '../eventshared/RegistrationStatusBadge.vue'
+import FullDateDialog from '../eventshared/FullDateDialog.vue'
+import {useQueueActions} from '../eventshared/useQueueActions'
 
 const props = defineProps<{
   /** Whether the appointment is a part of an event group, whose sign-up goes through the event group. */
@@ -51,6 +54,15 @@ const props = defineProps<{
   effectiveDate: string | null
   /** Everybody the station has today, which is who a list built from these sign-ups can hold. */
   currentMemberIds: number[]
+  /** Whether the date in view is already over. */
+  datePast?: boolean
+  /** How the places of the date stand as the server counts them, partners' members included. */
+  datePlaces?: Places | null
+}>()
+
+const emit = defineEmits<{
+  /** Something done here changed the sign-ups of the date. */
+  changed: []
 }>()
 
 const {t, locale} = useI18n()
@@ -74,37 +86,9 @@ const registrationFields = ref<EventRegistrationField[]>([])
 const showFieldsModal = ref(false)
 const pendingRegistrationMemberId = ref<number | null>(null)
 
-interface StatusGroup { status: string; entries: RegistrationResponse[] }
+const pendingRegistrations = computed(() => pendingByFairness(registrations.value, registrationStats.value))
 
-const pendingRegistrations = computed(() => {
-  const pending = registrations.value.filter(r => r.status === RegistrationStatus.PENDING)
-  return [...pending].sort((a, b) => {
-    const sa = registrationStats.value.find(s => s.memberId === a.memberId)
-    const sb = registrationStats.value.find(s => s.memberId === b.memberId)
-    return (sb?.fairnessScore ?? 0) - (sa?.fairnessScore ?? 0)
-  })
-})
-
-const nonPendingRegistrations = computed<StatusGroup[]>(() => {
-  const byStatus = new Map<string, RegistrationResponse[]>()
-  for (const reg of registrations.value) {
-    if (reg.status === RegistrationStatus.PENDING) continue
-    const list = byStatus.get(reg.status) ?? []
-    list.push(reg)
-    byStatus.set(reg.status, list)
-  }
-  for (const list of byStatus.values()) {
-    list.sort((a, b) => a.memberName.localeCompare(b.memberName, locale.value))
-  }
-  return [
-    RegistrationStatus.ACCEPTED,
-    RegistrationStatus.DECLINED,
-    RegistrationStatus.DENIED,
-    RegistrationStatus.WITHDRAWN,
-  ]
-      .filter(s => byStatus.has(s))
-      .map(s => ({status: s, entries: byStatus.get(s)!}))
-})
+const nonPendingRegistrations = computed(() => decidedByStatus(registrations.value, locale.value))
 
 const unregisteredMembers = computed(() =>
     membersToRegister(allMembers.value, registrations.value))
@@ -132,19 +116,45 @@ function standingRegistrationFor(memberId: number): RegistrationResponse | undef
   return registration && isMembersAnswer(registration) ? registration : undefined
 }
 
-/** What the member's own answer reads as: a place given up reads as signed off, like everywhere else. */
-function myAnswerLabel(registration: RegistrationResponse): string {
-  return registration.placeGivenUp ? t('eventsUpcoming.statusDeclined') : statusLabel(registration.status)
+/**
+ * The status the member's own answer is shown as: a place given up reads as signed off, like
+ * everywhere else.
+ */
+function myAnswerStatus(registration: RegistrationResponse): RegistrationStatus {
+  return registration.placeGivenUp ? RegistrationStatus.DECLINED : registration.status
 }
 
-function statusLabel(status: string): string {
-  if (status === RegistrationStatus.ACCEPTED) return t('eventsUpcoming.statusAccepted')
-  if (status === RegistrationStatus.PENDING) return t('eventsUpcoming.statusPending')
-  if (status === RegistrationStatus.DENIED) return t('eventsUpcoming.statusDenied')
-  if (status === RegistrationStatus.DECLINED) return t('eventsUpcoming.statusDeclined')
-  if (status === RegistrationStatus.WITHDRAWN) return t('eventsUpcoming.statusWithdrawn')
-  return status
-}
+/**
+ * How the places and the waiting list of the date stand, counted from the sign-ups this tab has
+ * read. Whoever decides the sign-ups reads partners' members too, so their count follows every
+ * action taken here at once.
+ */
+const datePlaces = useDatePlaces({
+  limit: () => props.event.registrationLimit,
+  registrations: () => registrations.value,
+  partners: () => federatedRegs.value,
+  partnerPlaces: () => partnerPlaces.value,
+})
+const places = datePlaces.places
+
+/** Whether the reader decides the sign-ups and so reads every one of them, partners' members too. */
+const decidesSignUps = computed(() => hasPermission(StationPermission.EVENT_REGISTRATION))
+
+/**
+ * The places the list shows: the count kept here for whoever decides, and the server's count for
+ * everybody else, who cannot read partners' members and would otherwise see fewer than the header.
+ */
+const shownPlaces = computed(() => decidesSignUps.value ? places.value : (props.datePlaces ?? places.value))
+
+/**
+ * The waiting list the list shows, only to whoever decides the sign-ups. Everybody else reads only
+ * the station's own part of it, numbered differently from the place their own badge names.
+ */
+const shownQueue = computed(() => decidesSignUps.value ? datePlaces.queue.value : [])
+
+/** Whether signing up now puts the member on the waiting list rather than giving them a place. */
+const joinsQueue = computed(() =>
+    signUpQueues(props.datePlaces ?? places.value, !!props.event.requiresConfirmation))
 
 /**
  * Reads the sign-ups. `afterAction` says this is the catching-up half of something the reader just
@@ -173,24 +183,16 @@ async function loadRegistrations(afterAction = false) {
 async function reloadAndRefresh() {
   await loadRegistrations(true)
   refreshSidebarCounts()
+  emit('changed')
 }
 
 /**
- * Answers one sign-up, then reads the tab back.
+ * Deciding the sign-ups and keeping the waiting list, each followed by reading the tab back.
  *
  * <p>The two are answered for separately. A decision the server took, followed by a refresh that
  * failed, used to say the decision had been refused, and whoever read that pressed the button again.
  */
-async function decide(id: number, status: RegistrationStatus) {
-  failure.value = null
-  try {
-    await events.updateRegistrationStatus(id, status)
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-    return
-  }
-  await reloadAndRefresh()
-}
+const queueActions = useQueueActions(() => places.value, reloadAndRefresh, failure)
 
 const {running: registering, failure: registrationFailure, run: runRegistration} = useAsyncAction(
     async (kind: 'register' | 'decline', memberId: number, fields?: EventRegistrationFieldValue[]) => {
@@ -263,7 +265,8 @@ function answerForHousehold() {
 }
 
 /**
- * Everyone in the household who has a place to give up.
+ * Everyone in the household who has a place to give up, or a wait on the waiting list to leave while
+ * the date is still to come.
  *
  * <p>A place a question of the appointment gives is not one of them: it is not an answer anybody
  * gave, and the way off the list is out of the question that names them.
@@ -271,15 +274,18 @@ function answerForHousehold() {
 const withPlace = computed(() =>
     household.value.filter(person => {
       const registration = getRegistrationForMember(person.key)
-      return registration !== undefined && holdsOrAwaitsPlace(registration) && !registration.fromField
+      return registration !== undefined && isStandingSignUp(registration) && !registration.fromField
+          && !(props.datePast && registration.status === RegistrationStatus.QUEUED)
     }))
 
 /** Everyone who may still sign up, which is who the sign-up button is for. */
 const withoutPlace = computed(() =>
     household.value.filter(person => maySignUp(getRegistrationForMember(person.key))))
 
-const answerLabel = computed(() =>
-    withoutPlace.value.length > 1 ? t('events.answerForAll') : t('eventsUpcoming.register'))
+const answerLabel = computed(() => {
+  if (joinsQueue.value) return t('registrationQueue.join')
+  return withoutPlace.value.length > 1 ? t('events.answerForAll') : t('eventsUpcoming.register')
+})
 
 const withdrawLabel = computed(() =>
     withPlace.value.length > 1 ? t('events.declineForAll') : t('eventsUpcoming.unregister'))
@@ -336,20 +342,12 @@ const {running: savingAnswers, failure: answersFailure, run: saveAnswers} = useA
       await loadRegistrations()
     })
 
-/** A partner station's sign-up, answered. A refusal here used to go nowhere at all. */
-async function decideFederated(regId: number, status: RegistrationStatus) {
-  try {
-    await events.updateFederationRegistrationStatus(regId, status)
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-    return
-  }
-  await loadRegistrations()
-}
-
 /**
  * Adding a member by hand asks the same questions. The answers belong to the registration, not to
  * whoever typed them, so a manager fills them in on the member's behalf.
+ *
+ * <p>On a date whose places are all taken the server asks whether the member goes beyond the limit
+ * or onto the waiting list, and the sign-up is sent again with the answer.
  */
 async function manualRegister(values?: EventRegistrationFieldValue[]) {
   if (!manualRegisterMemberId.value) return
@@ -358,12 +356,16 @@ async function manualRegister(values?: EventRegistrationFieldValue[]) {
     showFieldsModal.value = true
     return
   }
+  const memberId = Number(manualRegisterMemberId.value)
   try {
-    await events.registerForEvent(props.eventId, {
-      eventDate: props.effectiveDate ?? undefined,
-      memberId: Number(manualRegisterMemberId.value),
-      fields: values,
-    })
+    const sent = await queueActions.sendAsking('signUp', places.value, whenFull =>
+        events.registerForEvent(props.eventId, {
+          eventDate: props.effectiveDate ?? undefined,
+          memberId,
+          fields: values,
+          whenFull,
+        }))
+    if (!sent) return
     manualRegisterMemberId.value = ''
     await reloadAndRefresh()
   } catch (e) { failure.value = describeFailure(e, t) }
@@ -389,7 +391,7 @@ onMounted(loadRegistrations)
       <ButtonRow pair>
         <PrimaryButton v-if="withoutPlace.length > 0" :disabled="registering" data-testid="answer-household"
                        @click="answerForHousehold()">
-          <font-awesome-icon :icon="['fas', 'check']" class="mr-1"/>{{ answerLabel }}
+          <font-awesome-icon :icon="['fas', joinsQueue ? 'list-ol' : 'check']" class="mr-1"/>{{ answerLabel }}
         </PrimaryButton>
         <SecondaryButton v-if="withPlace.length > 0" :disabled="registering" data-testid="withdraw-household"
                          @click="requestSignOff(withdrawHousehold)">
@@ -398,12 +400,12 @@ onMounted(loadRegistrations)
       </ButtonRow>
       <div v-for="member in registrableMembers" :key="member.key" class="flex items-center gap-3 flex-wrap">
         <span v-if="hasManagedMembers" class="text-sm font-medium min-w-24">{{ member.name }}</span>
-        <component
-            :is="standingRegistrationFor(member.key)!.status === RegistrationStatus.ACCEPTED ? SuccessBadge : standingRegistrationFor(member.key)!.status === RegistrationStatus.PENDING ? InfoBadge : ErrorBadge"
+        <RegistrationStatusBadge
             v-if="standingRegistrationFor(member.key)"
-            :data-testid="`my-answer-${member.key}`">
-          {{ myAnswerLabel(standingRegistrationFor(member.key)!) }}
-        </component>
+            :status="myAnswerStatus(standingRegistrationFor(member.key)!)"
+            :queue-position="standingRegistrationFor(member.key)!.queuePosition"
+            :past="datePast"
+            :data-testid="`my-answer-${member.key}`"/>
         <SecondaryBadge v-else :data-testid="`my-answer-${member.key}`">{{ t('eventDetail.noAnswerYet') }}</SecondaryBadge>
       </div>
     </NeutralContainer>
@@ -433,8 +435,15 @@ onMounted(loadRegistrations)
         :unregistered-members="unregisteredMembers"
         :registration-fields="registrationFields"
         :effective-date="effectiveDate"
-        @accept="id => decide(id, RegistrationStatus.ACCEPTED)"
-        @deny="id => decide(id, RegistrationStatus.DENIED)"
+        :places="shownPlaces"
+        :queue="shownQueue"
+        :partner-decides="datePlaces.partnerDecides"
+        :busy="queueActions.busy.value"
+        @accept="queueActions.accept"
+        @deny="id => queueActions.deny(id)"
+        @queue="queueActions.queue"
+        @reorder="queueActions.reorder"
+        @move-up="queueActions.moveUp"
         @edit-answers="editAnswers"
         @manual-register="manualRegister"
     >
@@ -476,8 +485,14 @@ onMounted(loadRegistrations)
         :event-group-part="eventGroupPart"
         :registrations="federatedRegs"
         :partner-places="partnerPlaces"
-        @accept="id => decideFederated(id, RegistrationStatus.ACCEPTED)"
-        @deny="id => decideFederated(id, RegistrationStatus.DENIED)"
+        :queue="datePlaces.queue.value"
+        :queue-open="!!places"
+        :busy="queueActions.busy.value"
+        @accept="queueActions.acceptPartner"
+        @deny="id => queueActions.deny(id, true)"
+        @queue="id => queueActions.queuePartners([id])"
     />
+
+    <FullDateDialog :question="queueActions.fullDateQuestion.value" @answer="queueActions.answerFullDate"/>
   </div>
 </template>

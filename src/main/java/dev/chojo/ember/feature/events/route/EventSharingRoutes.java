@@ -179,8 +179,12 @@ public class EventSharingRoutes implements Routes {
         String dateParam = ctx.queryParam("date");
         LocalDate date = dateParam != null ? LocalDate.parse(dateParam) : null;
         var registrations = eventFederationService.findRegistrations(id, date);
+        var ranks = registrationService.partnerQueueRanksOf(registrations.stream()
+                .filter(r -> r.status() == RegistrationStatus.QUEUED)
+                .map(EventFederationRegistration::id)
+                .toList());
         ctx.json(registrations.stream()
-                .map(r -> new EnrichedFederationRegistration(r, registrants.identify(r)))
+                .map(r -> new EnrichedFederationRegistration(r, registrants.identify(r), ranks.get(r.id())))
                 .toList());
     }
 
@@ -372,5 +376,6 @@ public class EventSharingRoutes implements Routes {
 
     public record EnrichedFederationRegistration(
             EventFederationRegistration registration,
-            @Nullable MemberIdentity memberIdentity) {}
+            @Nullable MemberIdentity memberIdentity,
+            @Nullable Integer queuePosition) {}
 }

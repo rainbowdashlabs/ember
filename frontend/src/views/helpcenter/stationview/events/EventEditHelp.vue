@@ -24,6 +24,8 @@ import RepeatEndField from '@/views/stationview/events/eventshared/RepeatEndFiel
 import RegistrationFieldsEditor from '@/views/stationview/events/eventshared/RegistrationFieldsEditor.vue'
 import {emptySettings} from '@/views/stationview/events/eventshared/eventQuestions'
 import InheritedSettingsCard from '@/views/stationview/events/eventeditview/InheritedSettingsCard.vue'
+import QueueOrderField from '@/views/stationview/events/eventshared/QueueOrderField.vue'
+import FieldHint from '@/components/typography/FieldHint.vue'
 import type {AttendanceTemplate, EventCategory, EventGroupSettings, RegistrationFieldDefinition} from '@/api/generated/schema'
 
 const {t} = useI18n()
@@ -160,9 +162,16 @@ const groupTemplates = computed(() => [{id: 4, name: t('helpCenter.eventEdit.exa
           <div class="space-y-1">
             <FieldLabel>{{ t('events.registrationLimit') }}</FieldLabel>
             <NumberInput :model-value="15" disabled/>
+            <FieldHint>{{ t('registrationQueue.limitHint') }}</FieldHint>
           </div>
         </div>
+        <QueueOrderField model-value="TIME"/>
       </NeutralContainer>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.eventEdit.queueTitle')">
+      <p>{{ t('helpCenter.eventEdit.queueText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.queueOrderText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.eventEdit.minimumTitle')">

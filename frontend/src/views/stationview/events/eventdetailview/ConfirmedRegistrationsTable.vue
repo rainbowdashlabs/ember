@@ -71,6 +71,7 @@ const STATUS_LABEL_KEYS: Record<string, string> = {
   [RegistrationStatus.DENIED]: 'eventsUpcoming.statusDenied',
   [RegistrationStatus.DECLINED]: 'eventsUpcoming.statusDeclined',
   [RegistrationStatus.WITHDRAWN]: 'eventsUpcoming.statusWithdrawn',
+  [RegistrationStatus.QUEUED]: 'registrationQueue.status',
 }
 
 /** The tokens the table carries for a status or a kind of member, in words. */

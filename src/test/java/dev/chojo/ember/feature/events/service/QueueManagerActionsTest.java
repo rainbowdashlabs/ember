@@ -11,10 +11,13 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.EventTemplateSettings;
+import dev.chojo.ember.feature.events.entity.QueueOrder;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
+import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -285,6 +288,45 @@ class QueueManagerActionsTest extends RepositoryTestBase {
             eventRepo.delete(part.id());
             events.remove(part);
             groups.delete(group.id());
+        }
+    }
+
+    @Test
+    void anAppointmentAndATemplateKeepTheOrderOfTheirWaitingLists() {
+        var event = event(1, false);
+        assertEquals(QueueOrder.TIME, event.queueOrder(), "by time to begin with");
+
+        eventRepo.setQueueOrder(event.id(), QueueOrder.FAIRNESS);
+        assertEquals(
+                QueueOrder.FAIRNESS,
+                eventRepo.findById(event.id()).orElseThrow().queueOrder());
+
+        var templates = new EventTemplateRepository();
+        var template = templates.create(station.id(), "Lehrgang");
+        try {
+            templates.update(
+                    template.id(),
+                    new EventTemplateSettings(
+                            "Lehrgang",
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            4,
+                            null,
+                            null,
+                            null,
+                            QueueOrder.FAIRNESS));
+            assertEquals(
+                    QueueOrder.FAIRNESS,
+                    templates.findById(template.id()).orElseThrow().queueOrder());
+        } finally {
+            templates.delete(template.id());
         }
     }
 }

@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.EventRegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
+import dev.chojo.ember.feature.events.entity.Places;
 import dev.chojo.ember.feature.events.entity.RegistrationCount;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -67,6 +68,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -169,6 +171,7 @@ public class EventRegistrationRoutes implements Routes {
                 this::updateRegistrationStatus,
                 StationPermission.EVENT_REGISTRATION,
                 StationModule.EVENTS);
+        routes.get(prefix + "/events/{eventId}/places", this::places, StationPermission.USER, StationModule.EVENTS);
         routes.post(
                 prefix + "/events/registrations/queue",
                 this::moveToQueue,
@@ -846,6 +849,34 @@ public class EventRegistrationRoutes implements Routes {
                 : registrationService.updateStatus(id, req.status());
         if (!changed) throw EventRefusal.EVENT_REGISTRATION_STATUS_NOT_CHANGED.raise();
         ctx.json(new MessageResponse("Status updated"));
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/{eventId}/places",
+            methods = HttpMethod.GET,
+            summary = "How many places a date of an appointment has, how many are taken and how many wait",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "eventId", type = Integer.class, required = true),
+            queryParams = @OpenApiParam(name = "date", type = String.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = Places.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void places(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        int eventId = pathInt(ctx, "eventId");
+        visibility.requireVisibleEvent(session, eventId);
+        ctx.json(registrationService.placesOf(eventId, placesDate(ctx.queryParam("date"))));
+    }
+
+    /** The date the places are asked for, refusing a missing or malformed one. */
+    private static LocalDate placesDate(@Nullable String value) {
+        if (value == null || value.isBlank()) throw EventRefusal.PLACES_DATE_NOT_A_DATE.raise();
+        try {
+            return LocalDate.parse(value);
+        } catch (DateTimeParseException e) {
+            throw EventRefusal.PLACES_DATE_NOT_A_DATE.raise();
+        }
     }
 
     @OpenApi(

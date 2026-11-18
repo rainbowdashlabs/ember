@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
@@ -12,8 +13,9 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {EventSummary, RegistrationStatus} from '@/api/generated/schema'
 import {formatWeekdayDate} from '@/util/format'
+import {placesFromCounts, placesLabel} from '@/util/eventPlaces'
 
-defineProps<{
+const props = defineProps<{
   event: EventSummary
   date: string
   counts: Record<RegistrationStatus, number>
@@ -22,6 +24,11 @@ defineProps<{
 }>()
 
 const {t} = useI18n()
+
+/** How the places of the date stand, null where the appointment limits nothing. */
+const places = computed(() => placesFromCounts(
+    props.event.registrationLimit,
+    Object.entries(props.counts).map(([status, count]) => ({status: status as RegistrationStatus, count}))))
 </script>
 
 <template>
@@ -32,8 +39,8 @@ const {t} = useI18n()
       <MutedText v-if="event.registrationDeadline" class="ml-2">
         {{ t('eventsRegistrations.deadline') }}: {{ formatDeadline(event.registrationDeadline) }}
       </MutedText>
-      <MutedText v-if="event.registrationLimit" class="ml-2">
-        ({{ t('eventsRegistrations.limit') }}: {{ event.registrationLimit }})
+      <MutedText v-if="places" class="ml-2" data-testid="pending-date-places">
+        ({{ placesLabel(places, t) }})
       </MutedText>
     </div>
     <div class="flex items-center gap-2 flex-wrap">
@@ -49,6 +56,10 @@ const {t} = useI18n()
         <font-awesome-icon :icon="['fas', 'xmark']" class="mr-1"/>
         {{ counts.DENIED }} {{ t('eventsRegistrations.denied') }}
       </ErrorBadge>
+      <SecondaryBadge v-if="counts.QUEUED > 0">
+        <font-awesome-icon :icon="['fas', 'list-ol']" class="mr-1"/>
+        {{ t('registrationQueue.waitingCount', {count: counts.QUEUED}) }}
+      </SecondaryBadge>
       <SecondaryBadge v-if="counts.DECLINED > 0">
         <font-awesome-icon :icon="['fas', 'user-slash']" class="mr-1"/>
         {{ counts.DECLINED }} {{ t('eventsRegistrations.declined') }}

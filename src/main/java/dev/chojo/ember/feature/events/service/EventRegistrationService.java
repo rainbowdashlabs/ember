@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.events.entity.AwaitingAnswer;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.EventRegistrationField;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
+import dev.chojo.ember.feature.events.entity.Places;
 import dev.chojo.ember.feature.events.entity.RegistrationCount;
 import dev.chojo.ember.feature.events.entity.RegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -504,6 +505,27 @@ public class EventRegistrationService {
      */
     public Map<Integer, Integer> queueRanksOf(Collection<Integer> registrationIds) {
         return places.ranksOf(registrationIds);
+    }
+
+    /**
+     * The places in line of the given partners' registrations that wait on a waiting list.
+     *
+     * @param federationRegistrationIds the partners' registrations
+     * @return the place in line by registration, only for those waiting
+     */
+    public Map<Integer, Integer> partnerQueueRanksOf(Collection<Integer> federationRegistrationIds) {
+        return places.partnerRanksOf(federationRegistrationIds);
+    }
+
+    /**
+     * The places of an appointment date, partners' members included.
+     *
+     * @param eventId   the appointment
+     * @param eventDate the date
+     * @return its places
+     */
+    public Places placesOf(int eventId, LocalDate eventDate) {
+        return places.placesOf(eventId, eventDate);
     }
 
     /**

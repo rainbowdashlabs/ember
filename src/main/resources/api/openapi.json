@@ -22554,6 +22554,50 @@
         }
       }
     },
+    "/api/v1/events/{eventId}/places" : {
+      "get" : {
+        "summary" : "How many places a date of an appointment has, how many are taken and how many wait",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Places"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "date",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
     "/api/v1/events/{eventId}/register" : {
       "post" : {
         "summary" : "Register for an event",
@@ -24729,6 +24773,52 @@
             "type" : "string"
           }
         } ]
+      }
+    },
+    "/api/v1/events/{id}/queue-order" : {
+      "put" : {
+        "summary" : "Set how the waiting lists of an appointment's dates are ordered",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StationEvent"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QueueOrderRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/events/{id}/reminders" : {
@@ -63893,9 +63983,13 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "queuePosition" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "registration", "memberIdentity" ]
+        "required" : [ "registration", "memberIdentity", "queuePosition" ]
       },
       "EnrichedItem" : {
         "type" : "object",
@@ -65787,6 +65881,9 @@
               "type" : "null"
             } ]
           },
+          "requiresConfirmation" : {
+            "type" : "boolean"
+          },
           "categoryId" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
@@ -65813,7 +65910,7 @@
             } ]
           }
         },
-        "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "requiresRegistration", "registrationDeadline", "categoryId", "templateId", "restricted", "seriesCancelled", "registrationLimit", "eventGroup" ]
+        "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "requiresRegistration", "registrationDeadline", "requiresConfirmation", "categoryId", "templateId", "restricted", "seriesCancelled", "registrationLimit", "eventGroup" ]
       },
       "EventTemplate" : {
         "type" : "object",
@@ -65885,9 +65982,16 @@
           "registrationCloseDays" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "queueOrder" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/QueueOrder"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "stationId", "name", "title", "description", "categoryId", "eventType", "requiresRegistration", "registrationDeadlineOffsetHours", "requiresConfirmation", "restrictionMode", "viewRestrictionMode", "attendanceTemplateId", "registrationLimit", "minRegistrations", "thresholdDays", "registrationCloseDays" ]
+        "required" : [ "id", "stationId", "name", "title", "description", "categoryId", "eventType", "requiresRegistration", "registrationDeadlineOffsetHours", "requiresConfirmation", "restrictionMode", "viewRestrictionMode", "attendanceTemplateId", "registrationLimit", "minRegistrations", "thresholdDays", "registrationCloseDays", "queueOrder" ]
       },
       "EventTemplateFieldData" : {
         "type" : "object",
@@ -78560,6 +78664,24 @@
         },
         "required" : [ "stationUid", "name", "homeStation", "actual", "expected", "inPlace" ]
       },
+      "Places" : {
+        "type" : "object",
+        "properties" : {
+          "limit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "accepted" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "queued" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "limit", "accepted", "queued" ]
+      },
       "PlannedLanding" : {
         "type" : "object",
         "properties" : {
@@ -80979,6 +81101,18 @@
       "QueueOrder" : {
         "type" : "string",
         "enum" : [ "TIME", "FAIRNESS" ]
+      },
+      "QueueOrderRequest" : {
+        "type" : "object",
+        "properties" : {
+          "queueOrder" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/QueueOrder"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
       },
       "QueuePositionRequest" : {
         "type" : "object",
@@ -87797,11 +87931,18 @@
             "type" : [ "integer", "null" ],
             "format" : "int32"
           },
+          "queueOrder" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/QueueOrder"
+            }, {
+              "type" : "null"
+            } ]
+          },
           "recurring" : {
             "type" : "boolean"
           }
         },
-        "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "templateId", "requiresRegistration", "registrationDeadline", "requiresConfirmation", "categoryId", "restrictionMode", "viewRestrictionMode", "restricted", "isPublic", "registrationLimit", "cancelled", "cancelledAt", "cancelReason", "minRegistrations", "thresholdDays", "registrationCloseDays", "repeatUntil", "repeatCount", "recurring" ]
+        "required" : [ "id", "stationId", "name", "description", "eventType", "dayOfWeek", "startTime", "endTime", "templateId", "requiresRegistration", "registrationDeadline", "requiresConfirmation", "categoryId", "restrictionMode", "viewRestrictionMode", "restricted", "isPublic", "registrationLimit", "cancelled", "cancelledAt", "cancelReason", "minRegistrations", "thresholdDays", "registrationCloseDays", "repeatUntil", "repeatCount", "queueOrder", "recurring" ]
       },
       "StationFailedMails" : {
         "type" : "object",
@@ -91381,6 +91522,13 @@
           "registrationCloseDays" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "queueOrder" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/QueueOrder"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },

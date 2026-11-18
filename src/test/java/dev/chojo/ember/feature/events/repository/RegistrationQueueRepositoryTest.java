@@ -9,6 +9,7 @@ import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.events.entity.EventGroupDetails;
 import dev.chojo.ember.feature.events.entity.Places;
+import dev.chojo.ember.feature.events.entity.RegistrationCount;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -23,6 +24,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -300,6 +302,52 @@ class RegistrationQueueRepositoryTest extends RepositoryTestBase {
             assertTrue(queue.entryOf(list, partnerOwner).isEmpty(), "the same id of a partner sign-up is another one");
             assertFalse(queue.remove(list, partnerOwner));
             assertEquals(50.0, queue.entries(list).getFirst().score());
+        } finally {
+            eventRepo.delete(event.id());
+        }
+    }
+
+    @Test
+    void thePlacesCountedForTheStationIncludePartnersMembersAndAWaitingPartnerHasAPlaceInLine() {
+        var event = event(1);
+        try {
+            partnerAccepted(event);
+            int partner = query("SELECT partner_id FROM event_federation_registration WHERE event_id = :id;")
+                    .single(call().bind("id", event.id()))
+                    .map(row -> row.getInt("partner_id"))
+                    .first()
+                    .orElseThrow();
+            int waiting = query("""
+                            INSERT INTO event_federation_registration(event_id, partner_id, remote_member_id, event_date, status)
+                            VALUES (:event_id, :partner_id, gen_random_uuid(), :event_date, 'QUEUED')
+                            RETURNING id;""")
+                    .single(call().bind("event_id", event.id())
+                            .bind("partner_id", partner)
+                            .bind("event_date", DATE))
+                    .map(row -> row.getInt("id"))
+                    .first()
+                    .orElseThrow();
+            var list = RegistrationQueueRepository.ofDate(event.id(), DATE);
+            waitFor(event, 0, 1);
+            queue.insertAt(list, RegistrationQueueRepository.QueueOwner.ofPartner(waiting), 2, null);
+
+            var counts = eventRegistrationRepo.findCountsByStation(station.id()).stream()
+                    .filter(count -> count.eventId() == event.id())
+                    .toList();
+            assertEquals(
+                    1,
+                    counts.stream()
+                            .filter(count -> count.status() == RegistrationStatus.ACCEPTED)
+                            .mapToInt(RegistrationCount::count)
+                            .sum());
+            assertEquals(
+                    2,
+                    counts.stream()
+                            .filter(count -> count.status() == RegistrationStatus.QUEUED)
+                            .mapToInt(RegistrationCount::count)
+                            .sum());
+            assertEquals(Map.of(waiting, 2), queue.partnerRanksOf(List.of(waiting)));
+            assertTrue(queue.partnerRanksOf(List.of()).isEmpty());
         } finally {
             eventRepo.delete(event.id());
         }

@@ -24234,6 +24234,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{eventId}/places": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How many places a date of an appointment has, how many are taken and how many wait */
+        get: {
+            parameters: {
+                query: {
+                    date: string;
+                };
+                header?: never;
+                path: {
+                    eventId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Places"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{eventId}/register": {
         parameters: {
             query?: never;
@@ -26636,6 +26685,57 @@ export interface paths {
             };
         };
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/queue-order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set how the waiting lists of an appointment's dates are ordered */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["QueueOrderRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationEvent"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
@@ -73241,6 +73341,8 @@ export interface components {
         };
         EnrichedFederationRegistration: {
             memberIdentity: components["schemas"]["MemberIdentity"] | null;
+            /** Format: int32 */
+            queuePosition: number | null;
             registration: components["schemas"]["EventFederationRegistration"];
         };
         EnrichedItem: {
@@ -73881,6 +73983,7 @@ export interface components {
             registrationDeadline: components["schemas"]["Instant"] | null;
             /** Format: int32 */
             registrationLimit: number | null;
+            requiresConfirmation: boolean;
             requiresRegistration: boolean;
             restricted: boolean;
             seriesCancelled: boolean;
@@ -73902,6 +74005,7 @@ export interface components {
             /** Format: int32 */
             minRegistrations: number | null;
             name: string;
+            queueOrder: components["schemas"]["QueueOrder"] | null;
             /** Format: int32 */
             registrationCloseDays: number | null;
             /** Format: int32 */
@@ -78306,6 +78410,14 @@ export interface components {
             /** Format: uuid */
             stationUid: string;
         };
+        Places: {
+            /** Format: int32 */
+            accepted: number;
+            /** Format: int32 */
+            limit: number | null;
+            /** Format: int32 */
+            queued: number;
+        };
         PlaceSearch: {
             text?: string | null;
         };
@@ -79119,6 +79231,9 @@ export interface components {
         };
         /** @enum {string} */
         QueueOrder: "TIME" | "FAIRNESS";
+        QueueOrderRequest: {
+            queueOrder?: components["schemas"]["QueueOrder"] | null;
+        };
         QueuePositionRequest: {
             /** Format: int32 */
             position?: number | null;
@@ -81379,6 +81494,7 @@ export interface components {
             /** Format: int32 */
             minRegistrations: number | null;
             name: string;
+            queueOrder: components["schemas"]["QueueOrder"] | null;
             recurring: boolean;
             /** Format: int32 */
             registrationCloseDays: number | null;
@@ -82699,6 +82815,7 @@ export interface components {
             /** Format: int32 */
             minRegistrations?: number | null;
             name?: string;
+            queueOrder?: components["schemas"]["QueueOrder"] | null;
             /** Format: int32 */
             registrationCloseDays?: number | null;
             /** Format: int32 */
@@ -84371,6 +84488,7 @@ export type PlaceholderCatalogueResponse = components['schemas']['PlaceholderCat
 export type PlaceholderCategory = components['schemas']['PlaceholderCategory'];
 export type PlaceholderValues = components['schemas']['PlaceholderValues'];
 export type PlacementResponse = components['schemas']['PlacementResponse'];
+export type Places = components['schemas']['Places'];
 export type PlaceSearch = components['schemas']['PlaceSearch'];
 export type PlannedLanding = components['schemas']['PlannedLanding'];
 export type PlannedStep = components['schemas']['PlannedStep'];
@@ -84475,6 +84593,7 @@ export type QuestionConfig = components['schemas']['QuestionConfig'];
 export type QuestionConfigByType = components['schemas']['QuestionConfigByType'];
 export type QuestionLimits = components['schemas']['QuestionLimits'];
 export type QueueOrder = components['schemas']['QueueOrder'];
+export type QueueOrderRequest = components['schemas']['QueueOrderRequest'];
 export type QueuePositionRequest = components['schemas']['QueuePositionRequest'];
 export type QueueRequest = components['schemas']['QueueRequest'];
 export type QuizAccessRequest = components['schemas']['QuizAccessRequest'];

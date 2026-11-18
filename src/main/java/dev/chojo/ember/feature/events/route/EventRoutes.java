@@ -28,6 +28,7 @@ import dev.chojo.ember.feature.events.entity.IntervalConfig;
 import dev.chojo.ember.feature.events.entity.IntervalType;
 import dev.chojo.ember.feature.events.entity.PickerEvent;
 import dev.chojo.ember.feature.events.entity.PickerMode;
+import dev.chojo.ember.feature.events.entity.QueueOrder;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.UpcomingEventOccurrence;
 import dev.chojo.ember.feature.events.service.BatchEventService;
@@ -179,6 +180,11 @@ public class EventRoutes implements Routes {
         routes.get(prefix + "/events/{id}", this::get, StationPermission.USER, StationModule.EVENTS);
         routes.get(prefix + "/events/{id}/next-date", this::getNextDate, StationPermission.USER, StationModule.EVENTS);
         routes.put(prefix + "/events/{id}", this::update, StationPermission.EVENT_EDIT, StationModule.EVENTS);
+        routes.put(
+                prefix + "/events/{id}/queue-order",
+                this::setQueueOrder,
+                StationPermission.EVENT_EDIT,
+                StationModule.EVENTS);
         routes.post(
                 prefix + "/events/{id}/change-notice",
                 this::sendChangeNotice,
@@ -521,6 +527,33 @@ public class EventRoutes implements Routes {
         int id = pathInt(ctx, "id");
         ctx.json(visibility.requireVisibleEvent(session, id));
     }
+
+    @OpenApi(
+            path = "/api/v1/events/{id}/queue-order",
+            methods = HttpMethod.PUT,
+            summary = "Set how the waiting lists of an appointment's dates are ordered",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = QueueOrderRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = StationEvent.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void setQueueOrder(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        int id = pathInt(ctx, "id");
+        requireOwnedEvent(crudService, id, session);
+        var req = ctx.bodyAsClass(QueueOrderRequest.class);
+        var order = req.queueOrder() == null ? QueueOrder.TIME : req.queueOrder();
+        ctx.json(crudService.setQueueOrder(id, order).orElseThrow(EventRefusal.EVENT_NOT_HERE::raise));
+    }
+
+    /**
+     * How the waiting lists of an appointment's dates are ordered.
+     *
+     * @param queueOrder by sign-up time or by fairness score; null for by time
+     */
+    public record QueueOrderRequest(@Nullable QueueOrder queueOrder) {}
 
     /**
      * The next day this appointment falls on, today counting as next.

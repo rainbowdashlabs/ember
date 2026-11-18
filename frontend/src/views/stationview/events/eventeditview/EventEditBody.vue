@@ -19,6 +19,7 @@ import type {
     EventGroupSettings,
     EventTemplate,
     MemberGroup,
+    QueueOrder,
     PartnerResponse,
     RegistrationFieldDefinition,
     UserTag,
@@ -84,6 +85,7 @@ const requiresConfirmation = defineModel<boolean>('requiresConfirmation', {requi
 const hasDeadline = defineModel<boolean>('hasDeadline', {required: true})
 const registrationDeadline = defineModel<string>('registrationDeadline', {required: true})
 const registrationLimit = defineModel<number | undefined>('registrationLimit')
+const queueOrder = defineModel<QueueOrder>('queueOrder')
 const minRegistrations = defineModel<number | undefined>('minRegistrations')
 const thresholdDays = defineModel<number | undefined>('thresholdDays')
 const registrationCloseDays = defineModel<number | undefined>('registrationCloseDays')
@@ -149,6 +151,7 @@ function override(field: AppointmentField) {
         v-model:has-deadline="hasDeadline"
         v-model:registration-deadline="registrationDeadline"
         v-model:registration-limit="registrationLimit"
+        v-model:queue-order="queueOrder"
         v-model:min-registrations="minRegistrations"
         v-model:threshold-days="thresholdDays"
         v-model:registration-close-days="registrationCloseDays"
@@ -172,7 +175,6 @@ function override(field: AppointmentField) {
             :own="fields"
             @override="override"
         />
-
         <FieldDefaultsCard
             v-if="props.currentTemplateFields.length > 0"
             :fields="props.currentTemplateFields"

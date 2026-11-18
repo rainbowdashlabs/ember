@@ -38,6 +38,7 @@ import {StationModule, StationPermission} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
 import {formatDateTime} from '@/util/format'
 import {localAnswers, type AnswerablePerson} from '@/util/eventAnswers'
+import {placesFromResponse, placesLabel, signUpQueues, type Places} from '@/util/eventPlaces'
 import {useSession} from '@/composables/useSession'
 
 const props = defineProps<{
@@ -149,6 +150,29 @@ onMounted(async () => {
 
 const answers = computed(() =>
     localAnswers(props.registrableMembers, props.myRegistrations, registrationFields.value.length > 0))
+
+/**
+ * How the places of the date stand, as the server counts them with partners' members included.
+ * Null where the appointment limits nothing or the date is not known.
+ */
+const places = ref<Places | null>(null)
+
+/** Reads the places of the date on screen again; an answer for a date already left is dropped. */
+async function loadPlaces() {
+  const date = props.effectiveDate
+  if (!date || !props.event.registrationLimit) {
+    places.value = null
+    return
+  }
+  const loaded = await events.getPlaces(props.eventId, date).then(placesFromResponse).catch(() => null)
+  if (date === props.effectiveDate) places.value = loaded
+}
+
+watch(() => [props.eventId, props.effectiveDate, props.event.registrationLimit, props.myRegistrations] as const,
+    loadPlaces, {immediate: true})
+
+/** Whether signing up now puts somebody on the waiting list rather than giving them a place. */
+const joinsQueue = computed(() => signUpQueues(places.value, !!props.event.requiresConfirmation))
 
 /**
  * Whether an answer can still be given at all, which is the same rule the buttons follow: an
@@ -289,6 +313,7 @@ const {failure: restoreFailure, run: restoreDate} = useAsyncAction(async () => {
       <SuccessBadge>{{ t('events.requiresRegistration') }}</SuccessBadge>
       <InfoBadge v-if="event.requiresConfirmation">{{ t('events.requiresConfirmation') }}</InfoBadge>
       <span v-if="event.registrationDeadline" class="text-(--text-muted)">{{ t('events.registrationDeadline') }}: {{ formatDateTime(event.registrationDeadline) }}</span>
+      <span v-if="places" class="text-(--text-muted)" data-testid="event-places">{{ placesLabel(places, t) }}</span>
       <span v-if="event.minRegistrations" class="text-(--text-muted)">{{ t('events.minRegistrations') }}: {{ event.minRegistrations }}</span>
       <span v-if="event.minRegistrations && event.thresholdDays != null" class="text-(--text-muted)">{{ t('events.thresholdDays') }}: {{ t('events.thresholdDaysValue', {days: event.thresholdDays}) }}</span>
     </div>
@@ -302,6 +327,8 @@ const {failure: restoreFailure, run: restoreDate} = useAsyncAction(async () => {
           :registration-deadline="event.registrationDeadline"
           :has-managed-members="hasManagedMembers"
           :registering="registering"
+          :sign-up-queues="joinsQueue"
+          :past="datePast"
           @register="people => emit('register', people)"
           @decline="people => emit('decline', people)"
           @withdraw="registrationId => emit('withdraw', registrationId)"
@@ -362,6 +389,9 @@ const {failure: restoreFailure, run: restoreDate} = useAsyncAction(async () => {
         :has-managed-members="hasManagedMembers"
         :effective-date="effectiveDate"
         :current-member-ids="currentMemberIds"
+        :date-past="datePast"
+        :date-places="places"
+        @changed="loadPlaces"
     />
 
     <EventEquipmentTab

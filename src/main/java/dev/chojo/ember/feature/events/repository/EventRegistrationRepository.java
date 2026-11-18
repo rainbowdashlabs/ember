@@ -290,16 +290,21 @@ public class EventRegistrationRepository {
     }
 
     /**
-     * Returns registration counts by status for all events of a station on their relevant dates.
+     * Returns registration counts by status for all events of a station on their relevant dates, partner
+     * stations' members included, so places read the same here as on the appointment.
      */
     public List<RegistrationCount> findCountsByStation(int stationId) {
         return query("""
-                SELECT er.event_id, er.event_date, er.status, count(*) AS count
-                FROM event_registration er
-                JOIN station_event se ON se.id = er.event_id
+                SELECT r.event_id, r.event_date, r.status, count(*) AS count
+                FROM (SELECT er.event_id, er.event_date, er.status
+                      FROM event_registration er
+                      UNION ALL
+                      SELECT fr.event_id, fr.event_date, fr.status
+                      FROM event_federation_registration fr) r
+                JOIN station_event se ON se.id = r.event_id
                 WHERE se.station_id = :station_id
-                GROUP BY er.event_id, er.event_date, er.status
-                ORDER BY er.event_id, er.event_date;""")
+                GROUP BY r.event_id, r.event_date, r.status
+                ORDER BY r.event_id, r.event_date;""")
                 .single(call().bind("station_id", stationId))
                 .map(row -> new RegistrationCount(
                         row.getInt("event_id"),

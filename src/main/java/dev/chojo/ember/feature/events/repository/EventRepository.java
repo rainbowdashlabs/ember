@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.content.entity.BlockAudience;
 import dev.chojo.ember.feature.events.entity.EventLink;
 import dev.chojo.ember.feature.events.entity.PickerEvent;
 import dev.chojo.ember.feature.events.entity.PickerMode;
+import dev.chojo.ember.feature.events.entity.QueueOrder;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSql;
@@ -42,7 +43,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class EventRepository {
 
     private static final String OWN_COLUMNS =
-            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, requires_registration, registration_deadline, requires_confirmation, restriction_mode, view_restriction_mode, \"public\", cancelled, cancelled_at, cancel_reason, min_registrations, threshold_days, registration_close_days, repeat_until, repeat_count";
+            "id, station_id, name, description, event_type, day_of_week, start_time, end_time, requires_registration, registration_deadline, requires_confirmation, restriction_mode, view_restriction_mode, \"public\", cancelled, cancelled_at, cancel_reason, min_registrations, threshold_days, registration_close_days, repeat_until, repeat_count, queue_order";
 
     /** The columns of an appointment written to as {@code station_event}, for a {@code RETURNING}. */
     private static final String EVENT_COLUMNS = eventColumns("station_event");
@@ -591,6 +592,21 @@ public class EventRepository {
      */
     public void lockForSignUp(int id) {
         SqlSupport.exists("SELECT 1 FROM station_event WHERE id = :id FOR UPDATE;", call().bind("id", id));
+    }
+
+    /**
+     * Sets how the waiting lists of an appointment's dates are ordered from now on. Entries already
+     * waiting keep their places.
+     *
+     * @param eventId the appointment
+     * @param order   the order
+     * @return whether the appointment exists
+     */
+    public boolean setQueueOrder(int eventId, QueueOrder order) {
+        return query("UPDATE station_event SET queue_order = :order, updated_at = now() WHERE id = :id;")
+                .single(call().bind("id", eventId).bind("order", order))
+                .update()
+                .changed();
     }
 
     /**

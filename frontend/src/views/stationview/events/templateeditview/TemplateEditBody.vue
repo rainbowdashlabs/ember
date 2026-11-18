@@ -23,6 +23,7 @@ import type {
     EventCategory,
     EventFieldEntry,
     MemberGroup,
+    QueueOrder,
     RegistrationFieldDefinition,
     UserTag,
 } from '@/api/generated/schema'
@@ -52,6 +53,7 @@ const attendanceTemplateId = defineModel<string>('attendanceTemplateId', {requir
 const requiresRegistration = defineModel<boolean>('requiresRegistration', {required: true})
 const requiresConfirmation = defineModel<boolean>('requiresConfirmation', {required: true})
 const registrationLimit = defineModel<number | undefined>('registrationLimit')
+const queueOrder = defineModel<QueueOrder>('queueOrder', {required: true})
 const deadlineOffsetHours = defineModel<number | null>('deadlineOffsetHours', {required: true})
 const minRegistrations = defineModel<number | undefined>('minRegistrations')
 const thresholdDays = defineModel<number | undefined>('thresholdDays')
@@ -85,6 +87,7 @@ const {t} = useI18n()
       v-model:requires-registration="requiresRegistration"
       v-model:requires-confirmation="requiresConfirmation"
       v-model:registration-limit="registrationLimit"
+      v-model:queue-order="queueOrder"
       v-model:deadline-offset-hours="deadlineOffsetHours"
       v-model:min-registrations="minRegistrations"
       v-model:threshold-days="thresholdDays"

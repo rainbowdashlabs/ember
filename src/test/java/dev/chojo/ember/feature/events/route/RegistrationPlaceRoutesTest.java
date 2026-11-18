@@ -13,6 +13,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.attendance.service.AttendanceService;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.Places;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.WhenFull;
@@ -71,6 +72,7 @@ class RegistrationPlaceRoutesTest {
     private EventRegistrationFieldService registrationFieldService;
     private EventRegistrationRoutes routes;
     private EventCrudService crudService;
+    private EventVisibility visibility;
 
     private static StationMember member(int id) {
         return new StationMember(
@@ -104,6 +106,7 @@ class RegistrationPlaceRoutesTest {
         when(restrictions.canRegister(anyInt(), anyInt(), any())).thenReturn(true);
         registrationFieldService = mock(EventRegistrationFieldService.class);
         crudService = mock(EventCrudService.class);
+        visibility = mock(EventVisibility.class);
         var event = mock(StationEvent.class);
         when(event.stationId()).thenReturn(STATION_ID);
         when(event.requiresRegistration()).thenReturn(true);
@@ -128,7 +131,7 @@ class RegistrationPlaceRoutesTest {
                 mock(MemberTableRenderer.class),
                 mock(StationService.class),
                 mock(OccurrenceCalendar.class),
-                mock(EventVisibility.class),
+                visibility,
                 new EventSignUpGuards(new GuardianPolicy(memberRepository)));
     }
 
@@ -365,5 +368,41 @@ class RegistrationPlaceRoutesTest {
 
         assertEquals(204, answer.code(), answer.body().string());
         verify(registrationService).moveInQueue(REGISTRATION_ID, 2);
+    }
+
+    @Test
+    void anyMemberReadsThePlacesOfADate() {
+        when(registrationService.placesOf(EVENT_ID, LocalDate.of(2026, 9, 2))).thenReturn(new Places(12, 12, 4));
+        var harness = RouteHarness.serving(routes);
+
+        var answer = harness.request(client -> client.get(
+                RouteHarness.PREFIX + "/events/%d/places?date=2026-09-02".formatted(EVENT_ID),
+                harness.as(sessionWith())));
+
+        var body = answer.body().string();
+        assertEquals(200, answer.code(), body);
+        assertTrue(body.contains("\"queued\":4"), body);
+    }
+
+    private Response placesOn(String query) {
+        var harness = RouteHarness.serving(routes);
+        return harness.request(client -> client.get(
+                RouteHarness.PREFIX + "/events/%d/places%s".formatted(EVENT_ID, query), harness.as(sessionWith())));
+    }
+
+    @Test
+    void placesWithoutADateOrWithSomethingElseAreRefused() {
+        assertEquals(EventRefusal.PLACES_DATE_NOT_A_DATE, RouteHarness.refusalOf(placesOn("")));
+        assertEquals(EventRefusal.PLACES_DATE_NOT_A_DATE, RouteHarness.refusalOf(placesOn("?date=morgen")));
+    }
+
+    @Test
+    void placesOfAnAppointmentTheMemberMayNotSeeAreNotFound() {
+        when(visibility.requireVisibleEvent(any(), anyInt())).thenThrow(EventRefusal.EVENT_NOT_YOURS_TO_SEE.raise());
+
+        var answer = placesOn("?date=2026-09-02");
+
+        assertEquals(404, answer.code());
+        verify(registrationService, never()).placesOf(anyInt(), any());
     }
 }
