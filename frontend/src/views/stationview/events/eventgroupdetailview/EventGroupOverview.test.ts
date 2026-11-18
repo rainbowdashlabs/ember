@@ -27,7 +27,7 @@ function detail(registrationLimit: number | null, holding: number, queued: numbe
         name: 'Jugendflamme 1', description: null, registrationLimit, registrationDeadline: null, requiresConfirmation: false,
         color: null, minRegistrations: null, thresholdDays: null, partRegistrationLimit: null, queueOrder: null,
       },
-      cancelled: false, cancelReason: null, partCount: parts.length, holding, queued,
+      cancelled: false, cancelReason: null, partCount: parts.length, holding, queued, pending: 0, firstStart: null, lastEnd: null,
     },
     sets: [{id: 1, eventGroupId: 70, name: 'Übung', minimum: 1, maximum: null, position: 0}],
     parts,

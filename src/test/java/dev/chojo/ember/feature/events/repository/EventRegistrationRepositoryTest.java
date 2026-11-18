@@ -6,11 +6,16 @@
 package dev.chojo.ember.feature.events.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.events.entity.EventGroupDetails;
+import dev.chojo.ember.feature.events.entity.EventGroupSetDraft;
 import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.repository.EventGroupFixtures;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -20,6 +25,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -317,6 +323,49 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
             assertEquals(member.id(), second.createdBy());
         } finally {
             eventRepo.delete(created.id());
+        }
+    }
+
+    /**
+     * A sign-up for an event group is decided as a whole on the event group, so its parts stay off the
+     * list of dates and the sign-up counts once, however many parts it chose, a partner's member's too.
+     * A cancelled event group waits for nothing.
+     */
+    @Test
+    void anEventGroupSignUpCountsOnceAndItsPartsStayOffTheList() {
+        var groups = newEventGroupService();
+        var group = groups.create(
+                station.id(),
+                new EventGroupDetails("Grundlehrgang", null, null, null, true, null),
+                List.of(new EventGroupSetDraft(null, "Abende", 1)),
+                RestrictionAudience.empty(),
+                RestrictionAudience.empty(),
+                null);
+        int before = eventRegistrationRepo.countPendingByStation(station.id());
+        var part = EventGroupFixtures.part(group, 12);
+        try {
+            var signUp = new EventGroupRegistrationRepository()
+                    .signUp(group.id(), member.id(), RegistrationStatus.PENDING, null);
+            var partRegistration = eventRegistrationRepo.create(
+                    part.id(), member.id(), LocalDate.now().plusDays(12), RegistrationStatus.PENDING, null);
+            eventRegistrationRepo.linkToEventGroup(partRegistration.id(), signUp.id());
+
+            assertTrue(eventRegistrationRepo.findPendingByStation(station.id()).stream()
+                    .noneMatch(registration -> registration.eventId() == part.id()));
+            assertEquals(before + 1, eventRegistrationRepo.countPendingByStation(station.id()));
+
+            var friend = stationRepo.create("Partnerwache Ausbildung");
+            var partner = new FederationRepository()
+                    .createPartner(station.id(), friend.uid(), null, null, "https://partner.example");
+            new EventGroupPartnerRepository()
+                    .signUp(group.id(), partner.id(), UUID.randomUUID(), RegistrationStatus.PENDING);
+            assertEquals(before + 2, eventRegistrationRepo.countPendingByStation(station.id()));
+
+            new EventGroupRepository().cancel(group.id(), "Zu wenige Anmeldungen");
+            assertEquals(before, eventRegistrationRepo.countPendingByStation(station.id()));
+        } finally {
+            groups.delete(station.id(), group.id());
+            eventRepo.delete(part.id());
         }
     }
 

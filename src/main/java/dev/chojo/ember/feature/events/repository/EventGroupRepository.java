@@ -53,7 +53,21 @@ public class EventGroupRepository {
                        + (SELECT count(*)
                           FROM event_group_partner_registration p
                           WHERE p.event_group_id = g.id AND p.status = 'ACCEPTED') AS holding,
-                   (SELECT count(*) FROM event_group_queue q WHERE q.event_group_id = g.id) AS queued
+                   (SELECT count(*) FROM event_group_queue q WHERE q.event_group_id = g.id) AS queued,
+                   (SELECT count(*)
+                    FROM event_group_registration r
+                    WHERE r.event_group_id = g.id AND r.status = 'PENDING')
+                       + (SELECT count(*)
+                          FROM event_group_partner_registration p
+                          WHERE p.event_group_id = g.id AND p.status = 'PENDING') AS pending,
+                   (SELECT min(e.start_time)
+                    FROM station_event e
+                             JOIN event_group_set s ON s.id = e.event_group_set_id
+                    WHERE s.event_group_id = g.id) AS first_start,
+                   (SELECT max(e.end_time)
+                    FROM station_event e
+                             JOIN event_group_set s ON s.id = e.event_group_set_id
+                    WHERE s.event_group_id = g.id) AS last_end
             FROM event_group g
             WHERE %s;""";
 
@@ -331,7 +345,13 @@ public class EventGroupRepository {
     }
 
     private static EventGroupTally tallyOf(Row row) throws SQLException {
-        return new EventGroupTally(row.getInt("part_count"), row.getInt("holding"), row.getInt("queued"));
+        return new EventGroupTally(
+                row.getInt("part_count"),
+                row.getInt("holding"),
+                row.getInt("queued"),
+                row.getInt("pending"),
+                row.get("first_start", INSTANT_TIMESTAMP),
+                row.get("last_end", INSTANT_TIMESTAMP));
     }
 
     /**

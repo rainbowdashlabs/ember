@@ -427,3 +427,23 @@ CREATE TRIGGER event_group_partner_registration_queue_leave
     FOR EACH ROW
     WHEN (OLD.status = 'QUEUED' AND NEW.status <> 'QUEUED')
 EXECUTE FUNCTION ember_schema.event_group_queue_leave();
+
+CREATE TABLE IF NOT EXISTS ember_schema.event_federation_registration_answer
+(
+    federation_registration_id INT  NOT NULL REFERENCES ember_schema.event_federation_registration (id) ON DELETE CASCADE,
+    field_id                   INT  NOT NULL REFERENCES ember_schema.event_registration_field (id) ON DELETE CASCADE,
+    value                      TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY (federation_registration_id, field_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_federation_registration_answer_field
+    ON ember_schema.event_federation_registration_answer (field_id);
+
+COMMENT ON TABLE ember_schema.event_federation_registration_answer
+    IS 'A partner station''s member''s answer to one registration question of a shared appointment, given when the partner signed them up.';
+COMMENT ON COLUMN ember_schema.event_federation_registration_answer.federation_registration_id
+    IS 'The partner''s registration the answer belongs to; the answer is removed with it.';
+COMMENT ON COLUMN ember_schema.event_federation_registration_answer.field_id
+    IS 'The question answered.';
+COMMENT ON COLUMN ember_schema.event_federation_registration_answer.value
+    IS 'The answer, stored as text in the same shape the answers of this station''s own members use.';

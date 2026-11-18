@@ -12,6 +12,7 @@ import {
     type SetResult,
 } from '@/api/generated/schema'
 import {places, type Places} from '@/util/eventPlaces'
+import {formatDate, formatDateTime, formatTime} from '@/util/format'
 
 /**
  * The parts of one set, in the order the event group lists them.
@@ -262,4 +263,23 @@ export function keepsWaitingList(
     parts: readonly Pick<EventGroupPartState, 'places'>[],
 ): boolean {
     return !!details.registrationLimit || !!details.partRegistrationLimit || parts.some(part => !!part.places)
+}
+
+/**
+ * When a part runs, from its start to its end; the end of a part that ends on the day it starts is only its clock.
+ *
+ * @param part     the part
+ * @param timezone the station's clock
+ * @param t        the translator
+ */
+export function partWhen(
+    part: Pick<EventGroupPartState, 'startTime' | 'endTime'>,
+    timezone: string | null | undefined,
+    t: (key: string, values?: Record<string, unknown>) => string,
+): string {
+    const sameDay = formatDate(part.startTime, timezone) === formatDate(part.endTime, timezone)
+    return t('eventGroups.dateRange', {
+        first: formatDateTime(part.startTime, timezone),
+        last: sameDay ? formatTime(part.endTime, timezone) : formatDateTime(part.endTime, timezone),
+    })
 }

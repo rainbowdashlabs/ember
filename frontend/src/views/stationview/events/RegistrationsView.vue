@@ -11,14 +11,17 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import PendingDateCard from './registrationsview/PendingDateCard.vue'
+import PendingEventGroups from './registrationsview/PendingEventGroups.vue'
+import {waitingEventGroups} from './registrationsview/waitingEventGroups'
 import QueueDialogs from './eventshared/QueueDialogs.vue'
 import {appointmentStatuses, useQueueActions} from './eventshared/useQueueActions'
 import {appointmentQueueRoutes} from './eventshared/queueRoutes'
-import {events} from '@/api'
+import {eventGroups, events} from '@/api'
 import type {
   RegistrationStatus,
   EnrichedFederationRegistration,
   PartnerPlacesView,
+  EventGroupSummary,
   EventSummary,
   RegistrationResponse,
   RegistrationStatsResponse,
@@ -34,6 +37,8 @@ const {t} = useI18n()
 const {registrationCounts, reload: reloadDeps} = useEventEditDeps({withMembers: true, withCounts: true, autoLoad: false})
 const pendingRegistrations = ref<RegistrationResponse[]>([])
 const allEvents = ref<EventSummary[]>([])
+const allEventGroups = ref<EventGroupSummary[]>([])
+const waitingGroups = computed(() => waitingEventGroups(allEventGroups.value))
 const expandedKey = ref<string | null>(null)
 const registrationStats = ref<RegistrationStatsResponse[]>([])
 const expandedRegistrations = ref<RegistrationResponse[]>([])
@@ -181,13 +186,15 @@ async function refreshExpanded() {
 }
 
 const {loading, failure} = useAsyncLoader(async () => {
-  const [regs, evs] = await Promise.all([
+  const [regs, evs, groups] = await Promise.all([
     events.listPendingRegistrations(),
     events.listEvents(),
+    eventGroups.listEventGroups(),
     reloadDeps(),
   ])
   pendingRegistrations.value = regs
   allEvents.value = evs
+  allEventGroups.value = groups
 })
 
 /**
@@ -213,7 +220,10 @@ const queueActions = useQueueActions(
       <FailureAlert :failure="failure"/>
 
       <template v-if="!loading">
-        <EmptyState v-if="pendingDates.length === 0">{{ t('eventsRegistrations.empty') }}</EmptyState>
+        <EmptyState v-if="pendingDates.length === 0 && waitingGroups.length === 0">
+          {{ t('eventsRegistrations.empty') }}
+        </EmptyState>
+        <PendingEventGroups :groups="waitingGroups"/>
         <div class="space-y-3">
           <PendingDateCard
               v-for="group in pendingDates"

@@ -485,7 +485,7 @@ onMounted(loadRegistrations)
     <FederatedRegistrationsPanel
         v-if="canManageEvents()"
         :event-group-part="eventGroupPart"
-        :registrations="federatedRegs"
+        :registrations="federatedRegs" :fields="registrationFields"
         :partner-places="partnerPlaces"
         :queue="datePlaces.queue.value"
         :queue-open="!!places"

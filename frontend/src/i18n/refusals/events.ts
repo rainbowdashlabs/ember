@@ -225,7 +225,7 @@ export default {
     'E-195': 'Dieser Termin richtet sich an andere Leute als die Terminreihe, gib beiden zuerst dieselbe Zielgruppe',
     'E-196': 'Ein abgesagter Termin kann nicht Teil einer Terminreihe werden',
     'E-197': 'Die Zielgruppe nennt jemanden, der nicht zu dieser Wache gehört, es wurde nichts gespeichert',
-    'E-198': 'Dieser Termin ist Teil einer Terminreihe, die Anmeldung läuft über die Terminreihe',
+    'E-198': 'Dieser Termin ist Teil einer Terminreihe, Anmeldungen werden über die Terminreihe angenommen und entschieden',
     'E-199': 'Diese Terminreihe wurde abgesagt',
     'E-200': 'Die Anmeldung für diese Terminreihe ist geschlossen. Frag die Leitung der Terminreihe',
     'E-201': 'In der Terminreihe ist kein Platz mehr frei',
@@ -263,4 +263,5 @@ export default {
     'E-234': 'Nur Anmeldungen, über die noch nicht entschieden ist, kommen auf die Nachrückliste, es wurde nichts geändert',
     'E-235': 'Diese Anmeldung steht nicht auf der Nachrückliste',
     'E-236': 'Für die Plätze fehlt das Datum des Termins',
+    'E-237': 'Der Termin verlangt eine Antwort auf eine seiner Fragen, die Anmeldung wurde nicht angenommen',
 }

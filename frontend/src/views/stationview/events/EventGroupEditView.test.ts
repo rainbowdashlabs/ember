@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 /** @vitest-environment happy-dom */
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises, mount} from '@vue/test-utils'
 import {ref} from 'vue'
 import EventGroupEditView from './EventGroupEditView.vue'
@@ -18,6 +18,8 @@ const api = vi.hoisted(() => ({
     updateEventGroup: vi.fn(),
     getEventGroup: vi.fn(),
     getFederationShare: vi.fn(async () => null),
+    setFederationShare: vi.fn(),
+    removeFederationShare: vi.fn(),
     setSettings: vi.fn(),
     getSettings: vi.fn(async () => ({templateId: null, categoryId: null, reminderDays: [], fieldDefaults: []})),
     attachFile: vi.fn(),
@@ -39,8 +41,9 @@ const api = vi.hoisted(() => ({
   federation: {listPartners: vi.fn(async () => [])},
 }))
 vi.mock('@/api', () => api)
+const permitted = vi.hoisted(() => ({federate: false}))
 vi.mock('@/composables/useSession', () => ({
-  useSession: () => ({loaded: ref(true), hasPermission: () => false}),
+  useSession: () => ({loaded: ref(true), hasPermission: () => permitted.federate}),
 }))
 const route = vi.hoisted(() => ({params: {} as Record<string, string>, query: {} as Record<string, string>}))
 const replace = vi.hoisted(() => vi.fn())
@@ -312,5 +315,85 @@ describe('EventGroupEditView layout', () => {
     expect(positions.every(position => position >= 0)).toBe(true)
     expect([...positions].sort((a, b) => a - b)).toEqual(positions)
     expect(form.find('event-group-parts-editor-stub').exists()).toBe(false)
+  })
+})
+
+/**
+ * A new event group is shared in the same save that creates it, the way a new appointment is, and one
+ * that is not shared sends nothing about sharing.
+ */
+describe('EventGroupEditView sharing a new event group', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    permitted.federate = true
+    route.query = {}
+    route.params = {}
+    api.federation.listPartners.mockResolvedValue([])
+    api.eventGroups.createEventGroup.mockResolvedValue({eventGroup: {id: 7, details: {name: 'Jugendflamme', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null}}, sets: [], parts: [], questions: [], fields: [],
+      registration: YOUTH, view: YOUTH})
+    api.eventGroups.setSettings.mockResolvedValue({templateId: null, categoryId: null, reminderDays: [], fieldDefaults: []})
+  })
+
+  afterEach(() => {
+    permitted.federate = false
+  })
+
+  function shareOf(wrapper: ReturnType<typeof mountEditor>) {
+    return wrapper.findComponent({name: 'EventGroupShareCard'}).props('federationShare') as {state: {federationShared: boolean; federationScope: string; federationPartnerIds: number[]}}
+  }
+
+  it('offers the share before the event group exists and reads the partners for it', async () => {
+    const wrapper = mountEditor()
+    await flushPromises()
+
+    expect(wrapper.findComponent({name: 'EventGroupShareCard'}).exists()).toBe(true)
+    expect(api.federation.listPartners).toHaveBeenCalled()
+    expect(api.eventGroups.getFederationShare).not.toHaveBeenCalled()
+  })
+
+  it('shares the event group it created in the same save', async () => {
+    const wrapper = mountEditor()
+    await flushPromises()
+    const share = shareOf(wrapper)
+    share.state.federationShared = true
+    share.state.federationScope = 'SPECIFIC'
+    share.state.federationPartnerIds = [3]
+
+    await wrapper.find('[data-testid="event-group-save"]').trigger('click')
+    await flushPromises()
+
+    expect(api.eventGroups.setFederationShare).toHaveBeenCalledWith(7, 'SPECIFIC', [3])
+    expect(replace).toHaveBeenCalledWith({name: 'event-group-edit', params: {eventGroupId: 7}})
+  })
+
+  it('sends nothing about sharing for a new event group that is not shared', async () => {
+    const wrapper = mountEditor()
+    await flushPromises()
+
+    await wrapper.find('[data-testid="event-group-save"]').trigger('click')
+    await flushPromises()
+
+    expect(api.eventGroups.setFederationShare).not.toHaveBeenCalled()
+    expect(api.eventGroups.removeFederationShare).not.toHaveBeenCalled()
+  })
+
+  it('stays on the new event group when its share is refused, and shares it on the next save', async () => {
+    api.eventGroups.setFederationShare.mockRejectedValueOnce(new Error('refused'))
+    api.eventGroups.updateEventGroup.mockResolvedValue({eventGroup: {id: 7, details: {name: 'Jugendflamme', description: null, registrationLimit: null, registrationDeadline: null, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null}}, sets: [], parts: [], questions: [], fields: [],
+      registration: YOUTH, view: YOUTH})
+    const wrapper = mountEditor()
+    await flushPromises()
+    shareOf(wrapper).state.federationShared = true
+
+    await wrapper.find('[data-testid="event-group-save"]').trigger('click')
+    await flushPromises()
+    expect(replace).not.toHaveBeenCalled()
+
+    await wrapper.find('[data-testid="event-group-save"]').trigger('click')
+    await flushPromises()
+
+    expect(api.eventGroups.createEventGroup).toHaveBeenCalledOnce()
+    expect(api.eventGroups.setFederationShare).toHaveBeenCalledTimes(2)
+    expect(replace).toHaveBeenCalledWith({name: 'event-group-edit', params: {eventGroupId: 7}})
   })
 })

@@ -169,7 +169,8 @@ public class EventRegistrationRepository {
     }
 
     /**
-     * Retrieves all pending registrations across a station's events.
+     * Retrieves all pending registrations across a station's events, leaving out the parts of event
+     * groups: those are decided as a whole on their event group.
      *
      * @param stationId the station ID
      * @return the list of pending registrations
@@ -179,7 +180,7 @@ public class EventRegistrationRepository {
                 SELECT %s
                 FROM event_registration er
                     JOIN station_event se ON er.event_id = se.id
-                WHERE se.station_id = :station_id AND er.status = 'PENDING'
+                WHERE se.station_id = :station_id AND er.status = 'PENDING' AND se.event_group_set_id IS NULL
                 ORDER BY er.event_date, er.created_at;""", SqlSupport.alias("er", COLUMNS))
                 .single(call().bind("station_id", stationId))
                 .map(EventRegistration.map())
@@ -954,21 +955,29 @@ public class EventRegistrationRepository {
     }
 
     /**
-     * Counts the pending registrations across a station's events.
+     * Counts the sign-ups waiting for a decision across a station's appointments and event groups.
+     * An event group sign-up counts once, however many parts it chose, the way it is decided; one of a
+     * cancelled event group waits for nothing and is not counted.
      *
      * @param stationId the station ID
-     * @return the number of pending registrations
+     * @return the number of sign-ups waiting for a decision
      */
     public int countPendingByStation(int stationId) {
         return SqlSupport.count("""
-                SELECT
-                    count(*) AS cnt
-                FROM
-                    event_registration er
-                        JOIN station_event se
-                        ON er.event_id = se.id
-                WHERE se.station_id = :station_id
-                  AND er.status = 'PENDING';""", call().bind("station_id", stationId));
+                SELECT (SELECT count(*)
+                        FROM event_registration er
+                            JOIN station_event se ON er.event_id = se.id
+                        WHERE se.station_id = :station_id
+                          AND er.status = 'PENDING'
+                          AND se.event_group_set_id IS NULL)
+                     + (SELECT count(*)
+                        FROM event_group_registration r
+                            JOIN event_group g ON g.id = r.event_group_id
+                        WHERE g.station_id = :station_id AND NOT g.cancelled AND r.status = 'PENDING')
+                     + (SELECT count(*)
+                        FROM event_group_partner_registration p
+                            JOIN event_group g ON g.id = p.event_group_id
+                        WHERE g.station_id = :station_id AND NOT g.cancelled AND p.status = 'PENDING') AS cnt;""", call().bind("station_id", stationId));
     }
 
     /**

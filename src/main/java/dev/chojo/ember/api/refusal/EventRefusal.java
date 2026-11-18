@@ -744,7 +744,7 @@ public enum EventRefusal implements Refusal {
     REGISTRATION_THROUGH_EVENT_GROUP(
             198,
             HttpStatus.CONFLICT,
-            "That appointment is a part of an event group, sign up through the event group instead"),
+            "That appointment is a part of an event group, sign-ups are taken and decided through the event group"),
 
     /** A sign-up for an event group that was called off. */
     EVENT_GROUP_CANCELLED(199, HttpStatus.CONFLICT, "That event group was called off"),
@@ -894,7 +894,16 @@ public enum EventRefusal implements Refusal {
     EVENT_GROUP_NOT_QUEUED(235, HttpStatus.CONFLICT, "This sign-up does not wait on the waiting list"),
 
     /** The places of an appointment asked without a date, or with something that is not one. */
-    PLACES_DATE_NOT_A_DATE(236, HttpStatus.BAD_REQUEST, "Say which date the places are for");
+    PLACES_DATE_NOT_A_DATE(236, HttpStatus.BAD_REQUEST, "Say which date the places are for"),
+
+    /**
+     * A partner station signed one of its members up without answering a question the appointment
+     * requires, which a partner on an older version that never asks the questions does too.
+     */
+    PARTNER_REQUIRED_ANSWER_MISSING(
+            237,
+            HttpStatus.BAD_REQUEST,
+            "The appointment requires an answer to one of its questions, so the sign-up was not taken");
 
     private final Definition definition;
 

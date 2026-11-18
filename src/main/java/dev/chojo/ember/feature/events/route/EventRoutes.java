@@ -936,7 +936,14 @@ public class EventRoutes implements Routes {
                 req.requiresConfirmation(),
                 req.registrationDeadline(),
                 Objects.requireNonNullElse(req.restriction(), RestrictionSelection.empty()),
-                Objects.requireNonNullElse(req.viewRestriction(), RestrictionSelection.empty()));
+                Objects.requireNonNullElse(req.viewRestriction(), RestrictionSelection.empty()),
+                req.registrationLimit(),
+                req.minRegistrations(),
+                req.thresholdDays(),
+                req.queueOrder(),
+                req.registrationDeadlineOffsetHours(),
+                Objects.requireNonNullElse(req.reminderDays(), List.<Integer>of()),
+                req.eventTemplateId());
         var created = batchEventService.createBatch(session.stationId(), batchReq);
         ctx.json(created);
     }
@@ -1052,6 +1059,10 @@ public class EventRoutes implements Routes {
             /** The zone the times of day are meant in, as the browser names it; the station's where left out. */
             @Nullable String timeZone) {}
 
+    /**
+     * A batch of appointments as the batch screen sends it; the fields after the audiences are read as
+     * {@link BatchRequest} describes them.
+     */
     public record BatchCreateRequest(
             @Nullable String name,
             @Nullable String description,
@@ -1063,7 +1074,14 @@ public class EventRoutes implements Routes {
             @Nullable Boolean requiresConfirmation,
             @Nullable Instant registrationDeadline,
             @Nullable RestrictionSelection restriction,
-            @Nullable RestrictionSelection viewRestriction) {}
+            @Nullable RestrictionSelection viewRestriction,
+            @Nullable Integer registrationLimit,
+            @Nullable Integer minRegistrations,
+            @Nullable Integer thresholdDays,
+            @Nullable QueueOrder queueOrder,
+            @Nullable Integer registrationDeadlineOffsetHours,
+            @Nullable List<Integer> reminderDays,
+            @Nullable Integer eventTemplateId) {}
 
     public record BatchFieldEntryDto(
             String name,

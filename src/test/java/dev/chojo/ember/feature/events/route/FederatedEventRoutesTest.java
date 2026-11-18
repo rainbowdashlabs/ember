@@ -10,6 +10,7 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.feature.events.entity.EventRegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.PartnerAgreementOffer;
 import dev.chojo.ember.feature.events.entity.PartnerDocumentToSign;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -112,7 +113,7 @@ class FederatedEventRoutesTest {
 
     @Test
     void aMemberIsRegisteredWithdrawnRestoredAndConfirmedAtTheNamedPartner() {
-        when(events.registerForFederatedEvent(STATION, PARTNER_UID, 4, MEMBER_UID, DAY))
+        when(events.registerForFederatedEvent(STATION, PARTNER_UID, 4, MEMBER_UID, DAY, List.of()))
                 .thenReturn(RegistrationStatus.ACCEPTED);
         var day = body("{\"eventDate\": \"2026-05-01\"}");
 
@@ -129,6 +130,19 @@ class FederatedEventRoutesTest {
         verify(events).withdrawFederatedRegistration(STATION, PARTNER_UID, 4, MEMBER_UID, DAY);
         verify(events).undoFederatedWithdrawal(STATION, PARTNER_UID, 4, MEMBER_UID, DAY);
         verify(events).confirmOwnFederatedMember(STATION, PARTNER_UID, 4, MEMBER_UID, DAY);
+    }
+
+    /** The answers a member gives travel with the sign-up to the station holding the appointment. */
+    @Test
+    void theAnswersTravelWithTheSignUp() {
+        var answers = List.of(new EventRegistrationFieldValue(5, "L"));
+        when(events.registerForFederatedEvent(STATION, PARTNER_UID, 4, MEMBER_UID, DAY, answers))
+                .thenReturn(RegistrationStatus.QUEUED);
+        var signUp = body("{\"eventDate\": \"2026-05-01\", \"answers\": [{\"fieldId\": 5, \"value\": \"L\"}]}");
+
+        var answer = json(harness.request(client -> client.post(REGISTER, signUp, registrar())));
+
+        assertEquals("QUEUED", answer.path("status").asString());
     }
 
     /**
@@ -233,7 +247,7 @@ class FederatedEventRoutesTest {
                 true,
                 null,
                 null);
-        return new RemoteEventRoutes.RemoteEventDetail(event, List.of(), null);
+        return new RemoteEventRoutes.RemoteEventDetail(event, List.of(), null, List.of(), null);
     }
 
     @Test

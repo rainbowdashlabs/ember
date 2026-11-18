@@ -27,7 +27,7 @@ function detail(household: EventGroupSignUp[], deadline: string | null = null): 
     eventGroup: {
       id: 70,
       details: {name: 'Jugendflamme 1', description: null, registrationLimit: null, registrationDeadline: deadline, requiresConfirmation: false, color: null, minRegistrations: null, thresholdDays: null, partRegistrationLimit: null, queueOrder: null},
-      cancelled: false, cancelReason: null, partCount: 1, holding: 0, queued: 0,
+      cancelled: false, cancelReason: null, partCount: 1, holding: 0, queued: 0, pending: 0, firstStart: null, lastEnd: null,
     },
     sets: [{id: 1, eventGroupId: 70, name: 'Teile', minimum: 1, maximum: null, position: 0}],
     parts: [{eventId: 11, setId: 1, name: 'Samstag', startTime: '2099-03-06T08:00:00Z', endTime: '2099-03-06T16:00:00Z', calledOff: false, tookPlace: false, required: false, accepted: 0, places: null}],

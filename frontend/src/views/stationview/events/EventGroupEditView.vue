@@ -48,10 +48,10 @@ import {showToast} from '@/util/toast'
 
 /**
  * Creates or edits an event group: its name, description and sign-up (places, deadline, confirmation),
- * its sets with their minimums, who may see and sign up, and, once it exists, its parts. Saving
- * stores all of it in one request, so a refusal leaves nothing half saved, and hands the sign-up and
- * the audiences down to every part. Changing parts reads only the parts again and leaves unsaved
- * edits in the form alone.
+ * its sets with their minimums, who may see and sign up, how it is shared with partners, and, once it
+ * exists, its parts. Saving stores the event group itself in one request, so a refusal leaves nothing
+ * half saved, and hands the sign-up and the audiences down to every part. Changing parts reads only the
+ * parts again and leaves unsaved edits in the form alone.
  */
 const {t} = useI18n()
 const route = useRoute()
@@ -152,6 +152,7 @@ const {loading, failure} = useAsyncLoader(async () => {
     await federationShare.load(eventGroupFederationPort(eventGroupId.value))
   } else {
     await requirements.load(null)
+    await federationShare.loadPartners()
     await fromTemplate.loadTemplates()
     await takeStartingAppointment()
   }
@@ -251,51 +252,56 @@ function detailsToSave(): EventGroupDetails {
 }
 
 /**
- * The event group this form created, once it did. The settings, documents and files are saved after
- * the group itself; where one of those is refused, the group already exists, and saving again has to
- * change it rather than create a second one.
+ * The event group this form created, once it did. The settings, documents, share and files are saved
+ * after the group itself; where one of those is refused, the group already exists, and saving again has
+ * to change it rather than create a second one.
  */
 const createdEventGroupId = ref<number | null>(null)
 
+/** Creates the event group with everything that goes in the same request, and fills the form from it. */
+async function createEventGroup(drafts: SetRow[]): Promise<number> {
+  const created = await eventGroups.createEventGroup({
+    details: detailsToSave(),
+    sets: drafts,
+    registration: registration.value,
+    view: view.value,
+    questions: savedQuestions(),
+    fields: namedEntries(fields.value),
+    appointmentId: startingAppointment.value?.id ?? null,
+  })
+  createdEventGroupId.value = created.eventGroup.id
+  startingAppointment.value = null
+  fill(created)
+  return created.eventGroup.id
+}
+
+/**
+ * Saves the event group, then its settings, documents and share. A new event group is shared in the
+ * same save, the way a new appointment is; one that is not shared sends nothing about sharing, since
+ * there is nothing to take away. The template's files go last and the form moves to the saved group.
+ */
 async function save() {
   saving.value = true
   saveFailure.value = null
   try {
     const drafts = sets.value.map(set => ({id: set.id, name: set.name, minimum: set.minimum, maximum: set.maximum}))
-    const savedId = eventGroupId.value ?? createdEventGroupId.value
-    if (savedId == null) {
-      const created = await eventGroups.createEventGroup({
-        details: detailsToSave(),
-        sets: drafts,
+    const storedId = eventGroupId.value ?? createdEventGroupId.value
+    const savedId = storedId ?? await createEventGroup(drafts)
+    if (storedId != null) {
+      fill(await eventGroups.updateEventGroup(storedId, detailsToSave(), drafts, {
         registration: registration.value,
         view: view.value,
-        questions: savedQuestions(),
-        fields: namedEntries(fields.value),
-        appointmentId: startingAppointment.value?.id ?? null,
-      })
-      createdEventGroupId.value = created.eventGroup.id
-      startingAppointment.value = null
-      fill(created)
-      await dateSettings.save(created.eventGroup.id)
-      await requirements.save(requirementOwner(created.eventGroup.id))
-      reportGoneFiles(await fromTemplate.attachFiles(created.eventGroup.id))
-      showToast(t('eventGroups.saved'), 'success')
-      await router.replace({name: 'event-group-edit', params: {eventGroupId: created.eventGroup.id}})
-      return
+      }, savedQuestions(), namedEntries(fields.value)))
     }
-    fill(await eventGroups.updateEventGroup(savedId, detailsToSave(), drafts, {
-      registration: registration.value,
-      view: view.value,
-    }, savedQuestions(), namedEntries(fields.value)))
     await dateSettings.save(savedId)
     await requirements.save(requirementOwner(savedId))
-    if (eventGroupId.value == null) {
-      reportGoneFiles(await fromTemplate.attachFiles(savedId))
-      showToast(t('eventGroups.saved'), 'success')
-      await router.replace({name: 'event-group-edit', params: {eventGroupId: savedId}})
-      return
+    if (storedId != null || federationShare.state.federationShared) {
+      await federationShare.save(eventGroupFederationPort(savedId))
     }
-    await federationShare.save(eventGroupFederationPort(savedId))
+    if (eventGroupId.value != null) return
+    reportGoneFiles(await fromTemplate.attachFiles(savedId))
+    showToast(t('eventGroups.saved'), 'success')
+    await router.replace({name: 'event-group-edit', params: {eventGroupId: savedId}})
   } catch (e) {
     saveFailure.value = describeFailure(e, t)
     throw e
@@ -339,7 +345,7 @@ async function save() {
 
           <EventGroupQuestionsCard v-model="questions" compact/>
           <EventGroupFilesSection :event-group-id="eventGroupId" :requirements="requirements" compact/>
-          <EventGroupShareCard v-if="detail" :federation-share="federationShare" :can-federate="canFederate" compact/>
+          <EventGroupShareCard :federation-share="federationShare" :can-federate="canFederate" compact/>
 
           <div class="space-y-3">
             <FailureAlert v-if="saveFailure" :failure="saveFailure"/>

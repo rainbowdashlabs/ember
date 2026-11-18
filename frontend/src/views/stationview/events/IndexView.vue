@@ -14,8 +14,9 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import EventDashboardBody from './indexview/EventDashboardBody.vue'
 import EventDashboardModals from './indexview/EventDashboardModals.vue'
+import EventGroupList from './indexview/EventGroupList.vue'
 import EventFilterBar from './eventshared/EventFilterBar.vue'
-import {useEventDashboard} from './indexview/useEventDashboard'
+import {EVENT_GROUPS_TAB, useEventDashboard} from './indexview/useEventDashboard'
 import {EventKinds, EventStates} from '@/api/events'
 import type {EventBreak, EventSummary} from '@/api/generated/schema'
 import {events} from '@/api'
@@ -33,7 +34,7 @@ const router = useRouter()
 const eventRoutes = useEventRoutes()
 
 const {
-  tab, isPast, searchInput, categoryId, from, to,
+  tab, showsAppointments, isPast, searchInput, categoryId, from, to,
   breaks, categories, templates, overviewFields,
   dates, series, isEmpty,
   loading, failure, reload, loadMore,
@@ -42,7 +43,11 @@ const {
 const tabs = computed(() => [
   {key: EventStates.CURRENT, label: t('events.tabCurrent')},
   {key: EventStates.PAST, label: t('events.tabPast')},
+  ...(eventRoutes.eventGroupCreate ? [{key: EVENT_GROUPS_TAB, label: t('events.tabEventGroups')}] : []),
 ])
+
+/** Whether the tab of event groups is open, which takes the place of the appointments and their filters. */
+const showsEventGroups = computed(() => !showsAppointments.value && !!eventRoutes.eventGroupCreate)
 
 const showBreakModal = ref(false)
 const editingBreak = ref<EventBreak | null>(null)
@@ -159,12 +164,15 @@ async function catchUp() {
       :subtitle="subtitle ?? t('pages.events.subtitle')"
   >
     <div class="space-y-6">
-      <Spinner v-if="loading" size="lg"/>
-      <FailureAlert :failure="failure"/>
-
       <TabBar v-model="tab" :tabs="tabs" linked/>
 
+      <EventGroupList v-if="showsEventGroups"/>
+
+      <Spinner v-if="loading && !showsEventGroups" size="lg"/>
+      <FailureAlert v-if="!showsEventGroups" :failure="failure"/>
+
       <EventFilterBar
+          v-if="!showsEventGroups"
           v-model:search="searchInput"
           v-model:category-id="categoryId"
           v-model:from="from"
@@ -173,7 +181,7 @@ async function catchUp() {
       />
 
       <EventDashboardBody
-          v-if="!loading"
+          v-if="!loading && !showsEventGroups"
           :is-past="isPast"
           :dates="dates"
           :series="series"

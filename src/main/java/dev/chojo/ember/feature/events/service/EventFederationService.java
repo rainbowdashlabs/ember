@@ -25,6 +25,8 @@ import dev.chojo.ember.feature.events.entity.EventFederationShare;
 import dev.chojo.ember.feature.events.entity.EventField;
 import dev.chojo.ember.feature.events.entity.EventPartnerPlaces;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
+import dev.chojo.ember.feature.events.entity.EventRegistrationFieldValue;
+import dev.chojo.ember.feature.events.entity.Places;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -99,6 +101,7 @@ public class EventFederationService implements FederationServer {
 
     private final EventGroupRepository eventGroupRepository;
     private final EventRegistrationService registrationService;
+    private final PartnerQuestionService partnerQuestions;
 
     @Inject
     public EventFederationService(
@@ -118,7 +121,8 @@ public class EventFederationService implements FederationServer {
             MediaLibraryService media,
             Api apiConfig,
             EventGroupRepository eventGroupRepository,
-            EventRegistrationService registrationService) {
+            EventRegistrationService registrationService,
+            PartnerQuestionService partnerQuestions) {
         this.federationRepository = federationRepository;
         this.federationService = federationService;
         this.transport = transport;
@@ -136,6 +140,7 @@ public class EventFederationService implements FederationServer {
         this.apiConfig = apiConfig;
         this.eventGroupRepository = eventGroupRepository;
         this.registrationService = registrationService;
+        this.partnerQuestions = partnerQuestions;
     }
 
     /**
@@ -220,10 +225,35 @@ public class EventFederationService implements FederationServer {
      */
     public EventFederationRegistration registerFederated(
             int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
+        return registerFederated(eventId, partnerId, remoteMemberId, eventDate, null);
+    }
+
+    /**
+     * Registers a federated member for an event occurrence with their answers to its questions.
+     *
+     * <p>The answers are checked before anything is written, as for this station's own members, and
+     * stored with a registration this creates. A member who already holds or waits for a place keeps
+     * the answers they gave. A partner that sends no answers is held to the questions all the same, see
+     * {@link PartnerQuestionService}.
+     *
+     * @param eventId        the event ID
+     * @param partnerId      the federation partner ID
+     * @param remoteMemberId the remote member UUID
+     * @param eventDate      the event occurrence date
+     * @param answers        the answers as sent, or null where the partner sent none
+     * @return the created registration
+     */
+    public EventFederationRegistration registerFederated(
+            int eventId,
+            int partnerId,
+            UUID remoteMemberId,
+            LocalDate eventDate,
+            @Nullable List<EventRegistrationFieldValue> answers) {
         var event =
                 crudService.findById(eventId).orElseThrow(EventRefusal.EVENT_NOT_HERE_FOR_PARTNER_REGISTRATION::raise);
         registrationService.requireOwnSignUp(eventId);
         requireOpenForRegistration(event, eventDate);
+        var resolved = partnerQuestions.resolve(eventId, answers);
         boolean somebodyChooses = event.requiresConfirmation()
                 || federationRepository.findPartnerPlaces(eventId, partnerId).partnerConfirms();
         var moved = new ArrayList<EventRegistration>();
@@ -238,6 +268,7 @@ public class EventFederationService implements FederationServer {
                     : registrationService.statusForVisitor(event, eventDate);
             var created =
                     federationRepository.createRegistration(eventId, partnerId, remoteMemberId, eventDate, decided);
+            partnerQuestions.store(created.id(), resolved);
             if (decided == RegistrationStatus.QUEUED) {
                 registrationService.enqueueVisitor(event, eventDate, created.id(), false);
                 moved.addAll(registrationService.fillLocked(eventId, eventDate));
@@ -737,8 +768,9 @@ public class EventFederationService implements FederationServer {
     }
 
     /**
-     * One shared appointment with the questions it asks openly and the places it set aside for the
-     * partner, where it set any aside.
+     * One shared appointment with the questions it asks openly, the places it set aside for the
+     * partner, where it set any aside, the registration questions a partner's member answers, and how
+     * the places of its date in view stand.
      *
      * @param partner the partnership the request arrived on
      * @param eventId the appointment
@@ -747,9 +779,8 @@ public class EventFederationService implements FederationServer {
     public RemoteEventRoutes.RemoteEventDetail serveEvent(ServingPartner partner, int eventId) {
         requireShared(partner, eventId);
         var event = crudService.findById(eventId).orElseThrow(EventRefusal.SHARED_EVENT_NOT_HERE::raise);
-        var fields = fieldService
-                .findByEvent(eventId, occurrenceCalendar.dateInView(event).orElse(null))
-                .stream()
+        var dateInView = occurrenceCalendar.dateInView(event);
+        var fields = fieldService.findByEvent(eventId, dateInView.orElse(null)).stream()
                 .filter(AppointmentField::isPublic)
                 .map(EventField::of)
                 .toList();
@@ -760,7 +791,16 @@ public class EventFederationService implements FederationServer {
                                 .findPartSummaries(partner.servingStationId())
                                 .get(eventId)),
                 fields,
-                places.partnerConfirms() ? new RemoteEventRoutes.RemotePlaces(places.slotBudget(), true) : null);
+                places.partnerConfirms() ? new RemoteEventRoutes.RemotePlaces(places.slotBudget(), true) : null,
+                partnerQuestions.askedOfPartners(eventId).stream()
+                        .map(RemoteEventRoutes.RemoteQuestion::of)
+                        .toList(),
+                dateInView.map(date -> datePlaces(eventId, date)).orElse(null));
+    }
+
+    private RemoteEventRoutes.RemoteDatePlaces datePlaces(int eventId, LocalDate date) {
+        Places counted = registrationService.placesOf(eventId, date);
+        return new RemoteEventRoutes.RemoteDatePlaces(date, counted.limit(), counted.accepted(), counted.queued());
     }
 
     /**
@@ -815,7 +855,8 @@ public class EventFederationService implements FederationServer {
     private EventFederationRegistration serveRegistration(
             ServingPartner partner, int eventId, RemoteEventRoutes.RemoteRegistrationRequest request) {
         requireShared(partner, eventId);
-        return registerFederated(eventId, partner.partnerId(), request.remoteMemberId(), request.eventDate());
+        return registerFederated(
+                eventId, partner.partnerId(), request.remoteMemberId(), request.eventDate(), request.answers());
     }
 
     private void serveWithdrawal(
@@ -1198,16 +1239,22 @@ public class EventFederationService implements FederationServer {
      * telling them something the other station never said. A partner that cannot be reached is a
      * registration that was not taken.
      *
+     * @param answers the member's answers to the questions the partner asks, empty where it asks none
      * @return the status the partner recorded
      */
     public RegistrationStatus registerForFederatedEvent(
-            int stationId, UUID partnerStationUid, int eventId, UUID remoteMemberId, LocalDate eventDate) {
+            int stationId,
+            UUID partnerStationUid,
+            int eventId,
+            UUID remoteMemberId,
+            LocalDate eventDate,
+            List<EventRegistrationFieldValue> answers) {
         var partner = entityResolver.requireActivePartner(stationId, partnerStationUid);
         var registered = answeredOr(
                 () -> transport.send(
                         partner,
                         RemoteEventRoutes.REGISTER.at(eventId),
-                        new RemoteEventRoutes.RemoteRegistrationRequest(remoteMemberId, eventDate),
+                        new RemoteEventRoutes.RemoteRegistrationRequest(remoteMemberId, eventDate, answers),
                         EventFederationRegistration.class),
                 EventRefusal.FEDERATED_REGISTRATION_NOT_TAKEN);
         log.info(

@@ -194,7 +194,8 @@ public class RemoteEventGroupRoutes implements Routes {
          * @return the summary
          */
         public EventGroupSummary toSummary() {
-            return new EventGroupSummary(id, details, cancelled, cancelReason, partCount, holding, queued);
+            return new EventGroupSummary(
+                    id, details, cancelled, cancelReason, partCount, holding, queued, 0, null, null);
         }
     }
 

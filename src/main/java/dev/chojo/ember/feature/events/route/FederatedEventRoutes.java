@@ -15,6 +15,8 @@ import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventField;
+import dev.chojo.ember.feature.events.entity.EventRegistrationField;
+import dev.chojo.ember.feature.events.entity.EventRegistrationFieldValue;
 import dev.chojo.ember.feature.events.entity.PartnerAgreementOffer;
 import dev.chojo.ember.feature.events.entity.PartnerDocumentToSign;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -207,19 +209,31 @@ public class FederatedEventRoutes implements Routes {
      * A partner's appointment as this station's screens read it: what the partner sent, with its
      * questions under the shared type names.
      *
-     * @param places what the partner set aside for this station, or {@code null} where it decides as
-     *               it always did
+     * @param places     what the partner set aside for this station, or {@code null} where it decides as
+     *                   it always did
+     * @param questions  the registration questions a member answers on signing up, as this station's own
+     *                   sign-up form reads them
+     * @param datePlaces how the places of the date in view stand, or {@code null} where the partner said
+     *                   nothing about them
      */
     public record PartnerEventDetail(
-            SharedEvent event, List<AppointmentField> publicFields, RemoteEventRoutes.@Nullable RemotePlaces places) {
+            SharedEvent event,
+            List<AppointmentField> publicFields,
+            RemoteEventRoutes.@Nullable RemotePlaces places,
+            List<EventRegistrationField> questions,
+            RemoteEventRoutes.@Nullable RemoteDatePlaces datePlaces) {
 
-        static PartnerEventDetail of(RemoteEventRoutes.RemoteEventDetail detail) {
+        public static PartnerEventDetail of(RemoteEventRoutes.RemoteEventDetail detail) {
             return new PartnerEventDetail(
                     detail.event(),
                     detail.publicFields().stream()
                             .map(EventField::appointmentField)
                             .toList(),
-                    detail.places());
+                    detail.places(),
+                    detail.questions().stream()
+                            .map(question -> question.asField(detail.event().id()))
+                            .toList(),
+                    detail.datePlaces());
         }
     }
 
@@ -298,8 +312,14 @@ public class FederatedEventRoutes implements Routes {
                             content = @OpenApiContent(from = FederatedRegistrationAnswer.class)))
     private void federatedRegister(Context ctx) {
         var fed = answeredFor(ctx);
+        var answers = ctx.bodyAsClass(FederatedRegBody.class).answers();
         var status = eventFederationService.registerForFederatedEvent(
-                fed.stationId(), fed.partnerUid(), fed.eventId(), fed.remoteMemberId(), fed.eventDate());
+                fed.stationId(),
+                fed.partnerUid(),
+                fed.eventId(),
+                fed.remoteMemberId(),
+                fed.eventDate(),
+                answers == null ? List.of() : answers);
         var toSign = signatures.registered(
                 StationSession.from(ctx), fed.partnerUid(), fed.eventId(), fed.eventDate(), fed.remoteMemberId());
         ctx.status(HttpStatus.CREATED).json(new FederatedRegistrationAnswer(status, toSign));
@@ -565,8 +585,15 @@ public class FederatedEventRoutes implements Routes {
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
+    /**
+     * A member and date at a partner's appointment.
+     *
+     * @param answers the member's answers to the appointment's questions, given when signing up
+     */
     public record FederatedRegBody(
-            String eventDate, @Nullable UUID memberId) {}
+            String eventDate,
+            @Nullable UUID memberId,
+            @Nullable List<EventRegistrationFieldValue> answers) {}
 
     public record StatusResponse(String status) {}
 

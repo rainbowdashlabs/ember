@@ -14,6 +14,8 @@ import MutedText from '@/components/typography/MutedText.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import EditButton from '@/components/button/EditButton.vue'
+import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
@@ -24,11 +26,12 @@ import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useEndFollowsStart} from '@/composables/useEndFollowsStart'
+import {partWhen} from '@/util/eventGroupChoice'
 import {formatDateTime, localInputToInstant} from '@/util/format'
 
 /**
- * The parts of an event group: each with the set it belongs to, which can be changed, and a way to take it
- * out of the event group. A part can be marked as required, which every sign-up then has to hold; the
+ * The parts of an event group: each with when it runs, whether it was called off, a link to edit its
+ * appointment, the set it belongs to, which can be changed, and a way to take it out of the event group. A part can be marked as required, which every sign-up then has to hold; the
  * set's minimum rises to the number of required parts where it asks for fewer. New parts are an
  * existing one-time appointment, or a new appointment created straight into the event group, which
  * announces nothing on its own.
@@ -144,8 +147,11 @@ function createNew() {
     <ul class="divide-y divide-(--border)">
       <li v-for="part in detail.parts" :key="part.eventId" class="flex flex-wrap items-center justify-between gap-2 py-2">
         <div class="min-w-0">
-          <p class="font-medium truncate">{{ part.name }}</p>
-          <MutedText tag="p" size="sm">{{ formatDateTime(part.startTime, stationTimezone) }}</MutedText>
+          <p class="flex flex-wrap items-center gap-2">
+            <span class="font-medium truncate" :class="{'line-through text-(--text-muted)': part.calledOff}">{{ part.name }}</span>
+            <ErrorBadge v-if="part.calledOff" :data-testid="`event-group-part-called-off-${part.eventId}`">{{ t('eventGroups.partCalledOff') }}</ErrorBadge>
+          </p>
+          <MutedText tag="p" size="sm" :data-testid="`event-group-part-when-${part.eventId}`">{{ partWhen(part, stationTimezone, t) }}</MutedText>
         </div>
         <div class="flex items-center gap-2">
           <FieldLabel inline>
@@ -161,6 +167,7 @@ function createNew() {
           >
             <option v-for="set in detail.sets" :key="set.id" :value="set.id">{{ set.name }}</option>
           </SelectInput>
+          <EditButton :to="{name: 'event-edit', params: {id: part.eventId}}" :data-testid="`event-group-part-edit-${part.eventId}`"/>
           <IconButton :icon="['fas', 'link-slash']" :label="t('eventGroups.removePart')" :disabled="busy" @click="askRemove(part.eventId)"/>
         </div>
       </li>

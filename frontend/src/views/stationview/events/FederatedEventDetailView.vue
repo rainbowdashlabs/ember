@@ -14,10 +14,12 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
 import {partnerEventCommentSource} from '@/api/comments'
 import {
+  RegistrationStatus,
   StationPermission,
   type PartnerAgreementOffer,
   type PartnerDocumentToSign,
   type PartnerEventDetail,
+  type EventRegistrationFieldValue,
   type RemoteMemberRegistration,
 } from '@/api/generated/schema'
 import {events} from '@/api'
@@ -35,6 +37,9 @@ import AgreementOfferCard from './federatedeventdetailview/AgreementOfferCard.vu
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CommentSection from '@/components/comment/CommentSection.vue'
 import PartnerSigningStep from './eventshared/PartnerSigningStep.vue'
+import RegistrationFieldsModal from './eventshared/RegistrationFieldsModal.vue'
+import {usePartnerSignUp} from './federatedeventdetailview/usePartnerSignUp'
+import {partnerDateState} from './federatedeventdetailview/partnerDatePlaces'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -152,15 +157,16 @@ function selectedUidForRegister(): string | null {
   return selectedMemberUid.value || null
 }
 
-const {running: registering, failure: registrationFailure, run: runRegistration} = useAsyncAction(
-    async (kind: 'register' | 'withdraw', uid: string) => {
+const {running: registering, failure: registrationFailure, run: runRegistration, runOrReject} = useAsyncAction(
+    async (kind: 'register' | 'withdraw', uid: string, answers: EventRegistrationFieldValue[] = []) => {
       if (kind === 'register') {
-        const answer = await events.registerForFederatedEvent(stationUid.value, eventId.value, getEventDate(), uid)
+        const answer = await events.registerForFederatedEvent(stationUid.value, eventId.value, getEventDate(), uid, answers)
         myRegistrations.value.push({
           eventId: eventId.value, remoteMemberId: uid,
           eventDate: getEventDate(), status: answer.status, partnerId: 0,
         })
         toSign.value = answer.toSign
+        if (answer.status === RegistrationStatus.QUEUED) showToast(t('eventsUpcoming.queuedAtPartner'), 'info')
       } else {
         await events.withdrawFederatedRegistration(stationUid.value, eventId.value, getEventDate(), uid)
         myRegistrations.value = myRegistrations.value.filter(r => !(r.eventId === eventId.value && r.remoteMemberId === uid))
@@ -185,10 +191,17 @@ async function undoWithdrawal(uid: string) {
   await refreshMyRegistrations()
 }
 
+const {open: askingQuestions, start: startSignUp, answer: answerQuestions} = usePartnerSignUp(
+    computed(() => detail.value?.questions ?? []),
+    (uid, answers) => runOrReject('register', uid, answers))
+
+/** How a sign-up for the date would land: on a full date the button offers the waiting list. */
+const dateState = computed(() => partnerDateState(detail.value, getEventDate()))
+
 function registerForEvent() {
   const uid = selectedUidForRegister()
   if (!uid) return
-  return runRegistration('register', uid)
+  return startSignUp(uid)
 }
 
 function withdrawRegistration(uid: string) {
@@ -251,6 +264,8 @@ watch(() => [route.params.stationUid, route.params.eventId], () => {
             :registering="registering"
             :we-decide="(ourPlaces?.decidesItself ?? false) && hasPermission(StationPermission.EVENT_REGISTRATION)"
             :places-summary="placesSummary"
+            :full="dateState.full"
+            :joins-queue="dateState.joinsQueue"
             @register="registerForEvent"
             @withdraw="withdrawRegistration"
             @confirm="confirmOwn"
@@ -271,5 +286,12 @@ watch(() => [route.params.stationUid, route.params.eventId], () => {
       </EventGroupFrame>
     </div>
     <PartnerSigningStep v-if="signingStepOpen" v-model="signingStepOpen" :documents="toSign"/>
+    <RegistrationFieldsModal
+        v-model="askingQuestions"
+        :fields="detail?.questions ?? []"
+        :busy="registering"
+        :failure="registrationFailure"
+        @confirm="answerQuestions"
+    />
   </ViewContent>
 </template>

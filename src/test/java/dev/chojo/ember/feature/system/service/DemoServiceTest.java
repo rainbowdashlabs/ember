@@ -42,6 +42,7 @@ import dev.chojo.ember.feature.events.repository.EventGroupRepository;
 import dev.chojo.ember.feature.events.repository.EventGroupSettingsRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.events.repository.PartnerAnswerRepository;
 import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
 import dev.chojo.ember.feature.events.service.EventAttachmentService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
@@ -53,6 +54,7 @@ import dev.chojo.ember.feature.events.service.EventGroupService;
 import dev.chojo.ember.feature.events.service.EventGroupSettingsService;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
+import dev.chojo.ember.feature.events.service.PartnerQuestionService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.InventoryShareRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
@@ -345,7 +347,9 @@ class DemoServiceTest extends RepositoryTestBase {
                 mock(MediaLibraryService.class),
                 new Api(),
                 new EventGroupRepository(),
-                eventServices.registration());
+                eventServices.registration(),
+                new PartnerQuestionService(
+                        new EventRegistrationFieldRepository(), new PartnerAnswerRepository(), memberEligibility));
         var newsFederationService = new NewsFederationService(
                 newsFederationRepo,
                 federationService,

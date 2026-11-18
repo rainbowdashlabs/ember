@@ -158,6 +158,7 @@ public class EventHandoverRepository {
                     .update();
         }
         moveAnswersOfRegistrations(source, target, span);
+        moveAnswersOfPartnerRegistrations(source, target, span);
         moveTakeovers(source, target, span);
     }
 
@@ -248,6 +249,25 @@ public class EventHandoverRepository {
                                   AND copy.position = original.position
                                   AND copy.name = original.name
                 WHERE r.id = v.registration_id
+                  AND r.event_id = :target
+                  AND %s
+                  AND original.id = v.field_id
+                  AND original.event_id = :source;""", within("r.event_date", span))
+                .single(bound(call().bind("source", source).bind("target", target), span))
+                .update();
+    }
+
+    private static void moveAnswersOfPartnerRegistrations(int source, int target, DateSpan span) {
+        query("""
+                UPDATE event_federation_registration_answer v
+                SET field_id = copy.id
+                FROM event_federation_registration r,
+                     event_registration_field original
+                         JOIN event_registration_field copy
+                              ON copy.event_id = :target
+                                  AND copy.position = original.position
+                                  AND copy.name = original.name
+                WHERE r.id = v.federation_registration_id
                   AND r.event_id = :target
                   AND %s
                   AND original.id = v.field_id
