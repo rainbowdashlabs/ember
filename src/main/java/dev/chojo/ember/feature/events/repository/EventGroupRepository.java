@@ -406,7 +406,7 @@ public class EventGroupRepository {
                 SELECT 1 FROM event_partner_places WHERE event_id = :event_id
                 UNION ALL
                 SELECT 1 FROM event_federation_registration
-                WHERE event_id = :event_id AND status IN ('PENDING', 'ACCEPTED')
+                WHERE event_id = :event_id AND status IN ('PENDING', 'ACCEPTED', 'QUEUED')
                 LIMIT 1;""", call().bind("event_id", eventId));
     }
 
@@ -597,8 +597,8 @@ public class EventGroupRepository {
     }
 
     /**
-     * Whether an appointment holds sign-ups of its own that still stand: waiting or accepted, and
-     * not placed by an appointment field.
+     * Whether an appointment holds sign-ups of its own that still stand: waiting for a decision,
+     * accepted or on the waiting list, and not placed by an appointment field.
      *
      * @param eventId the appointment
      * @return true where somebody is signed up for it
@@ -608,7 +608,7 @@ public class EventGroupRepository {
                 SELECT 1
                 FROM event_registration
                 WHERE event_id = :event_id
-                  AND status IN ('PENDING', 'ACCEPTED')
+                  AND status IN ('PENDING', 'ACCEPTED', 'QUEUED')
                   AND NOT from_field
                 LIMIT 1;""", call().bind("event_id", eventId));
     }

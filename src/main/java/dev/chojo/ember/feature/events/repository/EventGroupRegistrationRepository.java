@@ -117,7 +117,8 @@ public class EventGroupRegistrationRepository {
     }
 
     /**
-     * The members whose sign-up for an event group holds or waits for a place.
+     * The members whose sign-up for an event group still stands: it holds a place, waits for a decision
+     * or waits on the waiting list.
      *
      * @param eventGroupId the event group
      * @return those members
@@ -125,7 +126,7 @@ public class EventGroupRegistrationRepository {
     public List<Integer> findHoldingMemberIds(int eventGroupId) {
         return query("""
                 SELECT member_id FROM event_group_registration
-                WHERE event_group_id = :event_group_id AND status IN ('PENDING', 'ACCEPTED')
+                WHERE event_group_id = :event_group_id AND status IN ('PENDING', 'ACCEPTED', 'QUEUED')
                 ORDER BY member_id;""")
                 .single(call().bind("event_group_id", eventGroupId))
                 .map(row -> row.getInt("member_id"))

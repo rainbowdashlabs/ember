@@ -182,11 +182,12 @@ public class EventGroupSignUpTable {
                 0, marked(values, parts, Set.copyOf(signUp.standing().parts())));
     }
 
-    /** A sign-up the table lists: waiting, accepted or turned down; withdrawn and declined ones are left out. */
+    /**
+     * A sign-up the table lists: waiting for a decision, accepted, on the waiting list or turned down;
+     * withdrawn and declined ones are left out.
+     */
     private static boolean standing(@Nullable RegistrationStatus status) {
-        return status == RegistrationStatus.PENDING
-                || status == RegistrationStatus.ACCEPTED
-                || status == RegistrationStatus.DENIED;
+        return status != null && (status.standing() || status == RegistrationStatus.DENIED);
     }
 
     /** The status as the table's status column holds it, for the station's own sign-ups and partners' alike. */

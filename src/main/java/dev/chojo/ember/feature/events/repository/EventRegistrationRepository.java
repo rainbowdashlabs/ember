@@ -42,7 +42,7 @@ public class EventRegistrationRepository {
      * ({@link #withdrawOnDates}) carries no previous status at all.
      */
     private static final String GIVEN_ANSWER =
-            "(er.status <> 'WITHDRAWN' OR er.previous_status IN ('PENDING', 'ACCEPTED'))";
+            "(er.status <> 'WITHDRAWN' OR er.previous_status IN ('PENDING', 'ACCEPTED', 'QUEUED'))";
 
     private static final String COLUMNS =
             "id, event_id, member_id, event_date, status, created_at, created_by, status_changed_at, previous_status, from_field, "
@@ -462,8 +462,9 @@ public class EventRegistrationRepository {
     /**
      * Withdraws every place still held on dates an appointment no longer falls on.
      *
-     * <p>Pending and confirmed places are withdrawn, whoever gave them, a question of the appointment
-     * included; a refusal or a denial already says the member is not coming and stays as it is. The
+     * <p>Pending, confirmed and waiting places are withdrawn, whoever gave them, a question of the
+     * appointment included, and whoever waited leaves the waiting list with it; a refusal or a denial already
+     * says the member is not coming and stays as it is. The
      * rows are kept and marked rather than removed, so whoever runs the appointment can still see who
      * had been down for the day. Nothing is remembered to put back: the member did not give the place
      * up, the day went away, so there is no answer an undo could restore.
@@ -482,7 +483,7 @@ public class EventRegistrationRepository {
                     from_field        = FALSE
                 WHERE event_id = :event_id
                   AND event_date = ANY(:dates)
-                  AND status IN ('PENDING', 'ACCEPTED')
+                  AND status IN ('PENDING', 'ACCEPTED', 'QUEUED')
                 RETURNING %s;""", COLUMNS)
                 .single(call().bind("event_id", eventId).bind("dates", List.copyOf(dates), PostgreSqlTypes.DATE))
                 .map(EventRegistration.map())
@@ -494,7 +495,8 @@ public class EventRegistrationRepository {
      * on, since they are for the same occasion.
      *
      * <p>A member who already has a row on the new day keeps that one, and their row on the old day
-     * stays behind.
+     * stays behind. Whoever waited on the old day waits on the new one, behind those already waiting
+     * there.
      *
      * @param eventId the appointment
      * @param from    the day it fell on
@@ -503,18 +505,28 @@ public class EventRegistrationRepository {
      */
     public int moveDate(int eventId, LocalDate from, LocalDate to) {
         return query("""
-                UPDATE event_registration er
-                SET event_date = :to
-                WHERE er.event_id = :event_id
-                  AND er.event_date = :from
-                  AND NOT EXISTS (SELECT 1
-                                  FROM event_registration taken
-                                  WHERE taken.event_id = er.event_id
-                                    AND taken.member_id = er.member_id
-                                    AND taken.event_date = :to);""")
+                WITH moved AS (UPDATE event_registration er
+                               SET event_date = :to
+                               WHERE er.event_id = :event_id
+                                 AND er.event_date = :from
+                                 AND NOT EXISTS (SELECT 1
+                                                 FROM event_registration taken
+                                                 WHERE taken.event_id = er.event_id
+                                                   AND taken.member_id = er.member_id
+                                                   AND taken.event_date = :to)
+                               RETURNING er.id),
+                     waiting AS (UPDATE registration_queue rq
+                                 SET event_date = :to,
+                                     position   = rq.position + (SELECT coalesce(max(t.position), 0)
+                                                                 FROM registration_queue t
+                                                                 WHERE t.event_id = :event_id
+                                                                   AND t.event_date = :to)
+                                 WHERE rq.registration_id IN (SELECT id FROM moved))
+                SELECT count(*) AS moved FROM moved;""")
                 .single(call().bind("event_id", eventId).bind("from", from).bind("to", to))
-                .update()
-                .rows();
+                .map(row -> row.getInt("moved"))
+                .first()
+                .orElse(0);
     }
 
     /**
@@ -534,7 +546,7 @@ public class EventRegistrationRepository {
                         WHERE event_id = :event_id
                           AND event_date = :event_date
                           AND member_id = :member_id
-                          AND status IN ('PENDING', 'ACCEPTED');""")
+                          AND status IN ('PENDING', 'ACCEPTED', 'QUEUED');""")
                 .single(call().bind("event_id", eventId)
                         .bind("event_date", eventDate)
                         .bind("member_id", memberId)
@@ -651,7 +663,48 @@ public class EventRegistrationRepository {
     }
 
     /**
-     * Every date from one day on each member holds a place on, pending or accepted.
+     * Finds the members with a standing sign-up, holding a place or waiting on the waiting list, on any
+     * date of an event from one day on. They are the ones to tell when the event changes or is called
+     * off, since whoever waits may still move up.
+     *
+     * @param eventId the event ID
+     * @param from    the first date that counts
+     * @return the member IDs, each once
+     */
+    public List<Integer> findConcernedMemberIdsFrom(int eventId, LocalDate from) {
+        return query("""
+                SELECT DISTINCT member_id
+                FROM event_registration
+                WHERE event_id = :id
+                  AND event_date >= :from
+                  AND status IN ('PENDING', 'ACCEPTED', 'QUEUED');""")
+                .single(call().bind("id", eventId).bind("from", from))
+                .map(row -> row.getInt("member_id"))
+                .all();
+    }
+
+    /**
+     * Finds the members with a standing sign-up, holding a place or waiting on the waiting list, on one
+     * date of an event.
+     *
+     * @param eventId   the event ID
+     * @param eventDate the date
+     * @return the member IDs, each once
+     */
+    public List<Integer> findConcernedMemberIds(int eventId, LocalDate eventDate) {
+        return query("""
+                SELECT DISTINCT member_id
+                FROM event_registration
+                WHERE event_id = :id
+                  AND event_date = :event_date
+                  AND status IN ('PENDING', 'ACCEPTED', 'QUEUED');""")
+                .single(call().bind("id", eventId).bind("event_date", eventDate))
+                .map(row -> row.getInt("member_id"))
+                .all();
+    }
+
+    /**
+     * Every date from one day on each member holds or waits for a place on.
      *
      * @param eventId the event ID
      * @param from    the first date looked at
@@ -664,7 +717,7 @@ public class EventRegistrationRepository {
                 FROM event_registration
                 WHERE event_id = :id
                   AND event_date >= :from
-                  AND status IN ('PENDING', 'ACCEPTED')
+                  AND status IN ('PENDING', 'ACCEPTED', 'QUEUED')
                 ORDER BY event_date, member_id;""")
                 .single(call().bind("id", eventId).bind("from", from))
                 .map(row -> Map.entry(row.getInt("member_id"), row.getObject("event_date", LocalDate.class)))
@@ -675,7 +728,7 @@ public class EventRegistrationRepository {
     }
 
     /**
-     * The first date from one day on each member holds a place on, pending or accepted.
+     * The first date from one day on each member holds or waits for a place on.
      *
      * @param eventId the event ID
      * @param from    the first date looked at
@@ -688,7 +741,7 @@ public class EventRegistrationRepository {
                 FROM event_registration
                 WHERE event_id = :id
                   AND event_date >= :from
-                  AND status IN ('PENDING', 'ACCEPTED')
+                  AND status IN ('PENDING', 'ACCEPTED', 'QUEUED')
                 GROUP BY member_id
                 ORDER BY first_date, member_id;""")
                 .single(call().bind("id", eventId).bind("from", from))

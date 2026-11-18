@@ -328,6 +328,7 @@ public class NotificationText {
             case "DENIED", "DECLINED", "REJECTED", "CANCELLED" -> "✗";
             case "PENDING", "REQUESTED", "ANNOUNCED" -> "…";
             case "WITHDRAWN" -> "↶";
+            case "QUEUED" -> "⧗";
             default -> "";
         };
     }

@@ -128,17 +128,22 @@ public class EventGroupSignUpRules {
         return eventGroup.details().requiresConfirmation() ? RegistrationStatus.PENDING : RegistrationStatus.ACCEPTED;
     }
 
-    /** The status a part or sign-up given up ends with: a held place is withdrawn, a waiting one declined. */
+    /**
+     * The status a part or sign-up given up ends with: a held place or a place on the waiting list is
+     * withdrawn, a sign-up still waiting for a decision declined.
+     */
     static RegistrationStatus givenUp(RegistrationStatus status) {
-        return status == RegistrationStatus.ACCEPTED ? RegistrationStatus.WITHDRAWN : RegistrationStatus.DECLINED;
+        return status == RegistrationStatus.ACCEPTED || status == RegistrationStatus.QUEUED
+                ? RegistrationStatus.WITHDRAWN
+                : RegistrationStatus.DECLINED;
     }
 
     /**
-     * Whether a part's registration counts for the rules: it holds or waits for a place, or the whole
-     * sign-up was turned down together with it.
+     * Whether a part's registration counts for the rules: it still stands, on the waiting list
+     * included, or the whole sign-up was turned down together with it.
      */
     static boolean counts(RegistrationStatus part, RegistrationStatus signUp) {
-        return HOLDING.contains(part) || (part == RegistrationStatus.DENIED && signUp == RegistrationStatus.DENIED);
+        return part.standing() || (part == RegistrationStatus.DENIED && signUp == RegistrationStatus.DENIED);
     }
 
     /** Locks the parts of an event group in ascending order and reads them by id. */

@@ -291,6 +291,20 @@ class EventChangeNotifierTest extends RepositoryTestBase {
                 .tellPartners(any(), eq(today.plusDays(3)), eq("TIME,DESCRIPTION"), isNull(), eq("20:00"), eq(true));
     }
 
+    /** Whoever waits on the waiting list may still move up, so they hear of the change like a place holder. */
+    @Test
+    void whoeverWaitsIsToldOfTheChangeOnce() {
+        var event = oneOff(true);
+        register(event, anna, today.plusDays(3), RegistrationStatus.ACCEPTED);
+        register(event, ben, today.plusDays(3), RegistrationStatus.QUEUED);
+
+        changeWhole(event, "Anders", 2, telling(null, EventChangePart.DESCRIPTION));
+
+        var toBen = sent().get(ben.id());
+        assertEquals(1, toBen.size());
+        assertEquals(NotificationType.EVENT_CHANGED, toBen.getFirst().type());
+    }
+
     /**
      * Without registration the notice goes to everybody who sees the appointment and did not decline;
      * a place holder who cannot see it hears only about the move.

@@ -24,6 +24,7 @@
     "status.DENIED": "Abgelehnt",
     "status.DECLINED": "Abgemeldet",
     "status.WITHDRAWN": "Zurückgezogen",
+    "status.QUEUED": "Nachrückliste",
     "status.NONE": "Nicht angemeldet",
     "status.ANNOUNCED": "Angekündigt",
     "status.RECEIVED": "Empfangen",

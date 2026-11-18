@@ -24,6 +24,7 @@
     "status.DENIED": "Denied",
     "status.DECLINED": "Declined",
     "status.WITHDRAWN": "Withdrawn",
+    "status.QUEUED": "Waiting list",
     "status.NONE": "Not registered",
     "status.ANNOUNCED": "Announced",
     "status.RECEIVED": "Received",
