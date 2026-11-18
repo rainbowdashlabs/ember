@@ -4,14 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {
-    MemberRuleResponse,
-    RuleNode,
-    RuleField,
-    RuleOperatorOption,
-    RuleOwners,
-    RulePreview,
-} from './generated/schema'
+import type {MemberRuleResponse, RuleField, RuleNode, RuleOperatorTable, RuleOwners, RulePreview} from './generated/schema'
 
 /** Whether a rule fills a group or a tag; the two live under their own paths. */
 export type RuleOwnerKind = 'group' | 'tag'
@@ -33,8 +26,8 @@ export async function listFields(): Promise<RuleField[]> {
 }
 
 /** Every operator a check can use, per subject and field type. */
-export async function listOperators(): Promise<RuleOperatorOption[]> {
-    const res = await client.get<RuleOperatorOption[]>('/member-rules/operators')
+export async function listOperators(): Promise<RuleOperatorTable> {
+    const res = await client.get<RuleOperatorTable>('/member-rules/operators')
     return res.data
 }
 

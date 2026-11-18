@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.notifications.service.NotificationVisibility;
+import dev.chojo.ember.feature.push.entity.PushKind;
 import dev.chojo.ember.feature.push.repository.PushOutboxRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -62,7 +63,7 @@ public class PushMessages {
      * @return the push, empty when what it was about is gone and there is nothing left to say
      */
     public Optional<PushMessage> render(PushOutboxRepository.Due due, int readerAccountId) {
-        if ("TEST".equals(due.kind())) {
+        if (due.kind() == PushKind.TEST) {
             String locale = localeOf(readerAccountId);
             return Optional.of(new PushMessage(
                     text.resolveLocalized(locale, SECTION, "testTitle", null),
@@ -72,7 +73,7 @@ public class PushMessages {
                     PushMessage.DEFAULT_TTL));
         }
         Integer messageId = due.messageId();
-        if ("MESSAGE".equals(due.kind()) && messageId != null) {
+        if (due.kind() == PushKind.MESSAGE && messageId != null) {
             return messagePushes
                     .forReader(messageId, readerAccountId)
                     .map(found -> new PushMessage(

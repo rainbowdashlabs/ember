@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.push.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import dev.chojo.ember.feature.push.entity.PushKind;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
@@ -33,7 +34,7 @@ public class PushOutboxRepository {
      *
      * @param id             the row
      * @param subscriptionId the browser it goes to
-     * @param kind           {@code TEST}, {@code NOTIFICATION} or {@code MESSAGE}
+     * @param kind           what the push is about
      * @param notificationId the notification it is about, for {@code NOTIFICATION}
      * @param messageId      the message it is about, for {@code MESSAGE}
      * @param attempts       how often sending was tried before
@@ -42,7 +43,7 @@ public class PushOutboxRepository {
     public record Due(
             long id,
             int subscriptionId,
-            String kind,
+            PushKind kind,
             @Nullable Integer notificationId,
             @Nullable Integer messageId,
             int attempts,
@@ -50,8 +51,8 @@ public class PushOutboxRepository {
 
     /** Queues a test push to one browser. */
     public void enqueueTest(int subscriptionId) {
-        query("INSERT INTO push_outbox (subscription_id, kind) VALUES (:subscription_id, 'TEST');")
-                .single(call().bind("subscription_id", subscriptionId))
+        query("INSERT INTO push_outbox (subscription_id, kind) VALUES (:subscription_id, :kind);")
+                .single(call().bind("subscription_id", subscriptionId).bind("kind", PushKind.TEST))
                 .insert();
     }
 
@@ -62,12 +63,14 @@ public class PushOutboxRepository {
     public void enqueueMessage(int messageId, List<Integer> accountIds) {
         query("""
                         INSERT INTO push_outbox (subscription_id, kind, message_id)
-                        SELECT device.id, 'MESSAGE', :message_id
+                        SELECT device.id, :kind, :message_id
                         FROM push_subscription device
                         JOIN account reader ON reader.id = device.account_id AND reader.messages_push
                         JOIN account_session signed_in ON signed_in.id = device.session_id AND signed_in.expires_at > now()
                         WHERE device.account_id = ANY(:accounts);""")
-                .single(call().bind("message_id", messageId).bind("accounts", accountIds, PostgreSqlTypes.INTEGER))
+                .single(call().bind("message_id", messageId)
+                        .bind("kind", PushKind.MESSAGE)
+                        .bind("accounts", accountIds, PostgreSqlTypes.INTEGER))
                 .insert();
     }
 
@@ -98,7 +101,7 @@ public class PushOutboxRepository {
                 .map(row -> new Due(
                         row.getLong("id"),
                         row.getInt("subscription_id"),
-                        row.getString("kind"),
+                        row.getEnum("kind", PushKind.class),
                         row.getObject("notification_id", Integer.class),
                         row.getObject("message_id", Integer.class),
                         row.getInt("attempts"),

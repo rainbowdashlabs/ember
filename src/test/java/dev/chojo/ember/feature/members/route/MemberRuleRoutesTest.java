@@ -84,7 +84,12 @@ class MemberRuleRoutesTest {
     void theOperatorTableIsServed() {
         harness.run((server, client) -> {
             var table = json(client.get(PREFIX + "/member-rules/operators", harness.as(groupManager())));
-            assertEquals(MemberRuleEditService.operators().size(), table.size());
+            assertEquals(
+                    MemberRuleEditService.operators().size(),
+                    table.get("operators").size());
+            assertEquals(MemberRuleEditService.MAX_DEPTH, table.get("maxDepth").asInt());
+            assertEquals(
+                    MemberRuleEditService.MAX_CHECKS, table.get("maxChecks").asInt());
         });
     }
 

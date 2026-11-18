@@ -13,7 +13,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import {RuleNodeKind, type RuleNode} from '@/api/generated/schema'
 import type {RuleCatalog} from './ruleCatalog'
 import RuleCheckRow from './RuleCheckRow.vue'
-import {emptyBlock, emptyCheck, RULE_LIMITS} from './ruleDraft'
+import {emptyBlock, emptyCheck} from './ruleDraft'
 
 /**
  * One block of a rule: whether all, any or none of its children have to hold, the children themselves (checks
@@ -43,8 +43,8 @@ const kindLabels: Partial<Record<RuleNodeKind, string>> = {
   [RuleNodeKind.NONE]: 'memberRules.none',
 }
 
-const mayAddCheck = computed(() => !props.full && props.level + 1 <= RULE_LIMITS.depth)
-const mayAddBlock = computed(() => !props.full && props.level + 2 <= RULE_LIMITS.depth)
+const mayAddCheck = computed(() => !props.full && props.level + 1 <= props.catalog.limits.depth)
+const mayAddBlock = computed(() => !props.full && props.level + 2 <= props.catalog.limits.depth)
 
 function setKind(kind: string | number | null | undefined) {
   emit('change', {...props.block, kind: kind as RuleNodeKind})

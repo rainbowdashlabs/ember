@@ -167,10 +167,10 @@ export function withValue(check: RuleNode, part: Partial<RuleValue>): RuleNode {
     return {...check, value: {...(check.value ?? emptyValue()), ...part}}
 }
 
-/** How many checks a tree holds, which the server caps. */
-export function countChecks(node: RuleNode): number {
-    if (node.kind === RuleNodeKind.CHECK) return 1
-    return node.children.reduce((sum, child) => sum + countChecks(child), 0)
+/** How many checks a tree holds, which the server caps, or how many of them pass a test where one is given. */
+export function countChecks(node: RuleNode, test: (check: RuleNode) => boolean = () => true): number {
+    if (node.kind === RuleNodeKind.CHECK) return test(node) ? 1 : 0
+    return node.children.reduce((sum, child) => sum + countChecks(child, test), 0)
 }
 
 /** Hands the checks of the stored rule that lost what they asked about to every row of the editor. */
@@ -203,9 +203,6 @@ export function countEmptyBlocks(node: RuleNode): number {
 export function depthOf(node: RuleNode): number {
     return 1 + node.children.reduce((deepest, child) => Math.max(deepest, depthOf(child)), 0)
 }
-
-/** How deep a rule may go and how many checks it may hold, the same limits the server keeps. */
-export const RULE_LIMITS = {depth: 6, checks: 50} as const
 
 /** Whether a value carries what the need asks for, the same way the server measures it. */
 export function satisfies(value: RuleValue | null, need: RuleNeed): boolean {
@@ -263,5 +260,10 @@ export function incompleteChecks(
 
 /** Whether a check reads member data: a field, an age or how long somebody has been a member. */
 export function readsMemberData(check: RuleNode): boolean {
-    return check.subject !== null && (readsField(check.subject) || check.subject === RuleSubject.MEMBER_SINCE)
+    return check.subject !== null && subjectReadsMemberData(check.subject)
+}
+
+/** Whether checks on a subject read profile answers, ages or join dates, which takes the right to read members. */
+export function subjectReadsMemberData(subject: RuleSubject): boolean {
+    return readsField(subject) || subject === RuleSubject.MEMBER_SINCE
 }

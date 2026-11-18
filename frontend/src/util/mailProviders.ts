@@ -3,6 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {MailProviderType, SmtpEncryption} from '@/api/generated/schema'
+
 export const RELAY_PROVIDER_NAMES: Record<string, string> = {
     RAPIDMAIL: 'RapidMail',
     TWILIO: 'Twilio',
@@ -25,7 +27,7 @@ export function mailProviderLabel(provider: {type: string, name: string}, ownSer
  * own relay host and port from its credentials page, so its address can no more be assumed than
  * that of somebody's own server.
  */
-const PROVIDERS_WITH_SERVER = ['SMTP', 'SWEEGO']
+const PROVIDERS_WITH_SERVER: readonly string[] = [MailProviderType.SMTP, MailProviderType.SWEEGO]
 
 export function needsServerAddress(provider: string | undefined): boolean {
     return PROVIDERS_WITH_SERVER.includes(provider ?? '')
@@ -68,12 +70,12 @@ export const PROVIDER_FREE_TIER: Record<string, ProviderFreeTier> = {
  * none here.
  */
 export function usualSmtpPort(encryption: string | undefined): number | undefined {
-    if (encryption === 'STARTTLS') return 587
-    if (encryption === 'IMPLICIT_TLS') return 465
+    if (encryption === SmtpEncryption.STARTTLS) return 587
+    if (encryption === SmtpEncryption.IMPLICIT_TLS) return 465
     return undefined
 }
 
 /** Whether a provider reports deliveries back; a plain server of one's own sends no such reports. */
 export function reportsDeliveries(provider: string | undefined): boolean {
-    return provider !== 'SMTP'
+    return provider !== MailProviderType.SMTP
 }

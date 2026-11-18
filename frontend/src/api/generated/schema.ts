@@ -44303,7 +44303,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The operators a check of a group or tag rule can use, per subject and field type */
+        /** The operators a check of a group or tag rule can use, and how large a rule may grow */
         get: {
             parameters: {
                 query?: never;
@@ -44319,7 +44319,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RuleOperatorOption"][];
+                        "application/json": components["schemas"]["RuleOperatorTable"];
                     };
                 };
             };
@@ -69745,6 +69745,7 @@ export interface components {
             postalCode?: string | null;
         };
         AdminMapsConfig: {
+            defaultGeocodingServer: string | null;
             geocoding: components["schemas"]["MapsGeocodingConfig"];
             /** Format: int32 */
             tileCacheMaxMb: number;
@@ -79671,6 +79672,13 @@ export interface components {
             operator: components["schemas"]["RuleOperator"];
             subject: components["schemas"]["RuleSubject"];
         };
+        RuleOperatorTable: {
+            /** Format: int32 */
+            maxChecks: number;
+            /** Format: int32 */
+            maxDepth: number;
+            operators: components["schemas"]["RuleOperatorOption"][];
+        };
         RuleOwners: {
             groupIds: number[];
             tagIds: number[];
@@ -84061,6 +84069,7 @@ export type RuleNode = components['schemas']['RuleNode'];
 export type RuleNodeKind = components['schemas']['RuleNodeKind'];
 export type RuleOperator = components['schemas']['RuleOperator'];
 export type RuleOperatorOption = components['schemas']['RuleOperatorOption'];
+export type RuleOperatorTable = components['schemas']['RuleOperatorTable'];
 export type RuleOwners = components['schemas']['RuleOwners'];
 export type RulePreview = components['schemas']['RulePreview'];
 export type RuleRequest = components['schemas']['RuleRequest'];

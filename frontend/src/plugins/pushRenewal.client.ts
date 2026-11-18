@@ -12,12 +12,16 @@ import {PUSH_SUBSCRIPTION_CHANGED, renewPushRegistration} from '@/composables/pu
  * service worker reports that the browser moved its push address. Without it the registration would only come
  * back once somebody opened the notification settings.
  */
-export default defineNuxtPlugin(() => {
-    const {sessionInfo} = useSession()
-    watch(() => sessionInfo.value?.account?.id ?? null, account => {
-        if (account !== null) void renewPushRegistration()
-    }, {immediate: true})
-    navigator.serviceWorker?.addEventListener('message', event => {
-        if (event.data?.type === PUSH_SUBSCRIPTION_CHANGED) void renewPushRegistration()
-    })
+export default defineNuxtPlugin({
+    name: 'ember:push-renewal',
+    dependsOn: ['ember:translator'],
+    setup() {
+        const {sessionInfo} = useSession()
+        watch(() => sessionInfo.value?.account?.id ?? null, account => {
+            if (account !== null) void renewPushRegistration()
+        }, {immediate: true})
+        navigator.serviceWorker?.addEventListener('message', event => {
+            if (event.data?.type === PUSH_SUBSCRIPTION_CHANGED) void renewPushRegistration()
+        })
+    },
 })

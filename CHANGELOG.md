@@ -32,6 +32,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 - **Installing Ember was not always offered.** In some cases the part of Ember that runs in the background was never started, so the browser did not offer to install Ember and saved files could open in the browser instead. It now starts with every page.
 - **Delivery address shown for own mail servers.** The mail settings offered a delivery report address for a station's own mail server, which sends no such reports. It is no longer shown there.
 - **Station chat permission without an icon.** In the permission picker, "Manage station chats" was the only group shown without an icon. It now has one like the others.
+- **iPhones listed as Macs among sign-ins.** The list of sign-ins showed an iPhone as a Mac with the Apple desktop icon. It now names it iOS.
 
 ## v26.25.1
 

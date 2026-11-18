@@ -21,7 +21,10 @@ const {t} = useI18n()
 
 const geocoding = defineModel<MapsGeocodingConfig>({required: true})
 
-const DEFAULT_SERVER = 'https://photon.komoot.io'
+defineProps<{
+  /** The Photon server asked while no address is entered, as the server names it. */
+  defaultServer: string | null
+}>()
 </script>
 
 <template>
@@ -39,7 +42,7 @@ const DEFAULT_SERVER = 'https://photon.komoot.io'
       <FieldLabel>{{ t('adminMaps.geocodingServer') }}</FieldLabel>
       <TextInput
           :model-value="geocoding.baseUrl ?? ''"
-          :placeholder="DEFAULT_SERVER"
+          :placeholder="defaultServer ?? undefined"
           data-testid="geocoding-server"
           @update:model-value="value => geocoding.baseUrl = value ?? ''"
       />

@@ -18,7 +18,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {memberGroups, memberRules, userTags} from '@/api'
 import type {RuleOwnerKind} from '@/api/memberRules'
-import {RuleNodeKind, StationPermission, type RuleNode, type RulePreview} from '@/api/generated/schema'
+import {StationPermission, type RuleNode, type RulePreview} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {describeFailure, type Failure} from '@/util/failure'
 import {showToast} from '@/util/toast'
@@ -34,7 +34,6 @@ import {
   LOST_CHECKS,
   lostChecks,
   readsMemberData,
-  RULE_LIMITS,
 } from './ruleDraft'
 
 /**
@@ -73,7 +72,7 @@ const locked = computed(() => {
   const rule = draft.value
   const loaded = catalog.value
   if (!rule || !loaded || loaded.readsMembers) return false
-  return countChecksWhere(rule, readsMemberData) > 0
+  return countChecks(rule, readsMemberData) > 0
 })
 
 const missing = computed(() => {
@@ -91,15 +90,11 @@ const emptyBlocks = computed(() => draft.value ? countEmptyBlocks(draft.value) :
 /** A rule that holds nothing yet is plainly unfinished, so only an empty block among others is pointed out. */
 const showEmptyBlocks = computed(() => emptyBlocks.value > 0 && (draft.value?.children.length ?? 0) > 0)
 
-const full = computed(() => draft.value !== null && countChecks(draft.value) >= RULE_LIMITS.checks)
+const full = computed(() => draft.value !== null && countChecks(draft.value) >= (catalog.value?.limits.checks ?? 0))
 const fits = computed(() => draft.value !== null
-    && countChecks(draft.value) <= RULE_LIMITS.checks && depthOf(draft.value) <= RULE_LIMITS.depth)
+    && catalog.value !== null
+    && countChecks(draft.value) <= catalog.value.limits.checks && depthOf(draft.value) <= catalog.value.limits.depth)
 const ready = computed(() => !locked.value && missing.value === 0 && emptyBlocks.value === 0 && fits.value)
-
-function countChecksWhere(node: RuleNode, test: (check: RuleNode) => boolean): number {
-  if (node.kind === RuleNodeKind.CHECK) return test(node) ? 1 : 0
-  return node.children.reduce((sum, child) => sum + countChecksWhere(child, test), 0)
-}
 
 /** An edit of the draft: the preview showed an older rule, so it goes. */
 function edited(next: RuleNode) {
@@ -109,18 +104,19 @@ function edited(next: RuleNode) {
 
 async function loadCatalog(): Promise<RuleCatalog> {
   const readsMembers = hasPermission(StationPermission.MEMBER_READ)
-  const [options, fields, groups, tags] = await Promise.all([
+  const [table, fields, groups, tags] = await Promise.all([
     memberRules.listOperators(),
     readsMembers ? memberRules.listFields() : Promise.resolve([]),
     memberGroups.listGroups(),
     userTags.listChoosableTags(),
   ])
   return {
-    options,
+    options: table.operators,
     fields,
     groups: groups.map(group => ({id: group.id, name: group.name ?? ''})),
     tags: tags.map(tag => ({id: tag.id, name: tag.name})),
     readsMembers,
+    limits: {depth: table.maxDepth, checks: table.maxChecks},
   }
 }
 

@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.notifications.service.NotificationVisibility;
+import dev.chojo.ember.feature.push.entity.PushKind;
 import dev.chojo.ember.feature.push.repository.PushOutboxRepository;
 import dev.chojo.ember.feature.push.repository.PushSubscriptionRepository;
 import dev.chojo.ember.feature.push.service.EcP256;
@@ -102,7 +103,7 @@ class NotificationPushTest extends RepositoryTestBase {
 
         var queued = queued();
         assertEquals(1, queued.size());
-        assertEquals("NOTIFICATION", queued.getFirst().kind());
+        assertEquals(PushKind.NOTIFICATION, queued.getFirst().kind());
 
         var message = messages.render(queued.getFirst(), account.id()).orElseThrow();
         assertTrue(message.body().contains("Dienstplan Dezember"), message.body());
@@ -116,7 +117,7 @@ class NotificationPushTest extends RepositoryTestBase {
         query("UPDATE station SET locale = 'de' WHERE id = :id;")
                 .single(call().bind("id", station.id()))
                 .update();
-        var test = new PushOutboxRepository.Due(1, device, "TEST", null, null, 0, false);
+        var test = new PushOutboxRepository.Due(1, device, PushKind.TEST, null, null, 0, false);
 
         assertEquals(
                 "Push-Benachrichtigungen sind eingerichtet",

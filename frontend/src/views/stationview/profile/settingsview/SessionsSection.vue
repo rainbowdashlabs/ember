@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import AppIcon from '@/components/display/AppIcon.vue'
+import {BROWSER_NAMES, browserOf, SYSTEM_NAMES, systemOf} from '@/util/userAgent'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
@@ -26,46 +28,18 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-function parseOS(ua: string | null): string {
-  if (!ua) return 'unknown'
-  if (ua.includes('Windows')) return 'windows'
-  if (ua.includes('Mac OS') || ua.includes('Macintosh')) return 'mac'
-  if (ua.includes('Android')) return 'android'
-  if (ua.includes('iPhone') || ua.includes('iPad') || ua.includes('iOS')) return 'ios'
-  if (ua.includes('Linux')) return 'linux'
-  return 'unknown'
-}
-
-function parseBrowser(ua: string | null): string {
-  if (!ua) return 'unknown'
-  if (ua.includes('Firefox')) return 'firefox'
-  if (ua.includes('Edg/') || ua.includes('Edge')) return 'edge'
-  if (ua.includes('OPR') || ua.includes('Opera')) return 'opera'
-  if (ua.includes('Chrome') && !ua.includes('Edg')) return 'chrome'
-  if (ua.includes('Safari') && !ua.includes('Chrome')) return 'safari'
-  return 'unknown'
-}
-
 function osLabel(ua: string | null): string {
-  const os = parseOS(ua)
-  const labels: Record<string, string> = {
-    windows: 'Windows', mac: 'macOS', android: 'Android',
-    ios: 'iOS', linux: 'Linux', unknown: t('userSettings.unknownDevice'),
-  }
-  return labels[os] ?? os
+  const os = systemOf(ua)
+  return os === 'unknown' ? t('userSettings.unknownDevice') : SYSTEM_NAMES[os]
 }
 
 function browserLabel(ua: string | null): string {
-  const browser = parseBrowser(ua)
-  const labels: Record<string, string> = {
-    firefox: 'Firefox', chrome: 'Chrome', safari: 'Safari',
-    edge: 'Edge', opera: 'Opera', unknown: t('userSettings.unknownBrowser'),
-  }
-  return labels[browser] ?? browser
+  const browser = browserOf(ua)
+  return browser === 'unknown' ? t('userSettings.unknownBrowser') : BROWSER_NAMES[browser]
 }
 
 function osIcon(ua: string | null): string[] {
-  const os = parseOS(ua)
+  const os = systemOf(ua)
   const icons: Record<string, [string, string]> = {
     windows: ['fab', 'windows'],
     mac: ['fab', 'apple'],
@@ -78,7 +52,7 @@ function osIcon(ua: string | null): string[] {
 }
 
 function browserIcon(ua: string | null): string[] {
-  const browser = parseBrowser(ua)
+  const browser = browserOf(ua)
   const icons: Record<string, [string, string]> = {
     chrome: ['fab', 'chrome'],
     firefox: ['fab', 'firefox-browser'],
@@ -117,8 +91,8 @@ function timeAgo(dateStr?: string): string {
       <NeutralContainer v-for="sess in sessions" :key="sess.id" class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <div class="flex items-center gap-2">
-            <font-awesome-icon :icon="osIcon(sess.userAgent)" class="h-5 w-5 text-(--text-muted)"/>
-            <font-awesome-icon :icon="browserIcon(sess.userAgent)" class="h-5 w-5 text-(--text-muted)"/>
+            <AppIcon :icon="osIcon(sess.userAgent)" class="h-5 w-5 text-(--text-muted)"/>
+            <AppIcon :icon="browserIcon(sess.userAgent)" class="h-5 w-5 text-(--text-muted)"/>
           </div>
           <div>
             <div class="flex items-center gap-2">
@@ -127,17 +101,17 @@ function timeAgo(dateStr?: string): string {
               <span v-if="sess.isCurrent" class="text-xs font-semibold text-primary">{{ t('userSettings.currentSession') }}</span>
               <span v-if="sess.pushDeviceId != null" class="text-xs font-semibold text-(--text-muted)"
                     data-testid="session-push-badge">
-                <font-awesome-icon :icon="['fas', 'bell']" class="mr-0.5"/>{{ t('userSettings.sessionPush') }}
+                <AppIcon :icon="['fas', 'bell']" class="mr-0.5"/>{{ t('userSettings.sessionPush') }}
               </span>
             </div>
             <p class="text-xs text-(--text-muted)">
               {{ t('userSettings.lastActive') }}: {{ timeAgo(sess.lastUsedAt) }}
               <span class="ml-2">{{ t('userSettings.created') }}: {{ sess.createdAt ? formatDateTime(sess.createdAt) : '–' }}</span>
               <span v-if="sess.location" class="ml-2">
-                <font-awesome-icon :icon="['fas', 'location-dot']" class="mr-0.5"/>{{ sess.location }}
+                <AppIcon :icon="['fas', 'location-dot']" class="mr-0.5"/>{{ sess.location }}
               </span>
               <span v-else class="ml-2">
-                <font-awesome-icon :icon="['fas', 'location-dot']" class="mr-0.5"/>{{ t('userSettings.unknownLocation') }}
+                <AppIcon :icon="['fas', 'location-dot']" class="mr-0.5"/>{{ t('userSettings.unknownLocation') }}
               </span>
             </p>
           </div>

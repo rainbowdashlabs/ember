@@ -15,6 +15,7 @@ import {todayIsoDate} from '@/util/format'
 import type {RuleCatalog} from './ruleCatalog'
 import RuleValueInput from './RuleValueInput.vue'
 import {
+  subjectReadsMemberData,
   LOST_CHECKS,
   complete,
   countsFromReference,
@@ -47,13 +48,9 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const MEMBER_DATA: readonly RuleSubject[] = [
-  RuleSubject.AGE, RuleSubject.FIELD, RuleSubject.CLUSTER_FIELD, RuleSubject.MEMBER_SINCE,
-]
-
 const subjects = computed(() => Object.values(RuleSubject).filter(subject => {
   if (subject === props.check.subject) return true
-  if (MEMBER_DATA.includes(subject) && !props.catalog.readsMembers) return false
+  if (subjectReadsMemberData(subject) && !props.catalog.readsMembers) return false
   if (subject === RuleSubject.CLUSTER_FIELD) {
     return props.catalog.fields.some(field => field.origin === FieldOrigin.CLUSTER)
   }

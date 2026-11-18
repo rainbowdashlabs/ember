@@ -32,6 +32,7 @@ Benachrichtigungen und Nachrichten kommen als Push-Benachrichtigung aufs Handy u
 - **Installieren wurde nicht immer angeboten.** In manchen Fällen startete der Hintergrundteil von Ember nicht, sodass der Browser die Installation nicht anbot und gespeicherte Dateien sich im Browser öffnen konnten. Er startet jetzt mit jeder Seite.
 - **Rückmeldeadresse beim eigenen Mailserver.** Die Mail-Einstellungen boten auch für einen eigenen Mailserver eine Adresse für Zustellrückmeldungen an, obwohl er keine schickt. Dort wird sie nicht mehr angezeigt.
 - **Berechtigung für Wachenchats ohne Symbol.** In der Rechteauswahl stand „Wachenchats verwalten“ als einzige Gruppe ohne Symbol. Jetzt hat sie eines wie die anderen.
+- **iPhones als Mac unter den Anmeldungen.** Die Liste der Anmeldungen zeigte ein iPhone als Mac mit dem Symbol für Apple-Rechner. Jetzt steht dort iOS.
 
 ## v26.25.1
 

@@ -22,9 +22,13 @@ vi.mock('@/api', () => ({
         removeRule: (...args: unknown[]) => removeRule(...args),
         previewRule: (...args: unknown[]) => previewRule(...args),
         listFields: (...args: unknown[]) => listFields(...args),
-        listOperators: async () => [
-            {subject: RuleSubject.GROUP, fieldType: null, operator: RuleOperator.IN, need: RuleNeed.NOTHING},
-        ],
+        listOperators: async () => ({
+            operators: [
+                {subject: RuleSubject.GROUP, fieldType: null, operator: RuleOperator.IN, need: RuleNeed.NOTHING},
+            ],
+            maxDepth: 6,
+            maxChecks: 50,
+        }),
     },
     memberGroups: {listGroups: async () => [{id: 4, name: 'Team'}]},
     userTags: {listChoosableTags: async () => []},

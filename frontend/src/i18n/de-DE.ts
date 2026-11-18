@@ -9844,6 +9844,7 @@ export default {
         },
     },
     pushDevices: {
+        deviceOn: '{browser} auf {system}',
         title: 'Push-Benachrichtigungen',
         hint: 'Benachrichtigungen erscheinen auf diesem Gerät auch dann, wenn Ember geschlossen ist. Welche Arten gepusht werden, legst du unten in der Spalte „Push“ fest.',
         enable: 'Auf diesem Gerät einschalten',
