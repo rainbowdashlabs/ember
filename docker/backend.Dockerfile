@@ -47,6 +47,7 @@ WORKDIR /app
 COPY --from=build /home/gradle/build/install/ember/ .
 COPY templates templates
 COPY --chmod=755 docker/default-font.sh /usr/local/bin/default-font
+COPY --chmod=755 docker/jvm-flags.sh /usr/local/bin/jvm-flags
 
 RUN mkdir -p config
 
@@ -71,4 +72,4 @@ LABEL org.opencontainers.image.title="Ember Backend" \
 # for as long as that lasts, so the log fills with copies. Those logs are what an operator pastes
 # into a bug report. The application already logs which overrides exist and what it read, with the
 # secrets masked, so nothing is lost here.
-ENTRYPOINT ["default-font", "./bin/ember"]
+ENTRYPOINT ["jvm-flags", "default-font", "./bin/ember"]

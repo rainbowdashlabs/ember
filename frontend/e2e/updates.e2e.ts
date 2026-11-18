@@ -62,7 +62,7 @@ test.describe('Changelog', () => {
         const response = await page.request.get('/api/v1/public/changelog?lang=de')
         const [newest] = await response.json()
 
-        expect(newest.body).toMatch(/Neue Funktionen|Änderungen|Fehlerbehebungen|Verbesserungen/)
+        expect(newest.body).toMatch(/Neue Funktionen|Verbesserungen|Sicherheit|Änderungen|Fehlerbehebungen/)
     })
 
     /**
