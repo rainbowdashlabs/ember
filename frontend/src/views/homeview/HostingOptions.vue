@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import type {IconProp} from '@fortawesome/fontawesome-svg-core'
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
@@ -12,7 +13,7 @@ import LandingEyebrow from '@/views/homeview/LandingEyebrow.vue'
 
 const {t, tm, rt} = useI18n()
 
-const ICONS: Array<[string, string]> = [
+const ICONS: [IconProp, ...IconProp[]] = [
   ['fas', 'server'],
   ['fas', 'handshake'],
   ['fas', 'hand-holding'],

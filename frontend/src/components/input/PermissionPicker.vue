@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {usePermissionTree, type PermissionGrant, type PermissionScope} from '@/composables/usePermissionTree'
-import {GROUP_ICONS} from '@/components/input/permissionpicker/groupIcons'
+import {groupIconsOf} from '@/components/input/permissionpicker/groupIcons'
 import WitnessReachSetting from '@/components/input/permissionpicker/WitnessReachSetting.vue'
 import {StationPermission} from '@/api/generated/schema'
 
@@ -83,8 +83,9 @@ const {
               @click.stop
           />
           <font-awesome-icon
-              v-if="GROUP_ICONS[node.name]"
-              :icon="GROUP_ICONS[node.name]"
+              v-for="(icon, index) in groupIconsOf(node.name)"
+              :key="index"
+              :icon="icon"
               class="h-4 w-4 text-(--text-muted)"
           />
           <div

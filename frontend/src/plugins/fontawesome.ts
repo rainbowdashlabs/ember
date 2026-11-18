@@ -90,6 +90,16 @@ library.add(
     faTruckMedical, faDice, faDiceD20, faTent, faRuler, faBagShopping, faBriefcase, faPrint,
 )
 
+/**
+ * Tells the template type-check about the icon component this plugin registers globally. Templates are
+ * checked for unknown components, and a component registered at runtime is unknown to them otherwise.
+ */
+declare module 'vue' {
+    interface GlobalComponents {
+        FontAwesomeIcon: typeof FontAwesomeIcon
+    }
+}
+
 export default defineNuxtPlugin((nuxtApp) => {
     nuxtApp.vueApp.component('font-awesome-icon', FontAwesomeIcon)
 })
