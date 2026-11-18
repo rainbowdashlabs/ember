@@ -19058,6 +19058,105 @@
         }
       }
     },
+    "/api/v1/events/federation-registrations/queue" : {
+      "post" : {
+        "summary" : "Put partners' members waiting for this station's decision onto the waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QueueRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/federation-registrations/{id}/queue-position" : {
+      "put" : {
+        "summary" : "Move a partner's member to another place in line on the waiting list",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QueuePositionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/federation-registrations/{id}/status" : {
       "put" : {
         "summary" : "Accept or deny a partner station's registration",
@@ -64427,11 +64526,14 @@
               "type" : "null"
             } ]
           },
+          "comingOrAsking" : {
+            "type" : "boolean"
+          },
           "standing" : {
             "type" : "boolean"
           }
         },
-        "required" : [ "id", "eventId", "partnerId", "remoteMemberId", "eventDate", "status", "createdAt", "agreementWithdrawnAt", "standing" ]
+        "required" : [ "id", "eventId", "partnerId", "remoteMemberId", "eventDate", "status", "createdAt", "agreementWithdrawnAt", "comingOrAsking", "standing" ]
       },
       "EventFieldDefault" : {
         "type" : "object",

@@ -187,7 +187,7 @@ public class PartnerRequirementNotices implements TaskSource {
         var today = today(partner.stationId());
         var registered = federation.findRegistrations(change.eventId(), null).stream()
                 .filter(registration -> registration.partnerId() == partner.id())
-                .filter(EventFederationRegistration::isStanding)
+                .filter(EventFederationRegistration::isComingOrAsking)
                 .filter(registration -> !registration.eventDate().isBefore(today))
                 .map(registration ->
                         new RemoteRegisteredMember(registration.remoteMemberId(), registration.eventDate()))
@@ -209,7 +209,7 @@ public class PartnerRequirementNotices implements TaskSource {
     private TreeSet<Integer> concernedPartners(int eventId, LocalDate from) {
         var concerned = new TreeSet<>(agreements.partnersFrom(eventId, from));
         federation.findRegistrations(eventId, null).stream()
-                .filter(EventFederationRegistration::isStanding)
+                .filter(EventFederationRegistration::isComingOrAsking)
                 .filter(registration -> !registration.eventDate().isBefore(from))
                 .map(EventFederationRegistration::partnerId)
                 .forEach(concerned::add);

@@ -219,20 +219,45 @@ public class RegistrationQueueRepository {
     }
 
     /**
-     * Gives a partner station's member who waited on a date's list the place that fell free. Leaving
-     * the list follows from the status, as for a member of this station.
+     * Gives a partner station's member who waited on a date's list the place that fell free, where the
+     * partner still has one of its own places left. Leaving the list follows from the status, as for a
+     * member of this station.
      *
      * @param federationRegistrationId the partner's registration
-     * @return whether it was still waiting
+     * @return whether it moved up; false where it no longer waits or its partner's places are spent
      */
     public boolean acceptPartner(int federationRegistrationId) {
         return query("""
-                        UPDATE event_federation_registration
+                        UPDATE event_federation_registration r
                         SET status = 'ACCEPTED', status_changed_at = now()
-                        WHERE id = :id AND status = 'QUEUED';""")
+                        WHERE r.id = :id
+                          AND r.status = 'QUEUED'
+                          AND ((SELECT p.slot_budget FROM event_partner_places p
+                                WHERE p.event_id = r.event_id AND p.partner_id = r.partner_id) IS NULL
+                               OR (SELECT count(*) FROM event_federation_registration taken
+                                   WHERE taken.event_id = r.event_id
+                                     AND taken.partner_id = r.partner_id
+                                     AND taken.event_date = r.event_date
+                                     AND taken.status = 'ACCEPTED')
+                                  < (SELECT p.slot_budget FROM event_partner_places p
+                                     WHERE p.event_id = r.event_id AND p.partner_id = r.partner_id));""")
                 .single(call().bind("id", federationRegistrationId))
                 .update()
                 .changed();
+    }
+
+    /**
+     * Whether a partner station's member still waits.
+     *
+     * @param federationRegistrationId the partner's registration
+     * @return true while its status is QUEUED
+     */
+    public boolean partnerWaits(int federationRegistrationId) {
+        return query("SELECT 1 FROM event_federation_registration WHERE id = :id AND status = 'QUEUED';")
+                .single(call().bind("id", federationRegistrationId))
+                .map(row -> true)
+                .first()
+                .orElse(false);
     }
 
     /**

@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.entity.WhenFull;
 import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository.QueueList;
 import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository.QueueOwner;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -120,10 +121,13 @@ public class EventPlaces {
      * @param registrationId the registration
      */
     public void enqueueFirst(StationEvent event, LocalDate date, int registrationId) {
-        var list = RegistrationQueueRepository.ofDate(event.id(), date);
+        insertFirst(RegistrationQueueRepository.ofDate(event.id(), date), QueueOwner.local(registrationId));
+    }
+
+    /** Puts a sign-up ahead of everybody waiting, without a score so no newcomer is placed before it. */
+    private void insertFirst(QueueList list, QueueOwner owner) {
         var entries = queue.entries(list);
-        int position = entries.isEmpty() ? 1 : entries.getFirst().position();
-        queue.insertAt(list, QueueOwner.local(registrationId), position, null);
+        queue.insertAt(list, owner, entries.isEmpty() ? 1 : entries.getFirst().position(), null);
     }
 
     /**
@@ -190,15 +194,35 @@ public class EventPlaces {
      *
      * @param eventId        the appointment
      * @param date           the date
-     * @param registrationId the registration, which waits on the list
+     * @param owner          the sign-up, a member's or a partner's member's, which waits on the list
      * @param rank           the place in line it takes, 1 moving up next; beyond the end it goes last
      */
-    public void moveTo(int eventId, LocalDate date, int registrationId, int rank) {
+    public void moveTo(int eventId, LocalDate date, QueueOwner owner, int rank) {
         placement.moveTo(
-                RegistrationQueueRepository.ofDate(eventId, date),
-                QueueOwner.local(registrationId),
-                rank,
-                EventRefusal.REGISTRATION_NOT_QUEUED);
+                RegistrationQueueRepository.ofDate(eventId, date), owner, rank, EventRefusal.REGISTRATION_NOT_QUEUED);
+    }
+
+    /**
+     * Puts a partner station's member on the waiting list of a date, as a newcomer by fairness since
+     * this station keeps no history of them; or at its front, for a seat given up by mistake.
+     *
+     * @param event                    the appointment
+     * @param date                     the date
+     * @param federationRegistrationId the partner's registration
+     * @param first                    whether it goes ahead of everybody waiting
+     */
+    public void enqueuePartner(StationEvent event, LocalDate date, int federationRegistrationId, boolean first) {
+        var list = RegistrationQueueRepository.ofDate(event.id(), date);
+        var owner = QueueOwner.ofPartner(federationRegistrationId);
+        if (first) {
+            insertFirst(list, owner);
+            return;
+        }
+        placement.place(
+                list,
+                queue.orderOfEvent(event.id()),
+                owner,
+                placement.scoreOf(event.stationId(), event.categoryId(), null));
     }
 
     /**

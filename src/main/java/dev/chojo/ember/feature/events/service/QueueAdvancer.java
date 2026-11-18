@@ -31,7 +31,8 @@ import java.util.Optional;
  * <p>The first in line takes the first free place, then the next, until the date is full or nobody
  * waits. Whoever moves up is accepted at once and skips a decision: whoever runs the appointment
  * already looked at them when they put them on the list, or nobody decides on this appointment. A
- * partner's member in line moves up in turn like anybody else. Moving up runs until the date starts,
+ * partner's member in line moves up in turn like anybody else, as long as the partner has one of its
+ * own places left; otherwise they keep waiting and the next in line takes the place. Moving up runs until the date starts,
  * past the sign-up deadline, and stops there; whoever still waits then did not get a place. A date
  * that is called off, falls into a break or is no longer a date of the series moves nobody up.
  *
@@ -126,8 +127,9 @@ public class QueueAdvancer {
         Integer local = entry.localId();
         Integer partner = entry.partnerId();
         if (partner != null) {
-            queue.acceptPartner(partner);
-            queue.remove(list, QueueOwner.ofPartner(partner));
+            if (!queue.acceptPartner(partner) && !queue.partnerWaits(partner)) {
+                queue.remove(list, QueueOwner.ofPartner(partner));
+            }
             return Optional.empty();
         }
         if (local == null) return Optional.empty();

@@ -35,6 +35,7 @@ import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /** The registrations partners sent for an event are listed with the member the registrant service names. */
@@ -118,6 +119,70 @@ class EventSharingRoutesTest {
             assertEquals(
                     EventRefusal.EVENT_GROUP_PART_SHARED_WITH_EVENT_GROUP,
                     refusalOf(client.delete(PREFIX + "/events/4/federation", null, sharer)));
+        });
+    }
+
+    @Test
+    void aDecisionOnAPartnersMemberIsAcceptOrTurnDownAndCarriesTheLimitChoice() {
+        var crud = mock(EventCrudService.class);
+        var events = mock(EventFederationService.class);
+        var event = mock(StationEvent.class);
+        when(event.stationId()).thenReturn(STATION);
+        when(crud.findById(4)).thenReturn(Optional.of(event));
+        var day = LocalDate.of(2026, 5, 1);
+        var registration = new EventFederationRegistration(
+                1, 4, 7, UUID.randomUUID(), day, RegistrationStatus.QUEUED, Instant.EPOCH, null);
+        when(events.findRegistrationById(1)).thenReturn(Optional.of(registration));
+        when(events.partnerPlaces(4, 7)).thenReturn(new EventPartnerPlaces(4, 7, null, false));
+        when(events.acceptWithinBudget(1, 4, 7, day, true)).thenReturn(true);
+        var harness = RouteHarness.serving(routes(crud, events, mock(FederatedRegistrantService.class)));
+
+        harness.run((server, client) -> {
+            var registrar = harness.as(TestSessions.member(STATION, StationPermission.EVENT_REGISTRATION));
+            String path = PREFIX + "/events/federation-registrations/1/status";
+            assertEquals(
+                    EventRefusal.REGISTRATION_DECISION_UNKNOWN,
+                    refusalOf(client.put(path, body("{\"status\": \"QUEUED\"}"), registrar)));
+            assertEquals(
+                    200,
+                    client.put(path, body("{\"status\": \"ACCEPTED\", \"overLimit\": true}"), registrar)
+                            .code());
+            verify(events).acceptWithinBudget(1, 4, 7, day, true);
+        });
+    }
+
+    @Test
+    void whoeverDecidesPutsPartnersMembersOnTheListAndReordersIt() {
+        var crud = mock(EventCrudService.class);
+        var events = mock(EventFederationService.class);
+        var event = mock(StationEvent.class);
+        when(event.stationId()).thenReturn(STATION);
+        when(crud.findById(4)).thenReturn(Optional.of(event));
+        var registration = new EventFederationRegistration(
+                1, 4, 7, UUID.randomUUID(), LocalDate.of(2026, 5, 1), RegistrationStatus.PENDING, Instant.EPOCH, null);
+        when(events.findRegistrationById(1)).thenReturn(Optional.of(registration));
+        var harness = RouteHarness.serving(routes(crud, events, mock(FederatedRegistrantService.class)));
+
+        harness.run((server, client) -> {
+            var registrar = harness.as(TestSessions.member(STATION, StationPermission.EVENT_REGISTRATION));
+            var member = harness.as(TestSessions.member(STATION, StationPermission.USER));
+            String queue = PREFIX + "/events/federation-registrations/queue";
+            assertEquals(
+                    403,
+                    client.post(queue, body("{\"registrationIds\": [1]}"), member)
+                            .code());
+            assertEquals(
+                    204,
+                    client.post(queue, body("{\"registrationIds\": [1]}"), registrar)
+                            .code());
+            verify(events).moveToQueue(List.of(1));
+
+            String position = PREFIX + "/events/federation-registrations/1/queue-position";
+            assertEquals(EventRefusal.QUEUE_POSITION_MISSING, refusalOf(client.put(position, body("{}"), registrar)));
+            assertEquals(
+                    204,
+                    client.put(position, body("{\"position\": 2}"), registrar).code());
+            verify(events).moveInQueue(1, 2);
         });
     }
 

@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.events.service;
 
 import dev.chojo.ember.feature.events.entity.DateSpan;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
-import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
@@ -164,8 +163,8 @@ public class FederatedEventChangeService implements FederationServer {
     }
 
     /**
-     * The partners' members holding a place from the first touched date on, each once with the first
-     * date they hold, per partner. A one-off holds only its own date.
+     * The partners' members holding or waiting for a place from the first touched date on, each once with
+     * the first date they hold, per partner. A one-off holds only its own date.
      */
     private Map<Integer, List<RemoteChangedMember>> holdersByPartner(StationEvent event, LocalDate first) {
         var firstHeld = new LinkedHashMap<Integer, Map<UUID, LocalDate>>();
@@ -187,9 +186,9 @@ public class FederatedEventChangeService implements FederationServer {
         return byPartner;
     }
 
+    /** Whether a partner's member still stands on the appointment, waiting on its waiting list included. */
     private static boolean holdsPlace(EventFederationRegistration registration) {
-        return registration.status() == RegistrationStatus.PENDING
-                || registration.status() == RegistrationStatus.ACCEPTED;
+        return registration.status().standing();
     }
 
     /**

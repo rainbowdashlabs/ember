@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.events.entity.WhenFull;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
+import dev.chojo.ember.feature.events.repository.RegistrationQueueRepository.QueueOwner;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
@@ -42,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -186,6 +188,7 @@ public class EventRegistrationService {
             @Nullable Integer createdBy,
             boolean byManager,
             @Nullable WhenFull choice) {
+        var moved = new ArrayList<EventRegistration>();
         var stored = Transactions.call(() -> {
             eventRepository.lockForSignUp(eventId);
             requireOwnSignUp(eventId);
@@ -196,10 +199,16 @@ public class EventRegistrationService {
                     ? places.statusForComing(event, eventDate, byManager, choice)
                     : RegistrationStatus.PENDING;
             var registration = registrationRepository.create(eventId, memberId, eventDate, status, createdBy);
-            if (status == RegistrationStatus.QUEUED) places.enqueue(event, eventDate, registration.id(), memberId);
+            if (status == RegistrationStatus.QUEUED) {
+                places.enqueue(event, eventDate, registration.id(), memberId);
+                moved.addAll(places.fill(eventId, eventDate));
+            }
             log.info("Registered member {} for event {} on {} (status={})", memberId, eventId, eventDate, status);
-            return registration;
+            return registrationRepository.findById(registration.id()).orElse(registration);
         });
+        movedUp(moved.stream()
+                .filter(registration -> registration.id() != stored.id())
+                .toList());
         recorded(stored);
         return stored;
     }
@@ -234,6 +243,7 @@ public class EventRegistrationService {
      * @return true where the registration was found
      */
     public boolean answerComing(int id, boolean byManager, @Nullable WhenFull choice) {
+        var moved = new ArrayList<EventRegistration>();
         var changed = Transactions.call(() -> {
             var found = registrationRepository.findById(id).orElse(null);
             if (found == null) return null;
@@ -250,8 +260,10 @@ public class EventRegistrationService {
             registrationRepository.updateStatus(id, status);
             if (status == RegistrationStatus.QUEUED) {
                 places.enqueue(event, registration.eventDate(), id, registration.memberId());
+                moved.addAll(places.fill(registration.eventId(), registration.eventDate()));
             }
-            return new Answered(registrationRepository.findById(id).orElse(registration), status != current);
+            var after = registrationRepository.findById(id).orElse(registration);
+            return new Answered(after, after.status() != current);
         });
         if (changed == null) return false;
         var registration = changed.registration();
@@ -260,6 +272,7 @@ public class EventRegistrationService {
             announce(registration.eventId(), registration.memberId(), registration.status());
         }
         recorded(registration);
+        movedUp(moved.stream().filter(other -> other.id() != id).toList());
         return true;
     }
 
@@ -359,9 +372,117 @@ public class EventRegistrationService {
             var registration = registrationRepository.findById(id).orElse(found);
             requireOwnSignUp(registration.eventId());
             if (registration.status() != RegistrationStatus.QUEUED) throw EventRefusal.REGISTRATION_NOT_QUEUED.raise();
-            places.moveTo(registration.eventId(), registration.eventDate(), id, rank);
+            places.moveTo(registration.eventId(), registration.eventDate(), QueueOwner.local(id), rank);
         });
         log.info("Moved registration {} to place {} on the waiting list", id, rank);
+    }
+
+    /**
+     * Runs work on an appointment's sign-ups under its lock, in one transaction, so a partner's member
+     * signing up takes a place no member of this station takes at the same moment.
+     *
+     * @param eventId the appointment
+     * @param body    the work
+     * @param <T>     what the work gives
+     * @return what the work gave
+     */
+    public <T> T underSignUpLock(int eventId, Supplier<T> body) {
+        return Transactions.call(() -> {
+            eventRepository.lockForSignUp(eventId);
+            return body.get();
+        });
+    }
+
+    /**
+     * The status a partner station's member signing up gets where nobody decides: a place while one is
+     * free and nobody waits, otherwise the waiting list. The caller holds the appointment's lock.
+     *
+     * @param event the appointment
+     * @param date  the date
+     * @return ACCEPTED or QUEUED
+     */
+    public RegistrationStatus statusForVisitor(StationEvent event, LocalDate date) {
+        return places.statusForComing(event, date, false, null);
+    }
+
+    /**
+     * Puts a partner station's member on the waiting list of a date. The caller holds the appointment's
+     * lock.
+     *
+     * @param event                    the appointment
+     * @param date                     the date
+     * @param federationRegistrationId the partner's registration
+     * @param first                    whether it goes ahead of everybody waiting
+     */
+    public void enqueueVisitor(StationEvent event, LocalDate date, int federationRegistrationId, boolean first) {
+        places.enqueuePartner(event, date, federationRegistrationId, first);
+    }
+
+    /**
+     * Refuses to accept somebody on a full date unless it goes beyond the limit. The caller holds the
+     * appointment's lock.
+     *
+     * @param event     the appointment
+     * @param date      the date
+     * @param overLimit whether the acceptance may go beyond the limit
+     */
+    public void requireRoomToAccept(StationEvent event, LocalDate date, boolean overLimit) {
+        places.requireRoomToAccept(event, date, overLimit);
+    }
+
+    /**
+     * Fills the free places of a date from its waiting list, after somebody joined it: an entry first in
+     * line that cannot move up, such as a partner's member whose partner's places are spent, must not
+     * keep a newcomer waiting while a place is free. The caller holds the appointment's lock.
+     *
+     * @param eventId   the appointment
+     * @param eventDate the date
+     * @return the registrations of this station's members who moved up, to be told once the change is kept
+     */
+    public List<EventRegistration> fillLocked(int eventId, LocalDate eventDate) {
+        return places.fill(eventId, eventDate);
+    }
+
+    /**
+     * Tells this station's members who moved up, once the change is kept.
+     *
+     * @param moved the registrations as stored
+     */
+    public void tellMovedUp(List<EventRegistration> moved) {
+        movedUp(moved);
+    }
+
+    /**
+     * Refuses a waiting list on a date without a participant limit.
+     *
+     * @param eventId   the appointment
+     * @param eventDate the date
+     */
+    public void requireLimit(int eventId, LocalDate eventDate) {
+        places.requireLimit(eventId, eventDate);
+    }
+
+    /**
+     * Moves a partner's member to another place in line. The caller holds the appointment's lock.
+     *
+     * @param eventId                  the appointment
+     * @param eventDate                the date
+     * @param federationRegistrationId the partner's registration
+     * @param rank                     the place in line it takes
+     */
+    public void moveVisitorInQueue(int eventId, LocalDate eventDate, int federationRegistrationId, int rank) {
+        places.moveTo(eventId, eventDate, QueueOwner.ofPartner(federationRegistrationId), rank);
+    }
+
+    /**
+     * Whether every place of a date is taken.
+     *
+     * @param eventId   the appointment
+     * @param eventDate the date
+     * @return true where no place is free
+     */
+    public boolean full(int eventId, LocalDate eventDate) {
+        return places.full(eventId, eventDate);
     }
 
     /**

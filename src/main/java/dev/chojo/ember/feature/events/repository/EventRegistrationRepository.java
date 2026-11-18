@@ -517,7 +517,8 @@ public class EventRegistrationRepository {
      * Withdraws every place still held on dates an appointment no longer falls on.
      *
      * <p>Pending, confirmed and waiting places are withdrawn, whoever gave them, a question of the
-     * appointment included, and whoever waited leaves the waiting list with it; a refusal or a denial already
+     * appointment included, and whoever waited leaves the waiting list with it, partners' members
+     * waiting on it too; a refusal or a denial already
      * says the member is not coming and stays as it is. The
      * rows are kept and marked rather than removed, so whoever runs the appointment can still see who
      * had been down for the day. Nothing is remembered to put back: the member did not give the place
@@ -530,6 +531,11 @@ public class EventRegistrationRepository {
     public List<EventRegistration> withdrawOnDates(int eventId, Collection<LocalDate> dates) {
         if (dates.isEmpty()) return List.of();
         return query("""
+                WITH partners_waiting AS (UPDATE event_federation_registration
+                                          SET status = 'WITHDRAWN', previous_status = NULL, status_changed_at = now()
+                                          WHERE event_id = :event_id
+                                            AND event_date = ANY(:dates)
+                                            AND status = 'QUEUED')
                 UPDATE event_registration
                 SET status            = 'WITHDRAWN',
                     previous_status   = NULL,

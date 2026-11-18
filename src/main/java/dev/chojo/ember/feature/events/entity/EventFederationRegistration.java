@@ -50,6 +50,16 @@ public record EventFederationRegistration(
     }
 
     /**
+     * Whether this answer puts somebody among the people coming or asking to come: it stands, and does
+     * not merely wait on the waiting list. Whoever waits is asked for nothing until they move up.
+     *
+     * @return true for a standing answer that is not waiting on the waiting list
+     */
+    public boolean isComingOrAsking() {
+        return isStanding() && status != RegistrationStatus.QUEUED;
+    }
+
+    /**
      * Creates a row mapping for database result set conversion.
      */
     public static RowMapping<EventFederationRegistration> map() {

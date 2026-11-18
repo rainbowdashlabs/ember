@@ -160,18 +160,19 @@ class RegistrationPlacesTest extends RepositoryTestBase {
     }
 
     @Test
-    void aFreePlaceGoesToNobodyWhileOthersWait() {
+    void aFreePlaceGoesToWhoeverWaitsBeforeANewcomer() {
         var event = event(1, false);
         signUp(event, 0);
         var waiting = signUp(event, 1);
-        query("UPDATE station_event SET registration_limit = 3 WHERE id = :id;")
+        query("UPDATE station_event SET registration_limit = 2 WHERE id = :id;")
                 .single(call().bind("id", event.id()))
                 .update();
 
         var newcomer = signUp(event, 2);
 
         assertEquals(RegistrationStatus.QUEUED, newcomer.status(), "nobody overtakes the waiting list");
-        assertEquals(Map.of(waiting.id(), 1, newcomer.id(), 2), ranks(waiting, newcomer));
+        assertEquals(RegistrationStatus.ACCEPTED, statusOf(waiting));
+        assertEquals(Map.of(newcomer.id(), 1), ranks(waiting, newcomer));
     }
 
     @Test
