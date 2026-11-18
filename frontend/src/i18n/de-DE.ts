@@ -7749,7 +7749,7 @@ export default {
         mailProviderPrivacy: 'Datenschutzhinweise des Anbieters',
         mailProviderOwnServer: 'Eigener Mailserver',
         mailProviderUnknown: 'Unbekannt',
-        mailNotConfigured: 'E-Mail-Versand ist für diese Wache nicht konfiguriert.',
+        mailNotConfigured: 'Für diese Wache ist kein E-Mail-Versand eingerichtet, daher können Benachrichtigungen nicht per E-Mail zugestellt werden.',
         notifications: 'Benachrichtigungen',
         notificationsHint: 'Wähle, welche Benachrichtigungen du in der App und per E-Mail erhalten möchtest.',
         columnApp: 'App',

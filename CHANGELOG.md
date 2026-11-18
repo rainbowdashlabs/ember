@@ -13,6 +13,7 @@ Notifications and messages can arrive as push notifications on phones and comput
 
 ### Improvements
 
+- **Mail switches only where mail is sent.** A station without a mail provider of its own or one shared by the instance no longer shows the mail switch and the mail column in the notification settings. A note there says that notifications cannot arrive by mail.
 - **Finding the station address on the map.** "Find on map" in the station location settings moves the pin to the typed address. A hint says when only the street or the town was found, and nothing is saved until the location is saved.
 - **Declined answers folded away.** On the registrations page, the declined answers of a date stay closed until opened. Opened, they show who declined and when, without the place ranking.
 - **Usual port shown for the mail server.** The mail settings name the usual port for the chosen encryption and point out a port that does not fit. The port is still saved as entered.

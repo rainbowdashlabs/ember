@@ -64,13 +64,25 @@ const consent = computed(() => {
 })
 
 /**
- * One column more while push is on, so the toggles stay in line with their headings. On a phone the
- * name of a type takes a line of its own and the toggles sit below it in equal columns, centred
- * under their headings, since four toggles beside a name leave the name no room.
+ * Whether the station sends mail at all, through a provider of its own or one the instance shares with
+ * it. Without one the mail switch and the mail column are left out, since nothing could be switched
+ * there; the notice above says why notifications do not arrive by mail.
  */
-const columns = computed(() => props.pushAvailable
-  ? 'grid-cols-4 justify-items-center sm:grid-cols-[1fr_auto_auto_auto_auto] sm:justify-items-stretch'
-  : 'grid-cols-3 justify-items-center sm:grid-cols-[1fr_auto_auto_auto] sm:justify-items-stretch')
+const sendsMail = computed(() => props.settings.mailConfigured)
+
+/**
+ * The grid of the type rows: one column for the app and the feed each, one more for mail where the
+ * station sends mail and one for push where the instance pushes, so the toggles stay in line with their
+ * headings. On a phone the name of a type takes a line of its own and the toggles sit below it in
+ * equal columns, centred under their headings, since four toggles beside a name leave the name no room.
+ */
+const GRIDS: Readonly<Record<number, string>> = {
+  2: 'grid-cols-2 justify-items-center sm:grid-cols-[1fr_auto_auto] sm:justify-items-stretch',
+  3: 'grid-cols-3 justify-items-center sm:grid-cols-[1fr_auto_auto_auto] sm:justify-items-stretch',
+  4: 'grid-cols-4 justify-items-center sm:grid-cols-[1fr_auto_auto_auto_auto] sm:justify-items-stretch',
+}
+
+const columns = computed(() => GRIDS[2 + (sendsMail.value ? 1 : 0) + (props.pushAvailable ? 1 : 0)])
 
 function getToggle(type: string): NotificationToggle {
   return props.settings.notifications?.[type] ?? {app: true, email: true, feed: true, push: true}
@@ -78,24 +90,23 @@ function getToggle(type: string): NotificationToggle {
 </script>
 
 <template>
-  <MailProviderNotice v-if="settings.mailConfigured" :providers="settings.mailProviders"/>
+  <MailProviderNotice v-if="sendsMail" :providers="settings.mailProviders"/>
 
-  <NeutralContainer v-if="!settings.mailConfigured" class="text-sm text-(--text-muted) py-3">
+  <NeutralContainer v-if="!sendsMail" class="text-sm text-(--text-muted) py-3" data-testid="mail-not-configured">
     {{ t('userSettings.mailNotConfigured') }}
   </NeutralContainer>
 
-  <NeutralContainer class="space-y-4">
+  <NeutralContainer v-if="sendsMail" class="space-y-4" data-testid="mail-switch">
     <SubHeader class="text-sm">{{ t('userSettings.emailTitle') }}</SubHeader>
     <div class="flex items-center justify-between">
       <div>
         <span class="text-sm font-medium">{{ t('userSettings.emailEnabled') }}</span>
         <p class="text-xs text-(--text-muted)">{{ t('userSettings.emailEnabledHint') }}</p>
-        <p v-if="settings.mailConfigured" class="text-xs text-(--text-muted)">
+        <p class="text-xs text-(--text-muted)">
           {{ consent }}
         </p>
       </div>
-      <ToggleInput :model-value="settings.emailEnabled" :disabled="!settings.mailConfigured"
-                   @update:model-value="emit('toggleEmailEnabled')"/>
+      <ToggleInput :model-value="settings.emailEnabled" @update:model-value="emit('toggleEmailEnabled')"/>
     </div>
   </NeutralContainer>
 
@@ -106,7 +117,7 @@ function getToggle(type: string): NotificationToggle {
     <div :class="columns" class="grid gap-x-4 items-center text-xs font-semibold text-(--text-muted) border-b border-(--border) pb-2">
       <span class="hidden sm:block"/>
       <span class="w-12 text-center">{{ t('userSettings.columnApp') }}</span>
-      <span class="w-12 text-center">{{ t('userSettings.columnEmail') }}</span>
+      <span v-if="sendsMail" class="w-12 text-center">{{ t('userSettings.columnEmail') }}</span>
       <span class="w-12 text-center">{{ t('userSettings.columnFeed') }}</span>
       <span v-if="pushAvailable" class="w-12 text-center">{{ t('userSettings.columnPush') }}</span>
     </div>
@@ -120,8 +131,9 @@ function getToggle(type: string): NotificationToggle {
       <div class="w-12 flex justify-center">
         <ToggleInput :model-value="getToggle(row.type).app" @update:model-value="emit('toggleApp', row.type)"/>
       </div>
-      <div class="w-12 flex justify-center">
+      <div v-if="sendsMail" class="w-12 flex justify-center">
         <ToggleInput :model-value="getToggle(row.type).email" :disabled="!settings.emailEnabled"
+                     :data-testid="`email-toggle-${row.type}`"
                      @update:model-value="emit('toggleEmail', row.type)"/>
       </div>
       <div class="w-12 flex justify-center">
